@@ -14,6 +14,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\canvas\CodeComponentDataProvider;
 use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\BrandKit;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Route;
@@ -104,6 +105,10 @@ readonly final class ComponentSourceHooks {
     // against the most obscure edge cases. (Also: tests do simulate that!)
     if ($asset_library) {
       $page['#attached']['library'][] = $asset_library->getAssetLibrary($is_preview);
+    }
+    $brand_kit = BrandKit::load(BrandKit::GLOBAL_ID);
+    if ($brand_kit) {
+      $page['#attached']['library'][] = $brand_kit->getAssetLibrary($is_preview);
     }
   }
 

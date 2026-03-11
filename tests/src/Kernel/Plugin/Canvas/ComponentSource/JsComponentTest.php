@@ -23,6 +23,7 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\StorageInterface;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
@@ -36,7 +37,10 @@ use Drupal\Tests\canvas\Kernel\Traits\CacheBustingTrait;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CodeComponentDataProvider;
 use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
+use Drupal\file\Entity\File;
+use Drupal\file\FileInterface;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
@@ -88,6 +92,12 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     $this->assetResolver = $this->container->get(AssetResolverInterface::class);
     $this->codeComponentDataProvider = $this->container->get(CodeComponentDataProvider::class);
 
+    $this->installEntitySchema('file');
+    $this->installSchema('file', 'file_usage');
+    $this->config('file.settings')
+      ->set('make_unused_managed_files_temporary', TRUE)
+      ->save();
+
     // For testing a code component using the "video" prop shape.
     $this->installEntitySchema('media');
     $this->installEntitySchema('field_storage_config');
@@ -112,6 +122,26 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
   protected function generateComponentConfig(): void {
     parent::generateComponentConfig();
     $this->container->get('config.installer')->installDefaultConfig('module', 'canvas_test_code_components');
+  }
+
+  private function createFontFile(string $filename = 'test-font.woff2'): string {
+    return BrandKit::ARTIFACTS_DIRECTORY . $filename;
+  }
+
+  private function createManagedFontFile(string $filename = 'test-font.woff2'): FileInterface {
+    $uri = $this->createFontFile($filename);
+    $file_system = \Drupal::service('file_system');
+    \assert($file_system instanceof FileSystemInterface);
+    $directory = BrandKit::ARTIFACTS_DIRECTORY;
+    self::assertTrue($file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS));
+    $realpath = $file_system->realpath($uri);
+    self::assertIsString($realpath);
+    self::assertNotFalse(file_put_contents($realpath, 'font-data'));
+
+    $file = File::create(['uri' => $uri]);
+    $file->save();
+
+    return $file;
   }
 
   public function testDiscovery(): array {
@@ -468,6 +498,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     $site_path = $this->siteDirectory;
     $default_libraries = [
       'canvas/asset_library.' . AssetLibrary::GLOBAL_ID,
+      'canvas/brand_kit.' . BrandKit::GLOBAL_ID,
       'canvas/astro.hydration',
     ];
     $default_html_head_links = [
@@ -617,7 +648,9 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       ],
       'js.canvas_test_code_components_with_array_props' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags(['config:canvas.js_component.canvas_test_code_components_with_array_props']),
+          ->setCacheTags([
+            'config:canvas.js_component.canvas_test_code_components_with_array_props',
+          ]),
         'attachments' => [
           'library' => [
             'canvas/astro_island.canvas_test_code_components_with_array_props',
@@ -638,7 +671,9 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       ],
       'js.canvas_test_code_components_with_enums' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags(['config:canvas.js_component.canvas_test_code_components_with_enums']),
+          ->setCacheTags([
+            'config:canvas.js_component.canvas_test_code_components_with_enums',
+          ]),
         'attachments' => [
           'library' => [
             'canvas/astro_island.canvas_test_code_components_with_enums',
@@ -659,7 +694,9 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       ],
       'js.canvas_test_code_components_with_link_prop' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags(['config:canvas.js_component.canvas_test_code_components_with_link_prop']),
+          ->setCacheTags([
+            'config:canvas.js_component.canvas_test_code_components_with_link_prop',
+          ]),
         'attachments' => [
           'library' => [
             'canvas/astro_island.canvas_test_code_components_with_link_prop',
@@ -680,7 +717,9 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       ],
       'js.canvas_test_code_components_with_no_props' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags(['config:canvas.js_component.canvas_test_code_components_with_no_props']),
+          ->setCacheTags([
+            'config:canvas.js_component.canvas_test_code_components_with_no_props',
+          ]),
         'attachments' => [
           'library' => [
             'canvas/astro_island.canvas_test_code_components_with_no_props',
@@ -701,7 +740,9 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       ],
       'js.canvas_test_code_components_with_props' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags(['config:canvas.js_component.canvas_test_code_components_with_props']),
+          ->setCacheTags([
+            'config:canvas.js_component.canvas_test_code_components_with_props',
+          ]),
         'attachments' => [
           'library' => [
             'canvas/astro_island.canvas_test_code_components_with_props',
@@ -745,7 +786,9 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       ],
       'js.canvas_test_code_components_using_get_page_data' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags(['config:canvas.js_component.canvas_test_code_components_using_get_page_data']),
+          ->setCacheTags([
+            'config:canvas.js_component.canvas_test_code_components_using_get_page_data',
+          ]),
         'attachments' => [
           'library' => [
             'canvas/astro_island.canvas_test_code_components_using_get_page_data',
@@ -766,7 +809,9 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       ],
       'js.canvas_test_code_components_using_drupalsettings_get_site_data' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags(['config:canvas.js_component.canvas_test_code_components_using_drupalsettings_get_site_data']),
+          ->setCacheTags([
+            'config:canvas.js_component.canvas_test_code_components_using_drupalsettings_get_site_data',
+          ]),
         'attachments' => [
           'library' => [
             'canvas/astro_island.canvas_test_code_components_using_drupalsettings_get_site_data',
@@ -810,6 +855,51 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
         ->addCacheableDependency($source->getJavaScriptComponent());
       $this->assertRenderedAstroIsland($component, $preview_requested, $auto_save_exists, $expected_result, $expected_cacheability);
     }
+  }
+
+  public function testRenderJsComponentPreloadsGlobalFonts(): void {
+    $this->generateComponentConfig();
+
+    $file = $this->createManagedFontFile('preloaded.woff2');
+    $font_uri = $file->getFileUri();
+    \assert(\is_string($font_uri));
+
+    $brand_kit = BrandKit::load(BrandKit::GLOBAL_ID);
+    self::assertNotNull($brand_kit);
+    $brand_kit->setFonts([
+      [
+        'id' => '00000000-0000-4000-8000-000000000001',
+        'family' => 'Inter',
+        'uri' => $font_uri,
+        'format' => 'woff2',
+        'weight' => '400',
+        'style' => 'normal',
+      ],
+    ]);
+    $brand_kit->save();
+
+    $component = Component::load('js.canvas_test_code_components_with_no_props');
+    self::assertInstanceOf(ComponentInterface::class, $component);
+    $source = $component->getComponentSource();
+    self::assertInstanceOf(JsComponent::class, $source);
+
+    $island = $source->renderComponent(['props' => []], $source->getSlotDefinitions(), 'some-uuid');
+    $preloads = array_column($island['#attached']['html_head_link'], 0);
+    $font_preload = array_values(array_filter(
+      $preloads,
+      static fn(array $link): bool => ($link['as'] ?? NULL) === 'font',
+    ));
+
+    self::assertCount(1, $font_preload);
+    self::assertSame('preload', $font_preload[0]['rel']);
+    self::assertSame('font/woff2', $font_preload[0]['type']);
+    self::assertSame('anonymous', $font_preload[0]['crossorigin']);
+    $file_url_generator = $this->container->get(FileUrlGeneratorInterface::class);
+    \assert($file_url_generator instanceof FileUrlGeneratorInterface);
+    self::assertSame(
+      $file_url_generator->generateString($font_uri),
+      $font_preload[0]['href'],
+    );
   }
 
   /**

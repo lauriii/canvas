@@ -11,6 +11,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Element\RenderSafeComponentContainer;
 use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -1190,6 +1191,7 @@ HTML,
                                         'library' => [
                                           'canvas/astro_island.my-cta',
                                           'canvas/asset_library.' . AssetLibrary::GLOBAL_ID,
+                                          'canvas/brand_kit.' . BrandKit::GLOBAL_ID,
                                         ],
                                       ],
                                       '#name' => 'My First Code Component',
@@ -1265,6 +1267,7 @@ HTML,
                                         'library' => [
                                           'canvas/astro_island.my-cta-with-auto-save',
                                           'canvas/asset_library.' . AssetLibrary::GLOBAL_ID,
+                                          'canvas/brand_kit.' . BrandKit::GLOBAL_ID,
                                         ],
                                       ],
                                       '#name' => 'My Code Component with Auto-Save',

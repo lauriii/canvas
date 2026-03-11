@@ -26,6 +26,7 @@ import { deserializeCodeComponent } from '@/features/code-editor/utils/utils';
 
 import type {
   AssetLibrary,
+  BrandKit,
   CodeComponentSerialized,
 } from '@/types/CodeComponent';
 
@@ -43,11 +44,16 @@ const useCodeEditor: () => {
   );
 
   // Get the code component and global asset library data.
-  const { dataCodeComponent, dataGlobalAssetLibrary, isLoading, isSuccess } =
-    useGetCodeEditorData(requestedComponentId as string, {
-      // Do not re-fetch data unless there is a new requested component.
-      skip: requestedComponentId === loadedComponentId,
-    });
+  const {
+    dataCodeComponent,
+    dataGlobalAssetLibrary,
+    dataBrandKit,
+    isLoading,
+    isSuccess,
+  } = useGetCodeEditorData(requestedComponentId as string, {
+    // Do not re-fetch data unless there is a new requested component.
+    skip: requestedComponentId === loadedComponentId,
+  });
 
   // Initialize the code editor with the data.
   useEffect(() => {
@@ -56,6 +62,7 @@ const useCodeEditor: () => {
       (!isLoading && !isSuccess) ||
       !dataCodeComponent ||
       !dataGlobalAssetLibrary ||
+      !dataBrandKit ||
       (loadedComponentId &&
         requestedComponentId &&
         loadedComponentId === requestedComponentId)
@@ -68,6 +75,7 @@ const useCodeEditor: () => {
           dataCodeComponent as CodeComponentSerialized,
         ),
         globalAssetLibrary: dataGlobalAssetLibrary as AssetLibrary,
+        brandKit: dataBrandKit as BrandKit,
         status: {
           // The first compilation normally bypasses auto-save.
           // However, if the compiled JS is empty or a previous compilation
@@ -84,6 +92,7 @@ const useCodeEditor: () => {
     loadedComponentId,
     dataCodeComponent,
     dataGlobalAssetLibrary,
+    dataBrandKit,
     isLoading,
     isSuccess,
     dispatch,

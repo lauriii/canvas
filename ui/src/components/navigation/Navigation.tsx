@@ -6,7 +6,6 @@ import {
   DotsVerticalIcon,
   FileTextIcon,
   HomeIcon,
-  InfoCircledIcon,
   MagnifyingGlassIcon,
   PlusIcon,
 } from '@radix-ui/react-icons';
@@ -15,7 +14,6 @@ import {
   Badge,
   Box,
   Button,
-  Callout,
   DropdownMenu,
   Flex,
   Heading,
@@ -27,6 +25,7 @@ import {
 } from '@radix-ui/themes';
 
 import { useAppSelector } from '@/app/hooks';
+import EmptyStateCallout from '@/components/EmptyStateCallout';
 import { selectHomepagePath } from '@/features/configuration/configurationSlice';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 
@@ -319,16 +318,11 @@ const ContentGroup = ({
   const homepagePath = useAppSelector(selectHomepagePath);
   if (items.length === 0) {
     return (
-      <Callout.Root
-        size="1"
-        color="gray"
+      <EmptyStateCallout
         data-testid="canvas-navigation-results"
-      >
-        <Callout.Icon>
-          <InfoCircledIcon />
-        </Callout.Icon>
-        <Callout.Text>No pages found.</Callout.Text>
-      </Callout.Root>
+        title="No pages found"
+        variant="surface"
+      />
     );
   }
 

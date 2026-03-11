@@ -143,7 +143,6 @@ describe.runIf(isConfigured)('api service integration', () => {
         original: '',
         compiled: '',
       },
-      fonts: null,
     });
     const updatedAssetLibrary = await apiService.updateGlobalAssetLibrary({
       css: {

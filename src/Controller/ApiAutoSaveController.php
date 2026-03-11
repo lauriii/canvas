@@ -25,6 +25,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Utility\Error;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\AutoSavePublishAwareInterface;
 use Drupal\canvas\Entity\EntityConstraintViolationList;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -99,16 +100,15 @@ final class ApiAutoSaveController extends ApiControllerBase {
         ], $unmatched_keys),
       ], status: Response::HTTP_CONFLICT);
     }
-    // If any JavaScriptComponents are being published ensure the global
-    // AssetLibrary is also being published.
+    // If any JavaScriptComponents are being published ensure dependent global
+    // config surfaces are also being published.
     // @todo Improve this in https://www.drupal.org/project/canvas/issues/3535038
-    $global_asset = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
-    if ($global_asset !== NULL) {
-      $global_asset_key = AutoSaveManager::getAutoSaveKey($global_asset);
-      if (\array_key_exists($global_asset_key, $all_auto_saves) && !\array_key_exists($global_asset_key, $expected_auto_saves)) {
-        // There are changes to the global asset library, but it is not being
-        // published. We need to ensure there are not code components being
-        // published.
+    foreach ([AssetLibrary::load(AssetLibrary::GLOBAL_ID), BrandKit::load(BrandKit::GLOBAL_ID)] as $global_dependency) {
+      if ($global_dependency === NULL) {
+        continue;
+      }
+      $global_dependency_key = AutoSaveManager::getAutoSaveKey($global_dependency);
+      if (\array_key_exists($global_dependency_key, $all_auto_saves) && !\array_key_exists($global_dependency_key, $expected_auto_saves)) {
         foreach ($expected_auto_saves as $client_auto_save) {
           if ($client_auto_save['entity_type'] === JavaScriptComponent::ENTITY_TYPE_ID) {
             return new JsonResponse(data: [
@@ -116,15 +116,15 @@ final class ApiAutoSaveController extends ApiControllerBase {
                 [
                   'detail' => ErrorCodesEnum::GlobalAssetNotPublished->getMessage(),
                   'source' => [
-                    'pointer' => $global_asset_key,
+                    'pointer' => $global_dependency_key,
                   ],
                   'code' => ErrorCodesEnum::GlobalAssetNotPublished->value,
-                  'meta' => \array_intersect_key($all_auto_saves[$global_asset_key], \array_flip([
+                  'meta' => \array_intersect_key($all_auto_saves[$global_dependency_key], \array_flip([
                     'entity_type',
                     'entity_id',
                     'label',
                   ])) + [
-                    self::AUTO_SAVE_KEY => $global_asset_key,
+                    self::AUTO_SAVE_KEY => $global_dependency_key,
                   ],
                 ],
               ],

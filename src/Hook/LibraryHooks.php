@@ -9,7 +9,6 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
-use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Plugin\Discovery\YamlDiscovery;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -17,6 +16,7 @@ use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Version;
 
@@ -34,7 +34,6 @@ final class LibraryHooks {
     private readonly ThemeHandlerInterface $themeHandler,
     private readonly ModuleExtensionList $moduleExtensionList,
     private readonly Version $version,
-    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
   ) {
   }
 
@@ -116,16 +115,27 @@ final class LibraryHooks {
       if ($library->hasJs()) {
         $libraries[$library_name]['js'][$library->getJsPath()] = [];
       }
-      foreach ($library->getFonts() as $fontEntry) {
-        $fontCssUrl = $this->fileUrlGenerator->generate($fontEntry['uri'])->toString();
-        $libraries[$library_name]['css']['theme'][$fontCssUrl] = [];
-      }
       \assert(empty($library->getAssetLibraryDependencies()));
       // Draft.
       $draft_css_url = \sprintf('/canvas/api/v0/auto-saves/css/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
       $libraries[$library_name . '.draft']['css']['theme'][$draft_css_url] = ['preprocess' => FALSE];
       $draft_js_url = \sprintf('/canvas/api/v0/auto-saves/js/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
       $libraries[$library_name . '.draft']['js'][$draft_js_url] = ['preprocess' => FALSE];
+    }
+
+    // @see \Drupal\canvas\Entity\BrandKit::getAssetLibrary()
+    // @see \Drupal\canvas\EntityHandlers\CanvasAssetStorage::generateFiles()
+    foreach (BrandKit::loadMultiple() as $brand_kit_id => $brand_kit) {
+      $library_name = "brand_kit." . $brand_kit->id();
+      // Prod.
+      $libraries[$library_name] = [
+        'dependencies' => [],
+      ];
+      if ($brand_kit->hasCss()) {
+        $libraries[$library_name]['css']['theme'][$brand_kit->getCssPath()] = [];
+      }
+      $draft_css_url = \sprintf('/canvas/api/v0/auto-saves/css/%s/%s', BrandKit::ENTITY_TYPE_ID, $brand_kit_id);
+      $libraries[$library_name . '.draft']['css']['theme'][$draft_css_url] = ['preprocess' => FALSE];
     }
 
     // @see \Drupal\canvas\Entity\JavaScriptComponent::getAssetLibrary()
@@ -138,10 +148,12 @@ final class LibraryHooks {
       }
       $libraries[$library_name]['dependencies'] = $component->getAssetLibraryDependencies();
       $libraries[$library_name]['dependencies'][] = 'canvas/asset_library.' . AssetLibrary::GLOBAL_ID;
+      $libraries[$library_name]['dependencies'][] = 'canvas/brand_kit.' . BrandKit::GLOBAL_ID;
       // Draft.
       $draft_css_url = \sprintf('/canvas/api/v0/auto-saves/css/%s/%s', JavaScriptComponent::ENTITY_TYPE_ID, $component_id);
       $libraries[$library_name . '.draft']['css']['component'][$draft_css_url] = ['preprocess' => FALSE];
       $libraries[$library_name . '.draft']['dependencies'][] = 'canvas/asset_library.' . AssetLibrary::GLOBAL_ID . '.draft';
+      $libraries[$library_name . '.draft']['dependencies'][] = 'canvas/brand_kit.' . BrandKit::GLOBAL_ID . '.draft';
       // To avoid a race condition for auto-saved code components, always load
       // the data that it might start using at any point.
       $libraries[$library_name . '.draft']['dependencies'][] = 'canvas/canvasData.v0';

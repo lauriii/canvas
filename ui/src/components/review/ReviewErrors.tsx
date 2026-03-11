@@ -16,6 +16,7 @@ import {
 } from '@radix-ui/themes';
 
 import ChangeIcon from '@/components/review/changes/ChangeIcon';
+import { getGroupLabel } from '@/components/review/utils';
 
 import type { ErrorResponse } from '@/services/pendingChangesApi';
 
@@ -47,6 +48,51 @@ interface ErrorGroupProps {
   errorGroup: EntityError[];
 }
 
+const getEntityLabel = (
+  error: ErrorResponse['errors'][number],
+): string | null => {
+  if (!error.meta?.label) {
+    return null;
+  }
+
+  if (error.meta.entity_type === 'brand_kit') {
+    return getGroupLabel(error.meta.entity_type);
+  }
+
+  return error.meta.label;
+};
+
+const getErrorPath = (error: EntityError): string | null => {
+  if (!error.meta?.entity_type || !error.meta?.entity_id) {
+    return null;
+  }
+
+  if (error.meta.entity_type === 'brand_kit') {
+    return null;
+  }
+
+  let errorPath = `/editor/${error.meta.entity_type}/${error.meta.entity_id}`;
+  let componentId = '';
+
+  if (typeof error.source.pointer === 'string') {
+    const sourcePointerParts = error.source.pointer.split('.');
+    // Find the UUID in the pointer.
+    componentId = sourcePointerParts
+      .reverse()
+      .filter((part) =>
+        part.match(
+          /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/,
+        ),
+      )?.[0];
+  }
+
+  if (componentId) {
+    errorPath = `${errorPath}/component/${componentId}`;
+  }
+
+  return errorPath;
+};
+
 const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
   const [isOpen, setIsOpen] = useState(true);
   return (
@@ -75,27 +121,7 @@ const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
         className={clsx(detailsStyle.content, detailsStyle.detailsContent)}
       >
         {errorGroup.map((error: EntityError, ix: number) => {
-          let componentId = '';
-          let errorPath =
-            error?.meta?.entity_type &&
-            error?.meta?.entity_id &&
-            `/editor/${error.meta.entity_type}/${error.meta.entity_id}`;
-
-          if (typeof error?.source?.pointer === 'string') {
-            const sourcePointerParts = error.source.pointer.split('.');
-            // Find the UUID in the pointer.
-            componentId = sourcePointerParts
-              .reverse()
-              .filter((part) =>
-                part.match(
-                  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/,
-                ),
-              )?.[0];
-          }
-
-          if (errorPath && componentId) {
-            errorPath = `${errorPath}/component/${componentId}`;
-          }
+          const errorPath = getErrorPath(error);
 
           return (
             <Flex px="5" py="1" gap="2" align="start" key={ix}>
@@ -132,7 +158,7 @@ const ReviewErrors: React.FC<ReviewErrorsProps> = ({ errorState }) => {
     // Organize errors by entity label.
     const errorsByEntity: ErrorsByEntity = errorState.errors.reduce(
       (carry, error) => {
-        const label = error.meta?.label;
+        const label = getEntityLabel(error);
         if (label) {
           if (!carry[label]) {
             carry[label] = [];

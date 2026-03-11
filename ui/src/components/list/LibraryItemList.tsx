@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { InfoCircledIcon } from '@radix-ui/react-icons';
-import { Callout, Flex, Skeleton } from '@radix-ui/themes';
+import { Skeleton } from '@radix-ui/themes';
+
+import EmptyStateCallout from '@/components/EmptyStateCallout';
 
 import FolderList, { folderfyComponents, sortFolderList } from './FolderList';
 import List from './List';
@@ -107,22 +108,17 @@ function LibraryItemList<T extends { id: string; name: string }>({
 
   if (showCallout) {
     return (
-      <Callout.Root size="1" variant="soft" color="gray" my="3">
-        <Flex align="center" gapX="2">
-          <Callout.Icon>
-            <InfoCircledIcon />
-          </Callout.Icon>
-          {searchTerm ? (
-            <Callout.Text size="1">
+      <EmptyStateCallout
+        title={
+          searchTerm ? (
+            <>
               No results for "<strong>{searchTerm}</strong>" in {topLevelLabel}
-            </Callout.Text>
+            </>
           ) : (
-            <Callout.Text size="1">
-              No items to show in {topLevelLabel}
-            </Callout.Text>
-          )}
-        </Flex>
-      </Callout.Root>
+            <>No items to show in {topLevelLabel}</>
+          )
+        }
+      />
     );
   }
 

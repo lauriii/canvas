@@ -24,6 +24,10 @@ administer page template:
 administer content templates:
   title: 'Administer content templates'
 
+# @see \Drupal\canvas\Entity\BrandKit::ADMIN_PERMISSION
+administer brand kit:
+  title: 'Administer brand kit'
+
 # @see \Drupal\canvas\Entity\Page::CREATE_PERMISSION
 create canvas_page:
   title: 'Create Canvas Page'

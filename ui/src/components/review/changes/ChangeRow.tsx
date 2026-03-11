@@ -12,7 +12,7 @@ import {
   Tooltip,
 } from '@radix-ui/themes';
 
-import { getAvatarInitialColor, getTimeAgo } from '../utils';
+import { getAvatarInitialColor, getChangeLabel, getTimeAgo } from '../utils';
 import ChangeIcon from './ChangeIcon';
 
 import type { UnpublishedChange } from '@/types/Review';
@@ -41,6 +41,7 @@ const ChangeRow = ({
   onViewClick,
   pageStatusMap,
 }: ChangeRowProps) => {
+  const changeLabel = getChangeLabel(change);
   const initial = change.owner.name.trim().charAt(0).toUpperCase();
   const avatarColor = getAvatarInitialColor(change.owner.id);
   const date = new Date(change.updated * 1000);
@@ -95,7 +96,7 @@ const ChangeRow = ({
             <Checkbox
               size="1"
               disabled={isBusy}
-              aria-label={`Select change ${change.label}`}
+              aria-label={`Select change ${changeLabel}`}
               onCheckedChange={handleChangeSelection}
               checked={isSelected}
             />
@@ -105,7 +106,7 @@ const ChangeRow = ({
                 entityId={change.entity_id}
               />
             </Flex>
-            {change.label}
+            {changeLabel}
           </Flex>
         </Text>
         <Flex

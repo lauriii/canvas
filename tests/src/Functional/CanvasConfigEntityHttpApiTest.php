@@ -17,6 +17,7 @@ use Drupal\Core\Url;
 use Drupal\canvas\Audit\ComponentAudit;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
@@ -247,6 +248,8 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'administer themes',
       Page::EDIT_PERMISSION,
       Component::ADMIN_PERMISSION,
+      AssetLibrary::ADMIN_PERMISSION,
+      BrandKit::ADMIN_PERMISSION,
       JavaScriptComponent::ADMIN_PERMISSION,
       Pattern::ADMIN_PERMISSION,
       Folder::ADMIN_PERMISSION,
@@ -1474,7 +1477,6 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'label' => NULL,
       'css' => NULL,
       'js' => NULL,
-      'fonts' => NULL,
     ];
     $request_options[RequestOptions::JSON] = $asset_library_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);

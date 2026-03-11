@@ -46,8 +46,8 @@ _Note: The Simple OAuth module uses the terms "client" and "consumer" interchang
    configuration and tests for this grant type. Other grant types can also work, but this module doesn't provide
    anything in particular for those.
   1. Select scopes that this client will be able to request. (See the section "3. OAuth 2 scopes" below.) For example,
-     select `canvas:js_component` to give full access to working with code components; whereas `canvas:asset_library` will give
-     full access to working with asset libraries.
+     select `canvas:js_component` to give full access to working with code components, `canvas:asset_library` for global CSS
+     and JS asset libraries, and `canvas:brand_kit` for Brand Kit data such as fonts.
   2. Configure a user who will be used as the author of actions made by this client. Two important notes:
     1. Do not use the anonymous user. Certain Canvas API endpoints require an authenticated user through an access checker,
        which will specifically look at the configured user here.
@@ -86,8 +86,9 @@ The following scopes are created as dynamic scopes (config entities) upon instal
 
 | Scope              | Permission                   |
 |--------------------|------------------------------|
-| `canvas:js_component`   | `administer code components` |
+| `canvas:js_component` | `administer code components` |
 | `canvas:asset_library` | `administer code components` |
+| `canvas:brand_kit` | `administer brand kit` |
 
 Each scope is enabled for the [Client Credentials grant type](https://oauth.net/2/grant-types/client-credentials/).
 
@@ -95,8 +96,9 @@ You can change this configuration, e.g., associate user roles instead of permiss
 this set of scopes as an initial batch that aims to balance simplicity with future-proofing for when Canvas ships more
 granular permissions.
 
-Also feel free to incorporate these into another scope provider: What's important is the `administer code components`
-permission.
+Also feel free to incorporate these into another scope provider: what's important is using the permission that matches
+the resource, for example `administer code components` for code components and global asset libraries, and
+`administer brand kit` for Brand Kit resources.
 
 ## 4. Supported endpoints
 
@@ -108,3 +110,5 @@ permission.
 | `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/js_component/{configEntityId}`     |
 | `GET`, `POST`            | `/canvas/api/v0/config/asset_library`                  |
 | `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/asset_library/{configEntityId}` |
+| `GET`, `POST`            | `/canvas/api/v0/config/brand_kit`                      |
+| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/brand_kit/{configEntityId}`    |

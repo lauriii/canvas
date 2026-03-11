@@ -33,6 +33,7 @@ use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\canvas\AssetRenderer;
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageRegion;
@@ -198,6 +199,7 @@ HTML;
             'permissions' => [
               'globalRegions' => $this->currentUser->hasPermission(PageRegion::ADMIN_PERMISSION),
               'patterns' => $this->currentUser->hasPermission(Pattern::ADMIN_PERMISSION),
+              'brandKit' => $this->currentUser->hasPermission(BrandKit::ADMIN_PERMISSION),
               'codeComponents' => $this->currentUser->hasPermission(JavaScriptComponent::ADMIN_PERMISSION),
               'contentTemplates' => $this->currentUser->hasPermission(ContentTemplate::ADMIN_PERMISSION),
               'publishChanges' => $this->currentUser->hasPermission(AutoSaveManager::PUBLISH_PERMISSION),

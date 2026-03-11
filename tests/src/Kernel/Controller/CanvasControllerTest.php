@@ -203,6 +203,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
         [
           'globalRegions' => FALSE,
           'patterns' => FALSE,
+          'brandKit' => FALSE,
           'codeComponents' => FALSE,
           'contentTemplates' => FALSE,
           'publishChanges' => FALSE,
@@ -218,6 +219,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
         [
           'globalRegions' => FALSE,
           'patterns' => FALSE,
+          'brandKit' => FALSE,
           'codeComponents' => TRUE,
           'contentTemplates' => FALSE,
           'publishChanges' => TRUE,
@@ -233,6 +235,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
         [
           'globalRegions' => TRUE,
           'patterns' => TRUE,
+          'brandKit' => FALSE,
           'codeComponents' => FALSE,
           'contentTemplates' => FALSE,
           'publishChanges' => FALSE,
@@ -249,6 +252,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
         [
           'globalRegions' => TRUE,
           'patterns' => TRUE,
+          'brandKit' => FALSE,
           'codeComponents' => TRUE,
           'contentTemplates' => FALSE,
           'publishChanges' => FALSE,
@@ -268,6 +272,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
         [
           'globalRegions' => TRUE,
           'patterns' => TRUE,
+          'brandKit' => FALSE,
           'codeComponents' => TRUE,
           'contentTemplates' => TRUE,
           'publishChanges' => TRUE,

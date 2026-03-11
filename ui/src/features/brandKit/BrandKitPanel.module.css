@@ -1,0 +1,279 @@
+.familyList {
+  display: flex;
+  flex-direction: column;
+}
+
+.familyRow {
+  all: unset;
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--space-6);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-2);
+  cursor: pointer;
+  color: var(--slate-12);
+}
+
+.familyRow:hover {
+  background: var(--blue-3);
+}
+
+.familyRow[data-state='active'] {
+  color: white;
+  background: var(--blue-9);
+}
+
+.familyRow:focus-visible {
+  outline: 2px solid var(--blue-8);
+  outline-offset: -2px;
+}
+
+.familyMeta {
+  flex: 1;
+  min-width: 0;
+  padding: 0 var(--space-2);
+}
+
+.familyName {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.familyCount {
+  background-color: var(--gray-3);
+  border-radius: var(--radius-2);
+}
+
+.familyRow:hover .familyCount {
+  background-color: var(--blue-5);
+  color: var(--blue-11);
+}
+
+.familyRow[data-state='active'] .familyCount {
+  background-color: var(--blue-10);
+  color: white;
+}
+
+.flyoutContent {
+  width: min(380px, calc(100vw - 32px));
+  height: min(70vh, 760px);
+  max-height: min(70vh, 760px);
+  display: flex;
+  padding: 0;
+  border-radius: var(--radius-4);
+  overflow: hidden;
+  box-shadow: var(--shadow-5);
+  transform-origin: var(--radix-popover-content-transform-origin);
+  z-index: 20;
+}
+
+.flyoutPanel {
+  display: flex !important;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: var(--color-panel-solid);
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.flyoutHeader {
+  flex-shrink: 0;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--gray-4);
+}
+
+.flyoutHeaderMeta {
+  flex: 1;
+  min-width: 0;
+}
+
+.flyoutHeaderActions {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-left: var(--space-4);
+}
+
+.flyoutCloseButton {
+  margin-left: var(--space-1);
+}
+
+.flyoutScrollArea {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.flyoutBody {
+  min-width: 0;
+  padding: var(--space-4);
+}
+
+.flyoutBottomSpacer {
+  height: var(--space-4);
+  flex: 0 0 auto;
+}
+
+.previewSample {
+  line-height: 1.1;
+}
+
+.previewSecondary {
+  line-height: 1.3;
+}
+
+.variantList {
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-3);
+  overflow: hidden;
+  background: var(--color-panel-solid);
+}
+
+.variantRow {
+  all: unset;
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--gray-4);
+  cursor: pointer;
+}
+
+.variantRow:last-child {
+  border-bottom: 0;
+}
+
+.variantRow:hover,
+.variantRow[data-state='active'] {
+  background: var(--gray-2);
+}
+
+.variantRow[data-state='active'] {
+  box-shadow: inset 2px 0 0 var(--accent-9);
+}
+
+.variantRow:focus-visible {
+  outline: 2px solid var(--blue-8);
+  outline-offset: -2px;
+}
+
+.variantRowMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.variantFilename {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.styleSelectContent {
+  z-index: 200;
+}
+
+.variantRowChevron {
+  color: var(--gray-9);
+  flex-shrink: 0;
+}
+
+.settingsSection,
+.previewSection {
+  padding: var(--space-3);
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-3);
+  background: color-mix(
+    in srgb,
+    var(--color-panel-solid) 92%,
+    var(--gray-2) 8%
+  );
+}
+
+.variantHeader {
+  align-items: flex-start;
+}
+
+.variantMeta {
+  flex: 1;
+  min-width: 0;
+}
+
+.deleteButton {
+  flex-shrink: 0;
+  margin-top: calc(var(--space-1) * -1);
+}
+
+.axisControl {
+  padding: var(--space-3);
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-3);
+  background: var(--gray-2);
+}
+
+.axisSlider {
+  width: 100%;
+  accent-color: var(--accent-9);
+}
+
+.snippetBox {
+  background: var(--gray-3);
+  border: 1px solid var(--gray-5);
+  border-radius: var(--radius-3);
+  overflow-x: auto;
+  padding: var(--space-3);
+}
+
+.snippetWrapper {
+  position: relative;
+}
+
+.snippetCopyButton {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.snippetWrapper:hover .snippetCopyButton,
+.snippetWrapper:focus-within .snippetCopyButton {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.snippetWrapper:hover .snippetPre,
+.snippetWrapper:focus-within .snippetPre {
+  opacity: 0.4;
+}
+
+.snippetPre {
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    'Liberation Mono',
+    'Courier New',
+    monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--gray-12);
+  margin: 0;
+  white-space: pre;
+}

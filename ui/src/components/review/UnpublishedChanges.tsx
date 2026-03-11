@@ -29,6 +29,7 @@ import {
   clearSelection,
   selectSelectedComponentUuid,
 } from '@/features/ui/uiSlice';
+import { brandKitApi } from '@/services/brandKit';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { contentApi, useGetContentListQuery } from '@/services/content';
 import {
@@ -140,6 +141,9 @@ const UnpublishedChanges = () => {
       const changedCodeComponentIds = Object.values(changesToPublish)
         .filter((change) => change.entity_type === 'js_component')
         .map((change) => change.entity_id);
+      const changedBrandKitIds = Object.values(changesToPublish)
+        .filter((change) => change.entity_type === 'brand_kit')
+        .map((change) => String(change.entity_id));
 
       await publishAllChanges(changesToPublish);
 
@@ -203,6 +207,18 @@ const UnpublishedChanges = () => {
           ),
         );
       }
+
+      if (changedBrandKitIds.length) {
+        dispatch(
+          brandKitApi.util.invalidateTags([
+            ...changedBrandKitIds.flatMap((id) => [
+              { type: 'BrandKits' as const, id },
+              { type: 'BrandKitsAutoSave' as const, id },
+            ]),
+            { type: 'BrandKits' as const, id: 'LIST' },
+          ]),
+        );
+      }
     }
   };
 
@@ -230,6 +246,16 @@ const UnpublishedChanges = () => {
           dispatch(setForceRefresh(true));
           dispatch(resetCodeEditor());
         }
+      }
+      if (selectedChange.entity_type === 'brand_kit') {
+        const discardedBrandKitId = String(selectedChange.entity_id);
+        dispatch(
+          brandKitApi.util.invalidateTags([
+            { type: 'BrandKits', id: discardedBrandKitId },
+            { type: 'BrandKitsAutoSave', id: discardedBrandKitId },
+            { type: 'BrandKits', id: 'LIST' },
+          ]),
+        );
       }
       // When the discarded change is for the current page, re-apply the
       // refetched layout and model so the canvas, sidebar, and form fields

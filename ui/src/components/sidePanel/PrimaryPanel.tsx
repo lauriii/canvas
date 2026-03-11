@@ -10,12 +10,14 @@ import Code from '@/components/sidePanel/Code';
 import Library from '@/components/sidePanel/Library';
 import Pages from '@/components/sidePanel/Pages';
 import Templates from '@/components/sidePanel/Templates';
+import BrandKitPanel from '@/features/brandKit/BrandKitPanel';
 import Layers from '@/features/layout/layers/Layers';
 import {
   selectActivePanel,
   unsetActivePanel,
 } from '@/features/ui/primaryPanelSlice';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 import { hasPermission } from '@/utils/permissions';
 
 import AiWizard from '../aiExtension/AiWizard';
@@ -31,11 +33,18 @@ export const PrimaryPanel = () => {
     if (activePanel === 'templates' && !hasPermission('contentTemplates')) {
       dispatch(unsetActivePanel());
     }
+    if (
+      activePanel === 'brandKit' &&
+      (!hasPermission('brandKit') || !getCanvasSettings()?.devMode)
+    ) {
+      dispatch(unsetActivePanel());
+    }
   }, [activePanel, dispatch]);
 
   const panelMap: Record<string, string> = {
     library: 'Library',
     layers: 'Layers',
+    brandKit: 'Brand kit',
     code: 'Code',
     extensions: 'Extensions',
     aiWizard: 'AI',
@@ -86,6 +95,13 @@ export const PrimaryPanel = () => {
                     <Code />
                   </ErrorBoundary>
                 )}
+                {activePanel === 'brandKit' &&
+                  hasPermission('brandKit') &&
+                  getCanvasSettings()?.devMode && (
+                    <ErrorBoundary>
+                      <BrandKitPanel />
+                    </ErrorBoundary>
+                  )}
                 {activePanel === 'pages' && (
                   <ErrorBoundary>
                     <Pages />

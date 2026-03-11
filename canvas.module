@@ -12,7 +12,9 @@ ini_set('assert.active', 1);
 
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Markup;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\PropSource\FieldStorageDefinition;
@@ -100,5 +102,17 @@ function canvas_preprocess_html(array &$variables): void {
   $current_route = \Drupal::routeMatch()->getRouteName();
   if ($current_route === 'entity.canvas_page.canonical') {
     $variables['attributes']['class'][] = 'canvas-page';
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Hides the "administer brand kit" permission from the permissions page when
+ * canvas_dev_mode is disabled.
+ */
+function canvas_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  if ($form_id === 'user_admin_permissions' && !\Drupal::moduleHandler()->moduleExists('canvas_dev_mode')) {
+    unset($form['permissions'][BrandKit::ADMIN_PERMISSION]);
   }
 }

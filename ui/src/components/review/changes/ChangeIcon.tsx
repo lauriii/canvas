@@ -1,3 +1,4 @@
+import BrandKitIcon from '@assets/icons/brand-kit.svg?react';
 import TemplateIcon from '@assets/icons/template.svg?react';
 import {
   CodeIcon,
@@ -27,6 +28,8 @@ const ChangeIcon: React.FC<ChangeIconProps> = ({ entityType, entityId }) => {
       return <Component1Icon className={iconClass} />;
     case 'asset_library':
       return <CodeIcon className={iconClass} />;
+    case 'brand_kit':
+      return <BrandKitIcon className={iconClass} />;
     case 'page_region':
       return <CubeIcon className={iconClass} />;
     case 'content_template':

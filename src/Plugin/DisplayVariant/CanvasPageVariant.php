@@ -12,6 +12,8 @@ use Drupal\Core\Display\VariantBase;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\PageRegion;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -128,12 +130,19 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
    * {@inheritdoc}
    */
   public function build() {
+    $build = [];
+    \assert(\is_bool($this->configuration[self::PREVIEW_KEY]) || \is_null($this->configuration[self::PREVIEW_KEY]));
+    $is_preview = $this->configuration[self::PREVIEW_KEY] === TRUE;
+
+    $build['#attached']['library'][] = 'canvas/asset_library.' . AssetLibrary::GLOBAL_ID .
+      ($is_preview ? '.draft' : '');
+    $build['#attached']['library'][] = 'canvas/brand_kit.' . BrandKit::GLOBAL_ID .
+      ($is_preview ? '.draft' : '');
+
     $regions = PageRegion::loadForActiveTheme();
     if (empty($regions)) {
       throw new \LogicException('This page display variant needs Drupal Canvas PageRegion config entities.');
     }
-    \assert(\is_bool($this->configuration[self::PREVIEW_KEY]) || \is_null($this->configuration[self::PREVIEW_KEY]));
-    $is_preview = $this->configuration[self::PREVIEW_KEY] === TRUE;
 
     \assert(!empty($this->title));
     \assert(!empty($this->mainContent));

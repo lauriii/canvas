@@ -736,6 +736,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // Grant that permission.
     $this->setUpCurrentUser(permissions: [
       ...$permissions,
+      AssetLibrary::ADMIN_PERMISSION,
       JavaScriptComponent::ADMIN_PERMISSION,
     ]);
 
@@ -757,6 +758,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // Grant that permission.
     $user = $this->setUpCurrentUser(permissions: [
       ...$permissions,
+      AssetLibrary::ADMIN_PERMISSION,
       JavaScriptComponent::ADMIN_PERMISSION,
       'administer site configuration',
     ]);
@@ -1275,6 +1277,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->setUpCurrentUser(permissions: [
       PageRegion::ADMIN_PERMISSION,
       'edit any article content',
+      AssetLibrary::ADMIN_PERMISSION,
       JavaScriptComponent::ADMIN_PERMISSION,
       Page::EDIT_PERMISSION,
       AutoSaveManager::PUBLISH_PERMISSION,

@@ -8,15 +8,22 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Url;
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\CanvasAssetInterface;
+use Drupal\file\Entity\File;
+use Drupal\file\FileInterface;
+use Drupal\file\FileUsage\FileUsageInterface;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use function base_path;
 
 /**
  * Tests the details of auto-saving config entities, NOT the "live" version.
@@ -47,6 +54,8 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     parent::setUp();
     $user = $this->createUser([
       Page::EDIT_PERMISSION,
+      AssetLibrary::ADMIN_PERMISSION,
+      BrandKit::ADMIN_PERMISSION,
       JavaScriptComponent::ADMIN_PERMISSION,
     ]);
     \assert($user instanceof UserInterface);
@@ -57,6 +66,22 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $user2 = $this->createUser(['view media']);
     \assert($user2 instanceof UserInterface);
     $this->limitedPermissionsUser = $user2;
+  }
+
+  private function createManagedFontFile(string $filename = 'mona-sans.woff2'): FileInterface {
+    $file_system = $this->container->get('file_system');
+    \assert($file_system instanceof FileSystemInterface);
+    $directory = BrandKit::ARTIFACTS_DIRECTORY;
+    self::assertTrue($file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS));
+    $uri = BrandKit::ARTIFACTS_DIRECTORY . $filename;
+    $realpath = $file_system->realpath($uri);
+    self::assertIsString($realpath);
+    self::assertNotFalse(file_put_contents($realpath, 'font-data'));
+
+    $file = File::create(['uri' => $uri]);
+    $file->save();
+
+    return $file;
   }
 
   public static function providerTest(): array {
@@ -159,7 +184,6 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
             'original' => 'console.log("Test")',
             'compiled' => 'console.log("Test")',
           ],
-          'fonts' => NULL,
         ],
         [
           'css' => [
@@ -178,7 +202,6 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
             'original' => 'console.log("Test")',
             'compiled' => 'console.log("Test")',
           ],
-          'fonts' => NULL,
         ],
         ['js', 'compiled'],
         ['css', 'compiled'],
@@ -332,6 +355,205 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $this->assertSingleConfigAutoSaveList($original_entity, $this->httpApiUser);
 
     $this->assertSame($original_entity_array, $storage->loadUnchanged($entity_id)?->toArray(), 'The original entity was not changed by the auto-save.');
+  }
+
+  public function testBrandKitAutoSaveRetainsExistingDraftFonts(): void {
+    $this->drupalLogin($this->httpApiUser);
+    $this->config('file.settings')
+      ->set('make_unused_managed_files_temporary', TRUE)
+      ->save();
+
+    $brand_kit = BrandKit::load(BrandKit::GLOBAL_ID);
+    \assert($brand_kit instanceof BrandKit);
+    $brand_kit->delete();
+
+    $initial_entity = [
+      'id' => 'global',
+      'label' => 'Global brand kit',
+      'fonts' => NULL,
+    ];
+    $file = $this->createManagedFontFile();
+    $font_uri = $file->getFileUri();
+    \assert(\is_string($font_uri));
+    $font_url = $this->container->get('file_url_generator')->generateString($font_uri);
+    \assert(\is_string($font_url));
+    $font_entry = [
+      'id' => 'font-1',
+      'family' => 'Mona Sans',
+      'uri' => $font_uri,
+      'format' => 'woff2',
+      'weight' => '100.1 900.2',
+      'style' => 'normal',
+      'axes' => [
+        [
+          'tag' => 'wght',
+          'name' => 'Weight',
+          'min' => 100.1,
+          'max' => 900.2,
+          'default' => 400.3,
+        ],
+      ],
+    ];
+    $normalized_font_entry = [
+      ...$font_entry,
+      'variantType' => 'variable',
+      'url' => $font_url,
+    ];
+
+    $post_url = Url::fromUri('base:/canvas/api/v0/config/brand_kit');
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+      RequestOptions::JSON => $initial_entity,
+    ];
+    $this->assertExpectedResponse('POST', $post_url, $request_options, 201, NULL, NULL, NULL, NULL);
+
+    $this->performAutoSave(
+      [
+        ...$initial_entity,
+        'fonts' => [$font_entry],
+      ],
+      [
+        ...$initial_entity,
+        'fonts' => [$normalized_font_entry],
+      ],
+      BrandKit::ENTITY_TYPE_ID,
+      BrandKit::GLOBAL_ID,
+    );
+    $file_usage = $this->container->get('file.usage');
+    \assert($file_usage instanceof FileUsageInterface);
+    $tracked_file = File::load($file->id());
+    self::assertInstanceOf(FileInterface::class, $tracked_file);
+    self::assertFalse($tracked_file->isTemporary());
+    self::assertSame([
+      'canvas' => [
+        BrandKit::AUTO_SAVE_FILE_USAGE_TYPE => [
+          BrandKit::GLOBAL_ID => '1',
+        ],
+      ],
+    ], $file_usage->listUsage($tracked_file));
+
+    $this->performAutoSave(
+      [
+        'label' => 'Updated brand kit',
+      ],
+      [
+        ...$initial_entity,
+        'label' => 'Updated brand kit',
+        'fonts' => [$normalized_font_entry],
+      ],
+      BrandKit::ENTITY_TYPE_ID,
+      BrandKit::GLOBAL_ID,
+    );
+
+    $auto_save_manager = $this->container->get(AutoSaveManager::class);
+    \assert($auto_save_manager instanceof AutoSaveManager);
+    $brand_kit = BrandKit::load(BrandKit::GLOBAL_ID);
+    \assert($brand_kit instanceof BrandKit);
+    $auto_save_manager->delete($brand_kit);
+
+    $tracked_file = File::load($file->id());
+    self::assertInstanceOf(FileInterface::class, $tracked_file);
+    self::assertTrue($tracked_file->isTemporary());
+    self::assertSame([], $file_usage->listUsage($tracked_file));
+  }
+
+  public function testBrandKitAutoSaveRemovingFontClearsDraftUsage(): void {
+    $this->drupalLogin($this->httpApiUser);
+    $this->config('file.settings')
+      ->set('make_unused_managed_files_temporary', TRUE)
+      ->save();
+
+    $brand_kit = BrandKit::load(BrandKit::GLOBAL_ID);
+    \assert($brand_kit instanceof BrandKit);
+    $brand_kit->delete();
+
+    $initial_entity = [
+      'id' => 'global',
+      'label' => 'Global brand kit',
+      'fonts' => NULL,
+    ];
+    $file = $this->createManagedFontFile();
+    $font_uri = $file->getFileUri();
+    \assert(\is_string($font_uri));
+    $font_url = $this->container->get('file_url_generator')->generateString($font_uri);
+    \assert(\is_string($font_url));
+    $font_entry = [
+      'id' => 'font-1',
+      'family' => 'Mona Sans',
+      'uri' => $font_uri,
+      'format' => 'woff2',
+      'weight' => '100.1 900.2',
+      'style' => 'normal',
+      'axes' => [
+        [
+          'tag' => 'wght',
+          'name' => 'Weight',
+          'min' => 100.1,
+          'max' => 900.2,
+          'default' => 400.3,
+        ],
+      ],
+    ];
+    $normalized_font_entry = [
+      ...$font_entry,
+      'variantType' => 'variable',
+      'url' => $font_url,
+    ];
+
+    $post_url = Url::fromUri('base:/canvas/api/v0/config/brand_kit');
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+      RequestOptions::JSON => $initial_entity,
+    ];
+    $this->assertExpectedResponse('POST', $post_url, $request_options, 201, NULL, NULL, NULL, NULL);
+
+    $this->performAutoSave(
+      [
+        ...$initial_entity,
+        'fonts' => [$font_entry],
+      ],
+      [
+        ...$initial_entity,
+        'fonts' => [$normalized_font_entry],
+      ],
+      BrandKit::ENTITY_TYPE_ID,
+      BrandKit::GLOBAL_ID,
+    );
+
+    $file_usage = $this->container->get('file.usage');
+    \assert($file_usage instanceof FileUsageInterface);
+    $tracked_file = File::load($file->id());
+    self::assertInstanceOf(FileInterface::class, $tracked_file);
+    self::assertSame([
+      'canvas' => [
+        BrandKit::AUTO_SAVE_FILE_USAGE_TYPE => [
+          BrandKit::GLOBAL_ID => '1',
+        ],
+      ],
+    ], $file_usage->listUsage($tracked_file));
+
+    $this->performAutoSave(
+      [
+        'label' => 'Updated brand kit',
+        'fonts' => [],
+      ],
+      [
+        ...$initial_entity,
+        'label' => 'Updated brand kit',
+        'fonts' => [],
+      ],
+      BrandKit::ENTITY_TYPE_ID,
+      BrandKit::GLOBAL_ID,
+    );
+
+    $tracked_file = File::load($file->id());
+    self::assertInstanceOf(FileInterface::class, $tracked_file);
+    self::assertTrue($tracked_file->isTemporary());
+    self::assertSame([], $file_usage->listUsage($tracked_file));
   }
 
 }

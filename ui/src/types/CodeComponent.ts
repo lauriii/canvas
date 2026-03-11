@@ -149,6 +149,45 @@ export interface AssetLibrary {
   };
 }
 
+export interface BrandKit {
+  id: string;
+  label: string;
+  fonts: BrandKitFont[] | null;
+}
+
+export type BrandKitFontVariantType = 'static' | 'variable';
+
+export interface BrandKitFontAxis {
+  tag: string;
+  name?: string;
+  min: number;
+  max: number;
+  default: number;
+}
+
+export interface BrandKitFontAxisSetting {
+  tag: string;
+  value: number;
+}
+
+export interface BrandKitFont {
+  id: string;
+  family: string;
+  uri: string;
+  format: 'woff2' | 'woff' | 'ttf' | 'otf';
+  variantType?: BrandKitFontVariantType;
+  weight: string;
+  style: string;
+  axes?: BrandKitFontAxis[] | null;
+  axisSettings?: BrandKitFontAxisSetting[] | null;
+  url?: string;
+}
+
+export type AssetLibraryFont = BrandKitFont;
+export type AssetLibraryFontAxis = BrandKitFontAxis;
+export type AssetLibraryFontAxisSetting = BrandKitFontAxisSetting;
+export type AssetLibraryFontVariantType = BrandKitFontVariantType;
+
 export interface CodeComponentPropVideoExample {
   src: string;
   poster: string;

@@ -3,7 +3,6 @@ import {
   ChevronDownIcon,
   ClockIcon,
   FileTextIcon,
-  InfoCircledIcon,
   MagnifyingGlassIcon,
   PlusIcon,
 } from '@radix-ui/react-icons';
@@ -12,7 +11,6 @@ import {
   Badge,
   Box,
   Button,
-  Callout,
   ContextMenu,
   DropdownMenu,
   Flex,
@@ -21,6 +19,7 @@ import {
   Tooltip,
 } from '@radix-ui/themes';
 
+import EmptyStateCallout from '@/components/EmptyStateCallout';
 import ErrorCard from '@/components/error/ErrorCard';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
@@ -301,12 +300,11 @@ const ContentGroup = ({
 }) => {
   if (items.length === 0) {
     return (
-      <Callout.Root size="1" color="gray" data-testid="canvas-page-list">
-        <Callout.Icon>
-          <InfoCircledIcon />
-        </Callout.Icon>
-        <Callout.Text>No pages found.</Callout.Text>
-      </Callout.Root>
+      <EmptyStateCallout
+        data-testid="canvas-page-list"
+        title="No pages found"
+        variant="surface"
+      />
     );
   }
 

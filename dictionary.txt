@@ -38,6 +38,7 @@ delaville
 devizzent
 dhta
 diaclone
+demi
 domcontentloaded
 drupalcode
 drupaldev
@@ -48,6 +49,7 @@ entityviewdisplay
 extralight
 extensionless
 fieldtext
+fvar
 folderfy
 gerbeaud
 gesturechange
@@ -115,6 +117,7 @@ scriptified
 scriptify
 sdcs
 shadcn
+slnt
 sonner
 sparkline
 Starshot
@@ -145,6 +148,8 @@ useswr
 uuidv
 Validatable
 vaul
+wdth
+wght
 xmdi
 ymls
 

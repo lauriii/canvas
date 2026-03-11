@@ -11,6 +11,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
@@ -48,6 +49,10 @@ class CanvasUiAccessCheck implements AccessInterface {
     $code_components_access = AccessResult::allowedIfHasPermission($account, JavaScriptComponent::ADMIN_PERMISSION);
     if ($code_components_access->isAllowed()) {
       return $code_components_access;
+    }
+    $brand_kit_access = AccessResult::allowedIfHasPermission($account, BrandKit::ADMIN_PERMISSION);
+    if ($brand_kit_access->isAllowed()) {
+      return $brand_kit_access;
     }
 
     $field_map = $this->entityFieldManager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);

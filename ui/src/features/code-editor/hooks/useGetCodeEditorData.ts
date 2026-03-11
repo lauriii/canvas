@@ -19,12 +19,17 @@ import {
   useGetAutoSaveQuery as useGetAutoSaveQueryAssetLibrary,
 } from '@/services/assetLibrary';
 import {
+  useGetAutoSaveQuery as useGetAutoSaveQueryBrandKit,
+  useGetBrandKitQuery,
+} from '@/services/brandKit';
+import {
   useGetAutoSaveQuery as useGetAutoSaveQueryCodeComponent,
   useGetCodeComponentQuery,
 } from '@/services/componentAndLayout';
 
 import type {
   AssetLibrary,
+  BrandKit,
   CodeComponentSerialized,
 } from '@/types/CodeComponent';
 
@@ -33,6 +38,7 @@ const ASSET_LIBRARY_ID = 'global';
 type CodeEditorData = {
   dataCodeComponent: CodeComponentSerialized | undefined;
   dataGlobalAssetLibrary: AssetLibrary | undefined;
+  dataBrandKit: BrandKit | undefined;
   isLoading: boolean;
   isSuccess: boolean;
 };
@@ -50,6 +56,9 @@ const useGetCodeEditorData = (
   >(undefined);
   const [dataGlobalAssetLibrary, setDataGlobalAssetLibrary] = useState<
     CodeEditorData['dataGlobalAssetLibrary'] | undefined
+  >(undefined);
+  const [dataBrandKit, setDataBrandKit] = useState<
+    CodeEditorData['dataBrandKit'] | undefined
   >(undefined);
   const [isLoading, setIsLoading] =
     useState<CodeEditorData['isLoading']>(false);
@@ -130,32 +139,72 @@ const useGetCodeEditorData = (
     setDataGlobalAssetLibrary(autoSaveData || dataGetAssetLibrary);
   }, [dataGetAutoSaveAssetLibrary, dataGetAssetLibrary]);
 
+  const {
+    currentData: dataGetAutoSaveBrandKit,
+    error: errorGetAutoSaveBrandKit,
+    isFetching: isLoadingGetAutoSaveBrandKit,
+    isSuccess: isSuccessGetAutoSaveBrandKit,
+  } = useGetAutoSaveQueryBrandKit(ASSET_LIBRARY_ID, {
+    skip,
+  });
+
+  const {
+    currentData: dataGetBrandKit,
+    error: errorGetBrandKit,
+    isFetching: isLoadingGetBrandKit,
+    isSuccess: isSuccessGetBrandKit,
+  } = useGetBrandKitQuery(ASSET_LIBRARY_ID, {
+    skip:
+      skip ||
+      isLoadingGetAutoSaveBrandKit ||
+      (isSuccessGetAutoSaveBrandKit &&
+        dataGetAutoSaveBrandKit &&
+        ('data' in dataGetAutoSaveBrandKit
+          ? !!dataGetAutoSaveBrandKit.data
+          : !!dataGetAutoSaveBrandKit)),
+  });
+
+  useEffect(() => {
+    const autoSaveData =
+      dataGetAutoSaveBrandKit && 'data' in dataGetAutoSaveBrandKit
+        ? dataGetAutoSaveBrandKit.data
+        : dataGetAutoSaveBrandKit;
+    setDataBrandKit(autoSaveData || dataGetBrandKit);
+  }, [dataGetAutoSaveBrandKit, dataGetBrandKit]);
+
   // Set the loading state in a local state.
   useEffect(() => {
     setIsLoading(
       isLoadingGetAutoSaveCodeComponent ||
         isLoadingGetCodeComponent ||
         isLoadingGetAutoSaveAssetLibrary ||
-        isLoadingGetAssetLibrary,
+        isLoadingGetAssetLibrary ||
+        isLoadingGetAutoSaveBrandKit ||
+        isLoadingGetBrandKit,
     );
   }, [
     isLoadingGetAutoSaveCodeComponent,
     isLoadingGetCodeComponent,
     isLoadingGetAutoSaveAssetLibrary,
     isLoadingGetAssetLibrary,
+    isLoadingGetAutoSaveBrandKit,
+    isLoadingGetBrandKit,
   ]);
 
   // Set the success state in a local state.
   useEffect(() => {
     setIsSuccess(
       (isSuccessGetAutoSaveCodeComponent || isSuccessGetCodeComponent) &&
-        (isSuccessGetAutoSaveAssetLibrary || isSuccessGetAssetLibrary),
+        (isSuccessGetAutoSaveAssetLibrary || isSuccessGetAssetLibrary) &&
+        (isSuccessGetAutoSaveBrandKit || isSuccessGetBrandKit),
     );
   }, [
     isSuccessGetAutoSaveCodeComponent,
     isSuccessGetCodeComponent,
     isSuccessGetAutoSaveAssetLibrary,
     isSuccessGetAssetLibrary,
+    isSuccessGetAutoSaveBrandKit,
+    isSuccessGetBrandKit,
   ]);
 
   // Show error boundary if there is an error.
@@ -164,15 +213,21 @@ const useGetCodeEditorData = (
       errorGetAutoSaveCodeComponent ||
       errorGetCodeComponent ||
       errorGetAutoSaveAssetLibrary ||
-      errorGetAssetLibrary
+      errorGetAssetLibrary ||
+      errorGetAutoSaveBrandKit ||
+      errorGetBrandKit
     ) {
-      showBoundary(errorGetCodeComponent || errorGetAssetLibrary);
+      showBoundary(
+        errorGetCodeComponent || errorGetAssetLibrary || errorGetBrandKit,
+      );
     }
   }, [
     errorGetAutoSaveCodeComponent,
     errorGetCodeComponent,
     errorGetAutoSaveAssetLibrary,
     errorGetAssetLibrary,
+    errorGetAutoSaveBrandKit,
+    errorGetBrandKit,
     showBoundary,
   ]);
 
@@ -185,7 +240,13 @@ const useGetCodeEditorData = (
     dispatch(setForceRefresh(false));
   }
 
-  return { dataCodeComponent, dataGlobalAssetLibrary, isLoading, isSuccess };
+  return {
+    dataCodeComponent,
+    dataGlobalAssetLibrary,
+    dataBrandKit,
+    isLoading,
+    isSuccess,
+  };
 };
 
 export default useGetCodeEditorData;

@@ -30,6 +30,7 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\canvas\AutoSaveEntity;
 use Drupal\canvas\Controller\ApiContentControllers;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -342,6 +343,10 @@ class AutoSaveManager implements EventSubscriberInterface {
    * @see ::onCanvasConfigEntitySave()
    */
   public function delete(EntityInterface $entity): void {
+    $auto_save_entity = $this->getAutoSaveEntity($entity);
+    if (!$auto_save_entity->isEmpty() && $auto_save_entity->entity instanceof CanvasHttpApiEligibleConfigEntityInterface) {
+      BrandKit::clearAutoSaveFileUsage($auto_save_entity->entity, (string) $entity->id());
+    }
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
     $key = $this->getAutoSaveKey($entity);
     $this->autoSaveStore->delete($key);

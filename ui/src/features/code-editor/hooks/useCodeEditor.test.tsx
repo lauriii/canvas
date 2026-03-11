@@ -11,6 +11,7 @@ import {
   initialState as codeEditorInitialState,
   removeProp,
   removeSlot,
+  setBrandKitFonts,
   setCodeComponentProperty,
   updateProp,
   updateSlot,
@@ -22,6 +23,11 @@ import {
   useUpdateAutoSaveMutation as useUpdateAutoSaveMutationAssetLibrary,
 } from '@/services/assetLibrary';
 import {
+  useGetAutoSaveQuery as useGetAutoSaveQueryBrandKit,
+  useGetBrandKitQuery,
+  useUpdateAutoSaveMutation as useUpdateAutoSaveMutationBrandKit,
+} from '@/services/brandKit';
+import {
   useGetAutoSaveQuery as useGetAutoSaveQueryCodeComponent,
   useGetCodeComponentQuery,
   useGetCodeComponentsQuery,
@@ -29,6 +35,9 @@ import {
 } from '@/services/componentAndLayout';
 
 import type { AppStore } from '@/app/store';
+
+const FONT_ASSET_BASE_URI = 'public://canvas/assets/';
+const FONT_ASSET_BASE_URL = '/sites/default/files/canvas/assets/';
 
 vi.mock('@/services/componentAndLayout', async () => {
   const originalModule = await vi.importActual('@/services/componentAndLayout');
@@ -46,6 +55,16 @@ vi.mock('@/services/assetLibrary', async () => {
   return {
     ...originalModule,
     useGetAssetLibraryQuery: vi.fn(),
+    useGetAutoSaveQuery: vi.fn(),
+    useUpdateAutoSaveMutation: vi.fn(),
+  };
+});
+
+vi.mock('@/services/brandKit', async () => {
+  const originalModule = await vi.importActual('@/services/brandKit');
+  return {
+    ...originalModule,
+    useGetBrandKitQuery: vi.fn(),
     useGetAutoSaveQuery: vi.fn(),
     useUpdateAutoSaveMutation: vi.fn(),
   };
@@ -146,6 +165,26 @@ describe('useCodeEditor hook', () => {
     });
     (
       useUpdateAutoSaveMutationAssetLibrary as ReturnType<typeof vi.fn>
+    ).mockReturnValue([
+      vi.fn(),
+      { isLoading: false, isError: false, isSuccess: true },
+    ]);
+    (
+      useGetBrandKitQuery as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue({
+      currentData: codeEditorInitialState.brandKit,
+      error: null,
+      isFetching: false,
+      isSuccess: true,
+    });
+    (useGetAutoSaveQueryBrandKit as ReturnType<typeof vi.fn>).mockReturnValue({
+      currentData: null,
+      error: null,
+      isFetching: false,
+      isSuccess: true,
+    });
+    (
+      useUpdateAutoSaveMutationBrandKit as ReturnType<typeof vi.fn>
     ).mockReturnValue([
       vi.fn(),
       { isLoading: false, isError: false, isSuccess: true },
@@ -592,5 +631,51 @@ describe('useCodeEditor hook', () => {
 
     // Verify auto-save was called after slot is removed.
     expect(updateAutoSaveMutation).toHaveBeenCalledOnce();
+  });
+
+  it('does not include brand kit fonts in asset-library auto-save payloads', async () => {
+    const [updateAutoSaveMutation] = useUpdateAutoSaveMutationAssetLibrary();
+
+    await act(async () => {
+      renderHook(() => useCodeEditor(), {
+        wrapper: ({ children }) => (
+          <AppWrapper
+            store={store}
+            location="/code-editor/component/test_component"
+            path="/code-editor/component/:codeComponentId"
+          >
+            {children}
+          </AppWrapper>
+        ),
+      });
+    });
+
+    (updateAutoSaveMutation as ReturnType<typeof vi.fn>).mockClear();
+
+    await act(async () => {
+      store.dispatch(
+        setBrandKitFonts([
+          [
+            {
+              id: 'font-1',
+              family: 'Mona Sans',
+              uri: `${FONT_ASSET_BASE_URI}mona-sans.woff2`,
+              url: `${FONT_ASSET_BASE_URL}mona-sans.woff2`,
+              format: 'woff2',
+              variantType: 'static',
+              weight: '400',
+              style: 'normal',
+              axes: null,
+            },
+          ],
+        ]),
+      );
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2500);
+    });
+
+    expect(updateAutoSaveMutation).not.toHaveBeenCalled();
   });
 });

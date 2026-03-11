@@ -18,7 +18,7 @@ enum ErrorCodesEnum: int {
       self::UnmatchedItemInPublishRequest =>
         'An item in the publish request did not match the expected format or value. Please refresh your page and try again.',
       self::GlobalAssetNotPublished =>
-        'When publishing components you must also publish the Global CSS, please select it and retry.'
+        'When publishing components you must also publish the Global CSS and any pending Brand kit changes. Please select them and retry.'
     };
   }
 

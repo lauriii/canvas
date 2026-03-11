@@ -32,6 +32,7 @@ import {
   uiSlice,
 } from '@/features/ui/uiSlice';
 import { assetLibraryApi } from '@/services/assetLibrary';
+import { brandKitApi } from '@/services/brandKit';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { componentInstanceFormApi } from '@/services/componentInstanceForm';
 import { contentApi } from '@/services/content';
@@ -138,6 +139,7 @@ const rootReducer = combineSlices(
   },
   patternApi,
   assetLibraryApi,
+  brandKitApi,
   personalizationApi,
   componentAndLayoutApi,
   previewApi,
@@ -231,6 +233,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
       return getDefaultMiddleware().concat(
         patternApi.middleware,
         assetLibraryApi.middleware,
+        brandKitApi.middleware,
         personalizationApi.middleware,
         componentAndLayoutApi.middleware,
         previewApi.middleware,

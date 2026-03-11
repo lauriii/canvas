@@ -1,0 +1,24 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas_oauth
+id: canvas_brand_kit
+name: 'canvas:brand_kit'
+description: 'Drupal Canvas: Full access to brand kits'
+grant_types:
+  client_credentials:
+    status: true
+    description: 'Client credentials access for brand kits'
+  authorization_code:
+    status: true
+    description: 'Authorization code access for brand kits'
+  refresh_token:
+    status: true
+    description: 'Refresh token access for brand kits'
+umbrella: false
+parent: null
+granularity_id: permission
+granularity_configuration:
+  permission: 'administer brand kit'

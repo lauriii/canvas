@@ -10,6 +10,7 @@ use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\simple_oauth\Kernel\AuthorizedRequestBase;
 use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\Pattern;
@@ -51,6 +52,11 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
     AssetLibrary::create([
       'id' => AssetLibrary::GLOBAL_ID,
       'label' => 'Global',
+    ])->save();
+    BrandKit::create([
+      'id' => BrandKit::GLOBAL_ID,
+      'label' => 'Global brand kit',
+      'fonts' => NULL,
     ])->save();
     Pattern::create([
       'id' => 'test-pattern',

@@ -35,6 +35,63 @@ security: []
 # @see https://spec.openapis.org/oas/v3.1.0.html#paths-object
 # @see https://spec.openapis.org/oas/v3.1.0.html#path-item-object
 paths:
+  /canvas/api/v0/artifacts/upload:
+    description: Upload a generic artifact file to Canvas asset storage.
+    post:
+      summary: Uploads a generic Canvas artifact file.
+      parameters:
+        - in: header
+          name: Content-Disposition
+          required: true
+          schema:
+            type: string
+          description: Original filename for the streamed upload, for example `file; filename="brand-font.woff2"`.
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+          font/ttf:
+            schema:
+              type: string
+              format: binary
+          font/otf:
+            schema:
+              type: string
+              format: binary
+          font/woff:
+            schema:
+              type: string
+              format: binary
+          font/woff2:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '201':
+          description: Uploaded artifact metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - fid
+                  - uri
+                  - url
+                properties:
+                  fid:
+                    type: integer
+                  uri:
+                    type: string
+                  url:
+                    type: string
+        '403':
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          $ref: '#/components/responses/ClientErrorResponse'
   /canvas/api/v0/auto-saves/css/asset_library/{configEntityId}:
     description: Get draft CSS for given asset library
     get:
@@ -47,6 +104,18 @@ paths:
           content:
             text/css:
               example: '.large {font-size: 3rem;}'
+  /canvas/api/v0/auto-saves/css/brand_kit/{configEntityId}:
+    description: Get draft CSS for given brand kit
+    get:
+      summary: Get draft CSS for given brand kit
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Draft CSS for the brand kit
+          content:
+            text/css:
+              example: "@font-face { font-family: 'Inter'; }"
   /canvas/api/v0/auto-saves/css/js_component/{configEntityId}:
     description: Get draft CSS for a given component
     get:
@@ -71,6 +140,18 @@ paths:
           content:
             text/javascript:
               example: 'console.log("hey");'
+  /canvas/api/v0/auto-saves/js/brand_kit/{configEntityId}:
+    description: Get draft JS for given brand kit
+    get:
+      summary: Get draft JS for given brand kit
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Draft JS for the brand kit
+          content:
+            text/javascript:
+              example: ''
   /canvas/api/v0/auto-saves/js/js_component/{configEntityId}:
     description: Get draft JS for a given component
     get:
@@ -226,6 +307,8 @@ paths:
                     title: Error message
                     examples:
                       - No auto-save data found for this entity.
+        '413':
+          $ref: '#/components/responses/ClientErrorResponse'
   /canvas/api/v0/config/asset_library:
     description: Endpoint for managing asset libraries.
     get:
@@ -417,6 +500,93 @@ paths:
                   error:
                     type: string
                     description: Error message indicating the conflict.
+  /canvas/api/v0/config/brand_kit:
+    description: Endpoint for managing brand kits.
+    get:
+      summary: Retrieves all available brand kits.
+      responses:
+        '200':
+          description: All available brand kits
+          content:
+            application/json:
+              schema:
+                type: object
+                minProperties: 0
+                additionalProperties:
+                  $ref: '#/components/schemas/BrandKit'
+              examples:
+                global_brand_kit:
+                  summary: Only one Brand Kit exists by default, the global one.
+                  value:
+                    global:
+                      id: "global"
+                      label: "Global brand kit"
+                      fonts: null
+    post:
+      summary: Creates a new Brand Kit.
+      requestBody:
+        description: Creates a new Brand Kit.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewBrandKit'
+            examples:
+              example of a global brand kit:
+                value:
+                  id: "global"
+                  label: "Global brand kit"
+                  fonts: null
+      responses:
+        '201':
+          description: Created entity successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandKit'
+        '409':
+          description: Brand Kit with same ID already exists.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
+  '/canvas/api/v0/config/brand_kit/{configEntityId}':
+    description: Endpoint for managing a specific brand kit.
+    get:
+      summary: Retrieves details of a specific brand kit.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Brand Kit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandKit'
+    patch:
+      summary: Updates a specific Brand Kit.
+      requestBody:
+        description: Update specific Brand Kit.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BrandKit'
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Brand Kit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandKit'
+    delete:
+      summary: Deletes a Brand Kit.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '204':
+          description: Deleted individual Brand Kit
   /canvas/api/v0/config/component:
     description: TODO
     get:
@@ -2709,6 +2879,99 @@ components:
       type: object
       allOf:
         - $ref: '#/components/schemas/AssetLibrary'
+      required:
+        - id
+        - label
+    BrandKit:
+      title: Brand Kit
+      type: object
+      properties:
+        id:
+          type: string
+          description: Brand kit ID
+        label:
+          type: string
+          description: Human-readable label
+        fonts:
+          description: Uploaded font files available to the Brand Kit
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: object
+                required:
+                  - id
+                  - family
+                  - uri
+                  - format
+                  - weight
+                  - style
+                additionalProperties: false
+                properties:
+                  id:
+                    type: string
+                    description: Unique ID for the uploaded font entry
+                  family:
+                    type: string
+                    description: CSS font-family name suggested for this font
+                  uri:
+                    type: string
+                    description: Managed file URI
+                  url:
+                    type: string
+                    readOnly: true
+                    description: Public URL for use in generated CSS snippets (derived server-side from uri)
+                  format:
+                    type: string
+                    enum: [woff2, woff, ttf, otf]
+                    description: File format of the uploaded font
+                  variantType:
+                    type: string
+                    readOnly: true
+                    enum: [static, variable]
+                    description: Whether this font entry represents a static or variable variant (derived server-side from axes)
+                  weight:
+                    type: string
+                    description: CSS font-weight declaration
+                  style:
+                    type: string
+                    description: CSS font-style declaration
+                  axes:
+                    description: Variable font axis definitions available on this font
+                    oneOf:
+                      - type: "null"
+                      - type: array
+                        items:
+                          type: object
+                          required:
+                            - tag
+                            - min
+                            - max
+                            - default
+                          additionalProperties: false
+                          properties:
+                            tag:
+                              type: string
+                              description: Four-character OpenType axis tag
+                            name:
+                              type: string
+                              description: Human-readable axis name from the font metadata
+                            min:
+                              type: number
+                              format: float
+                              description: Minimum supported axis value
+                            max:
+                              type: number
+                              format: float
+                              description: Maximum supported axis value
+                            default:
+                              type: number
+                              format: float
+                              description: Default axis value
+    NewBrandKit:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/BrandKit'
       required:
         - id
         - label

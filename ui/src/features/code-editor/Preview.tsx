@@ -5,7 +5,12 @@ import { Flex, ScrollArea, Spinner } from '@radix-ui/themes';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorCard from '@/components/error/ErrorCard';
 import {
+  buildFontFaceStyles,
+  getFontPreloadDefinitions,
+} from '@/features/brandKit/fontCss';
+import {
   clearDataFetches,
+  selectBrandKit,
   selectCodeComponentProperty,
   selectGlobalAssetLibraryProperty,
   selectPreviewCompiledJsForSlots,
@@ -34,6 +39,7 @@ import MissingDefaultExportMessage, {
 } from './errors/MissingDefaultExportMessage';
 
 import type { File } from '@babel/types';
+import type { BrandKit } from '@/types/CodeComponent';
 
 import styles from './Preview.module.css';
 
@@ -57,6 +63,9 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   );
   const compiledGlobalCss = useAppSelector(
     selectGlobalAssetLibraryProperty(['css', 'compiled']),
+  );
+  const brandKitFonts = useAppSelector((state) =>
+    selectBrandKit<BrandKit['fonts']>(state, 'fonts'),
   );
   const previewCompiledJsForSlots = useAppSelector(
     selectPreviewCompiledJsForSlots,
@@ -101,16 +110,22 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const getIframeSrc = useCallback(
     ({
       previewGlobalCss,
+      previewGlobalFontCss,
+      previewGlobalFontPreloads,
       previewCss,
       previewJsData,
     }: {
       previewCss: string;
       previewGlobalCss: string;
+      previewGlobalFontCss: string;
+      previewGlobalFontPreloads: string;
       previewJsData: string;
     }) => `
     <html>
       <head>
         ${importMapTags}
+        ${previewGlobalFontPreloads}
+        <style>${previewGlobalFontCss}</style>
         <style>${previewGlobalCss}</style>
         ${
           // Add CSS for all code components except the current one.
@@ -228,6 +243,15 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     // @see ui/lib/code-editor-preview.js
     const propValues = getPropValuesForPreview(props);
     const slotNames = getSlotNamesForPreview(slots);
+    const previewGlobalFontCss = buildFontFaceStyles(brandKitFonts ?? []);
+    const previewGlobalFontPreloads = getFontPreloadDefinitions(
+      brandKitFonts ?? [],
+    )
+      .map(
+        ({ href, type }) =>
+          `<link rel="preload" as="font" type="${type}" href="${href}" crossorigin="anonymous" />`,
+      )
+      .join('\n');
     // Remove the `canvas` and `canvasExtension` properties from `drupalSettings`.
     // They are only added for the Canvas UI, and are not available normally.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -247,6 +271,8 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
       getIframeSrc({
         previewCss: compiledCss,
         previewGlobalCss: compiledGlobalCss,
+        previewGlobalFontCss,
+        previewGlobalFontPreloads,
         previewJsData,
       }),
     );
@@ -255,6 +281,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     compiledGlobalCss,
     compiledJs,
     getIframeSrc,
+    brandKitFonts,
     previewCompiledJsForSlots,
     props,
     slots,

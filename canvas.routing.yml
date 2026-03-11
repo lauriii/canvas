@@ -1,3 +1,15 @@
+canvas.api.artifacts.upload:
+  path: '/canvas/api/v0/artifacts/upload'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ArtifactController::upload'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_artifact_upload_access: 'TRUE'
+  methods: [POST]
+  options:
+    _format: 'json'
+    canvas_external_api: true
+
 canvas.api.auto-save.delete:
   path: '/canvas/api/v0/auto-saves/{entity_type}/{entity}'
   defaults:
@@ -44,7 +56,7 @@ canvas.api.config.auto-save.get:
     _entity_access: 'canvas_config_entity.update'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API, `Pattern` config entities do
     # not (yet) support auto-save.
-    canvas_config_entity_type_id: '(js_component|asset_library|staged_config_update)'
+    canvas_config_entity_type_id: '(js_component|asset_library|brand_kit|staged_config_update)'
   options:
     parameters:
       canvas_config_entity:
@@ -60,7 +72,7 @@ canvas.api.config.auto-save.get.css:
     _canvas_authentication_required: TRUE
     _canvas_http_eligible_config_entity: 'TRUE'
     # Allow a subset: those config entity types that implement CanvasAssetInterface.
-    canvas_config_entity_type_id: '(js_component|asset_library)'
+    canvas_config_entity_type_id: '(js_component|asset_library|brand_kit)'
     # Must be visible to anybody who can:
     # - create/edit auto-saved ("draft") code components
     # - see auto-saved ("draft") code components, i.e. anybody who can see any preview in the Canvas UI.
@@ -81,7 +93,7 @@ canvas.api.config.auto-save.get.js:
     _canvas_authentication_required: TRUE
     _canvas_http_eligible_config_entity: 'TRUE'
     # Allow a subset: those config entity types that implement CanvasAssetInterface.
-    canvas_config_entity_type_id: '(js_component|asset_library)'
+    canvas_config_entity_type_id: '(js_component|asset_library|brand_kit)'
     # Must be visible to anybody who can:
     # - create/edit auto-saved ("draft") code components
     # - see auto-saved ("draft") code components, i.e. anybody who can see any preview in the Canvas UI.
@@ -104,7 +116,7 @@ canvas.api.config.auto-save.patch:
     _entity_access: 'canvas_config_entity.update'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API, `Pattern` config entities do
     # not (yet) support auto-save.
-    canvas_config_entity_type_id: '(js_component|asset_library)'
+    canvas_config_entity_type_id: '(js_component|asset_library|brand_kit)'
   options:
     parameters:
       canvas_config_entity:
@@ -121,7 +133,7 @@ canvas.api.config.delete:
     _entity_access: 'canvas_config_entity.delete'
     _canvas_http_eligible_config_entity: 'TRUE'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit)'
   options:
     parameters:
       canvas_config_entity:
@@ -140,7 +152,7 @@ canvas.api.config.get:
     _canvas_http_eligible_config_entity: 'TRUE'
     _entity_access: 'canvas_config_entity.view'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit)'
     # The UI client can fetch all the components the current user has access too, regardless of which kind of Canvas-enabled
     # entity you're editing.
     _canvas_ui_access: 'TRUE'
@@ -164,7 +176,7 @@ canvas.api.config.list: &config_list_route
     # But deter users from trying to access other config entities via this route: this ensures 404 responses rather than
     # 403.
     # @see \Drupal\Tests\canvas\Functional\CanvasConfigEntityHttpApiTest::testNonCanvasConfigEntity()
-    canvas_config_entity_type_id: '(folder|content_template|component|pattern|js_component|asset_library)'
+    canvas_config_entity_type_id: '(folder|content_template|component|pattern|js_component|asset_library|brand_kit)'
     # The UI client can fetch all the components the current user has access too, regardless of which kind of Canvas-enabled
     # entity you're editing.
     _canvas_ui_access: 'TRUE'
@@ -196,7 +208,7 @@ canvas.api.config.patch:
     _canvas_http_eligible_config_entity: 'TRUE'
     _entity_access: 'canvas_config_entity.update'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(folder|pattern|js_component|asset_library)'
+    canvas_config_entity_type_id: '(folder|pattern|js_component|asset_library|brand_kit)'
   options:
     parameters:
       canvas_config_entity:
@@ -216,7 +228,7 @@ canvas.api.config.post:
     # @todo: Use _entity_create_access once dynamic entity types are supported. See https://www.drupal.org/project/drupal/issues/3516775
     _canvas_entity_create_access: 'canvas_config_entity_type_id'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit)'
   options:
     # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
     canvas_external_api: true

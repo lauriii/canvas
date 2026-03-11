@@ -701,20 +701,87 @@ canvas.asset_library.*:
       label: 'JS'
       # The asset library may contain only CSS, no JS.
       nullable: true
+
+canvas.brand_kit.*:
+  type: config_entity
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    id:
+      type: machine_name
+      label: 'Brand kit ID'
+      constraints:
+        Regex:
+          pattern: '/^global$/'
+          message: "The %value machine name is not valid."
+    label:
+      type: required_label
+      label: 'Human-readable label'
     fonts:
       type: sequence
       label: 'Font entries'
       nullable: true
+      constraints:
+        Unique:
+          fields: [id]
+          errorPath: id
+          message: 'Font IDs must be unique.'
+          stopOnFirstError: false
+        Callback:
+          callback: ['\Drupal\canvas\Entity\BrandKit', validateFonts]
       sequence:
         type: mapping
-        label: 'Font CSS file'
+        label: 'Uploaded font file'
         mapping:
-          name:
+          id:
+            type: uuid
+            label: 'Font ID'
+          family:
             type: string
-            label: 'Name'
+            label: 'Font family'
           uri:
             type: string
             label: 'Managed file URI'
+          format:
+            type: string
+            label: 'Font format'
+          weight:
+            type: string
+            label: 'Font weight'
+          style:
+            type: string
+            label: 'Font style'
+          axes:
+            type: sequence
+            label: 'Font variation axes'
+            requiredKey: false
+            nullable: true
+            constraints:
+              Unique:
+                fields: [tag]
+                errorPath: tag
+                message: 'Axis tags must be unique within a font entry.'
+                stopOnFirstError: false
+            sequence:
+              type: mapping
+              label: 'Font variation axis'
+              mapping:
+                tag:
+                  type: string
+                  label: 'Axis tag'
+                name:
+                  type: string
+                  label: 'Axis name'
+                  requiredKey: false
+                min:
+                  type: float
+                  label: 'Minimum axis value'
+                max:
+                  type: float
+                  label: 'Maximum axis value'
+                default:
+                  type: float
+                  label: 'Default axis value'
 
 canvas.compilable_code:
   type: mapping

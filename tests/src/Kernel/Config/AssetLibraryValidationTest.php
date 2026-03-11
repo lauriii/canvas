@@ -47,7 +47,6 @@ class AssetLibraryValidationTest extends BetterConfigEntityValidationTestBase {
   protected static array $propertiesWithOptionalValues = [
     'css',
     'js',
-    'fonts',
   ];
 
   /**

@@ -7,6 +7,8 @@ import { kebabCase } from 'lodash';
 
 import { FallbackColor } from '@/types/Review';
 
+import type { UnpublishedChange } from '@/types/Review';
+
 // @todo https://www.drupal.org/i/3501449 - this color randomizer should be replaced with a proper solution
 const colors = Object.values(FallbackColor);
 const usernameColorMap: Map<number, FallbackColor> = new Map();
@@ -51,6 +53,8 @@ export function getGroupLabel(entityType: string): string {
       return 'Components';
     case 'asset_library':
       return 'Assets';
+    case 'brand_kit':
+      return 'Brand kit';
     case 'page_region':
       return 'Regions';
     case 'staged_config_update':
@@ -59,6 +63,26 @@ export function getGroupLabel(entityType: string): string {
       return 'Content templates';
     default:
       return kebabCase(entityType);
+  }
+}
+
+export function getReviewGroupKey(entityType: string): string {
+  switch (entityType) {
+    case 'brand_kit':
+      return 'asset_library';
+    default:
+      return entityType;
+  }
+}
+
+export function getChangeLabel(
+  change: Pick<UnpublishedChange, 'entity_type' | 'label'>,
+): string {
+  switch (change.entity_type) {
+    case 'brand_kit':
+      return 'Brand kit';
+    default:
+      return change.label;
   }
 }
 

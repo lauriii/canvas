@@ -144,6 +144,9 @@ services:
   Drupal\canvas\Access\CanvasUiAccessCheck:
     tags:
       - { name: access_check, applies_to: _canvas_ui_access }
+  Drupal\canvas\Access\ArtifactUploadAccessCheck:
+    tags:
+      - { name: access_check, applies_to: _canvas_artifact_upload_access }
   Drupal\canvas\Access\AuthenticationAccessChecker:
     tags:
       - { name: access_check, applies_to: _canvas_authentication_required }

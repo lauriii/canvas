@@ -20,6 +20,7 @@ use Drupal\canvas\Attribute\ComponentSource;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\AutoSaveEntity;
 use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\GlobalImports;
 use Drupal\canvas\ComponentSource\UrlRewriteInterface;
@@ -184,6 +185,8 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     if (\count($build['#attached']['library']) === 0) {
       unset($build['#attached']['library']);
     }
+
+    $global_brand_kit = $this->getActiveGlobalBrandKit($isPreview);
     // Resource hints.
     $resource_hints = [
       'preact/signals' => \sprintf('%s%s/packages/astro-hydration/dist/signals.module.js', $base_path, $canvas_path),
@@ -198,6 +201,13 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
         ],
       ];
     }
+    if ($global_brand_kit instanceof BrandKit) {
+      foreach ($this->getFontPreloadLinks($global_brand_kit) as $font_preload) {
+        $build['#attached']['html_head_link'][] = [
+          $font_preload,
+        ];
+      }
+    }
     if ($isPreview && !$autoSave->isEmpty()) {
       \assert($autoSave->entity instanceof JavaScriptComponent);
       $component = $autoSave->entity;
@@ -208,9 +218,11 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       // race conditions; let the controller handle it for us.
       // @see \Drupal\canvas\Controller\ApiConfigAutoSaveControllers::getCss()
       $build['#attached']['library'][] = 'canvas/asset_library.' . AssetLibrary::GLOBAL_ID . '.draft';
+      $build['#attached']['library'][] = 'canvas/brand_kit.' . BrandKit::GLOBAL_ID . '.draft';
     }
     else {
       $build['#attached']['library'][] = 'canvas/asset_library.' . AssetLibrary::GLOBAL_ID;
+      $build['#attached']['library'][] = 'canvas/brand_kit.' . BrandKit::GLOBAL_ID;
     }
 
     $valid_props = $component->getProps() ?? [];
@@ -251,6 +263,64 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
    */
   public function setSlots(array &$build, array $slots): void {
     $build['#slots'] = $slots;
+  }
+
+  private function getActiveGlobalBrandKit(bool $isPreview): ?BrandKit {
+    $brand_kit_storage = $this->entityTypeManager->getStorage(BrandKit::ENTITY_TYPE_ID);
+    \assert($brand_kit_storage instanceof ConfigEntityStorageInterface);
+    $brand_kit = $brand_kit_storage->load(BrandKit::GLOBAL_ID);
+    if (!$brand_kit instanceof BrandKit) {
+      return NULL;
+    }
+
+    if (!$isPreview) {
+      return $brand_kit;
+    }
+
+    $auto_save = $this->autoSaveManager->getAutoSaveEntity($brand_kit);
+    if (!$auto_save->isEmpty()) {
+      \assert($auto_save->entity instanceof BrandKit);
+      return $auto_save->entity;
+    }
+
+    return $brand_kit;
+  }
+
+  /**
+   * @param \Drupal\canvas\Entity\BrandKit $brand_kit
+   *
+   * @return list<array{
+   *   rel: string,
+   *   as: string,
+   *   type: string,
+   *   href: string,
+   *   crossorigin: string
+   *   }>
+   */
+  private function getFontPreloadLinks(BrandKit $brand_kit): array {
+    $links = [];
+    foreach ($brand_kit->getFonts() as $font) {
+      $href = $this->fileUrlGenerator->generateString($font['uri']);
+      $links[$href] = [
+        'rel' => 'preload',
+        'as' => 'font',
+        'type' => self::getFontMimeType($font['format']),
+        'href' => $href,
+        'crossorigin' => 'anonymous',
+      ];
+    }
+
+    return array_values($links);
+  }
+
+  private static function getFontMimeType(string $format): string {
+    return match ($format) {
+      'woff2' => 'font/woff2',
+      'woff' => 'font/woff',
+      'ttf' => 'font/ttf',
+      'otf' => 'font/otf',
+      default => 'font/woff2',
+    };
   }
 
   /**

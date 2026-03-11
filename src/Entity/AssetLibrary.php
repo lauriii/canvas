@@ -21,7 +21,7 @@ use Drupal\canvas\EntityHandlers\CanvasAssetStorage;
   label_singular: new TranslatableMarkup('in-browser code library'),
   label_plural: new TranslatableMarkup('in-browser code libraries'),
   label_collection: new TranslatableMarkup('In-browser code libraries'),
-  admin_permission: JavaScriptComponent::ADMIN_PERMISSION,
+  admin_permission: self::ADMIN_PERMISSION,
   handlers: [
     'storage' => CanvasAssetStorage::class,
     'access' => AssetLibraryAccessControlHandler::class,
@@ -36,15 +36,14 @@ use Drupal\canvas\EntityHandlers\CanvasAssetStorage;
     'label',
     'css',
     'js',
-    'fonts',
   ],
 )]
 final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterface {
-
   use CanvasAssetLibraryTrait;
 
   public const string ENTITY_TYPE_ID = 'asset_library';
-  private const string ASSETS_DIRECTORY = 'assets://canvas/';
+  public const string ADMIN_PERMISSION = JavaScriptComponent::ADMIN_PERMISSION;
+  public const string ASSETS_DIRECTORY = 'assets://canvas/';
 
   public const string GLOBAL_ID = 'global';
 
@@ -54,11 +53,6 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
    * The human-readable label of the asset library.
    */
   protected ?string $label;
-
-  /**
-   * @var list<array{name: string, uri: string}>|null
-   */
-  protected ?array $fonts = NULL;
 
   /**
    * {@inheritdoc}
@@ -74,7 +68,6 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
         'label' => $this->label,
         'css' => $this->css,
         'js' => $this->js,
-        'fonts' => $this->fonts,
       ],
       preview: NULL
     );
@@ -126,20 +119,6 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
     //    be recalculated.
     // @see \canvas_library_info_build()
     Cache::invalidateTags(['library_info']);
-  }
-
-  /**
-   * @return list<array{name: string, uri: string}>
-   */
-  public function getFonts(): array {
-    return $this->fonts ?? [];
-  }
-
-  /**
-   * @param list<array{name: string, uri: string}>|null $entries
-   */
-  public function setFonts(?array $entries): void {
-    $this->fonts = $entries;
   }
 
   /**

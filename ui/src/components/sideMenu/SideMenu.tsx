@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router';
 import { useLocation } from 'react-router-dom';
+import BrandKitIcon from '@assets/icons/brand-kit.svg?react';
 import ExtensionIcon from '@assets/icons/extension-sm.svg?react';
 import TemplateIcon from '@assets/icons/template.svg?react';
 import {
@@ -18,6 +19,7 @@ import {
   setActivePanel,
   unsetActivePanel,
 } from '@/features/ui/primaryPanelSlice';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 import { hasPermission } from '@/utils/permissions';
 
 import styles from './SideMenu.module.css';
@@ -119,6 +121,14 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       label: 'Extensions',
       enabled: true,
       hidden: !hasExtensions,
+    },
+    {
+      type: 'button',
+      id: 'brandKit',
+      icon: <BrandKitIcon />,
+      label: 'Brand kit',
+      enabled: true,
+      hidden: !hasPermission('brandKit') || !getCanvasSettings()?.devMode,
     },
   ];
 
