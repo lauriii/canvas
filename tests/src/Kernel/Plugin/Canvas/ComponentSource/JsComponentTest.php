@@ -508,6 +508,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
         'drupal-canvas' => \sprintf('%s/packages/astro-hydration/dist/drupal-canvas.js?2.1.0-alpha3', $module_path),
         '@tailwindcss/typography' => \sprintf('%s/packages/astro-hydration/dist/tailwindcss-typography.js?2.1.0-alpha3', $module_path),
       ],
+      ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS => [],
     ];
 
     $this->assertEquals([
@@ -581,14 +582,14 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
               ],
             ],
           ],
-          'import_maps' => $default_imports + [
+          'import_maps' => array_merge($default_imports, [
             ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS => [
               \sprintf('/%s/files/astro-island/OXEtkRiIQlg16fvA1lWA_1ggYYS5VOUJpRZ5r3ow2N8.js', $site_path) => [
                 '@/components/canvas_test_code_components_with_no_props' => \sprintf('/%s/files/astro-island/axL0zkV0Jlcf3zuQfhx8HWxySMYQVoAZLwgGK-dxXWU.js', $site_path),
                 '@/components/canvas_test_code_components_with_props' => \sprintf('/%s/files/astro-island/AFWyiY79ad8_Hbz1qqKz97PSpKgNHSYCcwBWz8QRChU.js', $site_path),
               ],
             ],
-          ],
+          ]),
         ],
       ],
       'js.canvas_test_code_components_vanilla_image' => [
@@ -1390,7 +1391,8 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       );
       $rendered_component = $source->renderComponent(self::getDefaultInputForGeneratedInputUx($component), $source->getSlotDefinitions(), 'test-uuid', $preview);
       self::assertArrayHasKey('#import_maps', $rendered_component);
-      self::assertArrayNotHasKey(ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS, $rendered_component['#import_maps']);
+      self::assertArrayHasKey(ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS, $rendered_component['#import_maps']);
+      self::assertEmpty($rendered_component['#import_maps'][ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS]);
       self::assertNotEmpty($rendered_component['#attached']['library']);
       self::assertEmpty(array_filter(
         $rendered_component['#attached']['library'],

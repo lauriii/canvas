@@ -10,7 +10,6 @@ use Drupal\canvas\Config\ThemeSettingsDiscovery;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Extension\CanvasExtensionPluginManager;
-use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\canvas\Resource\CanvasResourceLink;
 use Drupal\canvas\Resource\CanvasResourceLinkCollection;
 use Drupal\Component\Utility\Html;
@@ -240,9 +239,7 @@ HTML;
           'styles' => '<css-placeholder token="CSS-HERE-PLEASE">',
           'scripts' => '<js-placeholder token="JS-HERE-PLEASE">',
         ],
-        'import_maps' => [
-          ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS => $this->globalImports->getGlobalImports(),
-        ],
+        'import_maps' => $this->globalImports->getImportMap(),
       ]);
   }
 

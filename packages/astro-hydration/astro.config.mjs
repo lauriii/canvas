@@ -70,29 +70,42 @@ export default defineConfig({
           const buildOnly = pkg.canvas?.buildOnly ?? [];
           const importMapLibraries = Object.keys(pkg.dependencies)
             .filter(dep => !buildOnly.includes(dep));
-          
+
           // Check if id matches an import map library. Handle:
           // - Bare specifiers: "clsx", "preact"
           // - Subpath imports: "preact/hooks", "drupal-canvas/utils"
           // - Full paths: ".../node_modules/clsx/dist/clsx.mjs"
-          const matchedLibrary = importMapLibraries.find(lib => 
-            id === lib || 
+          const matchedLibrary = importMapLibraries.find(lib =>
+            id === lib ||
             id.startsWith(`${lib}/`) ||
             id.includes(`/node_modules/${lib}/`)
           );
-          
+
           if (matchedLibrary) {
             // Bundle if imported directly from astro-hydration source.
             if (parent?.includes(path.resolve(__dirname, 'src/'))) {
               return false;
+            }
+            // Preact subpaths are separate output chunks (each with its own
+            // import map entry). Their internal imports must use bare specifiers
+            // so they don't bypass the import map. This applies to:
+            // - Cross-subpath imports within preact itself (e.g., hooks → preact)
+            // - The @astrojs/preact client directive importing preact
+            // Without this, Rollup uses relative imports (e.g., ./preact.module.js)
+            // that lack the cache-busting query string from the import map,
+            // causing the browser to load two separate Preact instances.
+            if (matchedLibrary === 'preact' &&
+                (parent?.includes('/node_modules/preact/') || parent?.includes('/node_modules/@astrojs/preact/')) &&
+                (id === 'preact' || id === 'preact/hooks' || id === 'preact/compat')) {
+              return true;
             }
             // Bundle if it's an internal import within the same package (e.g.,
             // swr/dist/_internal imported by swr/dist/index).
             if (parent?.includes(`/node_modules/${matchedLibrary}/`)) {
               return false;
             }
-            // Bundle if imported from a build-only package (e.g., @astrojs/preact
-            // importing preact).
+            // Bundle if imported from a build-only package (e.g., astro
+            // importing a shared dependency).
             if (buildOnly.some(pkg => parent?.includes(`/node_modules/${pkg}/`))) {
               return false;
             }

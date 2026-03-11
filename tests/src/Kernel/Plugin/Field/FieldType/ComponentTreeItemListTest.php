@@ -1168,6 +1168,7 @@ HTML,
                                           'drupal-canvas' => \sprintf('%s/packages/astro-hydration/dist/drupal-canvas.js?2.1.0-alpha3', $path),
                                           '@tailwindcss/typography' => \sprintf('%s/packages/astro-hydration/dist/tailwindcss-typography.js?2.1.0-alpha3', $path),
                                         ],
+                                        ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS => [],
                                       ],
                                       '#attached' => [
                                         'html_head_link' => [
@@ -1242,6 +1243,7 @@ HTML,
                                           'drupal-canvas' => \sprintf('%s/packages/astro-hydration/dist/drupal-canvas.js?2.1.0-alpha3', $path),
                                           '@tailwindcss/typography' => \sprintf('%s/packages/astro-hydration/dist/tailwindcss-typography.js?2.1.0-alpha3', $path),
                                         ],
+                                        ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS => [],
                                       ],
                                       '#attached' => [
                                         'html_head_link' => [

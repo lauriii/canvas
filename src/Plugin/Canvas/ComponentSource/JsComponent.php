@@ -171,15 +171,13 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
 
     $canvas_path = $this->extensionPathResolver->getPath('module', 'canvas');
     // Build base import map.
-    $import_maps[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS] = $this->globalImports->getGlobalImports();
+    $import_maps = $this->globalImports->getImportMap();
     // For scoped dependencies we don't need cache-busting query strings, as
     // those are already busted by its content-dependent filename: when the
     // code component changes, so does the filename.
     // @see \Drupal\canvas\Entity\CanvasAssetLibraryTrait::getJsPath()
     $scoped_map = $this->getScopedDependencies($component, $autoSave, $isPreview);
-    if (count($scoped_map) > 0) {
-      $import_maps[ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS] = $scoped_map;
-    }
+    $import_maps[ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS] = \array_merge($import_maps[ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS], $scoped_map);
 
     $build['#attached']['library'] = \array_merge($build['#attached']['library'], $this->getDependencyLibraries($component, $autoSave, $isPreview));
 

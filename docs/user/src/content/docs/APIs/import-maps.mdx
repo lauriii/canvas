@@ -1,0 +1,62 @@
+---
+title: APIs - Import maps
+---
+
+Canvas uses [import maps](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap) to resolve JavaScript module specifiers for code components. The import map is built on the backend and injected into the page as a `<script type="importmap">` tag.
+
+Modules and themes can add, remove, or modify import map entries using the `hook_canvas_importmap_alter` hook.
+
+## Usage
+
+Implement `hook_canvas_importmap_alter()` in your module or theme:
+
+```php
+function my_module_canvas_importmap_alter(array &$import_maps): void {
+  $module_path = \Drupal::service('extension.path.resolver')
+    ->getPath('module', 'my_module');
+
+  // Add a new package.
+  $import_maps['imports']['my-library'] = \base_path() . $module_path . '/js/my-library.js';
+
+  // Replace an existing global import with a custom build.
+  $import_maps['imports']['clsx'] = \base_path() . $module_path . '/js/custom-clsx.js';
+}
+```
+
+The `$import_maps` array follows the [import map spec](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap) structure:
+
+- `imports` — Global import entries mapping specifiers to URLs.
+- `scopes` — (optional) Scoped import entries. Within a given scope URL prefix, bare specifiers can resolve to different URLs than the global entries.
+
+## Examples
+
+### Adding a Tailwind CSS plugin
+
+To make a Tailwind CSS plugin available for use with the `@plugin` directive in Global CSS, add it to the import map.
+
+```php
+function my_module_canvas_importmap_alter(array &$import_maps): void {
+  $module_path = \Drupal::service('extension.path.resolver')
+    ->getPath('module', 'my_module');
+
+  // Register a Tailwind CSS plugin.
+  $import_maps['imports']['@tailwindcss/forms'] = \base_path() . $module_path . '/js/tailwindcss-forms.js';
+}
+```
+
+Then use the `@plugin` directive in your **Global CSS**:
+
+```css
+@plugin "@tailwindcss/forms";
+```
+
+## Use cases
+
+- **Adding a custom package**: Register a local JS file so code components can `import` it by name.
+- **Adding a Tailwind CSS plugin**: Register a Tailwind CSS plugin so it can be used with `@plugin` in Global CSS.
+- **Replacing a built-in package**: Swap a bundled package (e.g., `clsx`) with a custom build.
+
+## Notes
+
+- This hook is invoked for both modules and themes.
+- This hook is similar to what is being worked on for Drupal core (`hook_importmap_alter`) in [#3398525](https://www.drupal.org/project/drupal/issues/3398525). When that lands and Canvas adopts it, the `hook_canvas_importmap_alter` will be deprecated in favor of the core hook.

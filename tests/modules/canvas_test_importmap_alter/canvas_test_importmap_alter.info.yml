@@ -1,0 +1,5 @@
+name: 'Test Canvas Import Map Alter'
+type: module
+dependencies:
+  - canvas:canvas
+package: Testing
