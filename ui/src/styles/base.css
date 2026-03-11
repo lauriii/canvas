@@ -36,3 +36,8 @@ a.tabledrag-handle .handle.handle {
 drupal-html-fragment, element-prop {
   display: contents;
 }
+
+.canvas-linked-prop-label-wrapper--multiple-values {
+  display: flex;
+  align-items: center;
+}

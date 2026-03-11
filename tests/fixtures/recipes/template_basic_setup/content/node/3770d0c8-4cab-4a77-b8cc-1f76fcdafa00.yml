@@ -8,6 +8,7 @@ _meta:
     5cd8f890-a1b8-4a9f-980d-a9ddadeaec81: media
     b056131d-fdc2-4aeb-9776-3e8001c1a0d1: file
     ad0f8699-9c47-4d2c-93a2-59729c2e70c1: taxonomy_term
+    4f797556-f1bd-4bf2-a034-2550afa55c5d: taxonomy_term
 default:
   revision_uid:
     -
@@ -69,6 +70,13 @@ default:
     -
       target_uuid: ''
       entity: ad0f8699-9c47-4d2c-93a2-59729c2e70c1
+  field_multiple_tags:
+    -
+      target_uuid: ''
+      entity: ad0f8699-9c47-4d2c-93a2-59729c2e70c1
+    -
+      target_uuid: ''
+      entity: 4f797556-f1bd-4bf2-a034-2550afa55c5d
   field_the_boolean:
     -
       value: true

@@ -1,0 +1,29 @@
+uuid: 8b9c3f5e-ad4e-5f6a-9b2c-3d4e5f6a7b8c
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_multiple_tags
+    - node.type.page
+    - taxonomy.vocabulary.tags
+id: node.page.field_multiple_tags
+field_name: field_multiple_tags
+entity_type: node
+bundle: page
+label: 'Multiple Tags'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      tags: tags
+    sort:
+      field: name
+      direction: asc
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

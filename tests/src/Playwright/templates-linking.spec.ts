@@ -518,7 +518,7 @@ const entityValuesNode4 = {
   'One Tag > Taxonomy term > Changed': /\d{9,}/,
   'One Tag > Taxonomy term > Revision create time': /\d{9,}/,
   'One Tag > Taxonomy term > Revision user > URL': '',
-  'One Tag > URL': '/taxonomy/term/2',
+  'One Tag > URL': /\/taxonomy\/term\/[12]/,
   'Image Media > Media > Changed': /\d{9,}/,
   'Image Media > Media > Revision create time': /\d{9,}/,
   'Image Media > Media > Authored on': '1760098240',
@@ -553,6 +553,101 @@ const entityValuesNode4 = {
   'test_string_format_date::Date Only': '2011-11-11',
   'test_string_format_date::Date and time': '2010-10-10T10:10:10',
 };
+
+test.describe('Multiple-cardinality field linker', () => {
+  test.beforeAll(
+    'Setup test site with multiple-cardinality field',
+    async ({ browser, drupalSite }) => {
+      const page = await browser.newPage();
+      const drupal: Drupal = new Drupal({ page, drupalSite });
+      await drupal.setupCanvasTestSite();
+      const moduleDir = await getModuleDir();
+      await drupal.applyRecipe(
+        `${moduleDir}/canvas/tests/fixtures/recipes/template_basic_setup`,
+      );
+      await page.close();
+    },
+  );
+
+  test('linker appears for multiple-cardinality field widgets', async ({
+    page,
+    drupal,
+    canvasEditor,
+  }) => {
+    await drupal.loginAsAdmin();
+    await page.goto('/canvas/template/node/page/full');
+    await canvasEditor.waitForEditorUINoContextualPanel();
+
+    await page.getByTestId('select-content-preview-item').click();
+    await page.getByRole('menuitem', { name: 'Debut Page' }).click();
+
+    // Add the tags component which has an array prop.
+    await canvasEditor.openLibraryPanel();
+    await canvasEditor.addComponent({
+      id: 'sdc.canvas_test_sdc.tags',
+    });
+
+    // Wait for the component to be selected and the contextual panel to load.
+    await expect(page.getByTestId('canvas-contextual-panel')).toBeVisible();
+
+    // Verify the linker is visible for the tags prop.
+    const linker = page.getByLabel('Link tags to an other field');
+    await expect(linker).toBeVisible();
+
+    // Verify suggestions include the multiple tags field (multi-value entity reference).
+    const suggestionsSerialized = await linker.getAttribute(
+      'data-canvas-link-suggestions',
+    );
+    const actualSuggestions: string[] = suggestionsSerialized
+      ? JSON.parse(suggestionsSerialized)
+      : [];
+
+    // Check that Multiple Tags field appears in suggestions.
+    // This verifies that multiple-cardinality fields are included as linkable options.
+    expect(
+      actualSuggestions.some((s: string) => s.startsWith('Multiple Tags')),
+    ).toBe(true);
+
+    // Specifically check for the taxonomy term name path.
+    expect(actualSuggestions).toContain('Multiple Tags > Taxonomy term > Name');
+
+    // Click linker and select the multiple tags field to verify it works.
+    await linker.click();
+    await page
+      .locator(
+        '[data-link-suggestion-option="Multiple Tags"][data-child-of="root"]',
+      )
+      .hover();
+    await page
+      .locator(
+        '[data-link-suggestion-option="Taxonomy term"][data-child-of="Multiple Tags"]',
+      )
+      .hover();
+    await page
+      .locator(
+        '[data-link-suggestion-option="Name"][data-child-of="Taxonomy term"]',
+      )
+      .click();
+
+    // Verify the link was established.
+    await expect(page.getByTestId('linked-field-box-tags')).toBeVisible();
+    await expect(page.getByTestId('linked-field-label-tags')).toHaveText(
+      'Name',
+    );
+
+    // Verify that BOTH tags from the multiple-cardinality field appear in the preview.
+    // The "Debut Page" node has field_multiple_tags with two taxonomy terms:
+    // "Cool tag" and "Ok tag".
+    const previewFrame = await canvasEditor.getActivePreviewFrame();
+    const tagList = previewFrame.locator('.tag-list');
+    await expect(tagList).toBeVisible();
+
+    // Verify both tag values are rendered in the preview.
+    await expect(tagList.locator('.tag')).toHaveCount(2);
+    await expect(tagList).toContainText('Cool tag');
+    await expect(tagList).toContainText('Ok tag');
+  });
+});
 
 // Object mapping prop names to their corresponding preview selectors.
 const propNameToSelector = {

@@ -171,6 +171,22 @@ function canvas_stark_form_node_form_alter(array &$form, FormStateInterface $for
 
 function canvas_stark_preprocess_field_multiple_value_form(array &$variables): void {
   $variables['attributes']['data-canvas-multiple-values'] = 'true';
+  if (isset($variables['element']['#prop_link_data']) && !empty($variables['multiple'])) {
+    $old_data = $variables['table']['#header'][0]['data'];
+    $variables['table']['#header'][0]['data'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['canvas-linked-prop-label-wrapper--multiple-values'],
+      ],
+      'h4' => $old_data,
+      'linker' => [
+        '#theme' => 'prop_linker',
+        '#linked' => $variables['element']['#prop_link_data']['linked'],
+        '#prop_name' => $variables['element']['#prop_link_data']['prop_name'],
+        '#suggestions' => $variables['element']['#prop_link_data']['suggestions'],
+      ],
+    ];
+  }
   $variables['description_attributes'] = $variables['description']['attributes'] ?? [];
 }
 

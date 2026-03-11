@@ -3,6 +3,7 @@ description: 'A basic setup for testing templates.'
 type: 'Canvas'
 install:
   - canvas_test_linkable_props
+  - canvas_test_sdc
 recipes:
   - ./core/recipes/tags_taxonomy
   - ./core/recipes/basic_html_format_editor
@@ -82,3 +83,12 @@ config:
             region: content
             settings:
               placeholder: ''
+        - name: field_multiple_tags
+          options:
+            type: entity_reference_autocomplete_tags
+            weight: 131
+            region: content
+            settings:
+              match_operator: CONTAINS
+              match_limit: 10
+              size: 60
