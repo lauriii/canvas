@@ -8,7 +8,6 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\canvas\PropExpressions\PropExpressionInterface;
-use Drupal\canvas\PropSource\ContentAwareDependentInterface;
 
 /**
  * @internal

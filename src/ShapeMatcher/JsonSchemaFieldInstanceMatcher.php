@@ -7,12 +7,12 @@ namespace Drupal\canvas\ShapeMatcher;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
+use Drupal\canvas\PropExpressions\StructuredData\FieldItemAnalyzer;
 use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Component\Assertion\Inspector;
-use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
@@ -649,7 +649,7 @@ final class JsonSchemaFieldInstanceMatcher {
           $depends_on_file_uri_field = $property_definition->isComputed()
             && self::propertyDependsOnReferencedEntity($property_definition)
             // @phpstan-ignore-next-line argument.type
-            && is_a(self::getReferenceDependency($property_definition)->getFieldDefinition()->getItemDefinition()->getClass(), FileUriItem::class, TRUE);
+            && is_a(FieldItemAnalyzer::getReferenceDependency($property_definition)->getFieldDefinition()->getItemDefinition()->getClass(), FileUriItem::class, TRUE);
 
           // If either of those are true, the File entity's `FileExtension`
           // constraint must be reflected at the field property level to allow
@@ -658,7 +658,7 @@ final class JsonSchemaFieldInstanceMatcher {
           $file_entity_constraints = match (TRUE) {
             $is_file_uri_field => $entity_data_definition->getConstraints(),
             // @phpstan-ignore-next-line argument.type
-            $depends_on_file_uri_field => $this->getConstrainedTargetDefinition($field_definition, self::getReferenceDependency($property_definition))->getConstraints(),
+            $depends_on_file_uri_field => $this->getConstrainedTargetDefinition($field_definition, FieldItemAnalyzer::getReferenceDependency($property_definition))->getConstraints(),
             default => [],
           };
           if (!empty($file_entity_constraints)) {
@@ -1114,34 +1114,7 @@ final class JsonSchemaFieldInstanceMatcher {
   }
 
   public static function propertyDependsOnReferencedEntity(DataDefinitionInterface $data_definition): bool {
-    return self::getReferenceDependency($data_definition) !== NULL;
-  }
-
-  public static function getReferenceDependency(DataDefinitionInterface $data_definition): ?ReferenceFieldTypePropExpression {
-    \assert(!str_starts_with($data_definition->getDataType(), 'field_item:'));
-
-    if (!$data_definition->isReadOnly() && is_a($data_definition->getClass(), DependentPluginInterface::class, TRUE)) {
-      return NULL;
-    }
-
-    // Find StructuredDataPropExpressions in the property's settings.
-    $settings = $data_definition->getSettings();
-    $found_expressions = [];
-    array_walk_recursive($settings, function ($current) use (&$found_expressions) {
-      if (\is_string($current) && StructuredDataPropExpression::isA($current)) {
-        $found_expressions[] = $current;
-      }
-    });
-
-    // Check if >=1 relies on an entity reference.
-    foreach ($found_expressions as $found_expression) {
-      $expression = StructuredDataPropExpression::fromString($found_expression);
-      if ($expression instanceof ReferenceFieldTypePropExpression) {
-        return $expression;
-      }
-    }
-
-    return NULL;
+    return FieldItemAnalyzer::getReferenceDependency($data_definition) !== NULL;
   }
 
   private static function componentPluginManager(): ComponentPluginManager {

@@ -60,3 +60,12 @@ rules:
 # Run `composer run phpstan-regenerate-ignores-for-11.3-and-higher` to update this list of ignores for Drupal >=11.3.
 includes:
   - phpstan-11.3-and-higher-ignores.neon
+services:
+  -
+    class: Canvas\PHPStan\Architecture\PropExpressions
+    tags:
+      - phpat.test
+  -
+    class: Canvas\PHPStan\Architecture\Tests
+    tags:
+      - phpat.test

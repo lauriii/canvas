@@ -2,13 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Drupal\canvas\PropSource;
+namespace Drupal\canvas\PropExpressions\StructuredData;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 
 /**
- * Provides an interface for a prop source that has dependencies.
+ * Interface for a prop expression that has content-specific dependencies.
+ *
+ * @see \Drupal\Component\Plugin\DependentPluginInterface;
  *
  * @internal
  * @phpstan-import-type ConfigDependenciesArray from \Drupal\canvas\Entity\VersionedConfigEntityInterface

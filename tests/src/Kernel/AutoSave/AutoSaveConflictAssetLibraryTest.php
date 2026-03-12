@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\AutoSave;
 
 use Drupal\canvas\Entity\AssetLibrary;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
@@ -12,6 +13,8 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  *
  * @see \Drupal\canvas\Entity\AssetLibrary
  */
+#[Group('canvas')]
+#[Group('canvas_auto_save')]
 #[RunTestsInSeparateProcesses]
 final class AutoSaveConflictAssetLibraryTest extends AutoSaveConflictConfigTestBase {
 

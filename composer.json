@@ -21,6 +21,7 @@
         "jangregor/phpstan-prophecy": "~1|~2",
         "league/openapi-psr7-validator": "^0.22.0",
         "mglaman/phpstan-drupal": "^2.0.9",
+        "phpat/phpat": "^0.12",
         "phpstan/phpstan-strict-rules": "^2"
     },
     "scripts": {

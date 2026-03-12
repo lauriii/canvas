@@ -12,7 +12,7 @@ use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Core\Entity\EntityWithPluginCollectionInterface;
 use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
 
-class BetterConfigEntityValidationTestBase extends ConfigEntityValidationTestBase {
+abstract class BetterConfigEntityValidationTestBase extends ConfigEntityValidationTestBase {
 
   use SchemaCheckTrait;
 

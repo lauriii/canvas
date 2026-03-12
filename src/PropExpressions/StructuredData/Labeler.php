@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropExpressions\StructuredData;
 
-use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
@@ -328,7 +327,7 @@ final class Labeler {
         return TRUE;
       }
 
-      $expr_used_by_computed_property = JsonSchemaFieldInstanceMatcher::getReferenceDependency($property_definition);
+      $expr_used_by_computed_property = FieldItemAnalyzer::getReferenceDependency($property_definition);
       if ($expr_used_by_computed_property === NULL) {
         continue;
       }
