@@ -376,6 +376,8 @@ HTML,
       'expected_output_selector' => \sprintf('[id*="block-%s"]:contains("Hello, Canvas!")', static::UUID_CRASH_TEST_DUMMY),
     ];
 
+    // @todo Add a "hydration exception" test case in https://www.drupal.org/i/3524399
+
     yield "Block with valid props, with exception" => [
       'component_id' => 'block.canvas_test_block_input_validatable_crash',
       'inputs' => [

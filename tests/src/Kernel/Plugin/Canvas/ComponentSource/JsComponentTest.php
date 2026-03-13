@@ -1232,6 +1232,34 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       'expected_output_selector' => \sprintf('canvas-island[uid="%s"][props*="Tilly"][props*="19"]', self::UUID_CRASH_TEST_DUMMY),
     ];
 
+    // Garbage (non-existent) prop should result in:
+    // - validation error (since 1.1.0)
+    // - hydration failing (`::getExplicitInput()` throwing an exception)
+    // TRICKY: This did not trigger a validation error before 1.1.0. Component
+    // instances created before 1.1.0 may still exist (they are not
+    // automatically updated), so expect the exception that occurs during
+    // hydration to appear similar to a rendering exception.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getExplicitInput()
+    // @see https://www.drupal.org/project/canvas/issues/3524401
+    yield "JS Component with extraneous prop, validation error (since 1.1.0), with hydration exception visible similar to rendering exception" => [
+      'component_id' => $component_id,
+      'inputs' => [
+        'age' => 19,
+        'name' => 'Tilly',
+        // But instead trigger a crash during hydration.
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getExplicitInput()
+        'hydration_should_fail_on_this_non_existent_value' => TRUE,
+      ],
+      'expected_validation_errors' => [
+        '2.inputs.3204a711-a1bd-401d-9ce0-895665487eaa.hydration_should_fail_on_this_non_existent_value' => 'Component `3204a711-a1bd-401d-9ce0-895665487eaa`: the `hydration_should_fail_on_this_non_existent_value` prop is not defined.',
+      ],
+      'expected_exception' => [
+        'class' => \OutOfRangeException::class,
+        'message' => '\'hydration_should_fail_on_this_non_existent_value\' is not a prop on this version of the Component \'Code component: <em class="placeholder">With props</em>\'.',
+      ],
+      'expected_output_selector' => NULL,
+    ];
+
     yield "JS Component with valid props, JSON encoding exception" => [
       'component_id' => $component_id,
       'inputs' => [

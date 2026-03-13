@@ -119,6 +119,9 @@ class ComponentTreeItem extends FieldItemBase {
 
   public const string PLUGIN_ID = 'component_tree';
 
+  // @todo Decide what the best location is for this constant.
+  public const string VIOLATION_CODE_GARBAGE_INPUT = 'garbage';
+
   use ComponentTreeItemListInstantiatorTrait;
 
   // phpcs:disable Drupal.Commenting.DataTypeNamespace.DataTypeNamespace

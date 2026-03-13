@@ -493,21 +493,20 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
       'field_canvas_test.0.component_id' => "The 'canvas.component.sdc.sdc_test.missing' config does not exist.",
     ];
     $test_cases['inputs invalid, using entity field prop sources'][] = [
-      \sprintf('field_canvas_test.0.inputs.%s.heading', self::UUID_DYNAMIC_STATIC_CARD_2) => 'The property heading is required.',
       'field_canvas_test.0.inputs.9145b0da-85a1-4ee7-ad1d-b1b63614aed6.heading-2' => 'Component `9145b0da-85a1-4ee7-ad1d-b1b63614aed6`: the `heading-2` prop is not defined.',
+      \sprintf('field_canvas_test.0.inputs.%s.heading', self::UUID_DYNAMIC_STATIC_CARD_2) => 'The property heading is required.',
       'field_canvas_test.0' => "The 'entity-field' prop source type must be absent.",
-      \sprintf('field_canvas_test.1.inputs.%s.heading', self::UUID_DYNAMIC_STATIC_CARD_3) => 'The property heading is required.',
       'field_canvas_test.1.inputs.dab1145b-c5d5-4779-9be8-0a41c2d8ed29.heading-1' => 'Component `dab1145b-c5d5-4779-9be8-0a41c2d8ed29`: the `heading-1` prop is not defined.',
+      \sprintf('field_canvas_test.1.inputs.%s.heading', self::UUID_DYNAMIC_STATIC_CARD_3) => 'The property heading is required.',
       'field_canvas_test.1' => "The 'entity-field' prop source type must be absent.",
       'field_canvas_test.2' => "The 'entity-field' prop source type must be absent.",
     ];
     $test_cases['inputs invalid, using entity field prop sources'][] = ['access content'];
 
-    // If inputs are invalid, we get an OutOfRangeException thrown.
-    $test_cases['inputs invalid, using only static prop sources'][] = [];
-    $test_cases['inputs invalid, using only static prop sources'][] = [];
-    $test_cases['inputs invalid, using only static prop sources'][] = \OutOfRangeException::class;
-    $test_cases['inputs invalid, using only static prop sources'][] = "'heading-x' is not a prop on this version of the Component 'Single-directory component: <em class=\"placeholder\">Canvas test SDC with props but no slots</em>'.";
+    $test_cases['inputs invalid, using only static prop sources'][] = [
+      \sprintf('field_canvas_test.0.inputs.%s.heading-x', self::UUID_DYNAMIC_STATIC_CARD_2) => 'Component `9145b0da-85a1-4ee7-ad1d-b1b63614aed6`: the `heading-x` prop is not defined.',
+      \sprintf('field_canvas_test.0.inputs.%s.heading', self::UUID_DYNAMIC_STATIC_CARD_2) => 'The property heading is required.',
+    ];
 
     $test_cases['inputs invalid, using only static inputs with a StaticPropSource deviating from that defined in the referenced Component entity version'][] = [
       \sprintf('field_canvas_test.0.inputs.%s', self::UUID_DYNAMIC_STATIC_CARD_2) => 'Using a static prop source that deviates from the configuration for Component <em class="placeholder">sdc.canvas_test_sdc.props-no-slots</em> at version <em class="placeholder">b1e991f726a2a266</em>.',

@@ -88,7 +88,7 @@ class DefaultFieldValueTest extends CanvasKernelTestBase {
     array_push(
       $test_cases['inputs invalid, using entity field prop sources'],
       SchemaIncompleteException::class,
-      'Schema errors for field.field.node.article.field_canvas_test with the following errors: 0 [default_value.0] The &#039;entity-field&#039; prop source type must be absent.',
+      'Schema errors for field.field.node.article.field_canvas_test with the following errors: 0 [default_value.0.inputs.9145b0da-85a1-4ee7-ad1d-b1b63614aed6.heading-2] Component `9145b0da-85a1-4ee7-ad1d-b1b63614aed6`: the `heading-2` prop is not defined., 1 [default_value.0.inputs.9145b0da-85a1-4ee7-ad1d-b1b63614aed6.heading] The property heading is required., 2 [default_value.0] The &#039;entity-field&#039; prop source type must be absent., 3 [default_value.1.inputs.dab1145b-c5d5-4779-9be8-0a41c2d8ed29.heading-1] Component `dab1145b-c5d5-4779-9be8-0a41c2d8ed29`: the `heading-1` prop is not defined., 4 [default_value.1.inputs.dab1145b-c5d5-4779-9be8-0a41c2d8ed29.heading] The property heading is required., 5 [default_value.1] The &#039;entity-field&#039; prop source type must be absent., 6 [default_value.2] The &#039;entity-field&#039; prop source type must be absent.',
     );
     array_push(
       $test_cases['missing components, using only static prop sources'],

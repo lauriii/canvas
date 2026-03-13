@@ -40,6 +40,8 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   // @todo Remove in https://drupal.org/i/3495625
   public const string ROOT_UUID = 'a548b48d-58a8-4077-aa04-da9405a6f418';
 
+  private const string HYDRATION_EXCEPTION_KEY = 'hydration_exception';
+
   /**
    * @var null|array<string, array{'edges': array<string, TRUE>}>
    */
@@ -229,6 +231,15 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     foreach ($hydrated as $component_subtree_uuid => $component_instances) {
       foreach ($component_instances as $component_instance_uuid => $component_instance) {
         try {
+          // If an exception occurred during hydration, re-throw it. (Such an
+          // exception results in explicit input not being available, and hence
+          // rendering the component instance being impossible.) This allows it
+          // to be presented in the same way as exceptions during rendering.
+          // @see ::getHydratedValue()
+          if (\array_key_exists(self::HYDRATION_EXCEPTION_KEY, $component_instance)) {
+            throw $component_instance[self::HYDRATION_EXCEPTION_KEY];
+          }
+
           $component = Component::load($component_instance['component']);
           \assert($component instanceof Component);
           $source = $component->getComponentSource();
@@ -469,10 +480,29 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       $component->loadVersion($item->getComponentVersion());
 
       $source = $component->getComponentSource();
+      try {
+        $explicit_input = $source->getExplicitInput($uuid, $item);
+      }
+      catch (\Throwable $e) {
+        $hydrated[$uuid] = [
+          'component' => $component_id,
+          // Store the exception to be re-thrown during rendering, so that it
+          // can be presented in the same way as exceptions during rendering:
+          // - without breaking the rendering of the entire component tree
+          // - with the relevant details to a privileged user
+          // - without exposing sensitive details to an unprivileged user
+          self::HYDRATION_EXCEPTION_KEY => $e,
+        ];
+        // Continue hydrating the next component instance. (Without trying to
+        // hydrate the slots of this component instance, since this component
+        // instance won't be renderable anyway.)
+        continue;
+      }
+
       $hydrated[$uuid] = [
         'component' => $component_id,
       ] + $source->hydrateComponent(
-        $source->getExplicitInput($uuid, $item),
+        $explicit_input,
         $component->getSlotDefinitions(),
         $required_props_with_default_values_in_current_implementation,
       );

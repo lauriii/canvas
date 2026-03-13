@@ -150,7 +150,7 @@ class ComponentInputsDependenciesTest extends CanvasKernelTestBase {
       'uuid' => $uuid->generate(),
       'component_id' => 'sdc.canvas_test_sdc.heading',
       'inputs' => [
-        'heading' => [
+        'text' => [
           'sourceType' => PropSource::EntityField->value,
           'expression' => 'ℹ︎␜entity:node:alpha␝body␞␟value',
         ],

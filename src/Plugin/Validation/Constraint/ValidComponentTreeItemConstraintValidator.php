@@ -15,6 +15,7 @@ use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
+use Symfony\Component\Validator\ConstraintViolationList;
 
 final class ValidComponentTreeItemConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
@@ -103,8 +104,36 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
       }
     }
 
+    \assert(\is_array($stored_explicit_input));
+    $component_violations = $this->translateConstraintPropertyPathsAndRoot(
+      ['' => $this->context->getPropertyPath() . '.'],
+      $component_source->validateComponentInput(
+        inputValues: $stored_explicit_input,
+        component_instance_uuid: $value->getUuid(),
+        entity: $fieldable_host_entity,
+      ),
+      // We need to ensure the validation root context is transferred over.
+      $this->context->getRoot()
+    );
+    if ($component_violations->count() > 0) {
+      // @todo Remove the foreach and use ::addAll once
+      // https://www.drupal.org/project/drupal/issues/3490588 has been resolved.
+      foreach ($component_violations as $violation) {
+        $this->context->getViolations()->add($violation);
+      }
+    }
+
     // Also add a violation error if the inputs contain static prop sources that
-    // deviate from those for the Component entity at the referenced version.
+    // either:
+    // - deviate from those for the Component entity at the referenced version
+    // - or are unoptimized ("uncollapsed")
+    // Unless there's >=1 garbage input violation: optimization would fail in
+    // that case, so there's no point in attempting it. The garbage value must
+    // be removed first.
+    \assert($component_violations instanceof ConstraintViolationList);
+    if ($component_violations->findByCodes(ComponentTreeItem::VIOLATION_CODE_GARBAGE_INPUT)->count() > 0) {
+      return;
+    }
     try {
       $value->optimizeInputs();
     }
@@ -126,25 +155,6 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
       $this->context->buildViolation('When using the default static prop source for a component input, you must use the collapsed input syntax.')
         ->atPath(\sprintf('inputs.%s', $value->getUuid()))
         ->addViolation();
-    }
-
-    \assert(\is_array($stored_explicit_input));
-    $component_violations = $this->translateConstraintPropertyPathsAndRoot(
-      ['' => $this->context->getPropertyPath() . '.'],
-      $component_source->validateComponentInput(
-        inputValues: $stored_explicit_input,
-        component_instance_uuid: $value->getUuid(),
-        entity: $fieldable_host_entity,
-      ),
-      // We need to ensure the validation root context is transferred over.
-      $this->context->getRoot()
-    );
-    if ($component_violations->count() > 0) {
-      // @todo Remove the foreach and use ::addAll once
-      // https://www.drupal.org/project/drupal/issues/3490588 has been resolved.
-      foreach ($component_violations as $violation) {
-        $this->context->getViolations()->add($violation);
-      }
     }
   }
 
