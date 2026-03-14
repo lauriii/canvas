@@ -60,7 +60,7 @@ describe('Prop types editing', () => {
   };
 
   before(() => {
-    cy.drupalCanvasInstall(['sdc_test_all_props']);
+    cy.drupalCanvasInstall(['sdc_test_all_props', 'datetime_range']);
     cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
@@ -276,6 +276,161 @@ describe('Prop types editing', () => {
     cy.waitForElementContentInIframe(
       '#test-string-format-date-time',
       '2017-06-28T07:21:35.000Z',
+    );
+  });
+
+  it('Date range widget', { retries: { openMode: 0, runMode: 3 } }, () => {
+    const startDate = '2026-05-02';
+    const endDate = '2026-06-02';
+    const settingsPanelViewport =
+      '[data-testid="canvas-contextual-panel"] [data-radix-scroll-area-viewport]';
+    const getDateRangePayloadEntry = (params, suffixes) => {
+      return [...params.entries()].find(([key]) => {
+        return (
+          key.includes('[test_object_drupal_date_range]') &&
+          suffixes.some((suffix) => key.endsWith(suffix))
+        );
+      });
+    };
+    const findNestedValueByKey = (input, keyName) => {
+      const queue = [input];
+      while (queue.length > 0) {
+        const current = queue.shift();
+        if (current === null || typeof current !== 'object') {
+          continue;
+        }
+        if (Array.isArray(current)) {
+          queue.push(...current);
+          continue;
+        }
+        if (Object.hasOwn(current, keyName)) {
+          return current[keyName];
+        }
+        queue.push(...Object.values(current));
+      }
+      return undefined;
+    };
+    const extractDateFromRangeValue = (input, fieldNames) => {
+      const queue = [input];
+      while (queue.length > 0) {
+        const current = queue.shift();
+        if (current === null || typeof current !== 'object') {
+          continue;
+        }
+        if (Array.isArray(current)) {
+          queue.push(...current);
+          continue;
+        }
+        for (const fieldName of fieldNames) {
+          if (!Object.hasOwn(current, fieldName)) {
+            continue;
+          }
+          const fieldValue = current[fieldName];
+          if (typeof fieldValue === 'string') {
+            return fieldValue;
+          }
+          if (
+            fieldValue !== null &&
+            typeof fieldValue === 'object' &&
+            !Array.isArray(fieldValue) &&
+            typeof fieldValue.date === 'string'
+          ) {
+            return fieldValue.date;
+          }
+          if (fieldValue !== null && typeof fieldValue === 'object') {
+            queue.push(fieldValue);
+          }
+        }
+        queue.push(...Object.values(current));
+      }
+      return undefined;
+    };
+    const getDateRangePayloadValue = (requestBody, suffixes, fieldNames) => {
+      const params = new URLSearchParams(requestBody);
+      const directEntry = getDateRangePayloadEntry(params, suffixes);
+      if (directEntry !== undefined) {
+        return directEntry[1];
+      }
+      const formCanvasProps = params.get('form_canvas_props');
+      if (typeof formCanvasProps !== 'string') {
+        return undefined;
+      }
+      try {
+        const parsedFormCanvasProps = JSON.parse(formCanvasProps);
+        const rangeValue = findNestedValueByKey(
+          parsedFormCanvasProps,
+          'test_object_drupal_date_range',
+        );
+        return extractDateFromRangeValue(rangeValue, fieldNames);
+      } catch {
+        return undefined;
+      }
+    };
+    const startDateSelector = [
+      'input[name*="test_object_drupal_date_range"][name$="[value][date]"]',
+      'input[name*="test_object_drupal_date_range"][name$="[from][date]"]',
+      'input[id*="test-object-drupal-date-range"][id$="-value-date"]',
+      'input[id*="test-object-drupal-date-range"][id$="-from-date"]',
+    ].join(', ');
+    const endDateSelector = [
+      'input[name*="test_object_drupal_date_range"][name$="[end_value][date]"]',
+      'input[name*="test_object_drupal_date_range"][name$="[to][date]"]',
+      'input[id*="test-object-drupal-date-range"][id$="-end-value-date"]',
+      'input[id*="test-object-drupal-date-range"][id$="-to-date"]',
+    ].join(', ');
+
+    cy.findByTestId('canvas-contextual-panel--settings').click();
+    cy.get(settingsPanelViewport).scrollTo('bottom');
+    cy.get(settingsPanelViewport)
+      .find(startDateSelector)
+      .first()
+      .as('startDateInput');
+    cy.get(settingsPanelViewport)
+      .find(endDateSelector)
+      .first()
+      .as('endDateInput');
+
+    cy.intercept(
+      'PATCH',
+      '**/canvas/api/v0/form/component-instance/node/1*',
+    ).as('patchDateRange');
+
+    cy.get('@startDateInput').clear();
+    cy.get('@startDateInput').type(startDate);
+    cy.get('@startDateInput').blur();
+    cy.wait('@patchDateRange').then(({ request, response }) => {
+      expect(response?.statusCode).to.eq(200);
+      expect(request.body).to.be.a('string');
+      const startValue = getDateRangePayloadValue(
+        request.body,
+        ['[value][date]', '[from][date]'],
+        ['value', 'from'],
+      );
+      expect(startValue, 'start date in PATCH payload').to.not.be.undefined;
+      expect(startValue).to.eq(startDate);
+    });
+    cy.get('@endDateInput').clear();
+    cy.get('@endDateInput').type(endDate);
+    cy.get('@endDateInput').blur();
+    cy.wait('@patchDateRange').then(({ request, response }) => {
+      expect(response?.statusCode).to.eq(200);
+      expect(request.body).to.be.a('string');
+      const endValue = getDateRangePayloadValue(
+        request.body,
+        ['[end_value][date]', '[to][date]'],
+        ['end_value', 'to'],
+      );
+      expect(endValue, 'end date in PATCH payload').to.not.be.undefined;
+      expect(endValue).to.eq(endDate);
+    });
+
+    cy.waitForElementContentInIframe(
+      '#test-object-drupal-date-range--from code',
+      startDate,
+    );
+    cy.waitForElementContentInIframe(
+      '#test-object-drupal-date-range--to code',
+      endDate,
     );
   });
 

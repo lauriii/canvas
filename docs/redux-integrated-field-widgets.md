@@ -231,6 +231,7 @@ Built-in transforms include:
 - `firstRecord` - which will return all child values for the first record in a list
 - `mediaSelection` - which will return 'selection' from input form values
 - `dateTime` - which will combine child `date` and `time` fields into a valid ISO-8601 datetime string
+- `dateRange` - which will combine start/end date parts into `value` and `end_value`
 
 ℹ️ The completeness of this is tested by `\Drupal\Tests\canvas\Kernel\EcosystemSupport\FieldWidgetSupportTest`.
 

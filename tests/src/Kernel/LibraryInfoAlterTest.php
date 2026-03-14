@@ -64,6 +64,7 @@ final class LibraryInfoAlterTest extends CanvasKernelTestBase {
       'canvas/canvas.transform.mainProperty',
       'canvas/canvas.transform.firstRecord',
       'canvas/canvas.transform.dateTime',
+      'canvas/canvas.transform.dateRange',
       'canvas/canvas.transform.mediaSelection',
       'canvas/canvas.transform.cast',
       'canvas/canvas.transform.link',

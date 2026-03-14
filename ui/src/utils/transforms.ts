@@ -146,7 +146,7 @@ const dateTime: Transformer<
   null | string,
   PropsValuesOrArrayOfPropsValues,
   DateFieldPropSource
-> = (value, options, propSource) => {
+> = (value, _options, propSource) => {
   if (propSource === null || propSource === undefined) {
     return null;
   }
@@ -167,6 +167,60 @@ const dateTime: Transformer<
   return new Date(`${dateString} ${timeString}+0000`).toISOString();
 };
 
+const dateRange: Transformer<
+  void,
+  null | PropsValues,
+  PropsValuesOrArrayOfPropsValues,
+  DateFieldPropSource
+> = (value, _options, propSource) => {
+  if (propSource === null || propSource === undefined) {
+    return null;
+  }
+  if (value === null) {
+    return null;
+  }
+  let first = value as PropsValues;
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return null;
+    }
+    first = value[0] as PropsValues;
+  }
+  if (
+    typeof first !== 'object' ||
+    first === null ||
+    !('value' in first) ||
+    !('end_value' in first) ||
+    typeof first.value !== 'object' ||
+    first.value === null ||
+    typeof first.end_value !== 'object' ||
+    first.end_value === null
+  ) {
+    return null;
+  }
+
+  const dateTimeOptions = {
+    type: propSource.sourceTypeSettings.storage.datetime_type,
+  };
+  const start = dateTime(
+    first.value as PropsValues,
+    dateTimeOptions,
+    propSource,
+  );
+  const end = dateTime(
+    first.end_value as PropsValues,
+    dateTimeOptions,
+    propSource,
+  );
+  if (start === null || end === null) {
+    return null;
+  }
+  return {
+    value: start,
+    end_value: end,
+  };
+};
+
 const mediaSelection: Transformer<void, null | PropsValues> = (value) => {
   if ('selection' in value) {
     return value.selection;
@@ -178,6 +232,7 @@ const transforms = {
   mainProperty,
   firstRecord,
   dateTime,
+  dateRange,
   mediaSelection,
   cast,
   link,

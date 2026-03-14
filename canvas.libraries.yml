@@ -72,6 +72,10 @@ canvas.transform.dateTime:
   dependencies:
     - core/drupal
     - canvas/canvas-ui
+canvas.transform.dateRange:
+  dependencies:
+    - core/drupal
+    - canvas/canvas-ui
 canvas.transform.mediaSelection:
   dependencies:
     - core/drupal

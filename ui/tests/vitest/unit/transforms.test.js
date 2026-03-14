@@ -49,3 +49,67 @@ describe('Transforms - dateTime', () => {
     expect(transforms.dateTime({ date: '' }, {}, undefined)).to.equal(null);
   });
 });
+
+describe('Transforms - dateRange', () => {
+  const fieldData = {
+    sourceTypeSettings: {
+      storage: {
+        datetime_type: 'date',
+      },
+    },
+  };
+
+  it('should return null when propSource is undefined', () => {
+    expect(
+      transforms.dateRange(
+        [{ value: { date: '' }, end_value: { date: '' } }],
+        {},
+        undefined,
+      ),
+    ).to.equal(null);
+  });
+
+  it('should map date range form values to value/end_value', () => {
+    expect(
+      transforms.dateRange(
+        [
+          {
+            value: { date: '2026-05-02' },
+            end_value: { date: '2026-06-02' },
+          },
+        ],
+        {},
+        fieldData,
+      ),
+    ).to.deep.equal({
+      value: '2026-05-02',
+      end_value: '2026-06-02',
+    });
+  });
+
+  it('should map datetime range form values to UTC ISO date strings', () => {
+    const dateTimeFieldData = {
+      sourceTypeSettings: {
+        storage: {
+          datetime_type: 'datetime',
+        },
+      },
+    };
+
+    expect(
+      transforms.dateRange(
+        [
+          {
+            value: { date: '2026-05-02', time: '07:21:35' },
+            end_value: { date: '2026-06-02', time: '09:45:12' },
+          },
+        ],
+        {},
+        dateTimeFieldData,
+      ),
+    ).to.deep.equal({
+      value: '2026-05-02T07:21:35.000Z',
+      end_value: '2026-06-02T09:45:12.000Z',
+    });
+  });
+});
