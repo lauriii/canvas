@@ -3,6 +3,7 @@ import path from 'path';
 import { compileCss, extractClassNameCandidates } from 'tailwindcss-in-browser';
 import * as p from '@clack/prompts';
 import { upsertClassNameCandidatesInComment } from '@drupal-canvas/ui/features/code-editor/utils/classNameCandidates';
+import { resolveHostGlobalCssPath } from '@drupal-canvas/vite-compat';
 
 import { getConfig } from '../config';
 import { transformCss } from '../lib/transform-css';
@@ -35,12 +36,10 @@ export async function downloadGlobalCssInBackground(): Promise<string> {
  * @returns Promise resolving to global CSS content
  */
 export async function getGlobalCss(useLocal: boolean = true): Promise<string> {
-  const config = getConfig();
-  const localGlobalCssPath = path.join(config.componentDir, 'global.css');
-
   // If local-first and file exists, use local file
-  if (useLocal && (await fileExists(localGlobalCssPath))) {
-    return await fs.readFile(localGlobalCssPath, 'utf-8');
+  const globalCssPath = resolveHostGlobalCssPath(process.cwd());
+  if (useLocal && (await fileExists(globalCssPath))) {
+    return await fs.readFile(globalCssPath, 'utf-8');
   }
 
   // Otherwise, download from Canvas (background download)

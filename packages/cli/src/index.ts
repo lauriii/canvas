@@ -6,6 +6,7 @@ import packageJson from '../package.json';
 import { buildCommand } from './commands/build';
 import { buildDeprecatedCommand } from './commands/build-deprecated';
 import { downloadCommand } from './commands/download';
+import { pullCommand } from './commands/pull';
 import { scaffoldCommand } from './commands/scaffold';
 import { uploadCommand } from './commands/upload';
 import { validateCommand } from './commands/validate';
@@ -21,6 +22,7 @@ program
 
 // Register commands
 downloadCommand(program);
+pullCommand(program);
 scaffoldCommand(program);
 uploadCommand(program);
 buildDeprecatedCommand(program);

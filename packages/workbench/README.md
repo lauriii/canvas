@@ -90,10 +90,11 @@ Workbench does not ingest arbitrary host Vite config/plugins automatically.
 
 - Supported module resolution via `@drupal-canvas/vite-compat` — see
   [`packages/vite-compat/README.md`](../vite-compat/README.md)
-- Temporary hardcoded Tailwind entrypoint: Workbench expects host CSS at
-  `src/components/global.css`. This is loaded through a virtual Vite CSS module
-  that imports the host CSS and includes explicit host `@source` scanning so
-  Tailwind processing is applied in Workbench context.
+- Tailwind entrypoint: Workbench loads the host's global CSS (default
+  `src/components/global.css`, configurable via `globalCssPath` in
+  `canvas.config.json`) through a virtual Vite CSS module that imports the host
+  CSS and includes explicit host `@source` scanning so Tailwind processing is
+  applied in Workbench context.
 
 ## Current architecture decision
 

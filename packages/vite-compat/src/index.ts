@@ -1,4 +1,4 @@
-import { existsSync, promises as fs, statSync } from 'node:fs';
+import { existsSync, promises as fs, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import * as yaml from 'js-yaml';
 import svgr from 'vite-plugin-svgr';
@@ -11,15 +11,6 @@ export interface CanvasViteCompatOptions {
   hostRoot: string;
   hostAliasBaseDir?: string;
 }
-
-// @todo Implement automatic discovery of the Tailwind CSS entrypoint in @drupal-canvas/discovery.
-// Idea: Search for the following strings in files:
-// - '@import "tailwindcss"' — note that this is optional in the in-browser code editor
-// - '@theme
-// - Identify more patterns that indicate a Tailwind CSS entrypoint.
-// - Also a file named `global.css` is a good indicator.
-const HARDCODED_HOST_GLOBAL_CSS_RELATIVE_PATH_FROM_ALIAS_BASE =
-  'components/global.css';
 
 const WORKBENCH_HOST_GLOBAL_CSS_VIRTUAL_URL =
   '/@id/virtual:canvas-host-global.css';
@@ -100,32 +91,23 @@ function isPathWithinRoot(filePath: string, rootPath: string): boolean {
 
 export { isSupportedPreviewModulePath, toViteFsUrl };
 
-function resolveHostGlobalCssRelativePath(hostAliasBaseDir: string): string {
-  return path.join(
-    hostAliasBaseDir,
-    HARDCODED_HOST_GLOBAL_CSS_RELATIVE_PATH_FROM_ALIAS_BASE,
-  );
+// @todo Implement automatic discovery of the Tailwind CSS entrypoint in @drupal-canvas/discovery.
+// Idea: Search for the following strings in files:
+// - '@import "tailwindcss"' — note that this is optional in the in-browser code editor
+// - '@theme
+// - Identify more patterns that indicate a Tailwind CSS entrypoint.
+// - Also a file named `global.css` is a good indicator.
+export function resolveHostGlobalCssPath(hostRoot: string): string {
+  const canvasConfig = resolveCanvasConfig({ hostRoot });
+  return path.resolve(hostRoot, canvasConfig.globalCssPath);
 }
 
-export function resolveHardcodedHostGlobalCssPath(
+export async function ensureHostGlobalCssExists(
   hostRoot: string,
-  hostAliasBaseDir = 'src',
-): string {
-  return path.resolve(
-    hostRoot,
-    resolveHostGlobalCssRelativePath(hostAliasBaseDir),
-  );
-}
-
-export async function ensureHardcodedHostGlobalCssExists(
-  hostRoot: string,
-  hostAliasBaseDir = 'src',
 ): Promise<string> {
-  const resolvedPath = resolveHardcodedHostGlobalCssPath(
-    hostRoot,
-    hostAliasBaseDir,
-  );
-  const relativePath = resolveHostGlobalCssRelativePath(hostAliasBaseDir);
+  const resolvedPath = resolveHostGlobalCssPath(hostRoot);
+  const canvasConfig = resolveCanvasConfig({ hostRoot });
+  const relativePath = canvasConfig.globalCssPath;
   try {
     await fs.access(resolvedPath);
   } catch {
@@ -219,4 +201,45 @@ export function drupalCanvasCompat(options: CanvasViteCompatOptions): Plugin[] {
   );
 
   return plugins;
+}
+
+export interface CanvasConfig {
+  aliasBaseDir: string;
+  outputDir: string;
+  componentDir: string;
+  deprecatedComponentDir: string;
+  globalCssPath: string;
+}
+
+export function resolveCanvasConfig(
+  options: CanvasViteCompatOptions,
+): CanvasConfig {
+  const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
+    aliasBaseDir: 'src',
+    outputDir: 'dist',
+    componentDir: options.hostRoot,
+    deprecatedComponentDir: './components',
+    globalCssPath: './src/components/global.css',
+  };
+
+  const configPath = path.resolve(options.hostRoot, 'canvas.config.json');
+  if (!existsSync(configPath)) {
+    return { ...DEFAULT_CANVAS_CONFIG };
+  }
+
+  try {
+    const raw = readFileSync(configPath, 'utf-8');
+    const parsed = JSON.parse(raw) as Partial<CanvasConfig>;
+    return {
+      aliasBaseDir: parsed.aliasBaseDir ?? DEFAULT_CANVAS_CONFIG.aliasBaseDir,
+      outputDir: parsed.outputDir ?? DEFAULT_CANVAS_CONFIG.outputDir,
+      componentDir: parsed.componentDir ?? DEFAULT_CANVAS_CONFIG.componentDir,
+      deprecatedComponentDir:
+        parsed.componentDir ?? DEFAULT_CANVAS_CONFIG.deprecatedComponentDir,
+      globalCssPath:
+        parsed.globalCssPath ?? DEFAULT_CANVAS_CONFIG.globalCssPath,
+    };
+  } catch {
+    return { ...DEFAULT_CANVAS_CONFIG };
+  }
 }

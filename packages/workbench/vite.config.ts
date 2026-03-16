@@ -5,7 +5,7 @@ import { defineConfig } from 'vite';
 import {
   drupalCanvasCompat,
   drupalCanvasCompatServer,
-  ensureHardcodedHostGlobalCssExists,
+  ensureHostGlobalCssExists,
   extractFirstExamplePropsFromComponentYaml,
   getWorkbenchHostGlobalCssVirtualUrl,
 } from '@drupal-canvas/vite-compat';
@@ -93,8 +93,7 @@ function canvasWorkbenchDiscovery(): Plugin {
     },
     async configureServer(server) {
       if (!runningInsideWorkbenchPackage) {
-        hostGlobalCssPath =
-          await ensureHardcodedHostGlobalCssExists(hostProjectRoot);
+        hostGlobalCssPath = await ensureHostGlobalCssExists(hostProjectRoot);
       }
       await refresh();
 
