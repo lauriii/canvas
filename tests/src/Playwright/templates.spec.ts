@@ -1,3 +1,4 @@
+import { getModuleDir } from '@drupal-canvas/test-utils';
 import { expect } from '@playwright/test';
 
 import { test } from './fixtures/DrupalSite';
@@ -186,5 +187,89 @@ test.describe('Templates - General', () => {
     await expect(
       page.locator(`.my-hero__subheading:has-text("submarine")`),
     ).toBeVisible();
+  });
+
+  test('Template - add teaser template and verify rendering', async ({
+    page,
+    drupal,
+    canvasEditor,
+  }) => {
+    const moduleDir = await getModuleDir();
+    // Install Views and frontpage view to show teasers at /node
+    await drupal.applyRecipe(
+      `${moduleDir}/canvas/tests/fixtures/recipes/frontpage_view`,
+    );
+    // @todo Rebuilding caches should not be needed after applying a recipe. But
+    //   the /node route the view we just installed is giving 404 sometimes
+    //   making this a flaky test.
+    await drupal.drush('cr');
+
+    await drupal.loginAsAdmin();
+    await canvasEditor.goToCanvasRoot();
+    await page.click('[aria-label="Templates"]');
+    await expect(page.getByTestId('big-add-template-button')).toBeVisible();
+
+    // Click "Add new template" button
+    await page.getByTestId('big-add-template-button').click();
+    await expect(
+      page.getByTestId('canvas-manage-library-add-template-content'),
+    ).toBeVisible();
+
+    // Select Article content type
+    await page.locator('#content-type').click();
+    await page.getByRole('option', { name: 'Article' }).click();
+
+    // Open the template/view mode dropdown and verify multiple modes available
+    await page.locator('#template-name').click();
+    await expect(
+      page.getByRole('option', { name: 'Full content' }),
+    ).toBeVisible();
+    await expect(page.getByRole('option', { name: 'Teaser' })).toBeVisible();
+
+    // Select Teaser view mode
+    await page.getByRole('option', { name: 'Teaser' }).click();
+
+    // Create the template
+    await expect(
+      page
+        .getByRole('dialog')
+        .getByRole('button', { name: 'Add new template' }),
+    ).not.toBeDisabled();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Add new template' })
+      .click();
+
+    // Dialog should close
+    await expect(
+      page.getByTestId('canvas-manage-library-add-template-content'),
+    ).not.toBeVisible();
+
+    // Navigate to the teaser template
+    await page.getByTestId('template-list-item-article-Teaser').click();
+    expect(page.url()).toContain('canvas/template/node/article/teaser');
+
+    // Add Hero component to the teaser template
+    await canvasEditor.openLibraryPanel();
+    await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
+
+    // Link heading to Title field
+    await page.getByLabel('Link heading to an other field').click();
+    await page.getByRole('menuitem', { name: 'Title' }).click();
+
+    // Verify the linked field box appears
+    await expect(page.getByTestId('linked-field-box-heading')).toBeVisible();
+
+    // Publish changes
+    await canvasEditor.publishAllChanges();
+
+    // Visit the frontpage (/node) which displays articles as teasers
+    await page.goto('/node');
+
+    // Verify the Hero component renders with article titles
+    // The test site has multiple articles that should all render with the Hero component
+    await expect(page.locator('.my-hero__heading').first()).toBeVisible();
+    // Verify multiple articles are rendered with the teaser template
+    await expect(page.locator('.my-hero__heading')).toHaveCount(3);
   });
 });

@@ -1,0 +1,9 @@
+name: 'Frontpage View'
+description: 'Provides the frontpage view for displaying teasers at /node'
+type: 'Canvas'
+install:
+  - views
+config:
+  import:
+    node:
+      - views.view.frontpage

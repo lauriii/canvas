@@ -22,6 +22,7 @@ use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\TestTools\Random;
 use Drupal\canvas_test_validation\Plugin\Canvas\ComponentSource\InvalidSlots;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\TestWith;
 
 /**
  * Tests Content Template Validation.
@@ -560,14 +561,6 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     ]);
   }
 
-  public function testInvalidContentEntityTypeViewMode(): void {
-    $this->entity->set('content_entity_type_view_mode', 'nope');
-    $this->assertValidationErrors([
-      '' => "The 'content_entity_type_view_mode' property cannot be changed.",
-      'content_entity_type_view_mode' => "The 'core.entity_view_mode.node.nope' config does not exist.",
-    ]);
-  }
-
   public function testExposedSlotMustBeEmpty(): void {
     \assert($this->entity instanceof ContentTemplate);
 
@@ -710,6 +703,25 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     $this->assertValidationErrors([
       'exposed_slots.footer_for_you' => 'Exposed slots are only allowed in the <em class="placeholder">full</em> view mode.',
     ]);
+  }
+
+  #[TestWith([
+    'full',
+    [],
+  ])]
+  #[TestWith([
+    'teaser',
+    [],
+  ])]
+  #[TestWith([
+    'nope',
+    ['content_entity_type_view_mode' => "The 'core.entity_view_mode.node.nope' config does not exist."],
+  ])]
+  public function testContentEntityTypeViewMode(string $view_mode, array $expected_validation_errors): void {
+    $this->entity = $this->entity->createDuplicate();
+    $this->entity->set('content_entity_type_view_mode', $view_mode);
+    $this->entity->set('id', "node.alpha.$view_mode");
+    $this->assertValidationErrors($expected_validation_errors);
   }
 
 }

@@ -154,7 +154,7 @@ const AddTemplateDialog = ({
             data?.[selectedEntityType]?.[selectedContentType] || {},
           ).filter(([mode, modeData]) => {
             const typedModeData = modeData as unknown as ModeData;
-            return mode === 'full' && !typedModeData.hasTemplate;
+            return !typedModeData.hasTemplate;
           }).length
         : null,
     [data, selectedContentType, selectedEntityType],
@@ -266,23 +266,17 @@ const AddTemplateDialog = ({
                     data?.[selectedEntityType]?.[selectedContentType] || {},
                   ).map(([mode, modeData]) => {
                     const typedModeData = modeData as unknown as ModeData;
-                    if (mode === 'full') {
-                      return (
-                        <Select.Item
-                          key={mode}
-                          value={mode}
-                          disabled={
-                            mode !== 'full' || typedModeData.hasTemplate
-                          }
-                        >
-                          {typedModeData.label}{' '}
-                          {typedModeData.hasTemplate &&
-                            '(template already exists)'}{' '}
-                          {mode !== 'full' && '(support coming soon)'}
-                        </Select.Item>
-                      );
-                    }
-                    return null;
+                    return (
+                      <Select.Item
+                        key={mode}
+                        value={mode}
+                        disabled={typedModeData.hasTemplate}
+                      >
+                        {typedModeData.label}{' '}
+                        {typedModeData.hasTemplate &&
+                          '(template already exists)'}
+                      </Select.Item>
+                    );
                   })}
               </Select.Group>
             </Select.Content>
