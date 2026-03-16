@@ -6,6 +6,15 @@ import { sortMenu as drupalSortMenu } from '@/lib/drupal-utils';
 import { sortMenu as jsonapiSortMenu } from '@/lib/jsonapi-utils';
 import { cn } from '@/lib/utils';
 
+interface BaseMenuItem {
+  id: string | number;
+  title: string;
+  href?: string;
+  url?: string;
+  _children?: BaseMenuItem[];
+  _hasSubmenu: boolean;
+}
+
 const client = new JsonApiClient();
 
 export default function Menu() {
@@ -13,7 +22,7 @@ export default function Menu() {
     data: drupalData,
     error: drupalError,
     isLoading: drupalIsLoading,
-  } = useSWR('/system/menu/main/linkset', async (url) => {
+  } = useSWR('/system/menu/main/linkset', async (url: string) => {
     const response = await fetch(url);
     return response.json();
   });
@@ -22,7 +31,7 @@ export default function Menu() {
     data: jsonapiData,
     error: jsonapiError,
     isLoading: jsonapiLoading,
-  } = useSWR(['menu_items', 'main'], ([type, resourceId]) =>
+  } = useSWR(['menu_items', 'main'], ([type, resourceId]: [string, string]) =>
     client.getResource(type, resourceId),
   );
 
@@ -39,14 +48,14 @@ export default function Menu() {
   );
 }
 
-const MenuItems = ({ menu }) => {
+const MenuItems = ({ menu }: { menu: BaseMenuItem[] }) => {
   const [open, setOpen] = useState(false);
-  const toggleMenu = (open) => {
-    setOpen(!open);
+  const toggleMenu = (isOpen: boolean) => {
+    setOpen(!isOpen);
   };
 
-  const [openSubmenus, setOpenSubmenu] = useState({});
-  const toggleSubmenu = (menuKey) => {
+  const [openSubmenus, setOpenSubmenu] = useState<Record<string, boolean>>({});
+  const toggleSubmenu = (menuKey: string) => {
     setOpenSubmenu((prev) => ({
       ...prev,
       [menuKey]: !prev[menuKey],
@@ -161,7 +170,7 @@ const MenuItems = ({ menu }) => {
                       className={`absolute top-full left-0 bg-white border border-gray-300 shadow-lg min-w-[200px] list-none p-0 m-0 z-[1000] ${isOpen ? 'block' : 'hidden'}`}
                       data-testid="submenu"
                     >
-                      {menuItem._children.map((submenuItem) => (
+                      {menuItem._children?.map((submenuItem) => (
                         <li key={submenuItem.id} className="block w-full">
                           <a
                             href={submenuItem.url ?? submenuItem.href ?? '#'}

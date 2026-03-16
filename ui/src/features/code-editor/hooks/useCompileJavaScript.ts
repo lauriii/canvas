@@ -1,7 +1,7 @@
 /**
  * @file
  *
- * Compiles Preact components' JavaScript code using the SWC compiler.
+ * Compiles Preact components' JavaScript/TypeScript code using the SWC compiler.
  *
  * @see https://swc.rs/docs/usage/wasm
  */
@@ -16,8 +16,8 @@ import type { Options as SwcOptions } from '@swc/wasm-web';
 const SWC_OPTIONS: SwcOptions = {
   jsc: {
     parser: {
-      syntax: 'ecmascript',
-      jsx: true,
+      syntax: 'typescript',
+      tsx: true,
     },
     target: 'es2015',
     transform: {
@@ -86,12 +86,12 @@ const useCompileJavaScript = (): {
         const { code: compiledCode } = transformSync(code, SWC_OPTIONS);
         return { code: compiledCode };
       } catch (error) {
-        console.error('Failed to compile JavaScript:', error);
+        console.error('Failed to compile:', error);
         return {
           code: fallbackContentMessage
             ? getFallbackCompiledJs(fallbackContentMessage)
             : '// @error',
-          error: `Failed to compile JavaScript: ${error}`,
+          error: `Failed to compile: ${error}`,
         };
       }
     },

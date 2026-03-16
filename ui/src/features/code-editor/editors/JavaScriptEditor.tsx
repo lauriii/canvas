@@ -28,7 +28,7 @@ const JavaScriptEditor = ({ isLoading }: { isLoading: boolean }) => {
         value={value}
         onChange={onChangeHandler}
         theme={githubLight}
-        extensions={[javascript({ jsx: true })]}
+        extensions={[javascript({ jsx: true, typescript: true })]}
         width="100%"
         height="100%"
       />

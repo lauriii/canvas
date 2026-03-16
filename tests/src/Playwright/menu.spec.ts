@@ -39,7 +39,7 @@ test.describe('Menu Component', () => {
     const moduleDir = await getModuleDir();
 
     const code = await readFile(
-      `${moduleDir}/canvas/tests/fixtures/code_components/menus/Menu.jsx`,
+      `${moduleDir}/canvas/tests/fixtures/code_components/menus/Menu.tsx`,
       'utf-8',
     );
     await canvasEditor.createCodeComponent('Menu', code);

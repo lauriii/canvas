@@ -215,7 +215,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     try {
       const ast = parse(sourceCodeJs, {
         sourceType: 'module',
-        plugins: ['jsx'],
+        plugins: ['jsx', 'typescript'],
       });
       collectImportedJsComponents(ast);
       if (hasDefaultExport(ast)) {
