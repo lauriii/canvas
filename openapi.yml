@@ -1307,7 +1307,44 @@ paths:
                   value:
                     error: "Cannot unpublish the homepage. Please set a different page as the homepage first."
   '/canvas/api/v0/content/canvas_page/{entityId}':
-    description: Endpoint for managing content entities.
+    description: Endpoint for retrieving or deleting content entities.
+    get:
+      summary: Returns a single content entity with its component tree.
+      parameters:
+        - $ref: '#/components/parameters/entityId'
+      responses:
+        '200':
+          description: Content entity retrieved successfully.
+          $ref: '#/components/responses/ContentEntityResponse'
+        '404':
+          description: Content entity not found.
+    patch:
+      summary: Updates a single content entity with its component tree.
+      parameters:
+        - $ref: '#/components/parameters/entityId'
+      requestBody:
+        description: Updates a single content entity with its component tree.
+        required: true
+        $ref: '#/components/requestBodies/NewContentRequest'
+      responses:
+        '200':
+          description: Content entity updated successfully.
+          $ref: '#/components/responses/ContentEntityResponse'
+        '404':
+          description: Content entity not found.
+        '409':
+          description: Conflict because existing auto-saved data exists.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+              examples:
+                "existing auto-saved data":
+                  value:
+                    error: "Page with ID 23 has existing auto-saved data. Please use the UI to publish it or discard it."
     delete:
       summary: Deletes a content entity.
       parameters:
@@ -1344,6 +1381,7 @@ paths:
                   type: object
                   required:
                     - id
+                    - uuid
                     - title
                     - status
                     - path
@@ -1355,6 +1393,10 @@ paths:
                     id:
                       type: integer
                       description: The page ID.
+                    uuid:
+                      type: string
+                      format: uuid
+                      description: The page UUID.
                     title:
                       type: string
                       description: The page title.
@@ -1388,6 +1430,7 @@ paths:
                   value:
                     '1':
                       id: 1
+                      uuid: 2eaa55ce-382d-437d-8d74-a385fecd0c33
                       title: Home
                       status: true
                       path: /home
@@ -1398,6 +1441,7 @@ paths:
                         edit-form: /canvas/editor/canvas_page/1
                     '2':
                       id: 2
+                      uuid: ede9e76b-42c9-4c8d-ab99-134f2c4fc9a3
                       title: About
                       status: false
                       path: /about
@@ -1416,46 +1460,60 @@ paths:
           schema:
             type: string
       requestBody:
-        description: Optional entity ID for duplication
+        description: Optional entity ID for duplication, or update a existing entity ID
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                entity_id:
-                  type: string
-                  description: The ID of the entity to duplicate (optional)
+              oneOf:
+                # @todo Move duplication to a separate path?
+                - $ref: '#/components/schemas/DuplicateContentRequestBody'
+                - $ref: '#/components/schemas/NewContentRequestBody'
+            examples:
+              "Duplicate existing page":
+                summary: "Duplicate existing page"
+                value:
+                  entity_id: "1"
+              "An empty page":
+                summary: A page with no components
+                value:
+                  title: Home
+                  status: true
+                  path: /home
+                  components: [ ]
+              "A page with components":
+                summary: A page with nested components
+                value:
+                  title: About
+                  status: true
+                  path: /about
+                  components:
+                    - uuid: 09365c2d-1ee1-47fd-b5a3-7e4f34866186
+                      component_id: sdc.my_theme.hero
+                      component_version: abc123def456
+                      parent_uuid: null
+                      slot: null
+                      inputs:
+                        heading: Welcome
+                      label: null
+                    - uuid: af5fc5ab-1457-4258-880f-541a69c0110b
+                      component_id: sdc.my_theme.text
+                      component_version: def456abc789
+                      parent_uuid: 09365c2d-1ee1-47fd-b5a3-7e4f34866186
+                      slot: content
+                      inputs:
+                        body: Hello world
+                      label: null
+
       responses:
         '201':
           description: Created entity successfully
           content:
             application/json:
-              examples:
-                newContentEntity:
-                  value:
-                    entity_type: canvas_page
-                    entity_id: '123'
               schema:
-                type: object
-                required:
-                  - entity_type
-                  - entity_id
-                additionalProperties: false
-                properties:
-                  entity_type:
-                    type: string
-                    description: The entity type ID
-                    # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types
-                    enum:
-                      - canvas_page
-                    examples:
-                      - canvas_page
-                  entity_id:
-                    # @todo This is a bug https://www.drupal.org/i/3510925 introduced, fix it in https://www.drupal.org/i/3498525
-                    type: string
-                    description: The id of created content entity
-                    examples:
-                      - '42'
+                allOf:
+                  # @todo Move duplication to a separate path?
+                  - $ref: '#/components/schemas/DuplicatedContentEntity'
+                  - $ref: '#/components/schemas/ContentEntity'
         '404':
           description: Entity not found
           content:
@@ -2768,11 +2826,11 @@ components:
             - uri
             - id
           examples:
-            - Logged in user:
-                name: 'Garrett Bobby Ferguson, Jr'
-                avatar: /sites/default/files/user-pictures/garrett.jpg
-                uri: /user/12
-                id: 12
+            -
+              name: 'Garrett Bobby Ferguson, Jr'
+              avatar: /sites/default/files/user-pictures/garrett.jpg
+              uri: /user/12
+              id: 12
           properties:
             name:
               type: string
@@ -3365,6 +3423,220 @@ components:
           description: Permissions
           items:
             type: string
+    ContentEntity:
+      title: Content entity
+      type: object
+      required:
+        - id
+        - uuid
+        - title
+        - status
+        - path
+        - autoSaveLabel
+        - autoSavePath
+        - internalPath
+        - components
+        - links
+      properties:
+        id:
+          type: integer
+          description: The page ID.
+        uuid:
+          type: string
+          format: uuid
+          description: The page UUID.
+        title:
+          type: string
+          description: The page title.
+        status:
+          type: boolean
+          description: The page status.
+        autoSaveLabel:
+          type: [ string, "null" ]
+          description: The auto-save title.
+        autoSavePath:
+          type: [ string, "null" ]
+          format: uri-reference
+          description: The auto-save path.
+        internalPath:
+          type: string
+          format: uri-reference
+          description: The internal (unprocessed) path
+        path:
+          type: string
+          format: uri-reference
+          title: The processed path
+        components:
+          type: array
+          description: >
+            The stored component tree as a flat array of items. Each
+            item references its parent via parent_uuid, matching the
+            data shape exposed by JSON:API or GraphQL.
+          items:
+            type: object
+            required:
+              - uuid
+              - component_id
+              - component_version
+            properties:
+              uuid:
+                type: string
+                format: uuid
+                description: Unique identifier of this component instance.
+              component_id:
+                type: string
+                description: The component config entity ID (e.g. "sdc.my_theme.hero").
+              component_version:
+                type: string
+                description: The component version hash.
+              parent_uuid:
+                type: [ 'null', string ]
+                format: uuid
+                description: UUID of the parent component (null for root items).
+              slot:
+                type: [ 'null', string ]
+                description: The slot name in the parent component (null for root items).
+              inputs:
+                type: [ 'null', object ]
+                description: The component input values (prop sources).
+              label:
+                type: [ 'null', string ]
+                description: Optional label for the component instance.
+        links:
+          type: object
+          description: The operation links.
+          additionalProperties:
+            type: string
+          examples:
+            - edit-form: /canvas/editor/canvas_page/3
+      examples:
+        -
+          id: 1
+          uuid: 550e8400-e29b-41d4-a716-446655440000
+          title: Home
+          status: true
+          path: /home
+          autoSaveLabel: Homer
+          autoSavePath: /updated-path
+          internalPath: /page/1
+          components: [ ]
+          links:
+            edit-form: /canvas/editor/canvas_page/1
+        -
+          id: 2
+          uuid: 660e8400-e29b-41d4-a716-446655440001
+          title: About
+          status: true
+          path: /about
+          internalPath: /page/2
+          autoSaveLabel: Homer
+          autoSavePath: /updated-path
+          components:
+            - uuid: 09365c2d-1ee1-47fd-b5a3-7e4f34866186
+              component_id: sdc.my_theme.hero
+              component_version: abc123def456
+              parent_uuid: null
+              slot: null
+              inputs:
+                heading: Welcome
+              label: null
+            - uuid: af5fc5ab-1457-4258-880f-541a69c0110b
+              component_id: sdc.my_theme.text
+              component_version: def456abc789
+              parent_uuid: 09365c2d-1ee1-47fd-b5a3-7e4f34866186
+              slot: content
+              inputs:
+                body: Hello world
+              label: null
+          links:
+            edit-form: "/canvas/editor/canvas_page/1"
+    DuplicateContentRequestBody:
+      type: object
+      additionalProperties: false
+      required:
+        - clientInstanceId
+      properties:
+        entity_id:
+          type: string
+          description: The ID of the entity to duplicate (optional)
+        clientInstanceId:
+          type: string
+          description: Client instance ID for the layout preview
+    NewContentRequestBody:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+        - status
+        - path
+        - components
+      properties:
+        title:
+          type: string
+          description: The page title.
+        status:
+          type: boolean
+          description: The page status.
+        path:
+          type: string
+          format: uri-reference
+          title: The processed path
+        components:
+          type: array
+          description: >
+            The stored component tree as a flat array of items. Each
+            item references its parent via parent_uuid, matching the
+            data shape exposed by JSON:API or GraphQL.
+          items:
+            type: object
+            required:
+              - uuid
+              - component_id
+              - component_version
+            properties:
+              uuid:
+                type: string
+                format: uuid
+                description: Unique identifier of this component instance.
+              component_id:
+                type: string
+                description: The component config entity ID (e.g. "sdc.my_theme.hero").
+              component_version:
+                type: string
+                description: The component version hash.
+              parent_uuid:
+                type: [ 'null', string ]
+                format: uuid
+                description: UUID of the parent component (null for root items).
+              slot:
+                type: [ 'null', string ]
+                description: The slot name in the parent component (null for root items).
+              inputs:
+                type: [ 'null', object ]
+                description: The component input values (prop sources).
+              label:
+                type: [ 'null', string ]
+                description: Optional label for the component instance.
+    DuplicatedContentEntity:
+      type: object
+      required:
+        - entity_type
+        - entity_id
+      properties:
+        entity_type:
+          type: string
+          description: The entity type ID
+          # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types
+          enum:
+            - canvas_page
+          examples:
+            - canvas_page
+        entity_id:
+          # @todo This is a bug https://www.drupal.org/i/3510925 introduced, fix it in https://www.drupal.org/i/3498525
+          type: string
+          description: The id of created content entity
+          examples:
+            - '42'
     ContentTemplate:
       title: ContentTemplate as it appears in ContentTemplateList
       type: object
@@ -3405,6 +3677,12 @@ components:
           description: Entity View Mode label.
   # @see https://spec.openapis.org/oas/v3.1.0.html#response-object
   responses:
+    ContentEntityResponse:
+      description: Content entity response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ContentEntity'
     DrupalAjaxResponse:
       description: AJAX updates
       content:
@@ -3566,10 +3844,12 @@ components:
       schema:
         type: string
       examples:
-        arbitraryEntityId:
+        "An arbitrary entity id":
           value:
-            - hopefully_meaningful_name
-            - sdc.canvas_test_sdc.my-cta
+            hopefully_meaningful_name
+        "A config entity id":
+          value:
+            sdc.canvas_test_sdc.my-cta
     queryAjaxForm:
       # @see \Drupal\Core\Form\FormBuilderInterface::AJAX_FORM_REQUEST
       # @see \Drupal\Core\Form\EventSubscriber\FormAjaxSubscriber
@@ -3657,4 +3937,8 @@ components:
               clientInstanceId:
                 type: string
                 description: Client instance ID for the layout preview
-
+    NewContentRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NewContentRequestBody'

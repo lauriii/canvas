@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Utility\HomePageHelper;
+use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\CacheableJsonResponse;
@@ -20,6 +22,7 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Component\Transliteration\TransliterationInterface;
@@ -39,6 +42,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
  * HTTP API for interacting with Canvas-eligible Content entity types.
@@ -48,7 +52,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  *
  * @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types
  */
-final class ApiContentControllers {
+final class ApiContentControllers extends ApiControllerBase {
 
   /**
    * The maximum number of entity search results to return.
@@ -67,6 +71,75 @@ final class ApiContentControllers {
     private readonly TransliterationInterface $transliteration,
     private readonly HomePageHelper $homePageHelper,
   ) {}
+
+  /**
+   * Returns a single Canvas page with its component tree field.
+   */
+  public function get(Page $canvas_page): CacheableJsonResponse {
+    $cacheability = new CacheableMetadata();
+    $cacheability->addCacheableDependency($canvas_page);
+
+    $generated_url = $canvas_page->toUrl()->toString(TRUE);
+    $cacheability->addCacheableDependency($generated_url);
+    $data = $this->normalizeWithComponents($canvas_page, $cacheability);
+
+    $json_response = new CacheableJsonResponse($data);
+    $json_response->addCacheableDependency($cacheability);
+    return $json_response;
+  }
+
+  public function patch(Request $request, ContentEntityInterface $canvas_page): JsonResponse {
+    // If there's any auto-saved data, we throw a conflict error.
+    $autoSaved = $this->autoSaveManager->getAutoSaveEntity($canvas_page);
+    if (!$autoSaved->isEmpty()) {
+      throw new ConflictHttpException(Json::encode([
+        'error' => \sprintf('%s with ID %s has existing auto-saved data. Please use the UI to publish it or discard it.',
+          (string) $canvas_page->getEntityType()->getLabel(),
+          $canvas_page->id(),
+        ),
+      ]));
+    }
+
+    // Get the request body content
+    $content = $request->getContent();
+    $body = \json_decode($content, TRUE);
+
+    // Try to load the entity instance.
+    if (!$canvas_page->access('update')) {
+      return new JsonResponse(['error' => 'Cannot find entity to update.'], Response::HTTP_NOT_FOUND);
+    }
+    \assert($canvas_page instanceof Page);
+
+    // Note: this intentionally does not catch content entity type storage
+    // handler exceptions: the generic Canvas API exception subscriber handles
+    // them.
+    // @see \Drupal\canvas\EventSubscriber\ApiExceptionSubscriber
+    foreach (['title', 'status', 'path', 'components'] as $field_name) {
+      // @todo For path aliases, this creates a new alias instead of editing
+      //   the existing one, which is a different UX than editing in the UI.
+      //   Fix in https://www.drupal.org/project/canvas/issues/3579546
+      $field_access = $canvas_page->get($field_name)->access(operation: 'edit', return_as_object: TRUE);
+      if ($field_access->isForbidden()) {
+        throw new CacheableAccessDeniedHttpException(
+          (new CacheableMetadata())->addCacheableDependency($field_access),
+          \sprintf('Unable to update field %s for entity "%s".', $field_name, $canvas_page->id()),
+        );
+      }
+      $canvas_page->set($field_name, $body[$field_name]);
+    }
+    $violations = $canvas_page->validate();
+    if ($violations->count() > 0) {
+      if ($validation_errors_response = self::createJsonResponseFromViolationSets($violations)) {
+        return $validation_errors_response;
+      }
+    }
+    $canvas_page->save();
+
+    // The response is never cacheable, so it will be discarded.
+    $data = $this->normalizeWithComponents($canvas_page, new CacheableMetadata());
+
+    return new JsonResponse($data, Response::HTTP_OK);
+  }
 
   public function post(Request $request, string $entity_type): JsonResponse {
     // Get the request body content
@@ -92,17 +165,34 @@ final class ApiContentControllers {
       // them.
       // @see \Drupal\canvas\EventSubscriber\ApiExceptionSubscriber
       $entity_type_definition = $this->entityTypeManager->getDefinition($entity_type);
+      $requestBodyTitle = $body['title'] ?? static::defaultTitle($entity_type_definition);
+      $requestStatus = $body['status'] ?? FALSE;
+      $requestComponents = $body['components'] ?? [];
+      // @todo This won't check if the alias is already used, potentially
+      //   creating duplicated aliases.
+      $requestPath = $body['path'] ?? NULL;
       $new = $this->entityTypeManager->getStorage($entity_type)->create([
-        'title' => static::defaultTitle($entity_type_definition),
-        'status' => FALSE,
+        'title' => $requestBodyTitle,
+        'status' => $requestStatus,
+        'components' => $requestComponents,
+        'path' => $requestPath,
       ]);
+      $violations = $new->getTypedData()->validate();
+      if ($violations->count() > 0) {
+        if ($validation_errors_response = self::createJsonResponseFromViolationSets($violations)) {
+          return $validation_errors_response;
+        }
+      }
       $new->save();
     }
-
-    return new JsonResponse([
-      'entity_type' => $entity_type,
-      'entity_id' => $new->id(),
-    ], RESPONSE::HTTP_CREATED);
+    \assert($new instanceof ContentEntityInterface && $new instanceof EntityPublishedInterface);
+    $data = $this->normalizeWithComponents($new, new CacheableMetadata());
+    // This was the app client uses instead of `id`, added for BC compatibility.
+    // @todo Remove this in a follow-up, along with the anyOf added to
+    //   openapi.yml file
+    $data['entity_id'] = $new->id();
+    $data['entity_type'] = $entity_type;
+    return new JsonResponse($data, RESPONSE::HTTP_CREATED);
   }
 
   /**
@@ -240,6 +330,7 @@ final class ApiContentControllers {
     \assert($content_entity instanceof ContentEntityInterface);
     return [
       'id' => (int) $content_entity->id(),
+      'uuid' => $content_entity->uuid(),
       'title' => $content_entity->label(),
       // Return the effective status (autosaved if exists, otherwise original).
       'status' => $effective_status,
@@ -259,6 +350,50 @@ final class ApiContentControllers {
       // @see https://jsonapi.org/format/#document-links
       'links' => $linkCollection->asArray(),
     ];
+  }
+
+  /**
+   * Normalizes content entity including component tree fields.
+   *
+   * @param \Drupal\Core\Entity\EntityPublishedInterface&\Drupal\Core\Entity\ContentEntityInterface $content_entity
+   *   The content entity to prepare data for.
+   * @param \Drupal\Core\Cache\CacheableMetadata $url_cacheability
+   *   The cacheability metadata object to add URL dependencies to.
+   *
+   * @return array
+   *   An associative array containing the normalized entity.
+   */
+  private function normalizeWithComponents(EntityPublishedInterface&ContentEntityInterface $content_entity, CacheableMetadata $url_cacheability): array {
+    $data = $this->normalize($content_entity, $url_cacheability);
+    foreach ($content_entity->getFieldDefinitions() as $field_name => $field_definition) {
+      if ($field_definition->getType() !== ComponentTreeItem::PLUGIN_ID) {
+        continue;
+      }
+      $components = [];
+      foreach ($content_entity->get($field_name) as $item) {
+        \assert($item instanceof ComponentTreeItem);
+        $values = \array_map(fn($property) => $property->getValue(), $item->getProperties(TRUE));
+
+        // Ensure `parent_item` is not included, as that would be repetitive
+        // information the consumer of this API can already access.
+        // Component is also irrelevant, as will be empty.
+        unset($values['parent_item'], $values['component']);
+        // Ensure `inputs` is not a JSON string, but a structured value,
+        // so API consumers receive a proper object rather than a JSON string.
+        $values['inputs'] = $item->getInputs();
+        $components[] = $values;
+      }
+      $field_access = $content_entity->get($field_name)->access('view', return_as_object: TRUE);
+      if (!$field_access->isForbidden()) {
+        $data[$field_name] = $components;
+      }
+      $url_cacheability->addCacheableDependency($field_access);
+    }
+    // Move links last for legibility.
+    $links = $data['links'];
+    unset($data['links']);
+    $data['links'] = $links;
+    return $data;
   }
 
   /**

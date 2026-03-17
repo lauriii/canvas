@@ -257,6 +257,9 @@ canvas.api.content.create:
   requirements:
     _canvas_authentication_required: TRUE
     _entity_create_access: 'canvas_page:canvas_page'
+  options:
+    # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
+    canvas_external_api: true
   methods: ['POST']
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 canvas.api.content.delete:
@@ -271,7 +274,25 @@ canvas.api.content.delete:
       canvas_page:
         type: entity:canvas_page
     _format: 'json'
+    # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
+    canvas_external_api: true
   methods: ['DELETE']
+# @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
+canvas.api.content.get:
+  path: '/canvas/api/v0/content/canvas_page/{canvas_page}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiContentControllers::get'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _entity_access: 'canvas_page.view'
+  options:
+    parameters:
+      canvas_page:
+        type: entity:canvas_page
+    _format: 'json'
+    # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
+    canvas_external_api: true
+  methods: [GET]
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 canvas.api.content.list:
   path: '/canvas/api/v0/content/{entity_type}'
@@ -283,7 +304,24 @@ canvas.api.content.list:
   methods: [GET]
   options:
     _format: 'json'
-
+    # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
+    canvas_external_api: true
+# @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
+canvas.api.content.patch:
+  path: '/canvas/api/v0/content/canvas_page/{canvas_page}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiContentControllers::patch'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _entity_access: 'canvas_page.update'
+  options:
+    parameters:
+      canvas_page:
+        type: entity:canvas_page
+    _format: 'json'
+    # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
+    canvas_external_api: true
+  methods: [PATCH]
 canvas.api.extension.list:
   path: '/canvas/api/v0/extensions'
   defaults:

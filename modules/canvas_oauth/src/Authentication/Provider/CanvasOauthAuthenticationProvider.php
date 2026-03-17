@@ -21,11 +21,10 @@ use Symfony\Component\HttpFoundation\Request;
  * @see \Drupal\simple_oauth\Authentication\Provider\SimpleOauthAuthenticationProvider
  *
  * This authentication provider is added to a subset of the Canvas API routes.
- * Currently, they are the routes to work with Canvas's config entities.
  * @see \Drupal\canvas_oauth\Routing\CanvasOauthRouteSubscriber
  *
- * Because those endpoints can handle all types of config entities, applying the
- * authentication provider is narrowed down to specific entity types.
+ * Because those endpoints can handle all types of entities, applying the
+ * authentication provider is narrowed down to specific entity types or routes.
  * @see \Drupal\canvas_oauth\Authentication\Provider\CanvasOauthAuthenticationProvider::applies()
  */
 class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterface {
@@ -39,19 +38,36 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
    * {@inheritdoc}
    */
   public function applies(Request $request) {
-    // Currently, this authentication provider is only applied to the routes
-    // that work with Canvas's config entities.
     // @see \Drupal\canvas_oauth\Routing\CanvasOauthRouteSubscriber
+    $applies_to_config = FALSE;
+    $applies_to_content = FALSE;
+    // @todo https://www.drupal.org/i/3498525 should verify this is fine
+    //   for all eligible content entity types.
+    $page_route_names = [
+      'canvas.api.content.get',
+      'canvas.api.content.patch',
+      'canvas.api.content.list',
+      'canvas.api.content.delete',
+      'canvas.api.content.create',
+    ];
     $route_match = RouteMatch::createFromRequest($request);
     $entity_type_id = $route_match->getRawParameter('canvas_config_entity_type_id');
-    // Narrow down the entity types that are protected by this authentication
-    // provider.
-    $protected_entity_types = [
+    // Narrow down the config entity types that are protected by this
+    // authentication provider.
+    $protected_config_entity_types = [
       JavaScriptComponent::ENTITY_TYPE_ID,
       AssetLibrary::ENTITY_TYPE_ID,
     ];
 
-    if ($entity_type_id === NULL || !\in_array($entity_type_id, $protected_entity_types, TRUE)) {
+    if ($entity_type_id !== NULL && \in_array($entity_type_id, $protected_config_entity_types, TRUE)) {
+      $applies_to_config = TRUE;
+    }
+
+    if (\in_array($route_match->getRouteName(), $page_route_names, TRUE)) {
+      $applies_to_content = TRUE;
+    }
+
+    if (!$applies_to_content && !$applies_to_config) {
       return FALSE;
     }
 

@@ -1,7 +1,7 @@
 # Drupal Canvas OAuth
 
 [OAuth 2](https://oauth.net/2) authentication for the external HTTP API of [Drupal Canvas](drupal.org/project/canvas),
-currently covering endpoints for working with JavaScript/code components.
+currently covering endpoints for working with JavaScript/code components, brand kit and content pages.
 
 ## 1. Requirements
 
@@ -53,7 +53,8 @@ _Note: The Simple OAuth module uses the terms "client" and "consumer" interchang
        which will specifically look at the configured user here.
     2. Whatever user is configured here, the permissions that belong to the user's role(s) will be ignored for
        authorization.
-5. Configure the access token expiration time. OAuth 2 client libraries usually handle the expiration and request new
+5. Ensure you check the "Is Confidential?" checkbox.
+6. Configure the access token expiration time. OAuth 2 client libraries usually handle the expiration and request new
    tokens as often as needed. Set the expiration time based on your security requirements. Shorter times (15-60 minutes)
    provide better security, while longer times (several hours) reduce the frequency of new access token requests.
 
@@ -82,13 +83,17 @@ there can only be a single active scope provider selected for a Drupal site usin
 scopes** is the easiest, and probably the most widespread approach, as it makes use of a config entity, and manages the
 scopes via a UI. Therefore, this is how Canvas OAuth provides a set of default OAuth 2 scopes.
 
-The following scopes are created as dynamic scopes (config entities) upon installing the module:
+The following scopes are created as dynamic scopes (stored as config entities) upon installing the module:
 
-| Scope              | Permission                   |
-|--------------------|------------------------------|
-| `canvas:js_component` | `administer code components` |
+| Scope                  | Permission                   |
+|------------------------|------------------------------|
+| `canvas:js_component`  | `administer code components` |
 | `canvas:asset_library` | `administer code components` |
-| `canvas:brand_kit` | `administer brand kit` |
+| `canvas:brand_kit`     | `administer brand kit`       |
+| `canvas:page:read`     | `access content`             |
+| `canvas:page:create`   | `create canvas_page`         |
+| `canvas:page:edit`     | `edit canvas_page`           |
+| `canvas:page:delete`   | `delete canvas_page`         |
 
 Each scope is enabled for the [Client Credentials grant type](https://oauth.net/2/grant-types/client-credentials/).
 
@@ -104,11 +109,13 @@ the resource, for example `administer code components` for code components and g
 
 → See more details in [Canvas' OpenAPI spec](https://git.drupalcode.org/project/canvas/-/blob/1.x/openapi.yml).
 
-| Method                   | Endpoint                                              |
-|--------------------------|-------------------------------------------------------|
-| `GET`, `POST`            | `/canvas/api/v0/config/js_component`                      |
-| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/js_component/{configEntityId}`     |
-| `GET`, `POST`            | `/canvas/api/v0/config/asset_library`                  |
-| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/asset_library/{configEntityId}` |
-| `GET`, `POST`            | `/canvas/api/v0/config/brand_kit`                      |
-| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/brand_kit/{configEntityId}`    |
+| Method                   | Endpoint                                                 |
+|--------------------------|----------------------------------------------------------|
+| `GET`, `POST`            | `/canvas/api/v0/config/js_component`                     |
+| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/js_component/{configEntityId}`    |
+| `GET`, `POST`            | `/canvas/api/v0/config/asset_library`                    |
+| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/asset_library/{configEntityId}`   |
+| `GET`, `POST`            | `/canvas/api/v0/config/brand_kit`                        |
+| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/brand_kit/{configEntityId}`       |
+| `GET`, `POST`            | `/canvas/api/v0/content/canvas_page`                     |
+| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/content/canvas_page/{contentEntityId}`   |

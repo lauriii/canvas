@@ -500,7 +500,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   public function testStatusFlags(): void {
     $this->setUpCurrentUser(permissions: [Page::CREATE_PERMISSION, Page::EDIT_PERMISSION]);
 
-    $request = Request::create('/canvas/api/v0/content/canvas_page', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([], JSON_THROW_ON_ERROR));
+    $request = Request::create('/canvas/api/v0/content/canvas_page', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['clientInstanceId' => 'test-123'], JSON_THROW_ON_ERROR));
     $content = $this->parentRequest($request)->getContent();
 
     self::assertIsString($content);

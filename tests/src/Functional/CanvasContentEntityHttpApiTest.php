@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Cache\Cache;
@@ -19,6 +20,7 @@ use Drupal\user\Entity\Role;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Psr\Http\Message\ResponseInterface;
 
 /**
  * Tests Canvas Content Entity Http Api.
@@ -28,6 +30,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  */
 #[RunTestsInSeparateProcesses]
 #[Group('canvas')]
+#[Group('#slow')]
 final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
 
   /**
@@ -35,6 +38,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
    */
   protected static $modules = [
     'canvas',
+    'canvas_test_sdc',
   ];
 
   /**
@@ -42,38 +46,70 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
    */
   protected $defaultTheme = 'stark';
 
+
+  /**
+   * @todo Test GET/PATCH here instead / on top of the new test(s)?
+   */
+
+  protected array $pages;
+
   /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
     parent::setUp();
-    Page::create([
-      'title' => "Page 1",
-      'status' => TRUE,
-      'path' => ['alias' => "/page-1"],
-    ])->save();
-    Page::create([
-      'title' => self::NEW_PAGE_TITLE,
-      'status' => FALSE,
-    ])->save();
-    Page::create([
-      'title' => "Page 3",
-      'status' => TRUE,
-      'path' => ['alias' => "/page-3"],
-    ])->save();
+    $this->pages = [
+      Page::create([
+        'title' => "Page 1",
+        'status' => TRUE,
+        'path' => ['alias' => "/page-1"],
+      ]),
+      Page::create([
+        'title' => self::NEW_PAGE_TITLE,
+        'status' => FALSE,
+      ]),
+      Page::create([
+        'title' => "Page 3",
+        'status' => TRUE,
+        'path' => ['alias' => "/page-3"],
+      ]),
+    ];
+    foreach ($this->pages as $page) {
+      $page->save();
+    }
+    foreach ($this->pages as $page) {
+      $page->save();
+    }
     // Set the page 2 to be the homepage.
     $this->config('system.site')
       ->set('page.front', '/page/2')
       ->save();
   }
 
-  public function testPost(): void {
+  public function testPostWithData(): void {
+    $this->container->get(ComponentSourceManager::class)->generateComponents('sdc', ['canvas_test_sdc:heading']);
     $url = Url::fromUri('base:/canvas/api/v0/content/canvas_page');
     $request_options = [
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
       ],
-      RequestOptions::JSON => [],
+      RequestOptions::JSON => [
+        'title' => 'This is my new content title',
+        'status' => TRUE,
+        'path' => '/my-awesome-new-page',
+        'components' => [
+          [
+            "uuid" => "4c3482ac-4635-4ba9-aaf4-eb86892d77a1",
+            "component_id" => "sdc.canvas_test_sdc.heading",
+            "component_version" => "8c01a2bdb897a810",
+            "inputs" => [
+              'text' => 'My custom header',
+              'style' => 'secondary',
+              'element' => 'h3',
+            ],
+          ],
+        ],
+      ],
     ];
 
     $this->assertAuthenticationAndAuthorization($url, 'POST');
@@ -83,10 +119,101 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     Role::load('authenticated')?->grantPermission(Page::CREATE_PERMISSION)->save();
     $response = $this->makeApiRequest('POST', $url, $request_options);
     $this->assertSame(201, $response->getStatusCode());
-    $this->assertSame(
-      '{"entity_type":"canvas_page","entity_id":"4"}',
-      (string) $response->getBody()
-    );
+    $this->assertPostResponse($response, [
+      'entity_type' => Page::ENTITY_TYPE_ID,
+      'entity_id' => '4',
+      'title' => 'This is my new content title',
+      'path' => Url::fromUri('base://my-awesome-new-page')->toString(),
+      'components' => [
+        [
+          'parent_uuid' => NULL,
+          'slot' => NULL,
+          "uuid" => "4c3482ac-4635-4ba9-aaf4-eb86892d77a1",
+          "component_id" => "sdc.canvas_test_sdc.heading",
+          'component_version' => '8c01a2bdb897a810',
+          "inputs" => [
+            'text' => 'My custom header',
+            'style' => 'secondary',
+            'element' => 'h3',
+          ],
+          'label' => NULL,
+        ],
+      ],
+    ]);
+  }
+
+  public function testPostWithInvalidData(): void {
+    $this->container->get(ComponentSourceManager::class)->generateComponents('sdc', ['canvas_test_sdc:heading']);
+    $url = Url::fromUri('base:/canvas/api/v0/content/canvas_page');
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+      RequestOptions::JSON => [
+        'title' => 'This is my new content title',
+        'status' => TRUE,
+        'path' => '/my-awesome-new-page',
+        'components' => [
+          [
+            "uuid" => "4c3482ac-4635-4ba9-aaf4-eb86892d77a1",
+            "component_id" => "sdc.canvas_test_sdc.heading",
+            // A component version that doesn't exist.
+            "component_version" => "incorrect-component-version",
+            "inputs" => [
+              'text' => 'My custom header',
+              'style' => 'secondary',
+              'element' => 'h3',
+            ],
+          ],
+        ],
+      ],
+    ];
+
+    $this->assertAuthenticationAndAuthorization($url, 'POST');
+
+    $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
+    // Authenticated, authorized, with CSRF token: 201.
+    Role::load('authenticated')?->grantPermission(Page::CREATE_PERMISSION)->save();
+    $response = $this->makeApiRequest('POST', $url, $request_options);
+    $this->assertSame(422, $response->getStatusCode());
+    $this->assertPostResponse($response, [
+      'errors' => [
+        [
+          'detail' => "'incorrect-component-version' is not a version that exists on component config entity 'sdc.canvas_test_sdc.heading'. Available versions: '8c01a2bdb897a810'.",
+          'source' => [
+            'pointer' => 'components.0.component_version',
+          ],
+        ],
+      ],
+    ]);
+  }
+
+  public function testPostWithNoData(): void {
+    $url = Url::fromUri('base:/canvas/api/v0/content/canvas_page');
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+      RequestOptions::JSON => [
+        // The clientInstanceId is mandatory if no other data is sent!
+        'clientInstanceId' => 'client-123',
+      ],
+    ];
+
+    $this->assertAuthenticationAndAuthorization($url, 'POST');
+
+    $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
+    // Authenticated, authorized, with CSRF token: 201.
+    Role::load('authenticated')?->grantPermission(Page::CREATE_PERMISSION)->save();
+    $response = $this->makeApiRequest('POST', $url, $request_options);
+    $this->assertSame(201, $response->getStatusCode());
+    $this->assertPostResponse($response, [
+      'entity_type' => Page::ENTITY_TYPE_ID,
+      'entity_id' => '4',
+      'title' => 'Untitled page',
+      'path' => Url::fromUri('base://page/4')->toString(),
+      'components' => [],
+    ]);
   }
 
   public function testList(): void {
@@ -126,6 +253,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
           CanvasUriDefinitions::LINK_REL_UNPUBLISH => Url::fromUri('base:/canvas/api/v0/content/auto-save/canvas_page/1')->toString(),
         ],
         'internalPath' => '/page/1',
+        'uuid' => $this->pages[0]->uuid(),
       ],
       // Page 2 has no path alias.
       '2' => [
@@ -143,6 +271,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
           CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => Url::fromUri('base:/canvas/editor/canvas_page/2')->toString(),
         ],
         'internalPath' => '/page/2',
+        'uuid' => $this->pages[1]->uuid(),
       ],
       '3' => [
         'id' => 3,
@@ -160,6 +289,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
           CanvasUriDefinitions::LINK_REL_UNPUBLISH => Url::fromUri('base:/canvas/api/v0/content/auto-save/canvas_page/3')->toString(),
         ],
         'internalPath' => '/page/3',
+        'uuid' => $this->pages[2]->uuid(),
       ],
     ];
     $this->assertEquals(
@@ -192,6 +322,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
             CanvasUriDefinitions::LINK_REL_UNPUBLISH => Url::fromUri('base:/canvas/api/v0/content/auto-save/canvas_page/1')->toString(),
           ],
           'internalPath' => '/page/1',
+          'uuid' => $this->pages[0]->uuid(),
         ],
       ],
       $search_body
@@ -416,7 +547,11 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
       ],
-      RequestOptions::JSON => ['entity_id' => '10'],
+      RequestOptions::JSON => [
+        'entity_id' => '10',
+        // The clientInstanceId is mandatory for duplicating an entity!
+        'clientInstanceId' => 'client-434',
+      ],
     ];
 
     $this->assertAuthenticationAndAuthorization($url, 'POST');
@@ -444,7 +579,10 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     self::assertFalse($original->get('path')->isEmpty());
     self::assertNotNull($original->get('path')->first()?->get('alias')->getValue());
 
-    $request_options[RequestOptions::JSON] = ['entity_id' => $original->id()];
+    $request_options[RequestOptions::JSON] = [
+      'entity_id' => $original->id(),
+      'clientInstanceId' => 'client-132',
+    ];
 
     // Test module will return view access forbidden for canvas_page id 1 instance.
     $this->container->get('module_installer')->install(['canvas_test_access']);
@@ -462,10 +600,14 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     // Duplicate Page 1 entity.
     $response = $this->makeApiRequest('POST', $url, $request_options);
     $this->assertSame(201, $response->getStatusCode());
-    $this->assertSame(
-      '{"entity_type":"canvas_page","entity_id":"4"}',
-      (string) $response->getBody()
-    );
+    $this->assertPostResponse($response, [
+      'entity_type' => Page::ENTITY_TYPE_ID,
+      'entity_id' => '4',
+      'title' => 'Page 1 (Copy)',
+      'status' => FALSE,
+      'path' => Url::fromUri('base://page/4')->toString(),
+      'components' => [],
+    ]);
     $duplicate_1 = \Drupal::entityTypeManager()->getStorage('canvas_page')->load(4);
     \assert($duplicate_1 instanceof ContentEntityInterface);
     $this->assertEquals('Page 1 (Copy)', $duplicate_1->label());
@@ -477,14 +619,20 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $auto_save_manager->saveEntity($duplicate_1);
 
     $url = Url::fromUri('base:/canvas/api/v0/content/canvas_page');
-    $request_options[RequestOptions::JSON] = ['entity_id' => $duplicate_1->id()];
+    $request_options[RequestOptions::JSON] = [
+      'entity_id' => $duplicate_1->id(),
+      'clientInstanceId' => 'client-434',
+    ];
     $response = $this->makeApiRequest('POST', $url, $request_options);
     $this->assertSame(201, $response->getStatusCode());
-    $this->assertSame(
-      '{"entity_type":"canvas_page","entity_id":"5"}',
-      (string) $response->getBody()
-    );
-
+    $this->assertPostResponse($response, [
+      'entity_type' => Page::ENTITY_TYPE_ID,
+      'entity_id' => '5',
+      'title' => 'Title from temp store (Copy)',
+      'status' => FALSE,
+      'path' => Url::fromUri('base://page/5')->toString(),
+      'components' => [],
+    ]);
     $duplicate_2 = \Drupal::entityTypeManager()->getStorage('canvas_page')->load(5);
     \assert($duplicate_2 instanceof EntityInterface);
     // Test that the data from the temp store is present.
@@ -493,6 +641,27 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     // Autosaved data is empty in duplicate.
     self::assertTrue($auto_save_manager->getAutoSaveEntity($duplicate_2)->isEmpty());
     self::assertNull($duplicate_2->get('path')->first()?->get('alias')->getValue());
+  }
+
+  /**
+   * Assert values from a response body contents.
+   *
+   * This is to avoid having to ::assertSame() on values we don't really care
+   * about for the purpose of that test.
+   *
+   * @param \Psr\Http\Message\ResponseInterface $response
+   *   The received response object.
+   * @param array<string, mixed> $expected_map
+   *   The expected values on the response body contents.
+   */
+  private function assertPostResponse(ResponseInterface $response, array $expected_map): void {
+    $responseBody = (string) $response->getBody();
+    self::assertIsString($responseBody);
+    self::assertJson($responseBody);
+    $decodedBody = \json_decode($responseBody, TRUE);
+    foreach ($expected_map as $key => $value) {
+      $this->assertSame($decodedBody[$key], $value);
+    }
   }
 
   /**

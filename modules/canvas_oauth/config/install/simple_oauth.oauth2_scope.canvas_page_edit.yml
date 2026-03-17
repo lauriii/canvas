@@ -1,0 +1,24 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas_oauth
+id: canvas_page_edit
+name: 'canvas:page:edit'
+description: 'Drupal Canvas: Edit Pages'
+grant_types:
+  authorization_code:
+    status: true
+    description: 'Authorization code access for editing Canvas Pages'
+  refresh_token:
+    status: true
+    description: 'Refresh token access for editing Canvas Pages'
+  client_credentials:
+    status: true
+    description: 'Client credentials access for editing Canvas Pages'
+umbrella: false
+parent: null
+granularity_id: permission
+granularity_configuration:
+  permission: 'edit canvas_page'
