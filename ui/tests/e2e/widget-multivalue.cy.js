@@ -29,7 +29,7 @@ describe('Multivalue widget drag and drop', () => {
     // when they shouldn't be is a useful canary for identifying AJAX problems.
     const confirmWeightSelectCount = (count, visible = false) => {
       cy.get('@unlimited-text')
-        .get('.delta-order select')
+        .find('.delta-order select')
         .should(($selects) => {
           expect($selects).to.have.length(count);
           $selects.each((index, weightSelect) => {
@@ -191,14 +191,16 @@ describe('Multivalue widget drag and drop', () => {
     ]);
     confirmWeightSelectCount(5);
 
-    cy.findByText('Hide row weights').should('not.exist');
-    cy.findByText('Show row weights').click();
-    cy.findByText('Hide row weights').should('exist');
+    cy.get('@unlimited-text')
+      .findByText('Hide row weights')
+      .should('not.exist');
+    cy.get('@unlimited-text').findByText('Show row weights').click();
+    cy.get('@unlimited-text').findByText('Hide row weights').should('exist');
 
     confirmWeightSelectCount(5, true);
 
     cy.get('@unlimited-text')
-      .get('[title="Change order"]')
+      .find('[title="Change order"]')
       .should(($handles) => {
         expect($handles).to.have.length(5);
         $handles.each((index, handle) => {

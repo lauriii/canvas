@@ -8,12 +8,15 @@ import TextFieldAutocomplete from '@/components/form/components/TextFieldAutocom
 import InputBehaviors from '@/components/form/inputBehaviors';
 import { a2p } from '@/local_packages/utils.js';
 
-import type { Attributes } from '@/types/DrupalAttribute';
+import type {
+  Attributes,
+  NumericInputAttributes,
+} from '@/types/DrupalAttribute';
 
 const DrupalInput = ({
   attributes = {},
 }: {
-  attributes?: Attributes & {
+  attributes?: (Attributes | NumericInputAttributes) & {
     onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   };
 }) => {

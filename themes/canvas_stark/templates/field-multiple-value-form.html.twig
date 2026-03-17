@@ -29,12 +29,14 @@
     ]
   %}
   <div{{ attributes.addClass(classes) }}>
-    {{ table }}
+    <div class="multivalue-container">
+      {{ table }}
+      {% if button %}
+        <div class="add-new-wrapper">{{ button }}</div>
+      {% endif %}
+    </div>
     {% if description.content %}
       <canvas-description{{ description.attributes.addClass('description').addClass('description-unwrapped') }} description="{{ description.content }}" />
-    {% endif %}
-    {% if button %}
-      <div class="clearfix">{{ button }}</div>
     {% endif %}
   </div>
 {% else %}

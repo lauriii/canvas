@@ -13,6 +13,7 @@ describe('Multivalue Form Design (canvas_dev_mode)', () => {
   before(() => {
     cy.drupalCanvasInstall([
       'canvas_test_article_fields',
+      // @todo remove once https://drupal.org/i/3577946 is fixed.
       // Required for new multivalue form UI.
       'canvas_dev_mode',
     ]);

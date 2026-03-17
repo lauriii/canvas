@@ -341,6 +341,49 @@ function canvas_test_article_fields_install(): void {
         ['value' => 'Marshmallow Coast'],
       ],
     ],
+    'field_cvt_unlimited_number' => [
+      'type' => 'float',
+      'label' => 'Canvas Unlimited Number',
+      'settings' => [],
+      'cardinality' => -1,
+      'widget' => [
+        'type' => 'number',
+        'weight' => -999,
+        'settings' => [],
+      ],
+      'default_value' => [
+        ['value' => 3],
+      ],
+    ],
+    'field_cvt_unlimited_int' => [
+      'type' => 'integer',
+      'label' => 'Canvas Unlimited Integer',
+      'settings' => [],
+      'cardinality' => -1,
+      'widget' => [
+        'type' => 'number',
+        'weight' => -998,
+        'settings' => [],
+      ],
+      'default_value' => [
+        ['value' => 10],
+      ],
+    ],
+    'field_cvt_required_number' => [
+      'type' => 'float',
+      'label' => 'Canvas Required Number',
+      'settings' => [],
+      'cardinality' => -1,
+      'required' => TRUE,
+      'widget' => [
+        'type' => 'number',
+        'weight' => -997,
+        'settings' => [],
+      ],
+      'default_value' => [
+        ['value' => 42],
+      ],
+    ],
     'field_cvt_boolean_checkbox' => [
       'type' => 'boolean',
       'label' => 'Canvas Boolean Checkbox (default true)',
@@ -407,6 +450,11 @@ function canvas_test_article_fields_install(): void {
         'label' => $field_info['label'],
         'settings' => $field_info['settings'],
       ];
+
+      // Add required property if set
+      if (isset($field_info['required'])) {
+        $field_config['required'] = $field_info['required'];
+      }
 
       // Only add default_value if it's explicitly set
       if (isset($field_info['default_value'])) {

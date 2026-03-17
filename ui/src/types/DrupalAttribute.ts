@@ -7,9 +7,17 @@ export type Attribute =
   | string[]
   | Function
   | null
-  | object;
+  | object
+  | undefined;
 
 // Represents a collection of HTML attributes.
 export interface Attributes {
   [key: string]: Attribute;
+}
+
+// Represents attributes for numeric input elements with constraints.
+export interface NumericInputAttributes extends Attributes {
+  min?: string;
+  max?: string;
+  step?: string;
 }

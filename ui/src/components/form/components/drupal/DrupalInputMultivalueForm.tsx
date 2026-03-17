@@ -7,7 +7,7 @@ import TextField from '@/components/form/components/TextField';
 import InputBehaviors from '@/components/form/inputBehaviors';
 import { a2p } from '@/local_packages/utils';
 
-import type { Attributes } from '@/types/DrupalAttribute';
+import type { NumericInputAttributes } from '@/types/DrupalAttribute';
 
 import styles from './DrupalInputMultivalueForm.module.css';
 
@@ -26,7 +26,7 @@ const TextFieldWithBehaviors = InputBehaviors(TextField);
 const DrupalInputMultivalueForm = ({
   attributes = {},
 }: {
-  attributes?: Attributes & {
+  attributes?: NumericInputAttributes & {
     onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
     value?: string;
     name?: string;
@@ -52,6 +52,8 @@ const DrupalInputMultivalueForm = ({
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   // Ref for the popover input to focus it when opening.
   const popoverInputRef = useRef<HTMLInputElement | null>(null);
+  // Ref to the Box containing the TextField so we can find the input element
+  const popoverTextFieldWrapperRef = useRef<HTMLDivElement | null>(null);
 
   // Sync displayValue with attributes.value when it changes (e.g., after AJAX updates)
   useEffect(() => {
@@ -60,6 +62,20 @@ const DrupalInputMultivalueForm = ({
     setTempValue(newValue as string);
   }, [attributes.value, attributes.defaultValue]);
 
+  // Find and store reference to the actual input element when popover opens
+  useEffect(() => {
+    if (popoverOpen && popoverTextFieldWrapperRef.current) {
+      const inputElement =
+        popoverTextFieldWrapperRef.current.querySelector('input');
+      if (inputElement) {
+        popoverInputRef.current = inputElement;
+        // Focus and select the input
+        inputElement.focus();
+        inputElement.select();
+      }
+    }
+  }, [popoverOpen]);
+
   // Handle temporary input changes in popover (not committed until Enter).
   const handleTempInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTempValue(e.target.value);
@@ -67,6 +83,16 @@ const DrupalInputMultivalueForm = ({
 
   // Commit the temporary value to the actual input and display.
   const handleCommitValue = () => {
+    // Validate the input using the popover input element's HTML5 validation
+    if (popoverInputRef.current) {
+      // Check if the input is valid according to its constraints (min, max, step, etc.)
+      if (!popoverInputRef.current.checkValidity()) {
+        // Show the browser's native validation message
+        popoverInputRef.current.reportValidity();
+        return; // Don't commit invalid value
+      }
+    }
+
     const newValue = tempValue;
     setDisplayValue(newValue);
 
@@ -94,6 +120,18 @@ const DrupalInputMultivalueForm = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+
+      // Use the stored ref or fallback to the event target
+      const inputElement =
+        popoverInputRef.current || (e.target as HTMLInputElement);
+
+      // Validate the input before committing
+      if (inputElement && !inputElement.checkValidity()) {
+        // Show validation error and keep popover open
+        inputElement.reportValidity();
+        return;
+      }
+
       handleCommitValue();
       setPopoverOpen(false);
     }
@@ -105,13 +143,6 @@ const DrupalInputMultivalueForm = ({
     if (open) {
       // When opening, set tempValue to current displayValue.
       setTempValue(displayValue);
-      // Focus the input field in the popover.
-      setTimeout(() => {
-        if (popoverInputRef.current) {
-          popoverInputRef.current.focus();
-          popoverInputRef.current.select();
-        }
-      }, 0);
     } else {
       // When closing, revert tempValue to displayValue (discards uncommitted changes).
       setTempValue(displayValue);
@@ -123,6 +154,52 @@ const DrupalInputMultivalueForm = ({
       }, 0);
     }
     setPopoverOpen(open);
+  };
+
+  // Determine if the remove button should be enabled.
+  const isRemoveButtonEnabled = () => {
+    // Check whether the table row has a Drupal remove button.
+    const tableRow = triggerRowRef.current?.closest('tr');
+    const removeActionCell = tableRow?.querySelector('.canvas-remove-action');
+
+    // Look for the Drupal remove button. Drupal adds these buttons to all rows
+    // in unlimited cardinality fields.
+    const removeButton = removeActionCell?.querySelector(
+      'input[type="submit"][name*="remove_button"]',
+    ) as HTMLInputElement | null;
+
+    // Check if button exists and is not disabled
+    if (!removeButton || removeButton.disabled) {
+      return false;
+    }
+
+    // Get the field wrapper that contains row count and required status
+    // These are set by canvas_stark_preprocess_field_multiple_value_form
+    const fieldWrapperRowCount = tableRow?.closest('[data-canvas-row-count]');
+    if (!fieldWrapperRowCount) {
+      return true;
+    }
+
+    const rowCount = parseInt(
+      fieldWrapperRowCount.getAttribute('data-canvas-row-count') || '0',
+      10,
+    );
+    // Check if the field is required by looking for .form-required class
+    // This class is added by Drupal to the label or field wrapper
+    if (tableRow) {
+      const table = tableRow.closest('table');
+      const fieldWrapper = table?.closest('.js-form-wrapper, .form-item');
+      const isRequired =
+        fieldWrapper?.querySelector('.form-required, .js-form-required') !==
+        null;
+
+      // Disable remove button if required field with only one item
+      if (isRequired && rowCount === 1) {
+        return false;
+      }
+    }
+
+    return true;
   };
 
   const handleRemove = () => {
@@ -138,11 +215,11 @@ const DrupalInputMultivalueForm = ({
 
     // Find the original Drupal remove button directly (the hidden input/button
     // that carries the AJAX behavior). The cell and button are hidden by
-    // tabledrag-icons.js but remain in the DOM.
+    // CSS but remain in the DOM.
     const removeActionCell = tableRow.querySelector('.canvas-remove-action');
     if (removeActionCell) {
       const removeButton = removeActionCell.querySelector(
-        'input[type="submit"][name*="remove"]',
+        'input[type="submit"][name*="remove_button"]',
       ) as HTMLElement | null;
       if (removeButton) {
         // Dispatch mousedown first (some Drupal AJAX handlers listen for it),
@@ -179,7 +256,7 @@ const DrupalInputMultivalueForm = ({
       {/* Hidden input field for accessibility and form functionality */}
       <Box
         ref={inputWrapperRef}
-        style={{ position: 'absolute', left: '-9999px' }}
+        className={styles.visuallyHiddenInput}
         aria-hidden="true"
       >
         <TextFieldWithBehaviors
@@ -239,7 +316,7 @@ const DrupalInputMultivalueForm = ({
           </Flex>
 
           {/* Input Field - Visual duplicate for popover editing */}
-          <Box>
+          <Box ref={popoverTextFieldWrapperRef}>
             <TextField
               {...(attributes.class
                 ? { className: clsx(attributes.class) }
@@ -249,11 +326,20 @@ const DrupalInputMultivalueForm = ({
                   value: tempValue,
                   onChange: handleTempInputChange,
                   onKeyDown: handleKeyDown,
-                  type: 'text',
+                  type: attributes.type || 'text',
                   placeholder: attributes.placeholder,
-                  ref: (el: HTMLInputElement | null) => {
-                    popoverInputRef.current = el;
-                  },
+                  ...Object.fromEntries(
+                    ['min', 'max', 'step']
+                      .filter(
+                        (key) =>
+                          attributes[key as keyof typeof attributes] !==
+                          undefined,
+                      )
+                      .map((key) => [
+                        key,
+                        attributes[key as keyof typeof attributes],
+                      ]),
+                  ),
                 },
               }}
             />
@@ -261,7 +347,13 @@ const DrupalInputMultivalueForm = ({
 
           {/* Remove Button */}
           <Flex justify="center">
-            <Button variant="ghost" color="red" size="1" onClick={handleRemove}>
+            <Button
+              variant="ghost"
+              color="red"
+              size="1"
+              onClick={handleRemove}
+              disabled={!isRemoveButtonEnabled()}
+            >
               <TrashIcon />
               Remove
             </Button>
