@@ -134,3 +134,46 @@ function canvas_oauth_post_update_0001_canvas_page_scopes(array &$sandbox): void
     ])->save();
   }
 }
+
+/**
+ * Install scope for the Canvas brand kit.
+ */
+function canvas_oauth_post_update_0002_canvas_brand_kit_scope(array &$sandbox): void {
+  $dependencies = [
+    'enforced' => [
+      'module' => [
+        'canvas_oauth',
+      ],
+    ],
+  ];
+  $scope = Oauth2Scope::load('canvas_brand_kit');
+  if (!$scope) {
+    Oauth2Scope::create([
+      'id' => 'canvas_brand_kit',
+      'name' => 'canvas:brand_kit',
+      'description' => 'Drupal Canvas: Full access to brand kits',
+      'status' => TRUE,
+      'grant_types' => [
+        'authorization_code' => [
+          'status' => TRUE,
+          'description' => 'Authorization code access for brand kits',
+        ],
+        'refresh_token' => [
+          'status' => TRUE,
+          'description' => 'Refresh token access for brand kits',
+        ],
+        'client_credentials' => [
+          'status' => TRUE,
+          'description' => 'Client credentials access for brand kits',
+        ],
+      ],
+      'umbrella' => FALSE,
+      'granularity_id' => 'permission',
+      'granularity_configuration' => [
+        'permission' => 'administer brand kit',
+      ],
+      'dependencies' => $dependencies,
+    ])->save();
+  }
+
+}

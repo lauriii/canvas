@@ -47,10 +47,10 @@ final class PageOauthScopesCreationUpgradeTest extends CanvasUpdatePathTestBase 
     $this->runUpdates();
 
     $updated_scopes = Oauth2Scope::loadMultiple();
-    $this->assertCount(6, $updated_scopes);
     foreach (self::SCOPE_IDS as $scope_id) {
       $this->assertArrayHasKey($scope_id, $updated_scopes);
       $this->assertEntityIsValid($updated_scopes[$scope_id]);
+      $this->assertSame(['canvas_oauth'], $updated_scopes[$scope_id]->getDependencies()['module']);
     }
   }
 

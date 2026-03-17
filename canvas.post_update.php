@@ -309,6 +309,11 @@ function canvas_post_update_0014_create_global_brand_kit(): void {
     'id' => BrandKit::GLOBAL_ID,
     'label' => 'Global brand kit',
     'fonts' => NULL,
+    'dependencies' => [
+      'enforced' => [
+        'module' => ['canvas'],
+      ],
+    ],
   ]);
   $brand_kit->save();
 }
