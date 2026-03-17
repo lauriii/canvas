@@ -170,7 +170,6 @@ export default function FormPropTypeLink({
           size="1"
           onChange={(e) => handleMultiValueChange(index, e.target.value)}
           onBlur={(e) => handleMultiValueBlur(index, e.target.value)}
-          disabled={isDisabled}
           className={clsx({
             [styles.error]: !multiValueValidityStates[index],
           })}

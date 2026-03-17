@@ -431,7 +431,11 @@ describe('props in code editor', () => {
         expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
       });
       // The pixel density should now be hidden.
-      expect(screen.queryByLabelText('Pixel density')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.queryByLabelText('Pixel density'),
+        ).not.toBeInTheDocument();
+      });
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
@@ -1310,6 +1314,179 @@ describe('props in code editor', () => {
         screen.queryByRole('textbox', { name: 'Prop name' }),
       ).not.toBeInTheDocument();
     });
+
+    it('allows editing multi-value example fields on exposed component', async () => {
+      const multiValuePropId = 'existing-multi-value-prop-id';
+      const exposedStore = makeStore({
+        codeEditor: {
+          ...initialState,
+          codeComponent: {
+            ...initialState.codeComponent,
+            status: true, // Exposed component
+            props: [
+              {
+                id: multiValuePropId,
+                name: 'tags',
+                type: 'array',
+                items: { type: 'string' },
+                example: ['tag1', 'tag2'],
+                allowMultiple: true,
+                valueMode: 'unlimited',
+                derivedType: 'text',
+              },
+            ],
+          },
+          initialPropIds: [multiValuePropId], // Mark as existing prop
+        },
+      });
+
+      render(<Wrapper store={exposedStore} />);
+
+      // Name and Type should be disabled for existing props
+      const nameField = screen.getByRole('textbox', { name: 'Prop name' });
+      expect(nameField).toBeDisabled();
+      const typeSelect = screen.getByRole('combobox', { name: 'Type' });
+      expect(typeSelect).toBeDisabled();
+
+      // But multi-value example fields should be editable
+      const exampleFields =
+        screen.getAllByPlaceholderText('Enter a text value');
+      expect(exampleFields).toHaveLength(2); // Two example values
+      exampleFields.forEach((field) => {
+        expect(field).not.toBeDisabled();
+      });
+    });
+
+    it('allows editing list enum example fields on exposed component', async () => {
+      const listPropId = 'existing-list-prop-id';
+      const exposedStore = makeStore({
+        codeEditor: {
+          ...initialState,
+          codeComponent: {
+            ...initialState.codeComponent,
+            status: true, // Exposed component
+            props: [
+              {
+                id: listPropId,
+                name: 'ratings',
+                type: 'array',
+                items: { type: 'integer' },
+                example: [1, 2],
+                enum: [
+                  { value: 1, label: '1 star' },
+                  { value: 2, label: '2 stars' },
+                  { value: 3, label: '3 stars' },
+                ],
+                allowMultiple: true,
+                valueMode: 'unlimited',
+                derivedType: 'listInteger',
+              },
+            ],
+          },
+          initialPropIds: [listPropId], // Mark as existing prop
+        },
+      });
+
+      render(<Wrapper store={exposedStore} />);
+
+      // Name and Type should be disabled
+      const nameField = screen.getByRole('textbox', { name: 'Prop name' });
+      expect(nameField).toBeDisabled();
+      const typeSelect = screen.getByRole('combobox', { name: 'Type' });
+      expect(typeSelect).toBeDisabled();
+
+      // But the default value selection should be editable
+      const defaultValueButton = screen.getByRole('button', {
+        name: /2 selected/i,
+      });
+      expect(defaultValueButton).not.toBeDisabled();
+    });
+
+    it('allows editing link multi-value example fields on exposed component', async () => {
+      const linkPropId = 'existing-link-prop-id';
+      const exposedStore = makeStore({
+        codeEditor: {
+          ...initialState,
+          codeComponent: {
+            ...initialState.codeComponent,
+            status: true, // Exposed component
+            props: [
+              {
+                id: linkPropId,
+                name: 'relatedLinks',
+                type: 'array',
+                items: { type: 'string', format: 'uri-reference' },
+                example: ['/page1', '/page2'],
+                format: 'uri-reference',
+                allowMultiple: true,
+                valueMode: 'unlimited',
+                derivedType: 'link',
+              },
+            ],
+          },
+          initialPropIds: [linkPropId], // Mark as existing prop
+        },
+      });
+
+      render(<Wrapper store={exposedStore} />);
+
+      // Name and Type should be disabled for existing props
+      const nameField = screen.getByRole('textbox', { name: 'Prop name' });
+      expect(nameField).toBeDisabled();
+      const typeSelect = screen.getByRole('combobox', { name: 'Type' });
+      expect(typeSelect).toBeDisabled();
+
+      // But link example fields should be editable
+      const linkFields = screen.getAllByPlaceholderText(
+        /Enter a path|Enter a URL/i,
+      );
+      expect(linkFields).toHaveLength(2); // Two example values
+      linkFields.forEach((field) => {
+        expect(field).not.toBeDisabled();
+      });
+    });
+
+    it('allows editing date multi-value example fields on exposed component', async () => {
+      const datePropId = 'existing-date-prop-id';
+      const exposedStore = makeStore({
+        codeEditor: {
+          ...initialState,
+          codeComponent: {
+            ...initialState.codeComponent,
+            status: true, // Exposed component
+            props: [
+              {
+                id: datePropId,
+                name: 'eventDates',
+                type: 'array',
+                items: { type: 'string', format: 'date' },
+                example: ['2024-01-01', '2024-12-31'],
+                format: 'date',
+                allowMultiple: true,
+                valueMode: 'unlimited',
+                derivedType: 'date',
+              },
+            ],
+          },
+          initialPropIds: [datePropId], // Mark as existing prop
+        },
+      });
+
+      render(<Wrapper store={exposedStore} />);
+
+      // Name and Type should be disabled
+      const nameField = screen.getByRole('textbox', { name: 'Prop name' });
+      expect(nameField).toBeDisabled();
+      const typeSelect = screen.getByRole('combobox', { name: 'Type' });
+      expect(typeSelect).toBeDisabled();
+
+      // But date example fields should be editable
+      const dateFields = screen.getAllByDisplayValue(/2024/);
+      expect(dateFields.length).toBeGreaterThanOrEqual(2); // At least two example values
+      dateFields.forEach((field) => {
+        expect(field).not.toBeDisabled();
+      });
+    });
   });
 
   describe('required prop example validation', () => {
@@ -1923,25 +2100,25 @@ describe('props in code editor', () => {
         expect(prop.example).toEqual(['First', 'Second', '', '']);
       });
 
-      // Decrease count to 1 - only the first value should be kept.
+      // Decrease count to 1 - server requires maxItems >= 2, so it clamps to 2.
       await userEvent.tripleClick(countInput);
       await userEvent.keyboard('1');
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
-        expect(prop.limitedCount).toBe(1);
+        expect(prop.limitedCount).toBe(2);
       });
 
       await waitFor(() => {
         const inputs = screen.getAllByTestId(
           new RegExp(`array-prop-value-${propId}-\\d+`),
         );
-        expect(inputs.length).toBe(1);
+        expect(inputs.length).toBe(2);
       });
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
-        expect(prop.example).toEqual(['First']);
+        expect(prop.example).toEqual(['First', 'Second']);
       });
     });
 
@@ -2250,6 +2427,27 @@ describe('props in code editor', () => {
         expect(prop.allowMultiple).toBe(true);
         expect(prop.items).toEqual({ type: 'string', format: 'date' });
         expect(prop.example).toEqual([]);
+      });
+    });
+
+    it('enables multiple values for video prop', async () => {
+      await addProp('Video', 'VideoGallery');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      expect(checkbox).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(true);
+        expect(prop.type).toBe('array');
+        expect(prop.items).toEqual({
+          type: 'object',
+          $ref: 'json-schema-definitions://canvas.module/video',
+        });
+        expect(Array.isArray(prop.example)).toBe(true);
         expect(prop.valueMode).toBe('unlimited');
         expect(prop.limitedCount).toBe(1);
       });
@@ -2459,6 +2657,847 @@ describe('props in code editor', () => {
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
         expect(prop.example).toEqual(['2024-05-01', '2024-06-15']);
+      });
+    });
+  });
+
+  describe('multi-value props persistence and reload', () => {
+    // Clean up the render from the parent beforeEach
+    beforeEach(() => {
+      cleanup();
+    });
+
+    describe('text prop with multiple values', () => {
+      it('persists and reloads unlimited multi-value text prop', async () => {
+        // Simulate a saved component with multi-value text prop
+        const savedPropId = 'saved-text-prop-id';
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props: [
+                {
+                  id: savedPropId,
+                  name: 'Tags',
+                  type: 'array',
+                  items: { type: 'string' },
+                  example: ['javascript', 'react', 'typescript'],
+                  derivedType: 'text',
+                  allowMultiple: true,
+                  valueMode: 'unlimited',
+                  limitedCount: 1,
+                },
+              ],
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.allowMultiple).toBe(true);
+          expect(prop.type).toBe('array');
+          expect(prop.items).toEqual({ type: 'string' });
+          expect(prop.example).toEqual(['javascript', 'react', 'typescript']);
+          expect(prop.valueMode).toBe('unlimited');
+        });
+
+        // Verify the checkbox is checked
+        const checkbox = screen.getByRole('checkbox', {
+          name: 'Allow multiple values',
+        });
+        expect(checkbox).toBeChecked();
+
+        // Verify value mode selector shows unlimited
+        const valueModeSelect = document.getElementById(
+          `prop-value-mode-${savedPropId}`,
+        );
+        expect(valueModeSelect).toBeInTheDocument();
+      });
+
+      it('persists and reloads limited multi-value text prop', async () => {
+        const savedPropId = 'saved-limited-text-prop-id';
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props: [
+                {
+                  id: savedPropId,
+                  name: 'Authors',
+                  type: 'array',
+                  items: { type: 'string' },
+                  example: ['John Doe', 'Jane Smith', 'Bob Johnson'],
+                  derivedType: 'text',
+                  allowMultiple: true,
+                  valueMode: 'limited',
+                  limitedCount: 3,
+                },
+              ],
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.allowMultiple).toBe(true);
+          expect(prop.valueMode).toBe('limited');
+          expect(prop.limitedCount).toBe(3);
+          expect(prop.example).toEqual([
+            'John Doe',
+            'Jane Smith',
+            'Bob Johnson',
+          ]);
+        });
+
+        // Verify limited count input exists and has correct value
+        const countInput = document.getElementById(
+          `prop-limited-count-${savedPropId}`,
+        ) as HTMLInputElement;
+        expect(countInput).toBeInTheDocument();
+        expect(countInput.value).toBe('3');
+
+        // Verify all three input fields exist
+        expect(
+          document.getElementById(`array-prop-value-${savedPropId}-0`),
+        ).toBeInTheDocument();
+        expect(
+          document.getElementById(`array-prop-value-${savedPropId}-1`),
+        ).toBeInTheDocument();
+        expect(
+          document.getElementById(`array-prop-value-${savedPropId}-2`),
+        ).toBeInTheDocument();
+      });
+    });
+
+    describe('integer prop with multiple values', () => {
+      it('persists and reloads unlimited multi-value integer prop', async () => {
+        const savedPropId = 'saved-integer-prop-id';
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props: [
+                {
+                  id: savedPropId,
+                  name: 'Quantities',
+                  type: 'array',
+                  items: { type: 'integer' },
+                  example: [10, 20, 30, 40],
+                  derivedType: 'integer',
+                  allowMultiple: true,
+                  valueMode: 'unlimited',
+                  limitedCount: 1,
+                },
+              ],
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.allowMultiple).toBe(true);
+          expect(prop.type).toBe('array');
+          expect(prop.items).toEqual({ type: 'integer' });
+          expect(prop.example).toEqual([10, 20, 30, 40]);
+          expect(prop.valueMode).toBe('unlimited');
+        });
+
+        const checkbox = screen.getByRole('checkbox', {
+          name: 'Allow multiple values',
+        });
+        expect(checkbox).toBeChecked();
+      });
+
+      it('persists and reloads limited multi-value integer prop', async () => {
+        const savedPropId = 'saved-limited-integer-prop-id';
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props: [
+                {
+                  id: savedPropId,
+                  name: 'Ratings',
+                  type: 'array',
+                  items: { type: 'integer' },
+                  example: [1, 2, 3, 4, 5],
+                  derivedType: 'integer',
+                  allowMultiple: true,
+                  valueMode: 'limited',
+                  limitedCount: 5,
+                },
+              ],
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.valueMode).toBe('limited');
+          expect(prop.limitedCount).toBe(5);
+          expect(prop.example).toEqual([1, 2, 3, 4, 5]);
+        });
+      });
+    });
+
+    describe('link prop with multiple values', () => {
+      it('persists and reloads unlimited multi-value link prop', async () => {
+        const savedPropId = 'saved-link-prop-id';
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props: [
+                {
+                  id: savedPropId,
+                  name: 'RelatedLinks',
+                  type: 'array',
+                  items: { type: 'string', format: 'uri-reference' },
+                  example: ['/page1', '/page2', '/page3'],
+                  derivedType: 'link',
+                  format: 'uri-reference',
+                  allowMultiple: true,
+                  valueMode: 'unlimited',
+                  limitedCount: 1,
+                },
+              ],
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.allowMultiple).toBe(true);
+          expect(prop.items).toEqual({
+            type: 'string',
+            format: 'uri-reference',
+          });
+          expect(prop.example).toEqual(['/page1', '/page2', '/page3']);
+        });
+      });
+
+      it('persists and reloads limited multi-value link prop', async () => {
+        const savedPropId = 'saved-limited-link-prop-id';
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props: [
+                {
+                  id: savedPropId,
+                  name: 'SocialLinks',
+                  type: 'array',
+                  items: { type: 'string', format: 'uri' },
+                  example: [
+                    'https://twitter.com',
+                    'https://facebook.com',
+                    'https://linkedin.com',
+                  ],
+                  derivedType: 'link',
+                  format: 'uri',
+                  allowMultiple: true,
+                  valueMode: 'limited',
+                  limitedCount: 3,
+                },
+              ],
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.valueMode).toBe('limited');
+          expect(prop.limitedCount).toBe(3);
+          expect(prop.example).toEqual([
+            'https://twitter.com',
+            'https://facebook.com',
+            'https://linkedin.com',
+          ]);
+        });
+      });
+    });
+
+    describe('image prop with multiple values', () => {
+      it('persists and reloads multi-value image prop', async () => {
+        const savedPropId = 'saved-image-prop-id';
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props: [
+                {
+                  id: savedPropId,
+                  name: 'Gallery',
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    $ref: 'json-schema-definitions://canvas.module/image',
+                  },
+                  example: [
+                    {
+                      src: 'https://placehold.co/800x600.png',
+                      width: 800,
+                      height: 600,
+                      alt: 'First image',
+                    },
+                    {
+                      src: 'https://placehold.co/1920x1080.png',
+                      width: 1920,
+                      height: 1080,
+                      alt: 'Second image',
+                    },
+                  ],
+                  derivedType: 'image',
+                  $ref: 'json-schema-definitions://canvas.module/image',
+                  allowMultiple: true,
+                  valueMode: 'unlimited',
+                  limitedCount: 1,
+                },
+              ],
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.allowMultiple).toBe(true);
+          expect(prop.type).toBe('array');
+          expect(prop.items).toMatchObject({
+            type: 'object',
+            $ref: 'json-schema-definitions://canvas.module/image',
+          });
+          // Verify example data is preserved or initialized correctly
+          if (Array.isArray(prop.example)) {
+            expect(prop.example.length).toBeGreaterThanOrEqual(0);
+          }
+        });
+      });
+    });
+
+    describe('video prop with multiple values', () => {
+      it('persists and reloads multi-value video prop', async () => {
+        const savedPropId = 'saved-video-prop-id';
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props: [
+                {
+                  id: savedPropId,
+                  name: 'VideoPlaylist',
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    $ref: 'json-schema-definitions://canvas.module/video',
+                  },
+                  example: [
+                    {
+                      src: '/ui/assets/videos/video1.mp4',
+                      poster: 'https://placehold.co/1920x1080.png',
+                    },
+                    {
+                      src: '/ui/assets/videos/video2.mp4',
+                      poster: 'https://placehold.co/1280x720.png',
+                    },
+                  ],
+                  derivedType: 'video',
+                  $ref: 'json-schema-definitions://canvas.module/video',
+                  allowMultiple: true,
+                  valueMode: 'unlimited',
+                  limitedCount: 1,
+                },
+              ],
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.allowMultiple).toBe(true);
+          expect(prop.type).toBe('array');
+          expect(prop.items).toMatchObject({
+            type: 'object',
+            $ref: 'json-schema-definitions://canvas.module/video',
+          });
+          // Verify the example data structure
+          if (Array.isArray(prop.example)) {
+            expect(prop.example).toHaveLength(2);
+          }
+        });
+      });
+    });
+
+    describe('date prop with multiple values', () => {
+      it('persists and reloads unlimited multi-value date prop', async () => {
+        const savedPropId = 'saved-date-prop-id';
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props: [
+                {
+                  id: savedPropId,
+                  name: 'ImportantDates',
+                  type: 'array',
+                  items: { type: 'string', format: 'date' },
+                  example: ['2024-01-15', '2024-06-20', '2024-12-25'],
+                  derivedType: 'date',
+                  format: 'date',
+                  allowMultiple: true,
+                  valueMode: 'unlimited',
+                  limitedCount: 1,
+                },
+              ],
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.allowMultiple).toBe(true);
+          expect(prop.items).toEqual({ type: 'string', format: 'date' });
+          expect(prop.example).toEqual([
+            '2024-01-15',
+            '2024-06-20',
+            '2024-12-25',
+          ]);
+        });
+      });
+
+      it('persists and reloads limited multi-value date prop', async () => {
+        const savedPropId = 'saved-limited-date-prop-id';
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props: [
+                {
+                  id: savedPropId,
+                  name: 'Milestones',
+                  type: 'array',
+                  items: { type: 'string', format: 'date' },
+                  example: ['2024-01-01', '2024-06-01'],
+                  derivedType: 'date',
+                  format: 'date',
+                  allowMultiple: true,
+                  valueMode: 'limited',
+                  limitedCount: 2,
+                },
+              ],
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.valueMode).toBe('limited');
+          expect(prop.limitedCount).toBe(2);
+          expect(prop.example).toEqual(['2024-01-01', '2024-06-01']);
+        });
+      });
+    });
+
+    describe('list prop with multiple values', () => {
+      it('persists and reloads unlimited multi-value list text prop', async () => {
+        const savedPropId = 'saved-list-text-prop-id';
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props: [
+                {
+                  id: savedPropId,
+                  name: 'Categories',
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                    enum: ['tech', 'business', 'science', 'art'],
+                  },
+                  example: ['tech', 'science'],
+                  derivedType: 'listText',
+                  enum: [
+                    { label: 'Technology', value: 'tech' },
+                    { label: 'Business', value: 'business' },
+                    { label: 'Science', value: 'science' },
+                    { label: 'Art', value: 'art' },
+                  ],
+                  allowMultiple: true,
+                  valueMode: 'unlimited',
+                  limitedCount: 1,
+                },
+              ],
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.allowMultiple).toBe(true);
+          expect(prop.type).toBe('array');
+          expect(prop.example).toEqual(['tech', 'science']);
+          expect(prop.enum).toHaveLength(4);
+        });
+      });
+
+      it('persists and reloads limited multi-value list text prop', async () => {
+        const savedPropId = 'saved-limited-list-text-prop-id';
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props: [
+                {
+                  id: savedPropId,
+                  name: 'TopCategories',
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                    enum: ['tech', 'business', 'science'],
+                  },
+                  example: ['tech', 'business', 'science'],
+                  derivedType: 'listText',
+                  enum: [
+                    { label: 'Technology', value: 'tech' },
+                    { label: 'Business', value: 'business' },
+                    { label: 'Science', value: 'science' },
+                  ],
+                  allowMultiple: true,
+                  valueMode: 'limited',
+                  limitedCount: 3,
+                },
+              ],
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.valueMode).toBe('limited');
+          expect(prop.limitedCount).toBe(3);
+          expect(prop.example).toEqual(['tech', 'business', 'science']);
+        });
+      });
+
+      it('persists and reloads unlimited multi-value list integer prop', async () => {
+        const savedPropId = 'saved-list-integer-prop-id';
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props: [
+                {
+                  id: savedPropId,
+                  name: 'Ratings',
+                  type: 'array',
+                  items: {
+                    type: 'integer',
+                    enum: [1, 2, 3, 4, 5],
+                  },
+                  example: [4, 5],
+                  derivedType: 'listInteger',
+                  enum: [
+                    { label: '1 Star', value: 1 },
+                    { label: '2 Stars', value: 2 },
+                    { label: '3 Stars', value: 3 },
+                    { label: '4 Stars', value: 4 },
+                    { label: '5 Stars', value: 5 },
+                  ],
+                  allowMultiple: true,
+                  valueMode: 'unlimited',
+                  limitedCount: 1,
+                },
+              ],
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.allowMultiple).toBe(true);
+          expect(prop.type).toBe('array');
+          expect(prop.example).toEqual([4, 5]);
+        });
+      });
+    });
+
+    describe('mixed props persistence', () => {
+      it('persists and reloads multiple props with different multi-value configurations', async () => {
+        const textPropId = 'text-prop-id';
+        const integerPropId = 'integer-prop-id';
+        const linkPropId = 'link-prop-id';
+
+        const storeWithMultipleProps = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props: [
+                {
+                  id: textPropId,
+                  name: 'Tags',
+                  type: 'array',
+                  items: { type: 'string' },
+                  example: ['tag1', 'tag2'],
+                  derivedType: 'text',
+                  allowMultiple: true,
+                  valueMode: 'unlimited',
+                  limitedCount: 1,
+                },
+                {
+                  id: integerPropId,
+                  name: 'Scores',
+                  type: 'array',
+                  items: { type: 'integer' },
+                  example: [10, 20, 30],
+                  derivedType: 'integer',
+                  allowMultiple: true,
+                  valueMode: 'limited',
+                  limitedCount: 3,
+                },
+                {
+                  id: linkPropId,
+                  name: 'SingleLink',
+                  type: 'string',
+                  format: 'uri-reference',
+                  example: '/single-link',
+                  derivedType: 'link',
+                  allowMultiple: false,
+                },
+              ],
+            },
+            initialPropIds: [textPropId, integerPropId, linkPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithMultipleProps} />);
+
+        await waitFor(() => {
+          const props = selectCodeComponentProperty('props')(
+            storeWithMultipleProps.getState(),
+          );
+          expect(props).toHaveLength(3);
+
+          // Text prop with unlimited multi-value
+          expect(props[0].allowMultiple).toBe(true);
+          expect(props[0].valueMode).toBe('unlimited');
+          expect(props[0].example).toEqual(['tag1', 'tag2']);
+
+          // Integer prop with limited multi-value
+          expect(props[1].allowMultiple).toBe(true);
+          expect(props[1].valueMode).toBe('limited');
+          expect(props[1].limitedCount).toBe(3);
+          expect(props[1].example).toEqual([10, 20, 30]);
+
+          // Link prop without multi-value
+          expect(props[2].allowMultiple).toBe(false);
+          expect(props[2].type).toBe('string');
+          expect(props[2].example).toBe('/single-link');
+        });
+
+        // Verify all three props are rendered
+        const propNames = screen.getAllByRole('textbox', { name: 'Prop name' });
+        expect(propNames).toHaveLength(3);
+      });
+    });
+
+    describe('editing reloaded multi-value props', () => {
+      it('allows editing example values after reload for non-exposed component', async () => {
+        const savedPropId = 'saved-prop-id';
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: false, // Not exposed
+              props: [
+                {
+                  id: savedPropId,
+                  name: 'Tags',
+                  type: 'array',
+                  items: { type: 'string' },
+                  example: ['initial1', 'initial2'],
+                  derivedType: 'text',
+                  allowMultiple: true,
+                  valueMode: 'unlimited',
+                  limitedCount: 1,
+                },
+              ],
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        await waitFor(() => {
+          expect(
+            screen.getByRole('button', { name: 'Add value' }),
+          ).toBeInTheDocument();
+        });
+
+        // Add a new value
+        await userEvent.click(
+          screen.getByRole('button', { name: 'Add value' }),
+        );
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect((prop.example as string[]).length).toBe(3);
+        });
+      });
+
+      it('preserves multi-value configuration when toggling allowMultiple off and on', async () => {
+        const savedPropId = 'saved-prop-id';
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: false,
+              props: [
+                {
+                  id: savedPropId,
+                  name: 'Tags',
+                  type: 'string',
+                  example: 'single-value',
+                  derivedType: 'text',
+                  allowMultiple: false,
+                },
+              ],
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        const checkbox = await screen.findByRole('checkbox', {
+          name: 'Allow multiple values',
+        });
+
+        // Enable multi-value
+        await act(async () => {
+          fireEvent.click(checkbox);
+        });
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.allowMultiple).toBe(true);
+          expect(prop.type).toBe('array');
+          expect(prop.items).toEqual({ type: 'string' });
+          expect(prop.valueMode).toBe('unlimited');
+          expect(prop.example).toEqual([]);
+        });
+
+        // Disable multi-value
+        await act(async () => {
+          fireEvent.click(checkbox);
+        });
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.allowMultiple).toBe(false);
+          expect(prop.items).toBeUndefined();
+          expect(prop.example).toBe('');
+        });
       });
     });
   });

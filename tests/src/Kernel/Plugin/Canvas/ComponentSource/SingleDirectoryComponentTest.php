@@ -5931,6 +5931,44 @@ HTML
     ];
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public static function providerGetOptionsForExplicitInputEnumProp(): array {
+    return [
+      // The test SDC has a mismatch between enum values and meta:enum keys.
+      // The method returns ALL enum values with labels from meta:enum where
+      // available, or the value itself as the label where not.
+      'non-array enum prop' => [
+        'component_id' => 'sdc.canvas_test_sdc.component-mismatch-meta-enum',
+        'prop_name' => 'style',
+        'expected_options' => [
+          // From enum: ['small', 'big', 'huge', 'contains.dots']
+          // From meta:enum: {small: 'Small', tiny: 'Tiny', contains.dots: 'Contains dots'}
+          // Result: enum values with meta:enum labels where available.
+          'small' => 'Small',
+          'big' => 'big',
+          'huge' => 'huge',
+          'contains.dots' => 'Contains dots',
+        ],
+      ],
+      'array-type enum prop with items' => [
+        'component_id' => 'sdc.canvas_test_sdc.component-mismatch-meta-enum-array-items',
+        'prop_name' => 'colors',
+        'expected_options' => [
+          // From enum: ['red', 'blue', 'green_light', 'yellow']
+          // From meta:enum: {red: 'Red', blue: 'Blue', green.light: 'Light Green', yellow: 'Yellow'}
+          // Note: For array-type props, the meta:enum is returned directly from
+          // the items schema, so keys come from meta:enum.
+          'red' => 'Red',
+          'blue' => 'Blue',
+          'green.light' => 'Light Green',
+          'yellow' => 'Yellow',
+        ],
+      ],
+    ];
+  }
+
   public function alter(ContainerBuilder $container): void {
     // Swap in the broken version of this class.
     // @see ::triggerBrokenComponent()

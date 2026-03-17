@@ -160,10 +160,13 @@ export default function FormPropTypeEnum({
 
             const updates: Partial<CodeComponentProp> = { enum: values };
 
-            // If in limited mode and valid options count decreased, update limitedCount
+            // If in limited mode and valid options count decreased, update limitedCount.
+            // Only reduce when valid options actually decreased (not when an empty row is
+            // being added), to avoid resetting a user-configured cardinality back to 1.
             if (
               allowMultiple &&
               valueMode === VALUE_MODE_LIMITED &&
+              validNewValues.length < validEnumValues.length &&
               validNewValues.length < limitedCount
             ) {
               updates.limitedCount = Math.max(1, validNewValues.length);
@@ -219,7 +222,6 @@ export default function FormPropTypeEnum({
                     size="1"
                     color="gray"
                     className="fpe-btn-popover-trigger"
-                    disabled={isDisabled}
                   >
                     <Text size="1" truncate>
                       {validSelectedValues.length > 0
@@ -267,10 +269,17 @@ export default function FormPropTypeEnum({
                                     (v) => v !== String(item.value),
                                   );
                                 }
+
+                                // Convert back to proper type for backend
+                                const typedExample =
+                                  type === 'integer' || type === 'number'
+                                    ? newSelected.map((v) => Number(v))
+                                    : newSelected;
+
                                 dispatch(
                                   updateProp({
                                     id,
-                                    updates: { example: newSelected },
+                                    updates: { example: typedExample },
                                   }),
                                 );
                               }}
@@ -303,7 +312,6 @@ export default function FormPropTypeEnum({
                   setShowRequiredError(required && value === NONE_VALUE);
                 }}
                 size="1"
-                disabled={isDisabled}
               >
                 <Select.Trigger id={`prop-enum-default-${id}`} />
                 <Select.Content>

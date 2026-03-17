@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
-import { arrayMove } from '@dnd-kit/sortable'; // Import directly for local handling
 import { Box, Flex, Select, Text, TextField } from '@radix-ui/themes';
 
 import { useAppDispatch } from '@/app/hooks';
@@ -17,6 +16,7 @@ import {
 } from '@/features/code-editor/component-data/Props';
 import { useRequiredProp } from '@/features/code-editor/hooks/useRequiredProp';
 import {
+  createArrayDragEndHandler,
   handleArrayAdd,
   handleArrayRemove,
   handleArrayValueChange,
@@ -33,8 +33,6 @@ import {
 import type { CodeComponentProp, ValueMode } from '@/types/CodeComponent';
 
 import styles from '@/features/code-editor/component-data/FormElement.module.css';
-
-const generateLocalId = () => Math.random().toString(36).substring(2, 9);
 
 export default function FormPropTypeDate({
   id,
@@ -65,78 +63,32 @@ export default function FormPropTypeDate({
     utcToLocalTimeConversion(typeof example === 'string' ? example : ''),
   );
 
-  // 1. Local items state with persistent IDs
-  const [localItems, setLocalItems] = useState<{ id: string; value: string }[]>(
-    () => {
-      const exampleArray = Array.isArray(example) ? example : [];
-      const initial = exampleArray.length === 0 ? [''] : exampleArray;
-      return initial.map((v) => ({ id: generateLocalId(), value: v }));
-    },
-  );
-
-  // 2. Ref to prevent feedback loops between Redux and local state
-  const isInternalUpdate = useRef(false);
-
-  useEffect(() => {
-    // Only update local items if the change came from OUTSIDE (e.g. Redux/Undo)
-    if (!isInternalUpdate.current) {
-      const exampleArray = Array.isArray(example) ? example : [];
-      const normalized = exampleArray.length === 0 ? [''] : exampleArray;
-      setLocalItems((prev) => {
-        // Match existing IDs to new values to maintain input focus and state
-        return normalized.map((val, idx) => ({
-          id: prev[idx]?.id || generateLocalId(),
-          value: val,
-        }));
-      });
+  // For multiple values mode
+  // Memoize to prevent unnecessary recomputations
+  const displayArray = useMemo(() => {
+    const exampleArray = Array.isArray(example) ? example : [];
+    // In limited mode, ensure we have exactly limitedCount items
+    if (allowMultiple && valueMode === 'limited') {
+      return Array.from(
+        { length: limitedCount },
+        (_, i) => exampleArray[i] || '',
+      );
     }
-    isInternalUpdate.current = false;
-  }, [example]);
+    // In unlimited mode, ensure we always have at least one item to display
+    return exampleArray.length === 0 ? [''] : exampleArray;
+  }, [example, allowMultiple, valueMode, limitedCount]);
 
-  const handleDragEnd = (event: any) => {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      const oldIndex = localItems.findIndex((i) => i.id === active.id);
-      const newIndex = localItems.findIndex((i) => i.id === over.id);
-
-      // Perform local move
-      const updatedLocalItems = arrayMove(localItems, oldIndex, newIndex);
-
-      // Set flag to ignore the next useEffect sync
-      isInternalUpdate.current = true;
-      setLocalItems(updatedLocalItems);
-
-      // Dispatch the new string array to Redux
-      const newValues = updatedLocalItems.map((i) => i.value);
-      dispatch(updateProp({ id, updates: { example: newValues } }));
-    }
-  };
+  const handleDragEnd = createArrayDragEndHandler(displayArray, dispatch, id, {
+    format: dateType,
+  });
 
   const handleAdd = () => {
-    isInternalUpdate.current = true;
-    const newItem = { id: generateLocalId(), value: '' };
-    setLocalItems((prev) => [...prev, newItem]);
-
-    handleArrayAdd(
-      localItems.map((i) => i.value),
-      dispatch,
-      id,
-      '',
-    );
+    handleArrayAdd(displayArray, dispatch, id, '', { format: dateType });
     setMultiValueValidityStates((prev) => [...prev, true]);
   };
 
   const handleRemove = (index: number) => {
-    isInternalUpdate.current = true;
-    setLocalItems((prev) => prev.filter((_, i) => i !== index));
-
-    handleArrayRemove(
-      localItems.map((i) => i.value),
-      dispatch,
-      id,
-      index,
-    );
+    handleArrayRemove(displayArray, dispatch, id, index, { format: dateType });
     setMultiValueValidityStates((prev) => {
       const next = [...prev];
       next.splice(index, 1);
@@ -145,22 +97,13 @@ export default function FormPropTypeDate({
   };
 
   const handleMultiValueChange = (index: number, value: string) => {
-    isInternalUpdate.current = true;
-    setLocalItems((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], value };
-      return next;
-    });
-
+    // Convert the value to the format we want to store (UTC for date-time, raw for date)
     const convertedValue =
       dateType === 'date-time' ? localTimeToUtcConversion(value) : value;
-    handleArrayValueChange(
-      localItems.map((i) => i.value),
-      dispatch,
-      id,
-      index,
-      convertedValue,
-    );
+
+    handleArrayValueChange(displayArray, dispatch, id, index, convertedValue, {
+      format: dateType,
+    });
 
     setMultiValueValidityStates((prev) => {
       const next = [...prev];
@@ -171,7 +114,19 @@ export default function FormPropTypeDate({
 
   const [multiValueValidityStates, setMultiValueValidityStates] = useState<
     boolean[]
-  >(() => localItems.map(() => true));
+  >(() => displayArray.map(() => true));
+
+  // Sync validity states with displayArray length changes
+  useEffect(() => {
+    setMultiValueValidityStates((prev) => {
+      const newLength = displayArray.length;
+      if (prev.length === newLength) return prev;
+      if (newLength > prev.length) {
+        return [...prev, ...Array(newLength - prev.length).fill(true)];
+      }
+      return prev.slice(0, newLength);
+    });
+  }, [displayArray.length]);
 
   useEffect(() => {
     if (
@@ -202,16 +157,14 @@ export default function FormPropTypeDate({
   const renderInputField = (index: number) => (
     <Box flexGrow="1">
       <TextField.Root
-        key={localItems[index].id}
         data-testid={`array-prop-value-${id}-${index}`}
-        id={`array-prop-value-${id}-${localItems[index].id}`}
+        id={`array-prop-value-${id}-${index}`}
         size="1"
         value={
           dateType === 'date-time'
-            ? utcToLocalTimeConversion(localItems[index].value || '')
-            : localItems[index].value || ''
+            ? utcToLocalTimeConversion(displayArray[index] || '')
+            : displayArray[index] || ''
         }
-        disabled={isDisabled}
         type={dateType === 'date' ? 'date' : 'datetime-local'}
         onChange={(e) => handleMultiValueChange(index, e.target.value)}
         onBlur={(e) => handleMultiValueBlur(index, e)}
@@ -248,14 +201,14 @@ export default function FormPropTypeDate({
             setIsExampleValueValid(true);
             setDateType(value);
 
-            // Get the default value for the new date type
-            const newDefaultValue = DEFAULT_EXAMPLES[value] as string;
+            // Only prefill a default example when the prop is required;
+            // otherwise leave the example empty (matching behavior in Props.tsx).
+            const newDefaultValue = required
+              ? (DEFAULT_EXAMPLES[value] as string)
+              : '';
 
             // In multi-value mode, reset the array to a single default value
             if (allowMultiple) {
-              isInternalUpdate.current = true;
-              const newItem = { id: generateLocalId(), value: newDefaultValue };
-              setLocalItems([newItem]);
               setMultiValueValidityStates([true]);
 
               dispatch(
@@ -340,7 +293,7 @@ export default function FormPropTypeDate({
         {/* Multiple values mode */}
         {allowMultiple && (
           <PropValuesSortableList
-            items={localItems.map((item) => item.id)}
+            items={displayArray.map((_, index) => index)}
             renderItem={renderInputField}
             onDragEnd={handleDragEnd}
             onRemove={

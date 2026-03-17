@@ -68,7 +68,9 @@ export interface CodeComponentProp {
     | string[]
     | number[]
     | CodeComponentPropImageExample
-    | CodeComponentPropVideoExample;
+    | CodeComponentPropImageExample[]
+    | CodeComponentPropVideoExample
+    | CodeComponentPropVideoExample[];
   $ref?: string;
   format?: string;
   derivedType: (typeof derivedPropTypes)[number]['type'] | null;
@@ -78,11 +80,16 @@ export interface CodeComponentProp {
   valueMode?: ValueMode;
   limitedCount?: number;
   items?: {
-    type: 'string' | 'integer' | 'number' | 'boolean';
+    type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
     format?: string;
     contentMediaType?: string;
     'x-formatting-context'?: string;
     $ref?: string;
+    enum?: (string | number)[];
+    'meta:enum'?: Record<
+      CodeComponentPropEnumItem['value'],
+      CodeComponentPropEnumItem['label']
+    >;
   };
 }
 
@@ -108,18 +115,26 @@ export interface CodeComponentPropSerialized {
     | string[]
     | number[]
     | CodeComponentPropImageExample
+    | CodeComponentPropImageExample[]
     | CodeComponentPropVideoExample
+    | CodeComponentPropVideoExample[]
   )[];
   $ref?: string;
   format?: string;
   contentMediaType?: string;
   'x-formatting-context'?: string;
+  maxItems?: number;
   items?: {
-    type: 'string' | 'integer' | 'number' | 'boolean';
+    type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
     format?: string;
     contentMediaType?: string;
     'x-formatting-context'?: string;
     $ref?: string;
+    enum?: (string | number)[];
+    'meta:enum'?: Record<
+      CodeComponentPropEnumItem['value'],
+      CodeComponentPropEnumItem['label']
+    >;
   };
 }
 
@@ -134,7 +149,14 @@ export interface CodeComponentSlotSerialized {
   examples?: string[];
 }
 
-export type CodeComponentPropPreviewValue = string | number | boolean;
+export type CodeComponentPropPreviewValue =
+  | string
+  | number
+  | boolean
+  | string[]
+  | number[]
+  | CodeComponentPropImageExample[]
+  | CodeComponentPropVideoExample[];
 
 export interface AssetLibrary {
   id: string;

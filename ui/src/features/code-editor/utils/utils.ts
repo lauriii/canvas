@@ -39,6 +39,10 @@ export function parsePropValueForPreview(
       return Number(prop.example);
     case 'boolean':
       return String(prop.example) === 'true';
+    case 'array':
+      // For multi-value props, return the array as-is
+      // It should already be an array of the correct type (string[] | number[])
+      return Array.isArray(prop.example) ? prop.example : [];
     default:
       return prop.example as string;
   }
@@ -125,41 +129,68 @@ export function serializeProps(props: CodeComponentProp[]) {
           derivedType,
           allowMultiple,
           items,
+          valueMode,
+          limitedCount,
         } = prop;
-        const isNumberType = ['integer', 'number'].includes(type);
+        // Check if the base type (or items type for arrays) is numeric
+        const baseType = allowMultiple && items ? items.type : type;
+        const isNumberType = ['integer', 'number'].includes(baseType);
         const isVideo = derivedType === 'video';
 
         // Determine the actual type for serialization
         const serializedType = allowMultiple && items ? 'array' : type;
+
+        // For string-based array props (e.g. date, link), empty strings should
+        // be treated as "no value" and excluded from the serialized output.
+        // Number arrays already filter empty strings inline below.
+        const isStringArrayProp =
+          allowMultiple && items?.type === 'string' && !isNumberType;
+
+        // Whether this prop has a non-empty example worth serializing.
+        const hasExample = isStringArrayProp
+          ? Array.isArray(example) &&
+            (example as string[]).some((v) => v !== '')
+          : example ||
+            example === false ||
+            (Array.isArray(example) && example.length > 0);
 
         const processed: CodeComponentPropSerialized = {
           title: name,
           type: serializedType,
           // The example is taken from the prop if it's a truthy value, or a
           // boolean false value (which could be an example of a boolean prop).
-          ...((example ||
-            example === false ||
-            (Array.isArray(example) && example.length > 0)) && {
+          ...(hasExample && {
             examples: [
               isNumberType && !allowMultiple
                 ? Number(example)
-                : isVideo &&
-                    typeof example === 'object' &&
-                    !Array.isArray(example)
-                  ? serializeVideoSrc(example as CodeComponentPropVideoExample)
-                  : example,
+                : isNumberType && allowMultiple && Array.isArray(example)
+                  ? // Filter out empty strings before converting to numbers
+                    // to prevent empty values from becoming 0
+                    example.filter((v) => v !== '').map((v) => Number(v))
+                  : isStringArrayProp && Array.isArray(example)
+                    ? // Filter out empty strings for string array props
+                      (example as string[]).filter((v) => v !== '')
+                    : isVideo &&
+                        typeof example === 'object' &&
+                        !Array.isArray(example)
+                      ? serializeVideoSrc(
+                          example as CodeComponentPropVideoExample,
+                        )
+                      : example!,
             ],
           }),
-          ...(enumValues && {
-            enum: enumValues
-              .filter(({ value }) => value !== '')
-              .map(({ value }) => (isNumberType ? Number(value) : value)),
-            'meta:enum': Object.fromEntries(
-              enumValues
+          // Only add enum/meta:enum at root level if NOT an array
+          ...(!allowMultiple &&
+            enumValues && {
+              enum: enumValues
                 .filter(({ value }) => value !== '')
-                .map(({ value, label }) => [value, label]),
-            ),
-          }),
+                .map(({ value }) => (isNumberType ? Number(value) : value)),
+              'meta:enum': Object.fromEntries(
+                enumValues
+                  .filter(({ value }) => value !== '')
+                  .map(({ value, label }) => [value, label]),
+              ),
+            }),
         };
         // When allowMultiple is true, metadata goes INSIDE items
         if (allowMultiple && items) {
@@ -171,7 +202,22 @@ export function serializeProps(props: CodeComponentProp[]) {
             ...(xFormattingContext && {
               'x-formatting-context': xFormattingContext,
             }),
+            // Add enum/meta:enum inside items for array types
+            ...(enumValues && {
+              enum: enumValues
+                .filter(({ value }) => value !== '')
+                .map(({ value }) => (isNumberType ? Number(value) : value)),
+              'meta:enum': Object.fromEntries(
+                enumValues
+                  .filter(({ value }) => value !== '')
+                  .map(({ value, label }) => [value, label]),
+              ),
+            }),
           };
+          // Add maxItems when valueMode is 'limited'
+          if (valueMode === 'limited' && limitedCount) {
+            processed.maxItems = limitedCount;
+          }
         } else {
           // When not an array, metadata goes at top level
           if ($ref) processed.$ref = $ref;
@@ -213,11 +259,16 @@ export function deserializeProps(
       contentMediaType,
       'x-formatting-context': xFormattingContext,
       items,
+      maxItems,
     } = prop;
 
     // Detect if this is an array type (allowMultiple)
     const allowMultiple = type === 'array' && items;
     const actualType = allowMultiple ? items.type : type;
+
+    // When it's an array, enum is inside items; otherwise at top level
+    const actualEnumValues = allowMultiple ? items?.enum : enumValues;
+    const actualMetaEnum = allowMultiple ? items?.['meta:enum'] : metaEnum;
 
     // When it's an array, metadata is inside items; otherwise at top level
     const actualRef = allowMultiple ? items?.$ref : $ref;
@@ -231,8 +282,26 @@ export function deserializeProps(
 
     const isNumberType = ['integer', 'number'].includes(actualType);
     let example: CodeComponentProp['example'] = allowMultiple ? [] : '';
+
+    // Create a normalized prop for type derivation
+    // For array types, we need to check items.type instead of top-level type
+    const propForDerivation =
+      allowMultiple && items
+        ? {
+            ...prop,
+            type: items.type,
+            $ref: items.$ref,
+            format: items.format,
+            contentMediaType: items.contentMediaType,
+            'x-formatting-context': items['x-formatting-context'],
+            enum: items.enum,
+            'meta:enum': items['meta:enum'],
+          }
+        : prop;
+
     const derivedType =
-      derivedPropTypes.find((type) => type.derive(prop))?.type ?? null;
+      derivedPropTypes.find((type) => type.derive(propForDerivation))?.type ??
+      null;
     const isVideo = derivedType == 'video';
 
     if (examples?.length) {
@@ -258,14 +327,14 @@ export function deserializeProps(
         isVideo && typeof example === 'object' && !Array.isArray(example)
           ? deserializeVideoSrc(example as CodeComponentPropVideoExample)
           : example,
-      ...(enumValues && {
-        enum: enumValues.map((value) => ({
+      ...(actualEnumValues && {
+        enum: actualEnumValues.map((value) => ({
           value: isNumberType ? Number(value) : value,
           label: String(value),
         })),
       }),
-      ...(metaEnum && {
-        enum: Object.entries(metaEnum).map(([value, label]) => ({
+      ...(actualMetaEnum && {
+        enum: Object.entries(actualMetaEnum).map(([value, label]) => ({
           value: isNumberType ? Number(value) : value,
           label,
         })),
@@ -280,6 +349,16 @@ export function deserializeProps(
       }),
       derivedType,
       ...(allowMultiple && { allowMultiple: true, items }),
+      ...(allowMultiple &&
+        maxItems && {
+          valueMode: 'limited' as const,
+          limitedCount: maxItems,
+        }),
+      ...(allowMultiple &&
+        !maxItems && {
+          valueMode: 'unlimited' as const,
+          limitedCount: 1,
+        }),
     };
 
     // Backwards compatibility

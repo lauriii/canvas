@@ -48,6 +48,8 @@ export default function FormPropTypeArray({
   const handleDragEnd = createArrayDragEndHandler(displayArray, dispatch, id);
 
   const handleAdd = () => {
+    // Use empty string as default to match single-value component behavior
+    // (no default value unless explicitly set or required)
     handleArrayAdd(displayArray, dispatch, id, '');
   };
 
@@ -94,7 +96,6 @@ export default function FormPropTypeArray({
             number: 'Enter a number',
           }[itemType]
         }
-        disabled={isDisabled}
       />
     </Box>
   );

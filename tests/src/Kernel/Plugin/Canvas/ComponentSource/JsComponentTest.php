@@ -291,6 +291,25 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
           ],
         ],
       ],
+      'js.canvas_test_code_components_with_array_enums' => [
+        'prop_field_definitions' => [
+          'sizes' => [
+            'required' => FALSE,
+            'field_type' => 'list_string',
+            'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+            'field_storage_settings' => [
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              ['value' => 'small'],
+              ['value' => 'medium'],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+        ],
+      ],
       'js.canvas_test_code_components_with_array_props' => [
         'prop_field_definitions' => [
           'tags' => [
@@ -640,6 +659,29 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
                 'rel' => 'modulepreload',
                 'fetchpriority' => 'high',
                 'href' => \sprintf('/%s/files/astro-island/Ej9H8EwYfANZUT_jL84bUAXkK8F_p9-yZyj4Sxnz7C8.js', $site_path),
+              ],
+            ],
+          ],
+          'import_maps' => $default_imports,
+        ],
+      ],
+      'js.canvas_test_code_components_with_array_enums' => [
+        'cacheability' => (clone $default_cacheability)
+          ->setCacheTags([
+            'config:canvas.js_component.canvas_test_code_components_with_array_enums',
+          ]),
+        'attachments' => [
+          'library' => [
+            'canvas/astro_island.canvas_test_code_components_with_array_enums',
+            ...$default_libraries,
+          ],
+          'html_head_link' => [
+            ...$default_html_head_links,
+            [
+              [
+                'rel' => 'modulepreload',
+                'fetchpriority' => 'high',
+                'href' => \sprintf('/%s/files/astro-island/7fKtJmQzAnb_T2wt7cmJElNYyF2HbZVXG9NqBNTfGzw.js', $site_path),
               ],
             ],
           ],
@@ -1136,6 +1178,15 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
         'module' => [
           'file',
           'image',
+        ],
+      ],
+      'js.canvas_test_code_components_with_array_enums' => [
+        'module' => [
+          'core',
+          'options',
+        ],
+        'config' => [
+          'canvas.js_component.canvas_test_code_components_with_array_enums',
         ],
       ],
       'js.canvas_test_code_components_with_array_props' => [
@@ -1730,6 +1781,53 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
                 'height' => 900,
                 'alt' => 'Example image placeholder',
               ],
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'js.canvas_test_code_components_with_array_enums' => [
+        'expected_output_selectors' => [
+          'canvas-island[opts*="With array enums"][props*="sizes"]',
+          'script[blocking="render"][src*="/packages/astro-hydration/dist/client.js"]',
+        ],
+        'source' => 'Code component',
+        'metadata' => [
+          'slots' => [],
+        ],
+        'propSources' => [
+          'sizes' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'array',
+              'items' => [
+                'type' => 'string',
+                'enum' => [
+                  'small',
+                  'medium',
+                  'large',
+                ],
+                'meta:enum' => [
+                  'small' => 'Small',
+                  'medium' => 'Medium',
+                  'large' => 'Large',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+              ],
+              'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+            ],
+            'default_values' => [
+              'source' => [
+                ['value' => 'small'],
+                ['value' => 'medium'],
+              ],
+              'resolved' => ['small', 'medium'],
             ],
           ],
         ],
@@ -2533,6 +2631,32 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
           'sourceType' => 'static:field_item:string',
           'value' => [['value' => 'Valid name']],
           'expression' => 'ℹ︎string␟value',
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function providerGetOptionsForExplicitInputEnumProp(): array {
+    return [
+      'non-array enum prop' => [
+        'component_id' => 'js.canvas_test_code_components_with_enums',
+        'prop_name' => 'favorite_color',
+        'expected_options' => [
+          'red' => 'Red',
+          'green' => 'Green',
+          'blue' => 'Blue',
+        ],
+      ],
+      'array-type enum prop with items' => [
+        'component_id' => 'js.canvas_test_code_components_with_array_enums',
+        'prop_name' => 'sizes',
+        'expected_options' => [
+          'small' => 'Small',
+          'medium' => 'Medium',
+          'large' => 'Large',
         ],
       ],
     ];

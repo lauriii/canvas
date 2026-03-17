@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Box, Flex, Select } from '@radix-ui/themes';
 
 import { useAppDispatch } from '@/app/hooks';
@@ -12,6 +12,7 @@ import {
 import type {
   CodeComponentProp,
   CodeComponentPropImageExample,
+  ValueMode,
 } from '@/types/CodeComponent';
 
 const IMAGE_SERVICE_URL = 'https://placehold.co/';
@@ -83,19 +84,86 @@ export const parseExampleSrc = (
 export default function FormPropTypeImage({
   id,
   example,
-  isDisabled = false,
   required,
+  allowMultiple = false,
+  valueMode = 'unlimited',
+  limitedCount = 1,
 }: Pick<CodeComponentProp, 'id'> & {
-  example: CodeComponentPropImageExample;
-  isDisabled?: boolean;
+  example: CodeComponentPropImageExample | CodeComponentPropImageExample[];
   required: boolean;
+  allowMultiple?: boolean;
+  valueMode?: ValueMode;
+  limitedCount?: number;
 }) {
+  // Handle both single image and array (when allowMultiple is enabled)
+  // If it's an array, use the first element for display
+  // Handle edge case where example might be an empty string (when prop type is first created/changed)
+  const imageExample = Array.isArray(example)
+    ? example[0] || { src: '', width: 0, height: 0, alt: '' }
+    : !example
+      ? { src: '', width: 0, height: 0, alt: '' }
+      : example;
+
   const { aspectRatio: exampleAspectRatio, pixelDensity: examplePixelDensity } =
-    parseExampleSrc(example.src);
+    parseExampleSrc(imageExample.src);
   const dispatch = useAppDispatch();
   const [aspectRatio, setAspectRatio] = useState(exampleAspectRatio);
   const [pixelDensity, setPixelDensity] = useState(examplePixelDensity);
   const [localRequired, setLocalRequired] = useState(required);
+
+  // Use a ref to track the previous values of the UI-controlled inputs (aspectRatio,
+  // pixelDensity) and the multi-value settings (allowMultiple, valueMode, limitedCount).
+  //
+  // Why this is needed to prevent an infinite loop:
+  //   1. The main useEffect below reads these values and dispatches `updateProp`, which
+  //      writes a new `example` object/array back into the Redux store.
+  //   2. `example` is a dependency of that same effect (needed to build the correct
+  //      multi-value array in unlimited mode).
+  //   3. Without a guard, each dispatch → new `example` reference → effect re-runs →
+  //      another dispatch → … repeating forever.
+  //
+  // By comparing the current UI-input values against the ref before dispatching, the
+  // effect exits early when nothing the user actually changed, breaking the cycle.
+  const prevValuesRef = useRef({
+    aspectRatio: exampleAspectRatio,
+    pixelDensity: examplePixelDensity,
+    allowMultiple,
+    valueMode,
+    limitedCount,
+  });
+
+  // Track if we're still initializing (on first mount)
+  const isInitialMount = useRef(true);
+
+  // Sync state with incoming example prop (for pre-population on reload)
+  useEffect(() => {
+    // If example is empty array, keep current aspectRatio (don't reset to default)
+    if (Array.isArray(example) && example.length === 0) {
+      return;
+    }
+    // If example has valid content, parse and update state
+    if (imageExample.src) {
+      const parsedValues = parseExampleSrc(imageExample.src);
+      setAspectRatio(parsedValues.aspectRatio);
+      setPixelDensity(parsedValues.pixelDensity);
+      // Also update the ref so the main effect doesn't trigger on mount
+      prevValuesRef.current = {
+        ...prevValuesRef.current,
+        aspectRatio: parsedValues.aspectRatio,
+        pixelDensity: parsedValues.pixelDensity,
+      };
+    }
+    // If example is empty string AND aspectRatio is not NONE_VALUE, it means we're initializing
+    // Let the main useEffect handle initialization with defaults
+    // Only set to NONE_VALUE if aspectRatio was already NONE_VALUE (user explicitly selected None)
+  }, [imageExample.src, example]);
+
+  useEffect(() => {
+    // Mark as no longer initial mount after first render
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+    }
+  }, []);
 
   useEffect(() => {
     // Track changes to the required prop, update aspect ratio if needed.
@@ -106,12 +174,43 @@ export default function FormPropTypeImage({
   }, [required, localRequired, aspectRatio]);
 
   useEffect(() => {
+    // Skip on initial mount - let the sync effect handle loading saved values
+    if (isInitialMount.current) {
+      return;
+    }
+
+    // Check if any relevant values have changed
+    const hasChanged =
+      prevValuesRef.current.aspectRatio !== aspectRatio ||
+      prevValuesRef.current.pixelDensity !== pixelDensity ||
+      prevValuesRef.current.allowMultiple !== allowMultiple ||
+      prevValuesRef.current.valueMode !== valueMode ||
+      prevValuesRef.current.limitedCount !== limitedCount;
+
+    if (!hasChanged) {
+      return;
+    }
+
+    // Detect if aspect ratio or pixel density changed (not just mode switches)
+    const aspectOrDensityChanged =
+      prevValuesRef.current.aspectRatio !== aspectRatio ||
+      prevValuesRef.current.pixelDensity !== pixelDensity;
+
+    // Update ref with new values
+    prevValuesRef.current = {
+      aspectRatio,
+      pixelDensity,
+      allowMultiple,
+      valueMode,
+      limitedCount,
+    };
+
     if (aspectRatio === NONE_VALUE) {
       dispatch(
         updateProp({
           id,
           updates: {
-            example: '',
+            example: allowMultiple ? [] : '',
           },
         }),
       );
@@ -125,20 +224,74 @@ export default function FormPropTypeImage({
       ) || EXAMPLE_ASPECT_RATIO_VALUES[0];
 
     const alternateWidths = `${IMAGE_SERVICE_URL}{width}x{height}${pixelDensitySuffix}.png`;
-    dispatch(
-      updateProp({
-        id,
-        updates: {
-          example: {
-            src: `${IMAGE_SERVICE_URL}${aspectRatioData.width}x${aspectRatioData.height}${pixelDensitySuffix}.png?alternateWidths=${encodeURIComponent(alternateWidths)}`,
-            width: aspectRatioData.width,
-            height: aspectRatioData.height,
-            alt: 'Example image placeholder',
+    const imageObject: CodeComponentPropImageExample = {
+      src: `${IMAGE_SERVICE_URL}${aspectRatioData.width}x${aspectRatioData.height}${pixelDensitySuffix}.png?alternateWidths=${encodeURIComponent(alternateWidths)}`,
+      width: aspectRatioData.width,
+      height: aspectRatioData.height,
+      alt: 'Example image placeholder',
+    };
+
+    // For multi-value mode, create an array
+    if (allowMultiple) {
+      const currentArray = Array.isArray(example) ? example : [];
+
+      // For limited mode, ensure we have exactly limitedCount items
+      if (valueMode === 'limited') {
+        // Update all items to use the new imageObject (aspect ratio/pixel density changes should apply to all)
+        const newArray = Array.from(
+          { length: limitedCount },
+          () => imageObject,
+        );
+        dispatch(
+          updateProp({
+            id,
+            updates: {
+              example: newArray,
+            },
+          }),
+        );
+      } else {
+        // For unlimited mode:
+        // - If aspect ratio or pixel density changed, update all existing items
+        // - Otherwise, keep existing array or create one with single item
+        let newArray;
+        if (aspectOrDensityChanged && currentArray.length > 0) {
+          // Update all existing items with new aspect ratio/pixel density
+          newArray = currentArray.map(() => imageObject);
+        } else {
+          // Keep existing items or create initial item
+          newArray = currentArray.length > 0 ? currentArray : [imageObject];
+        }
+        dispatch(
+          updateProp({
+            id,
+            updates: {
+              example: newArray,
+            },
+          }),
+        );
+      }
+    } else {
+      // Single value mode
+      dispatch(
+        updateProp({
+          id,
+          updates: {
+            example: imageObject,
           },
-        },
-      }),
-    );
-  }, [aspectRatio, pixelDensity, dispatch, id]);
+        }),
+      );
+    }
+  }, [
+    aspectRatio,
+    pixelDensity,
+    dispatch,
+    id,
+    allowMultiple,
+    valueMode,
+    limitedCount,
+    example,
+  ]);
 
   return (
     <Flex direction="column" gap="4" flexGrow="1">
@@ -151,7 +304,6 @@ export default function FormPropTypeImage({
               value={aspectRatio}
               onValueChange={setAspectRatio}
               size="1"
-              disabled={isDisabled}
             >
               <Select.Trigger id={`prop-example-${id}`} />
               <Select.Content>
@@ -177,7 +329,6 @@ export default function FormPropTypeImage({
                 value={pixelDensity}
                 onValueChange={setPixelDensity}
                 size="1"
-                disabled={isDisabled}
               >
                 <Select.Trigger id={`prop-example-pixel-density-${id}`} />
                 <Select.Content>

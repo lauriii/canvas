@@ -10,6 +10,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\ComponentSource\ComponentCandidatesDiscoveryInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropSource\PropSource;
@@ -269,6 +270,43 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
     if (\array_key_exists('heading', $prop_field_definitions)) {
       self::assertSame('Test heading', $input['heading']);
     }
+  }
+
+  /**
+   * Data provider for ::testGetOptionsForExplicitInputEnumProp().
+   *
+   * @return array<string, array{component_id: string, prop_name: string, expected_options: array<string, string>}>
+   */
+  abstract public static function providerGetOptionsForExplicitInputEnumProp(): array;
+
+  /**
+   * Tests getOptionsForExplicitInputEnumProp() for both array and non-array enum props.
+   *
+   * @param string $component_id
+   *   The component config entity ID.
+   * @param string $prop_name
+   *   The prop name to test.
+   * @param array<string, string> $expected_options
+   *   The expected enum options (value => label). Labels may be returned as
+   *   TranslatableMarkup objects, so we compare string values.
+   *
+   * @legacy-covers ::getOptionsForExplicitInputEnumProp
+   */
+  #[DataProvider('providerGetOptionsForExplicitInputEnumProp')]
+  public function testGetOptionsForExplicitInputEnumProp(string $component_id, string $prop_name, array $expected_options): void {
+    $this->generateComponentConfig();
+    $component = Component::load($component_id);
+    self::assertInstanceOf(ComponentInterface::class, $component);
+
+    $source = $component->getComponentSource();
+    self::assertInstanceOf(GeneratedFieldExplicitInputUxComponentSourceBase::class, $source);
+
+    $options = $source->getOptionsForExplicitInputEnumProp($prop_name);
+
+    // Convert TranslatableMarkup objects to strings for comparison.
+    $options_as_strings = \array_map(fn($value) => (string) $value, $options);
+
+    self::assertSame($expected_options, $options_as_strings);
   }
 
 }

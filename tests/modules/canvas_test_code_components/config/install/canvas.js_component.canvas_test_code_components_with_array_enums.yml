@@ -1,0 +1,41 @@
+uuid: f8a2c1e0-1234-5678-9abc-def012345678
+langcode: en
+status: true
+dependencies:
+  enforced: {  }
+machineName: canvas_test_code_components_with_array_enums
+name: 'With array enums'
+block_override: null
+required: {  }
+props:
+  sizes:
+    title: Sizes
+    type: array
+    items:
+      type: string
+      enum: [small, medium, large]
+      meta:enum:
+        small: Small
+        medium: Medium
+        large: Large
+    examples:
+      - [small, medium]
+slots: {  }
+js:
+  original: |-
+    const WithArrayEnums = ({ sizes = [] }) =>
+      (<div>Sizes: {sizes.join(', ')}</div>);
+    export default WithArrayEnums;
+  compiled: |
+    import { jsxs as _jsxs } from "react/jsx-runtime";
+    const WithArrayEnums = ({ sizes = [] })=>/*#__PURE__*/ _jsxs("div", {
+        children: [
+            "Sizes: ",
+            sizes.join(', ')
+        ]
+    });
+    export default WithArrayEnums;
+css:
+  original: ''
+  compiled: ''
+dataDependencies: []

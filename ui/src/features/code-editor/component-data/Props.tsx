@@ -62,6 +62,7 @@ export const DEFAULT_EXAMPLES: Record<string, string> = {
   formattedText: '<p>Example text</p>',
   link: 'example',
   date: '2026-01-25',
+  'date-time': '2026-01-25T12:00:00.000Z',
   listText: 'option_1',
   listInteger: '1',
 };
@@ -121,15 +122,18 @@ export default function Props() {
     propId: string,
     currentExample: unknown,
     newCount: number,
+    defaultValue: string | number = '',
   ) => {
     dispatch(
       updateProp({
         id: propId,
         updates: {
           limitedCount: newCount,
-          example: createArrayWithCount(currentExample, newCount) as
-            | string[]
-            | number[],
+          example: createArrayWithCount(
+            currentExample,
+            newCount,
+            defaultValue,
+          ) as string[] | number[],
         },
       }),
     );
@@ -260,7 +264,12 @@ export default function Props() {
                 <FormPropTypeArray
                   id={prop.id}
                   example={prop.example as string[] | number[]}
-                  itemType={prop.type as 'string' | 'integer' | 'number'}
+                  itemType={
+                    (prop.type === 'array' ? prop.items?.type : prop.type) as
+                      | 'string'
+                      | 'integer'
+                      | 'number'
+                  }
                   isDisabled={componentStatus}
                   valueMode={prop.valueMode}
                   limitedCount={prop.limitedCount}
@@ -298,16 +307,30 @@ export default function Props() {
               return (
                 <FormPropTypeImage
                   id={prop.id}
-                  example={prop.example as CodeComponentPropImageExample}
+                  example={
+                    prop.example as
+                      | CodeComponentPropImageExample
+                      | CodeComponentPropImageExample[]
+                  }
                   required={required.includes(propName)}
+                  allowMultiple={prop.allowMultiple}
+                  valueMode={prop.valueMode}
+                  limitedCount={prop.limitedCount}
                 />
               );
             case 'video':
               return (
                 <FormPropTypeVideo
                   id={prop.id}
-                  example={prop.example as CodeComponentPropVideoExample}
+                  example={
+                    prop.example as
+                      | CodeComponentPropVideoExample
+                      | CodeComponentPropVideoExample[]
+                  }
                   required={required.includes(propName)}
+                  allowMultiple={prop.allowMultiple}
+                  valueMode={prop.valueMode}
+                  limitedCount={prop.limitedCount}
                 />
               );
             case 'boolean':
@@ -374,23 +397,51 @@ export default function Props() {
                     };
 
                     if (checked) {
-                      // Convert to array type
+                      // Convert to array type - for date and link types.
                       if (['date', 'link'].includes(prop.derivedType ?? '')) {
+                        updates.type = 'array';
                         updates.items = {
                           type: 'string',
                           format: prop.format,
                         };
+                        // Initialize with empty array
                         updates.example = [];
                         updates.valueMode = VALUE_MODE_UNLIMITED;
                         updates.limitedCount = 1;
                       } else if (
                         ['string', 'integer', 'number'].includes(prop.type)
                       ) {
+                        // Convert to array type - for primitive types.
+                        updates.type = 'array';
                         updates.items = {
                           type: prop.type as 'string' | 'integer' | 'number',
                         };
                         updates.example = [];
                         updates.valueMode = VALUE_MODE_UNLIMITED;
+                        updates.limitedCount = 1;
+                      } else if (prop.type === 'object') {
+                        // Convert to array type - for object types (image/video).
+                        updates.type = 'array';
+                        updates.items = {
+                          type: 'object',
+                          $ref: prop.$ref,
+                        };
+                        // Convert single object to array with that object
+                        // Handle both valid objects and empty strings (which is the initial state)
+                        if (
+                          prop.example &&
+                          typeof prop.example === 'object' &&
+                          !Array.isArray(prop.example) &&
+                          (prop.example as CodeComponentPropImageExample).src
+                        ) {
+                          updates.example = [prop.example] as
+                            | CodeComponentPropImageExample[]
+                            | CodeComponentPropVideoExample[];
+                        } else {
+                          // Start with empty array - FormPropTypeImageArray will handle initialization
+                          updates.example = [];
+                        }
+                        updates.valueMode = 'unlimited';
                         updates.limitedCount = 1;
                       }
                     } else {
@@ -424,11 +475,16 @@ export default function Props() {
                       };
 
                       if (value === VALUE_MODE_LIMITED) {
-                        // When switching to limited mode, ensure we have exactly limitedCount items
-                        const count = prop.limitedCount ?? 1;
+                        // When switching to limited mode, ensure we have exactly limitedCount items.
+                        // The server requires maxItems >= 2 for array types, so enforce a minimum of 2.
+                        const count = Math.max(2, prop.limitedCount ?? 2);
+                        updates.limitedCount = count;
+                        // Use empty string as default to match single-value component behavior
+                        // (no default value unless explicitly set or required)
                         updates.example = createArrayWithCount(
                           prop.example,
                           count,
+                          '',
                         ) as string[] | number[];
                       }
 
@@ -457,9 +513,9 @@ export default function Props() {
                         autoComplete="off"
                         id={`prop-limited-count-${prop.id}`}
                         type="number"
-                        value={prop.limitedCount ?? 1}
+                        value={prop.limitedCount ?? 2}
                         size="1"
-                        min={1}
+                        min={2}
                         max={
                           ['listText', 'listInteger'].includes(
                             prop.derivedType ?? '',
@@ -483,9 +539,16 @@ export default function Props() {
                             : Infinity;
                           const newCount = Math.min(
                             maxLimit,
-                            Math.max(1, Number(e.target.value)),
+                            Math.max(2, Number(e.target.value)),
                           );
-                          updateLimitedCount(prop.id, prop.example, newCount);
+                          // Use empty string as default to match single-value component behavior
+                          // (no default value unless explicitly set or required)
+                          updateLimitedCount(
+                            prop.id,
+                            prop.example,
+                            newCount,
+                            '',
+                          );
                         }}
                         disabled={componentStatus}
                       >
@@ -494,29 +557,32 @@ export default function Props() {
                             <button
                               type="button"
                               onClick={() => {
-                                const currentCount = prop.limitedCount ?? 1;
-                                if (currentCount <= 1) return;
+                                const currentCount = prop.limitedCount ?? 2;
+                                if (currentCount <= 2) return;
                                 const newCount = currentCount - 1;
+                                // Use empty string as default to match single-value component behavior
+                                // (no default value unless explicitly set or required)
                                 updateLimitedCount(
                                   prop.id,
                                   prop.example,
                                   newCount,
+                                  '',
                                 );
                               }}
                               disabled={
-                                componentStatus || (prop.limitedCount ?? 1) <= 1
+                                componentStatus || (prop.limitedCount ?? 2) <= 2
                               }
                               aria-label="Decrease count"
                               style={{
                                 border: 'none',
                                 background: 'transparent',
                                 cursor:
-                                  (prop.limitedCount ?? 1) <= 1
+                                  (prop.limitedCount ?? 2) <= 2
                                     ? 'not-allowed'
                                     : 'pointer',
                                 padding: '2px 6px',
                                 opacity:
-                                  (prop.limitedCount ?? 1) <= 1 ? 0.5 : 1,
+                                  (prop.limitedCount ?? 2) <= 2 ? 0.5 : 1,
                               }}
                             >
                               −
@@ -525,7 +591,7 @@ export default function Props() {
                             <button
                               type="button"
                               onClick={() => {
-                                const currentCount = prop.limitedCount ?? 1;
+                                const currentCount = prop.limitedCount ?? 2;
                                 // For list types, max limit is the number of enum options
                                 const maxLimit = [
                                   'listText',
@@ -538,10 +604,13 @@ export default function Props() {
                                   : Infinity;
                                 if (currentCount >= maxLimit) return;
                                 const newCount = currentCount + 1;
+                                // Use empty string as default to match single-value component behavior
+                                // (no default value unless explicitly set or required)
                                 updateLimitedCount(
                                   prop.id,
                                   prop.example,
                                   newCount,
+                                  '',
                                 );
                               }}
                               disabled={(() => {
@@ -556,7 +625,7 @@ export default function Props() {
                                   : Infinity;
                                 return (
                                   componentStatus ||
-                                  (prop.limitedCount ?? 1) >= maxLimit
+                                  (prop.limitedCount ?? 2) >= maxLimit
                                 );
                               })()}
                               aria-label="Increase count"
@@ -575,7 +644,7 @@ export default function Props() {
                                       ).length ?? Infinity)
                                     : Infinity;
                                   return componentStatus ||
-                                    (prop.limitedCount ?? 1) >= maxLimit
+                                    (prop.limitedCount ?? 2) >= maxLimit
                                     ? 'not-allowed'
                                     : 'pointer';
                                 })(),
@@ -591,7 +660,7 @@ export default function Props() {
                                           item.label !== '',
                                       ).length ?? Infinity)
                                     : Infinity;
-                                  return (prop.limitedCount ?? 1) >= maxLimit
+                                  return (prop.limitedCount ?? 2) >= maxLimit
                                     ? 0.5
                                     : 1;
                                 })(),

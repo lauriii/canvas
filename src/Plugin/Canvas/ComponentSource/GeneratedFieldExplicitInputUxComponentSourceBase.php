@@ -284,7 +284,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   }
 
   /**
-   * @return array<int, array{'value': mixed, 'label': 'string'}>
+   * @return array<string, string|\Drupal\Core\StringTranslation\TranslatableMarkup>
    *
    * @see \canvas_load_allowed_values_for_component_prop()
    * @todo Ensure that when Canvas adds translation support, that SDC
@@ -299,21 +299,37 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
     // Retrieve the JSON schema for this explicit input prop.
     $schema = (new PropShape($explicit_input_definitions['shapes'][$prop_name]))->resolvedSchema;
-    if (!\array_key_exists('enum', $schema)) {
+
+    // For array types, enum is inside items; for non-array types,
+    // enum is at root.
+    $get_enum_schema = static function (array $search_schema): array {
+      $is_array_type = ($search_schema['type'] ?? NULL) === 'array';
+      if ($is_array_type) {
+        \assert(\array_key_exists('items', $search_schema), 'Array type props must have an items schema.');
+        return $search_schema['items'];
+      }
+      return $search_schema;
+    };
+
+    $enum_schema = $get_enum_schema($schema);
+
+    if (!\array_key_exists('enum', $enum_schema)) {
       throw new \LogicException("`enum` is missing for schema of `$prop_name` explicit input prop of `{$this->getPluginId()}.{$this->getSourceSpecificComponentId()}`.");
     }
     // @todo Simplify in https://www.drupal.org/project/canvas/issues/3518247
     $raw_schema = $this->getMetadata()->schema['properties'][$prop_name] ?? [];
-    if (!\array_key_exists('meta:enum', $schema)) {
-      if (!\array_key_exists('meta:enum', $raw_schema)) {
+    $raw_enum_schema = $get_enum_schema($raw_schema);
+
+    if (!\array_key_exists('meta:enum', $enum_schema)) {
+      if (!\array_key_exists('meta:enum', $raw_enum_schema)) {
         throw new \LogicException("`meta:enum` is missing for schema of `$prop_name` explicit input prop of `{$this->getPluginId()}.{$this->getSourceSpecificComponentId()}`.");
       }
       else {
-        $schema['meta:enum'] = $raw_schema['meta:enum'];
+        $enum_schema['meta:enum'] = $raw_enum_schema['meta:enum'];
       }
     }
 
-    return $schema['meta:enum'];
+    return $enum_schema['meta:enum'];
   }
 
   /**

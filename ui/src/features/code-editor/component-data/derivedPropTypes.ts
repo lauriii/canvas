@@ -69,6 +69,12 @@ const derivedPropTypes = [
     init: {
       type: 'object',
       $ref: 'json-schema-definitions://canvas.module/image',
+      example: {
+        src: 'https://placehold.co/800x600@2x.png?alternateWidths=https%3A%2F%2Fplacehold.co%2F%7Bwidth%7Dx%7Bheight%7D%402x.png',
+        width: 800,
+        height: 600,
+        alt: 'Example image placeholder',
+      },
     },
   },
   {
@@ -79,6 +85,10 @@ const derivedPropTypes = [
     init: {
       type: 'object',
       $ref: 'json-schema-definitions://canvas.module/video',
+      example: {
+        src: '/ui/assets/videos/mountain_wide.mp4',
+        poster: 'https://placehold.co/1920x1080.png?text=Widescreen',
+      },
     },
   },
   {
