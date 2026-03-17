@@ -379,7 +379,6 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
           'canvas.component.sdc.canvas_test_sdc.image',
           'canvas.component.sdc.canvas_test_sdc.my-cta',
           'field.field.node.article.field_hero',
-          'image.style.canvas_parametrized_width',
           'node.type.article',
         ],
         'content' => [],

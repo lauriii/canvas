@@ -16,7 +16,6 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\Plugin\DataType\Uri;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
-use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 
 #[DataType(
@@ -108,7 +107,7 @@ class ComputedUrlWithQueryString extends Uri implements DependentPluginInterface
   public function calculateDependencies(): array {
     \assert($this->getParent() !== NULL);
     $field_item_list = $this->getParent()->getParent();
-    \assert($field_item_list instanceof FieldItemListInterface);
+    \assert($field_item_list === NULL || $field_item_list instanceof FieldItemListInterface);
     $instructions = $this->getDataDefinition()->getSettings();
     \assert(\array_key_exists('url', $instructions) && \is_string($instructions['url']));
     \assert(\array_key_exists('query_parameters', $instructions) && \is_array($instructions['query_parameters']));
@@ -122,17 +121,6 @@ class ComputedUrlWithQueryString extends Uri implements DependentPluginInterface
       $dependencies = NestedArray::mergeDeep($dependencies, StructuredDataPropExpression::fromString($query_parameter_instruction)->calculateDependencies($field_item_list));
     }
 
-    // Ignore the referencing entity type's field type if this is a field item
-    // list on an entity: then the dependency would already be represented by
-    // the config dependency on a `field.field.*` config entity.
-    // For example, otherwise the `image` module would become an explicit
-    // dependency, instead of just relying on the config dependency on
-    // `field.field.media.image.field_media_image`.
-    if ($field_item_list->getParent() !== NULL && $url_prop_expression instanceof ReferenceFieldTypePropExpression) {
-      $referencer_dependencies = $url_prop_expression->referencer->calculateDependencies();
-      $module_dependencies_to_omit = $referencer_dependencies['module'] ?? [];
-      $dependencies['module'] = array_values(array_diff($dependencies['module'] ?? [], $module_dependencies_to_omit));
-    }
     return $dependencies;
   }
 

@@ -6,8 +6,6 @@ namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
 use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
 use Drupal\canvas\Plugin\Validation\Constraint\UriSchemeConstraint;
-use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\canvas\Plugin\DataType\ComputedUrlWithQueryString;
 use Drupal\canvas\Plugin\DataType\UriTemplate;
@@ -105,22 +103,6 @@ class ImageItemOverride extends ImageItem {
       ->setClass(ComputedUrlWithQueryString::class);
 
     return $properties;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function calculateDependencies(FieldDefinitionInterface $field_definition) {
-    return NestedArray::mergeDeep(
-      parent::calculateDependencies($field_definition),
-      // @see \Drupal\canvas\TypedData\ImageDerivativeWithParametrizedWidth
-      // @see config/install/image.style.canvas_parametrized_width.yml
-      [
-        'config' => [
-          'image.style.canvas_parametrized_width',
-        ],
-      ],
-    );
   }
 
 }

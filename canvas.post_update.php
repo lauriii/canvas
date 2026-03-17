@@ -312,3 +312,14 @@ function canvas_post_update_0014_create_global_brand_kit(): void {
   ]);
   $brand_kit->save();
 }
+
+/**
+ * Remove incorrect dependency from config.
+ */
+function canvas_post_update_0015_remove_wrong_image_style_dependency_in_field_configs(array &$sandbox): void {
+  \Drupal::classResolver(ConfigEntityUpdater::class)
+    ->update($sandbox, 'field_config', static function (FieldConfig $field): bool {
+      $dependencies = $field->getDependencies();
+      return \in_array('image.style.canvas_parametrized_width', $dependencies['config'] ?? [], TRUE);
+    });
+}

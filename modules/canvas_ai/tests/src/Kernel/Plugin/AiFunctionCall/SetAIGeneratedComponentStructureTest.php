@@ -12,6 +12,7 @@ use Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
 use Drupal\user\Entity\User;
@@ -53,12 +54,9 @@ final class SetAIGeneratedComponentStructureTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
+    ...CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
     'ai',
     'ai_agents',
-    'canvas',
-    'media',
-    'system',
-    'user',
     'canvas_ai',
   ];
 
@@ -68,6 +66,9 @@ final class SetAIGeneratedComponentStructureTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');
+    $this->installConfig(['canvas']);
+    $this->installEntitySchema('file');
+    $this->installEntitySchema('path_alias');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
 
     $this->functionCallManager = $this->container->get('plugin.manager.ai.function_calls');

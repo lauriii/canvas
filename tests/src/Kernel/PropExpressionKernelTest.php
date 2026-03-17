@@ -373,14 +373,11 @@ class PropExpressionKernelTest extends CanvasKernelTestBase {
       $expression = $case[1];
       \assert($expression instanceof EntityFieldBasedPropExpressionInterface || $expression instanceof FieldTypeBasedPropExpressionInterface);
       $expected_dependencies = $case[4];
-      // Almost always, the content-aware dependencies are the same as the
-      // content-unaware ones, just with the `content` key-value pair omitted,
-      // if any.
-      $expected_content_unaware_dependencies = $case[5] ?? (
-        \is_array($expected_dependencies)
-          ? array_diff_key($expected_dependencies, array_flip(['content']))
-          : NULL
-      );
+      // The content-aware dependencies MUST be the same as the content-unaware
+      // ones, just with the `content` key-value pair omitted, if any.
+      $expected_content_unaware_dependencies = \is_array($expected_dependencies)
+        ? array_diff_key($expected_dependencies, array_flip(['content']))
+        : [];
 
       $test_case_precise_label = \sprintf("%s (%s)", $test_case_label, (string) $expression);
 

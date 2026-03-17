@@ -524,7 +524,6 @@ class StaticPropSourceTest extends PropSourceTestBase {
           'field.field.media.anything_is_possible.field_media_image_1',
           'field.field.media.image.field_media_image',
           'field.field.media.image_but_not_image_media_source.field_media_test',
-          'image.style.canvas_parametrized_width',
           'media.type.anything_is_possible',
           'media.type.image',
           'media.type.image_but_not_image_media_source',

@@ -10,6 +10,7 @@ use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
@@ -37,20 +38,10 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
+    ...CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
+    // Test components.
     'block',
-    'canvas',
     'canvas_test_sdc',
-    // Canvas's dependencies (modules providing field types + widgets).
-    'datetime',
-    'file',
-    'field',
-    'image',
-    'options',
-    'path',
-    'link',
-    'text',
-    'filter',
-    'user',
   ];
 
   /**
@@ -65,6 +56,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->installConfig(['canvas']);
     $this->generateComponentConfig();
     $generate_static_prop_source = function (string $label): array {
       return [

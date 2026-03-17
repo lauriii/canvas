@@ -2769,9 +2769,6 @@ HTML
         ],
       ],
       'sdc.canvas_test_sdc.card-with-stream-wrapper-image' => [
-        'config' => [
-          0 => 'image.style.canvas_parametrized_width',
-        ],
         'content' => [],
         'module' => [
           'core',

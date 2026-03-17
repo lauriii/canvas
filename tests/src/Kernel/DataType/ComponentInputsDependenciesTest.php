@@ -220,13 +220,10 @@ class ComponentInputsDependenciesTest extends CanvasKernelTestBase {
         'image.style.canvas_parametrized_width',
         'node.type.alpha',
         'field.field.node.alpha.field_hero',
-        'image.style.canvas_parametrized_width',
         'node.type.alpha',
         'field.field.node.alpha.field_hero',
-        'image.style.canvas_parametrized_width',
         'node.type.alpha',
         'field.field.node.alpha.field_hero',
-        'image.style.canvas_parametrized_width',
       ],
       'content' => [
         'file:file:' . $file_uuid,

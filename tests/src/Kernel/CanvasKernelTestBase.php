@@ -28,6 +28,8 @@ use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
  * @code
  * Note this cannot use CanvasKernelTestBase because
  * @endcode
+ * Most such kernel tests should at least install the modules listed in
+ * CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES.
  *
  * @see \Canvas\Sniffs\Tests\KernelTestBaseSniff
  */
@@ -41,9 +43,9 @@ abstract class CanvasKernelTestBase extends KernelTestBase {
   protected $strictConfigSchema = TRUE;
 
   /**
-   * {@inheritdoc}
+   * Minimal set of modules that must be installed for Canvas kernel tests.
    */
-  protected static $modules = [
+  public const CANVAS_KERNEL_TEST_MINIMAL_MODULES = [
     // The two only modules Drupal truly requires.
     'system',
     'user',
@@ -67,6 +69,13 @@ abstract class CanvasKernelTestBase extends KernelTestBase {
     'media',
     'path_alias',
     'views',
+  ];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = [
+    ...self::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
     // Test components.
     'canvas_test_sdc',
   ];

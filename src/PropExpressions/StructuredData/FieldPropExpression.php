@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropExpressions\StructuredData;
 
+use Drupal\canvas\Utility\TypedDataHelper;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
@@ -171,20 +172,19 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     $dependencies = NestedArray::mergeDeep($dependencies, $this->calculateDependenciesForFieldDefinition($field_definition, $bundle));
 
     // Computed properties can have dependencies of their own.
-    if ($host_entity !== NULL) {
-      $dependencies = NestedArray::mergeDeep($dependencies, self::calculateDependenciesForProperty(
-        $host_entity,
-        $this->fieldName,
-        $this->delta,
-        $this->propName,
-        $field_definition
-      ));
-    }
+    $dependencies = NestedArray::mergeDeep($dependencies, self::calculateDependenciesForProperty(
+      $host_entity,
+      $this->fieldName,
+      $this->delta,
+      $this->propName,
+      $field_definition
+    ));
 
     return $dependencies;
   }
 
-  private static function calculateDependenciesForProperty(FieldableEntityInterface $host_entity, string $field_name, ?int $targeted_delta, string $prop_name, FieldDefinitionInterface $field_definition): array {
+  private static function calculateDependenciesForProperty(?FieldableEntityInterface $host_entity, string $field_name, ?int $targeted_delta, string $prop_name, FieldDefinitionInterface $field_definition): array {
+    \assert($field_definition instanceof FieldConfigInterface || $field_definition instanceof BaseFieldDefinition);
     $dependencies = [];
 
     $property_definitions = $field_definition->getFieldStorageDefinition()->getPropertyDefinitions();
@@ -192,15 +192,52 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
       // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
       @trigger_error(\sprintf('Property %s does not exist', $prop_name), E_USER_DEPRECATED);
     }
+    // Computed properties can have dependencies of their own.
+    // @see \Drupal\canvas\PropSource\ContentAwareDependentInterface
     elseif (is_a($property_definitions[$prop_name]->getClass(), DependentPluginInterface::class, TRUE)) {
       \assert($property_definitions[$prop_name]->isComputed());
-      foreach ($host_entity->get($field_name) as $delta => $field_item) {
-        if ($targeted_delta !== NULL && $targeted_delta !== $delta) {
-          continue;
+      // When the field property objects exist: use them, to also compute
+      // content dependencies.
+      if ($host_entity !== NULL && !$host_entity->get($field_name)->isEmpty()) {
+        foreach ($host_entity->get($field_name) as $delta => $field_item) {
+          if ($targeted_delta !== NULL && $targeted_delta !== $delta) {
+            continue;
+          }
+          \assert($field_item->get($prop_name) instanceof DependentPluginInterface);
+          $dependencies = NestedArray::mergeDeep($dependencies, $field_item->get($prop_name)->calculateDependencies());
         }
-        \assert($field_item->get($prop_name) instanceof DependentPluginInterface);
-        $dependencies = NestedArray::mergeDeep($dependencies, $field_item->get($prop_name)->calculateDependencies());
       }
+      // Otherwise: conjure an empty field item object, get the (empty)
+      // evaluated property that this expression would evaluate, and calculate
+      // its dependencies, if any.
+      else {
+        $empty_field_item = TypedDataHelper::conjureFieldItemObject($field_definition->getType());
+        $empty_evaluated_field_property = $empty_field_item->getProperties(TRUE)[$prop_name];
+        if ($empty_evaluated_field_property instanceof DependentPluginInterface) {
+          $dependencies = NestedArray::mergeDeep($empty_evaluated_field_property->calculateDependencies());
+        }
+      }
+    }
+
+    // Computed properties' dependencies are prone to repeating the same config
+    // dependencies as the field definition's dependencies, because they start
+    // with some data stored in the field. This results in noisy and even
+    // incorrect config dependencies.
+    // For example: ImageItemOverride's computed `src_with_alternate_widths`
+    // property, which relies on FieldTypeBasedPropExpressionInterface to
+    // evaluate Typed Data to compute a result. This results in dependencies on
+    // the `image` module (because it provides the `image` field type plugin),
+    // but that is not a real dependency of the expression, because it starts
+    // from not a field type (see: StaticPropSource), but from an entity field
+    // (see: EntityFieldPropSource). That entity field (a `field.field.*` config
+    // entity) already has a config dependency on the `image` module. It must be
+    // omitted to avoid the `image` module becoming an explicit dependency of
+    // this FieldPropExpression. Instead, it should depend only on the relevant
+    // field config entity, e.g. `field.field.media.image.field_media_image`.
+    if ($field_definition instanceof FieldConfigInterface && !empty($dependencies['module'] ?? [])) {
+      $entity_field_dependencies = $field_definition->getDependencies();
+      $module_dependencies_to_omit = $entity_field_dependencies['module'] ?? [];
+      $dependencies['module'] = array_values(array_diff($dependencies['module'], $module_dependencies_to_omit));
     }
 
     return $dependencies;

@@ -5,11 +5,17 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Config;
 
 // cspell:ignore thisisatestpattern
+use Drupal\file\Entity\File;
+use Drupal\media\Entity\Media;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
+use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
@@ -26,27 +32,21 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;
   use DataProviderWithComponentTreeTrait;
+  use MediaTypeCreationTrait;
   use GenerateComponentConfigTrait;
+  use ConstraintViolationsTestTrait;
+  use UserCreationTrait;
 
   /**
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
-    'canvas_test_sdc',
-    'block',
-    // Canvas's dependencies (modules providing field types + widgets).
-    'datetime',
-    'file',
+    ...CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
+    // Necessary for Media entities.
     'field',
-    'image',
-    'options',
-    'path',
-    'link',
-    'text',
-    'filter',
-    'datetime',
-    'user',
+    // Test components.
+    'block',
+    'canvas_test_sdc',
   ];
 
   /**
@@ -54,10 +54,37 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->installConfig(['canvas']);
     $this->generateComponentConfig();
     $generate_static_prop_source = function (string $label): string {
       return "Hello, $label!";
     };
+
+    // Generate a File entity + image Media entity to populate an "image" static
+    // prop source.
+    $this->installEntitySchema('file');
+    $this->installEntitySchema('media');
+    $this->installEntitySchema('path_alias');
+    $this->installSchema('file', ['file_usage']);
+    $this->setUpCurrentUser(permissions: ['access content']);
+    $image_uri = $this->getRandomGenerator()
+      ->image(uniqid('public://') . '.png', '200x200', '400x400');
+    self::assertFileExists($image_uri);
+    $original_media_referenced_file = File::create([
+      'uuid' => '3aa127f9-a9f4-4391-acbc-1dc200d3bd7f',
+      'uri' => $image_uri,
+      'status' => File::STATUS_PERMANENT,
+    ]);
+    self::assertSame([], self::violationsToArray($original_media_referenced_file->validate()));
+    $original_media_referenced_file->save();
+    $original_media = Media::create([
+      'bundle' => $this->createMediaType('image')->id(),
+      'name' => 'Test image',
+      'field_media_image' => $original_media_referenced_file,
+    ]);
+    self::assertSame([], self::violationsToArray($original_media->validate()));
+    $original_media->save();
+
     $this->entity = Pattern::create([
       'id' => 'test_pattern',
       'label' => 'Test pattern',
@@ -99,6 +126,16 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
             'label' => '',
           ],
         ],
+        [
+          'uuid' => '460854df-47dc-4cce-b8ce-3fc38fbf4760',
+          'component_id' => 'sdc.canvas_test_sdc.image-optional-without-example',
+          'component_version' => 'b3a78d7dc6559ea5',
+          'inputs' => [
+            'image' => [
+              'target_id' => $original_media->id(),
+            ],
+          ],
+        ],
       ],
     ]);
     $this->entity->save();
@@ -116,9 +153,18 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         'config' => [
           'canvas.component.block.local_tasks_block',
           'canvas.component.sdc.canvas_test_sdc.heading',
+          'canvas.component.sdc.canvas_test_sdc.image-optional-without-example',
           'canvas.component.sdc.canvas_test_sdc.props-no-slots',
+          // @todo Remove this in https://www.drupal.org/i/3579536
+          'image.style.canvas_parametrized_width',
+        ],
+        'content' => [
+          'file:file:3aa127f9-a9f4-4391-acbc-1dc200d3bd7f',
         ],
         'module' => [
+          'file',
+          'image',
+          // @todo Remove the 2 above in https://www.drupal.org/i/3579536
           'options',
         ],
       ],
@@ -128,12 +174,19 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       'config' => [
         'canvas.component.block.local_tasks_block',
         'canvas.component.sdc.canvas_test_sdc.heading',
+        'canvas.component.sdc.canvas_test_sdc.image-optional-without-example',
         'canvas.component.sdc.canvas_test_sdc.props-no-slots',
+        'image.style.canvas_parametrized_width',
       ],
       'module' => [
+        'file',
+        'image',
         'options',
         'canvas',
         'canvas_test_sdc',
+      ],
+      'content' => [
+        'file:file:3aa127f9-a9f4-4391-acbc-1dc200d3bd7f',
       ],
     ], $this->getAllDependencies($this->entity));
   }

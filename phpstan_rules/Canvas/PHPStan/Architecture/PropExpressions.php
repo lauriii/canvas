@@ -21,6 +21,8 @@ final class PropExpressions {
       ->classes(
         // Can only depend on other classes in the same namespace.
         Selector::inNamespace('Drupal\canvas\PropExpressions'),
+        // Plus Canvas' Typed Data helper, which could be moved into core.
+        Selector::inNamespace('Drupal\canvas\Utility'),
         // Plus Drupal core components.
         Selector::inNamespace('Drupal\Component'),
         // Plus specific Drupal core namespaces.

@@ -134,7 +134,7 @@ class PropExpressionTest extends UnitTestCase {
    * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression::getReferenceChainPrefixes
    */
   #[DataProvider('providerReferenceFieldPropExpression')]
-  public function testGetReferenceChainPrefixes(string $string_representation, StructuredDataPropExpressionInterface $expression, ?string $irrelevant_here_one, string|\Exception $irrelevant_here_two, array|\Exception $irrelevant_here_three, null|array $irrelevant_here_four, array $expected_reference_chain_prefixes): void {
+  public function testGetReferenceChainPrefixes(string $string_representation, StructuredDataPropExpressionInterface $expression, ?string $irrelevant_here_one, string|\Exception $irrelevant_here_two, array|\Exception $irrelevant_here_three, array $expected_reference_chain_prefixes): void {
     $reconstructed = call_user_func([get_class($expression), 'fromString'], $string_representation);
     self::assertInstanceOf(ReferenceFieldPropExpression::class, $reconstructed);
     // PHPStan bug: despite the above test assertion, which PHPStan understands,
@@ -304,7 +304,7 @@ class PropExpressionTest extends UnitTestCase {
         'field_image␟Title',
         [
           'module' => ['node', 'file'],
-          'config' => ['node.type.article', 'field.field.node.article.field_image', 'image.style.canvas_parametrized_width'],
+          'config' => ['node.type.article', 'field.field.node.article.field_image'],
         ],
       ],
       ['ℹ︎␜entity:node:article␝field_image␞0␟title', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', 0, 'title'),
@@ -312,7 +312,7 @@ class PropExpressionTest extends UnitTestCase {
         'field_image␞1st item␟Title',
         [
           'module' => ['node', 'file'],
-          'config' => ['node.type.article', 'field.field.node.article.field_image', 'image.style.canvas_parametrized_width'],
+          'config' => ['node.type.article', 'field.field.node.article.field_image'],
         ],
       ],
       ['ℹ︎␜entity:node:article␝field_image␞99␟title', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', 99, 'title'),
@@ -320,7 +320,7 @@ class PropExpressionTest extends UnitTestCase {
         'field_image␞100th item␟Title',
         [
           'module' => ['node', 'file'],
-          'config' => ['node.type.article', 'field.field.node.article.field_image', 'image.style.canvas_parametrized_width'],
+          'config' => ['node.type.article', 'field.field.node.article.field_image'],
         ],
       ],
 
@@ -408,7 +408,6 @@ class PropExpressionTest extends UnitTestCase {
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
-        NULL,
         ['ℹ︎␜entity:node␝uid␞␟entity␜'],
       ],
       [
@@ -428,7 +427,6 @@ class PropExpressionTest extends UnitTestCase {
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
-        NULL,
         ['ℹ︎␜entity:node␝uid␞␟entity␜'],
       ],
       [
@@ -448,7 +446,6 @@ class PropExpressionTest extends UnitTestCase {
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
-        NULL,
         ['ℹ︎␜entity:node␝uid␞␟entity␜'],
       ],
       [
@@ -468,7 +465,6 @@ class PropExpressionTest extends UnitTestCase {
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
-        NULL,
         ['ℹ︎␜entity:node␝uid␞0␟entity␜'],
       ],
       [
@@ -488,7 +484,6 @@ class PropExpressionTest extends UnitTestCase {
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
-        NULL,
         ['ℹ︎␜entity:node␝uid␞0␟entity␜'],
       ],
       [
@@ -508,7 +503,6 @@ class PropExpressionTest extends UnitTestCase {
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
-        NULL,
         ['ℹ︎␜entity:node␝uid␞0␟entity␜'],
       ],
       // Entity reference field with multiple target bundles.
@@ -537,17 +531,14 @@ class PropExpressionTest extends UnitTestCase {
             // The "baby_photos" branch.
             'media.type.baby_photos',
             'field.field.media.baby_photos.field_media_image_1',
-            'image.style.canvas_parametrized_width',
             // The "image" branch.
             'media.type.image',
             'field.field.media.image.field_media_image',
-            'image.style.canvas_parametrized_width',
           ],
           'content' => [
             'media:image:some-media-uuid',
           ],
         ],
-        NULL,
         [
           'ℹ︎␜entity:node:article␝yo_ho␞␟entity␜',
         ],
@@ -571,11 +562,8 @@ class PropExpressionTest extends UnitTestCase {
           'content' => ['user:user:some-user-uuid'],
           'config' => [
             'field.field.user.user.user_picture',
-            // @todo 🐛 This is not actually used by this expression!
-            'image.style.canvas_parametrized_width',
           ],
         ],
-        NULL,
         [
           'ℹ︎␜entity:node␝uid␞␟entity␜',
           'ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜',
@@ -615,18 +603,15 @@ class PropExpressionTest extends UnitTestCase {
             // The "baby_photos" branch.
             'media.type.baby_photos',
             'field.field.media.baby_photos.field_media_image_1',
-            'image.style.canvas_parametrized_width',
             // The "image" branch.
             'media.type.image',
             'field.field.media.image.field_media_image',
-            'image.style.canvas_parametrized_width',
           ],
           'content' => [
             'media:image:some-media-uuid',
             'file:file:some-image-uuid',
           ],
         ],
-        NULL,
         [
           'ℹ︎␜entity:node:article␝yo_ho␞␟entity␜',
         ],
@@ -660,17 +645,11 @@ class PropExpressionTest extends UnitTestCase {
           'content' => ['user:user:some-user-uuid'],
           'config' => [
             'field.field.user.user.user_picture',
-            // @todo 🐛 This is not actually used by this expression!
-            'image.style.canvas_parametrized_width',
             'field.field.user.user.user_picture',
-            'image.style.canvas_parametrized_width',
             'field.field.user.user.user_picture',
-            'image.style.canvas_parametrized_width',
             'field.field.user.user.user_picture',
-            'image.style.canvas_parametrized_width',
           ],
         ],
-        NULL,
         [
           'ℹ︎␜entity:node␝uid␞␟entity␜',
         ],
@@ -703,6 +682,7 @@ class PropExpressionTest extends UnitTestCase {
             'media',
             'media',
             'file',
+            'file',
             'media',
             'file',
             'media',
@@ -728,81 +708,24 @@ class PropExpressionTest extends UnitTestCase {
             'image.style.canvas_parametrized_width',
             'media.type.baby_photos',
             'field.field.media.baby_photos.field_media_image_1',
-            'image.style.canvas_parametrized_width',
             'media.type.baby_photos',
             'field.field.media.baby_photos.field_media_image_1',
-            'image.style.canvas_parametrized_width',
             'media.type.baby_photos',
             'field.field.media.baby_photos.field_media_image_1',
-            'image.style.canvas_parametrized_width',
             // The 4 props for the "image" branch.
             'media.type.image',
             'field.field.media.image.field_media_image',
             'image.style.canvas_parametrized_width',
             'media.type.image',
             'field.field.media.image.field_media_image',
-            'image.style.canvas_parametrized_width',
             'media.type.image',
             'field.field.media.image.field_media_image',
-            'image.style.canvas_parametrized_width',
             'media.type.image',
             'field.field.media.image.field_media_image',
-            'image.style.canvas_parametrized_width',
           ],
           'content' => [
             'media:image:some-media-uuid',
             'file:file:some-image-uuid',
-          ],
-        ],
-        [
-          'module' => [
-            'node',
-            'media',
-            'media',
-            'file',
-            'media',
-            'file',
-            'media',
-            'file',
-            'media',
-            'file',
-            'media',
-            'file',
-            'media',
-            'file',
-            'media',
-            'file',
-            'media',
-            'file',
-          ],
-          'config' => [
-            ...self::EXPECTED_YO_HO_FIELD_CONFIG_DEPENDENCIES,
-            // The 4 props for the "baby_photos" branch.
-            'media.type.baby_photos',
-            'field.field.media.baby_photos.field_media_image_1',
-            'image.style.canvas_parametrized_width',
-            'media.type.baby_photos',
-            'field.field.media.baby_photos.field_media_image_1',
-            'image.style.canvas_parametrized_width',
-            'media.type.baby_photos',
-            'field.field.media.baby_photos.field_media_image_1',
-            'image.style.canvas_parametrized_width',
-            'media.type.baby_photos',
-            'field.field.media.baby_photos.field_media_image_1',
-            'image.style.canvas_parametrized_width',
-            // The 4 props for the "image" branch.
-            'media.type.image',
-            'field.field.media.image.field_media_image',
-            'image.style.canvas_parametrized_width',
-            'media.type.image',
-            'field.field.media.image.field_media_image',
-            'image.style.canvas_parametrized_width',
-            'media.type.image',
-            'field.field.media.image.field_media_image',
-            'image.style.canvas_parametrized_width',
-            'media.type.image',
-            'field.field.media.image.field_media_image',
-            'image.style.canvas_parametrized_width',
           ],
         ],
         [
@@ -854,25 +777,21 @@ class PropExpressionTest extends UnitTestCase {
             // The "baby_photos" branch.
             'media.type.baby_photos',
             'field.field.media.baby_photos.field_media_image_1',
-            'image.style.canvas_parametrized_width',
             // The "image" branch.
             'media.type.image',
             'field.field.media.image.field_media_image',
-            'image.style.canvas_parametrized_width',
             // The "remote_image" branch.
             'media.type.remote_image',
             'field.field.media.remote_image.field_media_test',
             // The "vacation_photos" branch.
             'media.type.vacation_photos',
             'field.field.media.vacation_photos.field_media_image_2',
-            'image.style.canvas_parametrized_width',
           ],
           'content' => [
             'media:image:some-media-uuid',
             'file:file:some-image-uuid',
           ],
         ],
-        NULL,
         [
           'ℹ︎␜entity:node:article␝yo_ho␞␟entity␜',
         ],
@@ -893,7 +812,6 @@ class PropExpressionTest extends UnitTestCase {
         self::EXPECT_NO_DEPRECATION,
         'Authored by␞124th item␜User␝Name',
         new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.'),
-        NULL,
         ['ℹ︎␜entity:node␝uid␞123␟entity␜'],
       ],
       [
@@ -910,7 +828,6 @@ class PropExpressionTest extends UnitTestCase {
         self::EXPECT_NO_DEPRECATION,
         'Authored by␞124th item␜User␝Name␞1st item',
         new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.'),
-        NULL,
         ['ℹ︎␜entity:node␝uid␞123␟entity␜'],
       ],
       [
@@ -927,7 +844,6 @@ class PropExpressionTest extends UnitTestCase {
         self::EXPECT_NO_DEPRECATION,
         'Authored by␞124th item␜User␝Name␞100th item',
         new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.'),
-        NULL,
         ['ℹ︎␜entity:node␝uid␞123␟entity␜'],
       ],
     ];
@@ -984,10 +900,8 @@ class PropExpressionTest extends UnitTestCase {
           'config' => [
             'node.type.article',
             'field.field.node.article.field_image',
-            'image.style.canvas_parametrized_width',
             'node.type.article',
             'field.field.node.article.field_image',
-            'image.style.canvas_parametrized_width',
           ],
           'content' => ['file:file:some-image-uuid'],
         ],
@@ -1004,7 +918,6 @@ class PropExpressionTest extends UnitTestCase {
         ]),
         self::EXPECT_NO_DEPRECATION,
         'field_image',
-        // Expected content-aware dependencies.
         [
           'module' => ['node', 'file', 'file', 'node', 'file'],
           'config' => [
@@ -1013,21 +926,8 @@ class PropExpressionTest extends UnitTestCase {
             'image.style.canvas_parametrized_width',
             'node.type.article',
             'field.field.node.article.field_image',
-            'image.style.canvas_parametrized_width',
           ],
           'content' => ['file:file:some-image-uuid'],
-        ],
-        // Expected content-unaware dependencies.
-        [
-          'module' => ['node', 'file', 'node', 'file'],
-          'config' => [
-            'node.type.article',
-            'field.field.node.article.field_image',
-            'image.style.canvas_parametrized_width',
-            'node.type.article',
-            'field.field.node.article.field_image',
-            'image.style.canvas_parametrized_width',
-          ],
         ],
       ],
 
@@ -1067,12 +967,10 @@ class PropExpressionTest extends UnitTestCase {
             ...self::EXPECTED_YO_HO_FIELD_CONFIG_DEPENDENCIES,
             'media.type.image',
             'field.field.media.image.field_media_image',
-            'image.style.canvas_parametrized_width',
             // The "alt" object prop.
             ...self::EXPECTED_YO_HO_FIELD_CONFIG_DEPENDENCIES,
             'media.type.image',
             'field.field.media.image.field_media_image',
-            'image.style.canvas_parametrized_width',
           ],
           'content' => [
             'media:image:some-media-uuid',
@@ -1130,10 +1028,8 @@ class PropExpressionTest extends UnitTestCase {
           'content' => [
             'file:file:some-image-uuid',
           ],
-        ],
-        [
-          'module' => [
-            'image',
+          'config' => [
+            'image.style.canvas_parametrized_width',
           ],
         ],
       ],
@@ -1291,12 +1187,10 @@ class PropExpressionTest extends UnitTestCase {
           'config' => [
             'media.type.baby_photos',
             'field.field.media.baby_photos.field_media_image_1',
-            'image.style.canvas_parametrized_width',
             'media.type.remote_image',
             'field.field.media.remote_image.field_media_test',
             'media.type.vacation_photos',
             'field.field.media.vacation_photos.field_media_image_2',
-            'image.style.canvas_parametrized_width',
           ],
         ],
       ],
@@ -1361,12 +1255,10 @@ class PropExpressionTest extends UnitTestCase {
           'config' => [
             'media.type.baby_photos',
             'field.field.media.baby_photos.field_media_image_1',
-            'image.style.canvas_parametrized_width',
             'media.type.remote_image',
             'field.field.media.remote_image.field_media_test',
             'media.type.vacation_photos',
             'field.field.media.vacation_photos.field_media_image_2',
-            'image.style.canvas_parametrized_width',
           ],
         ],
       ],

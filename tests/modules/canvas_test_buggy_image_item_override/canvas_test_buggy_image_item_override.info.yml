@@ -1,0 +1,6 @@
+name: 'Canvas test: buggy ImageItemOverride'
+type: module
+description: 'Reproduces the bug where ImageItemOverride::calculateDependencies() incorrectly adds image.style.canvas_parametrized_width to every image field config.'
+package: Testing
+dependencies:
+  - canvas:canvas

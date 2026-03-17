@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\TypedData;
 
 use Drupal\canvas\Plugin\DataType\ComputedDataTypeWithCacheabilityTrait;
+use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityReference;
 use Drupal\Core\File\FileUrlGeneratorInterface;
@@ -21,7 +22,7 @@ use Drupal\file\Entity\File;
  * @see https://tools.ietf.org/html/rfc6570
  * @internal
  */
-final class ImageDerivativeWithParametrizedWidth extends UriTemplate implements CacheableDependencyInterface {
+final class ImageDerivativeWithParametrizedWidth extends UriTemplate implements CacheableDependencyInterface, DependentPluginInterface {
 
   use ComputedDataTypeWithCacheabilityTrait {
     getValue as private traitGetValue;
@@ -68,6 +69,11 @@ final class ImageDerivativeWithParametrizedWidth extends UriTemplate implements 
     \assert($file instanceof File);
 
     \assert(\is_string($file->getFileUri()));
+    // Because this image style is an enforced dependency of the Canvas module,
+    // it is possible to assume it always exists. Because this computed property
+    // is also only present when Canvas is installed.
+    // @see config/install/image.style.canvas_parametrized_width.yml
+    // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride::propertyDefinitions()
     $parametrized_image_style = $this->getParametrizedImageStyle();
     $url_template = $parametrized_image_style->buildUrlTemplate($file->getFileUri());
     \assert(str_contains($url_template, '{width}'));
@@ -80,6 +86,15 @@ final class ImageDerivativeWithParametrizedWidth extends UriTemplate implements 
     return (new GeneratedUrl())->setGeneratedUrl($url_template)
       ->addCacheableDependency($parametrized_image_style)
       ->addCacheableDependency($file);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies() {
+    return [
+      'config' => [$this->getParametrizedImageStyle()->getConfigDependencyName()],
+    ];
   }
 
 }
