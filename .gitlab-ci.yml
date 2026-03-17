@@ -811,6 +811,7 @@ release:
     - echo "!/packages/astro-hydration/dist" >> .gitignore
     - git add .gitignore
     - git add ui/dist
+    - git add ui/package.json
     - git add packages/astro-hydration/dist
     - git commit -m "Add built assets for release ${VERSION}"
     - git tag -f $VERSION
