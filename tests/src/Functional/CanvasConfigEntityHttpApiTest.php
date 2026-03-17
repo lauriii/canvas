@@ -1553,6 +1553,86 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertExpectedResponse('DELETE', Url::fromUri('base:/canvas/api/v0/config/asset_library/global'), [], 403, NULL, NULL, NULL, NULL);
   }
 
+  /**
+   * @see \Drupal\canvas\Entity\BrandKit
+   */
+  public function testBrandKit(): void {
+    $list_url = Url::fromUri("base:/canvas/api/v0/config/brand_kit");
+    $canonical_url = Url::fromUri("base:/canvas/api/v0/config/brand_kit/global");
+    $auto_save_url = Url::fromUri("base:/canvas/api/v0/config/auto-save/brand_kit/global");
+
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+
+    // Insufficient permissions: 403.
+    $this->drupalLogin($this->limitedPermissionsUser);
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
+    $this->assertSame([
+      'errors' => [
+        'Requires >=1 content entity type with a Canvas field that can be created or edited.',
+      ],
+    ], $body);
+
+    // Authenticated and authorized: list returns the default global brand kit.
+    $this->drupalLogin($this->httpApiUser);
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:brand_kit_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertIsArray($body);
+    $this->assertArrayHasKey(BrandKit::GLOBAL_ID, $body);
+    $brand_kit_from_list = $body[BrandKit::GLOBAL_ID];
+    $this->assertIsArray($brand_kit_from_list);
+    $this->assertArrayHasKey('id', $brand_kit_from_list);
+    $this->assertSame('global', $brand_kit_from_list['id']);
+    $this->assertArrayHasKey('label', $brand_kit_from_list);
+    $this->assertArrayHasKey('fonts', $brand_kit_from_list);
+
+    // Creating a brand kit via the API is not allowed: 403.
+    $request_options[RequestOptions::JSON] = [
+      'id' => 'global',
+      'label' => 'Test Brand Kit',
+      'fonts' => NULL,
+    ];
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 403, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        'Brand kits cannot be created via the API.',
+      ],
+    ], $body);
+
+    // GET canonical: 200.
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:canvas.brand_kit.global', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertIsArray($body);
+    $this->assertArrayHasKey('id', $body);
+    $this->assertArrayHasKey('label', $body);
+    $this->assertSame($brand_kit_from_list['id'], $body['id']);
+    $this->assertSame($brand_kit_from_list['label'], $body['label']);
+
+    // PATCH to update label: 200.
+    $updated_label = 'Updated brand kit label';
+    $request_options[RequestOptions::JSON] = ['label' => $updated_label];
+    $body = $this->assertExpectedResponse('PATCH', $canonical_url, $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertIsArray($body);
+    $this->assertArrayHasKey('id', $body);
+    $this->assertArrayHasKey('label', $body);
+    $this->assertSame('global', $body['id']);
+    $this->assertSame($updated_label, $body['label']);
+    $this->assertArrayHasKey('fonts', $body);
+
+    // GET canonical again: 200 with updated data (cache miss after PATCH).
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:canvas.brand_kit.global', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertIsArray($body);
+    $this->assertArrayHasKey('label', $body);
+    $this->assertSame($updated_label, $body['label']);
+
+    // Auto-save endpoint: 200.
+    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'config:canvas.brand_kit.global'], 'UNCACHEABLE (request policy)', 'MISS');
+
+    // Cannot delete the global brand kit: 403.
+    $this->assertExpectedResponse('DELETE', $canonical_url, [], 403, NULL, NULL, NULL, NULL);
+  }
+
   private function assertAuthenticationAndAuthorization(string $entity_type_id, bool $delete_allowed = TRUE, array $initial_items = [], array $initial_cache_tags = ['http_response']): void {
     if (!\in_array("config:{$entity_type_id}_list", $initial_cache_tags, TRUE)) {
       $initial_cache_tags[] = "config:{$entity_type_id}_list";

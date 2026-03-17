@@ -47,6 +47,7 @@ to one of us! 😊 🙏
 - `component type`: see [`Canvas Components` doc](components.md)
 - `component tree`: see [`Canvas Data Model` doc](data-model.md)
 - `content type template`: the default `component tree` for a particular `content type`, which typically includes assigning the smallest units of `structured data` to particular `component input`s, and uses `configuration entity dependencies` to ensure the necessary `component`s are present
+- `Brand kit config entity`: stores brand assets (e.g., fonts and design tokens) that can be accessed in CSS.
 - `Folders`: a way to organize components, patterns and code components into individual "Folders" on the client-side of Canvas
 - `Folder config entity`: stores a list of `items` of particular `configEntityTypeId`, currently limited to `component`, `pattern` and `js_component`
 - `PageRegion config entity`: stores a `component tree` for every `theme region` in a given Drupal theme
@@ -317,3 +318,11 @@ type. Each such config config entity can only exist  in a single `Folder`.
 - A UI to manage `Folder`s: https://www.drupal.org/project/canvas/issues/3540580
 - Adding UI to create and manage `Pattern`s and `Code Component`s
 - Automated creation of `Folder`s based on `Component` category or group: https://www.drupal.org/project/canvas/issues/3541364
+
+### 3.8 `Brand kit` config entity
+
+See:
+- `\Drupal\canvas\Entity\BrandKit`
+
+Only one brand kit exists: the global one, created by default on config install. It stores font entries and loads them using
+CSS on the frontend of the site as well as the Canvas preview.

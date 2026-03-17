@@ -291,7 +291,7 @@ function canvas_post_update_0013_update_dynamic_prop_sources_to_entity_field_pro
 }
 
 /**
- * Creates the global brand kit config entity for upgraded sites.
+ * Creates the global brand kit config entity for updated sites.
  */
 function canvas_post_update_0014_create_global_brand_kit(): void {
   $entity_definition_update_manager = \Drupal::service('entity.definition_update_manager');
