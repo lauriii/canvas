@@ -380,7 +380,8 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
       'field_related' => $node1->id(),
     ]);
 
-    // @phpstan-ignore class.notFound
+    // This functionality is >= 11.3 only, but we want phpstan to pass with 11.2
+    // @phpstan-ignore-next-line class.notFound
     $related = \Drupal::service(Exporter::class)->export($node2)->data['default']['field_related'];
     $this->assertNotEmpty($related);
     $this->assertArrayHasKey('entity', $related[0]);

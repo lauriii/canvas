@@ -169,8 +169,6 @@ final class UtmParameters extends ConditionPluginBase {
 
   /**
    * {@inheritdoc}
-   *
-   * @phpstan-return array<string>
    */
   public function getCacheContexts(): array {
     $contexts = parent::getCacheContexts();

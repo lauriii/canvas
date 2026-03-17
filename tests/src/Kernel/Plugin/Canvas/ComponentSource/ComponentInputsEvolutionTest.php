@@ -496,7 +496,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     $original_service_config_factory = $this->container->get(ConfigFactoryInterface::class);
     $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_block_simulate_input_schema_change']);
     self::assertCount(2, Component::load('block.canvas_test_block_input_schema_change_poc')?->getVersions());
-    $new_version = Component::load('block.canvas_test_block_input_schema_change_poc')->getActiveVersion();
+    $new_version = Component::load('block.canvas_test_block_input_schema_change_poc')?->getActiveVersion();
 
     // MID-update: AFTER the module update, BEFORE applying an update path: the
     // component tree contains instances with explicit inputs that are now
@@ -531,6 +531,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     $audit = $this->container->get(ComponentAudit::class);
     \assert($audit instanceof ComponentAudit);
     $updated_component = Component::load('block.canvas_test_block_input_schema_change_poc');
+    self::assertNotNull($updated_component);
     // The new version of the component does not have any uses.
     self::assertSame([], $audit->getContentRevisionsUsingComponent($updated_component, [$new_version]));
     // Only the old version has uses that need to be updated.

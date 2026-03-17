@@ -236,7 +236,6 @@ final class ApiConfigControllers extends ApiControllerBase {
         $hierarchical_json[$entity_type_id]['bundles'][$entity_type_id]['label'] = NULL;
       }
       if ($bundle_entity_type_id) {
-        // @phpstan-ignore-next-line variable.undefined
         \assert($bundle_entity_type instanceof ConfigEntityTypeInterface);
         $additional_cacheability->addCacheTags($bundle_entity_type->getListCacheTags());
         $individual_bundle_entity_cache_tag_prefixes_to_ignore[] = \sprintf("config:%s.", $bundle_entity_type->getConfigPrefix());

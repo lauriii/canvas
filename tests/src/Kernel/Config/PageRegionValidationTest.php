@@ -394,7 +394,6 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
    * {@inheritdoc}
    */
   public function testRequiredPropertyValuesMissing(?array $additional_expected_validation_errors_when_missing = NULL): void {
-    // @phpstan-ignore-next-line
     parent::testRequiredPropertyValuesMissing([
       'theme' => [
         'id' => 'This validation constraint is configured to inspect the properties <em class="placeholder">%parent.theme, %parent.region</em>, but some do not exist: <em class="placeholder">%parent.theme</em>.',

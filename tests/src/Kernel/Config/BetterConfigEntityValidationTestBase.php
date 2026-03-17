@@ -112,8 +112,15 @@ abstract class BetterConfigEntityValidationTestBase extends ConfigEntityValidati
    * the changes made here (other than three extra asserts to meet phpstan level
    * 6).
    *
+   * @param array<string, array<string, string|string[]>>|null $additional_expected_validation_errors_when_missing
+   *   Some required config entity properties have additional validation
+   *   constraints that cause additional messages to appear. Keys must be
+   *   config entity properties, values must be arrays as expected by
+   *   ::assertValidationErrors().
+   *
    * @todo Remove when https://drupal.org/i/3526908 is fixed
    */
+  // @phpstan-ignore-next-line method.childParameterType
   public function testRequiredPropertyValuesMissing(?array $additional_expected_validation_errors_when_missing = NULL): void {
     \assert($this->entity->getEntityType() instanceof ConfigEntityTypeInterface);
     \assert(\is_array($this->entity->getEntityType()->getPropertiesToExport()));

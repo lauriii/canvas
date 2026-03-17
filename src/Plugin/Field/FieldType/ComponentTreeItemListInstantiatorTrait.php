@@ -95,9 +95,11 @@ trait ComponentTreeItemListInstantiatorTrait {
       if (\array_key_exists('parent_uuid', $value) && $value['parent_uuid'] !== NULL) {
         $parent_uuid = $value['parent_uuid'];
         // Flag this item as a child of its parent.
+        // @phpstan-ignore-next-line booleanNot.offsetAccess.nonOffsetAccessible
         $graph[$parent_uuid]['edges'][$uuid] = TRUE;
         if ($slot !== NULL) {
           // And the slot that it lives in.
+          // @phpstan-ignore-next-line booleanNot.offsetAccess.nonOffsetAccessible
           $graph[$parent_uuid]['slot_children'][$slot][] = $uuid;
           // And the delta position it has in this slot.
           $graph[$uuid]['delta'] = \count($graph[$parent_uuid]['slot_children'][$slot]) - 1;
