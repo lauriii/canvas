@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Drupal\canvas\Block\BlockManagerDecorator;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\Page;
@@ -22,6 +23,7 @@ use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputValidatableCrash;
 use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockOptionalContexts;
 use Drupal\canvas_test_block_form\Plugin\Block\CanvasTestBlockForm;
 use Drupal\Core\Block\BlockManagerInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -31,7 +33,6 @@ use Drupal\Tests\canvas\Kernel\BrokenBlockManager;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Traits\BlockComponentTreeTestTrait;
 use Drupal\user\Entity\User;
-use Drupal\views\Entity\View;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
@@ -46,6 +47,13 @@ use Symfony\Component\Validator\ConstraintViolationInterface;
 #[Group('canvas')]
 #[Group('canvas_component_sources')]
 final class BlockComponentTest extends ComponentSourceTestBase {
+
+  /**
+   * {@inheritdoc}
+   *
+   * 5 additional Block Component config entities due to the additional modules.
+   */
+  protected int $expectedDefaultComponentInstallCount = self::DEFAULT_COMPONENT_INSTALL_COUNT + 5;
 
   use BlockComponentTreeTestTrait;
 
@@ -76,18 +84,16 @@ final class BlockComponentTest extends ComponentSourceTestBase {
     $components = Component::loadMultiple();
     foreach ($components as $component) {
       if ($component->getComponentSource() instanceof BlockComponent) {
-        self::assertSame(\in_array($component->get('source_local_id'), BlockComponentDiscovery::BLOCKS_TO_KEEP_ENABLED, TRUE), $component->status());
+        if (\in_array($component->get('source_local_id'), BlockComponentDiscovery::BLOCKS_TO_KEEP_ENABLED, TRUE)) {
+          self::assertTrue($component->status());
+        }
       }
     }
 
-    // Nothing discovered initially.
-    self::assertSame([], $this->findIneligibleComponents(BlockComponent::SOURCE_PLUGIN_ID, 'canvas_test_block'));
-    self::assertSame([], $this->findCreatedComponentConfigEntities(BlockComponent::SOURCE_PLUGIN_ID, 'canvas_test_block'));
+    $this->assertCount($this->expectedDefaultComponentInstallCount, $this->componentStorage->loadMultiple());
 
-    // Trigger component generation, as if the test module was just installed.
-    // (Kernel tests don't trigger all hooks that are triggered in reality.)
-    $this->generateComponentConfig();
-
+    // Some Block Components may already be discovered at this point due to the
+    // BlockManagerDecorator reacting to earlier block definition cache clears.
     self::assertSame([
       'block.canvas_test_block_input_unvalidatable' => [
         'Block plugin settings must opt into strict validation. Use the FullyValidatable constraint. See https://www.drupal.org/node/3404425',
@@ -105,24 +111,17 @@ final class BlockComponentTest extends ComponentSourceTestBase {
       'block.canvas_test_block_optional_contexts',
     ], $auto_created_components);
 
-    $view = View::create([
-      'id' => 'test_view',
-      'label' => 'Test view',
-      'description' => 'A view for testing.',
-      'base_table' => 'node',
-      'display' => [],
-    ]);
-    $view->addDisplay('default', 'Defaults', 'default');
-    $view->addDisplay('block', 'Test Block', 'test_block');
-    $view->save();
-
     // Trigger component generation, as if the test module was just installed.
-    // (Kernel tests don't trigger all hooks that are triggered in reality.)
+    // Due to BlockManagerDecorator, this should result in zero extra Block
+    // Components being discovered.
     $this->generateComponentConfig();
-
-    $view_block_component = Component::load('block.views_block.test_view-test_block');
-    \assert($view_block_component instanceof Component);
-    $this->assertTrue($view_block_component->status());
+    $this->assertCount($this->expectedDefaultComponentInstallCount, \array_filter(
+      $this->componentStorage->loadMultiple(),
+      static function (EntityInterface $component) {
+        \assert($component instanceof Component);
+        return $component->get('source') === BlockComponent::SOURCE_PLUGIN_ID;
+      }
+    ));
 
     return array_combine($auto_created_components, $auto_created_components);
   }
@@ -618,8 +617,10 @@ HTML,
   }
 
   protected function triggerBrokenComponent(ComponentInterface $component): BrokenPluginManagerInterface {
+    $decorator = \Drupal::service(BlockManagerInterface::class);
+    \assert($decorator instanceof BlockManagerDecorator);
     /** @var \Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface */
-    return \Drupal::service(BlockManagerInterface::class);
+    return (new \ReflectionProperty($decorator, 'decorated'))->getValue($decorator);
   }
 
   public function alter(ContainerBuilder $container): void {

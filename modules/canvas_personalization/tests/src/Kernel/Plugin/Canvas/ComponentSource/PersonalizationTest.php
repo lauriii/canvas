@@ -54,7 +54,7 @@ final class PersonalizationTest extends ComponentSourceTestBase {
    * @see modules/canvas_personalization/config/install/canvas.component.p13n.case.yml
    * @see modules/canvas_personalization/config/install/canvas.component.p13n.switch.yml
    */
-  protected int $expectedDefaultComponentInstallCount = 2;
+  protected int $expectedDefaultComponentInstallCount = parent::DEFAULT_COMPONENT_INSTALL_COUNT + 2;
 
   /**
    * Setup tests.

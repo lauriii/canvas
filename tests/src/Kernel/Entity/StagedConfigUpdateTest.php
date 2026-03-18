@@ -328,6 +328,11 @@ final class StagedConfigUpdateTest extends CanvasKernelTestBase implements Servi
    */
   public function testSavingWhichLeadsToInvalidSchema(): void {
     $this->markSystemSiteFullyValidated = TRUE;
+    // Clear the typed config schema cache so the FullyValidatable constraint
+    // added by ::makeSystemSiteValidated() takes effect. The schema may have
+    // been cached during setUp() (e.g., BlockManagerDecorator triggers
+    // component generation which loads schema) before this flag was set.
+    $this->container->get('config.typed')->clearCachedDefinitions();
     $this->assertSiteConfig([]);
 
     $sut = $this->container->get('entity_type.manager')

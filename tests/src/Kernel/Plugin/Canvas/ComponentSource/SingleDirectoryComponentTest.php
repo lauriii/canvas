@@ -119,6 +119,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
     $this->installEntitySchema('node');
     $this->installConfig('node');
     $this->createContentType(['type' => 'article']);
+    $this->expectedDefaultComponentInstallCount++;
     parent::testGetClientSideInfo($component_ids);
   }
 
@@ -310,6 +311,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
   public function testRenderComponentLive(array $component_ids): void {
     $this->installEntitySchema('node');
     $this->installConfig('node');
+    $this->expectedDefaultComponentInstallCount++;
     $this->createContentType(['type' => 'article']);
     $this->assertNotEmpty($component_ids);
 
@@ -1275,7 +1277,7 @@ HTML
   protected function generateCrashTestDummyComponentTree(string $component_id, array $inputs, bool $assertCount = TRUE): ComponentTreeItemList {
     if (str_starts_with($component_id, 'sdc.canvas_broken_sdcs.')) {
       // This component needs an extra module.
-      $this->assertCount(0, $this->componentStorage->loadMultiple());
+      $this->assertCount($this->expectedDefaultComponentInstallCount, $this->componentStorage->loadMultiple());
       \Drupal::service(ModuleInstallerInterface::class)->install(['canvas_broken_sdcs']);
 
       // Now call the parent, but don't assert the count of components, as we've

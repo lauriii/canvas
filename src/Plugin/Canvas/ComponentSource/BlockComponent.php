@@ -65,6 +65,8 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
   discovery: BlockComponentDiscovery::class,
   updater: FALSE,
   // @see \Drupal\Core\Block\BlockManager::__construct()
+  // @see \Drupal\canvas\Block\BlockManagerDecorator
+  // @todo Update after https://www.drupal.org/project/drupal/issues/3001284 lands
   discoveryCacheTags: [],
 )]
 final class BlockComponent extends ComponentSourceBase implements ContainerFactoryPluginInterface {

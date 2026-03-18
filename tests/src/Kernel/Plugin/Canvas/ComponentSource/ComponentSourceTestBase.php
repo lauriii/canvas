@@ -80,6 +80,17 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
 
   private const string UUID_FALLBACK_ROOT = 'd61651f3-e46b-45fa-aff1-beb95c64a886';
 
+  /**
+   * The default number of Component config entities, for Canvas' default deps.
+   *
+   * - 14 Component config entities for the `block` ComponentSource. Due to
+   *   BlockManagerDecorator.
+   * - 0 others
+   *
+   * @see \Drupal\canvas\Block\BlockManagerDecorator
+   */
+  protected const int DEFAULT_COMPONENT_INSTALL_COUNT = 14;
+
   protected array $logMessages = [];
 
   /**
@@ -87,7 +98,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
    *
    * @var int
    */
-  protected int $expectedDefaultComponentInstallCount = 0;
+  protected int $expectedDefaultComponentInstallCount = self::DEFAULT_COMPONENT_INSTALL_COUNT;
 
   /**
    * {@inheritdoc}

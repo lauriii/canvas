@@ -115,10 +115,14 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     $persistent_prop_shape_repository = $this->container->get(PropShapeRepositoryInterface::class);
     self::assertInstanceOf(PersistentPropShapeRepository::class, $persistent_prop_shape_repository);
 
-    // Empty prop shape repositories at the start. And no Components.
+    // Empty prop shape repositories at the start. And only Block Components,
+    // which do not use prop shapes.
     self::assertEmpty($ephemeral_prop_shape_repository->getUniquePropShapes());
     self::assertEmpty($persistent_prop_shape_repository->getUniquePropShapes());
-    self::assertEmpty(ComponentEntity::loadMultiple());
+    self::assertSame(['block'], \array_values(\array_unique(\array_map(
+      fn (ComponentEntity $component): string => $component->get('source'),
+      ComponentEntity::loadMultiple()
+    ))));
 
     // Discover all Components, which will cause the prop shape repositories to
     // get populated.
@@ -129,8 +133,6 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     // @todo Remove this when https://github.com/phpstan/phpstan/issues/13566#issuecomment-3645405380 is fixed.
     // @phpstan-ignore staticMethod.impossibleType
     self::assertNotEmpty($persistent_prop_shape_repository->getUniquePropShapes());
-    // @todo Remove this when https://github.com/phpstan/phpstan/issues/13566#issuecomment-3645405380 is fixed.
-    // @phpstan-ignore staticMethod.impossibleType
     self::assertNotEmpty(ComponentEntity::loadMultiple());
 
     // EphemeralPropShapeRepository must contain a superset, because the

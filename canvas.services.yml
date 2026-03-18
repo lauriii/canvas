@@ -192,3 +192,8 @@ services:
     # We don't want any other module to display messages
     decoration_priority: -100
     arguments: ['@.inner']
+  # @todo Remove after https://www.drupal.org/project/drupal/issues/3001284 lands.
+  Drupal\canvas\Block\BlockManagerDecorator:
+    public: false
+    decorates: plugin.manager.block
+    arguments: ['@.inner']
