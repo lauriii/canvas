@@ -121,6 +121,9 @@ services:
   Drupal\canvas\Entity\Routing\CanvasHtmlRouteEnhancer:
     tags:
       - { name: route_enhancer }
+  Drupal\canvas\Routing\ContentTemplatePreviewEntityEnhancer:
+    tags:
+      - { name: route_enhancer }
   Drupal\canvas\Routing\ContentTemplatePreviewEntityConverter:
     tags:
       - { name: paramconverter }

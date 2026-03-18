@@ -15,6 +15,8 @@ use Drupal\Core\ParamConverter\ParamNotConvertedException;
  */
 final class ContentTemplatePreviewEntityConverter implements ParamConverterInterface {
 
+  public const CANVAS_TEMPLATE_PREVIEW_ENTITY_PARAMETER_TYPE = 'canvas_content_template_preview_entity';
+
   public function __construct(
     private readonly EntityRepositoryInterface $entityRepository,
   ) {}
@@ -46,7 +48,7 @@ final class ContentTemplatePreviewEntityConverter implements ParamConverterInter
    * {@inheritdoc}
    */
   public function applies($definition, $name, Route $route) {
-    return !empty($definition['type']) && $definition['type'] == 'canvas_content_template_preview_entity';
+    return !empty($definition['type']) && $definition['type'] == self::CANVAS_TEMPLATE_PREVIEW_ENTITY_PARAMETER_TYPE;
   }
 
 }

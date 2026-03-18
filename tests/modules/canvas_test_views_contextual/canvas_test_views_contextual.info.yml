@@ -1,0 +1,7 @@
+name: 'Canvas Test Views Contextual Filter'
+type: module
+dependencies:
+  - canvas:canvas
+  - drupal:views
+  - drupal:user
+package: Testing
