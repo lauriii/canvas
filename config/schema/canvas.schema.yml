@@ -721,7 +721,12 @@ canvas.brand_kit.*:
       type: sequence
       label: 'Font entries'
       nullable: true
+      orderby: value
+      # Should be omitted when there are no fonts.
+      requiredKey: false
       constraints:
+        # There must be >=1 font file; otherwise the key should be omitted.
+        NotBlank: ~
         Unique:
           fields: [id]
           errorPath: id

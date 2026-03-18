@@ -530,4 +530,17 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
     return [];
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function toArray(): array {
+    $properties = parent::toArray();
+    // Omit NULL fonts property to satisfy NotBlank constraint.
+    // If there are no entries, the key should be omitted entirely.
+    if ($properties['fonts'] === NULL) {
+      unset($properties['fonts']);
+    }
+    return $properties;
+  }
+
 }
