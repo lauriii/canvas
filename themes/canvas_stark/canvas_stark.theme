@@ -248,6 +248,7 @@ function canvas_stark_preprocess_fieldset__media_library_widget(array &$variable
   if (isset($variables['element']['#component_prop_name'])) {
     $variables['component_prop_name'] = $variables['element']['#component_prop_name'];
   }
+  unset($variables['prefix']['weight_toggle']);
 }
 
 function canvas_stark_preprocess_fieldset(array &$variables): void {

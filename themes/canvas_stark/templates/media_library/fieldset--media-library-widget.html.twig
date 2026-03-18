@@ -38,53 +38,47 @@
   'form-wrapper',
 ]
 %}
-<fieldset{{ attributes.addClass(classes) }} data-canvas-media-library-fieldset='true'>
-  <legend>
-    <canvas-drupal-label
-        title="{{ legend.title }}"
-        {% if prop_link_data %}
-          direct_linker_data="{{ prop_link_data }}"
-        {% endif  %}
-    >
-    </canvas-drupal-label>
-  </legend>
+<drupal-canvas-media-library-fieldset>
+  <fieldset{{ attributes.addClass(classes) }} data-canvas-media-library-fieldset='true'>
+    <legend>
+      <canvas-drupal-label
+          title="{{ legend.title }}"
+          {% if prop_link_data %}
+            direct_linker_data="{{ prop_link_data }}"
+          {% endif  %}
+      >
+      </canvas-drupal-label>
+    </legend>
 
-  {# If the prefix is the weight toggle, it is positioned above the wrapper. #}
-  {% if prefix and prefix['weight_toggle'] is defined %}
-    {{ prefix }}
-  {% endif %}
-  <div class="fieldset-wrapper" data-canvas-media-library-fieldset-wrapper='true'>
-{#  @todo the designs don't include any uses of the prefix when it isn't the weight,
-      but it's here as a comment in the event it needs inclusion later.
+    <div class="fieldset-wrapper" data-canvas-media-library-fieldset-wrapper='true'>
+      {% if prefix %}
+        <span class="field-prefix">{{ prefix }}</span>
+      {% endif %}
 
-    {% if prefix and prefix['weight_toggle'] is not defined %}
-      <span class="field-prefix">{{ prefix }}</span>
-    {% endif %}
-#}
-    {% if errors %}
-      <div>
-        {{ errors }}
-      </div>
-    {% endif %}
-    {#
-      Only render default image preview when component_prop_name is set.
-      While this template is used for all media library widgets (including those
-      in regular entity forms), component_prop_name is only passed to the template
-      during Canvas component editing. This ensures the Canvas-specific default
-      image preview functionality only appears in the appropriate context.
-      @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetCompleteFormAlter()
-    #}
-    {% if component_prop_name %}
-      <canvas-default-image-preview prop_name="{{ component_prop_name }}"></canvas-default-image-preview>
-    {% endif %}
-
-    {% if suffix %}
-      {#  The suffix is the "add media" button    #}
-      {{ suffix }}
-    {% endif %}
-    {{ children }}
-    {% if description.content %}
-      <canvas-description description="{{ description.content }}" />
-    {% endif %}
-  </div>
+      {% if errors %}
+        <div>
+          {{ errors }}
+        </div>
+      {% endif %}
+      {#
+        Only render default image preview when component_prop_name is set.
+        While this template is used for all media library widgets (including those
+        in regular entity forms), component_prop_name is only passed to the template
+        during Canvas component editing. This ensures the Canvas-specific default
+        image preview functionality only appears in the appropriate context.
+        @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetCompleteFormAlter()
+      #}
+      {% if component_prop_name %}
+        <canvas-default-image-preview prop_name="{{ component_prop_name }}"></canvas-default-image-preview>
+      {% endif %}
+     {{ children }}
+      {% if suffix %}
+        {#  The suffix is the "add media" button    #}
+        {{ suffix }}
+      {% endif %}
+      {% if description.content %}
+        <canvas-description description="{{ description.content }}" ></canvas-description>
+      {% endif %}
+    </div>
 </fieldset>
+</drupal-canvas-media-library-fieldset>

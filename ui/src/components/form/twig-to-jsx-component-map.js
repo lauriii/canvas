@@ -11,6 +11,9 @@ import DrupalFormElement from '@/components/form/components/drupal/DrupalFormEle
 import DrupalFormElementLabel from '@/components/form/components/drupal/DrupalFormElementLabel';
 import DrupalInput from '@/components/form/components/drupal/DrupalInput';
 import DrupalInputMultivalueForm from '@/components/form/components/drupal/DrupalInputMultivalueForm';
+import DrupalMediaLibraryFieldset from '@/components/form/components/drupal/DrupalMediaLibraryFieldset.tsx';
+import DrupalMediaLibraryItem from '@/components/form/components/drupal/DrupalMediaLibraryItem.tsx';
+import DrupalMediaListContainer from '@/components/form/components/drupal/DrupalMediaListContainer.tsx';
 import DrupalPathWidget from '@/components/form/components/drupal/DrupalPathWidget';
 import { DrupalRadioGroup } from '@/components/form/components/drupal/DrupalRadio';
 import DrupalSelect from '@/components/form/components/drupal/DrupalSelect';
@@ -50,6 +53,9 @@ const twigToJSXComponentMap = {
   'drupal-canvas-linked-field-box': LinkedFieldBox,
   'drupal-canvas-prop-linker': PropLinker,
   'canvas-default-image-preview': DefaultImagePreview,
+  'drupal-canvas-media-list-container': DrupalMediaListContainer,
+  'drupal-canvas-media-library-item': DrupalMediaLibraryItem,
+  'drupal-canvas-media-library-fieldset': DrupalMediaLibraryFieldset,
 };
 
 export default twigToJSXComponentMap;

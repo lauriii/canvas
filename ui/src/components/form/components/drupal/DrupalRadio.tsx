@@ -75,10 +75,7 @@ const DrupalRadioItem = ({ attributes = {} }: { attributes?: Attributes }) => {
       ? attributes.value
       : undefined,
   );
-  console.log(
-    `${attributes.name} Selected ${selected}, value ${valueRef.current}`,
-    attributes,
-  );
+
   return (
     <RadioItem
       attributes={{

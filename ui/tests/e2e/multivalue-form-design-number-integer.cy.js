@@ -159,6 +159,9 @@ configs.forEach((config) => {
       cy.get(`@${config.fieldAlias}`)
         .find('.multivalue-container')
         .should('exist');
+      cy.get(`@${config.fieldAlias}`)
+        .find('.multivalue-container')
+        .scrollIntoView();
       cy.get(`@${config.fieldAlias}`).find('table').should('be.visible');
       cy.get(`@${config.fieldAlias}`).find('tbody tr').should('have.length', 2);
 

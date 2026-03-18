@@ -8,3 +8,8 @@ hidden: true
 libraries-extend:
   ckeditor5/internal.drupal.ckeditor5:
     - canvas_stark/canvas.internal.drupal.ckeditor5
+
+libraries-override:
+  media_library/widget:
+    js:
+      js/media_library.widget.js: false
