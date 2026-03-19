@@ -81,6 +81,7 @@ export async function copyLocalJsSourceNext(
       if (!component.jsEntryPath) continue;
       const targetPath = path.join(CANVAS_CACHE_DIR, component.name);
       // Create the component directory in the target
+      await fs.rm(targetPath, { recursive: true, force: true });
       await fs.mkdir(targetPath, { recursive: true });
       // Use jsEntryPath directly — it's already the absolute path to the correct file
       const jsFileName = path.basename(component.jsEntryPath);

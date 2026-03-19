@@ -95,7 +95,7 @@ describe('Pull Command', () => {
       const componentDir = path.join(tmpDir, 'my-button');
       const files = await fs.readdir(componentDir);
       expect(files).toContain('component.yml');
-      expect(files).toContain('index.jsx');
+      expect(files).toContain('index.tsx');
       expect(files).toContain('index.css');
 
       const ymlContent = await fs.readFile(

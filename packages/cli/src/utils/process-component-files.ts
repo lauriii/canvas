@@ -1,13 +1,13 @@
 import { promises as fs, readdirSync } from 'fs';
 import path from 'path';
 import * as yaml from 'js-yaml';
+import { JS_EXTENSIONS } from '@drupal-canvas/discovery';
 
 import { getConfig } from '../config';
 
 import type { Component, DataDependencies } from '../types/Component';
 import type { Metadata } from '../types/Metadata';
 
-const JS_EXTENSIONS = ['tsx', 'jsx', 'ts', 'js'] as const;
 const NAMED_SUFFIX = '.component.yml';
 
 /**
@@ -44,7 +44,7 @@ export function findJsEntryPoint(componentDir: string): string | null {
 
   // Find the first matching JS/TS file
   for (const ext of JS_EXTENSIONS) {
-    const fileName = `${componentBaseName}.${ext}`;
+    const fileName = `${componentBaseName}${ext}`;
     if (files.includes(fileName)) {
       return path.join(componentDir, fileName);
     }

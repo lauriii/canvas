@@ -14,7 +14,7 @@ import type {
   DiscoveryWarning,
 } from './types';
 
-const JS_EXTENSIONS = ['ts', 'tsx', 'js', 'jsx'] as const;
+export const JS_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx'] as const;
 // @todo See if we can find better default AND make this configurable.
 const ALWAYS_IGNORED_PATTERNS = [
   '**/node_modules/**',
@@ -233,7 +233,7 @@ export async function discoverCanvasProject(
         JS_EXTENSIONS.map(async (extension) => {
           const candidatePath = path.resolve(
             absoluteDirectory,
-            `${componentBaseName}.${extension}`,
+            `${componentBaseName}${extension}`,
           );
           return {
             extension,

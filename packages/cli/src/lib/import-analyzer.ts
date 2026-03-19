@@ -2,6 +2,7 @@ import { existsSync, promises as fs, statSync } from 'node:fs';
 import path from 'node:path';
 import { parse } from '@babel/parser';
 import * as p from '@clack/prompts';
+import { JS_EXTENSIONS } from '@drupal-canvas/discovery';
 
 import { ASSET_EXTENSIONS } from './asset-extensions';
 
@@ -38,12 +39,11 @@ export interface CollectDependenciesResult {
   unresolvedAliasImports: Set<string>;
 }
 
-const JS_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx'] as const;
 const ALIAS_PREFIX = '@/';
 
 function isJSFile(filePath: string): boolean {
   const ext = path.extname(filePath).toLowerCase();
-  return JS_EXTENSIONS.includes(ext as (typeof JS_EXTENSIONS)[number]);
+  return (JS_EXTENSIONS as readonly string[]).includes(ext);
 }
 
 function isCSSFile(filePath: string): boolean {

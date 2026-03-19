@@ -143,7 +143,7 @@ export function createComponentsPullTask(
             const dir = path.dirname(discovered.metadataPath);
             await writeComponentFiles(component, {
               metadataPath: discovered.metadataPath,
-              jsPath: discovered.jsEntryPath ?? path.join(dir, 'index.jsx'),
+              jsPath: discovered.jsEntryPath ?? path.join(dir, 'index.tsx'),
               cssPath: discovered.cssEntryPath ?? path.join(dir, 'index.css'),
             });
           } else {
@@ -151,7 +151,7 @@ export function createComponentsPullTask(
             await fs.mkdir(dir, { recursive: true });
             await writeComponentFiles(component, {
               metadataPath: path.join(dir, 'component.yml'),
-              jsPath: path.join(dir, 'index.jsx'),
+              jsPath: path.join(dir, 'index.tsx'),
               cssPath: path.join(dir, 'index.css'),
             });
           }
@@ -210,6 +210,7 @@ export function createAssetsPullTask(
             details: [{ content: 'Skipped (already exists)' }],
           });
         } else {
+          await fs.mkdir(path.dirname(globalCssPath), { recursive: true });
           await fs.writeFile(globalCssPath, globalCss, 'utf-8');
           results.push({ itemName: 'global.css', success: true });
         }
