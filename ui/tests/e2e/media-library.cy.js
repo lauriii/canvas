@@ -171,6 +171,17 @@ describe('Media Library', () => {
       '.layout-content img[alt="Example image placeholder"]',
     );
 
+    // Add an arbitrary wait here to confirm the absence of rendering errors,
+    // which can appear shortly after the image is removed, but delayed enough
+    // that it might not occur until after the test is complete.
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(1000);
+    cy.waitForElementContentNotInIframe(
+      '.layout-content',
+      'Component failed to render',
+    );
+    cy.waitForElementContentNotInIframe('.layout-content', 'Exception');
+
     // Text prop is still intact after image removal.
     cy.waitForElementContentInIframe('p', 'A new value');
 

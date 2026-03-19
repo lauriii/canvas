@@ -26,6 +26,7 @@ import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
 import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import useInputUIData from '@/hooks/useInputUIData';
 import { useUpdateComponentMutation } from '@/services/preview';
+import { isAjaxing } from '@/utils/isAjaxing';
 
 import type { ReactNode } from 'react';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -108,9 +109,7 @@ function buildRemovePatch(
   const resolved = JSON.parse(JSON.stringify(model.resolved));
   const source: Sources = JSON.parse(JSON.stringify(model.source));
 
-  resolved[propName] = isRequired
-    ? propSourceData.default_values.resolved
-    : undefined;
+  resolved[propName] = isRequired ? propSourceData.default_values.resolved : [];
   if (!isRequired) {
     source[propName].value = [];
   }
@@ -303,19 +302,25 @@ const DrupalMediaListContainer = ({
       if (!componentData || !propSourceData) {
         return;
       }
-
-      patchComponent(
-        buildRemovePatch(
-          selectedModel,
-          propName,
-          propSourceData,
-          componentData,
-          editorFrameContext,
-          selectedComponent,
-          selectedComponentType,
-          version,
-        ),
+      const removePatch = buildRemovePatch(
+        selectedModel,
+        propName,
+        propSourceData,
+        componentData,
+        editorFrameContext,
+        selectedComponent,
+        selectedComponentType,
+        version,
       );
+
+      setTimeout(() => {
+        const interval = setInterval(() => {
+          if (!isAjaxing()) {
+            patchComponent(removePatch);
+            clearInterval(interval);
+          }
+        });
+      });
     };
 
     const handleKeyDown = (e: Event) => {
