@@ -701,6 +701,52 @@ canvas.asset_library.*:
       label: 'JS'
       # The asset library may contain only CSS, no JS.
       nullable: true
+    imports:
+      type: sequence
+      label: 'Import manifest entries'
+      requiredKey: false
+      orderby: value
+      constraints:
+        # There must be >=1 import; otherwise the key should be omitted.
+        NotBlank: ~
+      sequence:
+        type: canvas.asset_library_manifest_entry
+    assets:
+      type: sequence
+      label: 'Asset manifest entries'
+      requiredKey: false
+      orderby: value
+      constraints:
+        # There must be >=1 import; otherwise the key should be omitted.
+        NotBlank: ~
+      sequence:
+        type: canvas.asset_library_manifest_entry
+    shared:
+      type: sequence
+      label: 'Shared chunk manifest entries'
+      requiredKey: false
+      orderby: value
+      constraints:
+        # There must be >=1 import; otherwise the key should be omitted.
+        NotBlank: ~
+      sequence:
+        type: canvas.asset_library_manifest_entry
+
+canvas.asset_library_manifest_entry:
+  type: mapping
+  label: 'Asset library manifest entry'
+  mapping:
+    name:
+      type: string
+      label: 'Name'
+      constraints:
+        NotBlank: []
+    uri:
+      type: uri
+      label: 'Managed file URI'
+      constraints:
+        NotBlank: []
+        UriScheme: ['public']
 
 canvas.brand_kit.*:
   type: config_entity

@@ -6,13 +6,13 @@ namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
 use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\EditFieldContent;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 
 /**
  * Tests for the EditFieldContentTest function call plugin.
  */
 #[Group('canvas_ai')]
-final class EditFieldContentTest extends KernelTestBase {
+final class EditFieldContentTest extends CanvasKernelTestBase {
 
   /**
    * The function call plugin manager.
@@ -27,9 +27,6 @@ final class EditFieldContentTest extends KernelTestBase {
   protected static $modules = [
     'ai',
     'ai_agents',
-    'canvas',
-    'system',
-    'user',
     'canvas_ai',
   ];
 

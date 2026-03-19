@@ -6,13 +6,13 @@ namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
 use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\AddMetadata;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 
 /**
  * Tests for the AddMetadata function call plugin.
  */
 #[Group('canvas_ai')]
-class AddMetadataTest extends KernelTestBase {
+class AddMetadataTest extends CanvasKernelTestBase {
 
   /**
    * The function call plugin manager.
@@ -27,9 +27,6 @@ class AddMetadataTest extends KernelTestBase {
   protected static $modules = [
     'ai',
     'ai_agents',
-    'canvas',
-    'system',
-    'user',
     'canvas_ai',
   ];
 

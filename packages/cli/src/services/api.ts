@@ -3,7 +3,12 @@ import axios from 'axios';
 import { getConfig } from '../config.js';
 
 import type { AxiosError, AxiosInstance } from 'axios';
-import type { AssetLibrary, Component } from '../types/Component';
+import type {
+  AssetLibrary,
+  Component,
+  UploadedArtifact,
+  UploadedArtifactResult,
+} from '../types/Component';
 
 export interface ApiOptions {
   siteUrl: string;
@@ -279,6 +284,78 @@ export class ApiService {
     } catch (error) {
       this.handleApiError(error);
       throw new Error('Failed to update global asset library');
+    }
+  }
+
+  /**
+   * Upload a single build artifact file.
+   */
+  async uploadArtifact(
+    filename: string,
+    fileBuffer: Buffer,
+  ): Promise<UploadedArtifactResult> {
+    try {
+      const response = await this.client.post(
+        '/canvas/api/v0/artifacts/upload',
+        fileBuffer,
+        {
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'Content-Disposition': `file; filename="${filename}"`,
+          },
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+        },
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+      throw new Error(`Failed to upload artifact: ${filename}`);
+    }
+  }
+
+  /**
+   * Sync the build manifest after all files are uploaded.
+   *
+   * Updates the global asset library's manifest properties (imports, assets, shared)
+   * via the generic config PATCH endpoint.
+   */
+  async syncManifest(manifest: {
+    vendor: UploadedArtifact[];
+    local: UploadedArtifact[];
+    shared: UploadedArtifact[];
+  }): Promise<{
+    manifest: {
+      vendor: UploadedArtifact[];
+      local: UploadedArtifact[];
+      shared: UploadedArtifact[];
+    };
+  }> {
+    try {
+      // Map CLI manifest structure to AssetLibrary entity structure:
+      // - vendor -> imports
+      // - local -> assets
+      // - shared -> shared
+      const response = await this.client.patch(
+        '/canvas/api/v0/config/asset_library/global',
+        {
+          imports: manifest.vendor,
+          assets: manifest.local,
+          shared: manifest.shared,
+        },
+      );
+
+      // Map response back to CLI format for backward compatibility
+      return {
+        manifest: {
+          vendor: response.data.imports || [],
+          local: response.data.assets || [],
+          shared: response.data.shared || [],
+        },
+      };
+    } catch (error) {
+      this.handleApiError(error);
+      throw new Error('Failed to sync manifest');
     }
   }
 

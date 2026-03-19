@@ -298,31 +298,6 @@ export async function analyzeImports(
 }
 
 /**
- * Extract the package name from an import source.
- * Handles scoped packages (@org/pkg) and regular packages.
- * Preserves full paths for CSS-related imports (e.g., 'swiper/css').
- */
-function getPackageName(source: string): string {
-  // Preserve full path for CSS-related imports - these are typically
-  // side-effect imports that must be bundled separately
-  if (
-    source.includes('/css') ||
-    source.includes('/styles') ||
-    source.endsWith('.css')
-  ) {
-    return source;
-  }
-
-  if (source.startsWith('@')) {
-    // Scoped package: @org/pkg or @org/pkg/subpath
-    const parts = source.split('/');
-    return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : source;
-  }
-  // Regular package: pkg or pkg/subpath
-  return source.split('/')[0];
-}
-
-/**
  * Collect all imports from component entry files.
  * Returns third-party package names, resolved alias imports, and unresolved alias imports.
  */
@@ -346,7 +321,7 @@ export async function collectImports(
   for (const [, analyzedFile] of analysisResult.files) {
     for (const imp of analyzedFile.imports) {
       if (imp.category === 'third-party' && !imp.isSVG && !imp.isImage) {
-        const packageName = getPackageName(imp.source);
+        const packageName = imp.source;
         thirdPartyPackages.add(packageName);
       }
 

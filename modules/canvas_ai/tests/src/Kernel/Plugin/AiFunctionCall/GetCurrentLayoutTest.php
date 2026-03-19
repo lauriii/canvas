@@ -7,7 +7,7 @@ namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 use PHPUnit\Framework\Attributes\Group;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Drupal\canvas_ai\CanvasAiTempStore;
@@ -17,7 +17,7 @@ use Drupal\canvas_ai\CanvasAiPermissions;
  * Tests for the GetCurrentLayout function call plugin.
  */
 #[Group('canvas_ai')]
-final class GetCurrentLayoutTest extends KernelTestBase {
+final class GetCurrentLayoutTest extends CanvasKernelTestBase {
 
   use UserCreationTrait;
 
@@ -48,9 +48,6 @@ final class GetCurrentLayoutTest extends KernelTestBase {
   protected static $modules = [
     'ai',
     'ai_agents',
-    'canvas',
-    'system',
-    'user',
     'canvas_ai',
   ];
 
@@ -59,6 +56,7 @@ final class GetCurrentLayoutTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->installEntitySchema('path_alias');
     $this->installEntitySchema('user');
 
     $this->functionCallManager = $this->container->get('plugin.manager.ai.function_calls');

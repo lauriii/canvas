@@ -1,43 +1,139 @@
-import { promises as fs } from 'fs';
+import { promises as fs, readdirSync } from 'fs';
 import path from 'path';
 import * as yaml from 'js-yaml';
+
+import { getConfig } from '../config';
 
 import type { Component, DataDependencies } from '../types/Component';
 import type { Metadata } from '../types/Metadata';
 
+const JS_EXTENSIONS = ['tsx', 'jsx', 'ts', 'js'] as const;
+const NAMED_SUFFIX = '.component.yml';
+
+/**
+ * Get files in a directory
+ * @param dirPath Directory path
+ * @returns Array of file names in the directory
+ */
+function getFilesInDirectory(dirPath: string): string[] {
+  try {
+    return readdirSync(dirPath);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Failed to read component directory "${dirPath}": ${message}`,
+    );
+  }
+}
+
+/**
+ * Find the JS/TS entry point file for a component
+ * Supports both named components ([name].component.yml -> [name].{jsx,tsx,js,ts})
+ * and index-based components (component.yml -> index.{jsx,tsx,js,ts})
+ * @param componentDir Component directory path
+ * @returns Path to the JS/TS entry point file, or null if not found
+ */
+export function findJsEntryPoint(componentDir: string): string | null {
+  const files = getFilesInDirectory(componentDir);
+
+  // Check for named metadata file (e.g., MyComponent.component.yml)
+  const namedMetadataFile = files.find((file) => file.endsWith(NAMED_SUFFIX));
+  const componentBaseName = namedMetadataFile
+    ? namedMetadataFile.slice(0, -NAMED_SUFFIX.length)
+    : 'index';
+
+  // Find the first matching JS/TS file
+  for (const ext of JS_EXTENSIONS) {
+    const fileName = `${componentBaseName}.${ext}`;
+    if (files.includes(fileName)) {
+      return path.join(componentDir, fileName);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Find the CSS entry point file for a component
+ * Supports both named components and index-based components
+ * @param componentDir Component directory path
+ * @returns Path to the CSS entry point file, or null if not found
+ */
+export function findCssEntryPoint(componentDir: string): string | null {
+  const files = getFilesInDirectory(componentDir);
+
+  // Check for named metadata file (e.g., MyComponent.component.yml)
+  const namedMetadataFile = files.find((file) => file.endsWith(NAMED_SUFFIX));
+  const componentBaseName = namedMetadataFile
+    ? namedMetadataFile.slice(0, -NAMED_SUFFIX.length)
+    : 'index';
+
+  const cssFileName = `${componentBaseName}.css`;
+  if (files.includes(cssFileName)) {
+    return path.join(componentDir, cssFileName);
+  }
+
+  return null;
+}
+
 /**
  * Process and read component files
  * @param componentDir Component directory path
+ * @param componentName Optional component name for locating build output
+ * @param componentKind Optional component kind ('index' or 'named')
  * @returns Processed component files and paths
  */
-export async function processComponentFiles(componentDir: string): Promise<{
+export async function processComponentFiles(
+  componentDir: string,
+  componentName?: string,
+  componentKind: 'index' | 'named' = 'index',
+): Promise<{
   sourceCodeJs: string;
   compiledJs: string;
   sourceCodeCss: string;
   compiledCss: string;
   metadata: Metadata | undefined;
 }> {
-  const metadataPath = await findMetadataPath(componentDir);
+  const config = getConfig();
+  const metadataPath = findMetadataPath(componentDir);
   const metadata = await readComponentMetadata(metadataPath);
-  const distDir = path.join(componentDir, 'dist');
-  const sourceCodeJs = await fs.readFile(
-    path.join(componentDir, 'index.jsx'),
+
+  // Find and read the JS/TS entry point
+  const jsEntryPath = findJsEntryPoint(componentDir);
+  if (!jsEntryPath) {
+    throw new Error(
+      `No JS/TS entry point found in ${componentDir}. Expected [name].{jsx,tsx,js,ts} or index.{jsx,tsx,js,ts}`,
+    );
+  }
+  const sourceCodeJs = await fs.readFile(jsEntryPath, 'utf-8');
+
+  // Determine the build output directory and filename
+  // buildComponent outputs to: outputDir/components/[name]/[outputBaseName].js
+  const name = componentName || path.basename(componentDir);
+  const outputBaseName = componentKind === 'index' ? 'index' : name;
+  const distDir = path.join(config.outputDir, 'components', name);
+
+  const compiledJs = await fs.readFile(
+    path.join(distDir, `${outputBaseName}.js`),
     'utf-8',
   );
-  const compiledJs = await fs.readFile(path.join(distDir, 'index.js'), 'utf-8');
 
   let sourceCodeCss = '';
   let compiledCss = '';
 
-  try {
-    sourceCodeCss = await fs.readFile(
-      path.join(componentDir, 'index.css'),
-      'utf-8',
-    );
-    // If source CSS exists, compiled CSS should also exist
-    compiledCss = await fs.readFile(path.join(distDir, 'index.css'), 'utf-8');
-  } catch {
-    // CSS files don't exist, use empty strings
+  // Find and read the CSS entry point if it exists
+  const cssEntryPath = findCssEntryPoint(componentDir);
+  if (cssEntryPath) {
+    try {
+      sourceCodeCss = await fs.readFile(cssEntryPath, 'utf-8');
+      // If source CSS exists, compiled CSS should also exist
+      compiledCss = await fs.readFile(
+        path.join(distDir, `${outputBaseName}.css`),
+        'utf-8',
+      );
+    } catch {
+      // CSS files don't exist or compilation failed, use empty strings
+    }
   }
 
   return {
@@ -51,18 +147,24 @@ export async function processComponentFiles(componentDir: string): Promise<{
 
 /**
  * Find the component metadata file
+ * Supports both component.yml and [name].component.yml
  * @param componentDir Component directory path
- * @returns Path to the found metadata file
+ * @returns Path to the found metadata file, or empty string if not found
  */
-export async function findMetadataPath(componentDir: string): Promise<string> {
-  const metadataPath = path.join(componentDir, 'component.yml');
+export function findMetadataPath(componentDir: string): string {
+  const files = getFilesInDirectory(componentDir);
 
-  try {
-    await fs.access(metadataPath);
-    return metadataPath;
-  } catch (e) {
-    console.error(`Error finding component metadata at ${metadataPath}:`, e);
+  // First check for named metadata file (e.g., my-component.component.yml)
+  const namedMetadataFile = files.find((file) => file.endsWith(NAMED_SUFFIX));
+  if (namedMetadataFile) {
+    return path.join(componentDir, namedMetadataFile);
   }
+
+  // Fall back to component.yml
+  if (files.includes('component.yml')) {
+    return path.join(componentDir, 'component.yml');
+  }
+
   return '';
 }
 

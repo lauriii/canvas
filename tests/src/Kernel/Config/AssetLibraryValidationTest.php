@@ -23,6 +23,7 @@ class AssetLibraryValidationTest extends BetterConfigEntityValidationTestBase {
    */
   protected static $modules = [
     'canvas',
+    'file',
   ];
 
   /**
@@ -47,6 +48,9 @@ class AssetLibraryValidationTest extends BetterConfigEntityValidationTestBase {
   protected static array $propertiesWithOptionalValues = [
     'css',
     'js',
+    'imports',
+    'assets',
+    'shared',
   ];
 
   /**
@@ -105,6 +109,84 @@ class AssetLibraryValidationTest extends BetterConfigEntityValidationTestBase {
         ],
         [],
       ],
+      'Valid: complete library with all properties' => [
+        [
+          'id' => 'global',
+          'label' => 'Complete Test Library',
+          'css' => [
+            'original' => '.hero { display: flex; align-items: center; }',
+            'compiled' => '.hero{display:flex;align-items:center;}',
+          ],
+          'js' => [
+            'original' => 'import { motion } from "motion";\nconsole.log("Canvas ready");',
+            'compiled' => 'import{motion}from"motion";console.log("Canvas ready");',
+          ],
+          'imports' => [
+            [
+              'name' => 'motion',
+              'uri' => AssetLibrary::ARTIFACTS_DIRECTORY . 'vendor/motion.js',
+            ],
+            [
+              'name' => 'react',
+              'uri' => AssetLibrary::ARTIFACTS_DIRECTORY . 'vendor/react.js',
+            ],
+          ],
+          'assets' => [
+            [
+              'name' => '@/components/hero/index.js',
+              'uri' => AssetLibrary::ARTIFACTS_DIRECTORY . 'components/hero/index.js',
+            ],
+            [
+              'name' => '@/utils/helpers.js',
+              'uri' => AssetLibrary::ARTIFACTS_DIRECTORY . 'utils/helpers.js',
+            ],
+          ],
+          'shared' => [
+            [
+              'name' => '@/shared/constants.js',
+              'uri' => AssetLibrary::ARTIFACTS_DIRECTORY . 'shared/constants.js',
+            ],
+          ],
+        ],
+        [],
+      ],
+      'Invalid: import manifest entry has blank name' => [
+        [
+          'id' => 'global',
+          'label' => 'Test',
+          'css' => NULL,
+          'js' => NULL,
+          'imports' => [
+            [
+              'name' => '',
+              'uri' => AssetLibrary::ARTIFACTS_DIRECTORY . 'vendor/motion.js',
+            ],
+          ],
+        ],
+        [
+          'imports.0.name' => 'This value should not be blank.',
+        ],
+      ],
+      'Invalid: asset manifest entry has blank uri' => [
+        [
+          'id' => 'global',
+          'label' => 'Test',
+          'css' => NULL,
+          'js' => NULL,
+          'assets' => [
+            [
+              'name' => '@/components/hero/index.js',
+              'uri' => '',
+            ],
+          ],
+        ],
+        [
+          'assets.0.uri' => [
+            'This value should not be blank.',
+            'This value should be of the correct primitive type.',
+          ],
+        ],
+      ],
       'Invalid: compiled without source' => [
         [
           'id' => 'global',
@@ -159,6 +241,64 @@ class AssetLibraryValidationTest extends BetterConfigEntityValidationTestBase {
             "'compiled' is a required key.",
           ],
           'js.snazzy_js' => "'snazzy_js' is not a supported key.",
+        ],
+      ],
+      'Invalid: empty imports array' => [
+        [
+          'id' => 'global',
+          'label' => 'Test',
+          'css' => NULL,
+          'js' => NULL,
+          'imports' => [],
+        ],
+        [
+          'imports' => 'This value should not be blank.',
+        ],
+      ],
+      'Invalid: empty assets array' => [
+        [
+          'id' => 'global',
+          'label' => 'Test',
+          'css' => NULL,
+          'js' => NULL,
+          'assets' => [],
+        ],
+        [
+          'assets' => 'This value should not be blank.',
+        ],
+      ],
+      'Invalid: import manifest entry has non-public URI scheme' => [
+        [
+          'id' => 'global',
+          'label' => 'Test',
+          'css' => NULL,
+          'js' => NULL,
+          'imports' => [
+            [
+              'name' => 'motion',
+              'uri' => 'private://vendor/motion.js',
+            ],
+          ],
+        ],
+        [
+          'imports.0.uri' => '\'private\' is not allowed, must be one of the allowed schemes: public.',
+        ],
+      ],
+      'Invalid: asset manifest entry has non-public URI scheme' => [
+        [
+          'id' => 'global',
+          'label' => 'Test',
+          'css' => NULL,
+          'js' => NULL,
+          'assets' => [
+            [
+              'name' => '@/components/hero/index.js',
+              'uri' => 'private://components/hero/index.js',
+            ],
+          ],
+        ],
+        [
+          'assets.0.uri' => '\'private\' is not allowed, must be one of the allowed schemes: public.',
         ],
       ],
     ];

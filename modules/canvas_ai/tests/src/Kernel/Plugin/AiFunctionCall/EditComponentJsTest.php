@@ -8,7 +8,7 @@ use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\EditComponentJs;
 use Drupal\Component\Serialization\Json;
 use Drupal\canvas\Entity\JavaScriptComponent;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
 use Symfony\Component\Yaml\Yaml;
 
@@ -16,7 +16,7 @@ use Symfony\Component\Yaml\Yaml;
  * Tests for the EditComponentJs function call plugin.
  */
 #[Group('canvas_ai')]
-final class EditComponentJsTest extends KernelTestBase {
+final class EditComponentJsTest extends CanvasKernelTestBase {
 
   use FunctionalCallTestTrait;
 
@@ -33,9 +33,6 @@ final class EditComponentJsTest extends KernelTestBase {
   protected static $modules = [
     'ai',
     'ai_agents',
-    'canvas',
-    'system',
-    'user',
     'canvas_ai',
   ];
 

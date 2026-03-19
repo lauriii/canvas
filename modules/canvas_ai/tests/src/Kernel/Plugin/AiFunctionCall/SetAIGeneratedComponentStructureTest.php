@@ -9,13 +9,12 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure;
-use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
 use Drupal\user\Entity\User;
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
 use Symfony\Component\Yaml\Yaml;
@@ -24,7 +23,7 @@ use Symfony\Component\Yaml\Yaml;
  * Tests for the SetAIGeneratedComponentStructure function call plugin.
  */
 #[Group('canvas_ai')]
-final class SetAIGeneratedComponentStructureTest extends KernelTestBase {
+final class SetAIGeneratedComponentStructureTest extends CanvasKernelTestBase {
 
   use FunctionalCallTestTrait;
   use UserCreationTrait;
@@ -65,11 +64,13 @@ final class SetAIGeneratedComponentStructureTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->installEntitySchema('path_alias');
     $this->installEntitySchema('user');
     $this->installConfig(['canvas']);
     $this->installEntitySchema('file');
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $this->container->get(ComponentSourceManager::class)->generateComponents();
 
     $this->functionCallManager = $this->container->get('plugin.manager.ai.function_calls');
     $privileged_user = $this->createUser([CanvasAiPermissions::USE_CANVAS_AI]);
@@ -79,8 +80,6 @@ final class SetAIGeneratedComponentStructureTest extends KernelTestBase {
     }
     $this->privilegedUser = $privileged_user;
     $this->unprivilegedUser = $unprivileged_user;
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_sdc']);
-    $this->container->get('theme_installer')->install(['stark']);
     $this->container->get('config.factory')
       ->getEditable('system.theme')
       ->set('default', 'stark')

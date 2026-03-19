@@ -2,6 +2,23 @@ import { drupalCanvasCompat } from '@drupal-canvas/vite-compat';
 
 import type { UserConfig } from 'vite';
 
+// The following packages are bundled by Drupal Canvas, and are provided by
+// default in its import map. We don't need to bundle them.
+export const DRUPAL_CANVAS_EXTERNALS = [
+  'preact',
+  'preact/hooks',
+  'react/jsx-runtime',
+  'react',
+  'react-dom',
+  'react-dom/client',
+  'clsx',
+  'class-variance-authority',
+  'tailwind-merge',
+  'drupal-jsonapi-params',
+  'swr',
+  'drupal-canvas',
+];
+
 export interface CanvasViteBuildConfigOptions {
   scanRoot: string;
   aliasBaseDir: string;

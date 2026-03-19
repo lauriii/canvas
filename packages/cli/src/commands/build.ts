@@ -4,9 +4,7 @@ import * as p from '@clack/prompts';
 import { discoverCodeComponents } from '@drupal-canvas/discovery';
 
 import { ensureConfig, getConfig } from '../config';
-import { bundleLocalAliasImports } from '../lib/build-local-import';
-import { bundleVendorDependencies } from '../lib/build-vendor';
-import { collectImports } from '../lib/import-analyzer';
+import { analyzeAndBundleImports } from '../utils/analyze-and-bundle-imports';
 import { buildComponent } from '../utils/build-component';
 import { buildTailwindForComponents } from '../utils/build-tailwind';
 import { pluralize, updateConfigFromOptions } from '../utils/command-helpers';
@@ -14,7 +12,6 @@ import { generateManifest } from '../utils/generate-manifest';
 import { reportResults } from '../utils/report-results';
 
 import type { Command } from 'commander';
-import type { ImportMap } from '../lib/build-vendor';
 
 interface BuildOptions {
   dir?: string;
@@ -105,11 +102,14 @@ export function buildCommand(program: Command): void {
           .map((c) => c.jsEntryPath as string);
 
         // Collect third-party dependencies from all components
-        const imports = await collectImports(
-          entryFiles,
-          componentDir,
-          aliasBaseDir,
-        );
+        const { imports, vendorResult, localResult, sharedChunks } =
+          await analyzeAndBundleImports({
+            entryFiles,
+            componentDir,
+            aliasBaseDir,
+            outputDir,
+          });
+
         s2.stop(
           chalk.green(
             `Found ${imports.thirdPartyPackages.size} third-party ${pluralize(imports.thirdPartyPackages.size, 'package')} and ${imports.aliasImports.size} local ${pluralize(imports.aliasImports.size, 'import')}`,
@@ -123,40 +123,37 @@ export function buildCommand(program: Command): void {
           );
         }
 
-        // Step 3: Bundle third party dependencies
-        let vendorImportMap: ImportMap | null = null;
-        if (imports.thirdPartyPackages.size > 0) {
-          const s3 = p.spinner();
-          s3.start('Bundling vendor dependencies');
-
-          const vendorResult = await bundleVendorDependencies(
-            imports.thirdPartyPackages,
-            componentDir,
-            aliasBaseDir,
-            outputDir,
+        // Report vendor bundling results
+        if (vendorResult.success) {
+          p.log.info(
+            chalk.green(
+              `Bundled ${vendorResult.bundledPackages.length} vendor ${pluralize(vendorResult.bundledPackages.length, 'package')} → ${outputDir}/vendor/`,
+            ),
           );
-
-          if (vendorResult.success) {
-            vendorImportMap = vendorResult.importMap;
-            s3.stop(
-              chalk.green(
-                `Bundled ${vendorResult.bundledPackages.length} vendor ${pluralize(vendorResult.bundledPackages.length, 'package')} → ${outputDir}/vendor/`,
-              ),
-            );
-          } else {
-            s3.stop(chalk.yellow('⚠ Vendor bundling completed with warnings'));
-            p.log.warn(`Vendor bundling error: ${vendorResult.error}`);
-          }
         }
 
-        // Step 4: Build individual components
-        const s4 = p.spinner();
-        s4.start(`Building ${componentLabelPluralized}`);
+        // Report local import bundling results
+        if (localResult.success) {
+          const bundledLocalImportCount = Object.keys(
+            localResult.localImportMap,
+          ).length;
+          p.log.info(
+            chalk.green(
+              `Bundled ${bundledLocalImportCount} local ${pluralize(bundledLocalImportCount, 'import')} → ${outputDir}/local/`,
+            ),
+          );
+        } else {
+          p.log.warn(`Local import build error: ${localResult.error}`);
+        }
+
+        // Step 3: Build individual components
+        const s3 = p.spinner();
+        s3.start(`Building ${componentLabelPluralized}`);
         const results = await Promise.all(
           components.map((c) => buildComponent(c, true, outputDir)),
         );
 
-        s4.stop(
+        s3.stop(
           chalk.green(`Built ${components.length} ${componentLabelPluralized}`),
         );
 
@@ -186,39 +183,18 @@ export function buildCommand(program: Command): void {
           process.exit(1);
         }
 
-        // Step 5: Build alias local imports
-        const s5 = p.spinner();
-        s5.start('Building alias local imports');
-        const localImportResult = await bundleLocalAliasImports(
-          imports.aliasImports,
-          componentDir,
-          aliasBaseDir,
-          outputDir,
-        );
-
-        if (localImportResult.success) {
-          s5.stop(
-            chalk.green(
-              `Bundled ${Object.keys(localImportResult.localImportMap).length} local ${pluralize(Object.keys(localImportResult.localImportMap).length, 'import')} → ${outputDir}/local/`,
-            ),
-          );
-        } else {
-          s5.stop(chalk.yellow('⚠ Local import build completed with warnings'));
-          p.log.warn(`Local import build error: ${localImportResult.error}`);
-        }
-
-        // Step 6: Build Tailwind CSS
+        // Step 4: Build Tailwind CSS
         if (skipTailwind) {
           p.log.info('Skipping Tailwind CSS build');
         } else {
-          const s6 = p.spinner();
-          s6.start('Building Tailwind CSS');
+          const s4 = p.spinner();
+          s4.start('Building Tailwind CSS');
           const tailwindResult = await buildTailwindForComponents(
             components,
             true,
             outputDir,
           );
-          s6.stop(
+          s4.stop(
             chalk.green(
               `Processed Tailwind CSS classes from ${components.length} selected local ${componentLabelPluralized} and all online components`,
             ),
@@ -229,14 +205,15 @@ export function buildCommand(program: Command): void {
           }
         }
 
-        // Step 7: Generate canvas-manifest.json
-        const s7 = p.spinner();
-        s7.start('Generating canvas-manifest.json');
+        // Step 5: Generate canvas-manifest.json
+        const s5 = p.spinner();
+        s5.start('Generating canvas-manifest.json');
 
         const manifestResult = await generateManifest({
           outputDir,
-          vendorImportMap,
-          localImportMap: localImportResult.localImportMap,
+          vendorImportMap: vendorResult.importMap,
+          localImportMap: localResult.localImportMap,
+          sharedChunks,
         });
 
         if (manifestResult.success) {
@@ -244,14 +221,13 @@ export function buildCommand(program: Command): void {
             manifestResult.manifest.vendor,
           ).length;
           const localCount = Object.keys(manifestResult.manifest.local).length;
-          const fontsCount = Object.keys(manifestResult.manifest.fonts).length;
-          s7.stop(
+          s5.stop(
             chalk.green(
-              `Generated canvas-manifest.json — ${vendorCount} vendor ${pluralize(vendorCount, 'package')}, ${localCount} local ${pluralize(localCount, 'import')}, ${fontsCount} ${pluralize(fontsCount, 'font')}`,
+              `Generated canvas-manifest.json — ${vendorCount} vendor ${pluralize(vendorCount, 'package')}, ${localCount} local ${pluralize(localCount, 'import')}`,
             ),
           );
         } else {
-          s7.stop(
+          s5.stop(
             chalk.yellow('⚠ Manifest generation completed with warnings'),
           );
           p.log.warn(`Manifest error: ${manifestResult.error}`);

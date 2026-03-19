@@ -7,13 +7,13 @@ namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 use PHPUnit\Framework\Attributes\Group;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Symfony\Component\Yaml\Yaml;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 
 /**
  * Tests for the GetPageData function call plugin.
  */
 #[Group('canvas_ai')]
-final class GetPageDataTest extends KernelTestBase {
+final class GetPageDataTest extends CanvasKernelTestBase {
 
   /**
    * The function call plugin manager.
@@ -26,11 +26,8 @@ final class GetPageDataTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'system',
-    'user',
     'ai',
     'ai_agents',
-    'canvas',
     'canvas_ai',
   ];
 

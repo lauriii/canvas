@@ -6,7 +6,7 @@ namespace Drupal\Tests\canvas_ai\Kernel;
 
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Symfony\Component\Yaml\Yaml;
 
@@ -14,7 +14,7 @@ use Symfony\Component\Yaml\Yaml;
  * Tests for the CanvasAiPageBuilderHelper.
  */
 #[Group('canvas_ai')]
-final class CanvasAiPageBuilderHelperTest extends KernelTestBase {
+final class CanvasAiPageBuilderHelperTest extends CanvasKernelTestBase {
 
   /**
    * The CanvasAiPageBuilderHelper service.
@@ -27,9 +27,6 @@ final class CanvasAiPageBuilderHelperTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'system',
-    'user',
-    'canvas',
     'canvas_ai',
   ];
 

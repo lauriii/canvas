@@ -1,7 +1,7 @@
 canvas.api.artifacts.upload:
   path: '/canvas/api/v0/artifacts/upload'
   defaults:
-    _controller: 'Drupal\canvas\Controller\ArtifactController::upload'
+    _controller: 'Drupal\canvas\Controller\ApiArtifactController::upload'
   requirements:
     _canvas_authentication_required: TRUE
     _canvas_artifact_upload_access: 'TRUE'

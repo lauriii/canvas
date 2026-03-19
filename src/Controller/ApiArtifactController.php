@@ -7,18 +7,18 @@ namespace Drupal\canvas\Controller;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\Bytes;
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\File\Exception\FileException;
 use Drupal\Core\File\Exception\FileExistsException;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Lock\LockAcquiringException;
+use Drupal\file\FileRepositoryInterface;
 use Drupal\file\Upload\ContentDispositionFilenameParser;
 use Drupal\file\Upload\FileUploadHandlerInterface;
 use Drupal\file\Upload\InputStreamFileWriterInterface;
 use Drupal\file\Upload\InputStreamUploadedFile;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\File\Exception\CannotWriteFileException;
 use Symfony\Component\HttpFoundation\File\Exception\NoFileException;
 use Symfony\Component\HttpFoundation\File\Exception\UploadException;
@@ -34,22 +34,16 @@ use Symfony\Component\Validator\ConstraintViolationList;
  *
  * @internal
  */
-final class ArtifactController extends ApiControllerBase implements ContainerInjectionInterface {
+final class ApiArtifactController extends ApiControllerBase {
 
   public function __construct(
     private readonly InputStreamFileWriterInterface $inputStreamFileWriter,
     private readonly FileUploadHandlerInterface $fileUploadHandler,
     private readonly FileSystemInterface $fileSystem,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
-  ) {}
-
-  public static function create(ContainerInterface $container): static {
-    return new static(
-      $container->get(InputStreamFileWriterInterface::class),
-      $container->get(FileUploadHandlerInterface::class),
-      $container->get(FileSystemInterface::class),
-      $container->get(FileUrlGeneratorInterface::class),
-    );
+    private readonly FileRepositoryInterface $fileRepository,
+    private readonly ConfigFactoryInterface $configFactory,
+  ) {
   }
 
   /**
@@ -62,12 +56,29 @@ final class ArtifactController extends ApiControllerBase implements ContainerInj
     if (!$this->fileSystem->prepareDirectory($destination, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS)) {
       throw new HttpException(500, 'Destination file path is not writable');
     }
+    // Use $GLOBALS['config'] for an in-memory override that doesn't persist to
+    // the database, and reset the config factory cache so the override is
+    // picked up by the validators.
+    // \Drupal\file\Validation\FileValidator::validate always validates with the
+    // FileExtensionSecureConstraint, which will fail on any `js` extensions due
+    // to \Drupal\Core\File\FileSystemInterface::INSECURE_EXTENSION_REGEX.
+    $GLOBALS['config']['system.file']['allow_insecure_uploads'] = TRUE;
+    $this->configFactory->reset('system.file');
+
+    $filename = ContentDispositionFilenameParser::parseFilename($request);
 
     try {
-      $filename = ContentDispositionFilenameParser::parseFilename($request);
-
       $tempPath = $this->inputStreamFileWriter->writeStreamToFile();
       $uploadedFile = new InputStreamUploadedFile($filename, $filename, $tempPath, @filesize($tempPath));
+
+      // CLI uploads use FileExists::Error because Vite includes content hashes
+      // in filenames, so the same filename = the same content. We catch the
+      // FileExistsException below and return the existing file (see line 108).
+      // Non-CLI uploads (Brand Kit) use FileExists::Rename to allow multiple
+      // uploads with the same original filename.
+      $fileExists = $request->headers->has('X-Canvas-CLI')
+        ? FileExists::Error
+        : FileExists::Rename;
 
       $result = $this->fileUploadHandler->handleFileUpload(
         $uploadedFile,
@@ -76,7 +87,7 @@ final class ArtifactController extends ApiControllerBase implements ContainerInj
           'FileSizeLimit' => ['fileLimit' => Bytes::toNumber('10MB')],
         ],
         destination: $destination,
-        fileExists: FileExists::Rename,
+        fileExists: $fileExists,
       );
     }
     catch (LockAcquiringException $e) {
@@ -92,6 +103,21 @@ final class ArtifactController extends ApiControllerBase implements ContainerInj
       throw new HttpException(500, 'Temporary file could not be opened', $e);
     }
     catch (FileExistsException $e) {
+      // For CLI uploads, return the existing file data, as we are
+      // assuming the same filename = same content.
+      if ($request->headers->has('X-Canvas-CLI')) {
+        $file_uri = $destination . $filename;
+
+        $file = $this->fileRepository->loadByUri($file_uri);
+        if ($file !== NULL) {
+          return new JsonResponse(data: [
+            'uri' => $file_uri,
+            'fid' => (int) $file->id(),
+            'url' => $this->fileUrlGenerator->generateString($file_uri),
+          ], status: 200);
+        }
+      }
+
       throw new HttpException(500, $e->getMessage(), $e);
     }
     catch (FileException) {

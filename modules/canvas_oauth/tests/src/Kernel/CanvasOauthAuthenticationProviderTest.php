@@ -13,7 +13,7 @@ use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas_oauth\Authentication\Provider\CanvasOauthAuthenticationProvider;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
@@ -23,19 +23,16 @@ use Symfony\Component\Routing\Route;
  */
 #[CoversClass(CanvasOauthAuthenticationProvider::class)]
 #[Group('canvas_oauth')]
-class CanvasOauthAuthenticationProviderTest extends KernelTestBase {
+class CanvasOauthAuthenticationProviderTest extends CanvasKernelTestBase {
 
   /**
    * {@inheritdoc}
    */
   protected static $modules = [
-    'system',
-    'canvas',
-    'media',
+    'consumers',
     'canvas_oauth',
     'simple_oauth',
     'serialization',
-    'user',
   ];
 
   /**
@@ -50,7 +47,6 @@ class CanvasOauthAuthenticationProviderTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installConfig('system');
     $this->authProvider = $this->container->get(CanvasOauthAuthenticationProvider::class);
   }
 
@@ -112,6 +108,7 @@ class CanvasOauthAuthenticationProviderTest extends KernelTestBase {
       ['canvas.api.log_error', [], FALSE],
       ['canvas.component.status', [], FALSE],
       ['canvas.boot.entity', [], FALSE],
+      ['canvas.api.artifacts.upload', [], TRUE],
     ];
   }
 

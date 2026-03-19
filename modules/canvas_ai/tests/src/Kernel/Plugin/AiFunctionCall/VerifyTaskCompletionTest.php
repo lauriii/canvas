@@ -7,14 +7,14 @@ namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\VerifyTaskCompletion;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 
 /**
  * Tests Drupal\canvas_ai\Plugin\AiFunctionCall\VerifyTaskCompletion.
  */
 #[CoversClass(VerifyTaskCompletion::class)]
 #[Group('canvas_ai')]
-final class VerifyTaskCompletionTest extends KernelTestBase {
+final class VerifyTaskCompletionTest extends CanvasKernelTestBase {
 
   /**
    * {@inheritdoc}
@@ -22,9 +22,6 @@ final class VerifyTaskCompletionTest extends KernelTestBase {
   protected static $modules = [
     'ai',
     'ai_agents',
-    'canvas',
-    'system',
-    'user',
     'canvas_ai',
   ];
 

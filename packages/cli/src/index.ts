@@ -7,6 +7,7 @@ import { buildCommand } from './commands/build';
 import { buildDeprecatedCommand } from './commands/build-deprecated';
 import { downloadCommand } from './commands/download';
 import { pullCommand } from './commands/pull';
+import { pushCommand } from './commands/push';
 import { scaffoldCommand } from './commands/scaffold';
 import { uploadCommand } from './commands/upload';
 import { validateCommand } from './commands/validate';
@@ -23,6 +24,7 @@ program
 // Register commands
 downloadCommand(program);
 pullCommand(program);
+pushCommand(program);
 scaffoldCommand(program);
 uploadCommand(program);
 buildDeprecatedCommand(program);

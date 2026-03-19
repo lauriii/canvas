@@ -36,16 +36,9 @@ security: []
 # @see https://spec.openapis.org/oas/v3.1.0.html#path-item-object
 paths:
   /canvas/api/v0/artifacts/upload:
-    description: Upload a generic artifact file to Canvas asset storage.
+    description: Upload a build artifact file
     post:
-      summary: Uploads a generic Canvas artifact file.
-      parameters:
-        - in: header
-          name: Content-Disposition
-          required: true
-          schema:
-            type: string
-          description: Original filename for the streamed upload, for example `file; filename="brand-font.woff2"`.
+      summary: Upload a build artifact file
       requestBody:
         required: true
         content:
@@ -53,45 +46,39 @@ paths:
             schema:
               type: string
               format: binary
-          font/ttf:
-            schema:
-              type: string
-              format: binary
-          font/otf:
-            schema:
-              type: string
-              format: binary
-          font/woff:
-            schema:
-              type: string
-              format: binary
-          font/woff2:
-            schema:
-              type: string
-              format: binary
       responses:
-        '201':
-          description: Uploaded artifact metadata
+        '200':
+          description: File already exists (CLI uploads only)
           content:
             application/json:
               schema:
                 type: object
-                additionalProperties: false
-                required:
-                  - fid
-                  - uri
-                  - url
                 properties:
-                  fid:
-                    type: integer
                   uri:
                     type: string
+                    description: The file URI
+                  fid:
+                    type: integer
+                    description: The file entity ID
                   url:
                     type: string
-        '403':
-          $ref: '#/components/responses/ClientErrorResponse'
-        '422':
-          $ref: '#/components/responses/ClientErrorResponse'
+                    description: The public URL to the file
+        '201':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uri:
+                    type: string
+                    description: The file URI
+                  fid:
+                    type: integer
+                    description: The file entity ID
+                  url:
+                    type: string
+                    description: The public URL to the file
   /canvas/api/v0/auto-saves/css/asset_library/{configEntityId}:
     description: Get draft CSS for given asset library
     get:
@@ -3938,7 +3925,7 @@ components:
                 type: string
                 description: Client instance ID for the layout preview
     NewContentRequest:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/NewContentRequestBody'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewContentRequestBody'

@@ -13,7 +13,7 @@ export const GLOBAL_CSS_SELECTOR = '__GLOBAL_CSS__';
 /**
  * Helper to determine global CSS selection based on flags
  */
-function determineGlobalCssSelection(
+export function determineGlobalCssSelection(
   options: ComponentSelectorOptions,
 ): boolean | undefined {
   // If --css-only is specified, only global CSS should be included

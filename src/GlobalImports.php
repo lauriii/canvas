@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\Core\Asset\AssetQueryStringInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\Core\Theme\ThemeManagerInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 
 /**
  * @internal
@@ -21,6 +23,7 @@ class GlobalImports {
     private readonly AssetQueryStringInterface $assetQueryString,
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly ThemeManagerInterface $themeManager,
+    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
   ) {}
 
   /**
@@ -61,11 +64,28 @@ class GlobalImports {
       ],
       ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS => [],
     ];
+
+    // Add entries from the asset library manifest (pushed via CLI).
+    // Manifest entries are appended after base imports, so a manifest entry
+    // with the same name as a base import (e.g. "react") will override it.
+    // This is intentional: it allows vendor-bundled builds to replace the
+    // default module-shipped libraries.
+    $asset_library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
+    if ($asset_library !== NULL) {
+      foreach ($asset_library->getImports() as $entry) {
+        $import_map[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS][$entry['name']] = $this->fileUrlGenerator->generateString($entry['uri']);
+      }
+      foreach ($asset_library->getAssets() as $entry) {
+        $import_map[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS][$entry['name']] = $this->fileUrlGenerator->generateString($entry['uri']);
+      }
+    }
+
     // Allow modules and themes to alter the import map.
     // @todo Deprecate hook_canvas_importmap_alter() in favor of Drupal core's hook_importmap_alter() when https://www.drupal.org/i/3398525 lands.
     // @see hook_canvas_importmap_alter()
     $this->moduleHandler->alter('canvas_importmap', $import_map);
     $this->themeManager->alter('canvas_importmap', $import_map);
+
     // We need a cache-busting query string for the browser to not use cached
     // files after installing an update.
     $query_string = $this->getQueryString();

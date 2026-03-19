@@ -109,13 +109,14 @@ the resource, for example `administer code components` for code components and g
 
 → See more details in [Canvas' OpenAPI spec](https://git.drupalcode.org/project/canvas/-/blob/1.x/openapi.yml).
 
-| Method                   | Endpoint                                                 |
-|--------------------------|----------------------------------------------------------|
-| `GET`, `POST`            | `/canvas/api/v0/config/js_component`                     |
-| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/js_component/{configEntityId}`    |
-| `GET`, `POST`            | `/canvas/api/v0/config/asset_library`                    |
-| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/asset_library/{configEntityId}`   |
-| `GET`, `POST`            | `/canvas/api/v0/config/brand_kit`                        |
-| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/brand_kit/{configEntityId}`       |
-| `GET`, `POST`            | `/canvas/api/v0/content/canvas_page`                     |
-| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/content/canvas_page/{contentEntityId}`   |
+| Method                   | Endpoint                                                |
+|--------------------------|---------------------------------------------------------|
+| `GET`, `POST`            | `/canvas/api/v0/config/js_component`                    |
+| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/js_component/{configEntityId}`   |
+| `GET`, `POST`            | `/canvas/api/v0/config/asset_library`                   |
+| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/asset_library/{configEntityId}`  |
+| `GET`, `POST`            | `/canvas/api/v0/config/brand_kit`                       |
+| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/brand_kit/{configEntityId}`      |
+| `GET`, `POST`            | `/canvas/api/v0/content/canvas_page`                    |
+| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/content/canvas_page/{contentEntityId}`  |
+| `POST`                   | `/canvas/api/v0/artifacts/upload`                       |

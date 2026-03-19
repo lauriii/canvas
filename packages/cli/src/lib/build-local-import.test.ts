@@ -18,6 +18,7 @@ vi.mock('node:fs', async (importOriginal) => {
       ...actual.promises,
       mkdir: vi.fn(),
       copyFile: vi.fn(),
+      readFile: vi.fn(),
     },
   };
 });
@@ -28,6 +29,7 @@ describe('bundleLocalAliasImports', () => {
     vi.mocked(viteBuild).mockResolvedValue(undefined as any);
     vi.mocked(fsMock.mkdir).mockResolvedValue(undefined);
     vi.mocked(fsMock.copyFile).mockResolvedValue(undefined);
+    vi.mocked(fsMock.readFile).mockResolvedValue('{}');
   });
 
   afterEach(() => {
@@ -46,16 +48,36 @@ describe('bundleLocalAliasImports', () => {
   });
 
   it('maps JS module alias import to .js output path', async () => {
+    vi.mocked(fsMock.readFile).mockResolvedValueOnce(
+      JSON.stringify({
+        '/project/src/lib/utils.ts': {
+          file: 'utils-abc123.js',
+          src: '/project/src/lib/utils.ts',
+          isEntry: true,
+          name: 'utils',
+        },
+      }),
+    );
     const result = await bundleLocalAliasImports(
       new Map([['@/lib/utils', '/project/src/lib/utils.ts']]),
       '/project',
       'src',
       '/project/build',
     );
-    expect(result.localImportMap['@/lib/utils']).toMatch(/lib\/utils\.js$/);
+    expect(result.localImportMap['@/lib/utils']).toMatch('utils-abc123.js');
   });
 
-  it('maps JS alias import from component sub-dir to correct path', async () => {
+  it('maps JS alias import from component sub-dir to flat output path', async () => {
+    vi.mocked(fsMock.readFile).mockResolvedValueOnce(
+      JSON.stringify({
+        '/project/src/component/pricing/helpers.ts': {
+          file: 'helpers-abc123.js',
+          src: '/project/src/component/pricing/helpers.ts',
+          isEntry: true,
+          name: 'helpers',
+        },
+      }),
+    );
     const result = await bundleLocalAliasImports(
       new Map([
         [
@@ -68,106 +90,75 @@ describe('bundleLocalAliasImports', () => {
       '/project/build',
     );
     expect(result.localImportMap['@/component/pricing/helpers']).toMatch(
-      /component\/pricing\/helpers\.js$/,
+      /helpers.*\.js$/,
     );
   });
 
-  it('maps CSS side-effect alias import to .css output path', async () => {
+  it('preserves imports with same basename in different directories', async () => {
+    vi.mocked(fsMock.readFile).mockResolvedValueOnce(
+      JSON.stringify({
+        '/project/src/lib/a/helpers.ts': {
+          file: 'helpers-a1.js',
+          src: '/project/src/lib/a/helpers.ts',
+          isEntry: true,
+          name: 'helpers',
+        },
+        '/project/src/lib/b/helpers.ts': {
+          file: 'helpers-b2.js',
+          src: '/project/src/lib/b/helpers.ts',
+          isEntry: true,
+          name: 'helpers--1',
+        },
+      }),
+    );
+
     const result = await bundleLocalAliasImports(
       new Map([
-        [
-          '@/utils/styles/carousel.css',
-          '/project/src/utils/styles/carousel.css',
-        ],
+        ['@/lib/a/helpers', '/project/src/lib/a/helpers.ts'],
+        ['@/lib/b/helpers', '/project/src/lib/b/helpers.ts'],
       ]),
       '/project',
       'src',
       '/project/build',
     );
-    expect(result.localImportMap['@/utils/styles/carousel.css']).toMatch(
-      /utils\/styles\/carousel\.css$/,
+
+    const viteConfig = vi.mocked(viteBuild).mock.calls[0]?.[0];
+    const input =
+      viteConfig &&
+      typeof viteConfig === 'object' &&
+      'build' in viteConfig &&
+      viteConfig.build &&
+      typeof viteConfig.build === 'object' &&
+      'rollupOptions' in viteConfig.build &&
+      viteConfig.build.rollupOptions &&
+      typeof viteConfig.build.rollupOptions === 'object' &&
+      'input' in viteConfig.build.rollupOptions
+        ? (viteConfig.build.rollupOptions.input as Record<string, string>)
+        : {};
+
+    expect(Object.keys(input)).toHaveLength(2);
+    expect(Object.values(input)).toEqual(
+      expect.arrayContaining([
+        '/project/src/lib/a/helpers.ts',
+        '/project/src/lib/b/helpers.ts',
+      ]),
     );
+    expect(result.localImportMap).toEqual({
+      '@/lib/a/helpers': './local/helpers-a1.js',
+      '@/lib/b/helpers': './local/helpers-b2.js',
+    });
   });
 
-  it('maps image asset alias import preserving original extension', async () => {
-    const result = await bundleLocalAliasImports(
-      new Map([
-        ['@/components/hero/hero.jpg', '/project/src/components/hero/hero.jpg'],
-      ]),
-      '/project',
-      'src',
-      '/project/build',
-    );
-    expect(result.localImportMap['@/components/hero/hero.jpg']).toMatch(
-      /components\/hero\/hero\.jpg$/,
-    );
-  });
+  it('bubbles Vite build errors to caller', async () => {
+    vi.mocked(viteBuild).mockRejectedValueOnce(new Error('Vite exploded'));
 
-  it('copies image asset (does not call viteBuild)', async () => {
-    await bundleLocalAliasImports(
-      new Map([
-        ['@/components/hero/hero.jpg', '/project/src/components/hero/hero.jpg'],
-      ]),
-      '/project',
-      'src',
-      '/project/build',
-    );
-
-    expect(viteBuild).not.toHaveBeenCalled();
-    expect(fsMock.copyFile).toHaveBeenCalledWith(
-      '/project/src/components/hero/hero.jpg',
-      expect.stringContaining('hero.jpg'),
-    );
-  });
-
-  it('maps SVG alias import preserving .svg extension', async () => {
-    const result = await bundleLocalAliasImports(
-      new Map([
-        ['@/components/cart/cart.svg', '/project/src/components/cart/cart.svg'],
-      ]),
-      '/project',
-      'src',
-      '/project/build',
-    );
-    expect(result.localImportMap['@/components/cart/cart.svg']).toMatch(
-      /components\/cart\/cart\.svg$/,
-    );
-  });
-
-  it('copies SVG file (does not call viteBuild)', async () => {
-    await bundleLocalAliasImports(
-      new Map([
-        ['@/components/cart/cart.svg', '/project/src/components/cart/cart.svg'],
-      ]),
-      '/project',
-      'src',
-      '/project/build',
-    );
-
-    expect(viteBuild).not.toHaveBeenCalled();
-    expect(fsMock.copyFile).toHaveBeenCalledWith(
-      '/project/src/components/cart/cart.svg',
-      expect.stringContaining('cart.svg'),
-    );
-  });
-
-  it('preserves directory path to disambiguate same-named files from different directories', async () => {
-    const result = await bundleLocalAliasImports(
-      new Map([
-        ['@/lib/utils', '/project/src/lib/utils.ts'],
-        ['@/components/utils', '/project/src/components/utils.ts'],
-      ]),
-      '/project',
-      'src',
-      '/project/build',
-    );
-    // Both should be present with distinct paths
-    expect(result.localImportMap['@/lib/utils']).toMatch(/lib\/utils\.js$/);
-    expect(result.localImportMap['@/components/utils']).toMatch(
-      /components\/utils\.js$/,
-    );
-    expect(result.localImportMap['@/lib/utils']).not.toBe(
-      result.localImportMap['@/components/utils'],
-    );
+    await expect(
+      bundleLocalAliasImports(
+        new Map([['@/lib/utils', '/project/src/lib/utils.ts']]),
+        '/project',
+        'src',
+        '/project/build',
+      ),
+    ).rejects.toThrow('Vite exploded');
   });
 });

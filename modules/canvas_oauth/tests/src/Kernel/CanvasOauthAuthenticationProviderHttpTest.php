@@ -38,6 +38,7 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
   protected static $modules = [
     'system',
     'canvas',
+    'file',
     'media',
     'path',
     'canvas_oauth',

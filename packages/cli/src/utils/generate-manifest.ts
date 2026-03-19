@@ -1,8 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-import { FONT_EXTENSIONS } from '../lib/asset-extensions';
-
 import type { ImportMap } from '../lib/build-vendor';
 
 /**
@@ -31,18 +29,13 @@ export interface ManifestInput {
   outputDir: string;
   vendorImportMap: ImportMap | null;
   localImportMap: Record<string, string>;
-}
-
-export interface ComponentManifest {
-  js: string;
-  css?: string;
-  metadata: string;
+  sharedChunks: string[];
 }
 
 export interface Manifest {
   vendor: Record<string, string>;
   local: Record<string, string>;
-  fonts: Record<string, string>;
+  shared: string[];
 }
 
 export interface ManifestResult {
@@ -54,21 +47,6 @@ export interface ManifestResult {
 }
 
 /**
- * Check if a package name is a vendor font (e.g., @fontsource/* packages).
- */
-function isVendorFont(pkg: string): boolean {
-  return pkg.startsWith('@fontsource/');
-}
-
-/**
- * Check if a path refers to a local font file based on its extension.
- */
-function isLocalFont(filePath: string): boolean {
-  const ext = path.extname(filePath).toLowerCase();
-  return (FONT_EXTENSIONS as readonly string[]).includes(ext);
-}
-
-/**
  * Generate a canvas-manifest.json file with component-centric format.
  * Groups JS, CSS, and metadata under each component, with vendor
  * and local alias imports as separate top-level keys.
@@ -76,43 +54,34 @@ function isLocalFont(filePath: string): boolean {
 export async function generateManifest(
   input: ManifestInput,
 ): Promise<ManifestResult> {
-  const { outputDir, vendorImportMap, localImportMap } = input;
+  const { outputDir, vendorImportMap, localImportMap, sharedChunks } = input;
   const absoluteOutputDir = path.resolve(outputDir);
   const manifestPath = path.join(absoluteOutputDir, 'canvas-manifest.json');
 
   const manifest: Manifest = {
     vendor: {},
     local: {},
-    fonts: {},
+    shared: sharedChunks ?? [],
   };
 
   const warnings: string[] = [];
 
   try {
-    // 1. Build vendor section from vendor import map (extract fonts to fonts section)
+    // 1. Build vendor section from vendor import map
     if (vendorImportMap) {
       for (const [pkg, vendorPath] of Object.entries(vendorImportMap.imports)) {
-        if (isVendorFont(pkg)) {
-          manifest.fonts[pkg] = vendorPath;
-        } else {
-          manifest.vendor[pkg] = vendorPath;
-        }
+        manifest.vendor[pkg] = vendorPath;
       }
     }
 
-    // 2. Add local alias imports (extract fonts to fonts section)
+    // 2. Add local alias imports.
     for (const [source, outputPath] of Object.entries(localImportMap)) {
-      if (isLocalFont(source)) {
-        manifest.fonts[source] = outputPath;
-      } else {
-        manifest.local[source] = outputPath;
-      }
+      manifest.local[source] = outputPath;
     }
 
     // Sort all sections for consistent output
     manifest.vendor = sortObjectByKeys(manifest.vendor);
     manifest.local = sortObjectByKeys(manifest.local);
-    manifest.fonts = sortObjectByKeys(manifest.fonts);
 
     // Write canvas-manifest.json
     await fs.mkdir(absoluteOutputDir, { recursive: true });

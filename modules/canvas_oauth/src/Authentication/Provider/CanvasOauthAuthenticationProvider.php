@@ -20,7 +20,8 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * @see \Drupal\simple_oauth\Authentication\Provider\SimpleOauthAuthenticationProvider
  *
- * This authentication provider is added to a subset of the Canvas API routes.
+ * This authentication provider is added to a subset of the Canvas API routes
+ * marked as external API endpoints.
  * @see \Drupal\canvas_oauth\Routing\CanvasOauthRouteSubscriber
  *
  * Because those endpoints can handle all types of entities, applying the
@@ -51,6 +52,14 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       'canvas.api.content.create',
     ];
     $route_match = RouteMatch::createFromRequest($request);
+
+    // Special case: artifact upload route.
+    if ($route_match->getRouteName() === 'canvas.api.artifacts.upload') {
+      return $this->simpleOauthAuthenticationProvider->applies($request);
+    }
+
+    // Apply to config entity routes for protected entity types.
+    // @see \Drupal\canvas_oauth\Routing\CanvasOauthRouteSubscriber
     $entity_type_id = $route_match->getRawParameter('canvas_config_entity_type_id');
     // Narrow down the config entity types that are protected by this
     // authentication provider.

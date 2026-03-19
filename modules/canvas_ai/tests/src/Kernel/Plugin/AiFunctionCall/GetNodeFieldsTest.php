@@ -7,7 +7,7 @@ namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
@@ -17,7 +17,7 @@ use Symfony\Component\Yaml\Yaml;
  * Tests for the GetNodeFields function call plugin.
  */
 #[Group('canvas_ai')]
-final class GetNodeFieldsTest extends KernelTestBase {
+final class GetNodeFieldsTest extends CanvasKernelTestBase {
 
   use UserCreationTrait;
 
@@ -54,16 +54,11 @@ final class GetNodeFieldsTest extends KernelTestBase {
    */
   protected static $modules = [
     'node',
-    'user',
     'ai',
     'ai_agents',
-    'system',
     'field',
     'field_ui',
-    'text',
-    'canvas',
     'canvas_ai',
-    'media',
   ];
 
   /**
@@ -71,6 +66,7 @@ final class GetNodeFieldsTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->installEntitySchema('path_alias');
 
     // Install the necessary entity schemas.
     $this->installEntitySchema('user');

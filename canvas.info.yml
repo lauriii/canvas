@@ -22,6 +22,9 @@ dependencies:
   # @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem
   # @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat::computeStorablePropShape()
   - drupal:datetime
+  # To manage uploaded build artifacts as File entities with file_usage tracking.
+  # @see \Drupal\canvas\Controller\ApiArtifactController
+  - drupal:file
   # To support the json-schema-definitions://canvas.module/image prop shape.
   # @see \Drupal\image\Plugin\Field\FieldType\ImageItem
   # @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()

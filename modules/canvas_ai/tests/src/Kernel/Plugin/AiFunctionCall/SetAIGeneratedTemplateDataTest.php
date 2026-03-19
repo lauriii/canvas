@@ -10,14 +10,13 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\ai\Service\FunctionCalling\FunctionCallPluginManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedTemplateData;
-use Drupal\Core\Extension\ModuleInstallerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\Yaml\Yaml;
 
@@ -26,7 +25,7 @@ use Symfony\Component\Yaml\Yaml;
  */
 #[CoversClass(SetAIGeneratedTemplateData::class)]
 #[Group('canvas_ai')]
-final class SetAIGeneratedTemplateDataTest extends KernelTestBase {
+final class SetAIGeneratedTemplateDataTest extends CanvasKernelTestBase {
 
   use FunctionalCallTestTrait;
   use UserCreationTrait;
@@ -58,6 +57,7 @@ final class SetAIGeneratedTemplateDataTest extends KernelTestBase {
     $this->installEntitySchema('file');
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema('user');
+    $this->container->get(ComponentSourceManager::class)->generateComponents();
 
     $this->functionCallManager = $this->container->get('plugin.manager.ai.function_calls');
     $privileged_user = $this->createUser([CanvasAiPermissions::USE_CANVAS_AI]);
@@ -66,8 +66,6 @@ final class SetAIGeneratedTemplateDataTest extends KernelTestBase {
     self::assertInstanceOf(AccountInterface::class, $unprivileged_user);
     $this->privilegedUser = $privileged_user;
     $this->unprivilegedUser = $unprivileged_user;
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_sdc']);
-    $this->container->get('theme_installer')->install(['stark']);
     $this->container->get('config.factory')
       ->getEditable('system.theme')
       ->set('default', 'stark')

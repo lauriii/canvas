@@ -19,6 +19,7 @@ class StagedConfigUpdateValidationTest extends BetterConfigEntityValidationTestB
    */
   protected static $modules = [
     'canvas',
+    'file',
   ];
 
   /**

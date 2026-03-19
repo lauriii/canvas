@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\Response;
  * Tests generic artifact uploads used by Brand Kit fonts.
  *
  * @internal
- * @legacy-covers \Drupal\canvas\Controller\ArtifactController
+ * @legacy-covers \Drupal\canvas\Controller\ApiArtifactController
  */
 #[Group('canvas')]
 final class AssetLibraryFontUploadControllerTest extends HttpApiTestBase {

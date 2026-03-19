@@ -530,6 +530,55 @@ the site will be updated if they already exist.
 
 ---
 
+### `push`
+
+> ⚠️ Experimental: This command is in an early, experimental phase.
+
+Build and push all local components, global CSS, and build artifacts to Drupal.
+
+**Usage:**
+
+```bash
+npx canvas push [options]
+```
+
+**Options:**
+
+- `-d, --dir <directory>`: Directory to scan for components (defaults to
+  `componentDir` from `canvas.config.json` or current working directory)
+- `-y, --yes`: Skip confirmation prompts (non-interactive mode)
+
+**Examples:**
+
+Push all discovered components:
+
+```bash
+npx canvas push
+```
+
+Push components in a specific directory:
+
+```bash
+npx canvas push --dir ./my-components
+```
+
+Non-interactive mode for CI/CD:
+
+```bash
+npx canvas push --yes
+```
+
+This command discovers components, analyzes and bundles dependencies, builds
+Tailwind CSS, and uploads everything to your Drupal site including:
+
+1. **Components** - Built and uploaded as js_component config entities
+2. **Global CSS** - Tailwind CSS assets uploaded as asset_library
+3. **Vendor artifacts** - Bundled third-party dependencies
+4. **Local artifacts** - Bundled local imports (e.g., `@/utils`)
+5. **Shared chunks** - Common code shared between vendor bundles
+
+---
+
 ### `validate`
 
 Validate local components using ESLint.
