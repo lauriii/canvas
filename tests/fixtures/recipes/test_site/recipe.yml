@@ -3,7 +3,6 @@ description: 'Site for running tests against.'
 type: 'Canvas'
 install:
   - stark
-  - canvas_stark
   - canvas
   - canvas_test_code_components
   - canvas_test_sdc

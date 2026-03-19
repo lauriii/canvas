@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Hook\Attribute\LegacyRequirementsHook;
 use Drupal\canvas\AutoSave\AutoSaveManager;
@@ -10,16 +11,15 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
  * Implements hook_install().
  */
 function canvas_install(bool $is_syncing): void {
-  if ($is_syncing) {
-    // Don't perform any actions if config is being synced.
-    return;
-  }
   // Ensure canvas_stark is installed.
+  // For that to happen when installing canvas with a recipe, we cannot do this
+  // conditionally based on the `$is_syncing` flag.
   // @see \Drupal\canvas\Theme\CanvasThemeNegotiator
   // @see \Drupal\Core\Theme\ThemeNegotiator::determineActiveTheme()
   \Drupal::service(ThemeInstallerInterface::class)->install(['canvas_stark']);
 
-  // Cache flush ensures the contextual form works.
+  // @todo This is a bad practice, and shouldn't be needed, but without it some
+  //   tests are failing. Investigate in https://www.drupal.org/i/3580247
   drupal_flush_all_caches();
 }
 
@@ -90,4 +90,24 @@ function canvas_requirements(string $phase): array {
     }
   }
   return $requirements;
+}
+
+/**
+ * Install `canvas_stark` theme if not enabled.
+ */
+function canvas_update_11200(): void {
+  /** @var \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler */
+  $theme_handler = \Drupal::service(ThemeHandlerInterface::class);
+  if (!$theme_handler->themeExists('canvas_stark')) {
+    // Ensure canvas_stark is installed.
+    // For that to happen when installing canvas with a recipe, we cannot do it
+    // conditionally based on the `$is_syncing` flag.
+    // @see \Drupal\canvas\Theme\CanvasThemeNegotiator
+    // @see \Drupal\Core\Theme\ThemeNegotiator::determineActiveTheme()
+    \Drupal::service(ThemeInstallerInterface::class)->install(['canvas_stark']);
+
+    // No need to manually flush caches during the update.
+    // @see \Drupal\system\Controller\DbUpdateController::triggerBatch()
+  }
+
 }
