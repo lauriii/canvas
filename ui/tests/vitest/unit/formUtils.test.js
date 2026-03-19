@@ -1,4 +1,10 @@
-import { formStateToObject, getPropsValues } from '@/components/form/formUtil';
+import {
+  coerceValueForSchema,
+  formStateToObject,
+  getPropSchemas,
+  getPropsValues,
+  validateProp,
+} from '@/components/form/formUtil';
 
 let formState = {
   'canvas_component_props[all-props][heading][0][value]': 'hello, world!',
@@ -261,5 +267,119 @@ Value`,
       datetime: '2025-01-31T20:30:33.000Z',
       media: '3',
     });
+  });
+});
+
+describe('coerceValueForSchema', () => {
+  describe('pass-through (value unchanged)', () => {
+    it('returns value as-is when schema is undefined', () => {
+      expect(coerceValueForSchema('1', undefined)).to.equal('1');
+      expect(coerceValueForSchema(1, undefined)).to.equal(1);
+    });
+
+    it('returns value as-is when schema has no type', () => {
+      expect(coerceValueForSchema('1', {})).to.equal('1');
+    });
+
+    it('returns value as-is when schema type is not integer/number/boolean', () => {
+      expect(coerceValueForSchema('hello', { type: 'string' })).to.equal(
+        'hello',
+      );
+    });
+
+    it('returns empty string unchanged (do not coerce empty string)', () => {
+      expect(coerceValueForSchema('', { type: 'integer' })).to.equal('');
+      expect(coerceValueForSchema('', { type: 'number' })).to.equal('');
+    });
+  });
+
+  describe('string coercion', () => {
+    it('coerces string to integer when schema type is integer', () => {
+      expect(coerceValueForSchema('1', { type: 'integer' })).to.equal(1);
+      expect(coerceValueForSchema('1.5', { type: 'integer' })).to.equal(1);
+    });
+
+    it('coerces string to number when schema type is number', () => {
+      expect(coerceValueForSchema('1.5', { type: 'number' })).to.equal(1.5);
+      expect(coerceValueForSchema('123.45', { type: 'number' })).to.equal(
+        123.45,
+      );
+    });
+
+    it('coerces string to boolean when schema type is boolean', () => {
+      expect(coerceValueForSchema('true', { type: 'boolean' })).to.equal(true);
+      expect(coerceValueForSchema('false', { type: 'boolean' })).to.equal(
+        false,
+      );
+    });
+
+    it('returns invalid string unchanged when coercion yields NaN', () => {
+      expect(coerceValueForSchema('abc', { type: 'integer' })).to.equal('abc');
+      expect(coerceValueForSchema('abc', { type: 'number' })).to.equal('abc');
+    });
+  });
+
+  describe('backend-style: value is already a number (decimals/floats)', () => {
+    it('passes through number when schema type is number', () => {
+      expect(coerceValueForSchema(123.45, { type: 'number' })).to.equal(123.45);
+      expect(coerceValueForSchema(1, { type: 'number' })).to.equal(1);
+    });
+
+    it('passes through integer when schema type is integer and value is number', () => {
+      expect(coerceValueForSchema(1, { type: 'integer' })).to.equal(1);
+    });
+
+    it('passes through float unchanged when schema type is integer', () => {
+      expect(coerceValueForSchema(1.5, { type: 'integer' })).to.equal(1.5);
+    });
+
+    it('passes through 1.0 when schema type is integer', () => {
+      const result = coerceValueForSchema(1.0, { type: 'integer' });
+      expect(result).to.equal(1);
+    });
+  });
+
+  describe('value is boolean (pass-through)', () => {
+    it('returns boolean unchanged when schema type is string', () => {
+      expect(coerceValueForSchema(true, { type: 'string' })).to.equal(true);
+      expect(coerceValueForSchema(false, { type: 'string' })).to.equal(false);
+    });
+  });
+});
+
+describe('validateProp', () => {
+  const minimalInputAndUiData = {
+    selectedComponent: 'test-component',
+    selectedComponentType: 'test.type',
+    layout: [],
+    model: {},
+    components: {
+      'test.type': {
+        propSources: {
+          intProp: { jsonSchema: { type: 'integer' } },
+          numProp: { jsonSchema: { type: 'number' } },
+        },
+      },
+    },
+  };
+
+  it('fails when caller passes string for integer prop (caller must coerce)', () => {
+    const [valid] = validateProp('intProp', '1', minimalInputAndUiData);
+    expect(valid).to.equal(false);
+  });
+
+  it('passes when caller passes number for integer prop', () => {
+    const [valid] = validateProp('intProp', 1, minimalInputAndUiData);
+    expect(valid).to.equal(true);
+  });
+
+  it('passes when caller passes number (float) for number prop', () => {
+    const [valid] = validateProp('numProp', 123.45, minimalInputAndUiData);
+    expect(valid).to.equal(true);
+  });
+
+  it('fails when caller passes string for number prop (caller must coerce)', () => {
+    const [valid] = validateProp('numProp', '123.45', minimalInputAndUiData);
+    expect(valid).to.equal(false);
   });
 });

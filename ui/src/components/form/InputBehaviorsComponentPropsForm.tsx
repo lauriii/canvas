@@ -4,6 +4,7 @@ import { debounce } from 'lodash';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useComponentTransforms } from '@/components/ComponentInstanceForm';
 import {
+  coerceValueForSchema,
   ComponentPreviewUpdateEvent,
   getPropSchemas,
   getPropsValues,
@@ -210,9 +211,12 @@ export const InputBehaviorsComponentPropsForm = (
     if (
       !shouldSkipPropValidation(fieldName, target, inputAndUiData, newValue)
     ) {
+      const schemas = getPropSchemas(inputAndUiData);
+      const schema = schemas?.[toPropName(fieldName, selectedComponent)];
+      const valueToValidate = coerceValueForSchema(newValue, schema);
       const [valid, validate] = validateProp(
         toPropName(fieldName, selectedComponent),
-        newValue,
+        valueToValidate,
         inputAndUiData,
       );
       return {

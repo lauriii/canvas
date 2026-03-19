@@ -161,6 +161,48 @@ export const shouldSkipPropValidation = (
 };
 
 /**
+ * Coerces a form value to the type expected by the prop schema.
+ *
+ * Form values are strings; when the schema expects integer, number, or boolean,
+ * this applies the same cast transform that getPropsValues uses so validation
+ * and submit see the same typed value.
+ *
+ * @param {any} value - The raw value (e.g. from an input).
+ * @param {SchemaObject | undefined} schema - The prop's JSON Schema.
+ * @return {any} The value, possibly coerced to the schema type.
+ */
+export function coerceValueForSchema(
+  value: any,
+  schema: SchemaObject | undefined,
+): any {
+  if (!schema?.type) {
+    return value;
+  }
+  const propType = schema.type as string;
+  if (
+    (propType !== 'integer' &&
+      propType !== 'number' &&
+      propType !== 'boolean') ||
+    typeof value !== 'string' ||
+    value === ''
+  ) {
+    return value;
+  }
+  const coerced = transforms.cast(
+    value,
+    { to: propType as 'integer' | 'number' | 'boolean' },
+    undefined as any,
+  );
+  if (
+    coerced !== null &&
+    (typeof coerced !== 'number' || !Number.isNaN(coerced))
+  ) {
+    return coerced;
+  }
+  return value;
+}
+
+/**
  * Validates a prop's data against a JSON Schema.
  *
  * @param {string} schemaName
