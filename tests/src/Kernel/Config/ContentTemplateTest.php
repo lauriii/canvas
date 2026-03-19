@@ -257,11 +257,17 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
 
     // Assert the right cacheability.
     $this->assertContains('without-canvas', $build['#cache']['keys']);
+    // Note: AutoSaveManager::CACHE_TAG is NOT present because we're not on a
+    // preview route. It's only added on preview routes to avoid invalidating
+    // all rendered nodes on the live site when auto-saves change.
+    // @see \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder::getBuildDefaults()
     $this->assertEqualsCanonicalizing([
       'node_view',
       'node:1',
       'config:content_template_list',
     ], $build['#cache']['tags']);
+    // Verify the specialized cache context is present.
+    $this->assertContains('route.name.is_canvas_editor_ui', $build['#cache']['contexts']);
   }
 
 }

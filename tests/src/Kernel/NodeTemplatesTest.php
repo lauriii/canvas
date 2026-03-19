@@ -229,10 +229,14 @@ HTML;
       // but is disabled. It was assessed whether it should be used, hence its
       // cache tag is present.
       "config:canvas.content_template.node.article.$view_mode",
+      // The auto-save cache tag is NOT present because we're not on a preview
+      // route. It's only added on preview routes to avoid invalidating all
+      // rendered nodes on the live site when auto-saves change.
     ], $build['#cache']['tags']);
     self::assertEqualsCanonicalizing([
       ...self::REQUIRED_CACHE_CONTEXTS,
       'timezone',
+      'route.name.is_canvas_editor_ui',
     ], $build['#cache']['contexts']);
     self::assertSame(Cache::PERMANENT, $build['#cache']['max-age']);
     self::assertSame([
@@ -278,6 +282,10 @@ HTML;
     self::assertCount($expected_entity_data_is_accessible ? 1 : 0, $crawler->filter(\sprintf('div.my-hero__container > div.my-hero__actions > a[href="%s/node/1"]:contains("%s")', $GLOBALS['base_url'], $node->getTitle())));
     self::assertCount($expected_entity_data_is_accessible ? 1 : 0, $crawler->filter('p:contains("Hey this is allowed")'));
     self::assertCount(0, $crawler->filter('script'));
+    // Note: AutoSaveManager::CACHE_TAG is NOT present because we're not on a
+    // preview route. It's only added on preview routes to avoid invalidating
+    // all rendered nodes on the live site when auto-saves change.
+    // @see \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder::getBuildDefaults()
     self::assertEqualsCanonicalizing([
       "config:canvas.content_template.node.article.$view_mode",
       ...$expected_node_component_tree_cache_tags,
@@ -285,6 +293,7 @@ HTML;
     self::assertEqualsCanonicalizing([
       ...self::REQUIRED_CACHE_CONTEXTS,
       'url.site',
+      'route.name.is_canvas_editor_ui',
     ], $build['#cache']['contexts']);
     self::assertSame(Cache::PERMANENT, $build['#cache']['max-age']);
     self::assertSame([
@@ -395,6 +404,10 @@ HTML;
     self::assertCount(1, $crawler->filter('h1:contains("The Real Deal")'));
     self::assertCount(1, $crawler->filter('h1:contains("Now we\'re cooking with gas!")'));
     self::assertStringNotContainsString("This won't show up.", $crawler->text());
+    // Note: AutoSaveManager::CACHE_TAG is NOT present because we're not on a
+    // preview route. It's only added on preview routes to avoid invalidating
+    // all rendered nodes on the live site when auto-saves change.
+    // @see \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder::getBuildDefaults()
     self::assertEqualsCanonicalizing([
       'config:canvas.content_template.node.article.full',
       // Components in the component tree.
@@ -403,7 +416,10 @@ HTML;
       // Entity field prop sources should propagate the entity's cache tags.
       'node:1',
     ], $build['#cache']['tags']);
-    self::assertEqualsCanonicalizing(self::REQUIRED_CACHE_CONTEXTS, $build['#cache']['contexts']);
+    self::assertEqualsCanonicalizing([
+      ...self::REQUIRED_CACHE_CONTEXTS,
+      'route.name.is_canvas_editor_ui',
+    ], $build['#cache']['contexts']);
     self::assertSame(Cache::PERMANENT, $build['#cache']['max-age']);
     self::assertSame([
       'entity_view',

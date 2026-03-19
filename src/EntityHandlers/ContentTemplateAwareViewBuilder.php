@@ -12,6 +12,8 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\EntityViewBuilder;
 use Drupal\Core\Entity\EntityViewBuilderInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\ContentTemplate;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -38,6 +40,10 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
 
   private EntityTypeManagerInterface $entityTypeManager;
 
+  private RouteMatchInterface $routeMatch;
+
+  private AutoSaveManager $autoSaveManager;
+
   /**
    * {@inheritdoc}
    */
@@ -45,6 +51,8 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
     $instance = parent::createInstance($container, $entity_type);
 
     $instance->entityTypeManager = $container->get(EntityTypeManagerInterface::class);
+    $instance->routeMatch = $container->get(RouteMatchInterface::class);
+    $instance->autoSaveManager = $container->get(AutoSaveManager::class);
     $original_view_builder = $instance->entityTypeManager
       ->getHandler($entity_type->id(), self::DECORATED_HANDLER_KEY);
     \assert($original_view_builder instanceof EntityViewBuilderInterface);
@@ -54,12 +62,68 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
   }
 
   /**
+   * Checks if we're on a preview route (e.g., inside the Canvas editor).
+   *
+   * @return bool
+   *   TRUE if on a preview route, FALSE otherwise.
+   */
+  private function isPreview(): bool {
+    $route = $this->routeMatch->getRouteObject();
+    return $route?->getOption('_canvas_use_template_draft') === TRUE;
+  }
+
+  /**
+   * Loads the appropriate content template, using auto-save version in preview.
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity to load a content template for.
+   * @param string $view_mode
+   *   The view mode.
+   *
+   * @return \Drupal\canvas\Entity\ContentTemplate|null
+   *   The content template, or NULL if none exists.
+   */
+  private function loadTemplate(FieldableEntityInterface $entity, string $view_mode): ?ContentTemplate {
+    $template = ContentTemplate::loadForEntity($entity, $view_mode);
+    if ($template === NULL) {
+      return NULL;
+    }
+
+    if ($this->isPreview()) {
+      // Use the auto-saved version of the template if available.
+      $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($template);
+      if (!$autoSaveData->isEmpty()) {
+        \assert($autoSaveData->entity instanceof ContentTemplate);
+        // If we are using the auto-save template it might not have been
+        // published yet, but we still want to use it in preview.
+        $autoSaveData->entity->setStatus(TRUE);
+        return $autoSaveData->entity;
+      }
+    }
+
+    return $template;
+  }
+
+  /**
    * {@inheritdoc}
    */
   protected function getBuildDefaults(EntityInterface $entity, $view_mode) {
     $defaults = parent::getBuildDefaults($entity, $view_mode);
     \assert($entity instanceof FieldableEntityInterface);
-    $template = ContentTemplate::loadForEntity($entity, $view_mode);
+    $template = $this->loadTemplate($entity, $view_mode);
+
+    // The rendered output varies based on whether we're in the Canvas editor UI
+    // (preview mode). Use a specialized cache context that's narrower than
+    // `route.name` to avoid creating separate cache entries per route, which
+    // would hurt cache hit ratios for teasers rendered on multiple pages.
+    // @see \Drupal\canvas\Cache\CanvasEditorUiCacheContext
+    $defaults['#cache']['contexts'][] = 'route.name.is_canvas_editor_ui';
+    // Only add the auto-save cache tag on preview routes to avoid invalidating
+    // all rendered nodes on the live site when auto-saves change. This cache
+    // tag ensures preview mode shows the latest auto-saved content.
+    if ($this->isPreview()) {
+      $defaults['#cache']['tags'][] = AutoSaveManager::CACHE_TAG;
+    }
 
     // If a template exists, no matter if disabled, this render array depends
     // on it changing.
@@ -110,7 +174,7 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
       // mode. If we do, use that template to render the entity only if the
       // status is set to true.
       \assert($entity instanceof FieldableEntityInterface);
-      $template = ContentTemplate::loadForEntity($entity, $view_mode);
+      $template = $this->loadTemplate($entity, $view_mode);
       if ($template && $template->status()) {
         $displays[$bundle] = $template;
       }
@@ -125,6 +189,17 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
     // @see \Drupal\canvas\Entity\ContentTemplate::buildMultiple()
     // @see \Drupal\canvas\Plugin\DataType\ComponentTreeHydrated::toRenderable()
     $this->decorated->buildComponents($build, $entities, $displays, $view_mode);
+
+    $is_preview = $this->isPreview();
+    foreach ($entities as $id => $entity) {
+      // Vary cache between preview and live representations.
+      $build[$id]['#cache']['contexts'][] = 'route.name.is_canvas_editor_ui';
+      // Only add the auto-save cache tag on preview routes to avoid
+      // invalidating all rendered nodes on the live site.
+      if ($is_preview) {
+        $build[$id]['#cache']['tags'][] = AutoSaveManager::CACHE_TAG;
+      }
+    }
   }
 
 }

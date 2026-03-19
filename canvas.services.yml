@@ -75,6 +75,13 @@ services:
   Drupal\canvas\ComponentTreeInputExtractor: {}
   Drupal\canvas\GlobalImports: {}
 
+  # Cache contexts.
+  cache_context.route.name.is_canvas_editor_ui:
+    class: Drupal\canvas\Cache\CanvasEditorUiCacheContext
+    arguments: ['@current_route_match']
+    tags:
+      - { name: cache.context }
+
   # Event subscribers.
   canvas.openapi.http_request_validator.subscriber:
     class: Drupal\canvas\EventSubscriber\ApiRequestValidator
