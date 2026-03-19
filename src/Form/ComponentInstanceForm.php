@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -134,17 +135,29 @@ final class ComponentInstanceForm extends FormBase {
       $instance_form = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
     }
     else {
+      // The component is broken, so we must assist the Canvas content author
+      // to recreate the same component instance using another component: offer
+      // the values of the explicit inputs for this component instance to be
+      // copied and pasted into the new component instance's form.
+      // Carefully consider what data to offer here.
       $inputs_to_show = match(TRUE) {
-        // Common case.
-        \is_array($client_model) && \array_key_exists('resolved', $client_model) => $client_model['resolved'],
-        // For robustness.
-        // @see https://en.wikipedia.org/wiki/Robustness_principle
-        \is_array($client_model) => $client_model,
-        // Worst case: fall back to stored data, if this component instance had
-        // previously been saved. If none, fall back to the empty array.
-        default => $this->componentTreeLoader->load($entity)
+        // Common case: SDCs + code components and similar component sources
+        // have a bifurcated client-side data model:
+        // - `source` containing a (potentially collapsed) PropSource
+        // - `resolved` containing the corresponding resolved values
+        // When such a component is broken, the `source` half is too low-level
+        // and complex for Canvas content authors to be helpful. So, offer only
+        // the resolved values.
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::optimizeExplicitInput()
+        $component->getComponentSource() instanceof GeneratedFieldExplicitInputUxComponentSourceBase && \is_array($client_model) && \array_key_exists('resolved', $client_model) => $client_model['resolved'],
+        // @todo This should never occur; remove this in https://www.drupal.org/project/canvas/issues/3558721
+        $client_model === json_decode('undefined') => $this->componentTreeLoader->load($entity)
           ->getComponentTreeItemByUuid($component_instance_uuid)
           ?->getInputs() ?? [],
+        // All other component sources: all data, but converted to an array,
+        // which is required for ::buildComponentInstanceForm().
+        // @see https://en.wikipedia.org/wiki/Robustness_principle
+        default => (array) $client_model,
       };
       $fallback_source = $this->componentSourceManager->createInstance(Fallback::PLUGIN_ID, ['fallback_reason' => $this->t('Component is missing. Fix the component or copy values to a new component.')]);
       \assert($fallback_source instanceof ComponentSourceInterface);
