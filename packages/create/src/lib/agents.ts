@@ -13,8 +13,10 @@ export type AgentType =
   | 'codex'
   | 'command-code'
   | 'continue'
+  | 'cortex'
   | 'crush'
   | 'cursor'
+  | 'deepagents'
   | 'droid'
   | 'gemini-cli'
   | 'github-copilot'
@@ -38,6 +40,7 @@ export type AgentType =
   | 'roo'
   | 'trae'
   | 'trae-cn'
+  | 'warp'
   | 'windsurf'
   | 'zencoder'
   | 'pochi'
@@ -62,7 +65,7 @@ export const agents: Record<AgentType, AgentConfig> = {
   },
   antigravity: {
     displayName: 'Antigravity',
-    skillsDir: '.agent/skills',
+    skillsDir: '.agents/skills',
   },
   augment: {
     displayName: 'Augment',
@@ -78,7 +81,7 @@ export const agents: Record<AgentType, AgentConfig> = {
   },
   cline: {
     displayName: 'Cline',
-    skillsDir: '.cline/skills',
+    skillsDir: '.agents/skills',
   },
   codebuddy: {
     displayName: 'CodeBuddy',
@@ -96,13 +99,21 @@ export const agents: Record<AgentType, AgentConfig> = {
     displayName: 'Continue',
     skillsDir: '.continue/skills',
   },
+  cortex: {
+    displayName: 'Cortex Code',
+    skillsDir: '.cortex/skills',
+  },
   crush: {
     displayName: 'Crush',
     skillsDir: '.crush/skills',
   },
   cursor: {
     displayName: 'Cursor',
-    skillsDir: '.cursor/skills',
+    skillsDir: '.agents/skills',
+  },
+  deepagents: {
+    displayName: 'Deep Agents',
+    skillsDir: '.agents/skills',
   },
   droid: {
     displayName: 'Droid',
@@ -192,6 +203,10 @@ export const agents: Record<AgentType, AgentConfig> = {
   'trae-cn': {
     displayName: 'Trae CN',
     skillsDir: '.trae/skills',
+  },
+  warp: {
+    displayName: 'Warp',
+    skillsDir: '.agents/skills',
   },
   windsurf: {
     displayName: 'Windsurf',

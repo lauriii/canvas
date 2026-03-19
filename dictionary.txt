@@ -158,6 +158,7 @@ ymls
 adal
 codebuddy
 commandcode
+deepagents
 iflow
 Junie
 junie

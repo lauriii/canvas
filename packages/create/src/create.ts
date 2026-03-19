@@ -56,7 +56,7 @@ export default async function createApp(ctx: Context) {
 
     s1.stop(chalk.green('Fetched initial codebase'));
 
-    // Set up compatibility symlinks for agent-specific skills directories.
+    // Set up compatibility symlinks for additional agent skills directories.
     await setupAgentSkills(projectDir);
 
     // Step 2: Install dependencies.

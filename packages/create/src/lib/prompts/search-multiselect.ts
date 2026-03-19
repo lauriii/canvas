@@ -40,7 +40,7 @@ const S_STEP_CANCEL = pc.red('■');
 const S_STEP_SUBMIT = pc.green('◇');
 const S_RADIO_ACTIVE = pc.green('●');
 const S_RADIO_INACTIVE = pc.dim('○');
-const S_CHECKBOX_LOCKED = pc.green('✓');
+const S_BULLET = pc.green('•');
 const S_BAR = pc.dim('│');
 const S_BAR_H = pc.dim('─');
 
@@ -129,15 +129,16 @@ export async function searchMultiselect<T>(
         // Locked section (universal agents)
         if (lockedSection && lockedSection.items.length > 0) {
           lines.push(`${S_BAR}`);
+          const lockedTitle = `${pc.bold(lockedSection.title)} ${pc.dim('── always included')}`;
           lines.push(
-            `${S_BAR}  ${S_BAR_H}${S_BAR_H} ${pc.bold(lockedSection.title)} ${S_BAR_H.repeat(30)}`,
+            `${S_BAR}  ${S_BAR_H}${S_BAR_H} ${lockedTitle} ${S_BAR_H.repeat(12)}`,
           );
           for (const item of lockedSection.items) {
-            lines.push(`${S_BAR}    ${S_CHECKBOX_LOCKED} ${item.label}`);
+            lines.push(`${S_BAR}    ${S_BULLET} ${pc.bold(item.label)}`);
           }
           lines.push(`${S_BAR}`);
           lines.push(
-            `${S_BAR}  ${S_BAR_H}${S_BAR_H} ${pc.bold('Other agents')} ${S_BAR_H.repeat(34)}`,
+            `${S_BAR}  ${S_BAR_H}${S_BAR_H} ${pc.bold('Additional agents')} ${S_BAR_H.repeat(29)}`,
           );
         }
 

@@ -53,9 +53,7 @@ export async function setupAgentSkills(
 
     const skillNames = await discoverSkillNames(canonicalSkillsDir);
     if (skillNames.length === 0) {
-      info(
-        'No skills found in .agents/skills. Skipping agent compatibility setup.',
-      );
+      info('No skills found in .agents/skills. Skipping compatibility setup.');
       return;
     }
 
@@ -63,12 +61,12 @@ export async function setupAgentSkills(
     const selected = await promptForAgents();
 
     if (p.isCancel(selected) || typeof selected === 'symbol') {
-      info('Skipped agent compatibility setup.');
+      info('Skipped compatibility setup.');
       return;
     }
 
     if (selected.length === 0) {
-      info('No agents selected. Skipping agent compatibility setup.');
+      info('No agents selected. Skipping compatibility setup.');
       return;
     }
 
@@ -76,7 +74,9 @@ export async function setupAgentSkills(
       (agent) => !isUniversalAgent(agent),
     );
     if (nonUniversalAgents.length === 0) {
-      info('Selected agents already use .agents/skills. No symlinks needed.');
+      info(
+        'Selected agents already use .agents/skills. No compatibility symlinks needed.',
+      );
       return;
     }
 
@@ -90,7 +90,7 @@ export async function setupAgentSkills(
     const selectedAgentNames = selected
       .map((agent) => agents[agent].displayName)
       .join(', ');
-    info(`Agent skill support selected: ${selectedAgentNames}.`);
+    info(`Selected agent support: ${selectedAgentNames}.`);
 
     if (results.created.length > 0) {
       info(
@@ -118,18 +118,18 @@ export async function setupAgentSkills(
     const message =
       error instanceof Error
         ? error.message
-        : 'Unknown error during agent compatibility setup';
-    warning(`Agent compatibility setup skipped: ${message}`);
+        : 'Unknown error during compatibility setup';
+    warning(`Compatibility setup skipped: ${message}`);
   }
 }
 
 export async function defaultPromptForAgents(): Promise<AgentType[] | symbol> {
   const universalAgents = getUniversalAgents();
-  const otherAgents = getNonUniversalAgents();
+  const additionalAgents = getNonUniversalAgents();
 
   const selected = await searchMultiselect({
-    message: 'Which coding agents should this codebase support?',
-    items: otherAgents.map((agent) => ({
+    message: 'Which additional agents should this codebase support?',
+    items: additionalAgents.map((agent) => ({
       value: agent,
       label: agents[agent].displayName,
       hint: agents[agent].skillsDir,

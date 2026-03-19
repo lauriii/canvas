@@ -130,7 +130,7 @@ describe('setupAgentSkills', () => {
       await createCanonicalSkill(projectDir, 'test-skill-two');
 
       await setupAgentSkills(projectDir, {
-        promptForAgents: async () => ['codex', 'claude-code', 'cursor'],
+        promptForAgents: async () => ['codex', 'claude-code', 'cursor', 'roo'],
         onInfo: (message) => {
           infos.push(message);
         },
@@ -140,9 +140,11 @@ describe('setupAgentSkills', () => {
       const sourcePath = join(projectDir, '.agents', 'skills', 'test-skill');
       const claudePath = join(projectDir, '.claude', 'skills', 'test-skill');
       const cursorPath = join(projectDir, '.cursor', 'skills', 'test-skill');
+      const rooPath = join(projectDir, '.roo', 'skills', 'test-skill');
 
       expect(await realpath(claudePath)).toBe(await realpath(sourcePath));
-      expect(await realpath(cursorPath)).toBe(await realpath(sourcePath));
+      expect(await realpath(rooPath)).toBe(await realpath(sourcePath));
+      expect(await pathExists(cursorPath)).toBe(false);
       expect(
         infos.includes('Created compatibility symlinks (2 skills × 2 agents).'),
       ).toBe(true);
