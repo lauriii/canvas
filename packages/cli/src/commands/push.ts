@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import chalk from 'chalk';
 import * as p from '@clack/prompts';
-import { discoverCodeComponents } from '@drupal-canvas/discovery';
+import { discoverCanvasProject } from '@drupal-canvas/discovery';
 
 import { ensureConfig, getConfig } from '../config.js';
 import { createApiService } from '../services/api.js';
@@ -270,8 +270,9 @@ export function pushCommand(program: Command): void {
         const config = getConfig();
         const { componentDir, aliasBaseDir, outputDir } = config;
         // Step 1. Discover all components.
-        const discoveryResult = await discoverCodeComponents({
-          scanRoot: componentDir,
+        const discoveryResult = await discoverCanvasProject({
+          componentRoot: componentDir,
+          projectRoot: process.cwd(),
         });
         const { components, warnings } = discoveryResult;
         if (!options.yes) {
