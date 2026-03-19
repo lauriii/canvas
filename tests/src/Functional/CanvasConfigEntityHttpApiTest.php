@@ -1557,6 +1557,98 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
   }
 
   /**
+   * @see \Drupal\canvas\Controller\ApiConfigControllers::patch()
+   * @see \Drupal\canvas\Entity\AssetLibrary::updateFromClientSide()
+   */
+  public function testAssetLibraryPatchManifestKeys(): void {
+    $this->drupalLogin($this->httpApiUser);
+    $canonical_url = Url::fromUri("base:/canvas/api/v0/config/asset_library/global");
+
+    $library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
+    if ($library === NULL) {
+      $library = AssetLibrary::create([
+        'id' => AssetLibrary::GLOBAL_ID,
+        'label' => 'Global',
+        'css' => ['original' => '', 'compiled' => ''],
+        'js' => ['original' => '', 'compiled' => ''],
+      ]);
+      $library->save();
+    }
+
+    $shared_entry = [
+      'name' => './vendor/shared-chunk.js',
+      'uri' => AssetLibrary::ARTIFACTS_DIRECTORY . 'shared-chunk.js',
+    ];
+    $imports_entry = [
+      'name' => 'vendor-lib',
+      'uri' => AssetLibrary::ARTIFACTS_DIRECTORY . 'vendor/vendor-lib.js',
+    ];
+    $assets_entry = [
+      'name' => '@/local/component',
+      'uri' => AssetLibrary::ARTIFACTS_DIRECTORY . 'local/component.js',
+    ];
+
+    $library->setShared([$shared_entry]);
+    $library->save();
+
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+
+    $cases = [
+      [
+        'label' => 'omit key leaves shared unchanged',
+        'patch' => ['label' => 'Global'],
+        'expected_imports' => NULL,
+        'expected_assets' => NULL,
+        'expected_shared' => [$shared_entry],
+      ],
+      [
+        'label' => 'empty array clears shared',
+        'patch' => [
+          'imports' => [],
+          'assets' => [],
+          'shared' => [],
+        ],
+        'expected_imports' => NULL,
+        'expected_assets' => NULL,
+        'expected_shared' => NULL,
+      ],
+      [
+        'label' => 'change manifest',
+        'patch' => [
+          'imports' => [$imports_entry],
+          'assets' => [$assets_entry],
+          'shared' => [$shared_entry],
+        ],
+        'expected_imports' => [$imports_entry],
+        'expected_assets' => [$assets_entry],
+        'expected_shared' => [$shared_entry],
+      ],
+    ];
+
+    foreach ($cases as $case) {
+      $request_options[RequestOptions::JSON] = $case['patch'];
+      $this->assertExpectedResponse('PATCH', $canonical_url, $request_options, 200, NULL, NULL, NULL, NULL);
+
+      $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:canvas.asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+      self::assertNotNull($body);
+      $this->assertArrayHasKey('shared', $body, $case['label']);
+      $this->assertSame($case['expected_shared'], $body['shared'], $case['label']);
+      if ($case['expected_imports'] !== NULL) {
+        $this->assertArrayHasKey('imports', $body, $case['label']);
+        $this->assertSame($case['expected_imports'], $body['imports'], $case['label']);
+      }
+      if ($case['expected_assets'] !== NULL) {
+        $this->assertArrayHasKey('assets', $body, $case['label']);
+        $this->assertSame($case['expected_assets'], $body['assets'], $case['label']);
+      }
+    }
+  }
+
+  /**
    * @see \Drupal\canvas\Entity\BrandKit
    */
   public function testBrandKit(): void {

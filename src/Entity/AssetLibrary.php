@@ -125,7 +125,12 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
    */
   public function updateFromClientSide(array $data): void {
     foreach ($data as $key => $value) {
-      $this->set($key, $value);
+      match ($key) {
+        'imports' => $this->setImports(\is_array($value) ? array_values($value) : NULL),
+        'assets' => $this->setAssets(\is_array($value) ? array_values($value) : NULL),
+        'shared' => $this->setShared(\is_array($value) ? array_values($value) : NULL),
+        default => $this->set($key, $value),
+      };
     }
   }
 
