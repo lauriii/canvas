@@ -41,6 +41,7 @@ describe('config', () => {
         deprecatedComponentDir: './components',
         globalCssPath: './src/components/global.css',
         outputDir: 'dist',
+        pagesDir: './pages',
         scope: 'canvas:js_component canvas:asset_library',
         siteUrl: '',
         userAgent: '',
@@ -60,6 +61,7 @@ describe('config', () => {
         deprecatedComponentDir: './components',
         globalCssPath: './src/components/global.css',
         outputDir: 'dist',
+        pagesDir: './pages',
         scope: 'canvas:js_component canvas:asset_library',
         siteUrl: 'https://example.com',
         userAgent: '',
@@ -246,6 +248,7 @@ describe('config', () => {
         deprecatedComponentDir: './components',
         globalCssPath: './src/components/global.css',
         outputDir: 'dist',
+        pagesDir: './pages',
         scope: 'canvas:js_component canvas:asset_library',
         siteUrl: 'https://test.example.com',
         userAgent: 'simpletest123456',
@@ -268,6 +271,7 @@ describe('config', () => {
         deprecatedComponentDir: './components',
         globalCssPath: './src/components/global.css',
         outputDir: 'dist',
+        pagesDir: './pages',
         userAgent: '',
       });
     });

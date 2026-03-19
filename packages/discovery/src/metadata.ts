@@ -28,9 +28,10 @@ function validateRawMetadata(
     );
   }
 
-  if (raw.props !== undefined && !isRecord(raw.props)) {
+  const isEmptyPropsArray = Array.isArray(raw.props) && raw.props.length === 0;
+  if (raw.props !== undefined && !isRecord(raw.props) && !isEmptyPropsArray) {
     throw new Error(
-      `Invalid "props" in ${metadataPath}: expected an object, got ${typeof raw.props}.`,
+      `Invalid "props" in ${metadataPath}: expected an object or empty array, got ${typeof raw.props}.`,
     );
   }
 
@@ -93,7 +94,7 @@ function validateRawMetadata(
  * Loads and parses component metadata from YAML files for all discovered
  * components.
  *
- * @param discoveryResult - Discovery result from `discoverCodeComponents()`
+ * @param discoveryResult - Discovery result from `discoverCanvasProject()`
  * @returns Array of parsed component metadata
  */
 export async function loadComponentsMetadata(

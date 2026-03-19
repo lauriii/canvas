@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Canvas page spec",
+  "description": "Authored Canvas page format. Workbench normalizes this into an @json-render/react-compatible spec by synthesizing the canvas:component-tree root wrapper.",
+  "type": "object",
+  "required": ["title", "elements"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional JSON Schema reference for editor tooling."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Page metadata. Workbench may surface this separately from the normalized @json-render/react-compatible spec."
+    },
+    "elements": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "Authored page elements. Workbench preserves key insertion order when synthesizing canvas:component-tree children.",
+      "propertyNames": {
+        "not": {
+          "const": "canvas:component-tree"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/element"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "not": {
+    "required": ["root"]
+  },
+  "$defs": {
+    "element": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "props": {},
+        "slots": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

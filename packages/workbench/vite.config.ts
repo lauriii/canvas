@@ -6,17 +6,28 @@ import {
   drupalCanvasCompat,
   drupalCanvasCompatServer,
   ensureHostGlobalCssExists,
-  extractFirstExamplePropsFromComponentYaml,
+  extractComponentPreviewMetadataFromComponentYaml,
   getWorkbenchHostGlobalCssVirtualUrl,
+  resolveCanvasConfig,
 } from '@drupal-canvas/vite-compat';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 
-import { discoverCodeComponents } from '../discovery/src/discover';
+import { discoverCanvasProject } from '../discovery/src/discover';
 import { buildPreviewManifest } from './src/lib/preview-contract';
+import {
+  toDiscoveredPageName,
+  toPreviewManifestComponentMocks,
+  toPreviewPageSpec,
+} from './src/lib/spec-discovery';
 
 import type { Plugin } from 'vite';
 import type { DiscoveryResult } from '../discovery/src/types';
+import type {
+  PreviewManifestComponent,
+  PreviewManifestComponentMock,
+  PreviewWarning,
+} from './src/lib/preview-contract';
 
 const require = createRequire(import.meta.url);
 const hostProjectRoot = process.cwd();
@@ -26,6 +37,19 @@ const workbenchNodeModulesPath = path.resolve(__dirname, 'node_modules');
 const geistPackageRoot = path.dirname(
   require.resolve('@fontsource-variable/geist/package.json'),
 );
+const canvasConfig = resolveCanvasConfig({ hostRoot: hostProjectRoot });
+const componentDiscoveryRoot = path.resolve(
+  hostProjectRoot,
+  canvasConfig.componentDir,
+);
+const pagesDiscoveryRoot = path.resolve(hostProjectRoot, canvasConfig.pagesDir);
+const watchRoots = [...new Set([componentDiscoveryRoot, pagesDiscoveryRoot])];
+const allowedFsRoots = [
+  hostProjectRoot,
+  __dirname,
+  geistPackageRoot,
+  ...watchRoots,
+];
 
 function isComponentMetadataPath(filePath: string): boolean {
   const normalizedPath = filePath.replaceAll('\\', '/');
@@ -45,6 +69,196 @@ function isTopLevelPageSpecPath(filePath: string): boolean {
   return /(^|\/)pages\/[^/]+\.json$/.test(normalizedPath);
 }
 
+function isMockSpecPath(filePath: string): boolean {
+  const normalizedPath = filePath.replaceAll('\\', '/');
+  return (
+    /(^|\/)mocks\.json$/.test(normalizedPath) ||
+    /(^|\/)[^/]+\.mocks\.json$/.test(normalizedPath)
+  );
+}
+
+function shouldServeWorkbenchIndexHtml(requestUrl: string): boolean {
+  const pathname = new URL(requestUrl, 'http://localhost').pathname;
+
+  if (pathname === '/') {
+    return true;
+  }
+
+  // Keep Workbench JSON and iframe endpoints handled by their dedicated
+  // middleware instead of falling through to the main app shell.
+  if (pathname.startsWith('/__canvas/')) {
+    return false;
+  }
+
+  // Skip asset-like requests so Vite can continue serving files normally.
+  if (path.extname(pathname) !== '') {
+    return false;
+  }
+
+  return pathname.startsWith('/component') || pathname.startsWith('/page');
+}
+
+function toExpectedMockPaths(component: PreviewManifestComponent): string[] {
+  const componentDirectory = path.dirname(component.metadataPath);
+  const metadataFilename = path.basename(component.metadataPath);
+
+  if (metadataFilename === 'component.yml') {
+    return [path.join(componentDirectory, 'mocks.json')];
+  }
+
+  const namedComponentBase = metadataFilename.replace(/\.component\.yml$/, '');
+  return [path.join(componentDirectory, `${namedComponentBase}.mocks.json`)];
+}
+
+async function loadComponentMocks(
+  component: PreviewManifestComponent,
+  componentRoot: string,
+  allComponentNames: string[],
+  componentExampleProps: Record<string, unknown>,
+): Promise<{
+  mocks: PreviewManifestComponentMock[];
+  warnings: PreviewWarning[];
+}> {
+  const expectedMockPaths = toExpectedMockPaths(component);
+  const mocks: PreviewManifestComponentMock[] = [];
+  const warnings: PreviewWarning[] = [];
+
+  for (const mockPath of expectedMockPaths) {
+    let fileContent: string;
+    try {
+      fileContent = await fs.readFile(mockPath, 'utf-8');
+    } catch {
+      continue;
+    }
+
+    let parsedJson: unknown;
+    try {
+      parsedJson = JSON.parse(fileContent);
+    } catch {
+      warnings.push({
+        code: 'invalid_mock_json',
+        message: `Failed to parse mock JSON file: ${mockPath}`,
+        path: mockPath,
+      });
+      continue;
+    }
+
+    const parsed = toPreviewManifestComponentMocks(parsedJson, {
+      sourcePath: mockPath,
+      componentRoot,
+      componentName: component.name,
+      componentNames: allComponentNames,
+      componentExampleProps,
+    });
+    warnings.push(...parsed.warnings);
+    mocks.push(...parsed.mocks);
+  }
+
+  return {
+    mocks,
+    warnings,
+  };
+}
+
+async function loadPageTitle(pagePath: string): Promise<string | null> {
+  let fileContent: string;
+  try {
+    fileContent = await fs.readFile(pagePath, 'utf-8');
+  } catch {
+    return null;
+  }
+
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(fileContent);
+  } catch {
+    return null;
+  }
+
+  return toDiscoveredPageName(
+    parsedJson,
+    pagePath,
+    path.basename(pagePath, '.json'),
+  );
+}
+
+async function enrichDiscoveredPages(discoveryResult: DiscoveryResult) {
+  const pages = await Promise.all(
+    discoveryResult.pages.map(async (page) => ({
+      ...page,
+      name: (await loadPageTitle(page.path)) ?? page.name,
+    })),
+  );
+
+  return {
+    ...discoveryResult,
+    pages,
+  };
+}
+
+async function loadPreviewPageSpec(
+  discoveryResult: DiscoveryResult,
+  slug: string,
+): Promise<{
+  spec: unknown | null;
+  status: number;
+  error: string | null;
+}> {
+  const page = discoveryResult.pages.find(
+    (candidate) => candidate.slug === slug,
+  );
+  if (!page) {
+    return {
+      spec: null,
+      status: 404,
+      error: `No page found for slug "${slug}".`,
+    };
+  }
+
+  let fileContent: string;
+  try {
+    fileContent = await fs.readFile(page.path, 'utf-8');
+  } catch {
+    return {
+      spec: null,
+      status: 404,
+      error: `Failed to read page file: ${page.path}`,
+    };
+  }
+
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(fileContent);
+  } catch {
+    return {
+      spec: null,
+      status: 400,
+      error: `Failed to parse page JSON file: ${page.path}`,
+    };
+  }
+
+  const parsedPage = toPreviewPageSpec(parsedJson, {
+    sourcePath: page.path,
+    componentNames: discoveryResult.components.map(
+      (component) => component.name,
+    ),
+  });
+  if (!parsedPage.spec) {
+    return {
+      spec: null,
+      status: 400,
+      error:
+        parsedPage.issues[0]?.message ?? `Page spec is invalid: ${page.path}`,
+    };
+  }
+
+  return {
+    spec: parsedPage.spec,
+    status: 200,
+    error: null,
+  };
+}
+
 function canvasWorkbenchDiscovery(): Plugin {
   let cachedResult: DiscoveryResult | null = null;
   let refreshTask: Promise<void> | null = null;
@@ -59,7 +273,11 @@ function canvasWorkbenchDiscovery(): Plugin {
     }
 
     refreshTask = (async () => {
-      cachedResult = await discoverCodeComponents({ scanRoot: process.cwd() });
+      cachedResult = await discoverCanvasProject({
+        componentRoot: componentDiscoveryRoot,
+        pagesRoot: pagesDiscoveryRoot,
+        projectRoot: hostProjectRoot,
+      });
     })();
 
     try {
@@ -97,15 +315,17 @@ function canvasWorkbenchDiscovery(): Plugin {
       }
       await refresh();
 
-      server.watcher.add(hostProjectRoot);
+      server.watcher.add(watchRoots);
 
       server.middlewares.use('/__canvas/discovery', (_req, res) => {
         void (async () => {
           await refresh();
 
+          const responseResult = await enrichDiscoveredPages(cachedResult!);
+
           res.statusCode = 200;
           res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify(cachedResult));
+          res.end(JSON.stringify(responseResult));
         })().catch((error) => {
           res.statusCode = 500;
           res.setHeader('Content-Type', 'application/json');
@@ -122,14 +342,41 @@ function canvasWorkbenchDiscovery(): Plugin {
           await refresh();
 
           const manifest = buildPreviewManifest(cachedResult!);
-          manifest.components = await Promise.all(
-            manifest.components.map(async (component) => ({
-              ...component,
-              exampleProps: await extractFirstExamplePropsFromComponentYaml(
-                component.metadataPath,
-              ),
-            })),
+          const discoveredComponentNames = manifest.components.map(
+            (component) => component.name,
           );
+          const componentMocksAndExamples = await Promise.all(
+            manifest.components.map(async (component) => {
+              const componentPreviewMetadata =
+                await extractComponentPreviewMetadataFromComponentYaml(
+                  component.metadataPath,
+                );
+              const exampleProps = componentPreviewMetadata.exampleProps;
+              const { mocks, warnings } = await loadComponentMocks(
+                component,
+                manifest.componentRoot,
+                discoveredComponentNames,
+                exampleProps,
+              );
+              return {
+                component: {
+                  ...component,
+                  label: componentPreviewMetadata.label ?? component.label,
+                  exampleProps,
+                  mocks,
+                },
+                warnings,
+              };
+            }),
+          );
+
+          manifest.components = componentMocksAndExamples.map(
+            ({ component }) => component,
+          );
+          manifest.warnings = [
+            ...manifest.warnings,
+            ...componentMocksAndExamples.flatMap(({ warnings }) => warnings),
+          ];
 
           res.statusCode = 200;
           res.setHeader('Content-Type', 'application/json');
@@ -173,6 +420,78 @@ function canvasWorkbenchDiscovery(): Plugin {
         });
       });
 
+      server.middlewares.use(
+        '/__canvas/page-preview-spec',
+        (req, res, next) => {
+          if (req.method !== 'GET') {
+            next();
+            return;
+          }
+
+          void (async () => {
+            await refresh();
+
+            const requestUrl = new URL(req.url ?? '', 'http://localhost');
+            const slug = requestUrl.searchParams.get('slug');
+            if (!slug) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(
+                JSON.stringify({ error: 'Missing required slug parameter.' }),
+              );
+              return;
+            }
+
+            const pageResult = await loadPreviewPageSpec(cachedResult!, slug);
+            res.statusCode = pageResult.status;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(
+              JSON.stringify(
+                pageResult.error
+                  ? { error: pageResult.error }
+                  : pageResult.spec,
+              ),
+            );
+          })().catch((error) => {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(
+              JSON.stringify({
+                error: error instanceof Error ? error.message : String(error),
+              }),
+            );
+          });
+        },
+      );
+
+      // Workbench uses client-side routing. After a dev-server restart, a hard
+      // refresh on /component/* or /page/* can otherwise return Vite's 404
+      // page before React Router gets a chance to boot and handle the route.
+      server.middlewares.use((req, res, next) => {
+        if (
+          req.method !== 'GET' ||
+          !req.url ||
+          !shouldServeWorkbenchIndexHtml(req.url)
+        ) {
+          next();
+          return;
+        }
+
+        void (async () => {
+          const indexPath = path.resolve(__dirname, 'index.html');
+          const html = await fs.readFile(indexPath, 'utf-8');
+          const transformed = await server.transformIndexHtml(req.url!, html);
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'text/html');
+          res.end(transformed);
+        })().catch((error) => {
+          server.config.logger.error(
+            `Failed to serve Workbench app HTML: ${String(error)}`,
+          );
+          next(error);
+        });
+      });
+
       server.watcher.on('all', (event, filePath) => {
         if (!['add', 'change', 'unlink'].includes(event)) {
           return;
@@ -181,12 +500,19 @@ function canvasWorkbenchDiscovery(): Plugin {
         const metadataChanged = isComponentMetadataPath(filePath);
         const sourceChanged = isPreviewSourcePath(filePath);
         const pageChanged = isTopLevelPageSpecPath(filePath);
-        if (!metadataChanged && !sourceChanged && !pageChanged) {
+        const mockChanged = isMockSpecPath(filePath);
+        if (
+          !metadataChanged &&
+          !sourceChanged &&
+          !pageChanged &&
+          !mockChanged
+        ) {
           return;
         }
 
         const requiresManifestRefresh =
           metadataChanged ||
+          mockChanged ||
           pageChanged ||
           (sourceChanged && event !== 'change');
         if (!requiresManifestRefresh) {
@@ -232,7 +558,7 @@ export default defineConfig({
       hostRoot: hostProjectRoot,
     }),
     fs: {
-      allow: [hostProjectRoot, __dirname, geistPackageRoot],
+      allow: allowedFsRoots,
     },
   },
   optimizeDeps: {

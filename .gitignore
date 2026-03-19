@@ -28,6 +28,7 @@ node_modules
 # Packages
 /packages/**/dist/
 /packages/**/node_modules/
+/packages/**/package-lock.json
 
 # GitLab CI
 /.gitlab-ci-local/

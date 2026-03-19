@@ -3,7 +3,7 @@ import path from 'node:path';
 import * as yaml from 'js-yaml';
 import svgr from 'vite-plugin-svgr';
 
-import { isSupportedPreviewModulePath, toViteFsUrl } from './runtime';
+import { isSupportedPreviewModulePath, toViteFsUrl } from './runtime.ts';
 
 import type { Plugin } from 'vite';
 
@@ -133,36 +133,54 @@ export function drupalCanvasCompatServer(
   };
 }
 
-export async function extractFirstExamplePropsFromComponentYaml(
+export interface ComponentPreviewMetadata {
+  label: string | null;
+  exampleProps: Record<string, unknown>;
+}
+
+export async function extractComponentPreviewMetadataFromComponentYaml(
   metadataPath: string,
-): Promise<Record<string, unknown>> {
+): Promise<ComponentPreviewMetadata> {
   try {
     const content = await fs.readFile(metadataPath, 'utf-8');
     const parsed = yaml.load(content);
     const root = asRecord(parsed);
     const props = asRecord(root?.props);
     const properties = asRecord(props?.properties);
-    if (!properties) {
-      return {};
+
+    const exampleProps: Record<string, unknown> = {};
+    if (properties) {
+      for (const [propName, rawPropDefinition] of Object.entries(properties)) {
+        const propDefinition = asRecord(rawPropDefinition);
+        if (!propDefinition) {
+          continue;
+        }
+
+        const examples = propDefinition.examples;
+        if (Array.isArray(examples) && examples.length > 0) {
+          exampleProps[propName] = examples[0];
+        }
+      }
     }
 
-    const result: Record<string, unknown> = {};
-    for (const [propName, rawPropDefinition] of Object.entries(properties)) {
-      const propDefinition = asRecord(rawPropDefinition);
-      if (!propDefinition) {
-        continue;
-      }
-
-      const examples = propDefinition.examples;
-      if (Array.isArray(examples) && examples.length > 0) {
-        result[propName] = examples[0];
-      }
-    }
-
-    return result;
+    return {
+      label: typeof root?.name === 'string' ? root.name : null,
+      exampleProps,
+    };
   } catch {
-    return {};
+    return {
+      label: null,
+      exampleProps: {},
+    };
   }
+}
+
+export async function extractFirstExamplePropsFromComponentYaml(
+  metadataPath: string,
+): Promise<Record<string, unknown>> {
+  const previewMetadata =
+    await extractComponentPreviewMetadataFromComponentYaml(metadataPath);
+  return previewMetadata.exampleProps;
 }
 
 export function drupalCanvasCompat(options: CanvasViteCompatOptions): Plugin[] {
@@ -207,6 +225,7 @@ export interface CanvasConfig {
   aliasBaseDir: string;
   outputDir: string;
   componentDir: string;
+  pagesDir: string;
   deprecatedComponentDir: string;
   globalCssPath: string;
 }
@@ -218,6 +237,7 @@ export function resolveCanvasConfig(
     aliasBaseDir: 'src',
     outputDir: 'dist',
     componentDir: options.hostRoot,
+    pagesDir: './pages',
     deprecatedComponentDir: './components',
     globalCssPath: './src/components/global.css',
   };
@@ -234,6 +254,7 @@ export function resolveCanvasConfig(
       aliasBaseDir: parsed.aliasBaseDir ?? DEFAULT_CANVAS_CONFIG.aliasBaseDir,
       outputDir: parsed.outputDir ?? DEFAULT_CANVAS_CONFIG.outputDir,
       componentDir: parsed.componentDir ?? DEFAULT_CANVAS_CONFIG.componentDir,
+      pagesDir: parsed.pagesDir ?? DEFAULT_CANVAS_CONFIG.pagesDir,
       deprecatedComponentDir:
         parsed.componentDir ?? DEFAULT_CANVAS_CONFIG.deprecatedComponentDir,
       globalCssPath:

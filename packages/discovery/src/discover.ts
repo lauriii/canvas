@@ -26,7 +26,6 @@ const ALWAYS_IGNORED_PATTERNS = [
 ] as const;
 const METADATA_PATTERNS = ['**/component.yml', '**/*.component.yml'] as const;
 const NAMED_SUFFIX = '.component.yml';
-const PAGE_PATTERN = 'pages/*.json';
 
 // Normalize to POSIX-style separators for glob and ignore matching.
 // Example: "components\\button\\component.yml" -> "components/button/component.yml".
@@ -34,8 +33,8 @@ function toPosixPath(value: string): string {
   return value.split(path.sep).join('/');
 }
 
-async function readGitignore(scanRoot: string) {
-  const gitignorePath = path.join(scanRoot, '.gitignore');
+async function readGitignore(projectRoot: string) {
+  const gitignorePath = path.join(projectRoot, '.gitignore');
   const matcher = ignore();
 
   try {
@@ -64,12 +63,14 @@ function createStableId(metadataPath: string): string {
   return createHash('sha1').update(metadataPath).digest('hex');
 }
 
-async function getCandidateMetadataFiles(scanRoot: string): Promise<string[]> {
+async function getCandidateMetadataFiles(
+  componentRoot: string,
+): Promise<string[]> {
   const discovered = new Set<string>();
 
   for (const pattern of METADATA_PATTERNS) {
     const files = await glob(pattern, {
-      cwd: scanRoot,
+      cwd: componentRoot,
       nodir: true,
       dot: true,
       posix: true,
@@ -84,9 +85,9 @@ async function getCandidateMetadataFiles(scanRoot: string): Promise<string[]> {
   return [...discovered].sort();
 }
 
-async function getCandidatePageFiles(scanRoot: string): Promise<string[]> {
-  return glob(PAGE_PATTERN, {
-    cwd: scanRoot,
+async function getCandidatePageFiles(pagesRoot: string): Promise<string[]> {
+  return glob('*.json', {
+    cwd: pagesRoot,
     nodir: true,
     dot: true,
     posix: true,
@@ -107,17 +108,24 @@ async function getCandidatePageFiles(scanRoot: string): Promise<string[]> {
  * precedence (`.ts`, `.tsx`, `.js`, `.jsx`) and emits warnings for missing or
  * duplicate entries. It also attaches an optional `.css` entry when present.
  *
- * Returns discovered components sorted by metadata path, along with warnings and
- * scan stats (`scannedFiles` and `ignoredFiles`).
+ * Page discovery scans top-level `.json` files from `pagesRoot`, which defaults
+ * to `<componentRoot>/pages`.
+ *
+ * Returns discovered components sorted by metadata path, along with warnings
+ * and scan stats (`scannedFiles` and `ignoredFiles`).
  */
-export async function discoverCodeComponents(
+export async function discoverCanvasProject(
   options: DiscoveryOptions = {},
 ): Promise<DiscoveryResult> {
-  const scanRoot = path.resolve(options.scanRoot ?? process.cwd());
-  const gitignoreMatcher = await readGitignore(scanRoot);
+  const componentRoot = path.resolve(options.componentRoot ?? process.cwd());
+  const projectRoot = path.resolve(options.projectRoot ?? componentRoot);
+  const pagesRoot = path.resolve(
+    options.pagesRoot ?? path.join(componentRoot, 'pages'),
+  );
+  const gitignoreMatcher = await readGitignore(projectRoot);
 
-  const allCandidates = await getCandidateMetadataFiles(scanRoot);
-  const pageCandidates = await getCandidatePageFiles(scanRoot);
+  const allCandidates = await getCandidateMetadataFiles(componentRoot);
+  const pageCandidates = await getCandidatePageFiles(pagesRoot);
   const warnings: DiscoveryWarning[] = [];
   const components: DiscoveredComponent[] = [];
   const pages: DiscoveredPage[] = [];
@@ -128,8 +136,18 @@ export async function discoverCodeComponents(
 
   for (const candidateRelativePath of allCandidates) {
     const normalizedRelativePath = toPosixPath(candidateRelativePath);
+    const absoluteCandidatePath = path.resolve(
+      componentRoot,
+      normalizedRelativePath,
+    );
+    const projectRelativePath = toPosixPath(
+      path.relative(projectRoot, absoluteCandidatePath),
+    );
 
-    if (gitignoreMatcher.ignores(normalizedRelativePath)) {
+    if (
+      !projectRelativePath.startsWith('..') &&
+      gitignoreMatcher.ignores(projectRelativePath)
+    ) {
       ignoredFiles += 1;
       continue;
     }
@@ -142,7 +160,15 @@ export async function discoverCodeComponents(
 
   for (const pageRelativePath of pageCandidates) {
     const normalizedRelativePath = toPosixPath(pageRelativePath);
-    if (gitignoreMatcher.ignores(normalizedRelativePath)) {
+    const absolutePagePath = path.resolve(pagesRoot, normalizedRelativePath);
+    const projectRelativePath = toPosixPath(
+      path.relative(projectRoot, absolutePagePath),
+    );
+
+    if (
+      !projectRelativePath.startsWith('..') &&
+      gitignoreMatcher.ignores(projectRelativePath)
+    ) {
       ignoredFiles += 1;
       continue;
     }
@@ -152,8 +178,10 @@ export async function discoverCodeComponents(
     pages.push({
       name: slug,
       slug,
-      path: path.resolve(scanRoot, normalizedRelativePath),
-      relativePath: normalizedRelativePath,
+      path: absolutePagePath,
+      relativePath: projectRelativePath.startsWith('..')
+        ? normalizedRelativePath
+        : projectRelativePath,
     });
   }
 
@@ -165,7 +193,7 @@ export async function discoverCodeComponents(
     ).sort();
     const relativeDirectory =
       relativeDirectoryRaw === '.' ? '' : relativeDirectoryRaw;
-    const absoluteDirectory = path.resolve(scanRoot, relativeDirectory);
+    const absoluteDirectory = path.resolve(componentRoot, relativeDirectory);
 
     const namedMetadataFiles = metadataFilenames.filter(
       (fileName) =>
@@ -259,7 +287,7 @@ export async function discoverCodeComponents(
   pages.sort((a, b) => a.path.localeCompare(b.path));
 
   const result: DiscoveryResult = {
-    scanRoot,
+    componentRoot,
     components,
     pages,
     warnings,

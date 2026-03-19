@@ -7,7 +7,9 @@ export type DiscoveryWarningCode =
   | 'duplicate_machine_name';
 
 export interface DiscoveryOptions {
-  scanRoot?: string;
+  componentRoot?: string;
+  pagesRoot?: string;
+  projectRoot?: string;
 }
 
 export interface DiscoveryWarning {
@@ -35,7 +37,7 @@ export interface DiscoveredPage {
 }
 
 export interface DiscoveryResult {
-  scanRoot: string;
+  componentRoot: string;
   components: DiscoveredComponent[];
   pages: DiscoveredPage[];
   warnings: DiscoveryWarning[];

@@ -1,0 +1,63 @@
+---
+title: Code components - Workbench
+description: Preview code components and page specs in a local UI.
+---
+
+Canvas Workbench is a local preview and development app for Drupal Canvas Code
+Components. It scans your codebase, lists discovered components and pages, and
+renders previews in an isolated frame.
+
+Workbench is zero-config. Run this in your project root:
+
+```bash
+npx @drupal-canvas/workbench@latest
+```
+
+## Installation
+
+Install Workbench:
+
+```bash
+npm install @drupal-canvas/workbench
+```
+
+Then run it from your project root:
+
+```bash
+npx drupal-canvas-workbench
+```
+
+## What Workbench discovers
+
+Workbench looks for the following files in your project:
+
+- Component metadata: `component.yml` and `*.component.yml`
+- Component source entries:
+  - index components (`component.yml`): `index.ts`, `index.tsx`, `index.js`, or
+    `index.jsx`
+  - named components (`*.component.yml`): `<name>.ts`, `<name>.tsx`,
+    `<name>.js`, or `<name>.jsx`
+  - optional CSS entries: `index.css` or `<name>.css`
+- Component mocks: `mocks.json` and `*.mocks.json`
+- Page specs: `pages/*.json`
+
+## Component preview behavior
+
+For each component, Workbench keeps a default preview that uses the first
+example value of every prop in `component.yml`.
+
+When mock files are present, Workbench adds tabs in the preview panel:
+
+- `Default` uses the first examples from `component.yml`
+- Named mock tabs use the `name` value from each mock entry
+
+This makes it easy to keep a quick default preview and add richer,
+scenario-specific previews side by side.
+
+## Next steps
+
+To add tabbed mock previews, see
+[Code components - Workbench mocks](./mocks/).
+
+To add page specs for page previews, see
+[Code components - Workbench pages](./pages/).

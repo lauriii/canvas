@@ -35,6 +35,7 @@ export interface Config {
   aliasBaseDir: string;
   outputDir: string;
   componentDir: string;
+  pagesDir: string;
   deprecatedComponentDir: string;
   globalCssPath: string;
 }
@@ -43,6 +44,7 @@ const {
   aliasBaseDir,
   outputDir,
   componentDir,
+  pagesDir,
   deprecatedComponentDir,
   globalCssPath,
 } = resolveCanvasConfig({ hostRoot: process.cwd() });
@@ -56,6 +58,7 @@ let config: Config = {
   aliasBaseDir: aliasBaseDir,
   outputDir: outputDir,
   componentDir: componentDir,
+  pagesDir: pagesDir,
   // We need this because the old commands use './components' as a default
   // but the new componentDir that supports flexible codebases defaults to process.cwd().
   deprecatedComponentDir: deprecatedComponentDir,

@@ -1,13 +1,11 @@
-import { Component, useEffect, useRef, useState } from 'react';
+import { Component, useEffect, useState } from 'react';
 import {
   defineComponentRegistry,
-  renderCanvasTree,
-  specToCanvasTree,
+  renderSpec,
 } from 'drupal-canvas/json-render-utils';
-import { resolvePreviewComponent } from '@wb/lib/preview-component-resolver';
 import { isPreviewRenderRequest } from '@wb/lib/preview-contract';
 
-import type { ComponentType, ErrorInfo, ReactNode } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import type {
   PreviewFrameError,
   PreviewFrameReady,
@@ -21,53 +19,24 @@ function postFrameMessage(
   window.parent.postMessage(message, window.location.origin);
 }
 
-function applyComponentStylesheet(cssUrl: string | null): void {
-  const existing = document.querySelector<HTMLLinkElement>(
-    'link[data-canvas-preview-css="component"]',
-  );
-
-  if (!cssUrl) {
-    existing?.remove();
-    return;
-  }
-
-  if (existing) {
-    existing.href = cssUrl;
-    return;
-  }
-
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = cssUrl;
-  link.dataset.canvasPreviewCss = 'component';
-  document.head.appendChild(link);
+interface RenderableState {
+  type: 'component' | 'page';
+  renderId: string;
+  node: ReactNode;
 }
-
-type RenderableState =
-  | {
-      kind: 'component';
-      renderId: string;
-      component: ComponentType;
-      props: Record<string, unknown>;
-    }
-  | {
-      kind: 'page';
-      renderId: string;
-      node: ReactNode;
-    };
 
 function RenderSignal({
   renderId,
-  kind,
+  type,
   onRendered,
 }: {
   renderId: string;
-  kind: 'component' | 'page';
-  onRendered: (kind: 'component' | 'page', renderId: string) => void;
+  type: 'component' | 'page';
+  onRendered: (type: 'component' | 'page', renderId: string) => void;
 }) {
   useEffect(() => {
-    onRendered(kind, renderId);
-  }, [kind, onRendered, renderId]);
+    onRendered(type, renderId);
+  }, [type, onRendered, renderId]);
 
   return null;
 }
@@ -116,7 +85,6 @@ export function PreviewFrameApp() {
   const [activeRender, setActiveRender] = useState<RenderableState | null>(
     null,
   );
-  const loadedGlobalCssUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     postFrameMessage({
@@ -146,67 +114,26 @@ export function PreviewFrameApp() {
     request: PreviewRenderRequest,
   ): Promise<void> {
     try {
-      if (
-        request.payload.globalCssUrl &&
-        loadedGlobalCssUrlRef.current !== request.payload.globalCssUrl
-      ) {
-        await import(/* @vite-ignore */ request.payload.globalCssUrl);
-        loadedGlobalCssUrlRef.current = request.payload.globalCssUrl;
-      }
-
-      if (request.payload.mode === 'component') {
-        applyComponentStylesheet(request.payload.cssUrl);
-
-        const loadedModule = (await import(
-          /* @vite-ignore */ request.payload.moduleUrl
-        )) as Record<string, unknown>;
-        const { component: renderableComponent, reason } =
-          resolvePreviewComponent(loadedModule);
-        if (!renderableComponent) {
-          throw new Error(
-            reason ?? 'Module does not export a renderable component.',
-          );
-        }
-
-        setActiveRender({
-          kind: 'component',
-          renderId: request.payload.componentId,
-          component: renderableComponent,
-          props: request.payload.props,
-        });
-        return;
-      }
-
-      applyComponentStylesheet(null);
-
       await Promise.all(
-        request.payload.components
-          .filter((component) => component.cssEntryUrl !== null)
-          .map(async (component) => {
-            await import(/* @vite-ignore */ component.cssEntryUrl!);
-          }),
+        request.payload.cssUrls.map(async (cssUrl) => {
+          await import(/* @vite-ignore */ cssUrl);
+        }),
       );
 
       const registry = await defineComponentRegistry(
-        request.payload.components.map((component) => ({
-          name: component.name,
-          jsEntryPath: component.jsEntryUrl,
+        request.payload.registrySources.map((source) => ({
+          name: source.name,
+          jsEntryPath: source.jsEntryUrl,
         })),
       );
-      const pageResponse = await fetch(request.payload.pageSpecUrl);
-      if (!pageResponse.ok) {
-        throw new Error(
-          `Failed to load page "${request.payload.pageSlug}" (${pageResponse.status}).`,
-        );
-      }
-      const pageSpec = await pageResponse.json();
-      const tree = specToCanvasTree(pageSpec);
-      const renderedPage = await renderCanvasTree(tree, registry);
+
+      const node = renderSpec(request.payload.spec, registry);
+      const renderType: RenderableState['type'] = request.payload.renderType;
 
       setActiveRender({
-        kind: 'page',
-        renderId: request.payload.pageSlug,
-        node: renderedPage,
+        type: renderType,
+        renderId: request.payload.renderId,
+        node,
       });
     } catch (error) {
       const message =
@@ -218,18 +145,12 @@ export function PreviewFrameApp() {
         source: 'canvas-workbench-frame',
         type: 'preview:error',
         payload: {
-          renderId:
-            request.payload.mode === 'component'
-              ? request.payload.componentId
-              : request.payload.pageSlug,
+          renderId: request.payload.renderId,
           message,
         },
       });
     }
   }
-
-  const ActiveComponent =
-    activeRender?.kind === 'component' ? activeRender.component : null;
 
   return (
     <main style={{ padding: '1rem' }}>
@@ -246,35 +167,17 @@ export function PreviewFrameApp() {
           });
         }}
       >
-        {ActiveComponent && activeRender?.kind === 'component' ? (
+        {activeRender ? (
           <>
             <RenderSignal
               renderId={activeRender.renderId}
-              kind="component"
-              onRendered={(kind, renderId) => {
+              type={activeRender.type}
+              onRendered={(type, renderId) => {
                 postFrameMessage({
                   source: 'canvas-workbench-frame',
                   type: 'preview:rendered',
                   payload: {
-                    kind,
-                    renderId,
-                  },
-                });
-              }}
-            />
-            <ActiveComponent {...activeRender.props} />
-          </>
-        ) : activeRender?.kind === 'page' ? (
-          <>
-            <RenderSignal
-              renderId={activeRender.renderId}
-              kind="page"
-              onRendered={(kind, renderId) => {
-                postFrameMessage({
-                  source: 'canvas-workbench-frame',
-                  type: 'preview:rendered',
-                  payload: {
-                    kind,
+                    type,
                     renderId,
                   },
                 });

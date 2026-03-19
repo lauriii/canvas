@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Canvas component mocks",
+  "description": "Authored Canvas component mock file format. The file contains a top-level mocks array, and each mock entry uses the props, props and slots, or advanced format documented for Workbench component mocks.",
+  "type": "object",
+  "required": ["mocks"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional JSON Schema reference for editor tooling."
+    },
+    "mocks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mockEntry"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "element": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "props": {},
+        "slots": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "mockEntry": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Workbench label for this mock entry."
+        },
+        "root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "elements": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/element"
+          }
+        },
+        "props": {
+          "description": "Shorthand root props. Workbench infers the root element type from the discovered component."
+        },
+        "slots": {
+          "type": "object",
+          "description": "Shorthand root slots. Workbench infers the root element type from the discovered component.",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "title": "Props format",
+          "required": ["name", "props"],
+          "not": {
+            "anyOf": [
+              {
+                "required": ["slots"]
+              },
+              {
+                "required": ["elements"]
+              },
+              {
+                "required": ["root"]
+              }
+            ]
+          }
+        },
+        {
+          "title": "Props and slots format",
+          "required": ["name", "props", "slots", "elements"],
+          "not": {
+            "anyOf": [
+              {
+                "required": ["root"]
+              }
+            ]
+          }
+        },
+        {
+          "title": "Advanced format",
+          "required": ["name", "root", "elements"],
+          "not": {
+            "anyOf": [
+              {
+                "required": ["props"]
+              },
+              {
+                "required": ["slots"]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

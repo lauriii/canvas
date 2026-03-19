@@ -8,6 +8,13 @@ Storybook, but focused on Drupal Canvas Code Components and Canvas pages.
 Provide a complete local Drupal Canvas preview experience for Code Components
 and Canvas Pages built with Code Components from source code alone.
 
+## User docs
+
+For end-user guidance, see the Workbench chapter in `docs/user`:
+
+- [Workbench introduction](../../docs/user/src/content/docs/code-components/workbench/index.mdx)
+- [Adding mocks](../../docs/user/src/content/docs/code-components/workbench/mocks.mdx)
+
 ## What we are testing
 
 - Run a local Vite + React app that scans your local codebase.
@@ -56,7 +63,8 @@ npx canvas-workbench dev
 - Sets `root` to the workbench package, but allows Vite file access to both the
   workbench code and the host project directory.
 - Registers a custom discovery plugin (from `@drupal-canvas/discovery`) that
-  runs `discoverCodeComponents({ scanRoot: process.cwd() })` and caches results.
+  runs `discoverCanvasProject({ componentRoot: process.cwd() })` and caches
+  results.
 - Exposes discovery data at `/__canvas/discovery` as JSON for the UI.
 - Exposes preview manifest data at `/__canvas/preview-manifest` as JSON for
   preview runtime decisions.

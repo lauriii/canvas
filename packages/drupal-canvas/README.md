@@ -304,9 +304,9 @@ without a JS entry or without a default function export are skipped.
 
 ```js
 import { defineComponentRegistry } from 'drupal-canvas/json-render-utils';
-import { discoverCodeComponents } from '@drupal-canvas/discovery';
+import { discoverCanvasProject } from '@drupal-canvas/discovery';
 
-const discovery = await discoverCodeComponents({ scanRoot: './src' });
+const discovery = await discoverCanvasProject({ componentRoot: './src' });
 const registry = await defineComponentRegistry(discovery.components);
 ```
 
@@ -320,11 +320,11 @@ generation, `catalog.validate()` for spec validation, etc.
 ```js
 import { defineComponentCatalog } from 'drupal-canvas/json-render-utils';
 import {
-  discoverCodeComponents,
+  discoverCanvasProject,
   loadComponentsMetadata,
 } from '@drupal-canvas/discovery';
 
-const discovery = await discoverCodeComponents({ scanRoot: './src' });
+const discovery = await discoverCanvasProject({ componentRoot: './src' });
 const metadata = await loadComponentsMetadata(discovery);
 const catalog = defineComponentCatalog(metadata);
 const systemPrompt = catalog.prompt();

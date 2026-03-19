@@ -3,7 +3,7 @@ import path from 'path';
 import chalk from 'chalk';
 import yaml from 'js-yaml';
 import * as p from '@clack/prompts';
-import { discoverCodeComponents } from '@drupal-canvas/discovery';
+import { discoverCanvasProject } from '@drupal-canvas/discovery';
 import { resolveHostGlobalCssPath } from '@drupal-canvas/vite-compat';
 
 import { ensureConfig, getConfig } from '../config';
@@ -100,7 +100,7 @@ export function createComponentsPullTask(
     async prepare(): Promise<string[]> {
       const [fetchedComponents, discoveryResult] = await Promise.all([
         apiService.listComponents(),
-        discoverCodeComponents({ scanRoot: componentDir }),
+        discoverCanvasProject({ componentRoot: componentDir }),
       ]);
 
       components = fetchedComponents;

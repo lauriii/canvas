@@ -1,4 +1,4 @@
-import { createElement } from 'react';
+import { cloneElement, createElement, isValidElement } from 'react';
 import { fromJSONSchema } from 'zod';
 import { defineCatalog, resolveElementProps } from '@json-render/core';
 import { schema } from '@json-render/react/schema';
@@ -293,8 +293,8 @@ function renderSpecElement(
   // Transparent passthrough for the synthetic multi-root wrapper.
   // @see renderSpec
   if (element.type === 'canvas:component-tree') {
-    const children = (element.children ?? []).map((k) =>
-      renderSpecElement(k, elements, registry, ctx),
+    const children = (element.children ?? []).map((childKey) =>
+      renderSpecChild(childKey, elements, registry, ctx),
     );
     return <>{children}</>;
   }
@@ -309,14 +309,14 @@ function renderSpecElement(
     unknown
   >;
 
-  const children = (element.children ?? []).map((k) =>
-    renderSpecElement(k, elements, registry, ctx),
+  const children = (element.children ?? []).map((childKey) =>
+    renderSpecChild(childKey, elements, registry, ctx),
   );
 
   const slots: Record<string, ReactNode[]> = {};
   for (const [slotName, childKeys] of Object.entries(element.slots ?? {})) {
-    slots[slotName] = childKeys.map((k) =>
-      renderSpecElement(k, elements, registry, ctx),
+    slots[slotName] = childKeys.map((childKey) =>
+      renderSpecChild(childKey, elements, registry, ctx),
     );
   }
 
@@ -325,6 +325,21 @@ function renderSpecElement(
     ...slots,
     ...(children.length > 0 ? { children } : {}),
   });
+}
+
+function renderSpecChild(
+  key: string,
+  elements: Spec['elements'],
+  registry: ComponentRegistry,
+  ctx: PropResolutionContext,
+): ReactNode {
+  const child = renderSpecElement(key, elements, registry, ctx);
+
+  if (isValidElement(child)) {
+    return cloneElement(child, { key });
+  }
+
+  return child;
 }
 
 /**
@@ -403,7 +418,7 @@ function toComponentId(machineName: string): string {
  * Components are keyed by their Drupal Canvas component_id (`js.<machineName>`)
  * to match the `component_id` used in Canvas component trees.
  *
- * @param components - Array of discovered components from `discoverCodeComponents()`
+ * @param components - Array of discovered components from `discoverCanvasProject()`
  * @returns A component registry that can be passed to `renderCanvasTree()`
  */
 export async function defineComponentRegistry(
@@ -427,7 +442,7 @@ export async function defineComponentRegistry(
         }
         const names = c.name.startsWith('js.')
           ? [c.name]
-          : [c.name, toComponentId(c.name.replace(/-/g, '_').toLowerCase())];
+          : [c.name, toComponentId(c.name.toLowerCase())];
         return { names, renderFn } as const;
       }),
   );

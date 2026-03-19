@@ -1,0 +1,191 @@
+---
+title: Code components - Workbench pages
+description: Add page specs for Workbench page previews.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Workbench can preview page specs from the top-level `pages` directory.
+
+You can author page previews in JSON files. Each page file becomes its own page
+preview in Workbench.
+
+## File naming and placement
+
+Place page files in the top-level `pages` directory.
+
+```text
+pages/
+  home.json
+  about.json
+```
+
+Workbench discovers `pages/*.json`. Nested files are ignored.
+
+The page filename becomes the page slug in Workbench.
+
+- `pages/home.json` -> `home`
+- `pages/about-us.json` -> `about-us`
+
+## Page files
+
+Each page file contains a JSON object.
+
+| Key | Description |
+| --- | --- |
+| `title` | Labels the page preview in Workbench. |
+| `elements` | Defines the page element tree. |
+
+Each entry in `elements` must include a `type`. It can also include `props`
+and `slots`, which reference other element IDs from the same `elements`
+object.
+
+Each element `type` must match a discovered component name, such as `card` or
+`js.card`. Workbench discovers these component types from the code components
+available in your project.
+
+**Example:** `pages/home.json`
+
+```json
+{
+  "title": "Home",
+  "elements": {
+    "header": {
+      "type": "js.header",
+      "props": {
+        "darkVariant": true,
+        "backgroundColor": "crust"
+      },
+      "slots": {
+        "branding": ["header-logo"],
+        "navigation": ["header-navigation"]
+      }
+    },
+    "header-logo": {
+      "type": "js.logo",
+      "props": {
+        "linkToFrontPage": true
+      }
+    },
+    "header-navigation": {
+      "type": "js.navigation",
+      "props": {}
+    },
+    "card-grid": {
+      "type": "grid",
+      "props": {
+        "columns": 3,
+        "gap": "md"
+      },
+      "slots": {
+        "items": ["card-1", "card-2", "card-3"]
+      }
+    },
+    "card-1": {
+      "type": "card",
+      "props": {
+        "featured": true
+      },
+      "slots": {
+        "header": ["card-1-header"],
+        "content": ["card-1-content"],
+        "footer": ["card-1-footer"]
+      }
+    },
+    "card-1-header": {
+      "type": "heading",
+      "props": {
+        "text": "Featured article"
+      }
+    },
+    "card-1-content": {
+      "type": "text",
+      "props": {
+        "content": "Learn how editorial teams use Canvas to review, refine, and publish AI-assisted content."
+      }
+    },
+    "card-1-footer": {
+      "type": "button-group",
+      "slots": {
+        "items": ["card-1-primary-action", "card-1-secondary-action"]
+      }
+    },
+    "card-1-primary-action": {
+      "type": "button",
+      "props": {
+        "label": "Read more",
+        "href": "/articles/canvas-workflows"
+      }
+    },
+    "card-1-secondary-action": {
+      "type": "button",
+      "props": {
+        "label": "Save for later",
+        "href": "/saved"
+      }
+    },
+    "card-2": {
+      "type": "card",
+      "props": {
+        "featured": false
+      },
+      "slots": {
+        "header": ["card-2-header"],
+        "content": ["card-2-content"],
+        "footer": ["card-2-footer"]
+      }
+    },
+    "card-2-header": {
+      "type": "heading",
+      "props": {
+        "text": "Documentation update"
+      }
+    },
+    "card-2-content": {
+      "type": "text",
+      "props": {
+        "content": "Review the latest guidance for authoring Workbench component mocks."
+      }
+    },
+    "card-2-footer": {
+      "type": "button",
+      "props": {
+        "label": "Open docs",
+        "href": "/docs/workbench-mocks"
+      }
+    },
+    "card-3": {
+      "type": "card",
+      "props": {
+        "featured": false
+      },
+      "slots": {
+        "header": ["card-3-header"],
+        "content": ["card-3-content"],
+        "footer": ["card-3-footer"]
+      }
+    },
+    "card-3-header": {
+      "type": "heading",
+      "props": {
+        "text": "Team workflow"
+      }
+    },
+    "card-3-content": {
+      "type": "text",
+      "props": {
+        "content": "Coordinate AI drafting, editorial review, and publishing approvals in one place."
+      }
+    },
+    "card-3-footer": {
+      "type": "button",
+      "props": {
+        "label": "See workflow",
+        "href": "/workflow"
+      }
+    }
+  }
+}
+```
+
+<Aside>Before rendering, Workbench normalizes the authored page format into a [`@json-render/react`](https://json-render.dev)-compatible spec shape (with our [hopefully temporary patch](https://github.com/vercel-labs/json-render/pull/105) by automatically creating a synthetic `canvas:component-tree` wrapper.</Aside>

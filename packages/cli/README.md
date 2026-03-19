@@ -41,6 +41,7 @@ properties:
 ```json
 {
   "componentDir": "./components",
+  "pagesDir": "./pages",
   "aliasBaseDir": "src",
   "outputDir": "dist",
   "globalCssPath": "./src/components/global.css"
@@ -52,6 +53,7 @@ properties:
 | Property        | Default                         | Description                                                                                                               |
 | --------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `componentDir`  | `process.cwd()`                 | Directory where Code Components are stored in the filesystem.                                                             |
+| `pagesDir`      | `"./pages"`                     | Directory where page specs are stored in the filesystem.                                                                  |
 | `aliasBaseDir`  | `"src"`                         | Base directory for module resolution when using path aliases in your components. Tied to your project's import structure. |
 | `outputDir`     | `"dist"`                        | Build output directory (similar to Vite's `build.outDir`). Defines where compiled assets are generated.                   |
 | `globalCssPath` | `"./src/components/global.css"` | Path to the global CSS file.                                                                                              |
@@ -95,8 +97,8 @@ provided by the Drupal Canvas OAuth module (`canvas_oauth`).
 
 The CLI uses different precedence rules depending on the type of configuration:
 
-**For canvas.config.json properties** (`componentDir`, `aliasBaseDir`,
-`outputDir`, `globalCssPath`):
+**For canvas.config.json properties** (`componentDir`, `pagesDir`,
+`aliasBaseDir`, `outputDir`, `globalCssPath`):
 
 Configuration sources are applied in order of precedence from highest to lowest:
 
