@@ -14,8 +14,9 @@ use Drupal\Core\Plugin\Component;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\TypedData\DataReferenceTargetDefinition;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
-use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
+use Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -42,13 +43,14 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * @todo Also test non-default FieldStorageConfig setting in https://www.drupal.org/project/canvas/issues/3512848
  *
  * @see \Drupal\Tests\canvas\Kernel\PropSourceSuggesterTest
- * @see \Drupal\Tests\canvas\Kernel\PropShapeToFieldInstanceTest
- * @see docs/shape-matching.md#3.1.2.a
+ * @see \Drupal\Tests\canvas\Kernel\ShapeMatcher\EntityFieldPropSourceMatcherTest
+ * @see docs/shape-matching.md#3.1.2.b
  * @legacy-covers \Drupal\canvas\ShapeMatcher\PropSourceSuggester
- * @legacy-covers \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
+ * @legacy-covers \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher
  */
 #[RunTestsInSeparateProcesses]
 #[Group('canvas')]
+#[Group('canvas_shape_matching')]
 final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
 
   /**
@@ -63,7 +65,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
    *
    * (For example: the `password` field type never makes sense to match.)
    *
-   * @see \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher::IGNORE_FIELD_TYPES
+   * @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher::IGNORE_FIELD_TYPES
    */
   public const MATCHING_ALL_FIELD_TYPES = 0.8387096774193549;
 
@@ -166,7 +168,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
    *
    * @var array<lowercase-string, array{class: class-string, exceptions: array<array>}>
    */
-  public const INTENTIONALLY_UNSUPPORTED = JsonSchemaFieldInstanceMatcher::IGNORE_FIELD_TYPES;
+  public const INTENTIONALLY_UNSUPPORTED = EntityFieldPropSourceMatcher::IGNORE_FIELD_TYPES;
 
   private const CANVAS_TEST_FIELD_PREFIX = 'test_';
 
@@ -308,7 +310,8 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     // - but: "field (prop) -> SDC"
     $compatible_sdc_prop_shapes_per_field = [];
     $compatible_sdc_prop_shapes_per_field_prop = [];
-    foreach ($suggestions as $cpe => ['instances' => $suggested_instances]) {
+    foreach ($suggestions as $cpe => $suggestions_per_prop_source_type) {
+      $suggested_instances = $suggestions_per_prop_source_type[PropSource::EntityField->value];
       foreach ($suggested_instances as $dynamic_prop_source) {
         \assert($dynamic_prop_source instanceof EntityFieldPropSource);
         $expr = $dynamic_prop_source->expression;

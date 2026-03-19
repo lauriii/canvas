@@ -52,7 +52,7 @@ use Symfony\Component\Validator\Constraints\Ip;
  * Hook implementations that make shape matching work.
  *
  * @see https://www.drupal.org/project/issues/canvas?component=Shape+matching
- * @see docs/shape-matching-into-field-types.md, section 3.1.2.a
+ * @see docs/shape-matching-into-field-types.md, section 3.1.2.b
  */
 class ShapeMatchingHooks {
 

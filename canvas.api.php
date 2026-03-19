@@ -21,7 +21,7 @@ use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 /**
  * Implements hook_canvas_storable_prop_shape_alter().
  *
- * @see docs/shape-matching.md#3.1.2.b
+ * @see docs/shape-matching.md#3.1.2.a
  * @see docs/diagrams/components.md
  */
 function hook_canvas_storable_prop_shape_alter(CandidateStorablePropShape $storable_prop_shape): void {

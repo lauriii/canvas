@@ -7,10 +7,13 @@ namespace Drupal\canvas\ShapeMatcher;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
+use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldItemAnalyzer;
 use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
+use Drupal\canvas\PropShape\PropShape;
+use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Utility\NestedArray;
@@ -46,7 +49,6 @@ use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Core\Validation\ConstraintManager;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\ComplexDataConstraint;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
-use Drupal\canvas\Plugin\AdapterManager;
 use Drupal\canvas\Plugin\Validation\Constraint\UriTargetMediaTypeConstraint;
 use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
@@ -59,10 +61,13 @@ use Drupal\options\Plugin\Field\FieldType\ListFloatItem;
 use Drupal\options\Plugin\Field\FieldType\ListIntegerItem;
 use Drupal\telephone\Plugin\Field\FieldType\TelephoneItem;
 use Drupal\text\TextProcessed;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Validator\Constraint;
 
 /**
  * Matches JSON schema type (+ constraints) with field instances.
+ *
+ * @see \Drupal\canvas\PropSource\EntityFieldPropSource
  *
  * Starts from a JSON schema type and finds equivalent Drupal validation
  * constraints.
@@ -83,6 +88,10 @@ use Symfony\Component\Validator\Constraint;
  *
  * @see \Drupal\canvas\PropSource\EntityFieldPropSource
  *
+ * For adapter-based prop sources, see:
+ *
+ * @see \Drupal\canvas\ShapeMatcher\AdaptedPropSourceMatcher
+ *
  * For "static prop sources", the equivalents are:
  *
  * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
@@ -95,7 +104,7 @@ use Symfony\Component\Validator\Constraint;
  *
  * @internal
  */
-final class JsonSchemaFieldInstanceMatcher {
+final class EntityFieldPropSourceMatcher {
 
   /**
    * @var array<lowercase-string, array{class: class-string, exceptions: array<array>}>
@@ -148,11 +157,13 @@ final class JsonSchemaFieldInstanceMatcher {
 
   public function __construct(
     private readonly TypedDataManagerInterface $typedDataManager,
+    #[Autowire(service: 'validation.constraint')]
     private readonly ConstraintManager $constraintManager,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EntityFieldManagerInterface $entityFieldManager,
-    private readonly AdapterManager $adapterManager,
+    #[Autowire(service: 'cache.static')]
     private readonly CacheBackendInterface $cache,
+    #[Autowire(service: 'file.mime_type.guesser.extension')]
     private readonly ExtensionMimeTypeGuesser|LazyExtensionMimeTypeGuesser $extensionMimeTypeGuesser,
   ) {}
 
@@ -288,7 +299,7 @@ final class JsonSchemaFieldInstanceMatcher {
 
     // Assemble from the (often VERY many) $per_object_prop_scalar_matches the
     // best possible way to populate a `type: object` prop.
-    // @todo These heuristics very likely need tweaking; it's not hard to find odd results in PropShapeToFieldInstanceTest…
+    // @todo These heuristics very likely need tweaking; see EntityFieldPropSourceMatcherTest for examples.
     $inverted = [];
     foreach (\array_keys($per_object_prop_scalar_matches) as $object_prop_name) {
       foreach ($per_object_prop_scalar_matches[$object_prop_name] as $field_prop_expr) {
@@ -766,10 +777,36 @@ final class JsonSchemaFieldInstanceMatcher {
   }
 
   /**
-   * @param JsonSchema $schema
-   * @return array<int, \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface>
+   * @param bool $is_required
+   *   Whether the prop shape to match is required or not.
+   * @param \Drupal\canvas\PropShape\PropShape $prop_shape
+   *   The prop shape to match.
+   * @param string $host_entity_type_id
+   *   The entity type ID whose fields to match against.
+   * @param string $host_entity_bundle
+   *   The entity type bundle whose fields to match against.
+   *
+   * @return list<\Drupal\canvas\PropSource\EntityFieldPropSource>
+   *   An array of EntityFieldPropSource instances, empty array if no matches.
    */
-  public function findFieldInstanceFormatMatches(
+  public function match(bool $is_required, PropShape $prop_shape, string $host_entity_type_id, string $host_entity_bundle): array {
+    return \array_map(
+      fn (EntityFieldBasedPropExpressionInterface $expr) => new EntityFieldPropSource($expr),
+      $this->findFieldInstanceFormatMatches(
+        JsonSchemaType::from($prop_shape->resolvedSchema['type']),
+        $is_required,
+        $prop_shape->resolvedSchema,
+        $host_entity_type_id,
+        $host_entity_bundle
+      ),
+    );
+  }
+
+  /**
+   * @param JsonSchema $schema
+   * @return list<\Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface>
+   */
+  private function findFieldInstanceFormatMatches(
     JsonSchemaType $primitive_type,
     bool $is_required_in_json_schema,
     array $schema,
@@ -1069,14 +1106,6 @@ final class JsonSchemaFieldInstanceMatcher {
       */
       // @phpcs:enable
     };
-  }
-
-  /**
-   * @param JsonSchema $schema
-   * @return \Drupal\canvas\Plugin\Adapter\AdapterInterface[]
-   */
-  public function findAdaptersByMatchingOutput(array $schema): array {
-    return $this->adapterManager->getDefinitionsByOutputSchema($schema);
   }
 
   private function getConstrainedTargetDefinition(FieldDefinitionInterface $field_definition, ReferenceFieldTypePropExpression|DataReferenceDefinitionInterface $expr_or_property_definition): EntityDataDefinitionInterface {

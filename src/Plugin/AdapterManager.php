@@ -36,7 +36,7 @@ final class AdapterManager extends DefaultPluginManager {
   /**
    * @param JsonSchema $schema
    *
-   * @return \Drupal\canvas\Plugin\Adapter\AdapterInterface[]
+   * @return list<\Drupal\canvas\Plugin\Adapter\AdapterInterface>
    * @throws \Drupal\Component\Plugin\Exception\PluginException
    */
   public function getDefinitionsByOutputSchema(array $schema): array {
@@ -45,11 +45,13 @@ final class AdapterManager extends DefaultPluginManager {
     foreach ($this->getDefinitions() as $id => $adapter) {
       $adapterInstance = $this->createInstance($id);
       if ($adapterInstance instanceof AdapterInterface && $adapterInstance->matchesOutputSchema($schema)) {
-        $adapters[] = $adapterInstance;
+        $adapters[$id] = $adapterInstance;
       }
     }
 
-    return $adapters;
+    ksort($adapters);
+
+    return \array_values($adapters);
   }
 
 }

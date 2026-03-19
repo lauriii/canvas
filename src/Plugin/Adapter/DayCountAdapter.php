@@ -8,7 +8,7 @@ use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 #[Adapter(
-  id: 'day_count',
+  id: self::PLUGIN_ID,
   label: new TranslatableMarkup('Count days'),
   inputs: [
     'oldest' => ['type' => 'string', 'format' => 'date'],
@@ -19,6 +19,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 )]
 final class DayCountAdapter extends AdapterBase {
 
+  public const string PLUGIN_ID = 'day_count';
   protected string $oldest;
   protected ?string $newest = NULL;
 

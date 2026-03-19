@@ -49,7 +49,7 @@ use Drupal\canvas\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\PropSourceBase;
 use Drupal\canvas\PropSource\StaticPropSource;
-use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
+use Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher;
 use Drupal\canvas\Utility\TypedDataHelper;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotAcceptableHttpException;
@@ -71,7 +71,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * They can *also* be populated using structured data whose shape matches the
  * shape specified in the SDC metadata.
  *
- * @see \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
+ * @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher
  *
  * Component Source plugins included in the Drupal Canvas module using it:
  * - "SDC"
@@ -1199,7 +1199,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     if (!$property instanceof DependentPluginInterface) {
       return NULL;
     }
-    return JsonSchemaFieldInstanceMatcher::propertyDependsOnReferencedEntity($property->getDataDefinition());
+    return EntityFieldPropSourceMatcher::propertyDependsOnReferencedEntity($property->getDataDefinition());
   }
 
   /**

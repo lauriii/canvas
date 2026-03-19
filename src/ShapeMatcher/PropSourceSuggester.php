@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\ShapeMatcher;
 
-use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
 use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
-use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\canvas\PropSource\PropSource;
@@ -22,9 +20,7 @@ use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
-use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Theme\Component\ComponentMetadata;
-use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 
@@ -45,21 +41,21 @@ use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
  *
  * @see \Drupal\Core\Theme\Component\ComponentMetadata
  * @see \Drupal\canvas\PropShape\PropShape
+ * @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher
+ * @see \Drupal\canvas\ShapeMatcher\AdaptedPropSourceMatcher
+ * @see \Drupal\canvas\ShapeMatcher\HostEntityUrlPropSourceMatcher
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata()
- * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
  * @internal
- *
- * @todo Rename things for clarity: this handles all props for an SDC simultaneously, JsonSchemaFieldInstanceMatcher handles a single prop at a time
  */
-final class PropSourceSuggester {
-
-  use StringTranslationTrait;
+final readonly class PropSourceSuggester {
 
   public function __construct(
-    private readonly JsonSchemaFieldInstanceMatcher $propMatcher,
-    private readonly EntityDisplayRepositoryInterface $entityDisplayRepository,
-    private readonly Labeler $labeler,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
+    private EntityFieldPropSourceMatcher $entityFieldPropSourceMatcher,
+    private AdaptedPropSourceMatcher $adaptedPropSourceMatcher,
+    private HostEntityUrlPropSourceMatcher $hostEntityUrlPropSourceMatcher,
+    private EntityDisplayRepositoryInterface $entityDisplayRepository,
+    private Labeler $labeler,
+    private EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   /**
@@ -135,7 +131,7 @@ final class PropSourceSuggester {
    *   Host entity type + bundle, necessary to suggest certain types of prop
    *   sources.
    *
-   * @return array<string, array{required: bool, instances: array<string, EntityFieldPropSource>, adapters: array<AdapterInterface>, host_entity_urls: array<string, HostEntityUrlPropSource>}>
+   * @return array<string, array{required: bool, entity-field: array<string, EntityFieldPropSource>, adapter: array<AdapterInterface>, host-entity-url: array<string, HostEntityUrlPropSource>}>
    */
   public function suggest(string $component_plugin_id, ComponentMetadata $component_metadata, EntityDataDefinitionInterface $host_entity_type): array {
     $host_entity_type_id = $host_entity_type->getEntityTypeId();
@@ -165,7 +161,7 @@ final class PropSourceSuggester {
       );
       // Push each expression into the right (field) bucket, but only if
       // considered relevant.
-      foreach ($m['instances'] as $s) {
+      foreach ($m[PropSource::EntityField->value] as $s) {
         $expr = $s->expression;
         if ($this->isConsideredIrrelevant($expr)) {
           continue;
@@ -174,13 +170,13 @@ final class PropSourceSuggester {
       }
       // Keep only non-empty (field) buckets.
       $bucketed_by_field = \array_map('array_filter', $bucketed_by_field);
-      $processed_matches[$cpe]['instances'] = $bucketed_by_field;
+      $processed_matches[$cpe][PropSource::EntityField->value] = $bucketed_by_field;
 
       // @todo filtering
-      $processed_matches[$cpe]['adapters'] = $m['adapters'];
+      $processed_matches[$cpe][PropSource::Adapter->value] = $m[PropSource::Adapter->value];
 
       // Nothing to do for HostEntityUrlPropSource matches.
-      $processed_matches[$cpe]['host_entity_urls'] = $m['host_entity_urls'];
+      $processed_matches[$cpe][PropSource::HostEntityUrl->value] = $m[PropSource::HostEntityUrl->value];
     }
 
     // 3. Generate appropriate labels for each. And specify whether required.
@@ -193,10 +189,10 @@ final class PropSourceSuggester {
       $suggestions[$cpe]['required'] = \in_array($prop_name, $schema['required'] ?? [], TRUE);
 
       // Field instances.
-      $suggestions[$cpe]['instances'] = [];
-      if (!empty($m['instances'])) {
-        $dynamic_prop_sources_in_entity_form_display_order = NestedArray::mergeDeep(...$m['instances']);
-        $suggestions[$cpe]['instances'] = array_combine(
+      $suggestions[$cpe][PropSource::EntityField->value] = [];
+      if (!empty($m[PropSource::EntityField->value])) {
+        $dynamic_prop_sources_in_entity_form_display_order = NestedArray::mergeDeep(...$m[PropSource::EntityField->value]);
+        $suggestions[$cpe][PropSource::EntityField->value] = array_combine(
           \array_map(
             fn (EntityFieldPropSource $s) => (string) Labeler::flatten($this->labeler->label($s->expression, $host_entity_type)),
             $dynamic_prop_sources_in_entity_form_display_order
@@ -206,22 +202,22 @@ final class PropSourceSuggester {
       }
 
       // Adapters.
-      $suggestions[$cpe]['adapters'] = array_combine(
+      $suggestions[$cpe][PropSource::Adapter->value] = array_combine(
       // @todo Introduce a plugin definition class that provides a guaranteed label, which will allow removing the PHPStan ignore instruction.
       // @phpstan-ignore-next-line
-        \array_map(fn (AdapterInterface $a): string => (string) $a->getPluginDefinition()['label'], $m['adapters']),
-        $m['adapters']
+        \array_map(fn (AdapterInterface $a): string => (string) $a->getPluginDefinition()['label'], $m[PropSource::Adapter->value]),
+        $m[PropSource::Adapter->value]
       );
       // Sort alphabetically by label.
-      ksort($suggestions[$cpe]['adapters']);
+      ksort($suggestions[$cpe][PropSource::Adapter->value]);
 
       // Host entity URLs: generate labels, retain match order.
-      $suggestions[$cpe]['host_entity_urls'] = array_combine(
+      $suggestions[$cpe][PropSource::HostEntityUrl->value] = array_combine(
         \array_map(
           fn (HostEntityUrlPropSource $s): string => (string) $s->label(),
-          $m['host_entity_urls'],
+          $m[PropSource::HostEntityUrl->value],
         ),
-        $m['host_entity_urls'],
+        $m[PropSource::HostEntityUrl->value],
       );
     }
 
@@ -229,7 +225,7 @@ final class PropSourceSuggester {
   }
 
   /**
-   * @return array<string, array{instances: array<EntityFieldPropSource>, adapters: array<\Drupal\canvas\Plugin\Adapter\AdapterInterface>, host_entity_urls: array<HostEntityUrlPropSource>}>
+   * @return array<string, array{entity-field: array<EntityFieldPropSource>, adapter: array<\Drupal\canvas\Plugin\Adapter\AdapterInterface>, host-entity-url: array<HostEntityUrlPropSource>}>
    */
   private function getRawMatches(string $component_plugin_id, ComponentMetadata $component_metadata, string $host_entity_type, string $host_entity_bundle): array {
     $raw_matches = [];
@@ -241,11 +237,7 @@ final class PropSourceSuggester {
       $is_required = \in_array($cpe->propName, $component_metadata->schema['required'] ?? [], TRUE);
       $schema = $prop_shape->resolvedSchema;
 
-      $primitive_type = JsonSchemaType::from($schema['type']);
-
-      $instance_candidates = $this->propMatcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema, $host_entity_type, $host_entity_bundle);
-      $adapter_candidates = $this->propMatcher->findAdaptersByMatchingOutput($schema);
-      $raw_matches[(string) $cpe]['instances'] = \array_map(fn ($expr): EntityFieldPropSource => new EntityFieldPropSource($expr), $instance_candidates);
+      $raw_matches[(string) $cpe][PropSource::EntityField->value] = $this->entityFieldPropSourceMatcher->match($is_required, $prop_shape, $host_entity_type, $host_entity_bundle);
       // @todo Remove these hard-coded bits with generic logic in https://www.drupal.org/project/canvas/issues/3563960
       if ($schema === ['type' => 'string', 'format' => 'date'] && $host_entity_type === 'node') {
         $created_as_date_string = (new EntityFieldPropSource(
@@ -254,77 +246,21 @@ final class PropSourceSuggester {
         $changed_as_date_string = (new EntityFieldPropSource(
           expression: new FieldPropExpression(BetterEntityDataDefinition::create('node'), 'changed', NULL, 'value'),
         ))->withAdapter('unix_to_date');
-        $raw_matches[(string) $cpe]['instances'][] = $created_as_date_string;
-        $raw_matches[(string) $cpe]['instances'][] = $changed_as_date_string;
+        $raw_matches[(string) $cpe][PropSource::EntityField->value][] = $created_as_date_string;
+        $raw_matches[(string) $cpe][PropSource::EntityField->value][] = $changed_as_date_string;
       }
-      $raw_matches[(string) $cpe]['adapters'] = $adapter_candidates;
-      $raw_matches[(string) $cpe]['host_entity_urls'] = self::matchHostEntityUrlPropSources($prop_shape) ?? [];
+      $raw_matches[(string) $cpe][PropSource::Adapter->value] = $this->adaptedPropSourceMatcher->match($is_required, $prop_shape);
+      $raw_matches[(string) $cpe][PropSource::HostEntityUrl->value] = $this->hostEntityUrlPropSourceMatcher->match($is_required, $prop_shape);
     }
 
     return $raw_matches;
   }
 
-  /**
-   * Finds matching HostEntityUrlPropSources for the given prop shape.
-   *
-   * @param \Drupal\canvas\PropShape\PropShape $shape
-   *
-   * @return array<HostEntityUrlPropSource>
-   */
-  private static function matchHostEntityUrlPropSources(PropShape $shape) : ?array {
-    if ($shape->getType() !== JsonSchemaType::String) {
-      return NULL;
-    }
-
-    $schema = $shape->resolvedSchema;
-    if (!\array_key_exists('format', $schema)) {
-      return NULL;
-    }
-
-    $string_format = JsonSchemaStringFormat::from($schema['format']);
-
-    $allowed_string_formats = [
-      JsonSchemaStringFormat::Uri,
-      JsonSchemaStringFormat::UriReference,
-      JsonSchemaStringFormat::Iri,
-      JsonSchemaStringFormat::IriReference,
-    ];
-
-    // HostEntityUrlPropSources can only populate URI prop shapes (and its
-    // supersets).
-    if (!\in_array($string_format, $allowed_string_formats, TRUE)) {
-      return NULL;
-    }
-    $supports_only_absolute_urls = \in_array($string_format, [JsonSchemaStringFormat::Uri, JsonSchemaStringFormat::Iri], TRUE);
-
-    // If an `x-allowed-schemes` shape restriction is present, and it doesn't
-    // allow HTTP nor HTTPS, then no viable HostEntityUrlPropSource can exist.
-    // @see \Drupal\canvas\Validation\JsonSchema\UriSchemeAwareFormatConstraint
-    if (
-      \array_key_exists('x-allowed-schemes', $schema)
-      && empty(array_intersect($schema['x-allowed-schemes'], ['http', 'https']))
-    ) {
-      return NULL;
-    }
-
-    // If any `contentMediaType` shape restriction is present, then no viable
-    // HostEntityUrlPropSource can exist (because these always point to
-    // `text/html` resources).
-    if (\array_key_exists('contentMediaType', $schema)) {
-      return NULL;
-    }
-
-    $matches = [];
-    // @todo Offer `canonical` vs `edit-form` vs … (and check whether the given entity type actually contains such a link template).
-    $matches[] = new HostEntityUrlPropSource(absolute: $supports_only_absolute_urls);
-    return $matches;
-  }
-
   public static function structureSuggestionsForResponse(array $suggestions): array {
-    // @todo Remove this after refactoring ::suggest() in https://www.drupal.org/i/3523446 to stop returning a nested array keys by 'instances', 'host_entity_urls' etc, and instead return an array of prop source objects.
+    // @todo Remove this after refactoring ::suggest() in https://www.drupal.org/i/3523446 to stop returning a nested array keyed by prop source type, and instead return an array of prop source objects.
     $combined_suggestions = [];
     foreach ($suggestions as $key => $value) {
-      $combined_suggestions[$key] = [...$value['instances'], ...$value['host_entity_urls']];
+      $combined_suggestions[$key] = [...$value[PropSource::EntityField->value], ...$value[PropSource::HostEntityUrl->value]];
     }
 
     return array_combine(

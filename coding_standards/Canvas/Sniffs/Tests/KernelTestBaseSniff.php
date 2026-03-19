@@ -15,6 +15,7 @@ use Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\ComponentSourceTest
 use Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBaseTestBase;
 use Drupal\Tests\canvas\Kernel\PropShapeRepositoryTest;
 use Drupal\Tests\canvas\Kernel\PropSource\PropSourceTestBase;
+use Drupal\Tests\canvas\Kernel\ShapeMatcher\PropSourceMatcherTestBase;
 use Drupal\Tests\canvas_personalization\Kernel\Config\SegmentValidationTest;
 use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Files\File;
@@ -37,6 +38,7 @@ class KernelTestBaseSniff implements Sniff {
     GeneratedFieldExplicitInputUxComponentSourceBaseTestBase::class,
     PropSourceTestBase::class,
     PropShapeRepositoryTest::class,
+    PropSourceMatcherTestBase::class,
   ];
 
   public const ALLOWED_OTHER_BASE_CLASSES = [

@@ -10,7 +10,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\file\FileInterface;
 
 #[Adapter(
-  id: 'image_url_rel_to_abs',
+  id: self::PLUGIN_ID,
   label: new TranslatableMarkup('Make relative image URL absolute'),
   inputs: [
     'image' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'],
@@ -21,6 +21,8 @@ use Drupal\file\FileInterface;
 final class ImageAdapter extends AdapterBase implements ContainerFactoryPluginInterface {
 
   use EntityTypeManagerDependentAdapterTrait;
+
+  public const string PLUGIN_ID = 'image_url_rel_to_abs';
 
   /**
    * @var array{src: string, alt: string, width:integer, height:integer}

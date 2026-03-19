@@ -138,7 +138,7 @@ The `Component` config entity contains:
 These config entities are therefore the foundations that enable Canvas to work reliably, and allow:
 - auditing (listing which components are available to Canvas and reasons why components are unavailable, tracking changes in
   computed `field type` and `field widget` for a `component input` thanks to those being stored in _versioned_
-  `settings` — see [`Canvas Data model`, section 3.1.2.b](./data-model#3.1.2.b))
+  `settings` — see [`Canvas Data model`, section 3.1.2.a](./data-model#3.1.2.a))
 - dependency-checking (this config entity's dependencies on other modules, as well as other config entities depending on
   this config entity, but also ensuring the necessary code is present, such as `field type` and `field widget` plugins)
 - exporting, importing, synchronizing from one environment or site to another

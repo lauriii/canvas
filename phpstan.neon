@@ -62,7 +62,7 @@ includes:
   - phpstan-11.3-and-higher-ignores.neon
 services:
   -
-    class: Canvas\PHPStan\Architecture\PropExpressions
+    class: Canvas\PHPStan\Architecture\Layers
     tags:
       - phpat.test
   -

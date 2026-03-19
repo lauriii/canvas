@@ -69,7 +69,7 @@ final class Labeler {
     \assert($field_definition->getItemDefinition() instanceof FieldItemDataDefinitionInterface);
 
     // To correctly represent this, this must take into account what
-    // JsonSchemaFieldInstanceMatcher may or may not match. It will
+    // EntityFieldPropSourceMatcher may or may not match. It will
     // never match:
     // - DataReferenceTargetDefinition field props: it considers these
     //   irrelevant; it's only the twin DataReferenceDefinition that

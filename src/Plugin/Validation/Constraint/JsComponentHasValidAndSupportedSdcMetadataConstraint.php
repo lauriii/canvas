@@ -10,7 +10,7 @@ use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
 #[Constraint(
   id: 'JsComponentHasValidAndSupportedSdcMetadata',
-  // @see docs/shape-matching-into-field-types.md, section 3.1.2.b
+  // @see docs/shape-matching-into-field-types.md, section 3.1.2.a
   label: new TranslatableMarkup('Maps to valid SDC definition, and meets Canvas requirements.', [], ['context' => 'Validation']),
   type: [
     'canvas.js_component.*',

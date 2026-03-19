@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\canvas\Kernel;
+namespace Drupal\Tests\canvas\Kernel\ShapeMatcher;
 
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -32,6 +33,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[CoversClass(PropSourceSuggester::class)]
 #[RunTestsInSeparateProcesses]
 #[Group('canvas')]
+#[Group('canvas_shape_matching')]
 class PropSourceSuggesterTest extends CanvasKernelTestBase {
 
   use EntityReferenceFieldCreationTrait;
@@ -42,7 +44,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
   protected static $modules = [
     // The module providing the sample SDC to test all JSON schema types.
     'sdc_test_all_props',
-    'canvas_test_sdc',
     // All other core modules providing field types (in addition to the ones
     // installed by CanvasKernelTestBase).
     'comment',
@@ -199,7 +200,7 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
   /**
    * Tests .
    *
-   * @param array<string, array{'required': bool, 'instances': array<string, string>, 'adapters': array<string, string>, 'host_entity_urls': array<string, HostEntityUrlPropSourceArray>}> $expected
+   * @param array<string, array{'required': bool, 'entity-field': array<string, string>, 'adapter': array<string, string>, 'host-entity-url': array<string, HostEntityUrlPropSourceArray>}> $expected
    */
   #[DataProvider('provider')]
   public function test(string $component_plugin_id, string $data_type_context, array $expected): void {
@@ -218,9 +219,9 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         $expected[$prop_name],
         [
           'required' => $suggestions[$prop_name]['required'],
-          'instances' => \array_map(fn (EntityFieldPropSource $s): array => $s->toArray(), $suggestions[$prop_name]['instances']),
-          'adapters' => \array_map(fn (AdapterInterface $a): string => $a->getPluginId(), $suggestions[$prop_name]['adapters']),
-          'host_entity_urls' => \array_map(fn (HostEntityUrlPropSource $s): array => $s->toArray(), $suggestions[$prop_name]['host_entity_urls']),
+          PropSource::EntityField->value => \array_map(fn (EntityFieldPropSource $s): array => $s->toArray(), $suggestions[$prop_name][PropSource::EntityField->value]),
+          PropSource::Adapter->value => \array_map(fn (AdapterInterface $a): string => $a->getPluginId(), $suggestions[$prop_name][PropSource::Adapter->value]),
+          PropSource::HostEntityUrl->value => \array_map(fn (HostEntityUrlPropSource $s): array => $s->toArray(), $suggestions[$prop_name][PropSource::HostEntityUrl->value]),
         ],
         "Unexpected prop source suggestion for $prop_name"
       );
@@ -237,17 +238,17 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
       [
         '⿲canvas_test_sdc:image␟image' => [
           'required' => TRUE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "Silly image 🤡" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             ],
           ],
-          'adapters' => [
+          PropSource::Adapter->value => [
             'Apply image style' => 'image_apply_style',
             'Make relative image URL absolute' => 'image_url_rel_to_abs',
           ],
-          'host_entity_urls' => [],
+          PropSource::HostEntityUrl->value => [],
         ],
       ],
     ];
@@ -258,7 +259,7 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
       [
         '⿲canvas_test_sdc:image-optional-with-example␟image' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Authored by → User → Picture' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -276,11 +277,11 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             ],
           ],
-          'adapters' => [
+          PropSource::Adapter->value => [
             'Apply image style' => 'image_apply_style',
             'Make relative image URL absolute' => 'image_url_rel_to_abs',
           ],
-          'host_entity_urls' => [],
+          PropSource::HostEntityUrl->value => [],
         ],
       ],
     ];
@@ -295,21 +296,21 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
       [
         '⿲canvas_test_sdc:image-srcset-candidate-template-uri␟image' => [
           'required' => TRUE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "Silly image 🤡" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             ],
           ],
-          'adapters' => [
+          PropSource::Adapter->value => [
             'Apply image style' => 'image_apply_style',
             'Make relative image URL absolute' => 'image_url_rel_to_abs',
           ],
-          'host_entity_urls' => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲canvas_test_sdc:image-srcset-candidate-template-uri␟srcSetCandidateTemplate' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Authored by → User → Picture → srcset template' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟srcset_candidate_uri_template',
@@ -323,8 +324,8 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟srcset_candidate_uri_template',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
       ],
     ];
@@ -335,7 +336,7 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
       [
         '⿲canvas_test_sdc:tags␟tags' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'field_screenshots → Alternative text' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟alt',
@@ -349,8 +350,8 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝name␞␟value',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
       ],
     ];
@@ -361,11 +362,11 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
       [
         '⿲canvas_test_sdc:date␟date' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Authored on' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node␝created␞␟value',
-              'adapter' => 'unix_to_date',
+              PropSource::Adapter->value => 'unix_to_date',
             ],
             'field_event_duration → End date value' => [
               'sourceType' => PropSource::EntityField->value,
@@ -378,17 +379,17 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
             'Changed' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node␝changed␞␟value',
-              'adapter' => 'unix_to_date',
+              PropSource::Adapter->value => 'unix_to_date',
             ],
           ],
-          'adapters' => [
+          PropSource::Adapter->value => [
             'UNIX timestamp to date' => 'unix_to_date',
           ],
-          'host_entity_urls' => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲canvas_test_sdc:date␟caption' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Title' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝title␞␟value',
@@ -434,8 +435,8 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟title',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
       ],
     ];
@@ -446,7 +447,7 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
       [
         '⿲sdc_test_all_props:all-props␟test_bool_default_false' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "Authored by → User → User status" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
@@ -468,12 +469,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_bool_default_true' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "Authored by → User → User status" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
@@ -495,12 +496,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "Title" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝title␞␟value',
@@ -546,41 +547,41 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟title',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_multiline' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string' => [
           'required' => TRUE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "Title" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝title␞␟value',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_enum' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_integer_enum' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_date_time' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "field_event_duration → End date value" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
@@ -590,16 +591,16 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_date' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Authored on' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node␝created␞␟value',
-              'adapter' => 'unix_to_date',
+              PropSource::Adapter->value => 'unix_to_date',
             ],
             "field_event_duration → End date value" => [
               'sourceType' => PropSource::EntityField->value,
@@ -612,29 +613,29 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
             'Changed' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node␝changed␞␟value',
-              'adapter' => 'unix_to_date',
+              PropSource::Adapter->value => 'unix_to_date',
             ],
           ],
-          'adapters' => [
+          PropSource::Adapter->value => [
             'UNIX timestamp to date' => 'unix_to_date',
           ],
-          'host_entity_urls' => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_time' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_duration' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_email' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "Authored by → User → Initial email" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝init␞␟value',
@@ -652,12 +653,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_idn_email' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "Authored by → User → Initial email" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝init␞␟value',
@@ -675,36 +676,36 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_hostname' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_idn_hostname' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_ipv4' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_ipv6' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uuid' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "Authored by → User → UUID" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝uuid␞␟value',
@@ -742,19 +743,19 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝uuid␞␟value',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_format_uri' => [
           'required' => TRUE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "Silly image 🤡 → URI" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [
             'Absolute URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
               'absolute' => TRUE,
@@ -763,7 +764,7 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_format_uri_reference_web_links' => [
           'required' => TRUE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Check it out! → Resolved URL' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
@@ -777,8 +778,8 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [
             'Relative URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
               'absolute' => FALSE,
@@ -787,7 +788,7 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uri' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Authored by → User → Picture → URI' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
@@ -801,8 +802,8 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [
             'Absolute URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
               'absolute' => TRUE,
@@ -811,7 +812,7 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_image' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Authored by → User → Picture → URI → Root-relative file URL' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
@@ -841,14 +842,14 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
             ],
           ],
-          'adapters' => [
+          PropSource::Adapter->value => [
             'Extract image URL' => 'image_extract_url',
           ],
-          'host_entity_urls' => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_image_using_ref' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Authored by → User → Picture → URI → Root-relative file URL' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
@@ -878,14 +879,14 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
             ],
           ],
-          'adapters' => [
+          PropSource::Adapter->value => [
             'Extract image URL' => 'image_extract_url',
           ],
-          'host_entity_urls' => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_public_stream_wrapper' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Authored by → User → Picture → URI' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
@@ -899,12 +900,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_public_stream_wrapper_using_ref' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Authored by → User → Picture → URI' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
@@ -918,12 +919,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_reference' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Authored by → User → Picture → URI → Root-relative file URL' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
@@ -989,8 +990,8 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟url',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [
             'Relative URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
               'absolute' => FALSE,
@@ -999,7 +1000,7 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_iri' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Authored by → User → Picture → URI' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
@@ -1013,8 +1014,8 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [
             'Absolute URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
               'absolute' => TRUE,
@@ -1023,7 +1024,7 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_iri_reference' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Authored by → User → Picture → URI → Root-relative file URL' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
@@ -1089,8 +1090,8 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟url',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [
             'Relative URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
               'absolute' => FALSE,
@@ -1099,31 +1100,31 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_template' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_json_pointer' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_relative_json_pointer' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_regex' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_integer' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Authored by → User → Picture → Height' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟height',
@@ -1157,20 +1158,20 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟width',
             ],
           ],
-          'adapters' => [
+          PropSource::Adapter->value => [
             'Count days' => 'day_count',
           ],
-          'host_entity_urls' => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_integer_range_minimum' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_integer_range_minimum_maximum_timestamps' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "Authored by → User → Last access" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝access␞␟value',
@@ -1232,18 +1233,18 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_integer_by_the_dozen' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_number' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Authored by → User → Picture → Height' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟height',
@@ -1277,12 +1278,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟width',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_object_drupal_image' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             'Authored by → User → Picture' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -1300,49 +1301,49 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             ],
           ],
-          'adapters' => [
+          PropSource::Adapter->value => [
             'Apply image style' => 'image_apply_style',
             'Make relative image URL absolute' => 'image_url_rel_to_abs',
           ],
-          'host_entity_urls' => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_object_drupal_image_ARRAY' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "field_before_and_after" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_object_drupal_video' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_object_drupal_date_range' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "field_event_duration" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value,to↠end_value}',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_html_inline' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_html_block' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "field_wall_of_text" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
@@ -1356,12 +1357,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_html' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "field_wall_of_text" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
@@ -1375,40 +1376,40 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html_inline' => [
           'required' => TRUE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html_block' => [
           'required' => TRUE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "field_wall_of_text" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html' => [
           'required' => TRUE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "field_wall_of_text" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_array_integer' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "field_screenshots → File size" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟entity␜␜entity:file␝filesize␞␟value',
@@ -1426,18 +1427,18 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_array_integer_minItems' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_array_integer_maxItems' => [
           'required' => FALSE,
-          'instances' => [
+          PropSource::EntityField->value => [
             "field_before_and_after → File size" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟entity␜␜entity:file␝filesize␞␟value',
@@ -1451,20 +1452,20 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟width',
             ],
           ],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_array_integer_minItemsMultiple' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_array_integer_minMaxItems' => [
           'required' => FALSE,
-          'instances' => [],
-          'adapters' => [],
-          'host_entity_urls' => [],
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
         ],
       ],
     ];

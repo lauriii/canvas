@@ -24,6 +24,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 #[RunTestsInSeparateProcesses]
 #[Group('canvas')]
+#[Group('canvas_shape_matching')]
 final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
 
   use GenerateComponentConfigTrait;

@@ -25,7 +25,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  *   field on the host entity)
  *
  * @see \Drupal\canvas\PropSource\HostEntityUrlPropSource
- * @see \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
+ * @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher
  *
  * @phpstan-import-type PropSourceArray from PropSourceBase
  * @internal

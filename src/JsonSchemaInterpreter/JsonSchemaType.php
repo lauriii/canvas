@@ -26,7 +26,7 @@ use Drupal\canvas\TypedData\BetterEntityDataDefinition;
  *   `hook_canvas_storable_prop_shape_alter()`
  * - Drupal field instances' props thanks to hardcoded knowledge about Drupal
  *   validation constraint equivalents: `::toDataTypeShapeRequirements()`, used
- *   by \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
+ *   by \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher
  *
  * KNOWN UNKNOWNS.
  *
@@ -121,7 +121,7 @@ enum JsonSchemaType: string {
    * @param JsonSchema $schema
    *
    * @see \Drupal\canvas\PropSource\EntityFieldPropSource
-   * @see \Drupal\canvas\JsonSchemaFieldInstanceMatcher
+   * @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher
    */
   public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirement|DataTypeShapeRequirements|false {
     return match ($this) {

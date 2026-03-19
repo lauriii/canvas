@@ -99,7 +99,7 @@ For an `SDC` to be compatible/eligible for use in Canvas, it:
 - MUST have `title` for each prop and each slot
 - MUST have `example` for each required prop, the first example is used as the default value
 - MUST have only props for whose `prop shape`s a `static prop source` can be found (see the [`Canvas Shape Matching into Field
-  Types` doc, section 3.1.2.b](shape-matching-into-field-types.md#3.1.2.b).
+  Types` doc, section 3.1.2.b](shape-matching-into-field-types.md#3.1.2.a).
 - MUST not have `status` value `obsolete`
 - MUST not have `noUi` value `true`
 - SHOULD have a `category`; if not specified, the fallback value "Other" will be used

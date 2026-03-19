@@ -53,7 +53,7 @@ final class UriSchemeConstraint extends SymfonyConstraint {
   protected function normalizeOptions(mixed $options): array {
     $normalized = parent::normalizeOptions($options);
     // Ensure deterministic instances of this class.
-    // @see \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher::dataTypeShapeRequirementMatchesFinalConstraintSet()
+    // @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher::dataTypeShapeRequirementMatchesFinalConstraintSet()
     sort($normalized['allowedSchemes']);
     return $normalized;
   }

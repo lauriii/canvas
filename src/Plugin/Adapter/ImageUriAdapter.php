@@ -11,7 +11,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\file\FileInterface;
 
 #[Adapter(
-  id: 'image_extract_url',
+  id: self::PLUGIN_ID,
   label: new TranslatableMarkup('Extract image URL'),
   inputs: [
     'imageUri' => ['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/stream-wrapper-image-uri'],
@@ -22,6 +22,8 @@ use Drupal\file\FileInterface;
 final class ImageUriAdapter extends AdapterBase implements ContainerFactoryPluginInterface {
 
   use EntityTypeManagerDependentAdapterTrait;
+
+  public const string PLUGIN_ID = 'image_extract_url';
 
   protected string $imageUri;
 

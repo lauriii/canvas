@@ -13,14 +13,6 @@ services:
       - { name: cache_tags_invalidator }
       - { name: needs_destruction }
   Drupal\canvas\PropShape\EphemeralPropShapeRepository: {}
-  Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher:
-    public: true
-    arguments:
-      $constraintManager: '@validation.constraint'
-      $cache: '@cache.static'
-      $extensionMimeTypeGuesser: '@file.mime_type.guesser.extension'
-  Drupal\canvas\ShapeMatcher\PropSourceSuggester:
-    public: true
   Drupal\canvas\ComponentIncompatibilityReasonRepository: {}
   Drupal\canvas\JsonSchemaDefinitionsStreamwrapper:
     public: true
@@ -53,6 +45,16 @@ services:
       - '@cache.discovery'
       - '@module_handler'
     public: true
+
+  # Shape matching.
+  Drupal\canvas\ShapeMatcher\PropSourceSuggester: {}
+  Drupal\canvas\ShapeMatcher\AdaptedPropSourceMatcher:
+    public: false
+  Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher:
+    public: false
+  Drupal\canvas\ShapeMatcher\HostEntityUrlPropSourceMatcher:
+    public: false
+
   # Utilities.
   Drupal\canvas\AssetRenderer: {}
   Drupal\canvas\Utility\HomePageHelper: {}

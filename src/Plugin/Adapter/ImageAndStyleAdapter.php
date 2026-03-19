@@ -13,7 +13,7 @@ use Drupal\image\Entity\ImageStyle;
 use Drupal\image\ImageStyleInterface;
 
 #[Adapter(
-  id: 'image_apply_style',
+  id: self::PLUGIN_ID,
   label: new TranslatableMarkup('Apply image style'),
   inputs: [
     'image' => [
@@ -47,6 +47,8 @@ use Drupal\image\ImageStyleInterface;
 final class ImageAndStyleAdapter extends AdapterBase implements ContainerFactoryPluginInterface {
 
   use EntityTypeManagerDependentAdapterTrait;
+
+  public const string PLUGIN_ID = 'image_apply_style';
 
   /**
    * @var array{src:string, alt: string, width:integer, height:integer}
