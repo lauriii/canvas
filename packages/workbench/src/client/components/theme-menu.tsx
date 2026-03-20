@@ -1,6 +1,6 @@
 import { EllipsisIcon } from 'lucide-react';
-import { useTheme } from '@wb/components/theme-provider';
-import { Button } from '@wb/components/ui/button';
+import { useTheme } from '@wb/client/components/theme-provider';
+import { Button } from '@wb/client/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,9 +10,9 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from '@wb/components/ui/dropdown-menu';
+} from '@wb/client/components/ui/dropdown-menu';
 
-import type { Theme } from '@wb/components/theme-provider';
+import type { Theme } from '@wb/client/components/theme-provider';
 
 const themeOptions: Array<{ label: string; value: Theme }> = [
   { label: 'System', value: 'system' },

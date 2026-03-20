@@ -1,79 +1,94 @@
-# Canvas Workbench (prototype)
+# @drupal-canvas/workbench
 
-Canvas Workbench is an early prototype for a local developer tool, similar to
-Storybook, but focused on Drupal Canvas Code Components and Canvas pages.
+Canvas Workbench is a local preview and development app for Drupal Canvas Code
+Components, inspired by Storybook. It scans your project, lists discovered
+components and pages, and renders previews in an isolated frame.
 
-## Goal
+Workbench has no required configuration. If your project uses the default Canvas
+layout, you can run it from your project root:
 
-Provide a complete local Drupal Canvas preview experience for Code Components
-and Canvas Pages built with Code Components from source code alone.
+```bash
+npx @drupal-canvas/workbench@latest
+```
+
+## Installation
+
+Install Workbench:
+
+```bash
+npm install @drupal-canvas/workbench
+```
+
+Then run it from your project root:
+
+```bash
+npx canvas-workbench
+```
+
+The `canvas-workbench` binary starts the packaged Workbench Vite runtime in your
+current working directory.
+
+## Configuration
+
+Workbench can run without a `canvas.config.json` file, but it is useful to add
+one when your project does not use the default Canvas paths, or when you want
+Workbench to match your CLI setup.
+
+Create `canvas.config.json` in your project root and set only the options you
+need:
+
+```json
+{
+  "componentDir": "./components",
+  "pagesDir": "./pages",
+  "aliasBaseDir": "src",
+  "globalCssPath": "./src/components/global.css"
+}
+```
+
+Workbench reads these options:
+
+| Property        | Default                         | Used for                                                                                                                 |
+| --------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `componentDir`  | `process.cwd()`                 | Root directory Workbench scans for `component.yml`, `*.component.yml`, source files, and mocks.                          |
+| `pagesDir`      | `"./pages"`                     | Directory Workbench scans for page specs such as `pages/home.json`.                                                      |
+| `aliasBaseDir`  | `"src"`                         | Base directory for resolving `@/` imports inside component source files.                                                 |
+| `globalCssPath` | `"./src/components/global.css"` | Global CSS entrypoint loaded into the preview iframe. This is where Workbench picks up shared styles and Tailwind setup. |
+
+If `canvas.config.json` is not present, Workbench uses those defaults.
+`outputDir` is part of the wider Canvas config surface, but Workbench does not
+use it.
 
 ## User docs
 
-For end-user guidance, see the Workbench chapter in `docs/user`:
-
-- [Workbench introduction](../../docs/user/src/content/docs/code-components/workbench/index.mdx)
-- [Adding mocks](../../docs/user/src/content/docs/code-components/workbench/mocks.mdx)
-
-## What we are testing
-
-- Run a local Vite + React app that scans your local codebase.
-- Discover Drupal Canvas Code Components automatically.
-- Show discovered components in a UI.
-- Read component inputs from each `component.yml` and let you preview them
-  through different example values.
-- Discover Canvas pages alongside components.
-- Represent pages as [json-render](https://json-render.dev) objects.
-- Use json-render to preview Canvas pages locally.
-- Support hot module reload (HMR) for both component and page previews.
-- Explore an additional story metadata format, possibly compatible with
-  Storybook.
-- Explore integrating Canvas page json-render objects with popular React
-  framework routing.
-
-## Setup and run
-
-Workbench ships a `canvas-workbench` binary that starts a bundled Vite server.
-
-```bash
-# In packages/workbench
-npm run build
-npm link
-
-# Generate a new codebase
-npx @drupal-canvas/create@latest
-# Run in the root of the new project
-npm link @drupal-canvas/workbench
-npx canvas-workbench dev
-```
+For end-user guidance, see:
+https://project.pages.drupalcode.org/canvas/code-components/workbench/
 
 ## How the Workbench runtime works
 
-### `bin/canvas-workbench.js`
+### Published output
 
-- Resolves Vite from this package installation and runs the Vite CLI through
-  Node.
-- Ensure that Vite uses the `@drupal-canvas/workbench` package root and
-  `vite.config.ts`, while forwarding extra CLI flags.
-- Keeps `cwd` as the directory where you run the command, so discovery scans
-  your project, not the workbench package.
+- `dist/client` contains the packaged browser app sources and static assets,
+  including the copied client and shared source trees, and copied public assets.
+- `dist/server` contains the packaged Node-side runtime, including the
+  `canvas-workbench` binary and the published Vite config entry.
 
-### `vite.config.ts`
+### Packaged runtime
 
-- Sets `root` to the workbench package, but allows Vite file access to both the
-  workbench code and the host project directory.
-- Registers a custom discovery plugin (from `@drupal-canvas/discovery`) that
-  runs `discoverCanvasProject({ componentRoot: process.cwd() })` and caches
-  results.
-- Exposes discovery data at `/__canvas/discovery` as JSON for the UI.
-- Exposes preview manifest data at `/__canvas/preview-manifest` as JSON for
-  preview runtime decisions.
-- Uses routes:
+- The published binary resolves Vite from the installed package and launches it
+  against `dist/client` with the packaged server config from `dist/server`.
+- The server build bundles the internal helper packages
+  `@drupal-canvas/discovery` and `@drupal-canvas/vite-compat`.
+- The packaged client is served from packaged source files through the Workbench
+  Vite runtime, not from a standalone production-built browser bundle.
+- The packaged runtime:
+  - Exposes discovery data at `/__canvas/discovery` as JSON for the UI.
+  - Exposes preview manifest data at `/__canvas/preview-manifest` as JSON for
+    preview runtime decisions.
+  - Uses routes:
   - `/component/<component-id>` for component previews.
   - `/page/<slug>` for discovered pages, where `slug` comes from
     `pages/<slug>.json`.
-- Uses `@drupal-canvas/vite-compat` for shared compatibility behavior — see
-  [`packages/vite-compat/README.md`](../vite-compat/README.md).
 - Watches the host project for relevant file changes (`component.yml`,
   `*.component.yml`, and JS(X)/TS(X)/CSS files), sends targeted HMR update
   events, refreshes discovery when needed, and reloads only the preview iframe
@@ -111,6 +126,10 @@ Workbench currently uses one Vite dev server process for both:
 - the Workbench UI shell, and
 - the preview iframe runtime.
 
+The published package keeps that same model. `dist/server` starts Vite against
+the packaged client sources in `dist/client`, rather than serving a separately
+built static browser bundle.
+
 ### Why this is the current choice
 
 - One startup command and one process simplify local DX while the feature set is
@@ -146,7 +165,9 @@ Move to stronger separation when one or more of these become recurring:
 ## Future: static export mode outline
 
 Workbench does not currently support a Storybook-style static export of host
-component previews. This section captures a potential direction for later work.
+component previews. The current `dist/client` output is packaging-oriented for
+the Workbench Vite runtime, not a deployable static export. This section
+captures a potential direction for later work.
 
 ### Goal
 

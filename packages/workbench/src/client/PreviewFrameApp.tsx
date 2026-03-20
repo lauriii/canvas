@@ -4,7 +4,11 @@ import {
   renderSpec,
 } from 'drupal-canvas/json-render-utils';
 import { CircleAlertIcon } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@wb/components/ui/alert';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@wb/client/components/ui/alert';
 import { isPreviewRenderRequest } from '@wb/lib/preview-contract';
 
 import type { ErrorInfo, ReactNode } from 'react';

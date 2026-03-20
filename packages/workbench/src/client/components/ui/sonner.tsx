@@ -6,7 +6,7 @@ import {
   TriangleAlertIcon,
 } from 'lucide-react';
 import { Toaster as Sonner } from 'sonner';
-import { useTheme } from '@wb/components/theme-provider';
+import { useTheme } from '@wb/client/components/theme-provider';
 
 import type { CSSProperties } from 'react';
 import type { ToasterProps } from 'sonner';

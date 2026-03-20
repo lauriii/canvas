@@ -15,6 +15,7 @@ const viteBinPath = path.resolve(
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
 const packageRoot = path.resolve(currentDir, '..');
+const clientRoot = path.join(packageRoot, 'dist/client/src/client');
 
 const incomingArgs = process.argv.slice(2);
 const hasExplicitCommand =
@@ -27,9 +28,9 @@ const passThroughArgs = hasExplicitCommand
 
 const viteArgs = [
   command,
-  packageRoot,
+  clientRoot,
   '--config',
-  path.join(packageRoot, 'vite.config.ts'),
+  path.join(packageRoot, 'dist/server/vite.published.config.mjs'),
   ...passThroughArgs,
 ];
 

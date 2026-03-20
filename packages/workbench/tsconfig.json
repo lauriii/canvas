@@ -4,6 +4,9 @@
     "baseUrl": ".",
     "paths": {
       "@wb/*": ["./src/*"],
+      "@drupal-canvas/discovery": ["../discovery/src/index.ts"],
+      "@drupal-canvas/vite-compat": ["../vite-compat/src/index.ts"],
+      "@drupal-canvas/vite-plugin": ["../vite-plugin/src/index.ts"],
       "@drupal-canvas/ui/*": ["../../ui/src/*"],
       "@/*": ["../../ui/src/*"]
     },
@@ -11,5 +14,11 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["src", "vite.config.ts"]
+  "include": [
+    "src",
+    "vite.config.ts",
+    "vite.client.config.ts",
+    "vite.published.config.ts",
+    "tsdown.config.ts"
+  ]
 }

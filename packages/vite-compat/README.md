@@ -30,6 +30,8 @@ export default defineConfig({
 
 # The `drupalCanvasCompat` plugin factory
 
+- Reuses `@drupal-canvas/vite-plugin` so host HTML bootstrap behavior, such as
+  `drupalSettings.canvasData`, matches the standard Canvas Vite setup.
 - Uses `@/` as the host alias prefix.
 - Supports third-party imports such as `motion/react`.
 - Supports host alias local imports such as `@/lib/utils`.

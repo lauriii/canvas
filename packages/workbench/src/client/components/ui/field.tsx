@@ -2,8 +2,8 @@
 
 import { useMemo } from 'react';
 import { cva } from 'class-variance-authority';
-import { Label } from '@wb/components/ui/label';
-import { Separator } from '@wb/components/ui/separator';
+import { Label } from '@wb/client/components/ui/label';
+import { Separator } from '@wb/client/components/ui/separator';
 import { cn } from '@wb/lib/utils';
 
 import type { VariantProps } from 'class-variance-authority';

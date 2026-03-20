@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { toViteFsUrl } from '@drupal-canvas/vite-compat/runtime';
 
 import {
   buildPreviewManifest,
@@ -9,15 +8,6 @@ import {
 } from './preview-contract';
 
 describe('preview-contract', () => {
-  it('creates Vite fs URLs from absolute paths', () => {
-    expect(toViteFsUrl('/Users/example/component.tsx')).toBe(
-      '/@fs/Users/example/component.tsx',
-    );
-    expect(toViteFsUrl('C:\\workspace\\component.tsx')).toBe(
-      '/@fs/C:/workspace/component.tsx',
-    );
-  });
-
   it('marks components with supported JS entries as previewable', () => {
     const component = toPreviewManifestComponent({
       id: 'abc',

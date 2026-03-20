@@ -3,23 +3,23 @@ import { cva } from 'class-variance-authority';
 import { PanelLeftIcon } from 'lucide-react';
 import { mergeProps } from '@base-ui/react/merge-props';
 import { useRender } from '@base-ui/react/use-render';
-import { Button } from '@wb/components/ui/button';
-import { Input } from '@wb/components/ui/input';
-import { Separator } from '@wb/components/ui/separator';
+import { Button } from '@wb/client/components/ui/button';
+import { Input } from '@wb/client/components/ui/input';
+import { Separator } from '@wb/client/components/ui/separator';
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@wb/components/ui/sheet';
-import { Skeleton } from '@wb/components/ui/skeleton';
+} from '@wb/client/components/ui/sheet';
+import { Skeleton } from '@wb/client/components/ui/skeleton';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@wb/components/ui/tooltip';
-import { useIsMobile } from '@wb/hooks/use-mobile';
+} from '@wb/client/components/ui/tooltip';
+import { useIsMobile } from '@wb/client/hooks/use-mobile';
 import { cn } from '@wb/lib/utils';
 
 import type { VariantProps } from 'class-variance-authority';

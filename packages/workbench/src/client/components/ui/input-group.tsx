@@ -1,7 +1,7 @@
 import { cva } from 'class-variance-authority';
-import { Button } from '@wb/components/ui/button';
-import { Input } from '@wb/components/ui/input';
-import { Textarea } from '@wb/components/ui/textarea';
+import { Button } from '@wb/client/components/ui/button';
+import { Input } from '@wb/client/components/ui/input';
+import { Textarea } from '@wb/client/components/ui/textarea';
 import { cn } from '@wb/lib/utils';
 
 import type * as React from 'react';

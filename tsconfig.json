@@ -17,9 +17,12 @@
     "inlineSources": false,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "paths": {
+      "@drupal-canvas/discovery": ["./packages/discovery/src/index.ts"],
+      "@drupal-canvas/vite-compat": ["./packages/vite-compat/src/index.ts"],
+      "@drupal-canvas/vite-plugin": ["./packages/vite-plugin/src/index.ts"],
       "@drupal-canvas/types": ["./packages/types/src"],
       "@drupal-canvas/ui/*": ["./ui/src/*"],
-        "@drupal-canvas/eslint-config": ["./packages/eslint-config/src/index.ts"],
+      "@drupal-canvas/eslint-config": ["./packages/eslint-config/src/index.ts"],
       "@/*": ["./ui/src/*"],
       "@assets/*": ["./ui/assets/*"],
       "@tests/*": ["./ui/tests/*"],

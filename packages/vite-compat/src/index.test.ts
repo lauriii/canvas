@@ -11,9 +11,7 @@ import {
   extractComponentPreviewMetadataFromComponentYaml,
   extractFirstExamplePropsFromComponentYaml,
   getWorkbenchHostGlobalCssVirtualUrl,
-  isSupportedPreviewModulePath,
   resolveHostGlobalCssPath,
-  toViteFsUrl,
 } from './index';
 
 const tempDirs: string[] = [];
@@ -29,6 +27,20 @@ async function makeTempDir(): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'canvas-vite-compat-'));
   tempDirs.push(dir);
   return dir;
+}
+
+async function withWorkingDirectory<T>(
+  directory: string,
+  callback: () => Promise<T> | T,
+): Promise<T> {
+  const previousDirectory = process.cwd();
+  process.chdir(directory);
+
+  try {
+    return await callback();
+  } finally {
+    process.chdir(previousDirectory);
+  }
 }
 
 function getResolveIdHook(plugin: { resolveId?: unknown }) {
@@ -64,17 +76,6 @@ describe('vite-compat', () => {
     });
     expect(server).toBeDefined();
     expect(server?.fs?.allow).toEqual(['/tmp/host']);
-  });
-
-  it('converts absolute paths to Vite @fs URLs', () => {
-    expect(toViteFsUrl('/tmp/example/file.tsx')).toBe(
-      '/@fs/tmp/example/file.tsx',
-    );
-  });
-
-  it('checks supported preview module extensions', () => {
-    expect(isSupportedPreviewModulePath('/tmp/a.tsx')).toBe(true);
-    expect(isSupportedPreviewModulePath('/tmp/a.jpg')).toBe(false);
   });
 
   it('extracts first example values from component.yml props', async () => {
@@ -178,13 +179,6 @@ describe('vite-compat', () => {
     const root = await makeTempDir();
     await expect(ensureHostGlobalCssExists(root)).rejects.toThrow(
       'Missing required host Tailwind entrypoint',
-    );
-  });
-
-  it('builds @fs URL for host css path', () => {
-    const resolvedPath = resolveHostGlobalCssPath('/tmp/host');
-    expect(toViteFsUrl(resolvedPath)).toBe(
-      '/@fs/tmp/host/src/components/global.css',
     );
   });
 
@@ -310,12 +304,55 @@ describe('vite-compat', () => {
     ).toBeNull();
   });
 
+  it('reuses the host vite plugin for html bootstrap', async () => {
+    const hostRoot = await makeTempDir();
+    await fs.writeFile(
+      path.join(hostRoot, '.env'),
+      [
+        'CANVAS_SITE_URL=http://canvas.ddev.site',
+        'CANVAS_JSONAPI_PREFIX=api',
+      ].join('\n'),
+      'utf-8',
+    );
+
+    const plugins = drupalCanvasCompat({
+      hostRoot,
+    });
+    const drupalCanvasPlugin = plugins.find(
+      (plugin) => plugin.name === 'drupal-canvas',
+    );
+    expect(drupalCanvasPlugin).toBeDefined();
+
+    await withWorkingDirectory(hostRoot, async () => {
+      const config = drupalCanvasPlugin?.config as
+        | ((config: Record<string, unknown>, env: { mode: string }) => unknown)
+        | undefined;
+      config?.(
+        {
+          root: '/tmp/workbench-client',
+        },
+        { mode: 'development' },
+      );
+
+      const transformIndexHtml = drupalCanvasPlugin?.transformIndexHtml as
+        | ((html: string) => { tags?: Array<{ children?: string }> })
+        | undefined;
+      const transformed = transformIndexHtml?.('<html></html>');
+      expect(transformed?.tags).toBeDefined();
+      expect(transformed?.tags?.[0]?.children).toContain(
+        'http://canvas.ddev.site',
+      );
+      expect(transformed?.tags?.[0]?.children).toContain('"api"');
+    });
+  });
+
   it('always adds svgr plugin', () => {
     const plugins = drupalCanvasCompat({
       hostRoot: '/tmp/host',
     });
     const pluginNames = plugins.map((plugin) => plugin.name);
     expect(pluginNames).toContain('canvas-vite-compat-host-alias');
+    expect(pluginNames).toContain('drupal-canvas');
     expect(pluginNames.some((name) => name.includes('svgr'))).toBe(true);
   });
 
@@ -325,6 +362,7 @@ describe('vite-compat', () => {
     });
     const pluginNames = plugins.map((plugin) => plugin.name);
     expect(pluginNames).toContain('canvas-vite-compat-host-alias');
+    expect(pluginNames).toContain('drupal-canvas');
     expect(pluginNames.some((name) => name.includes('svgr'))).toBe(true);
 
     const resolveId = getResolveIdHook(plugins[0]);

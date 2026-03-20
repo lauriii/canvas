@@ -1,7 +1,4 @@
-import {
-  isSupportedPreviewModulePath,
-  toViteFsUrl,
-} from '@drupal-canvas/vite-compat/runtime';
+import { isSupportedPreviewModulePath, toViteFsUrl } from './preview-runtime';
 
 import type { Spec } from '@json-render/core';
 import type { DiscoveryResult, DiscoveryWarning } from './discovery-client';

@@ -4,10 +4,11 @@ description: Preview code components and page specs in a local UI.
 ---
 
 Canvas Workbench is a local preview and development app for Drupal Canvas Code
-Components. It scans your codebase, lists discovered components and pages, and
-renders previews in an isolated frame.
+Components inspired by Storybook. It scans your codebase, lists discovered
+components and pages, and renders previews in an isolated frame.
 
-Workbench is zero-config. Run this in your project root:
+Workbench has no required configuration. If your project uses the default
+Canvas layout, you can run it from your project root:
 
 ```bash
 npx @drupal-canvas/workbench@latest
@@ -24,8 +25,39 @@ npm install @drupal-canvas/workbench
 Then run it from your project root:
 
 ```bash
-npx drupal-canvas-workbench
+npx canvas-workbench
 ```
+
+## Configuration
+
+Workbench can run without a `canvas.config.json` file, but it is useful to add
+one when your project does not use the default Canvas paths, or when you want
+Workbench to match your CLI setup.
+
+Create `canvas.config.json` in your project root and set only the options you
+need:
+
+```json
+{
+  "componentDir": "./components",
+  "pagesDir": "./pages",
+  "aliasBaseDir": "src",
+  "globalCssPath": "./src/components/global.css"
+}
+```
+
+Workbench reads these options:
+
+| Property | Default | Used for |
+| --- | --- | --- |
+| `componentDir` | `process.cwd()` | Root directory Workbench scans for `component.yml`, `*.component.yml`, source files, and mocks. |
+| `pagesDir` | `"./pages"` | Directory Workbench scans for page specs such as `pages/home.json`. |
+| `aliasBaseDir` | `"src"` | Base directory for resolving `@/` imports inside component source files. |
+| `globalCssPath` | `"./src/components/global.css"` | Global CSS entrypoint loaded into the preview iframe. This is where Workbench picks up shared styles and Tailwind setup. |
+
+If `canvas.config.json` is not present, Workbench uses those defaults.
+`outputDir` is part of the wider Canvas config surface, but Workbench does not
+use it.
 
 ## What Workbench discovers
 
