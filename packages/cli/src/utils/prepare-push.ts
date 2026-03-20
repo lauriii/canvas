@@ -237,12 +237,12 @@ export async function buildAndPushComponents(
   const failedBuilds = buildResults.filter((build) => !build.success);
 
   if (failedBuilds.length > 0) {
-    const failedComponents = failedBuilds
-      .map((result) => result.itemName || 'unknown')
-      .join(', ');
-    throw new Error(
-      `Component build failed for ${failedBuilds.length} ${pluralizeComponent(failedBuilds.length)}: ${failedComponents}`,
+    spinner.stop(
+      chalk.red(
+        `Build failed for ${failedBuilds.length} ${pluralizeComponent(failedBuilds.length)}.`,
+      ),
     );
+    return buildResults;
   }
 
   if (successfulBuilds.length === 0) {
@@ -255,21 +255,17 @@ export async function buildAndPushComponents(
     await prepareComponentsForUpload(successfulBuilds, componentsToUpload);
 
   if (preparationFailures.length > 0) {
-    const failedPreparations = preparationFailures
-      .map((result) => {
-        const name = result.itemName || 'unknown';
-        const message =
-          result.details?.[0]?.content || 'Unknown preparation error';
-        return `${name} (${message})`;
-      })
-      .join(', ');
-    throw new Error(
-      `Component preparation failed for ${preparationFailures.length} ${pluralizeComponent(preparationFailures.length)}: ${failedPreparations}`,
+    spinner.stop(
+      chalk.red(
+        `Preparation failed for ${preparationFailures.length} ${pluralizeComponent(preparationFailures.length)}.`,
+      ),
     );
+    return [...successfulBuilds, ...preparationFailures];
   }
 
   if (prepared.length === 0) {
-    throw new Error('No components were prepared for upload.');
+    spinner.stop(chalk.red('No components were prepared for upload.'));
+    return [...successfulBuilds, ...preparationFailures];
   }
 
   const machineNames = prepared.map((c) => c.machineName);
@@ -349,24 +345,21 @@ export async function buildAndPushComponents(
 
 /**
  * Upload the global asset library (CSS/JS) to Drupal.
- *
- * Shared by both the push and upload commands.
  */
 export async function uploadGlobalAssetLibrary(
   apiService: ApiService,
-  componentDir: string,
+  outputDir: string,
 ): Promise<Result> {
   try {
-    const distDir = path.join(componentDir, 'dist');
-    const globalCompiledCssPath = path.join(distDir, 'index.css');
+    const globalCompiledCssPath = path.join(outputDir, 'index.css');
     const globalCompiledCssExists = await fileExists(globalCompiledCssPath);
     if (globalCompiledCssExists) {
       const globalCompiledCss = await fs.readFile(
-        path.join(distDir, 'index.css'),
+        path.join(outputDir, 'index.css'),
         'utf-8',
       );
       const classNameCandidateIndexFile = await fs.readFile(
-        path.join(distDir, 'index.js'),
+        path.join(outputDir, 'index.js'),
         'utf-8',
       );
       const originalCss = await getGlobalCss();

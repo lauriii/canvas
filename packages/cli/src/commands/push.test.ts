@@ -282,7 +282,7 @@ describe('Push components', () => {
     ]);
   });
 
-  it('throws when any component build fails', async () => {
+  it('returns results with failures when any component build fails', async () => {
     const components = [
       mockDiscoveredComponent('button'),
       mockDiscoveredComponent('broken'),
@@ -311,15 +311,14 @@ describe('Push components', () => {
     vi.mocked(api.listComponents).mockResolvedValue({});
     vi.mocked(api.createComponent).mockResolvedValue({} as never);
 
-    await expect(
-      buildAndPushComponents(components, api, false),
-    ).rejects.toThrow('Component build failed for 1 component: broken');
+    const results = await buildAndPushComponents(components, api, false);
+    expect(results.some((r) => !r.success)).toBe(true);
 
     expect(api.createComponent).not.toHaveBeenCalled();
     expect(api.updateComponent).not.toHaveBeenCalled();
   });
 
-  it('throws when any component preparation fails', async () => {
+  it('returns results with failures when any component preparation fails', async () => {
     const components = [mockDiscoveredComponent('button')];
     const api = mockApiService();
 
@@ -331,11 +330,8 @@ describe('Push components', () => {
       new Error('Invalid metadata file'),
     );
 
-    await expect(
-      buildAndPushComponents(components, api, false),
-    ).rejects.toThrow(
-      'Component preparation failed for 1 component: button (Invalid metadata file)',
-    );
+    const results = await buildAndPushComponents(components, api, false);
+    expect(results.some((r) => !r.success)).toBe(true);
 
     expect(api.listComponents).not.toHaveBeenCalled();
     expect(api.createComponent).not.toHaveBeenCalled();

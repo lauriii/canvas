@@ -325,6 +325,12 @@ export async function collectImports(
 
       // Collect all alias imports (JS, CSS, SVG, images, audio, video)
       if (imp.category === 'alias') {
+        // Ignore cross-component imports (@/components/*)
+        // These do not need to be bundled since they are existing components
+        // that get built as part of the component build process.
+        if (imp.source.startsWith('@/components/')) {
+          continue;
+        }
         const resolvedPath = resolveAliasPath(imp.source, aliasBaseDir);
         if (resolvedPath) {
           aliasImports.set(imp.source, resolvedPath);

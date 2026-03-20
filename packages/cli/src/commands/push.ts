@@ -393,13 +393,22 @@ export function pushCommand(program: Command): void {
             true,
             'Pushing',
           );
+          if (componentResults.some((r) => !r.success)) {
+            reportResults(componentResults, 'Built components', 'Component');
+            p.note(
+              chalk.red(
+                'Component build failed, push aborted. Nothing was pushed.',
+              ),
+            );
+            process.exit(1);
+          }
           reportResults(componentResults, 'Pushed components', 'Component');
         }
 
         // Upload Tailwind CSS.
         const globalCssResult = await uploadGlobalAssetLibrary(
           apiService,
-          config.componentDir,
+          config.outputDir,
         );
         reportResults([globalCssResult], 'Pushed assets', 'Asset');
         if (!globalCssResult.success) {
