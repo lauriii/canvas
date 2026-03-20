@@ -24,6 +24,7 @@ export interface DiscoveredComponent {
   name: string;
   directory: string;
   relativeDirectory: string;
+  projectRelativeDirectory: string;
   metadataPath: string;
   jsEntryPath: string | null;
   cssEntryPath: string | null;
@@ -38,6 +39,7 @@ export interface DiscoveredPage {
 
 export interface DiscoveryResult {
   componentRoot: string;
+  projectRoot: string;
   components: DiscoveredComponent[];
   pages: DiscoveredPage[];
   warnings: DiscoveryWarning[];

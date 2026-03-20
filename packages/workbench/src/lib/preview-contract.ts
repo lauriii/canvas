@@ -15,6 +15,7 @@ export interface PreviewManifestComponent {
   name: string;
   label: string;
   relativeDirectory: string;
+  projectRelativeDirectory: string;
   metadataPath: string;
   js: {
     entryPath: string | null;
@@ -101,6 +102,7 @@ export function toPreviewManifestComponent(component: {
   id: string;
   name: string;
   relativeDirectory: string;
+  projectRelativeDirectory: string;
   metadataPath: string;
   jsEntryPath: string | null;
   cssEntryPath: string | null;
@@ -111,6 +113,7 @@ export function toPreviewManifestComponent(component: {
       name: component.name,
       label: component.name,
       relativeDirectory: component.relativeDirectory,
+      projectRelativeDirectory: component.projectRelativeDirectory,
       metadataPath: component.metadataPath,
       js: {
         entryPath: component.jsEntryPath,
@@ -133,6 +136,7 @@ export function toPreviewManifestComponent(component: {
       name: component.name,
       label: component.name,
       relativeDirectory: component.relativeDirectory,
+      projectRelativeDirectory: component.projectRelativeDirectory,
       metadataPath: component.metadataPath,
       js: {
         entryPath: component.jsEntryPath,
@@ -154,6 +158,7 @@ export function toPreviewManifestComponent(component: {
     name: component.name,
     label: component.name,
     relativeDirectory: component.relativeDirectory,
+    projectRelativeDirectory: component.projectRelativeDirectory,
     metadataPath: component.metadataPath,
     js: {
       entryPath: component.jsEntryPath,

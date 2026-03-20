@@ -3,6 +3,8 @@ import {
   defineComponentRegistry,
   renderSpec,
 } from 'drupal-canvas/json-render-utils';
+import { CircleAlertIcon } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@wb/components/ui/alert';
 import { isPreviewRenderRequest } from '@wb/lib/preview-contract';
 
 import type { ErrorInfo, ReactNode } from 'react';
@@ -23,6 +25,18 @@ interface RenderableState {
   type: 'component' | 'page';
   renderId: string;
   node: ReactNode;
+}
+
+function PreviewErrorAlert({ message }: { message: string }) {
+  return (
+    <Alert className="max-w-3xl" variant="destructive">
+      <CircleAlertIcon />
+      <AlertTitle>Preview failed to render.</AlertTitle>
+      <AlertDescription className="whitespace-pre-wrap font-mono text-[11px]">
+        {message}
+      </AlertDescription>
+    </Alert>
+  );
 }
 
 function RenderSignal({
@@ -47,10 +61,11 @@ class FrameRenderBoundary extends Component<
     onError: (message: string, renderId: string | null) => void;
     children: ReactNode;
   },
-  { hasError: boolean }
+  { hasError: boolean; message: string | null }
 > {
   state = {
     hasError: false,
+    message: null,
   };
 
   static getDerivedStateFromError(): { hasError: boolean } {
@@ -58,22 +73,23 @@ class FrameRenderBoundary extends Component<
   }
 
   componentDidCatch(error: unknown, _errorInfo: ErrorInfo): void {
-    this.props.onError(
-      error instanceof Error ? error.message : String(error),
-      this.props.renderId,
-    );
+    const message = error instanceof Error ? error.message : String(error);
+    this.setState({ message });
+    this.props.onError(message, this.props.renderId);
   }
 
   componentDidUpdate(prevProps: Readonly<{ renderId: string | null }>): void {
     if (prevProps.renderId !== this.props.renderId && this.state.hasError) {
-      this.setState({ hasError: false });
+      this.setState({ hasError: false, message: null });
     }
   }
 
   render(): ReactNode {
     if (this.state.hasError) {
       return (
-        <div>Component rendering failed. See parent status for details.</div>
+        <PreviewErrorAlert
+          message={this.state.message ?? 'Unknown render error.'}
+        />
       );
     }
 
@@ -85,6 +101,7 @@ export function PreviewFrameApp() {
   const [activeRender, setActiveRender] = useState<RenderableState | null>(
     null,
   );
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   useEffect(() => {
     postFrameMessage({
@@ -114,6 +131,8 @@ export function PreviewFrameApp() {
     request: PreviewRenderRequest,
   ): Promise<void> {
     try {
+      setPreviewError(null);
+
       await Promise.all(
         request.payload.cssUrls.map(async (cssUrl) => {
           await import(/* @vite-ignore */ cssUrl);
@@ -141,6 +160,7 @@ export function PreviewFrameApp() {
           ? `${error.message}${error.stack ? `\n${error.stack}` : ''}`
           : `Unknown render error: ${String(error)}`;
       setActiveRender(null);
+      setPreviewError(message);
       postFrameMessage({
         source: 'canvas-workbench-frame',
         type: 'preview:error',
@@ -157,6 +177,7 @@ export function PreviewFrameApp() {
       <FrameRenderBoundary
         renderId={activeRender?.renderId ?? null}
         onError={(message, renderId) => {
+          setPreviewError(message);
           postFrameMessage({
             source: 'canvas-workbench-frame',
             type: 'preview:error',
@@ -185,9 +206,9 @@ export function PreviewFrameApp() {
             />
             {activeRender.node}
           </>
-        ) : (
-          <div>No preview rendered yet. Select a component from Workbench.</div>
-        )}
+        ) : previewError ? (
+          <PreviewErrorAlert message={previewError} />
+        ) : null}
       </FrameRenderBoundary>
     </main>
   );

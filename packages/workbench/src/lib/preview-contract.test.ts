@@ -23,6 +23,7 @@ describe('preview-contract', () => {
       id: 'abc',
       name: 'hero',
       relativeDirectory: 'src/hero',
+      projectRelativeDirectory: 'packages/site/src/hero',
       metadataPath: '/tmp/src/hero/component.yml',
       jsEntryPath: '/tmp/src/hero/index.tsx',
       cssEntryPath: '/tmp/src/hero/index.css',
@@ -43,6 +44,7 @@ describe('preview-contract', () => {
       id: 'abc',
       name: 'hero',
       relativeDirectory: 'src/hero',
+      projectRelativeDirectory: 'packages/site/src/hero',
       metadataPath: '/tmp/src/hero/hero.component.yml',
       jsEntryPath: null,
       cssEntryPath: null,
@@ -63,6 +65,7 @@ describe('preview-contract', () => {
       id: 'abc',
       name: 'hero',
       relativeDirectory: 'src/hero',
+      projectRelativeDirectory: 'packages/site/src/hero',
       metadataPath: '/tmp/src/hero/hero.component.yml',
       jsEntryPath: '/tmp/src/hero/hero.mjs',
       cssEntryPath: null,
@@ -75,6 +78,7 @@ describe('preview-contract', () => {
   it('builds a preview manifest from discovery result', () => {
     const manifest = buildPreviewManifest({
       componentRoot: '/tmp/workspace',
+      projectRoot: '/tmp',
       components: [
         {
           id: 'one',
@@ -82,6 +86,7 @@ describe('preview-contract', () => {
           name: 'card',
           directory: '/tmp/workspace/src/card',
           relativeDirectory: 'src/card',
+          projectRelativeDirectory: 'workspace/src/card',
           metadataPath: '/tmp/workspace/src/card/component.yml',
           jsEntryPath: '/tmp/workspace/src/card/index.tsx',
           cssEntryPath: '/tmp/workspace/src/card/index.css',

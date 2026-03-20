@@ -276,6 +276,9 @@ export async function discoverCanvasProject(
         name: componentName,
         directory: absoluteDirectory,
         relativeDirectory: relativeDirectory || '.',
+        projectRelativeDirectory: toPosixPath(
+          path.relative(projectRoot, absoluteDirectory),
+        ),
         metadataPath,
         jsEntryPath: existingJsCandidates[0].candidatePath,
         cssEntryPath,
@@ -288,6 +291,7 @@ export async function discoverCanvasProject(
 
   const result: DiscoveryResult = {
     componentRoot,
+    projectRoot,
     components,
     pages,
     warnings,
