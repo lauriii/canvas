@@ -24,6 +24,7 @@ import InputDescription from '@/components/form/components/drupal/InputDescripti
 import LinkedFieldBox from '@/components/form/components/drupal/LinkedFieldBox.js';
 import PropLinker from '@/components/form/components/drupal/PropLinker.js';
 import DrupalMediaLibraryWidgetContainer from '@/components/form/components/MediaLibraryWidgetContainer';
+import SerpPreview from '@/components/form/components/SerpPreview';
 
 // This is where we map the <drupal- tags to the corresponding JSX component.
 const twigToJSXComponentMap = {
@@ -52,6 +53,7 @@ const twigToJSXComponentMap = {
   'canvas-drupal-label': DrupalFormElementLabel,
   'drupal-canvas-linked-field-box': LinkedFieldBox,
   'drupal-canvas-prop-linker': PropLinker,
+  'drupal-canvas-serp-preview': SerpPreview,
   'canvas-default-image-preview': DefaultImagePreview,
   'drupal-canvas-media-list-container': DrupalMediaListContainer,
   'drupal-canvas-media-library-item': DrupalMediaLibraryItem,

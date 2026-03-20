@@ -118,6 +118,8 @@ scriptification
 scriptified
 scriptify
 sdcs
+serp
+SERP
 shadcn
 slnt
 sonner

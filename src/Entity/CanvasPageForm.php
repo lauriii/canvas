@@ -51,7 +51,7 @@ final class CanvasPageForm extends ContentEntityForm {
 
     // Move SEO related base fields to this group.
     $form[$group]['image'] = $form['image'];
-    $form[$group]['image']['#weight'] = -10;
+    $form[$group]['image']['#weight'] = 20;
     // TRICKY: it seems there's a Drupal core bug wrt #group, long-term fix TBD.
     // @see https://git.drupalcode.org/project/canvas/-/merge_requests/501#note_448716
     unset($form['image']);
@@ -80,6 +80,13 @@ final class CanvasPageForm extends ContentEntityForm {
       // Hide the description to avoid showing the unnecessary help text.
       unset($form['metatags']['widget'][0]['basic']['title']['#description']);
     }
+
+    // Add the search result preview.
+    $form[$group]['serp_preview'] = [
+      '#type' => 'inline_template',
+      '#template' => '<drupal-canvas-serp-preview></drupal-canvas-serp-preview>',
+      '#weight' => -20,
+    ];
 
     $this->addTransliterationSettings($form);
     $this->customizePathField($form);

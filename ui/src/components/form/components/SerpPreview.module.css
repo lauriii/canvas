@@ -1,0 +1,42 @@
+.wrapper {
+  margin-bottom: var(--space-3);
+}
+
+.label {
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+.preview {
+  max-width: 592px;
+  padding: var(--space-3);
+  margin-top: var(--space-2);
+  margin-bottom: 0;
+  background-color: white;
+  border: 1px solid #e6e4df;
+  font-family: Arial, sans-serif;
+}
+
+.title {
+  margin: 0;
+  padding: 0;
+  color: #1a0dab;
+  font-size: 14px;
+  line-height: 1.33;
+}
+
+.url {
+  padding-top: 1px;
+  color: #006621;
+  font-size: 12px;
+  line-height: 1.43;
+}
+
+.description {
+  color: #545454;
+  font-family: arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.54;
+  min-height: 3.08em; /* Two lines to avoid layout shift when content is filled. */
+  overflow-wrap: break-word;
+}
