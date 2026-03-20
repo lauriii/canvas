@@ -44,7 +44,7 @@ const rule: EslintRule.RuleModule = {
     deprecated: true,
   },
   create(context: EslintRule.RuleContext): EslintRule.RuleListener {
-    if (!isComponentYmlFile(context)) {
+    if (!isComponentYmlFile(context.filename)) {
       return {};
     }
 

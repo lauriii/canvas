@@ -1,13 +1,6 @@
-import { dirname, resolve } from 'path';
-import {
-  ASSET_EXTENSIONS,
-  resolveCanvasConfig,
-} from '@drupal-canvas/discovery';
+import { dirname } from 'path';
 
-import {
-  isComponentDir,
-  isNonComponentImportFromComponentDir,
-} from '../utils/components.js';
+import { isComponentDir } from '../utils/components.js';
 
 import type { Rule as EslintRule } from 'eslint';
 import type { ImportDeclaration, ImportExpression } from 'estree';
@@ -17,38 +10,83 @@ function checkImportSource(
   node: ImportDeclaration | ImportExpression,
   source: string,
 ): void {
-  // Font package imports are not supported — fonts should be configured via the brand kit.
-  if (source.startsWith('@fontsource')) {
-    context.report({
-      node,
-      message: `Importing font packages ("${source}") is not supported in components. Configure fonts in the Brand kit instead.`,
-    });
-    return;
-  }
-
-  // Asset imports (images, video, SVG, fonts, etc.) are not supported in components.
-  if (ASSET_EXTENSIONS.some((ext) => source.endsWith(ext))) {
-    context.report({
-      node,
-      message: `Importing asset files ("${source}") is not supported in components.`,
-    });
-    return;
-  }
-
-  // CSS side-effect imports are not supported in components.
-  if (source.endsWith('.css') || /\/css(\/|$)/.test(source)) {
-    context.report({
-      node,
-      message: `CSS side-effect imports are not supported in components. Remove "${source}" and use the component's CSS file instead.`,
-    });
-    return;
-  }
-
   // Relative imports are not supported in Drupal Canvas.
   if (source.startsWith('./') || source.startsWith('../')) {
     context.report({
       node,
-      message: `Relative imports are not supported. Use '@/...' alias instead of '${source}' to import other components or helpers/utilities from shared locations outside component dir.`,
+      message: `Relative component imports are not supported. Use '@/components/[component-name]' instead of '${source}'.`,
+    });
+    return;
+  }
+
+  // Currently limited list of bundled packages is supported in Drupal Canvas.
+  // @see https://drupal.org/i/3560197
+  // @see importMap in ui/src/features/code-editor/Preview.tsx
+  if (
+    [
+      'preact',
+      'preact/hooks',
+      'react/jsx-runtime',
+      'react',
+      'react-dom',
+      'react-dom/client',
+      'clsx',
+      'class-variance-authority',
+      'tailwind-merge',
+      '@/components/',
+      'drupal-jsonapi-params',
+      'swr',
+      'drupal-canvas',
+    ].includes(source)
+  ) {
+    return;
+  }
+
+  if (source === '@/lib/drupal-utils') {
+    context.report({
+      node,
+      message: 'Drupal utilities were moved into the `drupal-canvas` package.',
+      fix(fixer) {
+        // 'sortMenu' exported from drupal-canvas is named 'sortLinksetMenu'
+        // to avoid conflict with sortMenu from jsonapi-utils,
+        // so automatic fix should not apply if sortMenu is imported.
+        const importsSortMenu =
+          node.type === 'ImportDeclaration' &&
+          node.specifiers.some(
+            (specifier) =>
+              specifier.local.name === 'sortMenu' ||
+              (specifier.type === 'ImportSpecifier' &&
+                specifier.imported.type === 'Identifier' &&
+                specifier.imported.name === 'sortMenu'),
+          );
+        if (!importsSortMenu) {
+          return fixer.replaceText(node.source, "'drupal-canvas'");
+        }
+        return null;
+      },
+    });
+    return;
+  }
+
+  if (source === '@/lib/utils') {
+    context.report({
+      node,
+      message: 'Utilities were moved into the `drupal-canvas` package.',
+      fix(fixer) {
+        return fixer.replaceText(node.source, "'drupal-canvas'");
+      },
+    });
+    return;
+  }
+
+  if (source === '@/lib/jsonapi-utils') {
+    context.report({
+      node,
+      message:
+        'JSON:API utilities were moved into the `drupal-canvas` package.',
+      fix(fixer) {
+        return fixer.replaceText(node.source, "'drupal-canvas'");
+      },
     });
     return;
   }
@@ -116,26 +154,34 @@ function checkImportSource(
     return;
   }
 
-  // @/ imports for utils/helpers are allowed from shared locations,
-  // but not from component directories.
-  if (source.startsWith('@/')) {
-    const suffix = source.slice(2);
-    const config = resolveCanvasConfig({ hostRoot: context.cwd });
-    const aliasBase = resolve(context.cwd, config.aliasBaseDir);
-    const resolvedPath = resolve(aliasBase, suffix);
-
-    if (isNonComponentImportFromComponentDir(resolvedPath, aliasBase)) {
+  // Components can be imported using the "@/components/" alias.
+  if (source.startsWith('@/components/')) {
+    // But nested components are not supported.
+    if (source.replace('@/components/', '').includes('/')) {
       context.report({
         node,
-        message:
-          `Importing "${source}" from a component directory is not supported. ` +
-          'Use "@/" alias to import other components or helpers/utilities from shared locations outside component directories.',
+        message: `Components must be imported from top-level directories under "@/components/". The path "${source}" suggests a nested structure.`,
       });
       return;
     }
 
     return;
   }
+
+  // Full urls are also supported.
+  if (source.startsWith('http://') || source.startsWith('https://')) {
+    return;
+  }
+
+  // Other imports are currently not allowed.
+  context.report({
+    node,
+    message:
+      `Importing "${source}" is not supported. ` +
+      'If this is a local import via a path alias, use the "@/components/" alias instead. ' +
+      'If you are importing a third-party package, see the list of supported packages at https://project.pages.drupalcode.org/canvas/code-components/packages. ' +
+      '(The status of supporting any third-party package can be tracked at https://drupal.org/i/3560197.)',
+  });
 }
 
 const rule: EslintRule.RuleModule = {
@@ -146,6 +192,7 @@ const rule: EslintRule.RuleModule = {
         'Validates that component imports only from supported import sources and patterns',
     },
     fixable: 'code',
+    deprecated: true,
   },
   create(context: EslintRule.RuleContext): EslintRule.RuleListener {
     if (!isComponentDir(dirname(context.filename))) {

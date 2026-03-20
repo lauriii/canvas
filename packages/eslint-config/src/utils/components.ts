@@ -9,10 +9,10 @@ const NAMED_SUFFIX = '.component.yml';
 export function isComponentEntrypoint(
   context: EslintRule.RuleContext,
 ): boolean {
-  if (!isInComponentDir(context)) {
+  const componentDir = dirname(context.filename);
+  if (!isComponentDir(componentDir)) {
     return false;
   }
-  const componentDir = dirname(context.filename);
   const files = getFilesInDirectory(componentDir);
   const namedMetadataFile = files.find((file) => file.endsWith(NAMED_SUFFIX));
   const componentBaseName = namedMetadataFile
@@ -23,28 +23,81 @@ export function isComponentEntrypoint(
   );
 }
 
-export function isInComponentDir(context: EslintRule.RuleContext): boolean {
+/**
+ * Checks if a directory contains a component.yml or *.component.yml file.
+ */
+export function isComponentDir(dirPath: string): boolean {
   try {
-    const componentDir = dirname(context.filename);
-    const files = getFilesInDirectory(componentDir);
-    return (
-      files.filter(
-        (file) =>
-          basename(file) === 'component.yml' || file.endsWith(NAMED_SUFFIX),
-      ).length > 0
-    );
+    const files = getFilesInDirectory(dirPath);
+    return files.some((file) => isComponentYmlFile(file));
   } catch {
     return false;
   }
 }
 
 /**
- * Checks if the current file in the rule context is a component definition file.
+ * Checks if a file name is a component definition file
+ * (component.yml or *.component.yml).
  */
-export function isComponentYmlFile(context: EslintRule.RuleContext): boolean {
+export function isComponentYmlFile(filePath: string): boolean {
+  const fileName = basename(filePath);
+  return fileName === 'component.yml' || fileName.endsWith(NAMED_SUFFIX);
+}
+
+/**
+ * Checks if a resolved import path targets an internal file within
+ * a component directory (not the component's entry point) or
+ * subdirectories nested inside component dirs.
+ */
+export function isNonComponentImportFromComponentDir(
+  resolvedPath: string,
+  aliasBaseDir: string,
+): boolean {
   try {
-    const fileName = basename(context.filename);
-    return fileName === 'component.yml' || fileName.endsWith(NAMED_SUFFIX);
+    const dir = dirname(resolvedPath);
+
+    // Check immediate parent first — this handles direct imports from a
+    // component dir (e.g. @/components/card/utils).
+    if (isComponentDir(dir)) {
+      // Determine the component entry point basename.
+      const files = getFilesInDirectory(dir);
+      const namedMetadataFile = files.find(
+        (file) => file !== 'component.yml' && file.endsWith(NAMED_SUFFIX),
+      );
+      const entryBaseName = namedMetadataFile
+        ? namedMetadataFile.slice(0, -NAMED_SUFFIX.length)
+        : 'index';
+
+      const importBaseName = basename(resolvedPath);
+
+      if (importBaseName === entryBaseName) {
+        return false;
+      }
+
+      if (
+        JS_EXTENSIONS.some(
+          (ext) => importBaseName === entryBaseName + '.' + ext,
+        )
+      ) {
+        return false;
+      }
+
+      return true;
+    }
+
+    // Walk up ancestor directories to catch imports from subdirectories
+    // nested inside component dirs (e.g. @/components/card/utils/helper).
+    let current = dir;
+    let parent = dirname(current);
+    while (parent !== current && parent.startsWith(aliasBaseDir)) {
+      if (isComponentDir(parent)) {
+        return true;
+      }
+      current = parent;
+      parent = dirname(current);
+    }
+
+    return false;
   } catch {
     return false;
   }

@@ -1,7 +1,8 @@
-import { existsSync, promises as fs, readFileSync, statSync } from 'node:fs';
+import { existsSync, promises as fs, statSync } from 'node:fs';
 import path from 'node:path';
 import * as yaml from 'js-yaml';
 import svgr from 'vite-plugin-svgr';
+import { resolveCanvasConfig } from '@drupal-canvas/discovery';
 
 import { isSupportedPreviewModulePath, toViteFsUrl } from './runtime.ts';
 
@@ -219,48 +220,4 @@ export function drupalCanvasCompat(options: CanvasViteCompatOptions): Plugin[] {
   );
 
   return plugins;
-}
-
-export interface CanvasConfig {
-  aliasBaseDir: string;
-  outputDir: string;
-  componentDir: string;
-  pagesDir: string;
-  deprecatedComponentDir: string;
-  globalCssPath: string;
-}
-
-export function resolveCanvasConfig(
-  options: CanvasViteCompatOptions,
-): CanvasConfig {
-  const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
-    aliasBaseDir: 'src',
-    outputDir: 'dist',
-    componentDir: options.hostRoot,
-    pagesDir: './pages',
-    deprecatedComponentDir: './components',
-    globalCssPath: './src/components/global.css',
-  };
-
-  const configPath = path.resolve(options.hostRoot, 'canvas.config.json');
-  if (!existsSync(configPath)) {
-    return { ...DEFAULT_CANVAS_CONFIG };
-  }
-
-  try {
-    const raw = readFileSync(configPath, 'utf-8');
-    const parsed = JSON.parse(raw) as Partial<CanvasConfig>;
-    return {
-      aliasBaseDir: parsed.aliasBaseDir ?? DEFAULT_CANVAS_CONFIG.aliasBaseDir,
-      outputDir: parsed.outputDir ?? DEFAULT_CANVAS_CONFIG.outputDir,
-      componentDir: parsed.componentDir ?? DEFAULT_CANVAS_CONFIG.componentDir,
-      pagesDir: parsed.pagesDir ?? DEFAULT_CANVAS_CONFIG.pagesDir,
-      deprecatedComponentDir:
-        parsed.componentDir ?? DEFAULT_CANVAS_CONFIG.deprecatedComponentDir,
-      globalCssPath:
-        parsed.globalCssPath ?? DEFAULT_CANVAS_CONFIG.globalCssPath,
-    };
-  } catch {
-    return { ...DEFAULT_CANVAS_CONFIG };
-  }
 }

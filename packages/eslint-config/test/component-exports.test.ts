@@ -17,7 +17,7 @@ const testRunner = new RuleTester({
   },
 });
 
-// Mock fs to test isInComponentDir used in component-exports rule.
+// Mock fs to test isComponentDir used in component-exports rule.
 vi.mock('node:fs', () => ({
   existsSync: vi.fn(() => true),
   readdirSync: vi.fn((dir) => {

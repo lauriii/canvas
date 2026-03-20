@@ -5,7 +5,7 @@ import globals from 'globals';
 import componentDirNameRule from '../rules/component-dir-name.js';
 import componentExportsRule from '../rules/component-exports.js';
 import componentFilesRule from '../rules/component-files.js';
-import componentImportsRule from '../rules/component-imports.js';
+import componentImportsRule from '../rules/component-imports-deprecated.js';
 import componentNoHierarchyRule from '../rules/component-no-hierarchy.js';
 import componentPropNamesRule from '../rules/component-prop-names.js';
 

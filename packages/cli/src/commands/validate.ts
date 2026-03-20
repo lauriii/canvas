@@ -1,6 +1,8 @@
 import chalk from 'chalk';
 import * as p from '@clack/prompts';
+import { discoverCanvasProject } from '@drupal-canvas/discovery';
 
+import { getConfig } from '../config.js';
 import {
   pluralizeComponent,
   updateConfigFromOptions,
@@ -18,6 +20,7 @@ interface ValidateOptions {
   components?: string;
   yes?: boolean;
   fix?: boolean;
+  deprecated?: boolean;
 }
 
 /**
@@ -42,44 +45,79 @@ export function validateCommand(program: Command): void {
       'Apply available automatic fixes for linting issues',
       false,
     )
+    .option(
+      '--deprecated',
+      'Validate using deprecated rules and component selection.',
+      false,
+    )
     .action(async (options: ValidateOptions) => {
       try {
         p.intro(chalk.bold('Drupal Canvas CLI: validate'));
 
-        // Validate options
-        validateComponentOptions(options);
-
-        // Default to --all when --yes is used without --components
-        const allFlag =
-          options.all || (options.yes && !options.components) || false;
-
         // Update config with CLI options
         updateConfigFromOptions(options);
 
-        // Select components to validate
-        const { directories: componentsToValidate } =
-          await selectLocalComponents({
+        let componentDirectoriesToValidate: string[] = [];
+
+        if (options.deprecated) {
+          // Validate options
+          validateComponentOptions(options);
+
+          // Default to --all when --yes is used without --components
+          const allFlag =
+            options.all || (options.yes && !options.components) || false;
+
+          // Select components to validate
+          const { directories } = await selectLocalComponents({
             all: allFlag,
             components: options.components,
             skipConfirmation: options.yes,
             selectMessage: 'Select components to validate',
           });
+          componentDirectoriesToValidate = directories;
+        } else {
+          if (options.all) {
+            p.log.warn(
+              '--all option is deprecated and ignored unless used with the --deprecated flag.',
+            );
+          }
+          if (options.components) {
+            p.log.warn(
+              '--components option is deprecated and ignored unless used with the --deprecated flag.',
+            );
+          }
+
+          const config = getConfig();
+          const discoveryResult = await discoverCanvasProject({
+            componentRoot: config.componentDir,
+            projectRoot: process.cwd(),
+          });
+          componentDirectoriesToValidate = discoveryResult.components.map(
+            (c) => c.directory,
+          );
+        }
 
         const componentPluralized = pluralizeComponent(
-          componentsToValidate.length,
+          componentDirectoriesToValidate.length,
         );
 
         const s = p.spinner();
         s.start(`Validating ${componentPluralized}`);
 
         const results = [];
-        for (const componentDir of componentsToValidate) {
-          results.push(await validateComponent(componentDir, options.fix));
+        for (const componentDir of componentDirectoriesToValidate) {
+          results.push(
+            await validateComponent(
+              componentDir,
+              options.fix,
+              options.deprecated,
+            ),
+          );
         }
 
         s.stop(
           chalk.green(
-            `Processed ${componentsToValidate.length} ${componentPluralized}`,
+            `Processed ${componentDirectoriesToValidate.length} ${componentPluralized}`,
           ),
         );
 

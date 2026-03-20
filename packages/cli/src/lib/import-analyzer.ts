@@ -2,9 +2,7 @@ import { existsSync, promises as fs, statSync } from 'node:fs';
 import path from 'node:path';
 import { parse } from '@babel/parser';
 import * as p from '@clack/prompts';
-import { JS_EXTENSIONS } from '@drupal-canvas/discovery';
-
-import { ASSET_EXTENSIONS } from './asset-extensions';
+import { ASSET_EXTENSIONS, JS_EXTENSIONS } from '@drupal-canvas/discovery';
 
 export type ImportCategory = 'alias' | 'third-party' | 'relative';
 

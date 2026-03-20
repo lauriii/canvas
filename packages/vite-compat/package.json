@@ -21,6 +21,7 @@
     "type-check": "tsc --noEmit --pretty"
   },
   "dependencies": {
+    "@drupal-canvas/discovery": "*",
     "js-yaml": "^4.1.1",
     "vite-plugin-svgr": "^4.5.0"
   },

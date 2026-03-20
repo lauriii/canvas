@@ -8,4 +8,5 @@ export default defineConfig({
   splitting: false,
   treeshake: true,
   minify: false,
+  noExternal: ['@drupal-canvas/discovery'],
 });

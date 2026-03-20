@@ -39,7 +39,7 @@ const rule: EslintRule.RuleModule = {
     },
   },
   create(context: EslintRule.RuleContext): EslintRule.RuleListener {
-    if (!isComponentYmlFile(context)) {
+    if (!isComponentYmlFile(context.filename)) {
       return {};
     }
     let hasMachineName = false;

@@ -2,13 +2,13 @@ import { promises as fs } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'path';
 import { defineConfig } from 'vite';
+import { resolveCanvasConfig } from '@drupal-canvas/discovery';
 import {
   drupalCanvasCompat,
   drupalCanvasCompatServer,
   ensureHostGlobalCssExists,
   extractComponentPreviewMetadataFromComponentYaml,
   getWorkbenchHostGlobalCssVirtualUrl,
-  resolveCanvasConfig,
 } from '@drupal-canvas/vite-compat';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';

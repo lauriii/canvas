@@ -57,3 +57,12 @@ export interface ComponentMetadata extends Pick<
     properties: CodeComponentSerialized['props'];
   };
 }
+
+export interface CanvasConfig {
+  aliasBaseDir: string;
+  outputDir: string;
+  componentDir: string;
+  pagesDir: string;
+  deprecatedComponentDir: string;
+  globalCssPath: string;
+}

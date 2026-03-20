@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import * as p from '@clack/prompts';
-import { resolveCanvasConfig } from '@drupal-canvas/vite-compat';
+import { resolveCanvasConfig } from '@drupal-canvas/discovery';
 
 // Load environment variables.
 export function loadEnvFiles() {

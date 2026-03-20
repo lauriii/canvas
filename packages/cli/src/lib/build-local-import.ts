@@ -1,8 +1,8 @@
 import { promises as fs } from 'node:fs';
 import path from 'path';
 import { build as viteBuild } from 'vite';
+import { ASSET_EXTENSIONS } from '@drupal-canvas/discovery';
 
-import { ASSET_EXTENSIONS } from './asset-extensions';
 import {
   createCanvasViteBuildConfig,
   DRUPAL_CANVAS_EXTERNALS,
