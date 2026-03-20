@@ -252,11 +252,6 @@ export function pushCommand(program: Command): void {
     .action(async (options: PushOptions) => {
       try {
         p.intro(chalk.bold('Drupal Canvas CLI: push'));
-        p.log.warn(
-          chalk.yellow(
-            '⚠️ Experimental: This command is in an early, experimental phase.',
-          ),
-        );
         // Update config with CLI options.
         updateConfigFromOptions(options);
 

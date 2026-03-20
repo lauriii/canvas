@@ -17,11 +17,11 @@ function checkImportSource(
   node: ImportDeclaration | ImportExpression,
   source: string,
 ): void {
-  // Font package imports are not supported — fonts should be configured via the brand kit.
+  // Font package imports are not supported.
   if (source.startsWith('@fontsource')) {
     context.report({
       node,
-      message: `Importing font packages ("${source}") is not supported in components. Configure fonts in the Brand kit instead.`,
+      message: `Importing font packages ("${source}") is not supported in components.`,
     });
     return;
   }

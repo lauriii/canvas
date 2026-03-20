@@ -88,35 +88,71 @@ export async function uploadComponents<T>(
   onProgress?: () => void,
 ): Promise<ComponentUploadResult[]> {
   const results = await processInPool(uploadTasks, async (task) => {
-    if (task.shouldUpdate) {
-      await apiService.updateComponent(task.machineName, task.componentPayload);
-    } else {
-      await apiService.createComponent(task.componentPayload, true);
+    try {
+      if (task.shouldUpdate) {
+        await apiService.updateComponent(
+          task.machineName,
+          task.componentPayload,
+        );
+      } else {
+        await apiService.createComponent(task.componentPayload, true);
+      }
+      onProgress?.();
+      return {
+        machineName: task.machineName,
+        success: true,
+        operation: task.shouldUpdate
+          ? ('update' as const)
+          : ('create' as const),
+      };
+    } catch {
+      // Make another attempt to create/update without the 2nd argument so
+      // the error is in the format expected by the catch statement that
+      // summarizes the success (or lack thereof) of this operation
+      try {
+        if (task.shouldUpdate) {
+          await apiService.updateComponent(
+            task.machineName,
+            task.componentPayload,
+          );
+        } else {
+          await apiService.createComponent(task.componentPayload);
+        }
+        onProgress?.();
+        return {
+          machineName: task.machineName,
+          success: true,
+          operation: task.shouldUpdate
+            ? ('update' as const)
+            : ('create' as const),
+        };
+      } catch (fallbackError) {
+        onProgress?.();
+        return {
+          machineName: task.machineName,
+          success: false,
+          operation: task.shouldUpdate
+            ? ('update' as const)
+            : ('create' as const),
+          error:
+            fallbackError instanceof Error
+              ? fallbackError
+              : new Error(String(fallbackError)),
+        };
+      }
     }
-    onProgress?.();
+  });
+  return results.map((result) => {
+    if (result.success && result.result) {
+      return result.result;
+    }
     return {
-      machineName: task.machineName,
-      success: true,
-      operation: task.shouldUpdate ? ('update' as const) : ('create' as const),
+      machineName: uploadTasks[result.index]?.machineName || 'unknown',
+      success: false,
+      operation: 'create' as const,
+      error: result.error || new Error('Unknown error during upload'),
     };
   });
-
-  const uploadedResults: ComponentUploadResult[] = [];
-  for (const result of results) {
-    if (!result.success || !result.result) {
-      const failedTask = uploadTasks[result.index];
-      const failedOperation = failedTask?.shouldUpdate ? 'update' : 'create';
-      const componentName = failedTask?.machineName || 'unknown';
-      throw new Error(
-        `Failed to ${failedOperation} component "${componentName}": ${
-          result.error?.message || 'Unknown upload error'
-        }`,
-      );
-    }
-    uploadedResults.push(result.result);
-  }
-
-  return uploadedResults;
 }
 
 async function prepareComponentsForUpload(
@@ -221,9 +257,11 @@ export async function buildAndUploadComponents(
   const successfulBuilds = buildResults.filter((build) => build.success);
   const failedBuilds = buildResults.filter((build) => !build.success);
 
+  results.push(...failedBuilds);
+
   if (successfulBuilds.length === 0) {
     spinner.stop(chalk.red('All component builds failed.'));
-    return failedBuilds;
+    return results;
   }
 
   spinner.message(`Preparing components for ${actionLabel.toLowerCase()}`);
@@ -234,7 +272,7 @@ export async function buildAndUploadComponents(
 
   if (prepared.length === 0) {
     spinner.stop(chalk.red('All component preparations failed'));
-    return [...results, ...failedBuilds];
+    return results;
   }
 
   const machineNames = prepared.map((c) => c.machineName);

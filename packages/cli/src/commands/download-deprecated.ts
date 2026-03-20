@@ -57,6 +57,11 @@ export function downloadCommand(program: Command): void {
     .option('--css-only', 'Download only global CSS (skip components)')
     .action(async (options: DownloadOptions) => {
       p.intro(chalk.bold('Drupal Canvas CLI: download'));
+      p.log.warn(
+        chalk.yellow(
+          '⚠️ [DEPRECATED]: This command is deprecated and will be removed in favor of the new pull command. Please use `npx canvas pull` instead.',
+        ),
+      );
 
       try {
         // Validate options

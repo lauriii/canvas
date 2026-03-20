@@ -141,12 +141,12 @@ testRunner.run('component-imports rule', rule, {
       errors: [
         {
           message:
-            'Importing font packages ("@fontsource/roboto") is not supported in components. Configure fonts in the Brand kit instead.',
+            'Importing font packages ("@fontsource/roboto") is not supported in components.',
           line: 2,
         },
         {
           message:
-            'Importing font packages ("@fontsource-variable/open-sans") is not supported in components. Configure fonts in the Brand kit instead.',
+            'Importing font packages ("@fontsource-variable/open-sans") is not supported in components.',
           line: 3,
         },
       ],

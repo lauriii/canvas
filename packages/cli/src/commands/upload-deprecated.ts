@@ -62,7 +62,11 @@ export function uploadCommand(program: Command): void {
 
       try {
         p.intro(chalk.bold('Drupal Canvas CLI: upload'));
-
+        p.log.warn(
+          chalk.yellow(
+            '⚠️ [DEPRECATED]: This command is deprecated and will be removed in favor of the new push command. Please use `npx canvas push` instead.',
+          ),
+        );
         // Validate options
         validateComponentOptions(options);
 

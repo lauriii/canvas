@@ -127,9 +127,59 @@ Example: If you have `CANVAS_SITE_URL=https://dev.example.com` in your `.env`
 file but run `npx canvas download --site-url https://prod.example.com`, the CLI
 will use `https://prod.example.com`.
 
+## Supported Imports in Canvas Code Components
+
+Canvas Code Components support the following import patterns. Unsupported
+patterns are caught by the `drupal-canvas/component-imports` ESLint rule during
+[`npx canvas validate`](#validate). See [KNOWN_ISSUES.md](./KNOWN_ISSUES.md) for
+the full list of unsupported patterns.
+
+### Third-Party npm Packages
+
+Any npm package installed in your project can be imported:
+
+```js
+import { motion } from 'motion/react';
+import * as Accordion from '@radix-ui/react-accordion';
+```
+
+> **Important:** Third-party packages are bundled and uploaded as vendor
+> artifacts. This requires using [`npx canvas push`](#push) — the deprecated
+> `upload` command does not support third party imports.
+
+### Shared Local Modules via `@/` Alias
+
+Utilities and helpers can be imported from shared locations **outside** of any
+component directory using the `@/` alias:
+
+```js
+import { formatPrice } from '@/lib/helpers';
+```
+
+> **Important:** Shared local imports are bundled and uploaded as artifacts.
+> This requires using [`npx canvas push`](#push) — the deprecated `upload`
+> command does not support local import bundling.
+
+> **Note:** Importing from _within_ another component's directory (e.g.
+> `@/components/pricing/helpers`) is not supported. Move shared code to a
+> non-component location such as `@/lib/`.
+
+### Other Canvas Code Components
+
+Other Canvas Code Components can be imported using the `@/` alias:
+
+```js
+import Button from '@/components/button';
+```
+
+---
+
 ## Commands
 
 ### `download`
+
+> 🚨 DEPRECATED: This command is deprecated. Please use the new
+> `npx canvas pull` command instead. [See pull command here.](#pull)
 
 Download components to your local filesystem.
 
@@ -383,7 +433,10 @@ tree-shaking, and dependency management.
 
 ---
 
-### @deprecated `build-d`
+### `build-d`
+
+> 🚨 DEPRECATED: This command is deprecated. Please use the new
+> `npx canvas build` command instead. [See build command here.](#build)
 
 Build local components and Tailwind CSS assets.
 
@@ -450,6 +503,9 @@ be created, which will be used for the generated Tailwind CSS assets.
 ---
 
 ### `upload`
+
+> 🚨 DEPRECATED: This command is deprecated. Please use the new
+> `npx canvas push` command instead. [See push command here.](#push)
 
 Build and upload local components and global CSS assets.
 
@@ -533,8 +589,6 @@ the site will be updated if they already exist.
 ---
 
 ### `push`
-
-> ⚠️ Experimental: This command is in an early, experimental phase.
 
 Build and push all local components, global CSS, and build artifacts to Drupal.
 
