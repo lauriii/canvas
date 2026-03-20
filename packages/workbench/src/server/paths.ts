@@ -18,7 +18,6 @@ export interface WorkbenchPaths {
   pagesDiscoveryRoot: string;
   runningInsideWorkbenchPackage: boolean;
   watchRoots: string[];
-  workbenchNodeModulesPath: string;
   workbenchSourceRoot: string;
 }
 
@@ -71,7 +70,6 @@ export function resolveWorkbenchPaths(
     pagesDiscoveryRoot,
     runningInsideWorkbenchPackage,
     watchRoots,
-    workbenchNodeModulesPath: path.resolve(packageRoot, 'node_modules'),
     workbenchSourceRoot,
   };
 }
