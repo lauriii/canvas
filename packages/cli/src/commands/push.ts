@@ -275,34 +275,61 @@ export function pushCommand(program: Command): void {
           projectRoot: process.cwd(),
         });
         const { components, warnings } = discoveryResult;
-        if (!options.yes) {
-          const confirmed = await p.confirm({
-            message: `Push ${components.length} ${pluralizeComponent(components.length)} to ${config.siteUrl}?`,
-            initialValue: true,
-          });
-          if (p.isCancel(confirmed) || !confirmed) {
-            p.cancel('Operation cancelled');
-            process.exit(0);
-          }
-        }
-        const s1 = p.spinner();
-        s1.start('Discovering components');
-        s1.stop(
-          chalk.green(
-            `Found ${components.length} ${pluralize(components.length, 'component')}`,
-          ),
-        );
+
         if (components.length === 0) {
           p.log.warn('No components found.');
           p.outro('Push aborted (no components)');
           return;
         }
-        if (warnings.length > 0) {
-          for (const warning of warnings) {
-            const location = warning.path
-              ? chalk.dim(` (${warning.path})`)
-              : '';
-            p.log.warn(`${warning.message}${location}`);
+
+        const apiService = await createApiService();
+        const existingComponents = await apiService.listComponents();
+        const remoteNames = new Set(Object.keys(existingComponents));
+        const localNames = new Set(components.map((c) => c.name));
+
+        // Build a preview of planned operations.
+        const operationLabels: Record<string, string> = {
+          create: chalk.green('Create'),
+          update: chalk.cyan('Update'),
+          delete: chalk.red('Delete'),
+        };
+        const plannedResults: Result[] = [
+          ...components.map((c) => ({
+            itemName: c.name,
+            success: true,
+            details: [
+              {
+                content: remoteNames.has(c.name)
+                  ? operationLabels.update
+                  : operationLabels.create,
+              },
+            ],
+          })),
+          ...[...remoteNames]
+            .filter((name) => !localNames.has(name))
+            .map((name) => ({
+              itemName: name,
+              success: true,
+              details: [{ content: operationLabels.delete }],
+            })),
+        ];
+        reportResults(plannedResults, 'Planned operations', 'Component', {
+          preview: true,
+        });
+
+        for (const warning of warnings) {
+          const location = warning.path ? chalk.dim(` (${warning.path})`) : '';
+          p.log.warn(`${warning.message}${location}`);
+        }
+
+        if (!options.yes) {
+          const confirmed = await p.confirm({
+            message: `Push these changes to ${config.siteUrl}?`,
+            initialValue: true,
+          });
+          if (p.isCancel(confirmed) || !confirmed) {
+            p.cancel('Operation cancelled');
+            process.exit(0);
           }
         }
 
@@ -319,8 +346,6 @@ export function pushCommand(program: Command): void {
             `Processed Tailwind CSS classes from ${components.length} selected local ${pluralizeComponent(components.length)} and all online components`,
           ),
         );
-        // Create API service
-        const apiService = await createApiService();
         reportResults([tailwindResult], 'Built assets', 'Asset');
         if (!tailwindResult.success) {
           p.note(
@@ -379,9 +404,6 @@ export function pushCommand(program: Command): void {
             sharedChunks,
           });
         }
-
-        // Verify API connection and authentication before proceeding
-        await apiService.listComponents();
 
         let componentResults: Result[] = [];
 

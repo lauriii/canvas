@@ -255,6 +255,20 @@ export class ApiService {
   }
 
   /**
+   * Delete a component
+   */
+  async deleteComponent(machineName: string): Promise<void> {
+    try {
+      await this.client.delete(
+        `/canvas/api/v0/config/js_component/${machineName}`,
+      );
+    } catch (error) {
+      this.handleApiError(error);
+      throw new Error(`Failed to delete component '${machineName}'`);
+    }
+  }
+
+  /**
    * Get global asset library.
    */
   async getGlobalAssetLibrary(): Promise<AssetLibrary> {

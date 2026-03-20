@@ -62,6 +62,7 @@ function mockApiService(): ApiService {
     listComponents: vi.fn(),
     createComponent: vi.fn(),
     updateComponent: vi.fn(),
+    deleteComponent: vi.fn(),
   } as unknown as ApiService;
 }
 
@@ -215,7 +216,7 @@ describe('Push components', () => {
     vi.clearAllMocks();
   });
 
-  it('creates new components and updates existing components', async () => {
+  it('creates new, updates existing, and deletes remote-only components', async () => {
     const components = [
       mockDiscoveredComponent('button'),
       mockDiscoveredComponent('card'),
@@ -242,11 +243,14 @@ describe('Push components', () => {
         metadata: mockMetadata('card'),
       });
 
+    // Remote has 'card' (update), no 'button' (create), and 'hero' (delete)
     vi.mocked(api.listComponents).mockResolvedValue({
       card: { machineName: 'card' } as never,
+      hero: { machineName: 'hero' } as never,
     });
     vi.mocked(api.createComponent).mockResolvedValue({} as never);
     vi.mocked(api.updateComponent).mockResolvedValue({} as never);
+    vi.mocked(api.deleteComponent).mockResolvedValue(undefined);
 
     const results = await buildAndPushComponents(
       components,
@@ -258,6 +262,7 @@ describe('Push components', () => {
     expect(api.listComponents).toHaveBeenCalledTimes(1);
     expect(api.createComponent).toHaveBeenCalledTimes(1);
     expect(api.updateComponent).toHaveBeenCalledTimes(1);
+    expect(api.deleteComponent).toHaveBeenCalledTimes(1);
 
     expect(api.createComponent).toHaveBeenCalledWith(
       expect.objectContaining({ machineName: 'button' }),
@@ -267,6 +272,7 @@ describe('Push components', () => {
       'card',
       expect.objectContaining({ machineName: 'card' }),
     );
+    expect(api.deleteComponent).toHaveBeenCalledWith('hero');
 
     expect(results).toEqual([
       {
@@ -278,6 +284,11 @@ describe('Push components', () => {
         itemName: 'card',
         success: true,
         details: [{ content: 'Updated' }],
+      },
+      {
+        itemName: 'hero',
+        success: true,
+        details: [{ content: 'Deleted' }],
       },
     ]);
   });
