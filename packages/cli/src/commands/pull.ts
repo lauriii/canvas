@@ -8,7 +8,10 @@ import { resolveHostGlobalCssPath } from '@drupal-canvas/vite-compat';
 
 import { ensureConfig, getConfig } from '../config';
 import { createApiService } from '../services/api';
-import { updateConfigFromOptions } from '../utils/command-helpers';
+import {
+  pluralizeComponent,
+  updateConfigFromOptions,
+} from '../utils/command-helpers';
 import { reportResults } from '../utils/report-results';
 
 import type { DiscoveredComponent } from '@drupal-canvas/discovery';
@@ -28,9 +31,14 @@ interface PullOptions {
   skipOverwrite?: boolean;
 }
 
+export interface PullTaskPrepareResult {
+  summaryLines: string[];
+  localOnlyCount: number;
+}
+
 export interface PullTask {
-  prepare(): Promise<string[]>;
-  execute(): Promise<PullTaskResult>;
+  prepare(): Promise<PullTaskPrepareResult>;
+  execute(options?: { deleteLocalOnly?: boolean }): Promise<PullTaskResult>;
 }
 
 export interface PullTaskResult {
@@ -60,6 +68,7 @@ export function createComponentsPullTask(
 ): PullTask {
   let components: Record<string, Component> = {};
   const localComponentMap = new Map<string, DiscoveredComponent>();
+  let localOnlyComponents: DiscoveredComponent[] = [];
 
   function buildMetadata(component: Component): Metadata {
     return {
@@ -97,7 +106,7 @@ export function createComponentsPullTask(
   }
 
   return {
-    async prepare(): Promise<string[]> {
+    async prepare(): Promise<PullTaskPrepareResult> {
       const [fetchedComponents, discoveryResult] = await Promise.all([
         apiService.listComponents(),
         discoverCanvasProject({ componentRoot: componentDir }),
@@ -109,21 +118,40 @@ export function createComponentsPullTask(
         localComponentMap.set(discovered.name, discovered);
       }
 
-      const total = Object.keys(components).length;
+      const remoteMachineNames = new Set(
+        Object.values(components).map((c) => c.machineName),
+      );
+      localOnlyComponents = discoveryResult.components.filter(
+        (d) => !remoteMachineNames.has(d.name),
+      );
 
-      if (total === 0) {
-        return [];
+      const total = Object.keys(components).length;
+      const lines: string[] = [];
+
+      if (total > 0) {
+        const existingCount = Object.values(components).filter((component) =>
+          localComponentMap.has(component.machineName),
+        ).length;
+        const newCount = total - existingCount;
+        lines.push(
+          formatSummaryLine('component', total, newCount, existingCount),
+        );
       }
 
-      const existingCount = Object.values(components).filter((component) =>
-        localComponentMap.has(component.machineName),
-      ).length;
-      const newCount = total - existingCount;
+      if (localOnlyComponents.length > 0) {
+        const n = localOnlyComponents.length;
+        lines.push(`- ${n} ${pluralizeComponent(n)} to delete (local-only)`);
+      }
 
-      return [formatSummaryLine('component', total, newCount, existingCount)];
+      return {
+        summaryLines: lines,
+        localOnlyCount: localOnlyComponents.length,
+      };
     },
 
-    async execute(): Promise<PullTaskResult> {
+    async execute(options?: {
+      deleteLocalOnly?: boolean;
+    }): Promise<PullTaskResult> {
       const results: Result[] = [];
 
       for (const component of Object.values(components)) {
@@ -173,6 +201,30 @@ export function createComponentsPullTask(
         }
       }
 
+      if (options?.deleteLocalOnly && localOnlyComponents.length > 0) {
+        for (const discovered of localOnlyComponents) {
+          try {
+            await fs.rm(discovered.directory, { recursive: true, force: true });
+            results.push({
+              itemName: discovered.name,
+              success: true,
+              details: [{ content: 'Deleted' }],
+            });
+          } catch (error) {
+            results.push({
+              itemName: discovered.name,
+              success: false,
+              details: [
+                {
+                  content:
+                    error instanceof Error ? error.message : String(error),
+                },
+              ],
+            });
+          }
+        }
+      }
+
       return { results, title: 'Pulled components', label: 'Component' };
     },
   };
@@ -187,17 +239,17 @@ export function createAssetsPullTask(
   let localExists = false;
 
   return {
-    async prepare(): Promise<string[]> {
+    async prepare(): Promise<PullTaskPrepareResult> {
       const globalAssetLibrary = await apiService.getGlobalAssetLibrary();
       globalCss = globalAssetLibrary?.css?.original || '';
       if (!globalCss) {
-        return [];
+        return { summaryLines: [], localOnlyCount: 0 };
       }
       localExists = await fs
         .access(globalCssPath)
         .then(() => true)
         .catch(() => false);
-      return ['- global CSS'];
+      return { summaryLines: ['- global CSS'], localOnlyCount: 0 };
     },
 
     async execute(): Promise<PullTaskResult> {
@@ -274,9 +326,12 @@ export function pullCommand(program: Command): void {
 
         // Fetch remote data and discover local state.
         s.start('Fetching components and global CSS');
-        const summaryLines = (
-          await Promise.all(tasks.map((t) => t.prepare()))
-        ).flat();
+        const prepareResults = await Promise.all(tasks.map((t) => t.prepare()));
+        const summaryLines = prepareResults.flatMap((r) => r.summaryLines);
+        const localOnlyCount = prepareResults.reduce(
+          (sum, r) => sum + r.localOnlyCount,
+          0,
+        );
         if (summaryLines.length === 0) {
           s.stop('Nothing to pull');
           process.exit(0);
@@ -296,9 +351,28 @@ export function pullCommand(program: Command): void {
           }
         }
 
+        let deleteLocalOnly = false;
+        if (localOnlyCount > 0) {
+          if (options.yes) {
+            deleteLocalOnly = true;
+          } else {
+            const deleteLocal = await p.confirm({
+              message: `Delete ${localOnlyCount} local ${pluralizeComponent(localOnlyCount)} that no longer exist remotely?`,
+              initialValue: false,
+            });
+            if (p.isCancel(deleteLocal)) {
+              p.cancel('Operation cancelled');
+              process.exit(0);
+            }
+            deleteLocalOnly = Boolean(deleteLocal);
+          }
+        }
+
         // Execute all tasks in parallel.
         s.start('Pulling');
-        const outcomes = await Promise.all(tasks.map((t) => t.execute()));
+        const outcomes = await Promise.all(
+          tasks.map((t) => t.execute({ deleteLocalOnly })),
+        );
         s.stop(chalk.green('Done'));
 
         // Report results.

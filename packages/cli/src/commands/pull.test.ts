@@ -42,7 +42,7 @@ describe('Pull Command', () => {
       const api = mockApiService({});
       const task = createComponentsPullTask(api, tmpDir, false);
 
-      const summaryLines = await task.prepare();
+      const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual([]);
     });
 
@@ -50,7 +50,7 @@ describe('Pull Command', () => {
       const api = mockApiService({ a: mockComponent('button') });
       const task = createComponentsPullTask(api, tmpDir, false);
 
-      const summaryLines = await task.prepare();
+      const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual(['- 1 component (1 new)']);
     });
 
@@ -76,8 +76,54 @@ describe('Pull Command', () => {
       });
       const task = createComponentsPullTask(api, tmpDir, false);
 
-      const summaryLines = await task.prepare();
+      const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual(['- 3 components (2 new, 1 existing)']);
+    });
+
+    it('should include local-only components in summary when remote is empty', async () => {
+      const orphanDir = path.join(tmpDir, 'stale');
+      await fs.mkdir(orphanDir, { recursive: true });
+      await fs.writeFile(
+        path.join(orphanDir, 'component.yml'),
+        yaml.dump({ name: 'stale', machineName: 'stale', status: true }),
+        'utf-8',
+      );
+      await fs.writeFile(
+        path.join(orphanDir, 'index.jsx'),
+        'export default function stale() {}',
+        'utf-8',
+      );
+
+      const api = mockApiService({});
+      const task = createComponentsPullTask(api, tmpDir, false);
+
+      const { summaryLines, localOnlyCount } = await task.prepare();
+      expect(summaryLines).toEqual(['- 1 component to delete (local-only)']);
+      expect(localOnlyCount).toBe(1);
+    });
+
+    it('should append local-only deletion line when remote has components too', async () => {
+      const orphanDir = path.join(tmpDir, 'stale');
+      await fs.mkdir(orphanDir, { recursive: true });
+      await fs.writeFile(
+        path.join(orphanDir, 'component.yml'),
+        yaml.dump({ name: 'stale', machineName: 'stale', status: true }),
+        'utf-8',
+      );
+      await fs.writeFile(
+        path.join(orphanDir, 'index.jsx'),
+        'export default function stale() {}',
+        'utf-8',
+      );
+
+      const api = mockApiService({ a: mockComponent('button') });
+      const task = createComponentsPullTask(api, tmpDir, false);
+
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual([
+        '- 1 component (1 new)',
+        '- 1 component to delete (local-only)',
+      ]);
     });
 
     it('should write new component files on execute', async () => {
@@ -227,6 +273,32 @@ describe('Pull Command', () => {
       const parsed = yaml.load(ymlContent) as Record<string, unknown>;
       expect(parsed).toHaveProperty('name', 'Old');
     });
+
+    it('should delete local-only directories when deleteLocalOnly is true', async () => {
+      const orphanDir = path.join(tmpDir, 'gone');
+      await fs.mkdir(orphanDir, { recursive: true });
+      await fs.writeFile(
+        path.join(orphanDir, 'component.yml'),
+        yaml.dump({ name: 'gone', machineName: 'gone', status: true }),
+        'utf-8',
+      );
+      await fs.writeFile(
+        path.join(orphanDir, 'index.jsx'),
+        'export default function gone() {}',
+        'utf-8',
+      );
+
+      const api = mockApiService({});
+      const task = createComponentsPullTask(api, tmpDir, false);
+
+      await task.prepare();
+      const results = await task.execute({ deleteLocalOnly: true });
+
+      expect(results.results).toHaveLength(1);
+      expect(results.results[0].success).toBe(true);
+      expect(results.results[0].details?.[0].content).toBe('Deleted');
+      await expect(fs.access(orphanDir)).rejects.toThrow();
+    });
   });
 
   describe('createAssetsPullTask', () => {
@@ -254,7 +326,7 @@ describe('Pull Command', () => {
       const api = mockApiService('body {}');
       const task = createAssetsPullTask(api, globalCssPath, false);
 
-      const summaryLines = await task.prepare();
+      const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual(['- global CSS']);
     });
 
@@ -262,7 +334,7 @@ describe('Pull Command', () => {
       const api = mockApiService('');
       const task = createAssetsPullTask(api, globalCssPath, false);
 
-      const summaryLines = await task.prepare();
+      const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual([]);
     });
 
