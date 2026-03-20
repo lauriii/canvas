@@ -40,7 +40,6 @@
     "cspell": "^9.2.0",
     "dotenv-defaults": "^5.0.2",
     "eslint": "^9.26.0",
-    "eslint-config-drupal": "^5.0.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-formatter-junit": "^9.0.1",
     "eslint-plugin-chai-friendly": "^1.1.0",

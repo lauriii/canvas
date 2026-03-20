@@ -5,11 +5,15 @@ import tseslint from 'typescript-eslint';
 import js from '@eslint/js';
 import vitest from "@vitest/eslint-plugin"
 import mochaPlugin from "eslint-plugin-mocha";
-import drupal from "eslint-config-drupal"
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import pluginChaiFriendly from 'eslint-plugin-chai-friendly';
 import cypress from "eslint-plugin-cypress"
+
+const drupalGlobals = {
+  Drupal: true,
+  drupalSettings: true,
+};
 
 export default defineConfig([
   js.configs.recommended,
@@ -110,7 +114,7 @@ export default defineConfig([
         ...globals.browser,
         ...globals.node,
         ...vitest.environments.env.globals,
-        ...drupal.globals,
+        ...drupalGlobals,
         ...mochaPlugin.configs.recommended.languageOptions.globals,
         once: true,
         cy: true,
