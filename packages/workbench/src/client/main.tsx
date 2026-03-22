@@ -11,6 +11,7 @@ import PreviewFrameApp from './PreviewFrameApp';
 
 const isPreviewFrameRoute =
   window.location.pathname === '/__canvas/preview-frame';
+const defaultWorkbenchRoute = '/page';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -20,7 +21,10 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider defaultTheme="system" storageKey="canvas-workbench-theme">
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/component" replace />} />
+            <Route
+              path="/"
+              element={<Navigate to={defaultWorkbenchRoute} replace />}
+            />
             <Route path="/component" element={<App />} />
             <Route path="/component/:componentId" element={<App />} />
             <Route
@@ -29,7 +33,10 @@ createRoot(document.getElementById('root')!).render(
             />
             <Route path="/page" element={<App />} />
             <Route path="/page/:slug" element={<App />} />
-            <Route path="*" element={<Navigate to="/component" replace />} />
+            <Route
+              path="*"
+              element={<Navigate to={defaultWorkbenchRoute} replace />}
+            />
           </Routes>
         </BrowserRouter>
         <Toaster closeButton richColors position="bottom-right" />
