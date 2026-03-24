@@ -1855,7 +1855,6 @@ class PropExpressionTest extends UnitTestCase {
     $updated_expr = match ($original_expr::class) {
       ReferenceFieldTypePropExpression::class => $original_expr->generateBundleSpecificBranches(),
       FieldTypeObjectPropsExpression::class => $original_expr->liftReferenceAndCreateBranchesIfNeeded(),
-      default => throw new \OutOfRangeException(),
     };
 
     self::assertSame($updated, (string) $updated_expr);

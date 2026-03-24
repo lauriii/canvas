@@ -1540,9 +1540,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       self::assertNotContains('canvas/astro_island.dependency_component.draft', $attached_libraries);
     }
     self::assertEquals(['@/components/nested_dependency_component' => $nested_dependency_js_path], $scoped_import_maps[$dependency_import_key]);
-    // @phpstan-ignore-next-line argument.type
     self::assertArrayNotHasKey($nested_dependency_key, $scoped_import_maps);
-    // @phpstan-ignore-next-line argument.type
     self::assertArrayNotHasKey($dependency_without_css_import_key, $scoped_import_maps);
 
     // If we created an auto-save entry for the main component, and we are in
