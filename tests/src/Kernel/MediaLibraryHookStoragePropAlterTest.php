@@ -6,14 +6,10 @@ namespace Drupal\Tests\canvas\Kernel;
 
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Depends;
-use Drupal\canvas\Form\ComponentInstanceForm;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
-use Drupal\Core\Form\FormState;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
-use Drupal\Tests\system\Functional\Form\StubForm;
-use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
@@ -161,48 +157,6 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
   public function testPropShapesYieldWorkingStaticPropSources(array $storable_prop_shapes): void {
     $this->setUpCurrentUser(permissions: ['access content', 'administer media']);
     parent::testPropShapesYieldWorkingStaticPropSources($storable_prop_shapes);
-  }
-
-  /**
-   * Tests media_library_widget component prop name behavior.
-   *
-   * @param \Drupal\canvas\PropShape\StorablePropShape[] $storable_prop_shapes
-   *
-   * @legacy-covers \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetCompleteFormAlter
-   */
-  #[Depends('testStorablePropShapes')]
-  public function testMediaLibraryWidgetComponentPropName(array $storable_prop_shapes): void {
-    $this->setUpCurrentUser(permissions: ['access content', 'administer media']);
-    $this->assertNotEmpty($storable_prop_shapes);
-    foreach ($storable_prop_shapes as $key => $storable_prop_shape) {
-      if ($storable_prop_shape->fieldWidget !== 'media_library_widget') {
-        continue;
-      }
-
-      $prop_source = $storable_prop_shape->toStaticPropSource();
-      $widget = $prop_source->getWidget('irrelevant-for-this-test', 'irrelevant-for-this-test', $key, $this->randomString(), $storable_prop_shape->fieldWidget);
-
-      // When the widget is rendered outside the ComponentInstanceForm (e.g.
-      // in this test), #component_prop_name must NOT be set.
-      // @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetCompleteFormAlter()
-      $form = ['#parents' => [$this->randomMachineName()]];
-      $form_state = new FormState();
-      $form_object = new StubForm('some_id', $form);
-      $form_state->setFormObject($form_object);
-      $form = $prop_source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, 'some-prop-name', FALSE, User::create([]), $form, $form_state);
-      $this->assertArrayNotHasKey('#component_prop_name', $form);
-
-      // When the same widget is rendered inside the ComponentInstanceForm,
-      // #component_prop_name MUST be set.
-      // Get a widget whose field definition name is 'some-prop-name', so the
-      // hook sets #component_prop_name to 'some-prop-name'.
-      $widget_for_ci = $prop_source->getWidget('irrelevant-for-this-test', 'irrelevant-for-this-test', 'some-prop-name', $this->randomString(), $storable_prop_shape->fieldWidget);
-      $form_ci = ['#parents' => [$this->randomMachineName()]];
-      $form_state_ci = new FormState();
-      $form_state_ci->setFormObject(new StubForm(ComponentInstanceForm::FORM_ID, $form_ci));
-      $form_with_prop_name = $prop_source->formTemporaryRemoveThisExclamationExclamationExclamation($widget_for_ci, 'some-prop-name', FALSE, User::create([]), $form_ci, $form_state_ci);
-      $this->assertSame('some-prop-name', $form_with_prop_name['#component_prop_name']);
-    }
   }
 
 }

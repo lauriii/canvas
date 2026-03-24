@@ -237,8 +237,8 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
       'image' => [
         'sourceType' => 'static:field_item:image',
         'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
-        // Explicit empty value indicates user removed the default image.
-        'value' => [],
+        // Explicit NULL value indicates user removed the default image.
+        'value' => NULL,
       ],
     ];
     $candidate_resolved = [

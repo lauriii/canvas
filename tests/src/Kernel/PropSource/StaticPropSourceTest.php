@@ -79,11 +79,6 @@ class StaticPropSourceTest extends PropSourceTestBase {
     foreach ($field_widgets as $widget_type => $expected_widget_class) {
       $this->assertInstanceOf($expected_widget_class, $prop_source_example->getWidget('irrelevant-for-test', 'irrelevant-for-test', 'irrelevant-for-test', $this->randomString(), $widget_type));
     }
-    if (NULL === $value) {
-      $this->assertNull($expected_user_value);
-      // Do not continue testing if there is no values.
-      return;
-    }
 
     try {
       // @phpstan-ignore argument.type
@@ -92,6 +87,13 @@ class StaticPropSourceTest extends PropSourceTestBase {
     catch (\LogicException) {
       $this->fail("Not a minimal representation: $json_representation.");
     }
+
+    if (NULL === $value) {
+      $this->assertNull($expected_user_value);
+      // Do not continue testing if there is no values.
+      return;
+    }
+
     $this->assertSame($value, $prop_source_example->getValue());
     // Test the functionality of a StaticPropSource:
     // - evaluate it to populate an SDC prop
@@ -307,7 +309,7 @@ class StaticPropSourceTest extends PropSourceTestBase {
         ],
       ],
     ];
-    yield "complex empty example with entity_reference" => [
+    yield "complex empty example with entity_reference, user has explicitly removed input (value is NULL)" => [
       'sourceType' => 'static:field_item:entity_reference',
       'sourceTypeSettings' => [
         'storage' => ['target_type' => 'media'],
