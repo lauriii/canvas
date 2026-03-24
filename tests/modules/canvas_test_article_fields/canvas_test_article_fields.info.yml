@@ -20,3 +20,4 @@ dependencies:
   - drupal:ckeditor5
   - drupal:text
   - drupal:taxonomy
+  - drupal:link

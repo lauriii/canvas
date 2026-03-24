@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\link\LinkItemInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 use Drupal\editor\Entity\Editor;
 use Drupal\field\Entity\FieldConfig;
@@ -306,6 +307,54 @@ function canvas_test_article_fields_install(): void {
         ],
       ],
     ],
+    'field_cvt_unlimited_link' => [
+      'type' => 'link',
+      'label' => 'Canvas Unlimited Link',
+      'settings' => [
+        'title' => 0,
+        'link_type' => LinkItemInterface::LINK_EXTERNAL,
+      ],
+      'cardinality' => -1,
+      'widget' => [
+        'type' => 'link_default',
+        'weight' => -996,
+        'settings' => [
+          'placeholder_url' => '',
+        ],
+      ],
+      'default_value' => [
+        [
+          'uri' => 'https://drupal.org',
+          'options' => [],
+        ],
+      ],
+    ],
+    'field_cvt_limited_link' => [
+      'type' => 'link',
+      'label' => 'Canvas Limited Link',
+      'settings' => [
+        'title' => 0,
+        'link_type' => LinkItemInterface::LINK_EXTERNAL,
+      ],
+      'cardinality' => 2,
+      'widget' => [
+        'type' => 'link_default',
+        'weight' => -995,
+        'settings' => [
+          'placeholder_url' => '',
+        ],
+      ],
+      'default_value' => [
+        [
+          'uri' => 'https://drupal.org',
+          'options' => [],
+        ],
+        [
+          'uri' => 'https://www.drupal.org/project/canvas',
+          'options' => [],
+        ],
+      ],
+    ],
     'field_cvt_uri' => [
       'type' => 'uri',
       'label' => 'Canvas URI',
@@ -319,6 +368,26 @@ function canvas_test_article_fields_install(): void {
       ],
       'default_value' => [
         ['value' => 'http://drupal.org'],
+      ],
+    ],
+    'field_cvt_uri_relative' => [
+      'type' => 'link',
+      'label' => 'Canvas URI (Relative)',
+      'settings' => [
+        'title' => 0,
+        'link_type' => 1,
+      ],
+      'cardinality' => -1,
+      'required' => FALSE,
+      'widget' => [
+        'type' => 'link_default',
+        'weight' => 0,
+        'settings' => [],
+      ],
+      'default_value' => [
+        [
+          'uri' => 'internal:/node/1',
+        ],
       ],
     ],
     'field_cvt_unlimited_text' => [

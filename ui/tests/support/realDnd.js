@@ -14,7 +14,11 @@ export async function realDnd(subject, destination, options = {}) {
     );
   }
 
-  const startCoords = getCypressElementCoordinates(subject, options.position);
+  const startCoords = getCypressElementCoordinates(
+    subject,
+    options.position,
+    options.scrollBehavior,
+  );
   const endCoords = isJQuery(destination)
     ? getCypressElementCoordinates(
         destination,

@@ -114,7 +114,9 @@
 
 .field-multiple-table td .js-form-type-textfield,
 .field-multiple-table td .js-form-type-number,
-.field-multiple-table td .js-form-type-integer {
+.field-multiple-table td .js-form-type-integer,
+.field-multiple-table td .js-form-type-entity_autocomplete,
+.field-multiple-table td .js-form-type-url {
   margin-bottom: 0;
 }
 
@@ -148,6 +150,11 @@
   cursor: grabbing;
 }
 
+[data-canvas-row-count="1"] .canvas-drag-handle a.tabledrag-handle {
+  cursor: default;
+  pointer-events: none;
+  color: #bbb;
+}
 
 /* Style the custom SVG icon inside the anchor */
 .multivalue-container .canvas-drag-handle a.tabledrag-handle .drag-handle-icon {

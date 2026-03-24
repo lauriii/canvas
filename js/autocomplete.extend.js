@@ -22,9 +22,10 @@
             // Process the selection with Drupal core's logic.
             Drupal.autocomplete.options.select(e, ui)
 
-            // Add the new Drupal-processed value to an attribute that is detected
-            // by a mutation observer in TextFieldAutocomplete.tsx.
+            // Set the attribute and dispatch a custom event so React components
+            // can listen directly instead of relying on a MutationObserver.
             e.target.setAttribute('data-canvas-autocomplete-selected', e.target.value);
+            e.target.dispatchEvent(new CustomEvent('data-canvas-autocomplete-selected', { bubbles: true, detail: { value: ui.item.value } }));
           });
 
           $element.on('autocompleteresponse.autocomplete', function (e, ui) {

@@ -21,6 +21,27 @@ import 'cypress-real-events';
 
 import installLogsCollector from 'cypress-terminal-report/src/installLogsCollector.js';
 
+const origLog = Cypress.log;
+Cypress.log = function (opts, ...other) {
+  const resizeObserverLoopException =
+    opts?.name === 'uncaught exception' &&
+    (opts?.message?.includes('ResizeObserver loop limit exceeded') ||
+      opts?.message?.includes(
+        'ResizeObserver loop completed with undelivered notifications',
+      ));
+
+  const cssFetch =
+    opts?.name === 'request' &&
+    opts?.method === 'GET' &&
+    opts?.url?.includes('.css');
+
+  if (resizeObserverLoopException || cssFetch) {
+    return;
+  }
+
+  return origLog(opts, ...other);
+};
+
 installLogsCollector();
 
 // Alternatively you can use CommonJS syntax:

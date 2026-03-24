@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { ArrowRightIcon, Cross2Icon, TrashIcon } from '@radix-ui/react-icons';
 import { Box, Button, Flex, Popover, Text } from '@radix-ui/themes';
 
+import DrupalInput from '@/components/form/components/drupal/DrupalInput';
 import TextField from '@/components/form/components/TextField';
 import InputBehaviors from '@/components/form/inputBehaviors';
 import { a2p } from '@/local_packages/utils';
@@ -54,6 +55,7 @@ const DrupalInputMultivalueForm = ({
   const popoverInputRef = useRef<HTMLInputElement | null>(null);
   // Ref to the Box containing the TextField so we can find the input element
   const popoverTextFieldWrapperRef = useRef<HTMLDivElement | null>(null);
+  const popoverContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Sync displayValue with attributes.value when it changes (e.g., after AJAX updates)
   useEffect(() => {
@@ -62,41 +64,12 @@ const DrupalInputMultivalueForm = ({
     setTempValue(newValue as string);
   }, [attributes.value, attributes.defaultValue]);
 
-  // Find and store reference to the actual input element when popover opens
-  useEffect(() => {
-    if (popoverOpen && popoverTextFieldWrapperRef.current) {
-      const inputElement =
-        popoverTextFieldWrapperRef.current.querySelector('input');
-      if (inputElement) {
-        popoverInputRef.current = inputElement;
-        // Focus and select the input
-        inputElement.focus();
-        inputElement.select();
-      }
-    }
-  }, [popoverOpen]);
-
-  // Handle temporary input changes in popover (not committed until Enter).
-  const handleTempInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTempValue(e.target.value);
-  };
-
-  // Commit the temporary value to the actual input and display.
-  const handleCommitValue = () => {
-    // Validate the input using the popover input element's HTML5 validation
-    if (popoverInputRef.current) {
-      // Check if the input is valid according to its constraints (min, max, step, etc.)
-      if (!popoverInputRef.current.checkValidity()) {
-        // Show the browser's native validation message
-        popoverInputRef.current.reportValidity();
-        return; // Don't commit invalid value
-      }
-    }
-
-    const newValue = tempValue;
+  // Commit a value directly — used by the autocomplete selection handler so
+  // the table row updates immediately.
+  const commitValue = useCallback((newValue: string) => {
     setDisplayValue(newValue);
+    setTempValue(newValue);
 
-    // Update the hidden real input field to keep it in sync.
     if (inputWrapperRef.current) {
       const realInput = inputWrapperRef.current.querySelector(
         'input',
@@ -107,23 +80,82 @@ const DrupalInputMultivalueForm = ({
           'value',
         )?.set;
         nativeInputValueSetter?.call(realInput, newValue);
-        // Trigger both input and change events so React and Drupal handlers are notified.
-        const inputEvent = new Event('input', { bubbles: true });
-        const changeEvent = new Event('change', { bubbles: true });
-        realInput.dispatchEvent(inputEvent);
-        realInput.dispatchEvent(changeEvent);
+        realInput.dispatchEvent(new Event('input', { bubbles: true }));
+        realInput.dispatchEvent(new Event('change', { bubbles: true }));
       }
     }
+  }, []);
+
+  // Listen for the custom autocomplete-selected event dispatched by
+  // autocomplete.extend.js when the user picks a suggestion.
+  const autocompleteCleanupRef = useRef<(() => void) | null>(null);
+  // Flag to indicate an autocomplete suggestion was just selected. Set by the
+  // data-canvas-autocomplete-selected handler so that handleKeyDown (which may
+  // fire after jQuery UI has already closed the dropdown) does not overwrite
+  // the committed value with the stale tempValue.
+  const autocompleteJustSelectedRef = useRef(false);
+
+  // Clean up the autocomplete listener whenever the popover closes.
+  useEffect(() => {
+    if (!popoverOpen) {
+      autocompleteCleanupRef.current?.();
+      autocompleteCleanupRef.current = null;
+    }
+  }, [popoverOpen]);
+  // Handle temporary input changes in popover (not committed until Enter).
+  const handleTempInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTempValue(e.target.value);
+  };
+
+  // Commit the temporary value to the actual input and display.
+  const handleCommitValue = () => {
+    // Validate the input using the popover input element's HTML5 validation.
+    if (popoverInputRef.current) {
+      // Check if the input is valid according to its constraints
+      // (min, max, step, etc.).
+      if (!popoverInputRef.current.checkValidity()) {
+        // Show the browser's native validation message.
+        popoverInputRef.current.reportValidity();
+        return;
+      }
+    }
+
+    commitValue(tempValue);
   };
 
   // Handle Enter key press in popover input.
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      e.preventDefault();
+      // If a jQuery UI autocomplete suggestion was just selected synchronously
+      // (before this React event handler ran via event delegation), do NOT
+      // commit the stale tempValue. The data-canvas-autocomplete-selected
+      // handler already committed the correct suggestion value.
+      if (autocompleteJustSelectedRef.current) {
+        autocompleteJustSelectedRef.current = false;
+        return;
+      }
 
-      // Use the stored ref or fallback to the event target
+      // If a jQuery UI autocomplete dropdown is currently open, do NOT
+      // intercept Enter — let jQuery UI process the selection so that
+      // the auto complete select event fires. The data-canvas-autocomplete-selected
+      // listener will then commit the correct suggestion value and close the popover.
       const inputElement =
         popoverInputRef.current || (e.target as HTMLInputElement);
+      const $jq =
+        typeof window !== 'undefined' && (window as any).jQuery
+          ? (window as any).jQuery
+          : null;
+      const isAutocompleteOpen =
+        $jq &&
+        $jq(inputElement)
+          .data('ui-autocomplete')
+          ?.menu?.element?.is?.(':visible');
+
+      if (isAutocompleteOpen) {
+        return;
+      }
+
+      e.preventDefault();
 
       // Validate the input before committing
       if (inputElement && !inputElement.checkValidity()) {
@@ -143,9 +175,43 @@ const DrupalInputMultivalueForm = ({
     if (open) {
       // When opening, set tempValue to current displayValue.
       setTempValue(displayValue);
+      // Focus the input field in the popover. Find it inside the container
+      // since TextFieldAutocomplete does not forward the ref from attributes.
+      // Also re-attach Drupal behaviors so that entity_autocomplete (jQuery UI
+      // autocomplete) is initialized on the input that just appeared inside
+      // the Radix UI portal — it was never seen by Drupal.behaviors.
+      // autocomplete during the initial page load.
+      setTimeout(() => {
+        if (popoverContainerRef.current) {
+          // @todo Refactor this as a part of https://www.drupal.org/i/3581159.
+          window.Drupal?.attachBehaviors(popoverContainerRef.current);
+
+          const handleSelected = (e: Event) => {
+            if (!popoverContainerRef.current?.contains(e.target as Node))
+              return;
+            autocompleteJustSelectedRef.current = true;
+            commitValue((e as CustomEvent<{ value: string }>).detail.value);
+            setPopoverOpen(false);
+          };
+          document.addEventListener(
+            'data-canvas-autocomplete-selected',
+            handleSelected,
+          );
+          autocompleteCleanupRef.current = () =>
+            document.removeEventListener(
+              'data-canvas-autocomplete-selected',
+              handleSelected,
+            );
+        }
+        const input = popoverContainerRef.current?.querySelector(
+          'input',
+        ) as HTMLInputElement | null;
+        if (input) {
+          popoverInputRef.current = input;
+          input.select();
+        }
+      }, 0);
     } else {
-      // When closing, revert tempValue to displayValue (discards uncommitted changes).
-      setTempValue(displayValue);
       // Restore focus to the trigger button after closing.
       setTimeout(() => {
         if (triggerRef.current) {
@@ -295,11 +361,23 @@ const DrupalInputMultivalueForm = ({
 
         {/* Edit Popover */}
         <Popover.Content
+          ref={popoverContainerRef}
           side="left"
           align="start"
           sideOffset={6}
           className={styles.popoverContent}
           style={{ maxWidth: '235px' }}
+          onInteractOutside={(e) => {
+            // Prevent the popover from closing when the user clicks on a
+            // jQuery UI autocomplete suggestion. The dropdown is rendered in
+            // a portal outside the popover, so Radix treats it as an outside
+            // click and would close the popover before the selection is
+            // committed via the MutationObserver.
+            const target = e.target as Element | null;
+            if (target?.closest('.ui-autocomplete, .ui-menu')) {
+              e.preventDefault();
+            }
+          }}
         >
           {/* Popover Header */}
           <Flex
@@ -317,12 +395,21 @@ const DrupalInputMultivalueForm = ({
 
           {/* Input Field - Visual duplicate for popover editing */}
           <Box ref={popoverTextFieldWrapperRef}>
-            <TextField
-              {...(attributes.class
-                ? { className: clsx(attributes.class) }
-                : {})}
-              {...{
-                attributes: {
+            {attributes?.class instanceof Array &&
+            attributes?.class?.includes('form-autocomplete') ? (
+              <DrupalInput
+                attributes={{
+                  ...attributes,
+                  value: tempValue,
+                  onChange: handleTempInputChange,
+                  onKeyDown: handleKeyDown,
+                }}
+              />
+            ) : (
+              <TextField
+                className={clsx(attributes.class)}
+                attributes={{
+                  ...attributes,
                   value: tempValue,
                   onChange: handleTempInputChange,
                   onKeyDown: handleKeyDown,
@@ -340,9 +427,9 @@ const DrupalInputMultivalueForm = ({
                         attributes[key as keyof typeof attributes],
                       ]),
                   ),
-                },
-              }}
-            />
+                }}
+              />
+            )}
           </Box>
 
           {/* Remove Button */}
