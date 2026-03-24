@@ -89,6 +89,17 @@ final class ComponentSourceManager extends DefaultPluginManager {
     if ($this->configInstaller->isSyncing()) {
       return $this;
     }
+    // @todo Fix upstream core bug in Recipes: it inconsistently claims to be
+    // syncing when installing modules, but not when installing configuration.
+    // Even though it is listed under `import`, and that should hence match the
+    // behavior of the /admin/config/development/configuration/single/import UI.
+    if (\in_array('installRecipeConfig', array_column(debug_backtrace(), 'function'), TRUE)) {
+      // Assert the bug is still present. This will start failing as soon as the
+      // upstream bug is fixed.
+      // @phpstan-ignore-next-line function.alreadyNarrowedType
+      \assert(!$this->configInstaller->isSyncing());
+      return $this;
+    }
 
     $source_definitions = $this->getDefinitions();
     if ($source_id !== NULL) {
