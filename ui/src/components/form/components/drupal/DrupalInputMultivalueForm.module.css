@@ -20,6 +20,10 @@
   background-color: var(--blue-3);
 }
 
+.removeButtonContainer {
+  margin-top: var(--space-2);
+}
+
 .listItem:hover .arrowIcon {
   opacity: 1;
 }

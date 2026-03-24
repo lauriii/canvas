@@ -346,7 +346,7 @@ const DrupalInputMultivalueForm = ({
           </Box>
 
           {/* Remove Button */}
-          <Flex justify="center">
+          <Flex justify="center" className={styles.removeButtonContainer}>
             <Button
               variant="ghost"
               color="red"
