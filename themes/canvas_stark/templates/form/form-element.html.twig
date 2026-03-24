@@ -59,7 +59,7 @@
     type="{{ type }}"
     name="{{ name }}"
     description-attributes="{{ description.attributes }}"
-    description="{{ render_var(description.content) }}"
+    description="{{ render_var(description.content)|e('html_attr') }}"
     disabled="{{ disabled }}"
 >
   {{ children }}

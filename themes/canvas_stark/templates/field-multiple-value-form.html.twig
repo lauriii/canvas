@@ -36,7 +36,7 @@
       {% endif %}
     </div>
     {% if description.content %}
-      <canvas-description{{ description.attributes.addClass('description').addClass('description-unwrapped') }} description="{{ description.content }}" />
+      <canvas-description{{ description.attributes.addClass('description').addClass('description-unwrapped') }} description="{{ description.content|render|e('html_attr') }}" />
     {% endif %}
   </div>
 {% else %}

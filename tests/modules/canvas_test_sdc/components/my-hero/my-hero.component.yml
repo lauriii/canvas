@@ -17,6 +17,7 @@ props:
     subheading:
       type: string
       title: Sub-heading
+      description: 'See the <a href="https://www.example.com/icons">icon library</a> for icons.'
       examples:
         - Watch him as he goes!
     cta1:

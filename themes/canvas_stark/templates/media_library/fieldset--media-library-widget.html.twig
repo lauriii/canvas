@@ -77,7 +77,7 @@
         {{ suffix }}
       {% endif %}
       {% if description.content %}
-        <canvas-description description="{{ description.content }}" ></canvas-description>
+        <canvas-description description="{{ description.content|render|e('html_attr') }}" ></canvas-description>
       {% endif %}
     </div>
 </fieldset>

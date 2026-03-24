@@ -57,7 +57,7 @@
   </legend>
   <div class="fieldset-wrapper">
     {% if description_display == 'before' and description.content %}
-      <canvas-description{{ description.attributes.addClass('description') }} description="{{ description.content }}" />
+      <canvas-description{{ description.attributes.addClass('description') }} description="{{ description.content|render|e('html_attr') }}" />
     {% endif %}
     {% if errors %}
       <div>
@@ -72,7 +72,7 @@
       <span class="field-suffix">{{ suffix }}</span>
     {% endif %}
     {% if description_display in ['after', 'invisible'] and description.content %}
-      <canvas-description{{ description.attributes.addClass('description') }} description="{{ description.content }}" />
+      <canvas-description{{ description.attributes.addClass('description') }} description="{{ description.content|render|e('html_attr') }}" />
     {% endif %}
   </div>
 </fieldset>

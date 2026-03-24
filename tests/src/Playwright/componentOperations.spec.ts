@@ -184,6 +184,32 @@ test.describe('Perform CRUD operations on components', () => {
     ).toEqual(0);
   });
 
+  test('Renders markup in prop descriptions including links with quoted href', async ({
+    page,
+    drupal,
+    canvasEditor,
+  }) => {
+    await drupal.createCanvasPage(
+      'Markup descriptions',
+      '/markup-descriptions',
+    );
+    await page.goto('/markup-descriptions');
+    await canvasEditor.goToEditor();
+    await canvasEditor.openLibraryPanel();
+    await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
+    await canvasEditor.clickPreviewComponent('sdc.canvas_test_sdc.my-hero');
+
+    const form = page.locator(
+      '[data-testid="canvas-contextual-panel"] [data-drupal-selector="component-instance-form"]',
+    );
+    const iconLibraryLink = form.getByRole('link', { name: 'icon library' });
+    await expect(iconLibraryLink).toBeVisible();
+    await expect(iconLibraryLink).toHaveAttribute(
+      'href',
+      'https://www.example.com/icons',
+    );
+  });
+
   test('Can handle empty heading prop in hero component', async ({
     page,
     drupal,

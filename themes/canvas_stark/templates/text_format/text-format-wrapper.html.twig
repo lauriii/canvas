@@ -18,6 +18,6 @@
 <div class="js-text-format-wrapper js-form-item form-item">
   {{ children }}
   {% if description %}
-    <canvas-description{{ attributes.addClass('description-unwrapped') }} description="{{ description|escape }}" />
+    <canvas-description{{ attributes.addClass('description-unwrapped') }} description="{{ description|render|e('html_attr') }}" />
   {% endif %}
 </div>
