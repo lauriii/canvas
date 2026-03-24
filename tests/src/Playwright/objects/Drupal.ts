@@ -64,6 +64,7 @@ export class Drupal {
     await this.applyRecipe(
       `${moduleDir}/canvas/tests/fixtures/recipes/test_site`,
     );
+    await this.drush('theme:enable canvas_stark');
   }
 
   async createCanvasPage(title: string, alias: string, status: boolean = true) {

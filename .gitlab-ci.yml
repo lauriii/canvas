@@ -616,6 +616,9 @@ playwright:
   image: ghcr.io/drupal-canvas/drupal-testing:1.0.0
   extends:
     - .test-variables
+  parallel:
+    matrix:
+      - BROWSER: [ chromium, firefox, webkit, templates-linking ]
   variables:
     GIT_DEPTH: 1
     _TARGET_DB_TYPE: sqlite
