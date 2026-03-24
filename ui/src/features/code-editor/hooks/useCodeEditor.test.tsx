@@ -70,6 +70,15 @@ vi.mock('@/services/brandKit', async () => {
   };
 });
 
+vi.mock('@/utils/drupal-globals', async () => {
+  const originalModule = await vi.importActual('@/utils/drupal-globals');
+  return {
+    ...originalModule,
+    getCanvasPermissions: vi.fn().mockReturnValue({ brandKit: true }),
+    getCanvasSettings: vi.fn().mockReturnValue({ devMode: true }),
+  };
+});
+
 vi.mock('@/features/code-editor/hooks/useCompileJavaScript', () => ({
   default: () => ({
     isJavaScriptCompilerReady: true,

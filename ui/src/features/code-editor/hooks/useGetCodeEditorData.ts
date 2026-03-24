@@ -26,6 +26,8 @@ import {
   useGetAutoSaveQuery as useGetAutoSaveQueryCodeComponent,
   useGetCodeComponentQuery,
 } from '@/services/componentAndLayout';
+import { getCanvasSettings } from '@/utils/drupal-globals';
+import { hasPermission } from '@/utils/permissions';
 
 import type {
   AssetLibrary,
@@ -145,7 +147,7 @@ const useGetCodeEditorData = (
     isFetching: isLoadingGetAutoSaveBrandKit,
     isSuccess: isSuccessGetAutoSaveBrandKit,
   } = useGetAutoSaveQueryBrandKit(ASSET_LIBRARY_ID, {
-    skip,
+    skip: skip || !hasPermission('brandKit') || !getCanvasSettings()?.devMode,
   });
 
   const {
