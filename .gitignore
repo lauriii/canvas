@@ -62,3 +62,6 @@ lerna-debug.log*
 
 # Playwright
 /playwright/.auth/
+
+# GitLab CI
+.cache

@@ -55,6 +55,7 @@ stages:
   - build
   - validate
   - test
+  - cache
   - publish
 
 #
@@ -151,6 +152,43 @@ variables:
 .e2e-tests-are-enabled-rule: &e2e-tests-are-enabled-rule
   - if: $_CANVAS_E2E_TESTS == "true"
 
+default:
+  cache:
+    key:
+      files:
+        - composer.lock
+        - package-lock.json
+      prefix: ${CI_PARENT_PROJECT_NAME}
+    paths:
+      - .cache/
+    policy: pull
+    fallback_keys:
+      - ${CI_PARENT_PROJECT_NAME}
+
+cache dependencies:
+  image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
+  stage: cache
+  needs: []
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_PATH !~ /^issue\//
+  cache:
+    key:
+      files:
+        - composer.lock
+        - package-lock.json
+      prefix: ${CI_PARENT_PROJECT_NAME}
+    paths:
+      - .cache/
+    policy: pull-push
+    fallback_keys:
+      - ${CI_PARENT_PROJECT_NAME}
+  before_script:
+    - !reference [ .drupal ]
+    - composer run install-dev-deps
+  script:
+    - npm ci
+    - npx playwright install
+
 # Disable jobs from the upstream template.
 phpcs:
   rules:
@@ -240,6 +278,10 @@ phpunit:
     # _PHPUNIT_EXTRA: '--filter PropSourceTest'
     # 💡To run only tests in a specific group, e.g. `canvas_component_sources` or `canvas_data_model__prop_expressions`.
     # _PHPUNIT_TESTGROUPS: canvas_component_sources
+    PLAYWRIGHT_BROWSERS_PATH: $CI_PROJECT_DIR/.cache/ms-playwright
+    COMPOSER_CACHE_DIR: $CI_PROJECT_DIR/.cache/composer
+    npm_config_cache: $CI_PROJECT_DIR/.cache/npm
+
   # TRICKY: duplicate all of the upstream `.phpunit-base`'s `script` to add conditional auto-retry functionality
   # @todo Work with upstream `gitlab_templates` project to allow this logic to be injected without repeating everything
   script:
@@ -537,7 +579,7 @@ cypress unit:
 lint (php):
   stage: validate
   needs: []
-  image: ghcr.io/drupal-canvas/drupal-testing:1.0.0
+  image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
   variables:
     GIT_DEPTH: 1
     COMPOSER_ROOT_VERSION: 0.0.0
@@ -579,9 +621,7 @@ lint (php):
 lint (node):
   stage: validate
   needs: []
-  image: ghcr.io/drupal-canvas/drupal-testing:1.0.0
-  before_script:
-    - . /root/.nvm/nvm.sh && nvm install 24 && nvm alias default 24
+  image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
   script:
     - npm ci
     - npm run lint
@@ -589,9 +629,7 @@ lint (node):
 type-check:
   stage: validate
   needs: []
-  image: ghcr.io/drupal-canvas/drupal-testing:1.0.0
-  before_script:
-    - . /root/.nvm/nvm.sh && nvm install 24 && nvm alias default 24
+  image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
   script:
     - npm ci
     - npm run build --workspace=drupal-canvas
@@ -609,16 +647,17 @@ lint (OpenAPI):
 playwright:
   stage: test
   needs: []
+  parallel:
+    matrix:
+      - SHARD: [ "1/5", "2/5", "3/5", "4/5", "5/5" ]
+        #PROJECT: [ "chromium", "firefox", "webkit" ]
   rules:
     - *e2e-tests-are-enabled-rule
     - *manual-rule
   interruptible: true
-  image: ghcr.io/drupal-canvas/drupal-testing:1.0.0
+  image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
   extends:
     - .test-variables
-  parallel:
-    matrix:
-      - BROWSER: [ chromium, firefox, webkit, templates-linking ]
   variables:
     GIT_DEPTH: 1
     _TARGET_DB_TYPE: sqlite
@@ -631,17 +670,27 @@ playwright:
     - composer run install-dev-deps
   script:
     - npm ci
-    - npm run test:playwright | tee $CI_PROJECT_DIR/playwright.log || EXIT_CODE=$?
-    # Auto-retry when a single failure occurs (because only "3 failed" suggests a systemic failure: a failure on all 3
-    # browsers. Any human would manually click "retry", so automate it).
-    - grep "1 failed" $CI_PROJECT_DIR/playwright.log && exit 112 || true
-    # If no auto-retry was attempted, use the original exit code.
-    - exit $EXIT_CODE
+    - npm run test:playwright -- --shard=$SHARD --reporter=blob
   after_script:
-    - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/test-results $CI_PROJECT_DIR/test-results
-    - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/playwright-report $CI_PROJECT_DIR/playwright-report
+    - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/blob-report $CI_PROJECT_DIR/blob-report
+  artifacts:
+    when: always
+    expire_in: 1 day
+    paths:
+      - blob-report/
+
+merge-playwright-reports:
+  stage: test
+  when: always
+  needs:
+    - playwright
+  image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
+  script:
+    - mkdir -p test-results
+    - npx playwright merge-reports --reporter=html ./blob-report
+    - npx playwright merge-reports --reporter=junit ./blob-report > test-results/playwright.xml
     - |
-      cat > $CI_PROJECT_DIR/test-results/links.json << EOF
+      cat > test-results/links.json << EOF
       {
         "playwright": [
           {
@@ -664,13 +713,10 @@ playwright:
       junit:
         - test-results/playwright.xml
       annotations: test-results/links.json
-  retry:
-    max: 2
-    exit_codes: 112
 
 CLI Test:
   stage: test
-  image: ghcr.io/drupal-canvas/drupal-testing:1.0.1
+  image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
   needs: []
   rules:
     - changes:

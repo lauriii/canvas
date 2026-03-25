@@ -1,0 +1,23 @@
+- tabpanel "Patterns":
+  - textbox "Search content":
+    - /placeholder: Search…
+  - img
+  - button "New":
+    - img
+    - text: ""
+    - img
+  - img
+  - button "Things"
+  - button "Open contextual menu"
+  - text: ""
+  - button "Collapse Things folder" [expanded]:
+    - img
+  - list
+  - img
+  - button "Stuff"
+  - button "Open contextual menu"
+  - text: ""
+  - button "Collapse Stuff folder" [expanded]:
+    - img
+  - list
+  - list

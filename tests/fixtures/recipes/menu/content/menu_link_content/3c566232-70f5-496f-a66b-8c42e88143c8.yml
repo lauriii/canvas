@@ -18,10 +18,10 @@ default:
       value: main
   link:
     -
-      uri: 'internal:/admin/structure'
+      uri: 'internal:/user'
       title: ''
       options: {  }
-      url: /admin/structure
+      url: /user
   external:
     -
       value: false

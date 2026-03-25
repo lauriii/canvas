@@ -18,10 +18,10 @@ default:
       value: main
   link:
     -
-      uri: 'internal:/admin'
+      uri: 'internal:/'
       title: ''
       options: {  }
-      url: /admin
+      url: /
   external:
     -
       value: false

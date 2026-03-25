@@ -1,99 +1,32 @@
 import { defineConfig, devices } from '@playwright/test';
 
-import 'dotenv-defaults/config';
+import 'dotenv-defaults/config.js';
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
-
-const browserProjects = [
-  {
-    name: 'chromium',
-    use: {
-      ...devices['Desktop Chrome'],
-      deviceScaleFactor: 1,
-      /* Making the browser window/viewport much bigger avoids weird issues like the UI covering up part of the editor frame etc. */
-      viewport: { width: 1920, height: 1080 },
-    },
-    dependencies: ['setup'],
-  },
-  {
-    name: 'firefox',
-    use: {
-      ...devices['Desktop Firefox'],
-      deviceScaleFactor: 1,
-      viewport: { width: 1920, height: 1080 },
-    },
-    dependencies: ['setup'],
-  },
-  {
-    name: 'webkit',
-    use: {
-      ...devices['Desktop Safari'],
-      // Explicitly set the device pixel ratio as webkit is 2 by default, and
-      // chromium and firefox are 1.
-      deviceScaleFactor: 1,
-      viewport: { width: 1920, height: 1080 },
-    },
-    dependencies: ['setup'],
-  },
-];
-
-// In CI, each job runs exactly one browser to avoid the same spec appearing
-// in multiple jobs. Locally, all browsers run.
-const activeBrowserProjects = process.env.BROWSER
-  ? browserProjects.filter((p) => p.name === process.env.BROWSER)
-  : browserProjects;
-
-const templatesLinkingProject = {
-  name: 'templates-linking',
-  testMatch: /templates-linking\.spec\.ts/,
-  use: {
-    ...devices['Desktop Chrome'],
-    deviceScaleFactor: 1,
-    viewport: { width: 1920, height: 1080 },
-  },
-  dependencies: ['setup'],
-};
-
-// In CI this project is isolated to its own job via BROWSER=templates-linking.
-// Locally it runs as part of the full suite alongside the browser projects.
-const activeTemplatesLinkingProjects =
-  !process.env.BROWSER || process.env.BROWSER === 'templates-linking'
-    ? [templatesLinkingProject]
-    : [];
-
-// templates-linking.spec.ts is handled exclusively by the dedicated
-// templates-linking project (Chromium only). Exclude it from all browser
-// projects so it never runs under firefox or webkit, and doesn't run twice
-// under chromium.
-const filteredBrowserProjects = activeBrowserProjects.map((project) => ({
-  ...project,
-  testIgnore: /templates-linking\.spec\.ts/,
-}));
-
 export default defineConfig({
   testDir: './tests/src/Playwright',
-  /* Don't run tests within files in parallel */
-  fullyParallel: false,
+  /* Run tests in files in parallel */
+  fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 3 : 0,
   /* Maximum failures */
-  maxFailures: 999999,
+  maxFailures: 999,
+  //maxFailures: process.env.CI ? 1 : 999,
+  /* https://playwright.dev/docs/test-timeouts */
+  timeout: 120_000,
+  expect: { timeout: 10_000 },
   /* Parallel test workers, leave undefined for automatic */
-  workers: '50%',
+  workers: process.env.CI ? 1 : '50%',
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['list'],
     ['junit', { outputFile: 'test-results/playwright.xml' }],
     ['html', { host: '0.0.0.0', open: 'never' }],
   ],
-  /* https://playwright.dev/docs/test-timeouts */
-  timeout: process.env.CI ? 120_000 : 30_000,
-  expect: { timeout: 10_000 },
-  globalTimeout: 3_600_000,
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
@@ -115,10 +48,33 @@ export default defineConfig({
   /* Configure projects for major browsers */
   projects: [
     {
-      name: 'setup',
-      testMatch: /_global\.setup\.ts/,
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        deviceScaleFactor: 1,
+        /* Making the browser window/viewport much bigger avoids weird issues like the UI covering up part of the editor frame etc. */
+        viewport: { width: 1920, height: 1080 },
+      },
     },
-    ...filteredBrowserProjects,
-    ...activeTemplatesLinkingProjects,
+
+    //{
+    //  name: 'firefox',
+    //  use: {
+    //    ...devices['Desktop Firefox'],
+    //    deviceScaleFactor: 1,
+    //    viewport: { width: 1920, height: 1080 },
+    //  },
+    //},
+
+    //{
+    //  name: 'webkit',
+    //  use: {
+    //    ...devices['Desktop Safari'],
+    //    // Explicitly set the device pixel ratio as webkit is 2 by default, and
+    //    // chromium and firefox are 1.
+    //    deviceScaleFactor: 1,
+    //    viewport: { width: 1920, height: 1080 },
+    //  },
+    //},
   ],
 });

@@ -1,0 +1,61 @@
+- tabpanel "Components":
+  - textbox "Search content":
+    - /placeholder: Search…
+  - img
+  - button "New":
+    - img
+    - text: ""
+    - img
+  - img
+  - button "Cake"
+  - button "Open contextual menu"
+  - text: ""
+  - button "Collapse Cake folder" [expanded]:
+    - img
+  - list
+  - img
+  - button "Pie"
+  - button "Open contextual menu"
+  - text: ""
+  - button "Collapse Pie folder" [expanded]:
+    - img
+  - list
+  - img
+  - button "Menus"
+  - button "Open contextual menu"
+  - text: ""
+  - button "Collapse Menus folder" [expanded]:
+    - img
+  - list:
+    - listitem:
+      - img
+      - text: Footer
+      - button "Open contextual menu"
+    - listitem:
+      - img
+      - text: Main navigation
+      - button "Open contextual menu"
+  - img
+  - button "System"
+  - button "Open contextual menu"
+  - text: ""
+  - button "Collapse System folder" [expanded]:
+    - img
+  - list:
+    - listitem:
+      - img
+      - text: Breadcrumbs
+      - button "Open contextual menu"
+    - listitem:
+      - img
+      - text: Messages
+      - button "Open contextual menu"
+    - listitem:
+      - img
+      - text: Powered by Drupal
+      - button "Open contextual menu"
+    - listitem:
+      - img
+      - text: Site branding
+      - button "Open contextual menu"
+  - list

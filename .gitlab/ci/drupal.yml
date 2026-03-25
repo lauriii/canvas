@@ -12,7 +12,8 @@
   # Move everything into a subdirectory
   - mkdir tmp
   - find . -maxdepth 1 -type f -not -path "./tmp*" -exec mv {} tmp/ \;
-  - find . -maxdepth 1 -type d -not -path "." -not -path "./tmp" -exec mv {} tmp/ \;
+  - find . -maxdepth 1 -type d -not -path "." -not -path "./tmp" -not -path "./.cache" -exec mv {}
+    tmp/ \;
   - mv tmp $CI_PROJECT_NAME
   - mv $CI_PROJECT_NAME/.git $CI_PROJECT_NAME/git
   # Get Drupal
@@ -36,6 +37,7 @@
     fi
   # Change to the project directory
   - cd $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME
+  - git config --global --add safe.directory $CI_PROJECT_DIR/_drupal/web/modules/contrib/canvas
 
 .drupal-webserver: &drupal-webserver
   # Setup webserver root

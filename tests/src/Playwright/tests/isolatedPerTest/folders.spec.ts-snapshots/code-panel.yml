@@ -1,0 +1,22 @@
+- textbox "Search content":
+  - /placeholder: Search…
+- img
+- button "New":
+  - img
+  - text: ""
+  - img
+- img
+- button "Another folder"
+- button "Open contextual menu"
+- text: "0"
+- button "Collapse Another folder folder" [expanded]:
+  - img
+- list
+- img
+- button "Awesome New Folder"
+- button "Open contextual menu"
+- text: "0"
+- button "Collapse Awesome New Folder folder" [expanded]:
+  - img
+- list
+- list
