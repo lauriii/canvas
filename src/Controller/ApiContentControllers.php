@@ -114,10 +114,15 @@ final class ApiContentControllers extends ApiControllerBase {
     // handler exceptions: the generic Canvas API exception subscriber handles
     // them.
     // @see \Drupal\canvas\EventSubscriber\ApiExceptionSubscriber
+
+    // Ensure the path field carries the existing PID so Drupal updates the
+    // alias in place rather than creating a duplicate.
+    if (isset($body['path'])) {
+      $existing_pid = $canvas_page->get('path')->first()?->getValue()['pid'] ?? NULL;
+      $body['path'] = ['alias' => $body['path'], 'pid' => $existing_pid];
+    }
+
     foreach (['title', 'status', 'path', 'components'] as $field_name) {
-      // @todo For path aliases, this creates a new alias instead of editing
-      //   the existing one, which is a different UX than editing in the UI.
-      //   Fix in https://www.drupal.org/project/canvas/issues/3579546
       $field_access = $canvas_page->get($field_name)->access(operation: 'edit', return_as_object: TRUE);
       if ($field_access->isForbidden()) {
         throw new CacheableAccessDeniedHttpException(

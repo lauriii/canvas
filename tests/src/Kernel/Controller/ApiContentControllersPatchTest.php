@@ -77,6 +77,7 @@ class ApiContentControllersPatchTest extends CanvasKernelTestBase {
       'path' => ['alias' => '/this-is-the-old-path'],
       'components' => [],
     ]);
+    self::assertEntityIsValid($page);
     $page->save();
 
     $request = Request::create(\sprintf(self::URL, $page->id()),
@@ -196,6 +197,57 @@ class ApiContentControllersPatchTest extends CanvasKernelTestBase {
     ];
   }
 
+  /**
+   * Tests that PATCHing a path alias results in exactly one alias being set.
+   */
+  #[DataProvider('providerPatchPathAlias')]
+  public function testPatchPathAlias(array $initial_path): void {
+    $page = Page::create([
+      'title' => 'Initial title',
+      'status' => TRUE,
+      'path' => $initial_path,
+      'components' => [],
+    ]);
+    self::assertEntityIsValid($page);
+    $page->save();
+
+    $alias_storage = \Drupal::entityTypeManager()
+      ->getStorage('path_alias');
+    $internal_path = ['path' => '/page/' . $page->id()];
+
+    $this->assertCount(
+      !empty($initial_path) ? 1 : 0,
+      $alias_storage->loadByProperties($internal_path),
+    );
+
+    $this->request(Request::create(
+      \sprintf(self::URL, $page->id()),
+      'PATCH',
+      server: ['CONTENT_TYPE' => 'application/json'],
+      content: \json_encode([
+        'title' => 'Initial title',
+        'status' => TRUE,
+        'path' => '/new-alias',
+        'components' => [],
+      ], JSON_THROW_ON_ERROR),
+    ));
+
+    $path_aliases = $alias_storage->loadByProperties($internal_path);
+    $this->assertCount(1, $path_aliases);
+    $this->assertSame('/new-alias', reset($path_aliases)->getAlias());
+  }
+
+  public static function providerPatchPathAlias(): \Generator {
+    yield 'With a pre-existing alias' => [
+      ['alias' => '/old-alias'],
+      1,
+    ];
+    yield 'Without a pre-existing alias' => [
+      [],
+      0,
+    ];
+  }
+
   public function testConflictErrorIfPatchingEntityWithAutoSaveDataPresent(): void {
     $this->expectException(ConflictHttpException::class);
     $page = Page::create([
@@ -204,6 +256,7 @@ class ApiContentControllersPatchTest extends CanvasKernelTestBase {
       'path' => ['alias' => '/this-is-the-old-path'],
       'components' => [],
     ]);
+    self::assertEntityIsValid($page);
     $page->save();
 
     // Create some auto-save data. We don't know yet if should be discarded or
