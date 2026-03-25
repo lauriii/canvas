@@ -193,6 +193,16 @@
       }
     }
   }
+
+  /* Drag cursor for media library items */
+  :global(.js-media-library-item-preview) {
+    cursor: grab;
+  }
+
+  :global(.js-media-library-item-preview:active) {
+    cursor: grabbing;
+  }
+
   :global(.canvas-media-preview-label) {
     margin-right: 20px;
     word-break: break-word;

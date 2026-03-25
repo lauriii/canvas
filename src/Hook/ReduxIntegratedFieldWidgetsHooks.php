@@ -313,7 +313,7 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
   #[Hook('field_widget_info_alter')]
   public function fieldWidgetInfoAlter(array &$info): void {
     $map = [
-      'boolean_checkbox' => ['mainProperty' => ['list' => \FALSE]],
+      'boolean_checkbox' => ['mainProperty' => []],
       'datetime_default' => ['mainProperty' => [], 'dateTime' => []],
       'daterange_default' => ['dateRange' => []],
       'email_default' => ['mainProperty' => []],

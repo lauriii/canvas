@@ -2,8 +2,12 @@ import transforms from '@/utils/transforms';
 
 describe('Transforms - link', () => {
   const fieldData = {
+    expression: '',
+    sourceType: 'static:field_item:link',
     sourceTypeSettings: {
-      instance: {},
+      instance: {
+        title: 0,
+      },
     },
   };
 
@@ -12,6 +16,20 @@ describe('Transforms - link', () => {
     expect(
       transforms.link([{ uri: 'https://example.com' }], {}, fieldData),
     ).toEqual('https://example.com');
+  });
+
+  it('Should support multiple values', () => {
+    fieldData.sourceTypeSettings.instance.title = 0;
+    expect(
+      transforms.link(
+        [
+          { uri: 'https://example.com' },
+          { uri: 'https://another.example.com' },
+        ],
+        { multiple: true },
+        fieldData,
+      ),
+    ).toEqual(['https://example.com', 'https://another.example.com']);
   });
 
   it('Should return URI and title if title is enabled', () => {
@@ -41,6 +59,294 @@ describe('Transforms - link', () => {
         fieldData,
       ),
     ).toEqual({ uri: 'entity:node/3', title: 'Click me' });
+  });
+
+  it('Should return null for null value', () => {
+    expect(transforms.link(null, {}, fieldData)).toEqual(null);
+  });
+
+  it('Should return null for undefined value', () => {
+    expect(transforms.link(undefined, {}, fieldData)).toEqual(null);
+  });
+
+  it('Should return empty array for null value when multiple', () => {
+    expect(transforms.link(null, { multiple: true }, fieldData)).toEqual([]);
+  });
+
+  it('Should return empty array for undefined value when multiple', () => {
+    expect(transforms.link(undefined, { multiple: true }, fieldData)).toEqual(
+      [],
+    );
+  });
+
+  it('Should not alter an already-resolved entity:node URI without title', () => {
+    fieldData.sourceTypeSettings.instance.title = 0;
+    expect(transforms.link([{ uri: 'entity:node/42' }], {}, fieldData)).toEqual(
+      'entity:node/42',
+    );
+  });
+
+  it('Should not alter an already-resolved entity:node URI with title', () => {
+    fieldData.sourceTypeSettings.instance.title = 2;
+    expect(
+      transforms.link(
+        [{ uri: 'entity:node/42', title: 'Some page' }],
+        {},
+        fieldData,
+      ),
+    ).toEqual({ uri: 'entity:node/42', title: 'Some page' });
+  });
+
+  it('Should not alter an already-resolved entity:node URI in multiple mode', () => {
+    fieldData.sourceTypeSettings.instance.title = 0;
+    expect(
+      transforms.link(
+        [{ uri: 'entity:node/42' }, { uri: 'entity:node/99' }],
+        { multiple: true },
+        fieldData,
+      ),
+    ).toEqual(['entity:node/42', 'entity:node/99']);
+  });
+
+  it('Should handle a record with a null uri when title is enabled', () => {
+    fieldData.sourceTypeSettings.instance.title = 2;
+    expect(
+      transforms.link([{ uri: null, title: 'Click me' }], {}, fieldData),
+    ).toEqual({ uri: null, title: 'Click me' });
+  });
+});
+
+describe('Transforms - main property', () => {
+  const fieldData = {
+    expression: '',
+    sourceType: 'static:field_item:link',
+    sourceTypeSettings: {
+      instance: {},
+    },
+  };
+
+  it('Should return just the main property', () => {
+    expect(
+      transforms.mainProperty(
+        [{ uri: 'https://example.com' }],
+        { name: 'uri' },
+        fieldData,
+      ),
+    ).toEqual('https://example.com');
+  });
+
+  it('Should allow for non-list checkboxes', () => {
+    expect(
+      transforms.mainProperty({ value: true }, { name: 'value' }, fieldData),
+    ).toEqual(true);
+  });
+
+  it('Should work with multi-value fields', () => {
+    expect(
+      transforms.mainProperty(
+        [{ value: 'because' }, { value: 'you' }, { value: 'asked' }],
+        { name: 'value', multiple: true },
+        fieldData,
+      ),
+    ).toEqual(['because', 'you', 'asked']);
+  });
+
+  it('Should handle null values for multi-value fields', () => {
+    expect(
+      transforms.mainProperty(
+        null,
+        { name: 'value', multiple: true },
+        fieldData,
+      ),
+    ).toEqual([null]);
+  });
+
+  it('Should handle undefined values for multi-value fields', () => {
+    expect(
+      transforms.mainProperty(
+        undefined,
+        { name: 'value', multiple: true },
+        fieldData,
+      ),
+    ).toEqual([null]);
+  });
+
+  it('Should sort by field item weight when present', () => {
+    expect(
+      transforms.mainProperty(
+        {
+          0: { target_id: '3', weight: '0' },
+          1: { target_id: '4', weight: '1' },
+          2: { target_id: '5', weight: '2' },
+        },
+        { name: 'target_id', multiple: true },
+        fieldData,
+      ),
+    ).toEqual(['3', '4', '5']);
+  });
+
+  it('Should sort by field item weight after reordering', () => {
+    expect(
+      transforms.mainProperty(
+        {
+          0: { target_id: '5', weight: '0' },
+          1: { target_id: '3', weight: '1' },
+          2: { target_id: '4', weight: '2' },
+        },
+        { name: 'target_id', multiple: true },
+        fieldData,
+      ),
+    ).toEqual(['5', '3', '4']);
+  });
+
+  it('Should sort field items by `_weight` when `weight` is not present', () => {
+    expect(
+      transforms.mainProperty(
+        {
+          0: { target_id: '4', _weight: '0' },
+          1: { target_id: '3', _weight: '1' },
+        },
+        { name: 'target_id', multiple: true },
+        fieldData,
+      ),
+    ).toEqual(['4', '3']);
+  });
+
+  it('Should handle numeric weight values', () => {
+    expect(
+      transforms.mainProperty(
+        {
+          0: { target_id: '3', weight: 1 },
+          1: { target_id: '4', weight: 0 },
+        },
+        { name: 'target_id', multiple: true },
+        fieldData,
+      ),
+    ).toEqual(['4', '3']);
+  });
+
+  it('Should filter out empty strings from multi-value fields', () => {
+    expect(
+      transforms.mainProperty(
+        { 0: { value: 'tag1' }, 1: { value: '' }, 2: { value: 'tag3' } },
+        { name: 'value', multiple: true },
+        fieldData,
+      ),
+    ).toEqual(['tag1', 'tag3']);
+  });
+
+  it('Should return empty array when all values are empty strings', () => {
+    expect(
+      transforms.mainProperty(
+        { 0: { value: '' } },
+        { name: 'value', multiple: true },
+        fieldData,
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe('Transforms - mediaSelection', () => {
+  it('Should return null when there is no selection key', () => {
+    expect(transforms.mediaSelection({}, { multiple: false })).toEqual(null);
+  });
+
+  it('Should return null when selection is empty', () => {
+    expect(
+      transforms.mediaSelection({ selection: {} }, { multiple: false }),
+    ).toEqual(null);
+  });
+
+  it('Should return the first selection item for single-value fields', () => {
+    expect(
+      transforms.mediaSelection(
+        { selection: { 0: { target_id: '42', weight: '0' } } },
+        { multiple: false },
+      ),
+    ).toEqual({ target_id: '42', weight: '0' });
+  });
+
+  it('Should return an array of selection items for multiple-value fields', () => {
+    expect(
+      transforms.mediaSelection(
+        {
+          selection: {
+            0: { target_id: '42', weight: '0' },
+            1: { target_id: '43', weight: '1' },
+          },
+        },
+        { multiple: true },
+      ),
+    ).toEqual([
+      { target_id: '42', weight: '0' },
+      { target_id: '43', weight: '1' },
+    ]);
+  });
+
+  it('Should chain with mainProperty to extract target_id for single-value fields', () => {
+    const intermediate = transforms.mediaSelection(
+      { selection: { 0: { target_id: '42', weight: '0' } } },
+      { multiple: false },
+    );
+    expect(
+      transforms.mainProperty(intermediate, {
+        name: 'target_id',
+        multiple: false,
+      }),
+    ).toEqual('42');
+  });
+
+  it('Should chain with mainProperty to extract target_ids for multiple-value fields', () => {
+    const intermediate = transforms.mediaSelection(
+      {
+        selection: {
+          0: { target_id: '42', weight: '0' },
+          1: { target_id: '43', weight: '1' },
+        },
+      },
+      { multiple: true },
+    );
+    expect(
+      transforms.mainProperty(intermediate, {
+        name: 'target_id',
+        multiple: true,
+      }),
+    ).toEqual(['42', '43']);
+  });
+});
+
+describe('Transforms - firstRecord', () => {
+  it('Should return null for null input', () => {
+    expect(transforms.firstRecord(null, {}, {})).toEqual(null);
+  });
+
+  it('Should return null for an empty array', () => {
+    expect(transforms.firstRecord([], {}, {})).toEqual(null);
+  });
+
+  it('Should return the value as-is for a non-array input', () => {
+    expect(transforms.firstRecord('hello', {}, {})).toEqual('hello');
+  });
+
+  it('Should return a single item from a one-element array', () => {
+    expect(transforms.firstRecord([{ value: 'only' }], {}, {})).toEqual({
+      value: 'only',
+    });
+  });
+
+  it('Should return a single item from a multi-element array', () => {
+    expect(
+      transforms.firstRecord(
+        [
+          { value: 'first' },
+          { value: 'second' },
+          { value: 'third' },
+          { value: 'fourth' },
+        ],
+        {},
+        {},
+      ),
+    ).toEqual({ value: 'first' });
   });
 });
 

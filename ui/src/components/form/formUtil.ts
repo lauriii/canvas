@@ -454,7 +454,6 @@ export function getPropsValues(
         value,
       );
       if (transformed === null) {
-        // Ignore null values.
         return carry;
       }
       return {

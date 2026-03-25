@@ -573,12 +573,14 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     // @see ::getExplicitInputDefinitions()
     $required_props = \array_keys(\array_filter($prop_field_definitions, static fn (array $definition) => $definition['required'] ?? FALSE));
     foreach ($inputValues as $component_prop_name => $raw_prop_source) {
-      $raw_prop_source = $this->uncollapse($raw_prop_source, $component_prop_name)->toArray();
+      $source = $this->uncollapse($raw_prop_source, $component_prop_name);
+      $raw_prop_source = $source->toArray();
       // Store the expanded prop source with all the values populated from the
       // composite field type.
       $inputValues[$component_prop_name] = $raw_prop_source;
 
       if (str_starts_with($raw_prop_source['sourceType'], 'static:')) {
+        \assert($source instanceof StaticPropSource);
         try {
           \assert(\array_key_exists('expression', $raw_prop_source) && \array_key_exists('value', $raw_prop_source) && \array_key_exists('sourceType', $raw_prop_source));
           StaticPropSource::isMinimalRepresentation($raw_prop_source);
@@ -591,9 +593,12 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
           // In other words: let a prop source being emptier than it portrays
           // result in the appropriate validation errors at the component level.
           // @see \Drupal\canvas\PropSource\StaticPropSource::withValue(allow_empty: TRUE)
-          // @todo Expand to support multiple-cardinality.
-          unset($inputValues[$component_prop_name]);
-          continue;
+          // If a StaticPropSource's field item list is empty, consider it not
+          // set at all.
+          if ($source->isEmpty()) {
+            unset($inputValues[$component_prop_name]);
+            continue;
+          }
         }
         catch (\LogicException $e) {
           $violations->add(new ConstraintViolation(
@@ -834,7 +839,13 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
       $widget_definition = $this->fieldWidgetPluginManager->getDefinition($widget->getPluginId());
       if (\array_key_exists('canvas', $widget_definition) && \array_key_exists('transforms', $widget_definition['canvas'])) {
-        $transforms[$sdc_prop_name] = $widget_definition['canvas']['transforms'];
+        $transforms[$sdc_prop_name] = \array_map(
+          static fn (array $transform): array =>
+          [
+            ...$transform,
+            'multiple' => $default_static_source->getCardinality() !== 1,
+          ],
+          $widget_definition['canvas']['transforms']);
       }
       else {
         throw new \LogicException(\sprintf(
@@ -1309,10 +1320,18 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // do not need cached responses: the client model changes rapidly.
         $evaluated = $source->evaluate($host_entity, $is_required_prop)->value;
 
-        // Optional component props that evaluate to NULL can be omitted:
+        // Optional component props that evaluate to nothing can be omitted:
         // storing these would be a waste of storage space.
-        if (!$is_required_prop && $evaluated === NULL) {
-          continue;
+        if ($source instanceof StaticPropSource) {
+          $prop_evaluates_to_nothing = match ($source->getCardinality()) {
+            // Nothing for single-cardinality prop: NULL evaluation result.
+            1 => $evaluated === NULL,
+            // Nothing for multi-cardinality prop: empty array eval result.
+            default => $evaluated === [],
+          };
+          if (!$is_required_prop && $prop_evaluates_to_nothing) {
+            continue;
+          }
         }
 
         // Required string component props that are completely free-form (so:
@@ -1324,7 +1343,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // string input, as they're thinking about what string they do want.
         // ⚠️ This won't work for components whose logic specifically checks for
         // an empty string and refuses to render then.
-        // @todo Expand to support multiple-cardinality.
         if ($is_required_prop && $evaluated === '' && $this->getExplicitInputDefinitions()['shapes'][$prop] === ['type' => 'string']) {
           // Confirm that *if* this weren't special-cased, that this would
           // indeed enter the next branch, which would cause it to be skipped.

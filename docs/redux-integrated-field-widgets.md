@@ -227,7 +227,7 @@ See [`canvas_field_widget_info_alter`](../canvas.redux_integrated_field_widgets.
 If your module provides a custom widget, you should implement this hook and add the transforms required in a similar fashion.
 
 Built-in transforms include:
-- `mainProperty` - which takes configuration of the `name` and an optional `list` boolean
+- `mainProperty` - which takes configuration of the `name` and an optional `multiple` boolean (see [3.4.2 Multi-value support](#342-multi-value-support))
 - `firstRecord` - which will return all child values for the first record in a list
 - `mediaSelection` - which will return 'selection' from input form values
 - `dateTime` - which will combine child `date` and `time` fields into a valid ISO-8601 datetime string
@@ -261,27 +261,6 @@ function hook_field_widget_info_alter(array &$info): void {
   $info['trousers']['canvas']['transforms'] = [
     'mainProperty' => [
       'name' => 'lizard',
-    ]
-  ];
-}
-```
-
-If however, your input does not contain a list like so:
-
-```json
-{
-   "zipper[lizard]": "the user entered value"
-}
-```
-
-you could pass `false` for the `list` option to this transform
-
-```php
-function hook_field_widget_info_alter(array &$info): void {
-  $info['trousers']['canvas']['transforms'] = [
-    'mainProperty' => [
-      'name' => 'lizard',
-      'list' => FALSE,
     ]
   ];
 }
@@ -358,6 +337,53 @@ function hook_field_widget_info_alter(array &$info): void {
   ];
 }
 ```
+#### 3.4.2 Multi-value support
+
+All built-in transforms accept a `multiple` option via `BaseTransformOptions`. This option controls whether the transform returns a single value or an array of values and is essential for supporting multi-cardinality fields (i.e. SDC props with `type: array`).
+
+**How `multiple` is injected**
+
+The `multiple` flag is automatically injected server-side by [`GeneratedFieldExplicitInputUxComponentSourceBase::buildComponentInstanceForm()`](../src/Plugin/Canvas/ComponentSource/GeneratedFieldExplicitInputUxComponentSourceBase.php) based on the field's cardinality:
+
+```php
+$cardinality = $static_prop_source_field_definition['cardinality'] ?? NULL;
+$transforms[$sdc_prop_name] = \array_map(
+  static fn (array $transform): array =>
+    [
+      ...$transform,
+      'multiple' => $cardinality !== NULL && $cardinality !== 1,
+    ],
+  $widget_definition['canvas']['transforms']);
+```
+
+This means:
+- Single-cardinality fields (`cardinality = 1` or `NULL`) get `multiple: false` — transforms return a single value.
+- Multi-cardinality fields (`cardinality = -1` for unlimited, or `> 1`) get `multiple: true` — transforms return an array of values.
+
+**Why this is needed**
+
+Form data parsed by `qs.parse` represents multi-value fields as objects with string numeric keys rather than arrays:
+
+```json
+{
+  "0": { "target_id": "2" },
+  "1": { "target_id": "3" }
+}
+```
+
+Without the `multiple` flag, transforms cannot distinguish between a single-value object field (e.g. a link with `{ uri, title }`) and a multi-value field. The `multiple` flag tells the transform to iterate over all entries and return an array.
+
+**Weight-based ordering**
+
+When `multiple: true`, the `mainProperty` transform also supports weight-based ordering. If entries contain a `weight` or `_weight` field (e.g. from `tabledrag` or the media library widget,...), entries are sorted by weight before values are extracted:
+
+```js
+// Input (objects with weights)
+{ "0": { target_id: "5", weight: "0" }, "1": { target_id: "3", weight: "1" } }
+// Output (sorted by weight)
+["5", "3"]
+```
+
 ### 3.5 Limitations / Tradeoffs
 We've already established this system makes it possible to render Drupal render arrays with React. This makes it possible to use existing Drupal core functionality as if it were rendered by Twig. As powerful as this is, this isn't a 100% seamless solution. There are some limitations to be aware of:
 

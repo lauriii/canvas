@@ -8,6 +8,10 @@ import {
 
 let formState = {
   'canvas_component_props[all-props][heading][0][value]': 'hello, world!',
+  'canvas_component_props[all-props][headingMultiple][0][value]':
+    'hello, world!',
+  'canvas_component_props[all-props][headingMultiple][1][value]':
+    'goodbye, world!',
   'canvas_component_props[all-props][subheading][0][value]': '',
   'canvas_component_props[all-props][cta1][0][value]': '',
   'canvas_component_props[all-props][cta1href][0][uri]': 'https://drupal.org',
@@ -19,8 +23,20 @@ let formState = {
   'canvas_component_props[all-props][date][0][value][date]': '2025-02-02',
   'canvas_component_props[all-props][datetime][0][value][date]': '2025-01-31',
   'canvas_component_props[all-props][datetime][0][value][time]': '20:30:33',
+  'canvas_component_props[all-props][dateMultiple][0][value][date]':
+    '2025-02-02',
+  'canvas_component_props[all-props][dateMultiple][1][value][date]':
+    '2025-02-03',
+  'canvas_component_props[all-props][datetimeMultiple][0][value][date]':
+    '2025-01-31',
+  'canvas_component_props[all-props][datetimeMultiple][0][value][time]':
+    '20:30:33',
+  'canvas_component_props[all-props][datetimeMultiple][1][value][date]':
+    '2025-02-01',
+  'canvas_component_props[all-props][datetimeMultiple][1][value][time]':
+    '20:30:35',
   'canvas_component_props[all-props][email][0][value]': 'bob@example.com',
-  'canvas_component_props[all-props][number][0][value]': 123,
+  'canvas_component_props[all-props][number][0][value]': '123',
   'canvas_component_props[all-props][float][0][value]': 123.45,
   'canvas_component_props[all-props][textarea][0][value]': `Hi there
 Multiline
@@ -29,16 +45,20 @@ Value`,
     'http://example.com',
   'canvas_component_props[all-props][linkNoTitleEmpty][0][uri]': '',
   'canvas_component_props[all-props][media][selection][0][target_id]': 3,
+  'canvas_component_props[all-props][mediaMultiple][selection][0][target_id]': 3,
+  'canvas_component_props[all-props][mediaMultiple][selection][1][target_id]': 4,
   form_build_id: 'this-is-a-form-build-id',
   form_token: 'this-is-a-form-token',
   form_id: 'component_instance_form',
 };
 let inputAndUiData = {
+  version: '82b745980fd23b55',
   selectedComponent: 'all-props',
   selectedComponentType: 'sdc.sdc_test_all_props.all-props',
   layout: [],
   model: {
     'all-props': {
+      resolved: {},
       // Minimal source representation.
       source: {
         a_boolean: {},
@@ -54,6 +74,22 @@ let inputAndUiData = {
           },
         },
         date: {
+          sourceTypeSettings: {
+            instance: {},
+            storage: {
+              datetime_type: 'date',
+            },
+          },
+        },
+        datetimeMultiple: {
+          sourceTypeSettings: {
+            instance: {},
+            storage: {
+              datetime_type: 'datetime',
+            },
+          },
+        },
+        dateMultiple: {
           sourceTypeSettings: {
             instance: {},
             storage: {
@@ -120,7 +156,23 @@ let inputAndUiData = {
             },
           },
         },
+        datetimeMultiple: {
+          sourceTypeSettings: {
+            instance: {},
+            storage: {
+              datetime_type: 'datetime',
+            },
+          },
+        },
         date: {
+          sourceTypeSettings: {
+            instance: {},
+            storage: {
+              datetime_type: 'date',
+            },
+          },
+        },
+        dateMultiple: {
           sourceTypeSettings: {
             instance: {},
             storage: {
@@ -163,6 +215,7 @@ let inputAndUiData = {
 // @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::mediaLibraryFieldWidgetInfoAlter()
 const transformConfig = {
   heading: { mainProperty: {} },
+  headingMultiple: { mainProperty: { multiple: true } },
   subheading: { mainProperty: {} },
   cta1: { mainProperty: {} },
   cta1href: { link: {} },
@@ -174,10 +227,10 @@ const transformConfig = {
   float: { mainProperty: {} },
   email: { mainProperty: {} },
   a_boolean: {
-    mainProperty: { list: false },
+    mainProperty: {},
   },
   unchecked_boolean: {
-    mainProperty: { list: false },
+    mainProperty: {},
   },
   datetime: {
     mainProperty: {},
@@ -187,9 +240,21 @@ const transformConfig = {
     mainProperty: {},
     dateTime: {},
   },
+  datetimeMultiple: {
+    mainProperty: { multiple: true },
+    dateTime: { multiple: true },
+  },
+  dateMultiple: {
+    mainProperty: { multiple: true },
+    dateTime: { multiple: true },
+  },
   media: {
     mediaSelection: {},
     mainProperty: { name: 'target_id' },
+  },
+  mediaMultiple: {
+    mediaSelection: { multiple: true },
+    mainProperty: { name: 'target_id', multiple: true },
   },
 };
 
@@ -198,6 +263,10 @@ describe('Form state to object', () => {
     const asObject = formStateToObject(formState, 'all-props');
     expect(asObject).to.deep.equal({
       heading: [{ value: 'hello, world!' }],
+      headingMultiple: [
+        { value: 'hello, world!' },
+        { value: 'goodbye, world!' },
+      ],
       subheading: [{ value: '' }],
       cta1: [{ value: '' }],
       cta1href: [{ uri: 'https://drupal.org', title: 'Do it' }],
@@ -221,6 +290,32 @@ describe('Form state to object', () => {
           },
         },
       ],
+      dateMultiple: [
+        {
+          value: {
+            date: '2025-02-02',
+          },
+        },
+        {
+          value: {
+            date: '2025-02-03',
+          },
+        },
+      ],
+      datetimeMultiple: [
+        {
+          value: {
+            date: '2025-01-31',
+            time: '20:30:33',
+          },
+        },
+        {
+          value: {
+            date: '2025-02-01',
+            time: '20:30:35',
+          },
+        },
+      ],
       options_select: 'fine thx',
       email: [{ value: 'bob@example.com' }],
       number: [{ value: '123' }],
@@ -234,6 +329,9 @@ Value`,
       ],
       media: {
         selection: [{ target_id: '3' }],
+      },
+      mediaMultiple: {
+        selection: [{ target_id: '3' }, { target_id: '4' }],
       },
     });
   });
@@ -250,6 +348,7 @@ describe('Get prop values from form state', () => {
       a_boolean: true,
       unchecked_boolean: false,
       heading: 'hello, world!',
+      headingMultiple: ['hello, world!', 'goodbye, world!'],
       subheading: '',
       cta1: '',
       cta2: '',
@@ -265,7 +364,13 @@ Value`,
       options_select: 'fine thx',
       date: '2025-02-02',
       datetime: '2025-01-31T20:30:33.000Z',
+      dateMultiple: ['2025-02-02', '2025-02-03'],
+      datetimeMultiple: [
+        '2025-01-31T20:30:33.000Z',
+        '2025-02-01T20:30:35.000Z',
+      ],
       media: '3',
+      mediaMultiple: ['3', '4'],
     });
   });
 });

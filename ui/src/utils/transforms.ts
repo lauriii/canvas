@@ -18,10 +18,18 @@ export interface TransformConfig {
 
 export const ENTITY_AUTOCOMPLETE_MATCH = /.+\s\(([^)]+)\)/;
 
-type PropsValuesOrArrayOfPropsValues = Array<PropsValues> | PropsValues;
+type PropsValuesOrArrayOfPropsValues =
+  | Array<PropsValues>
+  | PropsValues
+  | null
+  | undefined;
+
+type BaseTransformOptions = {
+  multiple?: boolean;
+};
 
 type Transformer<
-  TransformerOptions extends any,
+  TransformerOptions extends BaseTransformOptions,
   TransformerReturn extends unknown = any,
   TransformerInput extends unknown = PropsValuesOrArrayOfPropsValues,
   FieldPropShape extends PropSource = StaticPropSource,
@@ -31,40 +39,69 @@ type Transformer<
   fieldPropShape: FieldPropShape,
 ) => TransformerReturn;
 
-const isList = (
-  props: PropsValues | Array<PropsValues>,
-  list: boolean,
-): props is Array<PropsValues> => list;
-
 const mainProperty: Transformer<{
   name?: keyof PropsValues;
-  list?: boolean;
+  multiple?: boolean;
 }> = (value, options): any => {
-  if (value === null) {
-    return null;
+  const { name = 'value', multiple = false } = options;
+
+  // Handle null/undefined input for entire value
+  if (value === null || value === undefined) {
+    return multiple ? [null] : null;
   }
-  const { name = 'value', list = true } = options;
-  let first = value as PropsValues;
-  if (isList(value, list)) {
-    if (value.length === 0) {
-      return null;
+
+  let records: Array<PropsValues>;
+  if (multiple) {
+    // Support both 'weight' (media library) and '_weight' (other widgets)
+    const values = Object.values(value);
+    const hasWeights =
+      values.length > 0 &&
+      values.every(
+        (item) =>
+          typeof item === 'object' &&
+          item !== null &&
+          ('_weight' in item || 'weight' in item),
+      );
+
+    if (hasWeights) {
+      // Sort by weight before extracting values
+      values.sort((a, b) => {
+        const weightA =
+          typeof a === 'object' && a !== null
+            ? Number(a._weight ?? a.weight) || 0
+            : 0;
+        const weightB =
+          typeof b === 'object' && b !== null
+            ? Number(b._weight ?? b.weight) || 0
+            : 0;
+        return weightA - weightB;
+      });
     }
-    first = value.shift() as PropsValues;
+    records = values;
+  } else {
+    records = Array.isArray(value) ? value : [value];
   }
-  if (first && name in first) {
-    return first[name];
+  const returnValue = records.map((record: PropsValues) =>
+    record !== null && typeof record === 'object' && name in record
+      ? record[name]
+      : null,
+  );
+  if (multiple) {
+    return returnValue.filter((v) => v !== null && v !== '');
   }
-  return null;
+  return returnValue.shift();
 };
 
-const firstRecord: Transformer<void, null | PropsValues> = (value) => {
-  if (value === null || value.length === 0) {
+const firstRecord: Transformer<BaseTransformOptions, null | PropsValues> = (
+  value,
+) => {
+  if (value == null || (Array.isArray(value) && value.length === 0)) {
     return null;
   }
-  return value.pop() as PropsValues;
+  return (Array.isArray(value) ? value[0] : value) as PropsValues;
 };
 
-interface LinkPropShape extends StaticPropSource {
+export interface LinkPropShape extends StaticPropSource {
   sourceTypeSettings: {
     instance: {
       // @see DRUPAL_DISABLED
@@ -75,60 +112,79 @@ interface LinkPropShape extends StaticPropSource {
   };
 }
 
+const resolveEntityUri = (uri: string): string => {
+  const match = uri.match(ENTITY_AUTOCOMPLETE_MATCH);
+  // LinkWidget with autocomplete support only supports matching on node
+  // entities.
+  // @todo Add support for other entity types once core does -
+  // https://www.drupal.org/i/2423093
+  return match !== null ? `entity:node/${match[1]}` : uri;
+};
+
 const link: Transformer<
-  void,
-  null | string | PropsValues,
+  BaseTransformOptions,
+  Array<null | string | PropsValues> | null | string | PropsValues,
   PropsValuesOrArrayOfPropsValues,
   LinkPropShape
 > = (value, options, propSource) => {
-  // `1` corresponds to `DRUPAL_OPTIONAL` and `2` to DRUPAL_REQUIRED on the
-  // server side.
-  if (![1, 2].includes(propSource?.sourceTypeSettings?.instance?.title)) {
-    const uri = mainProperty(value, { name: 'uri' }, propSource);
-    const match = uri.match(ENTITY_AUTOCOMPLETE_MATCH);
-    if (match !== null) {
-      // LinkWidget with autocomplete support only supports matching on node
-      // entities.
-      // @todo Add support for other entity types once core does -
-      // https://www.drupal.org/i/2423093
-      return `entity:node/${match[1]}`;
+  if (value == null) return options.multiple ? [] : null;
+
+  const records: Array<PropsValues> = Array.isArray(value) ? value : [value];
+  const returnValue = records.map((record: PropsValues) => {
+    // `1` corresponds to `DRUPAL_OPTIONAL` and `2` to DRUPAL_REQUIRED on the
+    // server side.
+    // @see DRUPAL_DISABLED
+    // @see DRUPAL_OPTIONAL
+    // @see DRUPAL_REQUIRED
+    if (![1, 2].includes(propSource?.sourceTypeSettings?.instance?.title)) {
+      const uri = mainProperty(
+        [record],
+        { name: 'uri', multiple: false },
+        propSource,
+      );
+      return uri != null ? resolveEntityUri(uri) : uri;
     }
-    return uri;
-  }
-  const record = firstRecord(value, undefined, propSource);
-  if (record === null) {
-    return record;
-  }
-  const match = record.uri.match(ENTITY_AUTOCOMPLETE_MATCH);
-  if (match !== null) {
-    // LinkWidget with autocomplete support only supports matching on node
-    // entities.
-    // @todo Add support for other entity types once core does -
-    // https://www.drupal.org/i/2423093
-    return { ...record, uri: `entity:node/${match[1]}` };
-  }
-  return record;
+    if (record === null) return record;
+    return record.uri != null
+      ? { ...record, uri: resolveEntityUri(record.uri) }
+      : record;
+  });
+  return options.multiple ? returnValue : (returnValue[0] ?? null);
 };
 
 const cast: Transformer<
-  { to: 'number' | 'boolean' | 'integer' },
-  null | number | boolean,
-  null | string
+  {
+    to: 'number' | 'boolean' | 'integer';
+    multiple?: boolean;
+  },
+  null | number | boolean | Array<null | number | boolean>,
+  null | string | Array<null | string>
 > = (value, options) => {
-  const { to = 'number' } = options;
-  if (value === null) {
+  const { to = 'number', multiple = false } = options;
+  const records: Array<null | string> = Array.isArray(value) ? value : [value];
+  const returnValue = records.map((value: null | string) => {
+    if (value === null) {
+      return null;
+    }
+    if (to === 'number') {
+      return Number(value);
+    }
+    if (to === 'integer') {
+      return parseInt(value);
+    }
+    if (value === 'false') {
+      return false;
+    }
+    return Boolean(value);
+  });
+  if (multiple) {
+    return returnValue;
+  }
+  const singleValue = returnValue.shift();
+  if (singleValue === undefined) {
     return null;
   }
-  if (to === 'number') {
-    return Number(value);
-  }
-  if (to === 'integer') {
-    return parseInt(value);
-  }
-  if (value === 'false') {
-    return false;
-  }
-  return Boolean(value);
+  return singleValue;
 };
 
 interface DateFieldPropSource extends StaticPropSource {
@@ -142,33 +198,51 @@ interface DateFieldPropSource extends StaticPropSource {
 }
 
 const dateTime: Transformer<
-  { type: 'date' | 'datetime' },
-  null | string,
+  {
+    type: 'date' | 'datetime';
+    multiple?: boolean;
+  },
+  null | string | Array<null | string>,
   PropsValuesOrArrayOfPropsValues,
   DateFieldPropSource
-> = (value, _options, propSource) => {
+> = (value, options, propSource) => {
   if (propSource === null || propSource === undefined) {
     return null;
   }
   const type = propSource.sourceTypeSettings.storage.datetime_type;
   // @see \Drupal\Component\Datetime\DateTimePlus::setDefaultDateTime
-  let timeString = '12:00:00';
-  if (!('date' in value)) {
+  const records: Array<PropsValues> = Array.isArray(value) ? value : [value];
+
+  const returnValue = records.map((record: PropsValues) => {
+    if (record === null) {
+      return null;
+    }
+    let timeString = '12:00:00';
+    if (!('date' in record)) {
+      return null;
+    }
+    const dateString = record.date;
+    if (type === 'date') {
+      return dateString;
+    }
+    if ('time' in record) {
+      timeString = record.time;
+    }
+    // @todo Update this in https://www.drupal.org/project/canvas/issues/3501281, which will allow removing the FE-special casing in \Drupal\canvas\PropExpressions\StructuredData\Evaluator::evaluate()
+    return new Date(`${dateString} ${timeString}+0000`).toISOString();
+  });
+  if (options.multiple) {
+    return returnValue;
+  }
+  const singleValue = returnValue.shift();
+  if (singleValue === undefined) {
     return null;
   }
-  const dateString = value.date;
-  if (type === 'date') {
-    return dateString;
-  }
-  if ('time' in value) {
-    timeString = value.time;
-  }
-  // @todo Update this in https://www.drupal.org/project/canvas/issues/3501281, which will allow removing the FE-special casing in \Drupal\canvas\PropExpressions\StructuredData\Evaluator::evaluate()
-  return new Date(`${dateString} ${timeString}+0000`).toISOString();
+  return singleValue;
 };
 
 const dateRange: Transformer<
-  void,
+  BaseTransformOptions,
   null | PropsValues,
   PropsValuesOrArrayOfPropsValues,
   DateFieldPropSource
@@ -221,11 +295,34 @@ const dateRange: Transformer<
   };
 };
 
-const mediaSelection: Transformer<void, null | PropsValues> = (value) => {
-  if ('selection' in value) {
-    return value.selection;
+const mediaSelection: Transformer<
+  BaseTransformOptions,
+  string | null | PropsValues | Array<PropsValues>
+> = (value, options) => {
+  const { multiple = false } = options;
+  if (!value || typeof value !== 'object' || !('selection' in value)) {
+    return null;
   }
-  return null;
+  const selection = value.selection;
+  if (
+    selection === null ||
+    selection === undefined ||
+    selection === '' ||
+    (typeof selection === 'object' && Object.keys(selection).length === 0)
+  ) {
+    return null;
+  }
+  // Normalize to array so both single and multiple paths work uniformly,
+  // and so downstream transforms (mainProperty) can iterate and sort by weight.
+  const selectionValues = Array.isArray(selection)
+    ? selection
+    : Object.values(selection);
+
+  if (selectionValues.length === 0) {
+    return null;
+  }
+
+  return multiple ? selectionValues : selectionValues[0];
 };
 
 const transforms = {

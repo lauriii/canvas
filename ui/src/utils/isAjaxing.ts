@@ -4,5 +4,5 @@ const Drupal = getDrupal();
 
 export const isAjaxing = () =>
   Drupal.ajax.instances.some(
-    (instance: { ajaxing: boolean }) => instance && instance.ajaxing === true,
+    (instance: { ajaxing: boolean }) => instance && instance.ajaxing,
   );

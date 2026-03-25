@@ -162,7 +162,7 @@ final class StaticPropSource extends PropSourceBase {
   /**
    * @return \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max>
    */
-  private function getCardinality() : int {
+  public function getCardinality() : int {
     // TRICKY: unfortunately, `field.storage_settings.*` does not store
     // cardinality, but the FieldStorageConfig entity does (config schema:
     // `field.storage.*.*`). Hence the need for an additional key-value pair.
@@ -250,6 +250,27 @@ final class StaticPropSource extends PropSourceBase {
       $this->fieldStorageSettings,
       $this->fieldInstanceSettings,
     );
+  }
+
+  /**
+   * Determines if this prop source is empty.
+   *
+   * Uses the field type's own isEmpty() logic (via filterEmptyItems()) to
+   * determine which items to drop, rather than a PHP-level falsy check. This
+   * correctly handles all field types, including those where a value of 0,
+   * FALSE, or '' is valid and must be retained.
+   *
+   * Intended for multiple-cardinality prop sources that arrive in a
+   * "mid-input" state during preview/auto-save, where the user may have left
+   * some entries blank while still filling in others.
+   *
+   * @return bool
+   *   If the prop is empty.
+   */
+  public function isEmpty(): bool {
+    $filtered = clone $this->fieldItemList;
+    $filtered->filterEmptyItems();
+    return $filtered->isEmpty();
   }
 
   /**
@@ -392,7 +413,7 @@ final class StaticPropSource extends PropSourceBase {
     return match ($this->getCardinality()) {
       // @phpstan-ignore-next-line
       1 => Evaluator::evaluate($this->fieldItemList->first(), $this->expression, $is_required),
-      default => Evaluator::evaluate($this->fieldItemList->isEmpty() ? NULL : $this->fieldItemList, $this->expression, $is_required)
+      default => Evaluator::evaluate($this->fieldItemList, $this->expression, $is_required)
     };
   }
 
@@ -515,6 +536,33 @@ final class StaticPropSource extends PropSourceBase {
     if ($host_entity) {
       $field->setContext(NULL, EntityAdapter::createFromEntity($host_entity));
     }
+
+    // Initialize widget state with existing items for widgets that rely on it.
+    // This ensures that on AJAX rebuilds, the widget knows about existing items
+    // and doesn't lose them. Only initialize when there are actual items to
+    // preserve.
+    // @see \Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget::form()
+    // @see \Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget::addItems()
+    if ($widget->getPluginId() === 'media_library_widget' && $this->getCardinality() !== 1 && !$this->fieldItemList->isEmpty()) {
+      $field_name = $field_definition->getName();
+      $widget_state = $widget::getWidgetState($form['#parents'] ?? [], $field_name, $form_state);
+      if (!isset($widget_state['items'])) {
+        // Initialize with current field values including weight, matching the
+        // structure that MediaLibraryWidget::addItems() uses. The weight is
+        // required for usort() in MediaLibraryWidget::form() and for correctly
+        // calculating the next weight when adding new items.
+        $items = [];
+        foreach ($field->getValue() as $delta => $value) {
+          $items[] = [
+            'target_id' => $value['target_id'] ?? NULL,
+            'weight' => $delta,
+          ];
+        }
+        $widget_state['items'] = $items;
+        $widget::setWidgetState($form['#parents'] ?? [], $field_name, $form_state, $widget_state);
+      }
+    }
+
     $widget_form = $widget->form($field, $form, $form_state);
     if ($widget->getPluginId() === 'datetime_default' && !$this->fieldItemList->isEmpty()) {
       // The datetime widget needs a DrupalDateTime object as the value.

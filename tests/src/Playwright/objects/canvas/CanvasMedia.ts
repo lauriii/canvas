@@ -49,9 +49,8 @@ export function CanvasMediaMixin<TBase extends Constructor<CanvasBase>>(
       await this.page.getByRole('button', { name: 'Add media' }).click();
 
       await this.page
-        .locator(
-          'form[data-drupal-selector^="media-library-add-form-upload"] input[name="files[upload]"]',
-        )
+        .locator('form[data-drupal-selector^="media-library-add-form-upload"]')
+        .locator('input[name="files[upload]"], input[name="files[upload][]"]')
         .setInputFiles(nodePath.join(fileURLToPath(import.meta.url), path));
 
       // It should be possible to set the alt text with the following, but there's currently a bug
@@ -78,9 +77,11 @@ export function CanvasMediaMixin<TBase extends Constructor<CanvasBase>>(
         .getByRole('button', { name: 'Insert selected', exact: true })
         .click();
       await expect(
-        this.page.locator(
-          '[data-testid="canvas-contextual-panel"] .js-media-library-item-preview img',
-        ),
+        this.page
+          .locator(
+            '[data-testid="canvas-contextual-panel"] .js-media-library-item-preview img',
+          )
+          .last(),
       ).toHaveAttribute('alt', alt);
     }
   };

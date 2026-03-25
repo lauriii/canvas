@@ -515,6 +515,62 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     self::assertSame('Component is missing. Fix the component or copy values to a new component. Previously stored input []', $response->text());
   }
 
+  /**
+   * Tests that the `multiple` flag is injected into every transform entry.
+   *
+   * The PHP side reads cardinality from `$static_prop_source_field_definition`
+   * and spreads `'multiple' => true/false` into each transform in the chain
+   * via array_map(). This test verifies that the JSON response carries the
+   * correct value for both a multi-cardinality prop (image-gallery, unlimited)
+   * and a single-cardinality prop (image-gallery-nonsensical, maxItems=1).
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::buildComponentInstanceForm()
+   */
+  public function testTransformsMultipleFlagReflectsCardinality(): void {
+    $node = $this->createNode(['type' => 'article', 'title' => 'Test node']);
+    $node->save();
+
+    $unlimited_component_id = 'sdc.canvas_test_sdc.image-gallery';
+    $form_canvas_props = $this->getFormCanvasPropsForComponent($unlimited_component_id);
+    $unlimited_component = Component::load($unlimited_component_id);
+    \assert($unlimited_component instanceof ComponentInterface);
+    $json = self::decodeResponse($this->request(Request::create(
+      '/canvas/api/v0/form/component-instance/node/' . $node->id(),
+      'PATCH',
+      [
+        'form_canvas_tree' => json_encode([
+          'nodeType' => 'component',
+          'slots' => [],
+          'type' => "{$unlimited_component_id}@{$unlimited_component->getActiveVersion()}",
+          'uuid' => '5f18db31-fa2f-4f4e-a377-dc0c6a0b7dc4',
+        ], JSON_THROW_ON_ERROR),
+        'form_canvas_props' => json_encode($form_canvas_props, JSON_THROW_ON_ERROR),
+        'form_canvas_selected' => '5f18db31-fa2f-4f4e-a377-dc0c6a0b7dc4',
+      ],
+    )));
+
+    self::assertArrayHasKey('transforms', $json);
+    self::assertSame([
+      'caption' => [
+        'mainProperty' => [
+          'multiple' => FALSE,
+        ],
+      ],
+      'images' => [
+        'mediaSelection' => [
+          'multiple' => TRUE,
+        ],
+        'mainProperty' => [
+          'name' => 'target_id',
+          'multiple' => TRUE,
+        ],
+      ],
+    ],
+      $json['transforms']
+    );
+
+  }
+
   private function getCrawlerForFormRequest(string $form_url, ComponentInterface $component_entity, ?array $form_canvas_props): Crawler {
     // `$form_canvas_props` is nullable, so we can simulate the request having
     // `undefined` as value, which happens when the inputs are empty on a
