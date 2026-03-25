@@ -31,11 +31,14 @@ buildDeprecatedCommand(program);
 validateCommand(program);
 buildCommand(program);
 
-program.hook('preAction', async (command) => {
+program.hook('preAction', async (command, actionCommand) => {
   const commandOptions = command.opts?.() as { yes?: boolean };
-  await handleLegacyComponentDirMigration({
-    skipPrompt: Boolean(commandOptions?.yes),
-  });
+  const actionOptions = actionCommand.opts?.() as { dir?: string };
+  if (!actionOptions?.dir) {
+    await handleLegacyComponentDirMigration({
+      skipPrompt: Boolean(commandOptions?.yes),
+    });
+  }
 });
 
 // Handle errors

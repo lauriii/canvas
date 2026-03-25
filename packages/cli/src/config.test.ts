@@ -10,13 +10,13 @@ import {
   handleLegacyComponentDirMigration,
   loadEnvFiles,
   promptForConfig,
-  resetLegacyComponentDirMigrationForTests,
   setConfig,
 } from './config';
 
 vi.mock('fs');
 vi.mock('path');
 vi.mock('dotenv');
+vi.mock('@clack/prompts');
 
 describe('config', () => {
   describe('get/set', () => {
@@ -182,7 +182,6 @@ describe('config', () => {
       vi.resetModules();
       vi.unstubAllEnvs();
       vi.stubEnv('HOME', '/home/user');
-      resetLegacyComponentDirMigrationForTests();
     });
 
     it('should load from home directory .canvasrc file only', async () => {
@@ -279,59 +278,15 @@ describe('config', () => {
 
   describe('legacy componentDir migration', () => {
     beforeEach(() => {
+      vi.clearAllMocks();
       vi.unstubAllEnvs();
-      vi.stubEnv('CANVAS_COMPONENT_DIR', './legacy-components');
-      resetLegacyComponentDirMigrationForTests();
       vi.mocked(path.resolve).mockReturnValue(
         '/current/dir/canvas.config.json',
       );
       vi.mocked(p.isCancel).mockReturnValue(false);
     });
 
-    it('should create canvas.config.json when missing and confirmed', async () => {
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      vi.mocked(p.confirm).mockResolvedValue(true);
-
-      await handleLegacyComponentDirMigration();
-
-      expect(p.confirm).toHaveBeenCalledWith({
-        message:
-          'Create canvas.config.json with "componentDir": "./legacy-components"?',
-        initialValue: true,
-      });
-      expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
-      const writeContent = vi.mocked(fs.writeFileSync).mock
-        .calls[0][1] as string;
-      expect(JSON.parse(writeContent)).toEqual({
-        componentDir: './legacy-components',
-      });
-      expect(getConfig().componentDir).toBe('./legacy-components');
-      expect(getConfig().deprecatedComponentDir).toBe('./legacy-components');
-    });
-
-    it('should extend existing canvas.config.json when missing componentDir', async () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(
-        JSON.stringify({ aliasBaseDir: 'src' }),
-      );
-      vi.mocked(p.confirm).mockResolvedValue(true);
-
-      await handleLegacyComponentDirMigration();
-
-      expect(p.confirm).toHaveBeenCalledWith({
-        message:
-          'Add "componentDir": "./legacy-components" to canvas.config.json?',
-        initialValue: true,
-      });
-      const writeContent = vi.mocked(fs.writeFileSync).mock
-        .calls[0][1] as string;
-      expect(JSON.parse(writeContent)).toEqual({
-        aliasBaseDir: 'src',
-        componentDir: './legacy-components',
-      });
-    });
-
-    it('should not prompt when componentDir already exists in canvas.config.json', async () => {
+    it('should skip when componentDir already exists in canvas.config.json', async () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue(
         JSON.stringify({ componentDir: './components' }),
@@ -343,6 +298,86 @@ describe('config', () => {
       expect(fs.writeFileSync).not.toHaveBeenCalled();
     });
 
+    it('should use legacy env var as default and write to config', async () => {
+      vi.stubEnv('CANVAS_COMPONENT_DIR', './legacy-components');
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+      vi.mocked(p.text).mockResolvedValue('./legacy-components');
+
+      await handleLegacyComponentDirMigration();
+
+      expect(p.log.warn).toHaveBeenCalledWith(
+        'CANVAS_COMPONENT_DIR is deprecated. Set "componentDir" in canvas.config.json instead.',
+      );
+      expect(p.text).toHaveBeenCalledWith(
+        expect.objectContaining({
+          defaultValue: './legacy-components',
+        }),
+      );
+      expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
+      const writeContent = vi.mocked(fs.writeFileSync).mock
+        .calls[0][1] as string;
+      expect(JSON.parse(writeContent)).toEqual({
+        componentDir: './legacy-components',
+      });
+      expect(getConfig().componentDir).toBe('./legacy-components');
+      expect(getConfig().deprecatedComponentDir).toBe('./legacy-components');
+    });
+
+    it('should prompt with default when no env var set', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+      vi.mocked(p.text).mockResolvedValue('src/components');
+
+      await handleLegacyComponentDirMigration();
+
+      expect(p.text).toHaveBeenCalledWith(
+        expect.objectContaining({
+          defaultValue: 'src/components',
+        }),
+      );
+      expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
+      const writeContent = vi.mocked(fs.writeFileSync).mock
+        .calls[0][1] as string;
+      expect(JSON.parse(writeContent)).toEqual({
+        componentDir: 'src/components',
+      });
+      expect(getConfig().componentDir).toBe('src/components');
+    });
+
+    it('should extend existing canvas.config.json when missing componentDir', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({ aliasBaseDir: 'src' }),
+      );
+      vi.mocked(p.text).mockResolvedValue('src/components');
+
+      await handleLegacyComponentDirMigration();
+
+      expect(p.text).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining('missing "componentDir"'),
+        }),
+      );
+      const writeContent = vi.mocked(fs.writeFileSync).mock
+        .calls[0][1] as string;
+      expect(JSON.parse(writeContent)).toEqual({
+        aliasBaseDir: 'src',
+        componentDir: 'src/components',
+      });
+    });
+
+    it('should exit when cancelled', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+      vi.mocked(p.text).mockResolvedValue('cancelled');
+      vi.mocked(p.isCancel).mockReturnValue(true);
+
+      await expect(handleLegacyComponentDirMigration()).rejects.toThrow(
+        'process.exit unexpectedly called with "1"',
+      );
+      expect(p.cancel).toHaveBeenCalledWith(
+        'No component directory configured. Use --dir <directory> or set "componentDir" in canvas.config.json.',
+      );
+    });
+
     it('should skip prompt in non-interactive mode and show instructions', async () => {
       vi.mocked(fs.existsSync).mockReturnValue(false);
 
@@ -351,7 +386,7 @@ describe('config', () => {
       expect(p.confirm).not.toHaveBeenCalled();
       expect(fs.writeFileSync).not.toHaveBeenCalled();
       expect(p.log.info).toHaveBeenCalledWith(
-        'Add "componentDir": "./legacy-components" to canvas.config.json to persist this setting.',
+        'Add "componentDir": "src/components" to canvas.config.json to persist this setting.',
       );
     });
   });
