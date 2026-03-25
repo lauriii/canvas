@@ -152,5 +152,14 @@
         <li id="test_array_integer_maxItems--1">1: <code>{{ test_array_integer_maxItems[1] }}</code>
       </ul>
     </dd>
+    <dt>test_array_string</dt>
+    <dd id="test-array-string">
+      <div>{{ test_array_string|length }} of unlimited</div>
+      <ul>
+        {% for key,value in test_array_string %}
+        <li id="test_array_string--{{ key }}">{{ key }}: <code>{{ value }}</code>
+        {% endfor %}
+      </ul>
+    </dd>
   </dl>
 </div>

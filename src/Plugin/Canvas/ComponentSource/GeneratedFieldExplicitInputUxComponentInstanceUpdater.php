@@ -69,10 +69,17 @@ final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements Com
     // Props that are still present, need to allow the same field data to be
     // stored in the active version of the Component. If not
     // (If only the field widget or expression changes, it's SAFE to update.)
-    $irrelevant_prop_shape = new PropShape(['type' => 'string']);
-    $prop_field_definition_to_storable_prop_shape = static function (array $prop_field_definition) use ($irrelevant_prop_shape): StorablePropShape {
+    $prop_field_definition_to_storable_prop_shape = static function (array $prop_field_definition): StorablePropShape {
       $field_type_prop = StructuredDataPropExpression::fromString($prop_field_definition['expression']);
       \assert($field_type_prop instanceof FieldTypeBasedPropExpressionInterface);
+
+      // Shape details are irrelevant for update safety checks, but the
+      // constructor validates that cardinality aligns with array/non-array.
+      $is_single_value = ($prop_field_definition['cardinality'] ?? StorablePropShape::DEFAULT_CARDINALITY) === 1;
+      $irrelevant_prop_shape = $is_single_value
+        ? new PropShape(['type' => 'object'])
+        : new PropShape(['type' => 'array', 'items' => ['type' => 'object']]);
+
       return new StorablePropShape(
         shape: $irrelevant_prop_shape,
         fieldTypeProp: $field_type_prop,

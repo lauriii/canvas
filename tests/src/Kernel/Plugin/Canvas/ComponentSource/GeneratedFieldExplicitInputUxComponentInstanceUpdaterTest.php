@@ -356,6 +356,35 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
     $this->assertCount($setup_callback === NULL ? 1 : 2, $component->getVersions());
   }
 
+  public function testAddingOptionalArrayPropToInUseComponentCanUpdate(): void {
+    $sut = new GeneratedFieldExplicitInputUxComponentInstanceUpdater();
+    $component_tree_value = [
+      [
+        'uuid' => self::COMPONENT_INSTANCE_UUID,
+        'component_id' => 'js.test',
+        'component_version' => self::ORIGINAL_VERSION_HASH,
+        'parent_uuid' => NULL,
+        'inputs' => [
+          'required_text' => 'Canvas is large and in charge!',
+        ],
+      ],
+    ];
+
+    $this->addOptionalArrayProp();
+
+    $component_instance = self::generateComponentTree($component_tree_value)->getComponentTreeItemByUuid(self::COMPONENT_INSTANCE_UUID);
+    self::assertNotNull($component_instance);
+
+    // Regression test for https://www.drupal.org/i/3579365: this used to
+    // trigger `assert($this->cardinality === 1)` in StorablePropShape.
+    $this->assertTrue($sut->canUpdate($component_instance));
+    $this->assertSame(ComponentInstanceUpdateAttemptResult::Latest, $sut->update($component_instance));
+
+    $component = Component::load('js.test');
+    self::assertNotNull($component);
+    $this->assertSame($component->getActiveVersion(), $component_instance->getComponentVersion());
+  }
+
   private static function generateComponentTree(array $component_tree_value): ComponentTreeItemList {
     $component_tree = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
     $component_tree->setValue($component_tree_value);
@@ -442,6 +471,21 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
       'type' => 'string',
       'title' => 'Voice',
       'examples' => ['polite'],
+    ];
+    $this->jsComponent->setProps($props)
+      ->save();
+  }
+
+  protected function addOptionalArrayProp(): void {
+    $props = $this->jsComponent->getProps();
+    \assert(!\is_null($props));
+    $props['array_text'] = [
+      'type' => 'array',
+      'title' => 'Array text',
+      'items' => [
+        'type' => 'string',
+      ],
+      'examples' => [['first', 'second']],
     ];
     $this->jsComponent->setProps($props)
       ->save();

@@ -1467,6 +1467,25 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           PropSource::Adapter->value => [],
           PropSource::HostEntityUrl->value => [],
         ],
+        '⿲sdc_test_all_props:all-props␟test_array_string' => [
+          'required' => FALSE,
+          PropSource::EntityField->value => [
+            'field_screenshots → Alternative text' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟alt',
+            ],
+            'field_screenshots → Title' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟title',
+            ],
+            'Tags → Taxonomy term → Name' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝name␞␟value',
+            ],
+          ],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
+        ],
       ],
     ];
   }
