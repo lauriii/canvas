@@ -8,6 +8,97 @@ use Drupal\Core\Hook\Attribute\LegacyRequirementsHook;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 
 /**
+ * Implements hook_schema().
+ */
+function canvas_schema(): array {
+  $schema['canvas_notification'] = [
+    'description' => 'Stores Canvas notification payloads.',
+    'fields' => [
+      'id' => [
+        'type' => 'varchar_ascii',
+        'length' => 128,
+        'not null' => TRUE,
+        'description' => 'Notification UUID.',
+      ],
+      'type' => [
+        'type' => 'varchar_ascii',
+        'length' => 32,
+        'not null' => TRUE,
+        'description' => 'Notification type: processing, success, info, warning, error.',
+      ],
+      'key' => [
+        'type' => 'varchar_ascii',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'Optional grouping key for related notifications.',
+      ],
+      'title' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Notification title.',
+      ],
+      'message' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'description' => 'Notification body text.',
+      ],
+      'timestamp' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'Unix timestamp in milliseconds.',
+      ],
+      'actions' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'JSON-encoded array of action objects.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'idx_type_timestamp' => ['type', 'timestamp'],
+      'idx_timestamp' => ['timestamp'],
+      'idx_key' => ['key'],
+    ],
+  ];
+
+  $schema['canvas_notification_read'] = [
+    'description' => 'Tracks which notifications each user has read.',
+    'fields' => [
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'User ID.',
+      ],
+      'notification_id' => [
+        'type' => 'varchar_ascii',
+        'length' => 128,
+        'not null' => TRUE,
+        'description' => 'Notification UUID.',
+      ],
+      'timestamp' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'When the notification was marked as read (ms).',
+      ],
+    ],
+    'primary key' => ['uid', 'notification_id'],
+    'indexes' => [
+      'idx_timestamp' => ['timestamp'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
  * Implements hook_install().
  */
 function canvas_install(bool $is_syncing): void {
@@ -112,5 +203,17 @@ function canvas_update_11200(): void {
     // No need to manually flush caches during the update.
     // @see \Drupal\system\Controller\DbUpdateController::triggerBatch()
   }
+}
 
+/**
+ * Create the canvas_notification and canvas_notification_read tables.
+ */
+function canvas_update_1201(): void {
+  $schema = canvas_schema();
+  $db_schema = \Drupal::database()->schema();
+  foreach (['canvas_notification', 'canvas_notification_read'] as $table) {
+    if (!$db_schema->tableExists($table)) {
+      $db_schema->createTable($table, $schema[$table]);
+    }
+  }
 }
