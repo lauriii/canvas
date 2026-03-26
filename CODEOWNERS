@@ -1,5 +1,5 @@
-# Every maintainer of the project is able to approve any changes.
-* @@maintainer
+# Maintainers of the main module can approve any changes.
+* @amangrover90 @balintbrews @bnjmnm @effulgentsia @f.mazeikis @hooroomoo @isholgueras @jessebaker @jptaranto @justafish @larowlan @longwave @mglaman @narendrar @penyaskito @phenaproxima @tedbow @thoward216 @tim.plunkett @wimleers @wotnak
 
 # Relevant configuration in GitLab:
 # https://git.drupalcode.org/project/canvas/-/settings/merge_requests
@@ -140,3 +140,7 @@
 # Issues: https://www.drupal.org/project/issues/canvas?component=Personalization
 /modules/canvas_personalization
 /docs/personalization.md
+
+^[Canvas AI] @tim.plunkett @Marcus_Johansson @NarendraR @Utkarsh_33 @kunal.sachdev @akhil_babu @tedbow @mglaman
+# Issues: https://www.drupal.org/project/issues/canvas?component=AI
+/modules/canvas_ai/
