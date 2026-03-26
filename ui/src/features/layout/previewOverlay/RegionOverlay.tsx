@@ -79,7 +79,13 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
 
   function handleRegionDblClick(event: React.MouseEvent<HTMLDivElement>) {
     event.stopPropagation();
-    setSelectedRegion(region.id);
+    if (focusedRegion !== region.id) {
+      // Navigate into the clicked region if it's different
+      setSelectedRegion(region.id);
+    } else {
+      // Else we are already focused in this region, so clicking again should take us back out to the content region.
+      setSelectedRegion();
+    }
   }
 
   // If the DEFAULT_REGION is focused, then all regions should render otherwise only render if this is the focused region

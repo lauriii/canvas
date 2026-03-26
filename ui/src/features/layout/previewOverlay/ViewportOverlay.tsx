@@ -40,12 +40,8 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const [rect, setRect] = useState<Rect | null>(null);
   const { treeDragging } = useAppSelector(selectDragging);
   const isZooming = useAppSelector(selectZooming);
-  const { navigateToEditor } = useEditorNavigation();
-  const {
-    regionId: focusedRegion = DEFAULT_REGION,
-    entityId,
-    entityType,
-  } = useParams();
+  const { setSelectedRegion } = useEditorNavigation();
+  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
 
   const displayedRegions = layout.filter((region) => {
     return region.components.length > 0 || region.id === DEFAULT_REGION;
@@ -108,7 +104,8 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   function handleDoubleClick(event: React.MouseEvent<HTMLDivElement>) {
     event.stopPropagation();
     if (focusedRegion !== DEFAULT_REGION) {
-      navigateToEditor(entityType, entityId);
+      // Navigate back to the default region if we are currently focused in a specific region
+      setSelectedRegion(DEFAULT_REGION);
     }
   }
 
