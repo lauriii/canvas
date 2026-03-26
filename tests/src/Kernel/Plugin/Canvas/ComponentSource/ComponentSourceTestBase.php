@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
 // cspell:ignore Druplicons
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Depends;
 use Drupal\canvas\Controller\ApiConfigControllers;
@@ -853,6 +854,47 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
     // @see \Drupal\Tests\canvas\Kernel\ComponentInstanceFormTest::testCodeComponentNoPropsThatHasGoneAway()
     self::assertStringContainsString('Fix the component or copy values to a new component', $formOut->text());
   }
+
+  /**
+   * Tests that resolved component inputs can be resolved when using this source.
+   *
+   * @todo This should be ComponentConfigEntityId $component_id, but phpcs complains with Drupal.Commenting.DataTypeNamespace.DataTypeNamespace
+   *   (This is fixed upstream, but needed until we require drupal/core:^11.3 with drupal/coder:^9)
+   *
+   * @param string $component_id
+   * @param array $inputs
+   * @param ?array $expectedResolvedInputs
+   */
+  #[DataProvider('providerResolvedComponentInputs')]
+  public function testResolvedComponentInputs(string $component_id, array $inputs, ?array $expectedResolvedInputs): void {
+    $this->generateComponentConfig();
+    $item_list = $this->createDanglingComponentTreeItemList();
+    $item_list->setValue([
+      [
+        'uuid' => '947c196f-f108-43fd-a446-03a08100d571',
+        'component_id' => $component_id,
+        'inputs' => $inputs,
+      ],
+    ]);
+    $item = $item_list->get(0);
+    \assert($item instanceof ComponentTreeItem);
+
+    $resolved = $item->get('inputs_resolved')->getValue();
+    $vfs_site_base_url = base_path() . $this->siteDirectory;
+    if ($resolved !== NULL) {
+      \array_walk_recursive($resolved, function (mixed &$value) use ($vfs_site_base_url) {
+        if (\is_string($value)) {
+          $value = \str_replace($vfs_site_base_url, '::SITE_DIR_BASE_URL::', $value);
+        }
+      });
+    }
+    $this->assertSame($expectedResolvedInputs, $resolved);
+  }
+
+  /**
+   * @return \Generator<string, array{ComponentConfigEntityId, array<string|int, mixed>, array<string|int, mixed>|null}>
+   */
+  abstract public static function providerResolvedComponentInputs(): \Generator;
 
   abstract protected function triggerBrokenComponent(ComponentInterface $component): ?BrokenPluginManagerInterface;
 

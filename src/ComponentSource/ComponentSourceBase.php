@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\ComponentSource;
 
+use Drupal\canvas\Entity\Component;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\Schema\Mapping;
 use Drupal\Core\Config\TypedConfigManagerInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Plugin\ContextAwarePluginAssignmentTrait;
 use Drupal\Core\Plugin\ContextAwarePluginTrait;
 use Drupal\Core\Plugin\PluginBase;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 
 /**
  * @internal
@@ -178,6 +181,30 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
    *   - …
    */
   abstract protected function getExplicitInputDefinitions(): array;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getResolvedExplicitInput(string $uuid, ComponentTreeItem $item, ?FieldableEntityInterface $host_entity = NULL): array {
+    $explicit_input = $this->getExplicitInput($uuid, $item, $host_entity);
+    $component = $item->getComponent();
+    \assert($component instanceof Component);
+    $required_props_with_default_values_in_current_implementation = $component
+      ->loadVersion($component->getActiveVersion())
+      ->getComponentSource()
+      ->getDefaultExplicitInput(only_required: TRUE);
+    // Avoid side effects.
+    $component->loadVersion($item->getComponentVersion());
+
+    return $this->hydrateComponent(
+      explicit_input: $explicit_input,
+      slot_definitions: [],
+      // Return the stored explicit input, populating values for required
+      // explicit inputs in the active version of the Component (i.e. the live
+      // implementation).
+      active_required_explicit_inputs: $required_props_with_default_values_in_current_implementation,
+    );
+  }
 
   /**
    * {@inheritdoc}

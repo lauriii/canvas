@@ -226,6 +226,7 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
             'component_version' => '85a5c0c7dd53e0bb',
             'inputs' => ['heading' => 'Welcome'],
             'label' => NULL,
+            'inputs_resolved' => ['heading' => 'Welcome'],
           ],
           [
             'parent_uuid' => '09365c2d-1ee1-47fd-b5a3-7e4f34866186',
@@ -235,6 +236,7 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
             'component_version' => '85a5c0c7dd53e0bb',
             'inputs' => ['heading' => 'Nested'],
             'label' => NULL,
+            'inputs_resolved' => ['heading' => 'Nested'],
           ],
         ],
         'links' => [

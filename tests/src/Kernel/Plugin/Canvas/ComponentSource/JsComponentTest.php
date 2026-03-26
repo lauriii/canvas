@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
-// cspell:ignore Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk
+// cspell:ignore Bwidth Fitok Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -92,14 +92,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     $this->assetResolver = $this->container->get(AssetResolverInterface::class);
     $this->codeComponentDataProvider = $this->container->get(CodeComponentDataProvider::class);
 
-    $this->installEntitySchema('file');
-    $this->installSchema('file', 'file_usage');
-    $this->config('file.settings')
-      ->set('make_unused_managed_files_temporary', TRUE)
-      ->save();
-
     // For testing a code component using the "video" prop shape.
-    $this->installEntitySchema('media');
     $this->installEntitySchema('field_storage_config');
     $this->installEntitySchema('field_config');
     $media_type = MediaType::create([
@@ -2664,6 +2657,35 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     // The code component was deleted by bypassing lots of protections.
     // @see ::triggerBrokenComponent()
     return \sprintf('The JavaScript Component with ID `%s` does not exist.', self::PSEUDO_RANDOM_CODE_COMPONENT_ID);
+  }
+
+  public static function providerResolvedComponentInputs(): \Generator {
+    yield 'JsComponent that does not exist' => [
+      'js.missing_component',
+      [],
+      NULL,
+    ];
+    yield 'JsComponent with no props' => [
+      'js.canvas_test_code_components_with_no_props',
+      [],
+      [],
+    ];
+    yield 'JsComponent with props, populated by StaticPropSources' => [
+      'js.canvas_test_code_components_vanilla_image',
+      [
+        'image' => [
+          'target_id' => 1,
+        ],
+      ],
+      [
+        'image' => [
+          'src' => '::SITE_DIR_BASE_URL::/files/image-test.png?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/image-test.png.avif%3Fitok%3DRreFpLsS',
+          'alt' => '',
+          'width' => 40,
+          'height' => 20,
+        ],
+      ],
+    ];
   }
 
 }

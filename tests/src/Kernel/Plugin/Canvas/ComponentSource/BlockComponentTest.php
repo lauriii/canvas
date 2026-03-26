@@ -634,4 +634,30 @@ HTML,
     return 'This block is broken or missing.';
   }
 
+  public static function providerResolvedComponentInputs(): \Generator {
+    yield 'Block missing' => [
+      'block.missing_block',
+      [],
+      NULL,
+    ];
+    yield 'Block with no explicit settings' => [
+      'block.canvas_test_block_input_none',
+      [],
+      [],
+    ];
+    yield 'Block with settings' => [
+      'block.system_branding_block',
+      [
+        'use_site_logo' => TRUE,
+        'use_site_name' => FALSE,
+        'use_site_slogan' => TRUE,
+      ],
+      [
+        'use_site_logo' => TRUE,
+        'use_site_name' => FALSE,
+        'use_site_slogan' => TRUE,
+      ],
+    ];
+  }
+
 }

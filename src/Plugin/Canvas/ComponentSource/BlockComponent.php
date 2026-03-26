@@ -305,6 +305,15 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
+  public function getResolvedExplicitInput(string $uuid, ComponentTreeItem $item, ?FieldableEntityInterface $host_entity = NULL): array {
+    $hydrated_inputs = parent::getResolvedExplicitInput($uuid, $item, $host_entity);
+    \assert(\array_key_exists(self::EXPLICIT_INPUT_NAME, $hydrated_inputs));
+    return $hydrated_inputs[self::EXPLICIT_INPUT_NAME];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getExplicitInput(string $uuid, ComponentTreeItem $item, ?FieldableEntityInterface $host_entity = NULL): array {
 
     try {

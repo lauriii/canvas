@@ -572,6 +572,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     self::assertSame($expected_post_update_component_tree, \array_map(
       function (ComponentTreeItem $item): array {
         $array = array_filter($item->toArray());
+        \assert(\array_key_exists('inputs', $array));
         $array['inputs'] = json_decode($array['inputs'], TRUE);
         return $array;
       },

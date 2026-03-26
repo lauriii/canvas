@@ -543,4 +543,61 @@ HTML,
     return '';
   }
 
+  public static function providerResolvedComponentInputs(): \Generator {
+    yield 'p13n case' => [
+      'p13n.case',
+      [
+        'variant_id' => 'my_variation',
+        'segments' => [
+          'andalusian_visitors',
+          'halloween',
+          Segment::DEFAULT_ID,
+        ],
+      ],
+      [
+        'variant_id' => 'my_variation',
+        'segments' => [
+          'andalusian_visitors',
+          'halloween',
+          Segment::DEFAULT_ID,
+        ],
+      ],
+    ];
+    yield 'p13n switch' => [
+      'p13n.switch',
+      [
+        'variants' => [
+          'my_variation' => [
+            'label' => 'My variation',
+            'segments' => [
+              'andalusian_visitors',
+            ],
+          ],
+          'default' => [
+            'label' => 'Default',
+            'segments' => [
+              Segment::DEFAULT_ID,
+            ],
+          ],
+        ],
+      ],
+      [
+        'variants' => [
+          'my_variation' => [
+            'label' => 'My variation',
+            'segments' => [
+              'andalusian_visitors',
+            ],
+          ],
+          'default' => [
+            'label' => 'Default',
+            'segments' => [
+              Segment::DEFAULT_ID,
+            ],
+          ],
+        ],
+      ],
+    ];
+  }
+
 }

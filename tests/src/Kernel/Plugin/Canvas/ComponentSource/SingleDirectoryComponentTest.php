@@ -21,7 +21,6 @@ use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\GeneratedUrl;
-use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\canvas\Entity\Component;
 use Drupal\Core\Plugin\Component as SdcPlugin;
@@ -42,13 +41,12 @@ use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\BrokenComponentManager;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
-use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
-use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
-use Drupal\Tests\TestFileCreationTrait;
 use Twig\Error\Error;
 use Twig\Error\RuntimeError;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Twig\Error\SyntaxError;
+
+// cspell:ignore Bwidth Fitok
 
 /**
  * Tests Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent.
@@ -64,9 +62,6 @@ use Twig\Error\SyntaxError;
 final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxComponentSourceBaseTestBase {
 
   use SingleDirectoryComponentTreeTestTrait;
-  use MediaTypeCreationTrait;
-  use TestFileCreationTrait;
-  use ContentTypeCreationTrait;
 
   protected const string UUID_PARTLY_DYNAMIC_HERO = '6eda12fa-c990-4292-8399-31491fae4a52';
 
@@ -76,6 +71,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
   protected static $modules = [
     'node',
     'field',
+    'sdc_test',
   ];
 
   /**
@@ -88,14 +84,6 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
    */
   public function setUp(): void {
     parent::setUp();
-    // Fixate the private key & hash salt to get predictable `itok`.
-    $this->container->get('state')->set('system.private_key', 'dynamic_image_style_private_key');
-    $settings_class = new \ReflectionClass(Settings::class);
-    $instance_property = $settings_class->getProperty('instance');
-    $settings = new Settings([
-      'hash_salt' => 'dynamic_image_style_hash_salt',
-    ]);
-    $instance_property->setValue(NULL, $settings);
 
     // We need to ensure the public://balloons.png image exists in the test
     // environment for the "Card with stream wrapper image" tests.
@@ -1290,9 +1278,7 @@ HTML
   protected function alterEnvironmentForCrashTestDummyComponentTree(string $component_id, array $inputs): void {
     // Register the private file stream.
     $this->setSetting('file_private_path', 'private');
-    // Setup file entity.
-    $this->installEntitySchema('file');
-    $this->installSchema('file', 'file_usage');
+
     $user = $this->setUpCurrentUser(permissions: ['access content', 'view media']);
     // Create a private file.
     /** @var \Drupal\Core\File\FileSystemInterface $fileSystem */
@@ -5801,9 +5787,6 @@ HTML
     // Media library depends on the views module and media depends on field
     // config.
     $this->enableModules(['media', 'media_library', 'views', 'field']);
-    $this->installEntitySchema('file');
-    $this->installSchema('file', 'file_usage');
-    $this->installEntitySchema('media');
     $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
 
     // @todo Simplify this in https://www.drupal.org/project/canvas/issues/3547579 — that issue should make that happen automatically? If not that, then it should probably expand the below test assertions at the very least.
@@ -6060,6 +6043,43 @@ HTML
     // The test simulates the SDC's Twig template having been deleted, so it fails to load.
     // @see ::triggerBrokenComponent()
     return 'Twig\Error\LoaderError occurred during rendering of component';
+  }
+
+  public static function providerResolvedComponentInputs(): \Generator {
+    yield 'SDC that does not exist' => [
+      'sdc.sdc_test.missing_component',
+      [],
+      NULL,
+    ];
+    yield 'SDC with no props' => [
+      'sdc.sdc_test.no-props',
+      [],
+      [],
+    ];
+    yield 'SDC with props, populated by StaticPropSources' => [
+      'sdc.canvas_test_sdc.card',
+      [
+        'heading' => 'Test Card',
+        'content' => 'Test content',
+        'footer' => 'Test Card Footer',
+        'loading' => 'lazy',
+        'image' => [
+          'target_id' => 1,
+        ],
+      ],
+      [
+        'heading' => 'Test Card',
+        'content' => 'Test content',
+        'footer' => 'Test Card Footer',
+        'loading' => 'lazy',
+        'image' => [
+          'src' => '::SITE_DIR_BASE_URL::/files/image-test.png?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/image-test.png.avif%3Fitok%3DRreFpLsS',
+          'alt' => '',
+          'width' => 40,
+          'height' => 20,
+        ],
+      ],
+    ];
   }
 
 }

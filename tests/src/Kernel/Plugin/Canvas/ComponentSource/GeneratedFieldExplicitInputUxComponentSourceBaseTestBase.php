@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+use Drupal\canvas\Entity\Page;
+use Drupal\Core\Site\Settings;
+use Drupal\file\Entity\File;
+use Drupal\media\Entity\Media;
+use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
+use Drupal\Tests\TestFileCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -21,6 +28,29 @@ use Drupal\canvas\PropSource\PropSource;
 #[CoversClass(GeneratedFieldExplicitInputUxComponentSourceBase::class)]
 #[CoversMethod(GeneratedFieldExplicitInputUxComponentSourceBase::class, 'clientModelToInput')]
 abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends ComponentSourceTestBase {
+
+  use MediaTypeCreationTrait;
+  use TestFileCreationTrait;
+  use ContentTypeCreationTrait;
+
+  public function setUp(): void {
+    parent::setUp();
+    $this->installEntitySchema('file');
+    $this->installSchema('file', 'file_usage');
+    $this->config('file.settings')
+      ->set('make_unused_managed_files_temporary', TRUE)
+      ->save();
+    $this->installEntitySchema('media');
+
+    // Fixate the private key & hash salt to get predictable `itok`.
+    $this->container->get('state')->set('system.private_key', 'dynamic_image_style_private_key');
+    $settings_class = new \ReflectionClass(Settings::class);
+    $instance_property = $settings_class->getProperty('instance');
+    $settings = new Settings([
+      'hash_salt' => 'dynamic_image_style_hash_salt',
+    ]);
+    $instance_property->setValue(NULL, $settings);
+  }
 
   /**
    * Data provider for ::testHydrationAndRenderingEdgeCases().
@@ -307,6 +337,36 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
     $options_as_strings = \array_map(fn($value) => (string) $value, $options);
 
     self::assertSame($expected_options, $options_as_strings);
+  }
+
+  #[DataProvider('providerResolvedComponentInputs')]
+  public function testResolvedComponentInputs(string $component_id, array $inputs, ?array $expectedResolvedInputs): void {
+    $user = $this->setUpCurrentUser([], [
+      'access content',
+      'view media',
+      Page::CREATE_PERMISSION,
+      Page::EDIT_PERMISSION,
+    ]);
+
+    $media_type = $this->createMediaType('image');
+    $image_file = File::create([
+      // @phpstan-ignore-next-line
+      'uri' => $this->getTestFiles('image')[0]->uri,
+      'uid' => $user->id(),
+    ]);
+    self::assertEntityIsValid($image_file);
+    $image_file->save();
+    $media_image = Media::create([
+      'bundle' => $media_type->id(),
+      'name' => 'Test image',
+      'field_media_image' => $image_file,
+      'uid' => $user->id(),
+      'status' => TRUE,
+    ]);
+    self::assertEntityIsValid($media_image);
+    $media_image->save();
+
+    parent::testResolvedComponentInputs($component_id, $inputs, $expectedResolvedInputs);
   }
 
 }

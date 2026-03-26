@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use PHPUnit\Framework\Attributes\Group;
 use ColinODell\PsrTestLogger\TestLogger;
 use Drupal\canvas\PropSource\PropSource;
@@ -250,7 +251,19 @@ HTML;
     // Confirm although we've opted in the status of the template is false so
     // will not be used.
     $template = ContentTemplate::load("node.article.$view_mode");
+
+    // ContentTemplate component trees with prop sources that need a host
+    // entity cannot resolve inputs without one: inputs_resolved returns NULL.
     \assert($template instanceof ContentTemplate);
+    $no_hosted_entity_component_tree = $template->getComponentTree()->get(0);
+    \assert($no_hosted_entity_component_tree instanceof ComponentTreeItem);
+    self::assertNull($no_hosted_entity_component_tree->get('inputs_resolved')->getValue());
+    // With a host entity, inputs_resolved returns the resolved values.
+    $hosted_entity_component_tree = $template->getComponentTree($node)->get(0);
+    \assert($hosted_entity_component_tree instanceof ComponentTreeItem);
+    $resolved = $hosted_entity_component_tree->get('inputs_resolved')->getValue();
+    self::assertIsArray($resolved);
+    self::assertSame('Canvas is large and in charge!', $resolved['heading']);
     self::assertFalse($template->status());
     self::assertCount(0, $crawler->filter('h1.my-hero__heading:contains("Canvas is large and in charge!")'));
     self::assertCount(0, $crawler->filter('div.my-hero__container > p.my-hero__subheading:contains("2025-12-04")'));

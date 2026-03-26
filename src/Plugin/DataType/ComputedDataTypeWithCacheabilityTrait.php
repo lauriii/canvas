@@ -90,4 +90,12 @@ trait ComputedDataTypeWithCacheabilityTrait {
     return $this->computeIfNeeded()->cacheability->getCacheMaxAge();
   }
 
+  /**
+   * Invalidates the computed value.
+   */
+  public function invalidateComputedValue(): self {
+    $this->isComputed = FALSE;
+    return $this;
+  }
+
 }

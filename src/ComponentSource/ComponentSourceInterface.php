@@ -162,6 +162,22 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
   public function getExplicitInput(string $uuid, ComponentTreeItem $item, ?FieldableEntityInterface $host_entity = NULL): array;
 
   /**
+   * Retrieves the resolved explicit input for this component instance.
+   *
+   * For component sources that wrap explicit input in a structured format
+   * (e.g. with 'source' and 'resolved' keys), this returns only the resolved
+   * values. For component sources that return flat values from
+   * ::getExplicitInput(), this returns those values as-is.
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $host_entity
+   *   Host entity. Required when a component instance has inputs populated by
+   *   EntityFieldPropSources AND the parent entity of $item is not the host
+   *   entity to use during evaluation of the EntityFieldPropSources.
+   *   (Typically: when this is a component instance in a ContentTemplate.)
+   */
+  public function getResolvedExplicitInput(string $uuid, ComponentTreeItem $item, ?FieldableEntityInterface $host_entity = NULL): array;
+
+  /**
    * Hydrates a component with its explicit input plus slots (if any).
    *
    * Note that the result contains the default slot value, because this method

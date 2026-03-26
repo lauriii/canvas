@@ -108,9 +108,10 @@ Canvas defines a new `Canvas field type` with the following `field prop`s:
 
 When _parent_uuid_ and _slot_ are empty, the `component instance` is at the root of the `component tree`.
 
-Additionally there are two computed `field prop`s:
+Additionally there are three computed `field prop`s:
 - _component_ - this is an entity reference to the `Component config entity` the `component instance` uses, meaning also the appropriate version will be loaded. Any methods on the `Component config entity` can be chained. E.g. `$item->get('component')?->getComponentSource()`.
 - _parent_item_ - this is a data reference to the sibling `\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem` in the tree that represents the `component instance`'s parent `component instance` in the `component tree`. If the `component instance` has no parent, this will be NULL. Any methods on the parent `component instance` can be chained, e.g. `$item->get('parent_item')->getComponent()?->getComponentSource()?->getSlotDefinitions()`
+- _inputs_resolved_ - the resolved values for this `component instance`'s inputs. Resolves stored inputs (block plugin settings, `prop source`s) into their output values (e.g. booleans, prose strings, image URL strings), making them available to normalizers (JSON:API, REST). This is automatically invalidated when the `inputs`, `component_id` or `component_version` properties change. No convenience method exists because Canvas should not interact with this.
 
 Additionally, convenience methods for accessing/setting values on the `ComponentTreeItem` exist including:
 - `getParentUuid(): ?string` - gets the value of _parent_uuid_ if it exists

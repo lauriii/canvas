@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+// cspell:ignore Bwidth
+
 namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
@@ -58,6 +60,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+
     $this->pages = [
       Page::create([
         'title' => "Page 1",
@@ -88,6 +91,11 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
 
   public function testPostWithData(): void {
     $this->container->get(ComponentSourceManager::class)->generateComponents('sdc', ['canvas_test_sdc:heading']);
+    // Suppress the security token in the URL. In this test we cannot really
+    // set a predictable itok because of the HTTP requests of this test.
+    // This is an insecure setup, but good enough for the purpose of this test.
+    $this->config('image.settings')->set('suppress_itok_output', TRUE)->save();
+
     $url = Url::fromUri('base:/canvas/api/v0/content/canvas_page');
     $request_options = [
       RequestOptions::HEADERS => [
@@ -99,13 +107,27 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
         'path' => '/my-awesome-new-page',
         'components' => [
           [
-            "uuid" => "4c3482ac-4635-4ba9-aaf4-eb86892d77a1",
-            "component_id" => "sdc.canvas_test_sdc.heading",
-            "component_version" => "8c01a2bdb897a810",
-            "inputs" => [
+            'uuid' => '4c3482ac-4635-4ba9-aaf4-eb86892d77a1',
+            'component_id' => 'sdc.canvas_test_sdc.heading',
+            'component_version' => '8c01a2bdb897a810',
+            'inputs' => [
               'text' => 'My custom header',
               'style' => 'secondary',
               'element' => 'h3',
+            ],
+          ],
+          [
+            'uuid' => '834fc6b0-7abd-48c7-888e-93b0a7f2526c',
+            'component_id' => 'sdc.canvas_test_sdc.card',
+            'component_version' => 'e94eb1a3d14c2de8',
+            'inputs' => [
+              'heading' => 'Test Card',
+              'content' => 'Test content',
+              'footer' => 'Test Card Footer',
+              'loading' => 'lazy',
+              'image' => [
+                'target_id' => 1,
+              ],
             ],
           ],
         ],
@@ -116,7 +138,12 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
 
     $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
     // Authenticated, authorized, with CSRF token: 201.
-    Role::load('authenticated')?->grantPermission(Page::CREATE_PERMISSION)->save();
+    Role::load('authenticated')
+      ?->grantPermission(Page::CREATE_PERMISSION)
+      // Access content is required for accessing the media entity that we
+      // are using in the card component.
+      ?->grantPermission('access content')
+        ->save();
     $response = $this->makeApiRequest('POST', $url, $request_options);
     $this->assertSame(201, $response->getStatusCode());
     $this->assertPostResponse($response, [
@@ -128,15 +155,49 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
         [
           'parent_uuid' => NULL,
           'slot' => NULL,
-          "uuid" => "4c3482ac-4635-4ba9-aaf4-eb86892d77a1",
-          "component_id" => "sdc.canvas_test_sdc.heading",
+          'uuid' => '4c3482ac-4635-4ba9-aaf4-eb86892d77a1',
+          'component_id' => 'sdc.canvas_test_sdc.heading',
           'component_version' => '8c01a2bdb897a810',
-          "inputs" => [
+          'inputs' => [
             'text' => 'My custom header',
             'style' => 'secondary',
             'element' => 'h3',
           ],
           'label' => NULL,
+          'inputs_resolved' => [
+            'text' => 'My custom header',
+            'style' => 'secondary',
+            'element' => 'h3',
+          ],
+        ],
+        [
+          'parent_uuid' => NULL,
+          'slot' => NULL,
+          'uuid' => '834fc6b0-7abd-48c7-888e-93b0a7f2526c',
+          'component_id' => 'sdc.canvas_test_sdc.card',
+          'component_version' => 'e94eb1a3d14c2de8',
+          'inputs' => [
+            'heading' => 'Test Card',
+            'content' => 'Test content',
+            'footer' => 'Test Card Footer',
+            'loading' => 'lazy',
+            'image' => [
+              'target_id' => 1,
+            ],
+          ],
+          'label' => NULL,
+          'inputs_resolved' => [
+            'heading' => 'Test Card',
+            'content' => 'Test content',
+            'footer' => 'Test Card Footer',
+            'loading' => 'lazy',
+            'image' => [
+              'src' => base_path() . $this->siteDirectory . '/files/balloons.png?alternateWidths=' . base_path() . $this->siteDirectory . '/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/balloons.png.avif',
+              'alt' => '',
+              'width' => 0,
+              'height' => 0,
+            ],
+          ],
         ],
       ],
     ]);
