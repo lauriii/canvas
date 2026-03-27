@@ -1,24 +1,8 @@
 import { expect } from '@playwright/test';
 
-
-
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
-
-
 import type { Request } from '@playwright/test';
-
-
-
-
-
-let entityPath: string;
-let uuid: string;
-declare global {
-  interface Window {
-    navigationMarker?: number;
-  }
-}
 
 test.describe('Routing', () => {
   test.beforeEach(async ({ drupal }) => {
@@ -27,7 +11,6 @@ test.describe('Routing', () => {
     await drupal.installModules(['canvas_test_sdc']);
     await drupal.logout();
   });
-
 
   test('Visits a component router URL directly', async ({
     page,
@@ -43,17 +26,9 @@ test.describe('Routing', () => {
     // get the current URL to extract the entity type/ID and component UUID
     const currentURL = page.url();
 
-    // Extract the dynamic entity type and ID part (e.g., "canvas_page/1" or "node/1")
-    // This matches everything between /canvas/editor/ and optional /component/uuid
-    const entityMatch = currentURL.match(/\/canvas\/editor\/([^/]+\/[^/]+)/);
-    entityPath = entityMatch ? entityMatch[1] : null;
-    console.log('entityPath', entityPath);
-
     // Extract the component UUID if present
     const uuidMatch = currentURL.match(/\/component\/([a-f0-9-]+)/);
-    uuid = uuidMatch ? uuidMatch[1] : null;
-
-    console.log('uuid', uuid);
+    const uuid = uuidMatch ? uuidMatch[1] : null;
 
     // Visit the component router URL directly
     await page.goto(currentURL);
@@ -62,11 +37,20 @@ test.describe('Routing', () => {
     // Verify the contextual panel exists for the component (sidebar mounts after load).
     await expect(
       page.getByTestId(`canvas-contextual-panel-${uuid}`),
-    ).toBeAttached({ timeout: 15_000 });
+    ).toBeAttached();
   });
 
-  test('Visits a preview router URL directly', async ({ page }) => {
-    await page.goto(`/canvas/preview/${entityPath}/full`);
+  test('Visits a preview router URL directly', async ({
+    drupal,
+    canvas,
+    page,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    const canvasPage = await canvas.createCanvas();
+    await canvas.openLibraryPanel();
+    await canvas.addComponent({ name: 'Hero' });
+
+    await page.goto(`/canvas/preview/canvas_page/${canvasPage.entity_id}/full`);
 
     // Verify the exit preview button is visible
     await expect(page.getByText('Exit Preview')).toBeVisible();
@@ -84,24 +68,34 @@ test.describe('Routing', () => {
 
     // Verify the URL contains the expected path
     await expect(page).toHaveURL(
-      new RegExp(`/canvas/preview/${entityPath}/full`),
+      new RegExp(`/canvas/preview/canvas_page/${canvasPage.entity_id}/full`),
     );
   });
 
-  test('has the expected performance', async ({ page }) => {
+  test('has the expected performance', async ({ drupal, canvas, page }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    const canvasPage = await canvas.createCanvas();
     // Set up route listeners for the API calls
     const getLayoutRequests: Request[] = [];
     const getPreviewRequests: Request[] = [];
 
     page.on('request', (request) => {
       if (
-        request.url().includes(`/canvas/api/v0/layout/${entityPath}`) &&
+        request
+          .url()
+          .includes(
+            `/canvas/api/v0/layout/canvas_page/${canvasPage.entity_id}`,
+          ) &&
         request.method() === 'GET'
       ) {
         getLayoutRequests.push(request);
       }
       if (
-        request.url().includes(`/canvas/api/v0/layout/${entityPath}`) &&
+        request
+          .url()
+          .includes(
+            `/canvas/api/v0/layout/canvas_page/${canvasPage.entity_id}`,
+          ) &&
         request.method() === 'POST'
       ) {
         getPreviewRequests.push(request);
@@ -110,11 +104,14 @@ test.describe('Routing', () => {
 
     const layoutResponse = page.waitForResponse(
       (response) =>
-        response.url().includes(`/canvas/api/v0/layout/${entityPath}`) &&
-        response.request().method() === 'GET',
+        response
+          .url()
+          .includes(
+            `/canvas/api/v0/layout/canvas_page/${canvasPage.entity_id}`,
+          ) && response.request().method() === 'GET',
     );
 
-    await page.goto(`/canvas/editor/${entityPath}`);
+    await page.reload();
 
     const response = await layoutResponse;
     expect(response.status()).toBe(200);
@@ -127,14 +124,21 @@ test.describe('Routing', () => {
     expect(getPreviewRequests.length).toBe(0);
   });
 
-  test('Can navigate between pages without page reloads', async ({ page, drupal, canvas }) => {
-    //const canvasPage1 = await canvas.createCanvas({ title: 'Navigation Page 1' });
+  test('Can navigate between pages without page reloads', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
     await canvas.createCanvas({ title: 'Navigation Page 1' });
-    await page.locator('[data-drupal-selector="edit-path-0-alias"]').fill('/navigation-page-1');
+    await page
+      .locator('[data-drupal-selector="edit-path-0-alias"]')
+      .fill('/navigation-page-1');
     await canvas.publishAllChanges();
-    //const canvasPage2 = await canvas.createCanvas({ title: 'Navigation Page 2' });
     await canvas.createCanvas({ title: 'Navigation Page 2' });
-    await page.locator('[data-drupal-selector="edit-path-0-alias"]').fill('/navigation-page-2');
+    await page
+      .locator('[data-drupal-selector="edit-path-0-alias"]')
+      .fill('/navigation-page-2');
     await canvas.publishAllChanges();
 
     // Go to the first page

@@ -67,6 +67,10 @@ stages:
 # Docs at https://git.drupalcode.org/project/gitlab_templates/-/blob/main/includes/include.drupalci.variables.yml
 ################
 variables:
+  PLAYWRIGHT_BROWSERS_PATH: $CI_PROJECT_DIR/.cache/ms-playwright
+  COMPOSER_CACHE_DIR: $CI_PROJECT_DIR/.cache/composer
+  npm_config_cache: $CI_PROJECT_DIR/.cache/npm
+
   # This needs to match $_GITLAB_TEMPLATES_REPO `ref`. Omit if `ref` value is `_GITLAB_TEMPLATES_REF`.
   _CURL_TEMPLATES_REF: 1.12.x-latest
   # Show env variables always to help with debugging.
@@ -278,9 +282,6 @@ phpunit:
     # _PHPUNIT_EXTRA: '--filter PropSourceTest'
     # 💡To run only tests in a specific group, e.g. `canvas_component_sources` or `canvas_data_model__prop_expressions`.
     # _PHPUNIT_TESTGROUPS: canvas_component_sources
-    PLAYWRIGHT_BROWSERS_PATH: $CI_PROJECT_DIR/.cache/ms-playwright
-    COMPOSER_CACHE_DIR: $CI_PROJECT_DIR/.cache/composer
-    npm_config_cache: $CI_PROJECT_DIR/.cache/npm
 
   # TRICKY: duplicate all of the upstream `.phpunit-base`'s `script` to add conditional auto-retry functionality
   # @todo Work with upstream `gitlab_templates` project to allow this logic to be injected without repeating everything
@@ -679,7 +680,7 @@ playwright:
     paths:
       - blob-report/
 
-merge-playwright-reports:
+playwright-reports:
   stage: test
   when: always
   needs:

@@ -188,6 +188,23 @@ export function CanvasNavigationMixin<TBase extends Constructor<CanvasBase>>(
       }
     }
 
+    async openContentNavigation() {
+      await this.page.getByTestId('canvas-navigation-button').click();
+      await expect(
+        this.page.locator('#canvas-navigation-search'),
+      ).toBeVisible();
+    }
+
+    async closeContentNavigation() {
+      await expect(async () => {
+        await this.page.keyboard.press('Escape');
+        await this.page.keyboard.press('Escape');
+        await expect(
+          this.page.getByTestId('canvas-navigation-content'),
+        ).not.toBeVisible();
+      }).toPass();
+    }
+
     async openPreview() {
       await this.page
         .locator('[data-testid="canvas-topbar"]')

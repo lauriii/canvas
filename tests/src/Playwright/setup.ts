@@ -24,6 +24,7 @@ export async function setupSite({ drupal }: { drupal: Drupal }) {
         'edit canvas_page',
         'publish auto-saves',
         'administer content templates',
+        'create url aliases',
       ],
     });
     await drupal.createUser({

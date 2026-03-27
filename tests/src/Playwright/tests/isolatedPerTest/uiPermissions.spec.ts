@@ -1,12 +1,6 @@
 import { expect } from '@playwright/test';
 
-
-
 import { isolatedPerTest as test } from '../../fixtures/test.js';
-
-
-
-
 
 /**
  * This test suite checks that the Drupal Canvas UI shows/hides UI interface based on the permissions of users
@@ -49,8 +43,7 @@ test.describe('Canvas UI Permissions', () => {
     await page.locator('body').click(); // Dismiss the context menu
     await expect(menu).not.toBeAttached();
 
-    await page.getByTestId('canvas-navigation-button').click();
-    await expect(page.locator('#canvas-navigation-search')).toBeVisible();
+    await canvas.openContentNavigation();
     await expect(
       page.getByTestId('canvas-navigation-new-button'),
     ).toBeAttached();
@@ -73,14 +66,7 @@ test.describe('Canvas UI Permissions', () => {
       page.getByRole('menuitem', { name: 'Delete page' }),
     ).not.toBeAttached();
 
-    // Dismiss the context menu
-    await page.keyboard.press('Escape');
-    await expect(contextMenu).not.toBeAttached();
-    await page.keyboard.press('Escape');
-    await expect(
-      page.getByTestId('canvas-navigation-content'),
-    ).not.toBeAttached();
-
+    await canvas.closeContentNavigation();
     await canvas.openLibraryPanel();
     // Open the "New" dropdown
     await page.getByTestId('canvas-page-list-new-button').click();
@@ -96,7 +82,6 @@ test.describe('Canvas UI Permissions', () => {
       .click({ force: true });
 
     // Make a change to the page
-    await canvas.openLibraryPanel();
     await canvas.addComponent({ name: 'Hero' });
 
     await expect(page.getByLabel('Sub-heading')).toBeAttached();
@@ -153,8 +138,7 @@ test.describe('Canvas UI Permissions', () => {
     await page.locator('body').click(); // Dismiss the context menu
     await expect(menu).not.toBeAttached();
 
-    await page.getByTestId('canvas-navigation-button').click();
-    await expect(page.locator('#canvas-navigation-search')).toBeVisible();
+    await canvas.openContentNavigation();
     await expect(
       page.getByTestId('canvas-navigation-new-button'),
     ).not.toBeAttached();

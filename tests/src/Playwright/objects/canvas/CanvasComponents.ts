@@ -161,28 +161,7 @@ export function CanvasComponentsMixin<
         )
         .getByText(componentName);
       const dropzoneLocator = `[data-testid="canvas-primary-panel"] [data-canvas-uuid*="${target}"] [class*="DropZone"]`;
-      const dropzone = this.page.locator(dropzoneLocator);
-      // See https://playwright.dev/docs/input#dragging-manually on why this needs
-      // to be done like this.
-      await component.hover({ force: true });
-      await this.page.mouse.down();
-
-      // Force a layout recalculation in headless mode, this is only needed for
-      // webkit.
-      await this.page.evaluate(() => {
-        document.body.offsetHeight; // Forces reflow
-      });
-      await dropzone.hover({ force: true });
-      await this.page.evaluate((locator) => {
-        // Force another reflow to ensure drop zone state is updated.
-        // Again, only needed for webkit.
-        const dropzone = document.querySelector(locator);
-        if (dropzone) {
-          dropzone.offsetHeight; // Forces reflow on the drop zone
-        }
-      }, dropzoneLocator);
-      await dropzone.hover({ force: true });
-      await this.page.mouse.up();
+      this.drag(component, dropzoneLocator);
       await expect(
         this.page.locator(
           `[data-testid="canvas-primary-panel"] [data-canvas-type="slot"][data-canvas-uuid*="${target}"]`,

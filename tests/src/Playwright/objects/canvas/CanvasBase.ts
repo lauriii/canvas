@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 
 import type { Drupal } from '@drupal/playwright';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 export class CanvasBase {
   readonly page: Page;
@@ -55,5 +55,36 @@ export class CanvasBase {
     await this.waitForCanvasTopbar();
     await this.waitForContextualPanel();
     await this.waitForEditorFrame();
+  }
+
+  async drag(componentLocator: string | Locator, dropzoneLocator: string) {
+    const component = (
+      typeof componentLocator === 'string'
+        ? this.page.locator(componentLocator)
+        : componentLocator
+    ) as Locator;
+    const dropzone = this.page.locator(dropzoneLocator);
+
+    // See https://playwright.dev/docs/input#dragging-manually on why this needs
+    // to be done like this.
+    await component.hover({ force: true });
+    await this.page.mouse.down();
+
+    // Force a layout recalculation in headless mode, this is only needed for
+    // webkit.
+    await this.page.evaluate(() => {
+      document.body.offsetHeight; // Forces reflow
+    });
+    await dropzone.hover({ force: true });
+    await this.page.evaluate((locator) => {
+      // Force another reflow to ensure drop zone state is updated.
+      // Again, only needed for webkit.
+      const dropzone = document.querySelector(locator);
+      if (dropzone) {
+        dropzone.offsetHeight; // Forces reflow on the drop zone
+      }
+    }, dropzoneLocator);
+    await dropzone.hover({ force: true });
+    await this.page.mouse.up();
   }
 }

@@ -15,6 +15,45 @@ const drupalGlobals = {
   drupalSettings: true,
 };
 
+const isolatedPerTestPlugin = {
+  rules: {
+    'require-isolated-per-test-import': {
+      meta: {
+        type: 'problem',
+        docs: {
+          description:
+            "Require `import { isolatedPerTest as test } from '../../fixtures/test.js'` in isolatedPerTest spec files",
+        },
+        schema: [],
+        messages: {
+          missingImport:
+            "isolatedPerTest spec files must import `{ isolatedPerTest as test }` from '../../fixtures/test.js'.",
+        },
+      },
+      create(context) {
+        let found = false;
+        return {
+          ImportDeclaration(node) {
+            if (node.source.value !== '../../fixtures/test.js') return;
+            const hasSpecifier = node.specifiers.some(
+              (s) =>
+                s.type === 'ImportSpecifier' &&
+                s.imported.name === 'isolatedPerTest' &&
+                s.local.name === 'test',
+            );
+            if (hasSpecifier) found = true;
+          },
+          'Program:exit'(node) {
+            if (!found) {
+              context.report({ node, messageId: 'missingImport' });
+            }
+          },
+        };
+      },
+    },
+  },
+};
+
 export default defineConfig([
   js.configs.recommended,
   tseslint.configs.recommended,
@@ -129,6 +168,15 @@ export default defineConfig([
       react: {
         version: '18.2',
       },
+    },
+  },
+  {
+    files: ['**/tests/isolatedPerTest/**/*.spec.ts'],
+    plugins: {
+      'isolated-per-test': isolatedPerTestPlugin,
+    },
+    rules: {
+      'isolated-per-test/require-isolated-per-test-import': 'error',
     },
   },
   {

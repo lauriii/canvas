@@ -13,10 +13,10 @@ export function CanvasFoldersMixin<TBase extends Constructor<CanvasBase>>(
      ***********/
     async addFolder(name: string) {
       // Open the New dropdown
-      await this.page.getByTestId('canvas-page-list-new-button').click({
-        force: true,
-        timeout: 10000,
-      });
+      await expect(
+        this.page.getByTestId('canvas-page-list-new-button'),
+      ).toBeVisible();
+      await this.page.getByTestId('canvas-page-list-new-button').click();
 
       // Wait for dropdown to be visible
       await expect(
@@ -43,6 +43,31 @@ export function CanvasFoldersMixin<TBase extends Constructor<CanvasBase>>(
       ).toBeVisible();
     }
 
+    async deleteFolder(name: string) {
+      try {
+        await this.page.locator(`[data-canvas-folder-name="${name}"]`).hover();
+        await this.page
+          .locator(`[data-canvas-folder-name="${name}"]`)
+          .getByRole('button', { name: 'Menu' })
+          .click();
+
+        // Click Delete folder option.
+        await this.page
+          .getByRole('menuitem', { name: 'Delete folder' })
+          .click();
+
+        // Wait for folder to be deleted.
+        await expect(
+          this.page.locator(`[data-canvas-folder-name="${name}"]`),
+        ).not.toBeAttached({ timeout: 10000 });
+      } catch (error) {
+        throw new Error(
+          'deleteFolder: Folder did not delete - is it empty?\n' +
+            (error instanceof Error ? error.message : String(error)),
+        );
+      }
+    }
+
     async expandFolder(name: string) {
       const folder = this.page.locator(`[data-canvas-folder-name="${name}"]`);
       await expect(folder).toBeVisible();
@@ -56,6 +81,36 @@ export function CanvasFoldersMixin<TBase extends Constructor<CanvasBase>>(
       if ((await expandToggle.count()) > 0) {
         await expandToggle.first().click({ force: true });
       }
+    }
+
+    async moveComponentIntoFolder(componentName: string, folder: string) {
+      const componentLocator = `[data-testid="canvas-primary-panel"] [data-canvas-name="${componentName}"]`;
+      const dropzoneLocator = `[data-testid="canvas-primary-panel"] [data-canvas-folder-name="${folder}"]`;
+      await this.drag(componentLocator, dropzoneLocator);
+      const newComponentLocation = this.page
+        .locator(
+          `[data-testid="canvas-primary-panel"] [data-canvas-folder-name="${folder}"]`,
+        )
+        .locator('..')
+        .locator(`[data-canvas-name="${componentName}"]`);
+
+      await expect(newComponentLocation).toBeVisible();
+      await expect(newComponentLocation).toContainText(componentName);
+    }
+
+    async moveComponentOutOfFolder(componentName: string, folder: string) {
+      const componentLocator = `[data-testid="canvas-primary-panel"] [data-canvas-name="${componentName}"]`;
+      const dropzoneLocator = `[data-testid="canvas-primary-panel"] [data-testid="canvas-uncategorized-drop-zone-js_component"]`;
+      await this.drag(componentLocator, dropzoneLocator);
+      const newComponentLocation = this.page
+        .locator(
+          `[data-testid="canvas-primary-panel"] [data-canvas-folder-name="${folder}"]`,
+        )
+        .locator('..')
+        .locator(`[data-canvas-name="${componentName}"]`);
+
+      await expect(newComponentLocation).toBeVisible();
+      await expect(newComponentLocation).toContainText(componentName);
     }
   };
 }
