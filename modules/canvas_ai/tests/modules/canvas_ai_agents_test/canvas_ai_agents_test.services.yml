@@ -1,0 +1,3 @@
+services:
+  canvas_ai_agents_test.yaml_path_helper:
+    class: Drupal\canvas_ai_agents_test\Service\YamlPathHelper

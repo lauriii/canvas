@@ -1,0 +1,9 @@
+name: Canvas AI Agents Test
+type: module
+description: 'Support module for testing Canvas AI integrations with AI Agents.'
+package: Testing
+dependencies:
+  - canvas_ai:canvas_ai
+  - ai_agents:ai_agents
+  - ai_agents_test:ai_agents_test
+  - canvas_test_sdc:canvas_test_sdc
