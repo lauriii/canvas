@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Element;
 
+use Drupal\canvas\GlobalImports;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
@@ -86,6 +87,8 @@ final class AstroIsland extends RenderElementBase {
    * Pre-render callback.
    */
   public static function preRenderIsland(array $element): array {
+    $global_imports = \Drupal::service(GlobalImports::class);
+    \assert($global_imports instanceof GlobalImports);
     $component_url = $element['#component_url'] ?? NULL;
     if ($component_url === NULL) {
       return ['#plain_text' => \sprintf('You must pass a #component_url for an element of #type %s', self::PLUGIN_ID)];
@@ -98,7 +101,9 @@ final class AstroIsland extends RenderElementBase {
 
     $client = \Drupal::service(LibraryDiscoveryInterface::class)->getLibraryByName('canvas', 'astro.client');
     \assert(isset($client['js'][0]['data']) && count($client['js']) === 1);
-    $renderer_url = base_path() . $client['js'][0]['data'];
+    // We handle manually adding this library, so we need to handle the cache
+    // busting too.
+    $renderer_url = base_path() . $client['js'][0]['data'] . '?' . $global_imports->getQueryString();
 
     $mapped_props = \array_map(static fn(mixed $prop_value): array => [
       'raw',
