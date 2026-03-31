@@ -164,7 +164,8 @@ default:
         - package-lock.json
       prefix: ${CI_PARENT_PROJECT_NAME}
     paths:
-      - .cache/
+      - .cache/composer
+      - .cache/npm
     policy: pull
     fallback_keys:
       - ${CI_PARENT_PROJECT_NAME}
@@ -176,22 +177,58 @@ cache dependencies:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_PATH !~ /^issue\//
   cache:
-    key:
-      files:
-        - composer.lock
-        - package-lock.json
-      prefix: ${CI_PARENT_PROJECT_NAME}
-    paths:
-      - .cache/
-    policy: pull-push
-    fallback_keys:
-      - ${CI_PARENT_PROJECT_NAME}
+    - key:
+        files:
+          - composer.lock
+          - package-lock.json
+        prefix: ${CI_PARENT_PROJECT_NAME}
+      paths:
+        - .cache/composer
+        - .cache/npm
+      policy: pull-push
+      fallback_keys:
+        - ${CI_PARENT_PROJECT_NAME}
+    - key:
+        files:
+          - package-lock.json
+        prefix: ${CI_PARENT_PROJECT_NAME}-playwright
+      paths:
+        - .cache/ms-playwright
+      policy: pull-push
   before_script:
     - !reference [ .drupal ]
     - composer run install-dev-deps
   script:
     - npm ci
     - npx playwright install
+
+# The upstream .composer-base job defines artifacts.paths: [.], which uploads
+# the entire project directory. The default cache pulls .cache/composer and
+# .cache/npm into the working directory, inflating the artifact file count and
+# causing a 503 on Drupal.org's GitLab. Exclude .cache/ entirely.
+# Note: the full upstream exclude list is repeated here because GitLab CI
+# replaces (not concatenates) artifact.exclude arrays on include overrides.
+composer:
+  artifacts:
+    exclude:
+      - '.git'
+      - '.git/**/*'
+      - '$_WEB_ROOT/**/.git'
+      - '$_WEB_ROOT/**/.git/**/*'
+      - 'vendor/**/.git'
+      - 'vendor/**/.git/**/*'
+      - '.cache/**/*'
+
+composer (next minor):
+  artifacts:
+    exclude:
+      - '.git'
+      - '.git/**/*'
+      - '$_WEB_ROOT/**/.git'
+      - '$_WEB_ROOT/**/.git/**/*'
+      - 'vendor/**/.git'
+      - 'vendor/**/.git/**/*'
+      - '.cache/**/*'
 
 # Disable jobs from the upstream template.
 phpcs:
@@ -659,6 +696,25 @@ playwright:
   image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
   extends:
     - .test-variables
+  cache:
+    - key:
+        files:
+          - composer.lock
+          - package-lock.json
+        prefix: ${CI_PARENT_PROJECT_NAME}
+      paths:
+        - .cache/composer
+        - .cache/npm
+      policy: pull
+      fallback_keys:
+        - ${CI_PARENT_PROJECT_NAME}
+    - key:
+        files:
+          - package-lock.json
+        prefix: ${CI_PARENT_PROJECT_NAME}-playwright
+      paths:
+        - .cache/ms-playwright
+      policy: pull
   variables:
     GIT_DEPTH: 1
     _TARGET_DB_TYPE: sqlite
