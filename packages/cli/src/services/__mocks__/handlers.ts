@@ -60,6 +60,12 @@ export const handlers = [
       return HttpResponse.json({}, { status: 401 });
     }
 
+    if (
+      request.headers.get('Authorization') === 'Bearer invalid-static-token'
+    ) {
+      return HttpResponse.json({}, { status: 401 });
+    }
+
     return HttpResponse.json({});
   }),
 ];

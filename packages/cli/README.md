@@ -82,12 +82,13 @@ You can copy the
 [`.env.example` file](https://git.drupalcode.org/project/canvas/-/blob/1.x/cli/.env.example)
 to get started.
 
-| CLI argument      | Environment variable   | Description                                                                                                                                       |
-| ----------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--site-url`      | `CANVAS_SITE_URL`      | Base URL of your Drupal site. Can point to different environments (local dev, staging, production).                                               |
-| `--client-id`     | `CANVAS_CLIENT_ID`     | OAuth client ID. Different environments may have different OAuth clients with different permissions.                                              |
-| `--client-secret` | `CANVAS_CLIENT_SECRET` | OAuth client secret. This is a secret credential that must never be committed to version control.                                                 |
-| `--scope`         | `CANVAS_SCOPE`         | (Optional) Space-separated list of OAuth scopes to request. Tied to your specific Drupal site's OAuth configuration. Defaults to standard scopes. |
+| CLI argument      | Environment variable   | Description                                                                                                                                                                                           |
+| ----------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--site-url`      | `CANVAS_SITE_URL`      | Base URL of your Drupal site. Can point to different environments (local dev, staging, production).                                                                                                   |
+| `--client-id`     | `CANVAS_CLIENT_ID`     | OAuth client ID. Different environments may have different OAuth clients with different permissions.                                                                                                  |
+| `--client-secret` | `CANVAS_CLIENT_SECRET` | OAuth client secret. This is a secret credential that must never be committed to version control.                                                                                                     |
+| `--scope`         | `CANVAS_SCOPE`         | (Optional) Space-separated list of OAuth scopes to request. Tied to your specific Drupal site's OAuth configuration. Defaults to standard scopes.                                                     |
+| _(none)_          | `CANVAS_ACCESS_TOKEN`  | (Optional) Pre-issued Bearer token. When set, skips the OAuth client credentials flow entirely. `CANVAS_CLIENT_ID`, `CANVAS_CLIENT_SECRET`, and `CANVAS_SCOPE` are ignored. Must not be empty if set. |
 
 **Note:** The `--scope` parameter defaults to
 `"canvas:js_component canvas:asset_library"`, which are the default scopes

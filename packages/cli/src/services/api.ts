@@ -16,6 +16,7 @@ export interface ApiOptions {
   clientSecret: string;
   scope: string;
   userAgent?: string;
+  accessToken?: string;
 }
 
 export class ApiService {
@@ -71,13 +72,20 @@ export class ApiService {
       ],
     });
 
+    // When a pre-issued access token is provided, use it directly without OAuth
+    if (options.accessToken) {
+      this.accessToken = options.accessToken;
+      this.client.defaults.headers.common['Authorization'] =
+        `Bearer ${options.accessToken}`;
+    }
+
     // Add response interceptor for automatic token refresh
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
 
-        // Check if this is a 401 error and we haven't already retried this request
+        // Check if this is a 401 error and we haven't already retried this request.
         if (
           error.response?.status === 401 &&
           !originalRequest._retry &&
@@ -129,6 +137,12 @@ export class ApiService {
    * Handles concurrent refresh attempts by reusing the same promise.
    */
   private async refreshAccessToken(): Promise<string> {
+    if (!this.clientId || !this.clientSecret) {
+      throw new Error(
+        'No client credentials configured; cannot refresh access token.',
+      );
+    }
+
     // If a refresh is already in progress, wait for it
     if (this.refreshPromise) {
       return this.refreshPromise;
@@ -452,8 +466,9 @@ export class ApiService {
 
     // 401 Authentication errors
     if (status === 401) {
-      let message =
-        'Authentication failed. Please check your client ID and secret.';
+      let message = !this.clientId
+        ? 'Authentication failed. Please check your access token (CANVAS_ACCESS_TOKEN).'
+        : 'Authentication failed. Please check your client ID and secret.';
 
       // Include error_description if available
       if (
@@ -589,6 +604,19 @@ export function createApiService(): Promise<ApiService> {
     throw new Error(
       'Site URL is required. Set it in the CANVAS_SITE_URL environment variable or pass it with --site-url.',
     );
+  }
+
+  const accessToken = process.env.CANVAS_ACCESS_TOKEN;
+
+  if (accessToken) {
+    return ApiService.create({
+      siteUrl: config.siteUrl,
+      clientId: '',
+      clientSecret: '',
+      scope: '',
+      userAgent: config.userAgent,
+      accessToken,
+    });
   }
 
   if (!config.clientId) {

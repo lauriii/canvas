@@ -1,8 +1,17 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
+import { setConfig } from '../config';
 // eslint-disable-next-line vitest/no-mocks-import
 import { server } from './__mocks__/server';
-import { ApiService } from './api';
+import { ApiService, createApiService } from './api';
 
 describe('api service', () => {
   const mockConfig = {
@@ -142,6 +151,75 @@ describe('api service', () => {
 
       // @ts-expect-error - accessing private property for testing
       expect(client.refreshPromise).toBe(null);
+    });
+  });
+
+  describe('static access token', () => {
+    beforeAll(() => {
+      server.listen();
+    });
+
+    afterAll(() => {
+      server.close();
+    });
+
+    it('should use a pre-issued access token directly without OAuth', async () => {
+      const client = await ApiService.create({
+        siteUrl: mockConfig.siteUrl,
+        clientId: '',
+        clientSecret: '',
+        scope: '',
+        accessToken: 'test-static-token',
+      });
+      expect(client.getAccessToken()).toBe('test-static-token');
+
+      // Should succeed without hitting OAuth (refreshAccessToken throws when clientId is empty)
+      await expect(client.listComponents()).resolves.toBeDefined();
+    });
+
+    it('should send the static token as Bearer on all requests', async () => {
+      const client = await ApiService.create({
+        siteUrl: mockConfig.siteUrl,
+        clientId: '',
+        clientSecret: '',
+        scope: '',
+        accessToken: 'test-static-token',
+      });
+
+      // @ts-expect-error - accessing private header for testing
+      const authHeader = client.client.defaults.headers.common['Authorization'];
+      expect(authHeader).toBe('Bearer test-static-token');
+    });
+
+    it('should fail with a descriptive error on 401', async () => {
+      const client = await ApiService.create({
+        siteUrl: mockConfig.siteUrl,
+        clientId: '',
+        clientSecret: '',
+        scope: '',
+        accessToken: 'invalid-static-token',
+      });
+
+      await expect(client.listComponents()).rejects.toThrow(
+        'Authentication failed. Please check your access token (CANVAS_ACCESS_TOKEN).',
+      );
+    });
+  });
+
+  describe('createApiService', () => {
+    beforeAll(() => {
+      setConfig({ siteUrl: 'https://canvas-mock' });
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('should use CANVAS_ACCESS_TOKEN when set and non-empty', async () => {
+      vi.stubEnv('CANVAS_ACCESS_TOKEN', 'env-static-token');
+
+      const client = await createApiService();
+      expect(client.getAccessToken()).toBe('env-static-token');
     });
   });
 });
