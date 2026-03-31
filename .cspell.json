@@ -9,6 +9,7 @@
       ".*ignore",
       "./cli/LICENSE.md",
       "./composer.json",
+      ".cache",
       ".git",
       "*_ignore_*",
       "*.patch",

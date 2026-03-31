@@ -186,6 +186,7 @@ export default defineConfig([
       "js/astro-bundles/*",
       "js/assets/**/*",
       "ui/src/local_packages",
+      ".cache/**",
     ]
   }
 ]);
