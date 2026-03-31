@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Canvas Stark override for datetime form wrapper in multivalue fields.
+ *
+ * Available variables:
+ * - content: The form element to be output, usually a datelist or datetime.
+ * - fieldLabel: The field label for multivalue forms, passed via preprocess.
+ *
+ * @see canvas_stark_preprocess_datetime_wrapper()
+ *
+ * @ingroup themeable
+ */
+#}
+<drupal-canvas-datetime-wrapper--multivalue-form
+  field-label="{{ fieldLabel }}"
+>
+  {{ content }}
+</drupal-canvas-datetime-wrapper--multivalue-form>
+

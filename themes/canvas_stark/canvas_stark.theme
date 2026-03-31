@@ -99,6 +99,19 @@ function canvas_stark_theme_suggestions_input_alter(array &$suggestions, array $
 }
 
 /**
+ * Implements hook_theme_suggestions_datetime_wrapper_alter().
+ */
+function canvas_stark_theme_suggestions_datetime_wrapper_alter(array &$suggestions, array $variables): void {
+  // Check if this datetime wrapper is in a multivalue field context.
+  // @todo remove 'canvas_dev_mode' check once https://drupal.org/i/3577946 is fixed.
+  if (\Drupal::moduleHandler()->moduleExists('canvas_dev_mode') &&
+    isset($variables['element']['#multivalue_field_label']) &&
+    !empty($variables['element']['#multivalue_field_label'])) {
+    $suggestions[] = 'datetime_wrapper__multivalue_form';
+  }
+}
+
+/**
  * Implements hook_theme_suggestions_alter().
  */
 function canvas_stark_theme_suggestions_alter(array &$suggestions, array $variables): void {
@@ -194,6 +207,42 @@ function canvas_stark_preprocess_field_multiple_value_form(array &$variables): v
     ];
   }
   $variables['description_attributes'] = $variables['description']['attributes'] ?? [];
+
+  // Only apply custom styling if canvas_dev_mode is enabled.
+  // @todo remove once https://drupal.org/i/3577946 is fixed.
+  if (\Drupal::moduleHandler()->moduleExists('canvas_dev_mode')) {
+    // Add classes to table columns to enable Canvas-specific styling.
+    if (isset($variables['table']['#rows'])) {
+      foreach ($variables['table']['#rows'] as &$row) {
+        // Add class to column 0 (drag handle).
+        if (isset($row['data'][0])) {
+          $row['data'][0]['class'] = ['field-multiple-drag', 'canvas-drag-handle'];
+        }
+        // Add class to column 1 (field content).
+        if (isset($row['data'][1])) {
+          if (!isset($row['data'][1]['class'])) {
+            $row['data'][1]['class'] = [];
+          }
+          $row['data'][1]['class'][] = 'canvas-multivalue-field-content';
+        }
+        // Add class and data attribute to column 2 (actions/remove button).
+        if (isset($row['data'][2])) {
+          $row['data'][2]['class'] = ['canvas-remove-action'];
+          // Add a custom data attribute to the cell containing the remove
+          // button to make it reliably identifiable.
+          if (!isset($row['data'][2]['data-canvas-remove-button'])) {
+            $row['data'][2]['data-canvas-remove-button'] = '';
+          }
+        }
+      }
+
+      // Attach the library for multivalue form styles.
+      $variables['table']['#attached']['library'][] = 'canvas/multivalue-form';
+    }
+    if (isset($variables['button']['#value'])) {
+      $variables['button']['#value'] = t('+ Add new');
+    }
+  }
 }
 
 /**
@@ -260,5 +309,15 @@ function canvas_stark_preprocess_fieldset(array &$variables): void {
 function canvas_stark_preprocess_datetime_wrapper(array &$variables): void {
   if (isset($variables['element']['#prop_link_data'])) {
     $variables['prop_link_data'] = Json::encode($variables['element']['#prop_link_data']);
+  }
+
+  // Only apply custom styling if canvas_dev_mode is enabled.
+  // @todo remove once https://drupal.org/i/3577946 is fixed.
+  if (\Drupal::moduleHandler()->moduleExists('canvas_dev_mode')) {
+    // Pass field label to the template for multivalue datetime forms.
+    $element = $variables['element'] ?? [];
+    if (isset($element['#multivalue_field_label'])) {
+      $variables['fieldLabel'] = $element['#multivalue_field_label'];
+    }
   }
 }

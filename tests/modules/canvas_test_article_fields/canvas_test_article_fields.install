@@ -410,6 +410,58 @@ function canvas_test_article_fields_install(): void {
         ['value' => 'Marshmallow Coast'],
       ],
     ],
+    'field_cvt_unlimited_datetime' => [
+      'type' => 'datetime',
+      'label' => 'Canvas Unlimited DateTime',
+      'settings' => [
+        'datetime_type' => 'datetime',
+      ],
+      'cardinality' => -1,
+      'widget' => [
+        'type' => 'datetime_default',
+        'weight' => -996,
+        'settings' => [],
+      ],
+      'default_value' => [],
+    ],
+    'field_cvt_unlimited_date' => [
+      'type' => 'datetime',
+      'label' => 'Canvas Unlimited Date',
+      'settings' => [
+        'datetime_type' => 'date',
+      ],
+      'cardinality' => -1,
+      'widget' => [
+        'type' => 'datetime_default',
+        'weight' => -995,
+        'settings' => [],
+      ],
+      'default_value' => [],
+    ],
+    'field_cvt_required_datetime' => [
+      'type' => 'datetime',
+      'label' => 'Canvas Required DateTime',
+      'settings' => [
+        'datetime_type' => 'datetime',
+      ],
+      'cardinality' => -1,
+      'required' => TRUE,
+      'widget' => [
+        'type' => 'datetime_default',
+        'weight' => -994,
+        'settings' => [],
+      ],
+      // A non-empty default value is required so that existing article nodes
+      // (e.g. "I am an empty node") pass required-field validation when
+      // published by unrelated tests such as ckeditor5.cy.js and
+      // publish-validation.cy.js.
+      'default_value' => [
+        \array_intersect_key($date_range_default_value[0], \array_flip([
+          'default_date_type',
+          'default_date',
+        ])),
+      ],
+    ],
     'field_cvt_unlimited_media' => [
       'type' => 'entity_reference',
       'label' => 'Canvas Unlimited Media',

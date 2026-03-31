@@ -5,6 +5,7 @@ import {
   DrupalContainerTextFormatFilterGuidelines,
   DrupalContainerTextFormatFilterHelp,
 } from '@/components/form/components/drupal/DrupalContainerTextFormat';
+import DrupalDatetimeMultivalueForm from '@/components/form/components/drupal/DrupalDatetimeMultivalueForm';
 import DrupalDetails from '@/components/form/components/drupal/DrupalDetails';
 import DrupalForm from '@/components/form/components/drupal/DrupalForm';
 import DrupalFormElement from '@/components/form/components/drupal/DrupalFormElement';
@@ -41,6 +42,8 @@ const twigToJSXComponentMap = {
   'drupal-canvas-input--url': DrupalInput,
   'drupal-canvas-input--textfield--inwidget-path': DrupalPathWidget,
   'drupal-canvas-input--multivalue-form': DrupalInputMultivalueForm,
+  'drupal-canvas-datetime-wrapper--multivalue-form':
+    DrupalDatetimeMultivalueForm,
   'drupal-canvas-radios': DrupalRadioGroup,
   'drupal-canvas-select': DrupalSelect,
   'drupal-canvas-textarea': DrupalTextArea,

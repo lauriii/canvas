@@ -116,7 +116,8 @@
 .field-multiple-table td .js-form-type-number,
 .field-multiple-table td .js-form-type-integer,
 .field-multiple-table td .js-form-type-entity_autocomplete,
-.field-multiple-table td .js-form-type-url {
+.field-multiple-table td .js-form-type-url,
+.field-multiple-table td .js-form-type-date {
   margin-bottom: 0;
 }
 
@@ -197,3 +198,20 @@
 .multivalue-container .canvas-remove-action:has([data-drupal-selector*="remove-button"]) {
   display: none;
 }
+
+/* Hide legends and fieldset borders in multivalue form field content */
+.canvas-multivalue-field-content fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.canvas-multivalue-field-content fieldset legend {
+  display: none;
+}
+
+.canvas-multivalue-field-content .fieldset-wrapper {
+  margin: 0;
+  padding: 0;
+}
+
