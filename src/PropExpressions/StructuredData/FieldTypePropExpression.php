@@ -69,7 +69,10 @@ final class FieldTypePropExpression implements FieldTypeBasedPropExpressionInter
       elseif (is_a($property_definitions[$this->propName]->getClass(), DependentPluginInterface::class, TRUE)) {
         \assert($property_definitions[$this->propName]->isComputed());
         foreach ($field_item_list as $field_item) {
-          $dependencies = NestedArray::mergeDeep($dependencies, $field_item->get($this->propName)->calculateDependencies());
+          $field_item_prop = $field_item->get($this->propName);
+          // @todo This looks like a PHPStan regression: https://github.com/phpstan/phpstan/issues/12882#issuecomment-4157685453
+          \assert($field_item_prop instanceof DependentPluginInterface);
+          $dependencies = NestedArray::mergeDeep($dependencies, $field_item_prop->calculateDependencies());
         }
       }
     }
