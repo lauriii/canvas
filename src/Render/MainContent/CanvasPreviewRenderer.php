@@ -85,6 +85,19 @@ final class CanvasPreviewRenderer extends HtmlRenderer {
    */
   protected function prepare(array $main_content, Request $request, RouteMatchInterface $route_match) {
     [$page, $title] = parent::prepare($main_content, $request, $route_match);
+
+    // When editing a content template for a non-full view mode, global regions
+    // are not part of the display. Strip them so they are not rendered or
+    // annotated for the editor.
+    if ($main_content['#canvas_hide_global_regions'] ?? FALSE) {
+      foreach (Element::children($page) as $region) {
+        if ($region !== CanvasPageVariant::MAIN_CONTENT_REGION) {
+          $page[$region] = [];
+        }
+      }
+      return [$page, $title];
+    }
+
     foreach (Element::children($page) as $region) {
       if ($region === CanvasPageVariant::MAIN_CONTENT_REGION) {
         continue;

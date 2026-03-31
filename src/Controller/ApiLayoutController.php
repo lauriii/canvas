@@ -81,7 +81,7 @@ final class ApiLayoutController {
    */
   public function get((ContentEntityInterface&EntityPublishedInterface)|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
-    $regions = PageRegion::loadForActiveTheme();
+    $regions = self::shouldIncludeGlobalRegions($entity) ? PageRegion::loadForActiveTheme() : [];
 
     // Store the original entity for comparison purposes.
     $original_entity = $entity;
@@ -124,7 +124,10 @@ final class ApiLayoutController {
       // an object and not empty array.
       'model' => empty($model) ? new \stdClass() : $model,
       'isNew' => $is_new,
-      'autoSaves' => $this->getAutoSaveHashes(array_merge([$entity], self::getEditableRegions())),
+      'autoSaves' => $this->getAutoSaveHashes(array_merge(
+        [$entity],
+        self::getEditableRegions($entity),
+      )),
     ];
     if ($entity instanceof ContentEntityInterface && $entity instanceof EntityPublishedInterface) {
       $data['isPublished'] = $entity->isPublished();
@@ -290,12 +293,18 @@ final class ApiLayoutController {
     //   containing the component, determine if here we should only validate
     //   that entity in https://drupal.org/i/3532056 or implement concurrent
     //   editing in https://drupal.org/i/3492065.
-    $this->validateAutoSaves(array_merge([$entity], self::getEditableRegions()), $autoSaves, $clientInstanceId);
+    $this->validateAutoSaves(
+      array_merge([$entity], self::getEditableRegions($entity)),
+      $autoSaves,
+      $clientInstanceId,
+    );
 
     // Determine which entity to PATCH.
     $entity = $this->getAutoSavedVersionIfAvailable([$entity])[$entity->id()];
     \assert($entity instanceof FieldableEntityInterface || $entity instanceof ContentTemplate);
-    $regions = $this->getAutoSavedVersionIfAvailable(PageRegion::loadForActiveTheme());
+    $regions = self::shouldIncludeGlobalRegions($entity)
+      ? $this->getAutoSavedVersionIfAvailable(PageRegion::loadForActiveTheme())
+      : [];
     $entity_to_patch = $this->getEntityWithComponentInstance([$entity, ...$regions], $componentInstanceUuid);
 
     // Route-level access checks already verified `edit` access to $entity. Only
@@ -316,7 +325,10 @@ final class ApiLayoutController {
     if ($entity instanceof FieldableEntityInterface) {
       $data['entity_form_fields'] = $this->getFilteredEntityData($entity);
     }
-    $data['autoSaves'] = $this->getAutoSaveHashes(array_merge([$entity], self::getEditableRegions()));
+    $data['autoSaves'] = $this->getAutoSaveHashes(array_merge(
+      [$entity],
+      self::getEditableRegions($entity),
+    ));
     return new PreviewEnvelope(
       $this->buildPreviewRenderable($entity, $preview_entity),
       additionalData: $data
@@ -360,7 +372,11 @@ final class ApiLayoutController {
       $entity_form_fields = NULL;
     }
 
-    $this->validateAutoSaves(array_merge([$entity], self::getEditableRegions()), $autoSaves, $clientInstanceId);
+    $this->validateAutoSaves(
+      array_merge([$entity], self::getEditableRegions($entity)),
+      $autoSaves,
+      $clientInstanceId,
+    );
 
     // Route-level access checks already verified `edit` access to $entity. But
     // any PageRegion entities present in the layout provided by the client
@@ -405,7 +421,10 @@ final class ApiLayoutController {
     return new PreviewEnvelope(
       $this->buildPreviewRenderable($entity, $preview_entity),
       additionalData: [
-        'autoSaves' => $this->getAutoSaveHashes([$entity, ...self::getEditableRegions()]),
+        'autoSaves' => $this->getAutoSaveHashes(array_merge(
+          [$entity],
+          self::getEditableRegions($entity),
+        )),
       ],
     );
   }
@@ -426,6 +445,9 @@ final class ApiLayoutController {
       : Markup::create('<!-- canvas-region-start-content --><div class="canvas--region-empty-placeholder"></div>');
     $build['#suffix'] = Markup::create('<!-- canvas-region-end-content -->');
     $build['#attached']['library'][] = 'canvas/preview';
+    if (!self::shouldIncludeGlobalRegions($entity)) {
+      $build['#canvas_hide_global_regions'] = TRUE;
+    }
     return $build;
   }
 
@@ -478,10 +500,24 @@ final class ApiLayoutController {
   }
 
   /**
-   * @return \Drupal\canvas\Entity\PageRegion[]
-   *   The editable regions for the active theme.
+   * Whether global regions are included in layout and preview for this entity.
+   *
+   * For content templates with a view mode other than "full", global regions
+   * are not part of the display and are excluded from the editor and preview.
    */
-  private static function getEditableRegions(): array {
+  private static function shouldIncludeGlobalRegions(ContentTemplate|FieldableEntityInterface $entity): bool {
+    return !($entity instanceof ContentTemplate && $entity->getMode() !== 'full');
+  }
+
+  /**
+   * @return \Drupal\canvas\Entity\PageRegion[]
+   *   The editable regions for the active theme, or empty if global regions
+   *   should not be included for the given entity.
+   */
+  private static function getEditableRegions(ContentTemplate|FieldableEntityInterface $entity): array {
+    if (!self::shouldIncludeGlobalRegions($entity)) {
+      return [];
+    }
     return array_filter(PageRegion::loadForActiveTheme(), fn(PageRegion $region) => $region->access('update'));
   }
 

@@ -8,10 +8,11 @@ import { isolatedPerTest as test } from '../../fixtures/test.js';
  * then it checks that a user with minimal permissions can still access the UI but with limited functionality.
  */
 test.describe('Canvas UI Permissions', () => {
-  test.beforeEach(async ({ drupal }) => {
+  test.beforeEach(async ({ drupal, canvas }) => {
     await drupal.enableTestExtensions();
     await drupal.loginAsAdmin();
     await drupal.installModules(['canvas_test_sdc']);
+    await canvas.enableGlobalRegions();
     await drupal.logout();
   });
 

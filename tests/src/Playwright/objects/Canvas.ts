@@ -2,6 +2,7 @@ import { CanvasBase } from './canvas/CanvasBase.js';
 import { CanvasCodeComponentsMixin } from './canvas/CanvasCodeComponents.js';
 import { CanvasComponentsMixin } from './canvas/CanvasComponents.js';
 import { CanvasFoldersMixin } from './canvas/CanvasFolders.js';
+import { CanvasGlobalRegionsMixin } from './canvas/CanvasGlobalRegions.js';
 import { CanvasMediaMixin } from './canvas/CanvasMedia.js';
 import { CanvasNavigationMixin } from './canvas/CanvasNavigation.js';
 import { CanvasTemplatesMixin } from './canvas/CanvasTemplates.js';
@@ -12,7 +13,9 @@ export class Canvas extends CanvasFoldersMixin(
     CanvasCodeComponentsMixin(
       CanvasComponentsMixin(
         CanvasNavigationMixin(
-          CanvasTemplatesMixin(CanvasUtilitiesMixin(CanvasBase)),
+          CanvasTemplatesMixin(
+            CanvasUtilitiesMixin(CanvasGlobalRegionsMixin(CanvasBase)),
+          ),
         ),
       ),
     ),

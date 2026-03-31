@@ -13,6 +13,7 @@ use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
 use Drupal\Core\Url;
@@ -317,6 +318,76 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $autoSave->saveEntity($original_entity);
     $response = $this->request(Request::create($url->toString()));
     $this->assertResponseAutoSaves($response, [$original_entity], TRUE);
+  }
+
+  /**
+   * Global regions are hidden when editing a content template for non-full view mode.
+   */
+  public function testNonFullContentTemplateHidesGlobalRegions(): void {
+    // Ensure the teaser view mode exists (node module provides it by default).
+    $view_mode = $this->container->get('entity_type.manager')
+      ->getStorage('entity_view_mode')
+      ->load('node.teaser');
+    if ($view_mode === NULL) {
+      EntityViewMode::create([
+        'id' => 'node.teaser',
+        'label' => 'Teaser',
+        'targetEntityType' => 'node',
+      ])->save();
+    }
+
+    ContentTemplate::create([
+      'id' => 'node.article.teaser',
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'teaser',
+      'component_tree' => [
+        [
+          'uuid' => 'e1f6fbca-e331-4506-9dba-5734194c1e59',
+          'component_id' => 'sdc.canvas_test_sdc.my-hero',
+          'component_version' => 'a681ae184a8f6b7f',
+          'inputs' => [
+            'heading' => 'Canvas is large and in charge!',
+            'subheading' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:article␝created␞␟value',
+              'adapter' => 'unix_to_date',
+            ],
+            'cta1' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+            'cta1href' => [
+              'sourceType' => PropSource::HostEntityUrl->value,
+            ],
+          ],
+        ],
+      ],
+    ])->save();
+
+    $this->previewEntity = Node::load(1);
+    self::assertInstanceOf(ContentEntityInterface::class, $this->previewEntity);
+    $entity = ContentTemplate::load('node.article.teaser');
+    self::assertInstanceOf(ContentTemplate::class, $entity);
+    $this->setUpCurrentUser([], [ContentTemplate::ADMIN_PERMISSION, PageRegion::ADMIN_PERMISSION]);
+    $this->enableGlobalRegions();
+
+    $url = $this->getLayoutUrl($entity);
+    $response = $this->request(Request::create($url->toString()));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+
+    $json = static::decodeResponse($response);
+    self::assertArrayHasKey('layout', $json);
+    self::assertCount(1, $json['layout'], 'Non-full content template must expose only the content region.');
+    self::assertSame(CanvasPageVariant::MAIN_CONTENT_REGION, $json['layout'][0]['id']);
+
+    $this->assertResponseAutoSaves($response, [$entity], FALSE);
+
+    self::assertArrayHasKey('html', $json);
+    $this->setRawContent($json['html']);
+    self::assertNotNull($this->getRegion('content'), 'Content region must be present in preview HTML.');
+    self::assertNull($this->getRegion('header'), 'Global regions must not appear in preview HTML for non-full view mode.');
+    self::assertNull($this->getRegion('highlighted'), 'Global regions must not appear in preview HTML for non-full view mode.');
   }
 
   protected function assertRegions(int $count, EntityInterface $entity): NodeInterface {

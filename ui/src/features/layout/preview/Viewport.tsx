@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useParams } from 'react-router';
 import { Progress } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -18,6 +19,13 @@ import useSyncIframeHeightToContent from '@/hooks/useSyncIframeHeightToContent';
 
 import styles from './Preview.module.css';
 
+/**
+ * For non-full view modes (e.g. teaser, card), use no min height so the
+ * viewport is exactly the content size. When the canvas is empty, the preview
+ * iframe's empty-region placeholder (see preview.css) provides the height.
+ */
+const NON_FULL_VIEW_MODE_MIN_HEIGHT = 0;
+
 export interface ViewportProps {
   isFetching: boolean;
   frameSrcDoc: string; // HTML as a string to be rendered in the iFrame
@@ -34,12 +42,17 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   const editorFrameMode = useAppSelector(selectEditorFrameMode);
   const viewportWidth = useAppSelector(selectViewportWidth);
   const viewportMinHeight = useAppSelector(selectViewportMinHeight);
+  const { viewMode } = useParams();
+  const effectiveMinHeight =
+    viewMode && viewMode !== 'full'
+      ? NON_FULL_VIEW_MODE_MIN_HEIGHT
+      : viewportMinHeight;
   useComponentHtmlMap(iframeRef.current);
 
   useSyncIframeHeightToContent(
     iframeRef.current,
     previewContainerRef.current,
-    viewportMinHeight,
+    effectiveMinHeight,
   );
 
   useEffect(() => {
@@ -74,7 +87,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
 
   const containerStyles = {
     width: `${viewportWidth}px`,
-    minHeight: `${viewportMinHeight}px`,
+    minHeight: `${effectiveMinHeight}px`,
   };
 
   return (
