@@ -71,6 +71,9 @@ variables:
   COMPOSER_CACHE_DIR: $CI_PROJECT_DIR/.cache/composer
   npm_config_cache: $CI_PROJECT_DIR/.cache/npm
 
+  # Disable npm lifecycle scripts.
+  npm_config_ignore_scripts: "true"
+
   # This needs to match $_GITLAB_TEMPLATES_REPO `ref`. Omit if `ref` value is `_GITLAB_TEMPLATES_REF`.
   _CURL_TEMPLATES_REF: 1.12.x-latest
   # Show env variables always to help with debugging.
@@ -171,7 +174,7 @@ default:
       - ${CI_PARENT_PROJECT_NAME}
 
 cache dependencies:
-  image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
+  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
   stage: cache
   needs: []
   rules:
@@ -617,7 +620,7 @@ cypress unit:
 lint (php):
   stage: validate
   needs: []
-  image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
+  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
   variables:
     GIT_DEPTH: 1
     COMPOSER_ROOT_VERSION: 0.0.0
@@ -659,7 +662,7 @@ lint (php):
 lint (node):
   stage: validate
   needs: []
-  image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
+  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
   script:
     - npm ci
     - npm run lint
@@ -667,7 +670,7 @@ lint (node):
 type-check:
   stage: validate
   needs: []
-  image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
+  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
   script:
     - npm ci
     - npm run build --workspace=drupal-canvas
@@ -693,7 +696,7 @@ playwright:
     - *e2e-tests-are-enabled-rule
     - *manual-rule
   interruptible: true
-  image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
+  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
   extends:
     - .test-variables
   cache:
@@ -741,7 +744,7 @@ playwright-reports:
   when: always
   needs:
     - playwright
-  image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
+  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
   script:
     - mkdir -p test-results
     - npx playwright merge-reports --reporter=html ./blob-report
@@ -773,7 +776,7 @@ playwright-reports:
 
 CLI Test:
   stage: test
-  image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
+  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
   needs: []
   rules:
     - changes:
@@ -897,7 +900,7 @@ pages-publish:
 release:
   # For release flow details, see docs/release-process.md.
   stage: publish
-  image: ghcr.io/drupal-canvas/drupal-testing:1.0.2
+  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
   needs: []
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
