@@ -89,10 +89,13 @@ to get started.
 | `--client-secret` | `CANVAS_CLIENT_SECRET` | OAuth client secret. This is a secret credential that must never be committed to version control.                                                                                                     |
 | `--scope`         | `CANVAS_SCOPE`         | (Optional) Space-separated list of OAuth scopes to request. Tied to your specific Drupal site's OAuth configuration. Defaults to standard scopes.                                                     |
 | _(none)_          | `CANVAS_ACCESS_TOKEN`  | (Optional) Pre-issued Bearer token. When set, skips the OAuth client credentials flow entirely. `CANVAS_CLIENT_ID`, `CANVAS_CLIENT_SECRET`, and `CANVAS_SCOPE` are ignored. Must not be empty if set. |
+| `--include-pages` | `CANVAS_INCLUDE_PAGES` | (Optional) Include pages in `pull` and `push`. Defaults to `false`. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                                   |
 
 **Note:** The `--scope` parameter defaults to
-`"canvas:js_component canvas:asset_library"`, which are the default scopes
-provided by the Drupal Canvas OAuth module (`canvas_oauth`).
+`"canvas:js_component canvas:asset_library"`. When pages are explicitly enabled
+with `--include-pages` or `CANVAS_INCLUDE_PAGES=true`, the default scope expands
+to
+`"canvas:js_component canvas:asset_library canvas:page:create canvas:page:read canvas:page:edit"`.
 
 #### Configuration Precedence
 
@@ -278,7 +281,8 @@ downloaded by default and can be controlled with `--skip-css` to exclude them or
 
 ### `pull`
 
-Pull code components and global CSS to your local filesystem.
+Pull code components and global CSS to your local filesystem. Pages are only
+included when explicitly enabled.
 
 **Usage:**
 
@@ -290,6 +294,7 @@ npx canvas pull [options]
 
 - `-d, --dir <directory>`: Component directory (defaults to `componentDir` from
   `canvas.config.json` or current working directory)
+- `--include-pages [enabled]`: Include pages in the pull operation
 - `-y, --yes`: Skip all confirmation prompts (non-interactive mode)
 - `--skip-overwrite`: Skip items that already exist locally
 
@@ -309,6 +314,12 @@ Pull everything:
 npx canvas pull
 ```
 
+Pull everything, including pages:
+
+```bash
+npx canvas pull --include-pages
+```
+
 Pull only new items (skip existing):
 
 ```bash
@@ -321,8 +332,9 @@ Fully non-interactive, only pull new items:
 npx canvas pull --yes --skip-overwrite
 ```
 
-Pulls all components and global CSS from your site. Use `--skip-overwrite` to
-skip items that already exist locally.
+Pulls all components and global CSS from your site. Use `--include-pages` or
+`CANVAS_INCLUDE_PAGES=true` to include pages, and `--skip-overwrite` to skip
+items that already exist locally.
 
 ---
 
@@ -591,7 +603,8 @@ the site will be updated if they already exist.
 
 ### `push`
 
-Build and push all local components, global CSS, and build artifacts to Drupal.
+Build and push local components, global CSS, and build artifacts to Drupal.
+Pages are only included when explicitly enabled.
 
 **Usage:**
 
@@ -603,6 +616,7 @@ npx canvas push [options]
 
 - `-d, --dir <directory>`: Directory to scan for components (defaults to
   `componentDir` from `canvas.config.json` or current working directory)
+- `--include-pages [enabled]`: Include pages in the push operation
 - `-y, --yes`: Skip confirmation prompts (non-interactive mode)
 
 **Examples:**
@@ -611,6 +625,12 @@ Push all discovered components:
 
 ```bash
 npx canvas push
+```
+
+Push components and pages:
+
+```bash
+npx canvas push --include-pages
 ```
 
 Push components in a specific directory:
@@ -626,13 +646,15 @@ npx canvas push --yes
 ```
 
 This command discovers components, analyzes and bundles dependencies, builds
-Tailwind CSS, and uploads everything to your Drupal site including:
+Tailwind CSS, and uploads the selected content to your Drupal site including:
 
 1. **Components** - Built and uploaded as js_component config entities
 2. **Global CSS** - Tailwind CSS assets uploaded as asset_library
 3. **Vendor artifacts** - Bundled third-party dependencies
 4. **Local artifacts** - Bundled local imports (e.g., `@/utils`)
 5. **Shared chunks** - Common code shared between vendor bundles
+6. **Pages** - Canvas pages built from components, when enabled with
+   `--include-pages` or `CANVAS_INCLUDE_PAGES=true`.
 
 ---
 

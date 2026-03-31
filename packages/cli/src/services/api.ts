@@ -3,12 +3,14 @@ import axios from 'axios';
 import { getConfig } from '../config.js';
 
 import type { AxiosError, AxiosInstance } from 'axios';
+import type { CanvasComponentTree } from 'drupal-canvas/json-render-utils';
 import type {
   AssetLibrary,
   Component,
   UploadedArtifact,
   UploadedArtifactResult,
 } from '../types/Component';
+import type { Page, PageListItem } from '../types/Page';
 
 export interface ApiOptions {
   siteUrl: string;
@@ -212,6 +214,27 @@ export class ApiService {
   }
 
   /**
+   * Fetch active version hashes for all Component config entities.
+   */
+  async listComponentVersions(): Promise<Map<string, string>> {
+    try {
+      const response = await this.client.get('/canvas/api/v0/config/component');
+      const versions = new Map<string, string>();
+      for (const [id, comp] of Object.entries(
+        response.data as Record<string, { version?: string }>,
+      )) {
+        if (comp.version) {
+          versions.set(id, comp.version);
+        }
+      }
+      return versions;
+    } catch (error) {
+      this.handleApiError(error);
+      throw new Error('Failed to list component versions');
+    }
+  }
+
+  /**
    * Create a new component in Canvas.
    */
   async createComponent(
@@ -294,6 +317,82 @@ export class ApiService {
     } catch (error) {
       this.handleApiError(error);
       throw new Error('Failed to get global asset library');
+    }
+  }
+
+  /**
+   * List all pages.
+   */
+  async listPages(): Promise<Record<string, PageListItem>> {
+    // @todo Paginate to fetch all pages after https://www.drupal.org/i/3502691 lands.
+    try {
+      const response = await this.client.get(
+        '/canvas/api/v0/content/canvas_page',
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+      throw new Error('Failed to list pages');
+    }
+  }
+
+  /**
+   * Get a single page with its component tree.
+   */
+  async getPage(id: string | number): Promise<Page> {
+    try {
+      const response = await this.client.get(
+        `/canvas/api/v0/content/canvas_page/${id}`,
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+      throw new Error(`Failed to get page '${id}'`);
+    }
+  }
+
+  /**
+   * Create a new page.
+   */
+  async createPage(page: {
+    title: string;
+    status: boolean;
+    path: string | null;
+    components: CanvasComponentTree;
+  }): Promise<Page> {
+    try {
+      const response = await this.client.post(
+        '/canvas/api/v0/content/canvas_page',
+        page,
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+      throw new Error(`Failed to create page '${page.title}'`);
+    }
+  }
+
+  /**
+   * Update an existing page.
+   */
+  async updatePage(
+    id: string | number,
+    page: {
+      title: string;
+      status: boolean;
+      path: string | null;
+      components: CanvasComponentTree;
+    },
+  ): Promise<Page> {
+    try {
+      const response = await this.client.patch(
+        `/canvas/api/v0/content/canvas_page/${id}`,
+        page,
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+      throw new Error(`Failed to update page '${page.title}'`);
     }
   }
 

@@ -27,6 +27,7 @@ describe('config', () => {
         siteUrl: '',
         clientId: '',
         clientSecret: '',
+        includePages: false,
         componentDir: './components',
       });
     });
@@ -40,6 +41,7 @@ describe('config', () => {
         componentDir: './components',
         deprecatedComponentDir: './components',
         globalCssPath: './src/components/global.css',
+        includePages: false,
         outputDir: 'dist',
         pagesDir: './pages',
         scope: 'canvas:js_component canvas:asset_library',
@@ -60,6 +62,7 @@ describe('config', () => {
         componentDir: './components',
         deprecatedComponentDir: './components',
         globalCssPath: './src/components/global.css',
+        includePages: false,
         outputDir: 'dist',
         pagesDir: './pages',
         scope: 'canvas:js_component canvas:asset_library',
@@ -75,6 +78,7 @@ describe('config', () => {
         siteUrl: 'https://example.com',
         clientId: 'test-client',
         clientSecret: 'test-secret',
+        includePages: false,
         componentDir: './components',
       });
 
@@ -233,7 +237,11 @@ describe('config', () => {
       vi.stubEnv('CANVAS_SITE_URL', 'https://test.example.com');
       vi.stubEnv('CANVAS_CLIENT_ID', 'test-client');
       vi.stubEnv('CANVAS_CLIENT_SECRET', 'test-secret');
-      vi.stubEnv('CANVAS_SCOPE', 'canvas:js_component canvas:asset_library');
+      vi.stubEnv(
+        'CANVAS_SCOPE',
+        'canvas:js_component canvas:asset_library canvas:page:create canvas:page:read canvas:page:edit',
+      );
+      vi.stubEnv('CANVAS_INCLUDE_PAGES', 'true');
       vi.stubEnv('CANVAS_USER_AGENT', 'simpletest123456');
 
       // Re-import config to trigger initialization
@@ -246,9 +254,11 @@ describe('config', () => {
         componentDir: process.cwd(),
         deprecatedComponentDir: './components',
         globalCssPath: './src/components/global.css',
+        includePages: true,
         outputDir: 'dist',
         pagesDir: './pages',
-        scope: 'canvas:js_component canvas:asset_library',
+        scope:
+          'canvas:js_component canvas:asset_library canvas:page:create canvas:page:read canvas:page:edit',
         siteUrl: 'https://test.example.com',
         userAgent: 'simpletest123456',
       });
@@ -265,6 +275,7 @@ describe('config', () => {
         siteUrl: '',
         clientId: '',
         clientSecret: '',
+        includePages: false,
         scope: 'canvas:js_component canvas:asset_library',
         componentDir: process.cwd(),
         deprecatedComponentDir: './components',
@@ -273,6 +284,17 @@ describe('config', () => {
         pagesDir: './pages',
         userAgent: '',
       });
+    });
+
+    it('should enable page scopes when CANVAS_INCLUDE_PAGES is true', async () => {
+      vi.stubEnv('CANVAS_INCLUDE_PAGES', 'true');
+
+      const { getConfig } = await import('./config');
+
+      expect(getConfig().includePages).toBe(true);
+      expect(getConfig().scope).toBe(
+        'canvas:js_component canvas:asset_library canvas:page:create canvas:page:read canvas:page:edit',
+      );
     });
   });
 

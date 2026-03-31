@@ -17,15 +17,22 @@ export function reportResults(
 ): void {
   if (results.length === 0) return;
 
-  // Alphabetize results by component name.
-  results.sort((a, b) => a.itemName.localeCompare(b.itemName));
+  // Sort by type (if present), then by name.
+  results.sort(
+    (a, b) =>
+      (a.itemType ?? '').localeCompare(b.itemType ?? '') ||
+      a.itemName.localeCompare(b.itemName),
+  );
 
   const hasDetails = results.some(
     (r) => (r.details?.length ?? 0) > 0 || (r.warnings?.length ?? 0) > 0,
   );
 
+  const hasTypes = results.some((r) => r.itemType != null);
+
   // Build column headers.
   const headers: string[] = [itemLabel];
+  if (hasTypes) headers.push('Type');
   if (!preview) headers.push('Status');
   if (hasDetails) headers.push(preview ? 'Operation' : 'Details');
 
@@ -34,6 +41,7 @@ export function reportResults(
     const row: string[] = [
       r.warnings?.length ? `${r.itemName} ${chalk.yellow('⚠')}` : r.itemName,
     ];
+    if (hasTypes) row.push(r.itemType ?? '');
     if (!preview) {
       row.push(r.success ? chalk.green('Success') : chalk.red('Failed'));
     }

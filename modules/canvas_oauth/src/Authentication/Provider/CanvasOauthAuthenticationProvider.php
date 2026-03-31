@@ -7,6 +7,7 @@ namespace Drupal\canvas_oauth\Authentication\Provider;
 use Drupal\Core\Authentication\AuthenticationProviderInterface;
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\simple_oauth\Authentication\Provider\SimpleOauthAuthenticationProvider;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -64,6 +65,7 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
     // Narrow down the config entity types that are protected by this
     // authentication provider.
     $protected_config_entity_types = [
+      Component::ENTITY_TYPE_ID,
       JavaScriptComponent::ENTITY_TYPE_ID,
       AssetLibrary::ENTITY_TYPE_ID,
     ];

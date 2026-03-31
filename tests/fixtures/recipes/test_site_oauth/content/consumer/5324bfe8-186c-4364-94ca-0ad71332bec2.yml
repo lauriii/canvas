@@ -41,6 +41,12 @@ default:
       scope_id: canvas_asset_library
     -
       scope_id: canvas_js_component
+    -
+      scope_id: canvas_page_create
+    -
+      scope_id: canvas_page_read
+    -
+      scope_id: canvas_page_edit
   access_token_expiration:
     -
       value: 90

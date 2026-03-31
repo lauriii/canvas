@@ -33,6 +33,7 @@ export interface DiscoveredComponent {
 export interface DiscoveredPage {
   name: string;
   slug: string;
+  uuid: string | null;
   path: string;
   relativePath: string;
 }

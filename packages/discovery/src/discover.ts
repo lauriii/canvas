@@ -175,9 +175,19 @@ export async function discoverCanvasProject(
 
     const pageFilename = path.posix.basename(normalizedRelativePath);
     const slug = pageFilename.replace(/\.json$/, '');
+    let uuid: string | null = null;
+    try {
+      const content = JSON.parse(await fs.readFile(absolutePagePath, 'utf-8'));
+      if (typeof content.uuid === 'string' && content.uuid) {
+        uuid = content.uuid;
+      }
+    } catch {
+      // Skip files that can't be read/parsed.
+    }
     pages.push({
       name: slug,
       slug,
+      uuid,
       path: absolutePagePath,
       relativePath: projectRelativePath.startsWith('..')
         ? normalizedRelativePath

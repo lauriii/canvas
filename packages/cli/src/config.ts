@@ -30,6 +30,7 @@ export interface Config {
   clientSecret: string;
   scope: string;
   userAgent: string;
+  includePages: boolean;
   all?: boolean;
   // The following properties are loaded from canvas.config.json.
   aliasBaseDir: string;
@@ -49,12 +50,57 @@ const {
   globalCssPath,
 } = resolveCanvasConfig({ hostRoot: process.cwd() });
 
+export const DEFAULT_INCLUDE_PAGES = false;
+
+const DEFAULT_SCOPE = 'canvas:js_component canvas:asset_library';
+const DEFAULT_SCOPE_WITH_PAGES = `${DEFAULT_SCOPE} canvas:page:create canvas:page:read canvas:page:edit`;
+
+export function parseBooleanSetting(value: string): boolean | undefined {
+  const normalizedValue = value.trim().toLowerCase();
+
+  if (['1', 'true', 'yes', 'on'].includes(normalizedValue)) {
+    return true;
+  }
+
+  if (['0', 'false', 'no', 'off'].includes(normalizedValue)) {
+    return false;
+  }
+
+  return undefined;
+}
+
+export function getDefaultScope(includePages: boolean): string {
+  return includePages ? DEFAULT_SCOPE_WITH_PAGES : DEFAULT_SCOPE;
+}
+
+export function usesManagedDefaultScope(scope: string): boolean {
+  return (
+    scope.length === 0 ||
+    scope === DEFAULT_SCOPE ||
+    scope === DEFAULT_SCOPE_WITH_PAGES
+  );
+}
+
+function getEnvBoolean(value: string | undefined, fallback: boolean): boolean {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  return parseBooleanSetting(value) ?? fallback;
+}
+
+const includePages = getEnvBoolean(
+  process.env.CANVAS_INCLUDE_PAGES,
+  DEFAULT_INCLUDE_PAGES,
+);
+
 let config: Config = {
   siteUrl: process.env.CANVAS_SITE_URL || '',
   clientId: process.env.CANVAS_CLIENT_ID || '',
   clientSecret: process.env.CANVAS_CLIENT_SECRET || '',
-  scope: process.env.CANVAS_SCOPE || 'canvas:js_component canvas:asset_library',
+  scope: process.env.CANVAS_SCOPE || getDefaultScope(includePages),
   userAgent: process.env.CANVAS_USER_AGENT || '',
+  includePages,
   aliasBaseDir: aliasBaseDir,
   outputDir: outputDir,
   componentDir: componentDir,

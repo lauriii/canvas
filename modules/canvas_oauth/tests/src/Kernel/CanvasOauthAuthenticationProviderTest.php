@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Routing\RouteObjectInterface;
 use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Pattern;
@@ -88,6 +89,7 @@ class CanvasOauthAuthenticationProviderTest extends CanvasKernelTestBase {
       ['canvas.api.config.list', [], FALSE],
       ['canvas.api.config.patch', [], FALSE],
       ['canvas.api.config.post', [], FALSE],
+      ...$generate_per_config_entity_type_test_case(Component::ENTITY_TYPE_ID, TRUE),
       ...$generate_per_config_entity_type_test_case(JavaScriptComponent::ENTITY_TYPE_ID, TRUE),
       ...$generate_per_config_entity_type_test_case(Pattern::ENTITY_TYPE_ID, FALSE),
       ...$generate_per_config_entity_type_test_case(Folder::ENTITY_TYPE_ID, FALSE),

@@ -11,6 +11,7 @@ use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\simple_oauth\Kernel\AuthorizedRequestBase;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\Pattern;
@@ -57,6 +58,9 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
     $this->installModule('path_alias');
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    // Set a default theme so Component::normalizeForClientSide() can resolve
+    // theme ancestors when listing Component config entities.
+    $this->config('system.theme')->set('default', 'stark')->save();
     $this->createTestCodeComponent();
     AssetLibrary::create([
       'id' => AssetLibrary::GLOBAL_ID,
@@ -101,6 +105,7 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
    */
   public static function dataProviderRoutes(): array {
     return [
+      'INDEX components' => ['canvas.api.config.list', ['canvas_config_entity_type_id' => Component::ENTITY_TYPE_ID], [], 'GET', []],
       'INDEX js components' => ['canvas.api.config.list', ['canvas_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID], [], 'GET', []],
       'GET js component' => ['canvas.api.config.get', ['canvas_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID, 'canvas_config_entity' => 'test-code-component'], [], 'GET', []],
       'GET asset library' => ['canvas.api.config.get', ['canvas_config_entity_type_id' => AssetLibrary::ENTITY_TYPE_ID, 'canvas_config_entity' => AssetLibrary::GLOBAL_ID], [], 'GET', []],

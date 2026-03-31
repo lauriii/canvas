@@ -48,6 +48,7 @@ _Note: The Simple OAuth module uses the terms "client" and "consumer" interchang
   1. Select scopes that this client will be able to request. (See the section "3. OAuth 2 scopes" below.) For example,
      select `canvas:js_component` to give full access to working with code components, `canvas:asset_library` for global CSS
      and JS asset libraries, and `canvas:brand_kit` for Brand Kit data such as fonts.
+     For working with pages, add the `canvas:page:*` scopes as needed.
   2. Configure a user who will be used as the author of actions made by this client. Two important notes:
     1. Do not use the anonymous user. Certain Canvas API endpoints require an authenticated user through an access checker,
        which will specifically look at the configured user here.
@@ -120,3 +121,4 @@ the resource, for example `administer code components` for code components and g
 | `GET`, `POST`            | `/canvas/api/v0/content/canvas_page`                    |
 | `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/content/canvas_page/{contentEntityId}`  |
 | `POST`                   | `/canvas/api/v0/artifacts/upload`                       |
+| `GET`                    | `/canvas/api/v0/config/component`                       |

@@ -10,6 +10,11 @@
       "minLength": 1,
       "description": "Optional JSON Schema reference for editor tooling."
     },
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Page UUID. Used to match local pages with their remote counterparts."
+    },
     "title": {
       "type": "string",
       "minLength": 1,

@@ -1,15 +1,13 @@
 import { defineComponentCatalog } from 'drupal-canvas/json-render-utils';
 
 import type { Spec } from '@json-render/core';
+import type {
+  AuthoredSpecElement,
+  AuthoredSpecElementMap,
+  AuthoredSpecSlots,
+} from 'drupal-canvas/json-render-utils';
 
-export interface AuthoredSpecElement {
-  type: string;
-  props?: unknown;
-  slots?: AuthoredSpecSlots;
-}
-
-export type AuthoredSpecElementMap = Record<string, AuthoredSpecElement>;
-export type AuthoredSpecSlots = Record<string, string[]>;
+export type { AuthoredSpecElement, AuthoredSpecElementMap, AuthoredSpecSlots };
 
 export interface StructuralIssue {
   message: string;
