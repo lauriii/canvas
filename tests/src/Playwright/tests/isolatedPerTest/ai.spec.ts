@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
@@ -26,7 +25,9 @@ test.describe('AI Features', () => {
         'create canvas_page',
         'edit canvas_page',
         'publish auto-saves',
+        'administer code components',
         'use drupal canvas ai',
+        'create media',
       ],
     });
     await drupal.logout();
@@ -97,21 +98,10 @@ test.describe('AI Features', () => {
     await canvas.createCanvas();
     await ai.openPanel();
 
-    const buffer = readFileSync('tests/fixtures/images/gracie-big.jpg');
-    const dataTransfer = await page.evaluateHandle(async (bufferAsHex) => {
-      const dt = new DataTransfer();
-      const file = new File([bufferAsHex], 'gracie-big.jpg', {
-        type: 'image/jpeg',
-      });
-      dt.items.add(file);
-      return dt;
-    }, buffer.toString('binary'));
-    await page.dispatchEvent(
-      '[data-testid="canvas-ai-panel"] deep-chat #drag-and-drop',
-      'drop',
-      {
-        dataTransfer,
-      },
+    await canvas.dropFile(
+      page.locator('[data-testid="canvas-ai-panel"] deep-chat #drag-and-drop'),
+      'tests/fixtures/images/gracie-big.jpg',
+      'image/jpeg',
     );
 
     await expect(
@@ -121,15 +111,21 @@ test.describe('AI Features', () => {
       page.locator('#file-attachment-container .remove-file-attachment-button'),
     ).toBeVisible();
 
-    const submitButton = page
-      .getByTestId('canvas-ai-panel')
-      .locator('.input-button.inside-right');
-    await expect(submitButton).not.toBeVisible();
+    await expect(
+      page
+        .getByTestId('canvas-ai-panel')
+        .locator('div.submit-button[role="button"]'),
+    ).not.toBeVisible();
 
     await page
       .getByRole('textbox', { name: 'Build me a' })
       .fill('What is a CMS?');
-    await expect(submitButton).toBeVisible();
+
+    await expect(
+      page
+        .getByTestId('canvas-ai-panel')
+        .locator('div.submit-button[role="button"]'),
+    ).toBeVisible();
 
     await page
       .locator('#file-attachment-container .remove-file-attachment-button')

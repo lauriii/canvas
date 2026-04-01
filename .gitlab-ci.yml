@@ -56,6 +56,7 @@ stages:
   - build
   - validate
   - test
+  - report
   - cache
   - publish
 
@@ -700,7 +701,7 @@ playwright:
       - blob-report/
 
 playwright-reports:
-  stage: test
+  stage: report
   when: always
   needs:
     - playwright

@@ -1,7 +1,10 @@
+import { readFileSync } from 'node:fs';
 import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
+import path from 'path';
 import { expect } from '@playwright/test';
 
+import type { Locator } from '@playwright/test';
 import type { CanvasBase } from './CanvasBase.js';
 
 type Constructor<T = {}> = new (...args: any[]) => T;
@@ -46,7 +49,11 @@ export function CanvasMediaMixin<TBase extends Constructor<CanvasBase>>(
     }
 
     async addMediaImage(path: string, alt: string) {
-      await this.page.getByRole('button', { name: 'Add media' }).click();
+      const addButton = this.page.locator(
+        '[data-canvas-media-library-open-button="true"][data-form-id="component_instance_form"][data-once="drupal-ajax"]',
+      );
+      await expect(addButton).toBeVisible();
+      await addButton.click();
 
       await this.page
         .locator('form[data-drupal-selector^="media-library-add-form-upload"]')
@@ -83,6 +90,31 @@ export function CanvasMediaMixin<TBase extends Constructor<CanvasBase>>(
           )
           .last(),
       ).toHaveAttribute('alt', alt);
+    }
+
+    async dropFile(dropZone: Locator, filePath: string, mimeType: string) {
+      const buffer = readFileSync(filePath);
+      const base64 = buffer.toString('base64');
+
+      await dropZone.dispatchEvent('dragenter');
+      await dropZone.dispatchEvent('dragover');
+
+      await dropZone.dispatchEvent('drop', {
+        dataTransfer: await this.page.evaluateHandle(
+          (data) => {
+            const dt = new DataTransfer();
+            const byteString = atob(data.base64);
+            const bytes = new Uint8Array(byteString.length);
+            for (let i = 0; i < byteString.length; i++) {
+              bytes[i] = byteString.charCodeAt(i);
+            }
+            const file = new File([bytes], data.name, { type: data.mimeType });
+            dt.items.add(file);
+            return dt;
+          },
+          { base64, name: path.basename(filePath), mimeType },
+        ),
+      });
     }
   };
 }
