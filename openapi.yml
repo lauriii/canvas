@@ -2077,6 +2077,56 @@ paths:
                   error:
                     type: string
                     description: Error description
+  /canvas/api/v0/notifications:
+    description: Fetch recent notifications for the authenticated user.
+    get:
+      summary: Fetch recent notifications for the authenticated user.
+      responses:
+        '200':
+          description: List of recent notifications.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - notifications
+                    properties:
+                      notifications:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Notification'
+        '403':
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+  /canvas/api/v0/notifications/read:
+    description: Mark notifications as read for the authenticated user.
+    post:
+      summary: Mark notifications as read for the authenticated user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ids
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        '204':
+          description: Notifications marked as read.
+        '400':
+          $ref: '#/components/responses/ClientErrorResponse'
+        '403':
+          $ref: '#/components/responses/AuthenticationErrorResponse'
   /canvas/api/v0/staged-update/auto-save:
     description: Auto-save endpoints for staged config updates.
     post:
@@ -3278,6 +3328,62 @@ components:
         - type
         - weight
         - items
+    Notification:
+      type: object
+      required:
+        - id
+        - type
+        - title
+        - message
+        - timestamp
+        - hasRead
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          description: The severity or status of the notification.
+          enum:
+            - processing
+            - success
+            - info
+            - warning
+            - error
+        key:
+          type:
+            - string
+            - 'null'
+          description: Deduplication key. When a new processing, error, or warning notification is created with the same key, it replaces the previous one.
+        title:
+          type: string
+          description: Short headline displayed to the user.
+        message:
+          type: string
+          description: Detailed body text of the notification.
+        timestamp:
+          type: integer
+          description: Unix timestamp in milliseconds.
+        hasRead:
+          type: boolean
+          description: Whether the current user has marked this notification as read.
+        actions:
+          type:
+            - array
+            - 'null'
+          description: Optional action links displayed alongside the notification.
+          items:
+            type: object
+            required:
+              - label
+              - href
+            properties:
+              label:
+                type: string
+                description: Button label for the action.
+              href:
+                type: string
+                description: URL the action links to.
     StagedConfigUpdate:
       title: Staged Config Update
       type: object

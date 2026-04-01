@@ -509,6 +509,28 @@ canvas.api.log_error:
   options:
     _format: 'json'
 
+canvas.api.notifications.get:
+  path: '/canvas/api/v0/notifications'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiNotificationController::list'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: ['GET']
+  options:
+    _format: 'json'
+
+canvas.api.notifications.read:
+  path: '/canvas/api/v0/notifications/read'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiNotificationController::markRead'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: ['POST']
+  options:
+    _format: 'json'
+
 canvas.api.staged-update.auto-save.post:
   path: '/canvas/api/v0/staged-update/auto-save'
   defaults:

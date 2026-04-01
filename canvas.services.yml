@@ -191,6 +191,7 @@ services:
   Drupal\canvas\Controller\AddPageController: {}
   Drupal\canvas\Controller\ViewModeDisplayController: {}
   Drupal\canvas\Controller\ApiArtifactController: {}
+  Drupal\canvas\Controller\ApiNotificationController: {}
 
   # Decorators.
   Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor:
