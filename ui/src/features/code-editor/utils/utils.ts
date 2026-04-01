@@ -102,6 +102,42 @@ export function getJsForSlotsPreview(slots: CodeComponentSlot[]) {
     .join('\n');
 }
 
+function serializeExample(
+  example: CodeComponentProp['example'],
+  flags: {
+    isNumberType: boolean;
+    isStringArrayProp: boolean | undefined;
+    isVideo: boolean;
+  },
+) {
+  const { isNumberType, isStringArrayProp, isVideo } = flags;
+
+  // Multi-value props (allowMultiple)
+  if (Array.isArray(example)) {
+    if (isNumberType) {
+      return example.filter((v) => v !== '').map((v) => Number(v));
+    }
+    if (isStringArrayProp) {
+      return (example as string[]).filter((v) => v !== '');
+    }
+    if (isVideo) {
+      return (example as CodeComponentPropVideoExample[]).map(
+        serializeVideoSrc,
+      );
+    }
+    return example;
+  }
+
+  // Single-value props
+  if (isNumberType) {
+    return Number(example);
+  }
+  if (isVideo && typeof example === 'object') {
+    return serializeVideoSrc(example as CodeComponentPropVideoExample);
+  }
+  return example!;
+}
+
 /**
  * Serializes props for saving in the JS Component config entity.
  *
@@ -147,36 +183,22 @@ export function serializeProps(props: CodeComponentProp[]) {
           allowMultiple && items?.type === 'string' && !isNumberType;
 
         // Whether this prop has a non-empty example worth serializing.
-        const hasExample = isStringArrayProp
-          ? Array.isArray(example) &&
-            (example as string[]).some((v) => v !== '')
-          : example ||
-            example === false ||
-            (Array.isArray(example) && example.length > 0);
+        const hasExample = Array.isArray(example)
+          ? isStringArrayProp
+            ? (example as string[]).some((v) => v !== '')
+            : example.length > 0
+          : example || example === false;
 
         const processed: CodeComponentPropSerialized = {
           title: name,
           type: serializedType,
-          // The example is taken from the prop if it's a truthy value, or a
-          // boolean false value (which could be an example of a boolean prop).
           ...(hasExample && {
             examples: [
-              isNumberType && !allowMultiple
-                ? Number(example)
-                : isNumberType && allowMultiple && Array.isArray(example)
-                  ? // Filter out empty strings before converting to numbers
-                    // to prevent empty values from becoming 0
-                    example.filter((v) => v !== '').map((v) => Number(v))
-                  : isStringArrayProp && Array.isArray(example)
-                    ? // Filter out empty strings for string array props
-                      (example as string[]).filter((v) => v !== '')
-                    : isVideo &&
-                        typeof example === 'object' &&
-                        !Array.isArray(example)
-                      ? serializeVideoSrc(
-                          example as CodeComponentPropVideoExample,
-                        )
-                      : example!,
+              serializeExample(example, {
+                isNumberType,
+                isStringArrayProp,
+                isVideo,
+              }),
             ],
           }),
           // Only add enum/meta:enum at root level if NOT an array
@@ -247,7 +269,7 @@ export function deserializeProps(
   if (!props) {
     return [];
   }
-  return Object.entries(props).map(([key, prop]) => {
+  return Object.entries(props).map(([, prop]) => {
     const {
       title,
       type,
@@ -324,9 +346,13 @@ export function deserializeProps(
       name: title,
       type: actualType,
       example:
-        isVideo && typeof example === 'object' && !Array.isArray(example)
-          ? deserializeVideoSrc(example as CodeComponentPropVideoExample)
-          : example,
+        isVideo && Array.isArray(example)
+          ? (example as CodeComponentPropVideoExample[]).map(
+              deserializeVideoSrc,
+            )
+          : isVideo && typeof example === 'object'
+            ? deserializeVideoSrc(example as CodeComponentPropVideoExample)
+            : example,
       ...(actualEnumValues && {
         enum: actualEnumValues.map((value) => ({
           value: isNumberType ? Number(value) : value,
@@ -410,7 +436,7 @@ export function deserializeSlots(
   if (!slots) {
     return [];
   }
-  return Object.entries(slots).map(([key, slot]) => ({
+  return Object.entries(slots).map(([, slot]) => ({
     id: uuidv4(),
     name: slot.title,
     example: slot.examples?.length ? slot.examples[0] : '',

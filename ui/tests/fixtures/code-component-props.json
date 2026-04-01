@@ -279,6 +279,33 @@
       "example": "2026-01-15T12:34:56.789Z",
       "id": "d4e5f6a7-b8c9-0123-def1-234567890123",
       "derivedType": "date"
+    },
+    {
+      "name": "Video gallery with no example value",
+      "type": "object",
+      "$ref": "json-schema-definitions://canvas.module/video",
+      "example": [],
+      "id": "e5f6a7b8-c9d0-1234-ef12-345678901234",
+      "derivedType": "video",
+      "allowMultiple": true,
+      "items": { "type": "object", "$ref": "json-schema-definitions://canvas.module/video" },
+      "valueMode": "unlimited",
+      "limitedCount": 1
+    },
+    {
+      "name": "Video gallery with example value",
+      "type": "object",
+      "$ref": "json-schema-definitions://canvas.module/video",
+      "example": [
+        { "src": "/modules/contrib/canvas/ui/assets/videos/mountain_wide.mp4", "poster": "https://placehold.co/1920x1080.png?text=Widescreen" },
+        { "src": "/modules/contrib/canvas/ui/assets/videos/bird_vertical.mp4", "poster": "https://placehold.co/1080x1920.png?text=Vertical" }
+      ],
+      "id": "f6a7b8c9-d0e1-2345-f123-456789012345",
+      "derivedType": "video",
+      "allowMultiple": true,
+      "items": { "type": "object", "$ref": "json-schema-definitions://canvas.module/video" },
+      "valueMode": "unlimited",
+      "limitedCount": 1
     }
   ],
   "serialized": {
@@ -458,6 +485,20 @@
       "type": "string",
       "format": "date-time",
       "examples": ["2026-01-15T12:34:56.789Z"]
+    },
+    "videoGalleryWithNoExampleValue": {
+      "title": "Video gallery with no example value",
+      "type": "array",
+      "items": { "type": "object", "$ref": "json-schema-definitions://canvas.module/video" }
+    },
+    "videoGalleryWithExampleValue": {
+      "title": "Video gallery with example value",
+      "type": "array",
+      "items": { "type": "object", "$ref": "json-schema-definitions://canvas.module/video" },
+      "examples": [[
+        { "src": "/ui/assets/videos/mountain_wide.mp4", "poster": "https://placehold.co/1920x1080.png?text=Widescreen" },
+        { "src": "/ui/assets/videos/bird_vertical.mp4", "poster": "https://placehold.co/1080x1920.png?text=Vertical" }
+      ]]
     }
   }
 }

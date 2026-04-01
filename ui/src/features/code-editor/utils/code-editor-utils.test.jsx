@@ -172,6 +172,17 @@ describe('Code editor utilities', () => {
         'dateTimeWithExampleValue',
       ]);
     });
+
+    it('of type video gallery (multi-value)', () => {
+      const result = serializeProps([
+        deserializedPropsFixture[28],
+        deserializedPropsFixture[29],
+      ]);
+      matchSerializedProps(result, [
+        'videoGalleryWithNoExampleValue',
+        'videoGalleryWithExampleValue',
+      ]);
+    });
   });
 
   describe('deserialize props', () => {
@@ -245,6 +256,14 @@ describe('Code editor utilities', () => {
         serializedPropsFixture.videoWithExampleValue,
       ]);
       matchDeserializedProps(result, [22, 23]);
+    });
+
+    it('of type video gallery (multi-value)', () => {
+      const result = deserializeProps([
+        serializedPropsFixture.videoGalleryWithNoExampleValue,
+        serializedPropsFixture.videoGalleryWithExampleValue,
+      ]);
+      matchDeserializedProps(result, [28, 29]);
     });
 
     it('of type link', () => {
@@ -339,6 +358,17 @@ describe('Code editor preview utilities', () => {
       dateWithExampleValue: '2026-01-15',
       dateTimeWithNoExampleValue: '',
       dateTimeWithExampleValue: '2026-01-15T12:34:56.789Z',
+      videoGalleryWithNoExampleValue: [],
+      videoGalleryWithExampleValue: [
+        {
+          src: '/modules/contrib/canvas/ui/assets/videos/mountain_wide.mp4',
+          poster: 'https://placehold.co/1920x1080.png?text=Widescreen',
+        },
+        {
+          src: '/modules/contrib/canvas/ui/assets/videos/bird_vertical.mp4',
+          poster: 'https://placehold.co/1080x1920.png?text=Vertical',
+        },
+      ],
     });
   });
 
