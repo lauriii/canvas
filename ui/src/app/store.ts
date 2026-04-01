@@ -15,6 +15,7 @@ import {
   setInitialLayoutModel,
   setUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
+import { notificationsSlice } from '@/features/notifications/notificationsSlice';
 import {
   pageDataReducer,
   setInitialPageData,
@@ -37,6 +38,7 @@ import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { componentInstanceFormApi } from '@/services/componentInstanceForm';
 import { contentApi } from '@/services/content';
 import { extensionsApi } from '@/services/extensions';
+import { notificationsApi } from '@/services/notificationsApi';
 import { pageDataFormApi } from '@/services/pageDataForm';
 import { patternApi } from '@/services/patterns';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
@@ -153,6 +155,8 @@ const rootReducer = combineSlices(
   uiSlice,
   formStateSlice,
   extensionsSlice,
+  notificationsApi,
+  notificationsSlice,
   pendingChangesApi,
   publishReviewSlice,
   contentApi,
@@ -240,6 +244,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         componentInstanceFormApi.middleware,
         pageDataFormApi.middleware,
         extensionsApi.middleware,
+        notificationsApi.middleware,
         undoRedoActionIdMiddleware,
         pendingChangesApi.middleware,
         contentApi.middleware,
