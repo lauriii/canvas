@@ -47,6 +47,7 @@ include:
       - "/includes/include.drupalci.variables.yml"
       - "/includes/include.drupalci.workflows.yml"
   # Local includes
+  - local: .gitlab/ci/canvas.yml
   - local: .gitlab/ci/drupal.yml
   - local: .gitlab/ci/test.yml
 
@@ -84,11 +85,19 @@ variables:
   # `drupal/simple_oauth` does.
   # See https://git.drupalcode.org/project/simple_oauth/-/blob/6.0.x/.gitlab-ci.yml
   COMPOSER_IGNORE_PLATFORM_REQS: ext-sodium
+  COMPOSER_PROCESS_TIMEOUT: 0
+  COMPOSER_ROOT_VERSION: 0.0.0
+  GIT_DEPTH: 1
+
+  PHP_VERSION: "8.3"
+  _TARGET_PHP_IMAGE_TAG: "production"
+
   # Needed to allow this to run locally.
   # https://project.pages.drupalcode.org/gitlab_templates/info/test-locally/
   DRUPALORG_CI_SERVER_URL: https://git.drupalcode.org
   # Set this as CI_PROJECT_NAME changes on forks.
   CI_PARENT_PROJECT_NAME: canvas
+  DRUPAL_PROJECT_FOLDER: "$CI_PROJECT_DIR/_drupal/web/modules/contrib/canvas"
   PHPUNIT_FAIL_ON_PHPUNIT_DEPRECATION: 0
   _CONCURRENCY_THREADS: '12'
 
@@ -205,35 +214,15 @@ cache dependencies:
     - npm ci
     - npx playwright install
 
-# The upstream .composer-base job defines artifacts.paths: [.], which uploads
-# the entire project directory. The default cache pulls .cache/composer and
-# .cache/npm into the working directory, inflating the artifact file count and
-# causing a 503 on Drupal.org's GitLab. Exclude .cache/ entirely.
-# Note: the full upstream exclude list is repeated here because GitLab CI
-# replaces (not concatenates) artifact.exclude arrays on include overrides.
+# Disable jobs from the upstream template.
 composer:
-  artifacts:
-    exclude:
-      - '.git'
-      - '.git/**/*'
-      - '$_WEB_ROOT/**/.git'
-      - '$_WEB_ROOT/**/.git/**/*'
-      - 'vendor/**/.git'
-      - 'vendor/**/.git/**/*'
-      - '.cache/**/*'
+  rules:
+    - when: never
 
 composer (next minor):
-  artifacts:
-    exclude:
-      - '.git'
-      - '.git/**/*'
-      - '$_WEB_ROOT/**/.git'
-      - '$_WEB_ROOT/**/.git/**/*'
-      - 'vendor/**/.git'
-      - 'vendor/**/.git/**/*'
-      - '.cache/**/*'
+  rules:
+    - when: never
 
-# Disable jobs from the upstream template.
 phpcs:
   rules:
     - when: never
@@ -255,6 +244,10 @@ phpstan (next minor):
     - when: never
 
 phpunit (next minor):
+  rules:
+    - when: never
+
+stylelint:
   rules:
     - when: never
 
@@ -294,27 +287,26 @@ phpcs-rules-match-drupal-11:
   # Allow this to fail, to avoid disrupting Canvas's CI when upstream changes.
   allow_failure: true
 
-stylelint:
-  allow_failure: false
-  # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
-  rules:
-    - *is-push-rule
-    - *css-files-change-rule
-    - *manual-rule
-  before_script:
-    # This job runs Prettier checks using what's installed in Drupal core.
-    # Delete our custom .prettierrc.json, and use the one from Drupal core instead. This avoids problems with Prettier
-    # plugins that are not installed in Drupal core, e.g., @ianvs/prettier-plugin-sort-imports.
-    - rm -rf .prettierrc.json
-
 # Tests the minimum Drupal core version Canvas supports: 11.2.
 phpunit:
   # Auto-retry when random failures occur due to upstream bugs.
   # @see https://www.drupal.org/project/canvas/issues/3571997#comment-16458359
+  needs: []
   retry:
     max: 2
     exit_codes: 112
   variables:
+    DRUPAL_TEST_WEBSERVER_USER: www-data
+    DRUPAL_TEST_WEBDRIVER_AUTOSTART: true
+    DRUPAL_TEST_WEBDRIVER_BINARY: "chromedriver"
+    DRUPAL_TEST_WEBDRIVER_BINARY_FLAGS: "--port=9515"
+    DRUPAL_TEST_BASE_URL: http://localhost
+    DRUPAL_TEST_DB_URL: sqlite://localhost/sites/default/files/.ht.sqlite
+    MINK_DRIVER_ARGSP: '["chrome", {"browserName":"chrome", "goog:chromeOptions":{"w3c": true, "args":["--no-sandbox","--ignore-certificate-errors", "--allow-insecure-localhost", "--headless", "--disable-dev-shm-usage", "--disable-gpu"]}}, "http://localhost:9515"]'
+    MINK_DRIVER_ARGS_WEBDRIVER: '["chrome", {"browserName":"chrome", "goog:chromeOptions":{"w3c": true, "args":["--no-sandbox","--ignore-certificate-errors", "--allow-insecure-localhost", "--headless", "--disable-dev-shm-usage", "--disable-gpu"]}}, "http://localhost:9515"]'
+    SIMPLETEST_BASE_URL: http://localhost
+    SIMPLETEST_DB: sqlite://localhost/sites/default/files/.ht.sqlite
+
     # Note: Canvas uses `#[Group('#slow')]` to start slow tests early. The threshold is (at the time of writing) ~60 seconds.
     _PHPUNIT_CONCURRENT: 1
     # 💡To run a single PHPUnit test, e.g. PropSourceTest, comment the above and uncomment the below.
@@ -325,69 +317,32 @@ phpunit:
 
   # TRICKY: duplicate all of the upstream `.phpunit-base`'s `script` to add conditional auto-retry functionality
   # @todo Work with upstream `gitlab_templates` project to allow this logic to be injected without repeating everything
+  before_script:
+    - !reference [ .drupal ]
+    - !reference [.drupal-enable-test-modules]
+    - !reference [ .canvas-ui ]
+    - composer run install-dev-deps
   script:
-    - cd $CI_PROJECT_DIR && pwd
-    - !reference [ .check-composer-end-code ]
-    - !reference [ .phpunit-webdriver-variables ]
-    - !reference [ .show-environment-variables ]
-    - !reference [ .setup-webserver ]
-    - !reference [ .simpletest-db ]
-    - !reference [ .show-context ]
-    # Recipe projects require the test files to be real, not symlinks.
-    - |
-      if [[ $PROJECT_TYPE == "recipe" && _COMPOSER_SYMLINK != "0" ]]; then
-        echo "Replacing the test file symlinks with real copied files"
-        rm -Rvf $DRUPAL_PROJECT_FOLDER/tests
-        cp -Rvp $CI_PROJECT_DIR/tests $DRUPAL_PROJECT_FOLDER
-      fi
     # Remove all spaces from _PHPUNIT_TESTGROUPS for reliable checking and to
     # ensure only one string is passed to bin/phpunit or run-tests.sh
     - _PHPUNIT_TESTGROUPS=$(echo $_PHPUNIT_TESTGROUPS | sed -e 's/ //g')
     # Execute tests.
     - |
-      if [ "$_PHPUNIT_CONCURRENT" == "0" ]; then
-        echo "Webdriver arguments: '$MINK_DRIVER_ARGS_WEBDRIVER'"
-        # if _PHPUNIT_TESTGROUPS is blank then do not add anything because the test group will be handled by the matrix.
-        # if _PHPUNIT_TESTGROUPS is --all then do not add anything because the default is to run all tests in the module.
-        # Otherwise add --group $_PHPUNIT_TESTGROUPS
-        WHAT_TO_RUN=$([[ "$_PHPUNIT_TESTGROUPS" == "" || "$_PHPUNIT_TESTGROUPS" == "--all" ]] && echo "" || echo "--group $_PHPUNIT_TESTGROUPS")
-        PHPUNIT_OPTIONS=''
-        # If the project does not have its own phpunit.xml(.dist) then use the one from core. Only do this if no configuration options are specified in _PHPUNIT_EXTRA.
-        if [[ ! -f "$CI_PROJECT_DIR/phpunit.xml" && ! -f "$CI_PROJECT_DIR/phpunit.xml.dist" && ! $_PHPUNIT_EXTRA =~ (-c |--configuration|--no-configuration) ]]; then
-          echo "This project has no phpunit.xml(.dist), getting default from $_WEB_ROOT/core"
-          cp -v $_WEB_ROOT/core/phpunit.xml.dist phpunit.xml
-          source $CI_PROJECT_DIR/get-file-via-curl.sh scripts/prepare-phpunit-xml.php
-          php prepare-phpunit-xml.php $VERBOSE_FLAG
-          rm prepare-phpunit-xml.php
-          printf "$DIVIDER\n"
-        fi
-        printf "_PHPUNIT_CONCURRENT=$_PHPUNIT_CONCURRENT, _PHPUNIT_TESTGROUPS=$_PHPUNIT_TESTGROUPS, _PHPUNIT_EXTRA=$_PHPUNIT_EXTRA\nPHPUNIT_OPTIONS=$PHPUNIT_OPTIONS, WHAT_TO_RUN=$WHAT_TO_RUN\n"
-        # Create an empty phpunit-ignore.xml file because the phpunit binary does not write any phpunit-*.xml but the artifact definition needs one to exist.
-        echo '<not-used/>' > $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest/phpunit-ignore.xml
-        echo "executing: sudo -u www-data -H -E $COMPOSER_BIN_DIR/phpunit $PHPUNIT_OPTIONS --bootstrap $PWD/$_WEB_ROOT/core/tests/bootstrap.php $DRUPAL_PROJECT_FOLDER --log-junit $CI_PROJECT_DIR/junit.xml $WHAT_TO_RUN $_PHPUNIT_EXTRA"
-        sudo -u www-data -H -E $COMPOSER_BIN_DIR/phpunit $PHPUNIT_OPTIONS --bootstrap $PWD/$_WEB_ROOT/core/tests/bootstrap.php $DRUPAL_PROJECT_FOLDER --log-junit $CI_PROJECT_DIR/junit.xml $WHAT_TO_RUN $_PHPUNIT_EXTRA || EXIT_CODE=$?
-      elif [ "$_PHPUNIT_CONCURRENT" == "1" ]; then
-        # if _PHPUNIT_TESTGROUPS is blank then do not add anything, because the test group will be handled by the matrix.
-        # if _PHPUNIT_TESTGROUPS is --all then add --directory $DRUPAL_PROJECT_FOLDER
-        # Otherwise add $_PHPUNIT_TESTGROUPS (without the --group)
-        WHAT_TO_RUN=$([[ "$_PHPUNIT_TESTGROUPS" == "" ]] && echo "" || ([[ "$_PHPUNIT_TESTGROUPS" == "--all" ]] && echo "--directory $DRUPAL_PROJECT_FOLDER" || echo "$_PHPUNIT_TESTGROUPS"))
-        echo "_PHPUNIT_CONCURRENT=$_PHPUNIT_CONCURRENT, _PHPUNIT_TESTGROUPS=$_PHPUNIT_TESTGROUPS, _PHPUNIT_EXTRA=$_PHPUNIT_EXTRA, WHAT_TO_RUN=$WHAT_TO_RUN"
-        # Create an empty junit.xml because run-tests.sh does not write to this file but the artifact needs to exist.
-        echo '<not-used/>' > junit.xml
-        echo "executing: sudo -u www-data -H -E php $_WEB_ROOT/core/scripts/run-tests.sh --php '$(which php)' --color --keep-results --concurrency $_CONCURRENCY_THREADS --repeat '1' --sqlite 'sites/default/files/.sqlite' --dburl $SIMPLETEST_DB --url $SIMPLETEST_BASE_URL --xml $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest --verbose --non-html $WHAT_TO_RUN $_PHPUNIT_EXTRA"
-        $COMPOSER_BIN_DIR/phpunit --version
-        sudo -u www-data -H -E php $_WEB_ROOT/core/scripts/run-tests.sh --php "$(which php)" --color --keep-results --concurrency $_CONCURRENCY_THREADS --repeat "1" --sqlite "sites/default/files/.sqlite" --dburl $SIMPLETEST_DB --url $SIMPLETEST_BASE_URL --xml $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest --verbose --non-html $WHAT_TO_RUN $_PHPUNIT_EXTRA || EXIT_CODE=$?
-      fi
-    - cp /var/log/apache2/test.apache.access.log $CI_PROJECT_DIR/apache.access.log.txt
-    - cp /var/log/apache2/test.apache.error.log $CI_PROJECT_DIR/apache.error.log.txt
+      cd $CI_PROJECT_DIR/_drupal
+      # if _PHPUNIT_TESTGROUPS is blank then do not add anything, because the test group will be handled by the matrix.
+      # if _PHPUNIT_TESTGROUPS is --all then add --directory $DRUPAL_PROJECT_FOLDER
+      # Otherwise add $_PHPUNIT_TESTGROUPS (without the --group)
+      WHAT_TO_RUN=$([[ "$_PHPUNIT_TESTGROUPS" == "" ]] && echo "" || ([[ "$_PHPUNIT_TESTGROUPS" == "--all" ]] && echo "--directory $DRUPAL_PROJECT_FOLDER" || echo "$_PHPUNIT_TESTGROUPS"))
+      echo "_PHPUNIT_CONCURRENT=$_PHPUNIT_CONCURRENT, _PHPUNIT_TESTGROUPS=$_PHPUNIT_TESTGROUPS, _PHPUNIT_EXTRA=$_PHPUNIT_EXTRA, WHAT_TO_RUN=$WHAT_TO_RUN"
+      # Create an empty junit.xml because run-tests.sh does not write to this file but the artifact needs to exist.
+      echo "executing: sudo -u www-data -H -E php $CI_PROJECT_DIR/_drupal/web/core/scripts/run-tests.sh --php '$(which php)' --color --keep-results --concurrency $_CONCURRENCY_THREADS --repeat '1' --sqlite 'sites/default/files/.sqlite' --dburl $SIMPLETEST_DB --url $SIMPLETEST_BASE_URL --xml $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest --verbose --non-html $WHAT_TO_RUN $_PHPUNIT_EXTRA"
+      ./vendor/bin/phpunit --version
+      sudo -u www-data -H -E  php $CI_PROJECT_DIR/_drupal/web/core/scripts/run-tests.sh --php "$(which php)" --color --keep-results --concurrency $_CONCURRENCY_THREADS --repeat "1" --sqlite "sites/default/files/.sqlite" --dburl $SIMPLETEST_DB --url $SIMPLETEST_BASE_URL --xml web/sites/default/files/simpletest --verbose --non-html $WHAT_TO_RUN $_PHPUNIT_EXTRA || EXIT_CODE=$?
     # Auto-retry when random failures occur due to upstream bugs.
     # @see https://www.drupal.org/project/canvas/issues/3571997#comment-16458359
     # @todo Rewrite this after https://www.drupal.org/project/gitlab_templates/issues/3572371 lands
-    - grep "RecursiveDirectoryIterator" $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest/phpunit-*.xml && exit 112 || true
+    - grep "RecursiveDirectoryIterator" $CI_PROJECT_DIR/_drupal/web/sites/default/files/simpletest/phpunit-*.xml && exit 112 || true
     - exit $EXIT_CODE
-  needs:
-    - composer
-    - UI
   parallel:
     # @see https://www.drupal.org/node/3444548
     matrix:
@@ -419,12 +374,25 @@ phpunit:
     - *SDC-files-change-rule
     - *UI-fixtures-files-change-rule
     - *manual-rule
+  artifacts:
+    expire_in: 6 mos
+    expose_as: 'junit-browser_output-apache_log'
+    when: always
+    reports:
+      junit:
+        - $CI_PROJECT_DIR/_drupal/web/sites/default/files/simpletest/phpunit-*.xml
+    name: artifacts-$CI_PIPELINE_ID-$CI_JOB_NAME_SLUG
+    paths:
+      - $CI_PROJECT_DIR/_drupal/web/sites/default/files/simpletest
+      - $BROWSERTEST_OUTPUT_DIRECTORY
+
 
 phpunit (11.3):
   extends: phpunit
-  needs:
-    - composer (next minor)
-    - UI
+  variables:
+    DRUPAL_CORE: $CORE_NEXT_MINOR
+    IGNORE_PROJECT_DRUPAL_CORE_VERSION: 1
+    MINIMUM_STABILITY_OVERRIDE: 'dev'
 
 prettier:
   stage: validate
@@ -446,21 +414,6 @@ prettier:
   script:
     - npm ci
     - npm run lint:prettier
-
-UI:
-  stage: build
-  image: node:20-alpine
-  needs: []
-  script:
-    - npm ci
-    # Verify building the entire app succeeds — this first runs the TypeScript Compiler.
-    - npm run build --workspace=@drupal-canvas/ui
-    # @todo In the future, when `ui/dist` and `packages/astro-hydration/dist` are
-    # committed, verify here that they match.
-  artifacts:
-    paths:
-      - ui/dist
-      - packages/astro-hydration/dist
 
 eslint:
   stage: validate
@@ -528,9 +481,6 @@ vitest:
 
 .cypress-base:
   stage: test
-  needs:
-    - composer
-    - UI
   rules:
     - *e2e-tests-are-enabled-rule
     - *manual-rule
@@ -550,15 +500,13 @@ vitest:
     # Copied from `.nightwatch-base`, but converted to use GitLab CI references.
     # 👇
     #
-    - !reference [ .setup-webserver ]
-    - !reference [ .simpletest-db ]
-    - export DRUPAL_TEST_DB_URL=$SIMPLETEST_DB
-    - !reference [ .show-environment-variables ]
-    - cd $_WEB_ROOT
+    - !reference [ .drupal ]
+    - !reference [.drupal-enable-test-modules]
+    - !reference [ .canvas-ui ]
+    - composer run install-dev-deps
     #
     # 👆
     #
-    - cd $CI_PROJECT_DIR
     - echo -e "\e[0Ksection_start:`date +%s`:Cypress-install[collapsed=true]\r\e[0KInstall Cypress."
     - npm ci
     - cd ui
@@ -566,7 +514,7 @@ vitest:
     - echo "BASE_URL='${SIMPLETEST_BASE_URL}'" >> .env
     - echo "DB_URL='${DRUPAL_TEST_DB_URL}'" >> .env
     - echo "DRUPAL_TEST_WEBSERVER_USER=www-data" >> .env
-    - echo "DRUPAL_ROOT_CORE='${CI_PROJECT_DIR}/${_WEB_ROOT}/core'" >> .env
+    - echo "DRUPAL_ROOT_CORE='${CI_PROJECT_DIR}/_drupal/web/core'" >> .env
     - cat .env
     - mkdir -p $CYPRESS_CACHE_FOLDER /var/www/.npm /home/apache/.cache/fontconfig ~/.cache /usr/share/fonts/ /var/cache/fontconfig
     - chown -R www-data:www-data $CYPRESS_CACHE_FOLDER /var/www/.npm /usr/bin/npm /home/apache/.cache/fontconfig ~/.cache /usr/share/fonts/ /var/cache/fontconfig
@@ -575,16 +523,27 @@ vitest:
     - sudo -u www-data CYPRESS_CACHE_FOLDER=$CYPRESS_CACHE_FOLDER npx cypress --version
     - echo -e "\e[0Ksection_end:`date +%s`:Cypress-install\r\e[0K"
   variables:
+    DRUPAL_PROJECT_FOLDER: "$CI_PROJECT_DIR/_drupal/web/modules/contrib/canvas"
     _TARGET_DB_TYPE: sqlite
-    CYPRESS_CACHE_FOLDER: $DRUPAL_PROJECT_FOLDER/ui/cycache
+    CYPRESS_CACHE_FOLDER: $CI_PROJECT_DIR/_drupal/web/modules/contrib/canvas/ui/cycache
+    DRUPAL_TEST_WEBSERVER_USER: www-data
+    DRUPAL_TEST_WEBDRIVER_AUTOSTART: true
+    DRUPAL_TEST_WEBDRIVER_BINARY: "chromedriver"
+    DRUPAL_TEST_WEBDRIVER_BINARY_FLAGS: "--port=9515"
+    DRUPAL_TEST_BASE_URL: http://localhost
+    DRUPAL_TEST_DB_URL: sqlite://localhost/sites/default/files/.ht.sqlite
+    MINK_DRIVER_ARGSP: '["chrome", {"browserName":"chrome", "goog:chromeOptions":{"w3c": true, "args":["--no-sandbox","--ignore-certificate-errors", "--allow-insecure-localhost", "--headless", "--disable-dev-shm-usage", "--disable-gpu"]}}, "http://localhost:9515"]'
+    MINK_DRIVER_ARGS_WEBDRIVER: '["chrome", {"browserName":"chrome", "goog:chromeOptions":{"w3c": true, "args":["--no-sandbox","--ignore-certificate-errors", "--allow-insecure-localhost", "--headless", "--disable-dev-shm-usage", "--disable-gpu"]}}, "http://localhost:9515"]'
+    SIMPLETEST_BASE_URL: http://localhost
+    SIMPLETEST_DB: sqlite://localhost/sites/default/files/.ht.sqlite
   artifacts:
     when: always
     expire_in: 6 mos
     paths:
-      - ui/tests/screenshots/**/*.png
+      - _drupal/web/modules/contrib/canvas/ui/tests/screenshots/**/*.png
     reports:
       junit:
-        - ui/junit-*.xml
+        - _drupal/web/modules/contrib/canvas/ui/junit-*.xml
 
 cypress E2E:
   extends: .cypress-base
@@ -592,10 +551,10 @@ cypress E2E:
   script:
     - npx cypress run --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml" --spec=`node ./tests/support/parallel.js` 2>&1 | tee cypress.log || EXIT_CODE=$?
     # Auto-retry when known frequent random failures occur.
-    - grep "✖.*autocomplete-props" $CI_PROJECT_DIR/ui/cypress.log && exit 112 || true
-    - grep "✖.*copy-and-paste" $CI_PROJECT_DIR/ui/cypress.log && exit 112 || true
-    - grep "✖.*global-regions-interact" $CI_PROJECT_DIR/ui/cypress.log && exit 112 || true
-    - grep "✖.*media-library-component-instance" $CI_PROJECT_DIR/ui/cypress.log && exit 112 || true
+    - grep "✖.*autocomplete-props" $CI_PROJECT_DIR/_drupal/web/modules/contrib/canvas/ui/cypress.log && exit 112 || true
+    - grep "✖.*copy-and-paste" $CI_PROJECT_DIR/_drupal/web/modules/contrib/canvas/ui/cypress.log && exit 112 || true
+    - grep "✖.*global-regions-interact" $CI_PROJECT_DIR/_drupal/web/modules/contrib/canvas/ui/cypress.log && exit 112 || true
+    - grep "✖.*media-library-component-instance" $CI_PROJECT_DIR/_drupal/web/modules/contrib/canvas/ui/cypress.log && exit 112 || true
     # If no auto-retry was attempted, use the original exit code.
     - exit $EXIT_CODE
   retry:
@@ -727,6 +686,7 @@ playwright:
     COMPOSER_IGNORE_PLATFORM_REQS:
   before_script:
     - !reference [ .drupal ]
+    - !reference [ .canvas-ui ]
     - composer run install-dev-deps
   script:
     - npm ci
@@ -801,6 +761,7 @@ CLI Test:
     DRUPAL_TEST_BASE_URL: http://localhost
   before_script:
     - !reference [ .drupal ]
+    - !reference [ .canvas-ui ]
     - composer run install-dev-deps
     - mkdir -p test-results
   # This job must pass, but must also not disrupt Canvas's CI if dependencies have a security vulnerability.

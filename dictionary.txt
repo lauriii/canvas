@@ -30,6 +30,7 @@ codespaces
 cqmr
 cset
 csstree
+cycache
 ddev
 debucketed
 dedreux

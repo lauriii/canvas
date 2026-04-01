@@ -1,0 +1,307 @@
+{
+  "components/image/image.css": {
+    "order/properties-order": {
+      "count": 1
+    }
+  },
+  "ui/dist/assets/index.css": {
+    "order/order": {
+      "count": 326
+    },
+    "order/properties-order": {
+      "count": 1036
+    },
+    "color-function-alias-notation": {
+      "count": 28
+    },
+    "color-function-notation": {
+      "count": 1
+    },
+    "color-hex-length": {
+      "count": 13
+    },
+    "custom-property-pattern": {
+      "count": 1
+    },
+    "declaration-block-single-line-max-declarations": {
+      "count": 2505
+    },
+    "declaration-property-value-keyword-no-deprecated": {
+      "count": 2
+    },
+    "declaration-property-value-no-unknown": {
+      "count": 5
+    },
+    "font-family-name-quotes": {
+      "count": 7
+    },
+    "keyframe-selector-notation": {
+      "count": 26
+    },
+    "keyframes-name-pattern": {
+      "count": 7
+    },
+    "length-zero-no-unit": {
+      "count": 7
+    },
+    "selector-not-notation": {
+      "count": 3
+    },
+    "selector-pseudo-element-colon-notation": {
+      "count": 254
+    },
+    "unit-allowed-list": {
+      "count": 1
+    },
+    "value-keyword-case": {
+      "count": 3
+    }
+  },
+  "ui/src/components/Panel.module.css": {
+    "color-function-alias-notation": {
+      "count": 3
+    }
+  },
+  "ui/src/components/SavingOverlay.module.css": {
+    "order/properties-order": {
+      "count": 1
+    }
+  },
+  "ui/src/components/Tooltip.module.css": {
+    "color-function-alias-notation": {
+      "count": 2
+    }
+  },
+  "packages/workbench/src/client/index.css": {
+    "alpha-value-notation": {
+      "count": 3
+    },
+    "at-rule-no-unknown": {
+      "count": 2
+    },
+    "lightness-notation": {
+      "count": 62
+    }
+  },
+  "packages/workbench/src/client/shadcn-tailwind.css": {
+    "at-rule-no-unknown": {
+      "count": 11
+    },
+    "nesting-selector-no-missing-scoping-root": {
+      "count": 16
+    }
+  },
+  "ui/src/components/aiExtension/AiPanel.module.css": {
+    "order/properties-order": {
+      "count": 2
+    },
+    "declaration-property-value-no-unknown": {
+      "count": 1
+    }
+  },
+  "ui/src/components/aiExtension/AiWizard.module.css": {
+    "order/properties-order": {
+      "count": 4
+    },
+    "custom-property-pattern": {
+      "count": 1
+    }
+  },
+  "ui/src/components/list/List.module.css": {
+    "order/properties-order": {
+      "count": 7
+    }
+  },
+  "ui/src/components/spotlight/Spotlight.module.css": {
+    "color-function-alias-notation": {
+      "count": 1
+    }
+  },
+  "ui/src/features/brandKit/BrandKitPanel.module.css": {
+    "order/properties-order": {
+      "count": 29
+    },
+    "value-keyword-case": {
+      "count": 1
+    }
+  },
+  "ui/src/features/code-editor/CanvasCodeMirror.module.css": {
+    "order/properties-order": {
+      "count": 1
+    },
+    "selector-pseudo-class-no-unknown": {
+      "count": 2
+    }
+  },
+  "ui/src/features/code-editor/CodeEditorUi.module.css": {
+    "order/order": {
+      "count": 1
+    },
+    "custom-property-empty-line-before": {
+      "count": 1
+    }
+  },
+  "ui/src/features/code-editor/Import.module.css": {
+    "color-function-alias-notation": {
+      "count": 2
+    }
+  },
+  "ui/src/features/editor/Editor.module.css": {
+    "order/properties-order": {
+      "count": 3
+    }
+  },
+  "ui/src/features/editor/TemplateRoot.module.css": {
+    "order/properties-order": {
+      "count": 2
+    }
+  },
+  "packages/cli/assets/templates/hello-world/index.css": {
+    "order/properties-order": {
+      "count": 8
+    },
+    "color-function-alias-notation": {
+      "count": 1
+    },
+    "color-hex-length": {
+      "count": 1
+    }
+  },
+  "tests/modules/canvas_test_sdc/components/banner/banner.css": {
+    "order/properties-order": {
+      "count": 3
+    }
+  },
+  "tests/modules/canvas_test_sdc/components/card/card.css": {
+    "order/properties-order": {
+      "count": 5
+    },
+    "declaration-empty-line-before": {
+      "count": 2
+    }
+  },
+  "tests/modules/canvas_test_sdc/components/date/date.css": {
+    "order/properties-order": {
+      "count": 4
+    },
+    "color-function-alias-notation": {
+      "count": 1
+    }
+  },
+  "tests/modules/canvas_test_sdc/components/grid-container/grid-container.css": {
+    "color-function-alias-notation": {
+      "count": 1
+    }
+  },
+  "tests/modules/canvas_test_sdc/components/image/image.css": {
+    "order/properties-order": {
+      "count": 1
+    }
+  },
+  "tests/modules/canvas_test_sdc/components/tags/tags.css": {
+    "declaration-block-single-line-max-declarations": {
+      "count": 1
+    }
+  },
+  "ui/src/components/form/components/DefaultImagePreview.module.css": {
+    "declaration-property-value-keyword-no-deprecated": {
+      "count": 1
+    }
+  },
+  "ui/src/components/form/components/FormElement.module.css": {
+    "selector-pseudo-class-no-unknown": {
+      "count": 1
+    }
+  },
+  "ui/src/components/form/components/MediaLibraryWidgetContainer.module.css": {
+    "order/properties-order": {
+      "count": 1
+    },
+    "declaration-property-value-keyword-no-deprecated": {
+      "count": 1
+    },
+    "selector-pseudo-class-no-unknown": {
+      "count": 8
+    }
+  },
+  "ui/src/components/form/components/Radio.module.css": {
+    "order/properties-order": {
+      "count": 1
+    }
+  },
+  "ui/src/components/form/components/SerpPreview.module.css": {
+    "order/properties-order": {
+      "count": 3
+    }
+  },
+  "ui/src/features/code-editor/component-data/DataFetch.module.css": {
+    "order/properties-order": {
+      "count": 1
+    },
+    "color-hex-length": {
+      "count": 1
+    },
+    "selector-pseudo-class-no-unknown": {
+      "count": 1
+    }
+  },
+  "ui/src/features/code-editor/component-data/Props.css": {
+    "order/properties-order": {
+      "count": 1
+    }
+  },
+  "ui/src/features/layout/preview/ViewportToolbar.module.css": {
+    "color-function-alias-notation": {
+      "count": 2
+    }
+  },
+  "ui/src/features/layout/previewOverlay/PreviewOverlay.module.css": {
+    "color-function-alias-notation": {
+      "count": 5
+    }
+  },
+  "ui/src/components/form/components/drupal/DrupalInputMultivalueForm.module.css": {
+    "order/properties-order": {
+      "count": 19
+    }
+  },
+  "ui/src/components/form/components/drupal/DrupalMediaLibraryItem.module.css": {
+    "order/properties-order": {
+      "count": 3
+    },
+    "selector-pseudo-class-no-unknown": {
+      "count": 1
+    }
+  },
+  "ui/src/components/form/components/drupal/LinkedFieldBox.module.css": {
+    "order/properties-order": {
+      "count": 11
+    },
+    "color-function-alias-notation": {
+      "count": 3
+    },
+    "color-hex-length": {
+      "count": 3
+    }
+  },
+  "ui/src/components/form/components/drupal/PropLinker.module.css": {
+    "selector-pseudo-class-no-unknown": {
+      "count": 1
+    }
+  },
+  "ui/src/features/layout/preview/RegionSpotlight/RegionSpotlight.module.css": {
+    "color-function-alias-notation": {
+      "count": 1
+    }
+  },
+  "ui/src/features/code-editor/component-data/forms/FormPropTypeEnum.css": {
+    "order/properties-order": {
+      "count": 3
+    }
+  },
+  "ui/src/features/code-editor/component-data/forms/PropValuesSortableList.css": {
+    "order/properties-order": {
+      "count": 3
+    }
+  }
+}

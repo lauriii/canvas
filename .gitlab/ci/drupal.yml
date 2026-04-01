@@ -8,8 +8,7 @@
 # individually symlinks all the project files into module directory.
 # This causes some very strange behavior and node.js scripts will refuse to
 # run in a lot of cases, so this is an alternative job.
-.drupal-files: &drupal-files
-  # Move everything into a subdirectory
+.drupal-files: &drupal-files # Move everything into a subdirectory
   - mkdir tmp
   - find . -maxdepth 1 -type f -not -path "./tmp*" -exec mv {} tmp/ \;
   - find . -maxdepth 1 -type d -not -path "." -not -path "./tmp" -not -path "./.cache" -exec mv {}
@@ -26,7 +25,8 @@
     composer config repositories.$CI_PARENT_PROJECT_NAME --json '{"type": "path", "url": "../'$CI_PROJECT_NAME'", "options": { "symlink": false } }'
   - composer require drupal/core-dev "drupal/$CI_PARENT_PROJECT_NAME @dev" --with-all-dependencies
   # Restore the .git directory, this is removed by composer when bringing in the module.
-  - mv web/modules/contrib/$CI_PARENT_PROJECT_NAME/git web/modules/contrib/$CI_PARENT_PROJECT_NAME/.git
+  - mv web/modules/contrib/$CI_PARENT_PROJECT_NAME/git
+    web/modules/contrib/$CI_PARENT_PROJECT_NAME/.git
   - |
     MODULE_SHA=$(cd web/modules/contrib/$CI_PARENT_PROJECT_NAME && git rev-parse HEAD)
     if [ "$MODULE_SHA" != "$CI_COMMIT_SHA" ]; then
@@ -39,8 +39,7 @@
   - cd $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME
   - git config --global --add safe.directory $CI_PROJECT_DIR/_drupal/web/modules/contrib/canvas
 
-.drupal-webserver: &drupal-webserver
-  # Setup webserver root
+.drupal-webserver: &drupal-webserver # Setup webserver root
   - rm -rf /var/www/html
   - ln -s $CI_PROJECT_DIR/_drupal/web /var/www/html
   - chown -R www-data:www-data /var/www/html
@@ -51,14 +50,16 @@
   - chmod 777 $CI_PROJECT_DIR/_drupal/web/sites/simpletest
   - mkdir -p $CI_PROJECT_DIR/_drupal/web/sites/default/files
   - chmod 777 $CI_PROJECT_DIR/_drupal/web/sites/default/files
+  - mkdir -p $CI_PROJECT_DIR/_drupal/web/sites/default/files/simpletest
+  - chmod 777 $CI_PROJECT_DIR/_drupal/web/sites/default/files/simpletest
   # Start the webserver
   - service apache2 start
-  # Set simpletest environment variables
-  - !reference [ .simpletest-db ]
-  - export DRUPAL_TEST_DB_URL=$SIMPLETEST_DB
-  - !reference [ .show-environment-variables ]
 
-.drupal-site: &drupal-site
+.drupal-enable-test-modules: &drupal-site
+  # Ensure that every test site will be able to discover and install test modules.
+  # Anything in settings.testing.php is automatically copied into the settings of
+  # individual test sites. See \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(),
+  # which is called (indirectly) by \Drupal\TestSite\Commands\TestSiteInstallCommand.
   # Ensure that every test site will be able to discover and install test modules.
   # Anything in settings.testing.php is automatically copied into the settings of
   # individual test sites. See \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(),
@@ -68,11 +69,7 @@
   - echo '$settings["extension_discovery_scan_tests"] = TRUE;' >> settings.testing.php
   # Change to the project directory
   - cd $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME
-  # Install the UI
-  - npm ci
-  - npm run build --workspace=ui
 
 .drupal: &drupal
-  - !reference [ .drupal-files ]
-  - !reference [ .drupal-webserver ]
-  - !reference [ .drupal-site ]
+  - !reference [.drupal-files]
+  - !reference [.drupal-webserver]

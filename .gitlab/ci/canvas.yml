@@ -1,0 +1,14 @@
+.canvas-ui-files: &canvas-ui-files
+  - |
+    HERE=$(pwd)
+    cd ../canvas
+    npm ci
+    cd $HERE
+
+.canvas-ui: &canvas-ui
+  - !reference [.canvas-ui-files]
+  - |
+    HERE=$(pwd)
+    cd ../canvas
+    npm run build --workspace=@drupal-canvas/ui
+    cd $HERE

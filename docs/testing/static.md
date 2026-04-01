@@ -63,6 +63,12 @@ A code formatter to enforce coding style across the project.
 npm run lint:prettier
 ```
 
+### stylelint
+A code formatter to enforce coding style across CSS.
+```shell
+npm run lint:stylelint
+```
+
 Configuration is located in [`.prettierrc.json`](../../.prettierrc.json) and
 [`.prettierignore`](../../.prettierignore).
 

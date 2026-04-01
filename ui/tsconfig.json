@@ -5,5 +5,6 @@
       "vitest/globals",
       "vite-plugin-svgr/client"
     ]
-  }
+  },
+  "exclude": ["cycache"]
 }
