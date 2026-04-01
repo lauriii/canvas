@@ -8,6 +8,7 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Query\SelectInterface;
+use Drupal\Core\Database\StatementInterface;
 
 /**
  * Handles CRUD operations for Canvas notifications.
@@ -22,6 +23,8 @@ final class CanvasNotificationHandler {
    * Types that trigger deletion of existing notifications with the same key.
    */
   private const array KEY_REPLACE_TYPES = ['processing', 'error', 'warning'];
+  private const int PROCESSING_TIMEOUT_MS = 1800000;
+  private const int RETENTION_MS = 2592000000;
 
   public function __construct(
     private readonly Connection $database,
@@ -189,6 +192,64 @@ final class CanvasNotificationHandler {
           'timestamp' => $now,
         ])
         ->execute();
+    }
+  }
+
+  /**
+   * Purges stale processing notifications and replaces them with errors.
+   *
+   * Processing notifications older than 30 minutes are deleted. For each,
+   * an error notification is created with the same key and message.
+   */
+  public function purgeStaleProcessing(): void {
+    $threshold = (int) (microtime(TRUE) * 1000) - self::PROCESSING_TIMEOUT_MS;
+
+    // Select stale processing notifications before deleting them.
+    $statement = $this->database->select(self::NOTIFICATION_TABLE, 'n')
+      ->fields('n', ['key', 'message'])
+      ->condition('type', 'processing')
+      ->condition('timestamp', $threshold, '<')
+      ->execute();
+    \assert($statement instanceof StatementInterface);
+    $stale = $statement->fetchAll(\PDO::FETCH_ASSOC);
+
+    // Create replacement error notifications.
+    foreach ($stale as $row) {
+      $this->create([
+        'type' => 'error',
+        'key' => $row['key'],
+        'title' => 'Operation timed out',
+        'message' => $row['message'],
+      ]);
+    }
+
+    // Delete all stale processing in a single query.
+    $this->database->delete(self::NOTIFICATION_TABLE)
+      ->condition('type', 'processing')
+      ->condition('timestamp', $threshold, '<')
+      ->execute();
+  }
+
+  /**
+   * Deletes notifications and read entries older than 30 days.
+   *
+   * Notifications are deleted first; read entries are only deleted after
+   * that succeeds. Both deletes use the same pre-computed cutoff.
+   */
+  public function deleteExpired(): void {
+    $cutoff = (int) (microtime(TRUE) * 1000) - self::RETENTION_MS;
+    $transaction = $this->database->startTransaction();
+    try {
+      $this->database->delete(self::NOTIFICATION_TABLE)
+        ->condition('timestamp', $cutoff, '<')
+        ->execute();
+      $this->database->delete(self::NOTIFICATION_READ_TABLE)
+        ->condition('timestamp', $cutoff, '<')
+        ->execute();
+    }
+    catch (\Exception $e) {
+      $transaction->rollBack();
+      throw $e;
     }
   }
 
