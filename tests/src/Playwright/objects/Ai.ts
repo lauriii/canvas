@@ -9,25 +9,20 @@ export class Ai {
 
   async openPanel() {
     await this.page.getByRole('button', { name: 'Open AI Panel' }).click();
-    await this.page.locator('deep-chat').evaluate((el) => {
-      const shadowRoot = el.shadowRoot;
-      if (!shadowRoot) {
-        throw new Error('No shadow root found');
-      }
-      const textInputDiv = shadowRoot.querySelector('div#text-input');
-
-      if (!textInputDiv) {
-        throw new Error('No div with id "text-input" found in shadow root');
-      }
+    // `deep-chat` is a web component with shadow DOM; wait for it to be fully
+    // initialized to reduce cross-browser flakiness.
+    await this.page.locator('deep-chat').waitFor({ state: 'attached' });
+    await this.page.waitForFunction(() => {
+      const el = document.querySelector('deep-chat') as HTMLElement | null;
+      const shadowRoot = el?.shadowRoot;
+      return !!shadowRoot?.querySelector('div#text-input');
     });
   }
 
   async submitQuery(query: string) {
-    await this.page.getByRole('textbox', { name: 'Build me a' }).fill(query);
-    await this.page
-      .getByTestId('canvas-ai-panel')
-      .getByRole('button')
-      .nth(1)
-      .click();
+    const input = this.page.getByRole('textbox', { name: 'Build me a' });
+    await input.fill(query);
+    // Submitting via keyboard is less brittle than relying on button ordering.
+    await input.press('Enter');
   }
 }

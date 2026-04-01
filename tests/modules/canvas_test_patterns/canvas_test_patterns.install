@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\Component;
+use Drupal\Core\Theme\ComponentPluginManager;
 
 /**
  * Creates multiple Patterns for testing Folder functionality.
@@ -11,6 +13,12 @@ use Drupal\canvas\Entity\Component;
  * 💡 Does not use exported config to avoid chasing evolving active versions.
  */
 function canvas_test_patterns_install(): void {
+  // Ensure SDC discovery and Canvas Component entities are up to date before
+  // creating Pattern entities that reference them. This avoids CI flakes where
+  // component generation lags behind module installation.
+  \Drupal::service(ComponentPluginManager::class)->clearCachedDefinitions();
+  \Drupal::service(ComponentSourceManager::class)->generateComponents();
+
   $component_tree = [
     0 => [
       'uuid' => '60cb8b4c-3753-4838-8b56-314626395eb7',

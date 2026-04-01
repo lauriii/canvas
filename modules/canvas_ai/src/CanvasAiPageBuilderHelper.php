@@ -15,6 +15,7 @@ use Drupal\Component\Utility\DiffArray;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
+use Drupal\canvas\Component\Schema\PropMetadataNormalizer;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
@@ -46,6 +47,8 @@ class CanvasAiPageBuilderHelper {
    *   The Canvas AI tempstore.
    * @param \Drupal\Core\Extension\ThemeHandlerInterface $themeHandler
    *   The theme handler.
+   * @param \Drupal\canvas\Component\Schema\PropMetadataNormalizer $propMetadataNormalizer
+   *   The prop metadata normalizer.
    */
   public function __construct(
     private readonly ComponentPluginManager $componentPluginManager,
@@ -56,6 +59,7 @@ class CanvasAiPageBuilderHelper {
     private readonly UuidInterface $uuidService,
     private readonly CanvasAiTempStore $canvasAiTempstore,
     private readonly ThemeHandlerInterface $themeHandler,
+    private readonly PropMetadataNormalizer $propMetadataNormalizer,
   ) {
   }
 
@@ -499,7 +503,7 @@ class CanvasAiPageBuilderHelper {
         if ($prop_name === 'attributes') {
           continue;
         }
-        $output[$source_id]['components'][$component_id]['props'][$prop_name] = [
+        $prop_metadata = [
           'name' => $prop_details['title'] ?? $prop_name,
           'description' => $prop_details['description'] ?? 'No description available',
           'type' => $prop_details['type'],
@@ -511,8 +515,9 @@ class CanvasAiPageBuilderHelper {
           $output[$source_id]['components'][$component_id]['props'][$prop_name]['required'] = TRUE;
         }
         if (isset($prop_details['enum'])) {
-          $output[$source_id]['components'][$component_id]['props'][$prop_name]['enum'] = $prop_details['enum'];
+          $prop_metadata['enum'] = $prop_details['enum'];
         }
+        $output[$source_id]['components'][$component_id]['props'][$prop_name] = $this->propMetadataNormalizer->normalize($prop_metadata, $prop_details);
       }
     }
   }
@@ -538,8 +543,13 @@ class CanvasAiPageBuilderHelper {
     // Get the descriptions for props of the JS component.
     if (isset($component_data['propSources']) && \is_array($component_data['propSources'])) {
       $output[JsComponent::SOURCE_PLUGIN_ID]['components'][$component_id]['props'] = [];
+      $metadata_properties = [];
+      $component_source = $component->getComponentSource();
+      if ($component_source instanceof JsComponent) {
+        $metadata_properties = $component_source->getMetadata()->schema['properties'] ?? [];
+      }
       foreach ($component_data['propSources'] as $prop_name => $prop_details) {
-        $output[JsComponent::SOURCE_PLUGIN_ID]['components'][$component_id]['props'][$prop_name] = [
+        $prop_metadata = [
           'name' => $prop_name,
           // Keep the prop description as the prop name for as there is no
           // option to provide a description in the JS component.
@@ -549,6 +559,16 @@ class CanvasAiPageBuilderHelper {
           'format' => $prop_details['jsonSchema']['format'] ?? '',
           'enum' => $prop_details['jsonSchema']['enum'] ?? '',
         ];
+        $prop_schema = $prop_details['jsonSchema'] ?? [];
+        // The client-side prop schema strips meta:enum; pull labels from the
+        // component metadata to keep option labels aligned with the UI.
+        $metadata_schema = $metadata_properties[$prop_name] ?? [];
+        foreach (['meta:enum', 'x-translation-context'] as $key) {
+          if (!isset($prop_schema[$key]) && isset($metadata_schema[$key])) {
+            $prop_schema[$key] = $metadata_schema[$key];
+          }
+        }
+        $output[JsComponent::SOURCE_PLUGIN_ID]['components'][$component_id]['props'][$prop_name] = $this->propMetadataNormalizer->normalize($prop_metadata, $prop_schema);
       }
     }
 

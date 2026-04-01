@@ -36,7 +36,7 @@ export default defineConfig({
     /* For https://playwright.dev/docs/locators#locate-by-test-id */
     testIdAttribute: 'data-testid',
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
+    trace: process.env.CI ? 'retain-on-failure' : 'on-first-retry',
     /* Take screenshot automatically on test failure */
     screenshot: {
       mode: 'only-on-failure',
