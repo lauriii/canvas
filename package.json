@@ -17,10 +17,12 @@
   "scripts": {
     "test:playwright": "playwright install && playwright test",
     "lint:eslint": "eslint",
+    "lint:openapi": "redocly lint openapi.yml",
     "lint:prettier": "prettier tests/src/Playwright playwright.config.ts packages ui eslint.config.mjs --check",
     "lint:stylelint": "stylelint stylelint \"**/*.css\"",
+    "lint:tsc": "npm run type-check --workspaces",
     "lint:cspell": "cspell . --no-progress",
-    "lint:yaml": "yamllint '**/*.(yaml|yml)' --ignore='.gitlab/**' --ignore='.gitlab-ci.yml'",
+    "lint:yaml": "yamllint '**/*.(yaml|yml)' --ignore='.gitlab/**' --ignore='.gitlab-ci.yml' --ignore='node_modules/**'",
     "fix": "npm run lint:prettier -- --write && npm run lint:eslint -- --fix",
     "test": "npx npm-run-all --parallel --continue-on-error test:*",
     "lint": "npx npm-run-all --parallel --continue-on-error lint:*"
@@ -38,6 +40,7 @@
     "@eslint/js": "^9.39.2",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
     "@playwright/test": "^1.56.1",
+    "@redocly/cli": "^2.25.3",
     "@types/node": "^22.14.0",
     "@vitest/eslint-plugin": "^1.6.3",
     "cspell": "^9.2.0",

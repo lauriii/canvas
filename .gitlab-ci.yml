@@ -224,6 +224,10 @@ composer (next minor):
   rules:
     - when: never
 
+eslint:
+  rules:
+    - when: never
+
 phpcs:
   rules:
     - when: never
@@ -395,56 +399,6 @@ phpunit (11.3):
     IGNORE_PROJECT_DRUPAL_CORE_VERSION: 1
     MINIMUM_STABILITY_OVERRIDE: 'dev'
 
-prettier:
-  stage: validate
-  image: node:20-alpine
-  allow_failure: false
-  needs: []
-  # @todo Refine when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
-  rules:
-    - *is-push-rule
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - "**/*.js"
-        - "**/*.jsx"
-        - "**/*.ts"
-        - "**/*.tsx"
-        - "**/*.json"
-        - "**/*.yml"
-    - *manual-rule
-  script:
-    - npm ci
-    - npm run lint:prettier
-
-eslint:
-  stage: validate
-  image: node:20-alpine
-  allow_failure: false
-  needs: []
-  # @todo Refine when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
-  rules:
-    - *is-push-rule
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - "**/*.js"
-        - "**/*.jsx"
-        - "**/*.ts"
-        - "**/*.tsx"
-        - "**/*.json"
-    - *manual-rule
-  script:
-    - npm ci
-    - npm run lint:eslint -- --format=junit --output-file=$CI_PROJECT_DIR/ui-eslint-junit.xml --max-warnings=0
-  artifacts:
-    expose_as: junit
-    expire_in: 6 mos
-    when: always
-    name: artifacts-$CI_PIPELINE_ID-$CI_JOB_NAME_SLUG
-    paths:
-      - ui-eslint-junit.xml
-    reports:
-      junit: ui-eslint-junit.xml
-
 vitest:
   stage: test
   image: node:20-alpine
@@ -615,35 +569,14 @@ lint (php):
         - test-results/phpcs.xml
         - test-results/phpstan.xml
 
-# This is the lint job for packages that are under the root package.json and
-# workspace.
-# @todo migrate the ui/ packages to the top level workspace now that we can get
-# around the GitLab issues.
 lint (node):
   stage: validate
   needs: []
   image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
   script:
     - npm ci
-    - npm run lint
-
-type-check:
-  stage: validate
-  needs: []
-  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
-  script:
-    - npm ci
     - npm run build --workspace=drupal-canvas
-    - npm run type-check --workspaces
-
-lint (OpenAPI):
-  stage: validate
-  needs: []
-  image: node:24-alpine
-  script:
-    - npx @redocly/cli@latest lint openapi.yml
-  variables:
-    FORCE_COLOR: "1"
+    - npm run lint
 
 playwright:
   stage: test
