@@ -14,7 +14,7 @@ import type { TaskOptions } from 'simple-git';
 import type { Context } from './types/context.js';
 
 export default async function createApp(ctx: Context) {
-  const { template, appName } = ctx;
+  const { template, appName, selectedAgents } = ctx;
   const projectDir = `${process.cwd()}/${appName}`;
 
   try {
@@ -57,7 +57,10 @@ export default async function createApp(ctx: Context) {
     s1.stop(chalk.green('Fetched initial codebase'));
 
     // Set up compatibility symlinks for additional agent skills directories.
-    await setupAgentSkills(projectDir);
+    await setupAgentSkills(projectDir, {
+      selectedAgents,
+      interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
+    });
 
     // Step 2: Install dependencies.
     const s2 = p.spinner();

@@ -261,3 +261,7 @@ export function getNonUniversalAgents(): AgentType[] {
 export function isUniversalAgent(type: AgentType): boolean {
   return agents[type].skillsDir === '.agents/skills';
 }
+
+export function isAgentType(value: string): value is AgentType {
+  return Object.prototype.hasOwnProperty.call(agents, value);
+}

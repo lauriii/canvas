@@ -18,6 +18,8 @@ import { pluralize } from './text.js';
 import type { AgentType } from './agents.js';
 
 type SetupAgentSkillsOptions = {
+  selectedAgents?: AgentType[];
+  interactive?: boolean;
   promptForAgents?: () => Promise<AgentType[] | symbol>;
   onInfo?: (message: string) => void;
   onWarning?: (message: string) => void;
@@ -42,8 +44,14 @@ export async function setupAgentSkills(
 ): Promise<void> {
   const info = options.onInfo ?? p.log.info;
   const warning = options.onWarning ?? p.log.warn;
+  const interactive = options.interactive ?? true;
+  const hasExplicitSelection = options.selectedAgents !== undefined;
 
   try {
+    if (!hasExplicitSelection && !interactive) {
+      return;
+    }
+
     const canonicalSkillsDir = join(projectDir, DEFAULT_SKILLS_DIR);
 
     const hasSkillsDir = await pathExists(canonicalSkillsDir);
@@ -57,8 +65,12 @@ export async function setupAgentSkills(
       return;
     }
 
-    const promptForAgents = options.promptForAgents ?? defaultPromptForAgents;
-    const selected = await promptForAgents();
+    let selected: AgentType[] | symbol | undefined = options.selectedAgents;
+
+    if (selected === undefined) {
+      const promptForAgents = options.promptForAgents ?? defaultPromptForAgents;
+      selected = await promptForAgents();
+    }
 
     if (p.isCancel(selected) || typeof selected === 'symbol') {
       info('Skipped compatibility setup.');
@@ -66,7 +78,7 @@ export async function setupAgentSkills(
     }
 
     if (selected.length === 0) {
-      info('No agents selected. Skipping compatibility setup.');
+      info('No additional agents selected. Skipping compatibility setup.');
       return;
     }
 

@@ -31,7 +31,7 @@ describe('setupAgentSkills', () => {
 
     try {
       await setupAgentSkills(projectDir, {
-        promptForAgents: async () => ['claude-code'],
+        selectedAgents: ['claude-code'],
         onInfo: () => {},
         onWarning: () => {},
       });
@@ -52,7 +52,7 @@ describe('setupAgentSkills', () => {
       await createCanonicalSkill(projectDir, 'test-skill');
 
       await setupAgentSkills(projectDir, {
-        promptForAgents: async () => ['claude-code'],
+        selectedAgents: ['claude-code'],
         onInfo: (message) => {
           infos.push(message);
         },
@@ -79,7 +79,7 @@ describe('setupAgentSkills', () => {
       await createCanonicalSkill(projectDir, 'test-skill');
 
       await setupAgentSkills(projectDir, {
-        promptForAgents: async () => ['codex'],
+        selectedAgents: ['codex'],
         onInfo: () => {},
         onWarning: () => {},
       });
@@ -103,7 +103,7 @@ describe('setupAgentSkills', () => {
       await mkdir(existingPath, { recursive: true });
 
       await setupAgentSkills(projectDir, {
-        promptForAgents: async () => ['claude-code'],
+        selectedAgents: ['claude-code'],
         onInfo: () => {},
         onWarning: (message) => {
           warnings.push(message);
@@ -130,7 +130,7 @@ describe('setupAgentSkills', () => {
       await createCanonicalSkill(projectDir, 'test-skill-two');
 
       await setupAgentSkills(projectDir, {
-        promptForAgents: async () => ['codex', 'claude-code', 'cursor', 'roo'],
+        selectedAgents: ['codex', 'claude-code', 'cursor', 'roo'],
         onInfo: (message) => {
           infos.push(message);
         },
@@ -160,11 +160,96 @@ describe('setupAgentSkills', () => {
       await createCanonicalSkill(projectDir, 'test-skill');
 
       await setupAgentSkills(projectDir, {
+        interactive: true,
         promptForAgents: async () => Symbol('cancel'),
         onInfo: () => {},
         onWarning: () => {},
       });
 
+      expect(
+        await pathExists(join(projectDir, '.claude', 'skills', 'test-skill')),
+      ).toBe(false);
+    } finally {
+      await rm(projectDir, { recursive: true, force: true });
+    }
+  });
+
+  it('skips setup when explicit selection is empty', async () => {
+    const projectDir = await createProjectDir('create-agent-skills-');
+    const infos: string[] = [];
+
+    try {
+      await createCanonicalSkill(projectDir, 'test-skill');
+
+      await setupAgentSkills(projectDir, {
+        selectedAgents: [],
+        onInfo: (message) => {
+          infos.push(message);
+        },
+        onWarning: () => {},
+      });
+
+      expect(
+        infos.includes(
+          'No additional agents selected. Skipping compatibility setup.',
+        ),
+      ).toBe(true);
+      expect(
+        await pathExists(join(projectDir, '.claude', 'skills', 'test-skill')),
+      ).toBe(false);
+    } finally {
+      await rm(projectDir, { recursive: true, force: true });
+    }
+  });
+
+  it('uses prompt selection when interactive and agents are omitted', async () => {
+    const projectDir = await createProjectDir('create-agent-skills-');
+    let promptCalls = 0;
+
+    try {
+      await createCanonicalSkill(projectDir, 'test-skill');
+
+      await setupAgentSkills(projectDir, {
+        interactive: true,
+        promptForAgents: async () => {
+          promptCalls += 1;
+          return ['claude-code'];
+        },
+        onInfo: () => {},
+        onWarning: () => {},
+      });
+
+      expect(promptCalls).toBe(1);
+      expect(
+        await pathExists(join(projectDir, '.claude', 'skills', 'test-skill')),
+      ).toBe(true);
+    } finally {
+      await rm(projectDir, { recursive: true, force: true });
+    }
+  });
+
+  it('skips omitted selection silently in non-interactive mode', async () => {
+    const projectDir = await createProjectDir('create-agent-skills-');
+    const infos: string[] = [];
+    let promptCalls = 0;
+
+    try {
+      await createCanonicalSkill(projectDir, 'test-skill');
+
+      await setupAgentSkills(projectDir, {
+        interactive: false,
+        promptForAgents: async () => {
+          promptCalls += 1;
+          return ['claude-code'];
+        },
+        onInfo: (message) => {
+          infos.push(message);
+        },
+        onWarning: () => {},
+      });
+
+      expect(promptCalls).toBe(0);
+      expect(infos).toEqual([]);
       expect(
         await pathExists(join(projectDir, '.claude', 'skills', 'test-skill')),
       ).toBe(false);

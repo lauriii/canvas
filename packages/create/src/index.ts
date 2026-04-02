@@ -5,6 +5,7 @@ import * as p from '@clack/prompts';
 
 import templates from '../templates.json' with { type: 'json' };
 import createApp from './create.js';
+import { parseAgentSelection } from './lib/agent-selection.js';
 import { getDescription, getName, getVersion } from './lib/meta-info.js';
 import validateName from './lib/validate-name.js';
 
@@ -17,6 +18,7 @@ process.on('SIGTERM', () => process.exit(0));
 interface CreateOptions {
   template?: string;
   ref?: string;
+  agents?: string;
 }
 
 const program = new Command();
@@ -33,10 +35,16 @@ program
     '-r, --ref <ref>',
     'use Git ref when cloning template repository (for example, branch name or tag)',
   )
+  .option(
+    '-a, --agents <agents>',
+    'comma-separated list of additional agents to support, or "none" to skip compatibility symlinks',
+  )
   .action(async (appNameArg: string | undefined, options: CreateOptions) => {
     p.intro(chalk.bold('Drupal Canvas Create'));
 
     try {
+      const selectedAgents = parseAgentSelection(options.agents);
+
       // Validate template flag if provided.
       if (options.template) {
         const template = (templates as Template[]).find(
@@ -136,7 +144,7 @@ program
       p.note(`Template: ${template.label}\nApp name: ${appName}`);
 
       // Create the app.
-      await createApp({ template, appName });
+      await createApp({ template, appName, selectedAgents });
     } catch (error) {
       if (error instanceof Error) {
         p.log.error(`Error: ${error.message}`);
