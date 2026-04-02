@@ -537,6 +537,7 @@ export function pushCommand(program: Command): void {
           const { valid: validPages, failed: failedPreps } = await preparePages(
             discoveredPages,
             componentVersions,
+            discoveryResult,
           );
 
           if (validPages.length === 0) {

@@ -1,9 +1,11 @@
 import fs from 'fs/promises';
+import { loadComponentsMetadata } from '@drupal-canvas/discovery';
 
 import { authoredSpecToComponentTree } from './pages';
+import { serializeElementMapForServer } from './prop-transforms';
 import { processInPool } from './request-pool';
 
-import type { DiscoveredPage } from '@drupal-canvas/discovery';
+import type { DiscoveredPage, DiscoveryResult } from '@drupal-canvas/discovery';
 import type { AuthoredSpecElementMap } from 'drupal-canvas/json-render-utils';
 import type { ApiService } from '../services/api';
 import type { Page, PageListItem } from '../types/Page';
@@ -28,20 +30,24 @@ export interface PreparedPage {
 export async function preparePages(
   discoveredPages: DiscoveredPage[],
   componentVersions: Map<string, string>,
+  discoveryResult: DiscoveryResult,
 ): Promise<{
   valid: Array<{ index: number; result: PreparedPage }>;
   failed: Array<{ index: number; error: Error }>;
 }> {
+  const componentMetadata = await loadComponentsMetadata(discoveryResult);
+
   const results = await processInPool(discoveredPages, async (localPage) => {
     const fileContent = await fs.readFile(localPage.path, 'utf-8');
     const spec = JSON.parse(fileContent) as {
       title: string;
       elements: AuthoredSpecElementMap;
     };
-    const components = authoredSpecToComponentTree(
+    const elements = serializeElementMapForServer(
       spec.elements ?? {},
-      componentVersions,
+      componentMetadata,
     );
+    const components = authoredSpecToComponentTree(elements, componentVersions);
     return {
       uuid: localPage.uuid,
       title: spec.title,

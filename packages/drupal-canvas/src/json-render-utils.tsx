@@ -18,6 +18,7 @@ export interface CanvasComponentTreeNode {
   component_id: string;
   component_version: string | null;
   inputs: Record<string, unknown>;
+  inputs_resolved?: Record<string, unknown> | null;
   label: string | null;
 }
 

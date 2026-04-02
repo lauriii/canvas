@@ -498,6 +498,7 @@ describe('Pull Command', () => {
             parent_uuid: null,
             slot: null,
             inputs: { heading: 'About Us' },
+            inputs_resolved: { heading: 'About Us' },
             label: null,
           },
         ],

@@ -253,6 +253,7 @@ describe('pageToAuthoredSpec', () => {
           parent_uuid: null,
           slot: null,
           inputs: { heading: 'Welcome' },
+          inputs_resolved: { heading: 'Welcome' },
           label: null,
         },
         {
@@ -262,6 +263,7 @@ describe('pageToAuthoredSpec', () => {
           parent_uuid: 'hero-uuid',
           slot: 'content',
           inputs: { body: 'Hello' },
+          inputs_resolved: { body: 'Hello' },
           label: null,
         },
         {
@@ -271,6 +273,7 @@ describe('pageToAuthoredSpec', () => {
           parent_uuid: 'hero-uuid',
           slot: 'actions',
           inputs: { label: 'Read more' },
+          inputs_resolved: { label: 'Read more' },
           label: null,
         },
       ],
@@ -304,6 +307,6 @@ describe('pageToAuthoredSpec', () => {
           ['js.button', 'v3'],
         ]),
       ),
-    ).toEqual(page.components);
+    ).toEqual(page.components.map(({ inputs_resolved: _, ...rest }) => rest));
   });
 });

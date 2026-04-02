@@ -93,10 +93,7 @@ export function pageToAuthoredSpec(page: Page): Record<string, unknown> {
 
   const components = page.components.map((node) => ({
     ...node,
-    inputs:
-      node.inputs && !Array.isArray(node.inputs)
-        ? node.inputs
-        : ({} as Record<string, unknown>),
+    inputs: node.inputs_resolved ?? ({} as Record<string, unknown>),
   }));
 
   const spec = canvasTreeToSpec(components);

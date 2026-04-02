@@ -9,9 +9,18 @@ import {
   pushPages,
 } from './prepare-pages-push';
 
-import type { DiscoveredPage } from '@drupal-canvas/discovery';
+import type { DiscoveredPage, DiscoveryResult } from '@drupal-canvas/discovery';
 import type { ApiService } from '../services/api';
 import type { PageListItem } from '../types/Page';
+
+const emptyDiscoveryResult: DiscoveryResult = {
+  componentRoot: '',
+  projectRoot: '',
+  components: [],
+  pages: [],
+  warnings: [],
+  stats: { scannedFiles: 0, ignoredFiles: 0 },
+};
 
 function mockDiscoveredPage(
   name: string,
@@ -74,7 +83,11 @@ describe('preparePages', () => {
     const pages = [mockDiscoveredPage('home', 'page-uuid-1', filePath)];
     const versions = new Map([['js.hero', 'v1']]);
 
-    const { valid, failed } = await preparePages(pages, versions);
+    const { valid, failed } = await preparePages(
+      pages,
+      versions,
+      emptyDiscoveryResult,
+    );
 
     expect(failed).toHaveLength(0);
     expect(valid).toHaveLength(1);
@@ -94,7 +107,11 @@ describe('preparePages', () => {
     );
 
     const pages = [mockDiscoveredPage('new-page', null, filePath)];
-    const { valid, failed } = await preparePages(pages, new Map());
+    const { valid, failed } = await preparePages(
+      pages,
+      new Map(),
+      emptyDiscoveryResult,
+    );
 
     expect(failed).toHaveLength(0);
     expect(valid).toHaveLength(1);
@@ -106,7 +123,11 @@ describe('preparePages', () => {
     await fs.writeFile(filePath, 'not valid json', 'utf-8');
 
     const pages = [mockDiscoveredPage('bad', null, filePath)];
-    const { valid, failed } = await preparePages(pages, new Map());
+    const { valid, failed } = await preparePages(
+      pages,
+      new Map(),
+      emptyDiscoveryResult,
+    );
 
     expect(valid).toHaveLength(0);
     expect(failed).toHaveLength(1);
