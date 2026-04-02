@@ -20,9 +20,10 @@ const Details = ({
   attributes: Attributes;
   summaryAttributes: object;
 }) => {
-  const [open, setOpen] = useState(false);
+  const { open: openAttr, ...restAttributes } = attributes;
+  const [open, setOpen] = useState(Boolean(openAttr));
   return (
-    <Collapsible.Root open={open} onOpenChange={setOpen} {...attributes}>
+    <Collapsible.Root open={open} onOpenChange={setOpen} {...restAttributes}>
       <Flex asChild justify="between" align="center" width="100%">
         <Collapsible.Trigger asChild className={styles.trigger}>
           <button>

@@ -17,7 +17,9 @@
     animation: slide-down 200ms ease-in-out;
   }
   &[data-state="closed"] {
+    height: 0;
     animation: slide-up 200ms ease-in-out;
+    opacity: 0;
   }
 }
 
