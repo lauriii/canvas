@@ -28,87 +28,64 @@ test.describe('Block form', () => {
     await expect(inputsForm.locator('input[type="checkbox"]')).toBeVisible();
   });
 
-  //test('Block settings form values are stored and the preview is updated', async ({
-  //  page,
-  //  drupal,
-  //  canvas,
-  //}) => {
-  //  await drupal.login({ username: 'editor', password: 'editor' });
-  //  const canvasPage = await canvas.createCanvas();
-  //  await canvas.openLibraryPanel();
-  //  // Don't wait for the preview as there won't be anything to see initially.
-  //  await canvas.addComponent(
-  //    { name: 'Site branding' },
-  //    { waitForVisible: false },
-  //  );
+  test('Block settings form values are stored and the preview is updated', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.createCanvas();
+    await canvas.openLibraryPanel();
+    // Don't wait for the preview as there won't be anything to see initially.
+    await canvas.addComponent(
+      { name: 'Site branding' },
+      { waitForVisible: false },
+    );
 
-  //  await canvas.openLayersPanel();
-  //  await canvas.openComponent('Site branding');
+    await canvas.openLayersPanel();
+    await canvas.openComponent('Site branding');
 
-  //  // Remove and re-add the site logo.
-  //  const siteLogoCheckbox = page
-  //    .locator(
-  //      `[data-testid="canvas-contextual-panel"] [data-drupal-selector="component-instance-form"]`,
-  //    )
-  //    .getByLabel('Site logo');
-  //  await expect(siteLogoCheckbox).toBeChecked();
-  //  await expect(
-  //    (await canvas.getActivePreviewFrame()).locator(
-  //      `[data-canvas-component-id="block.system_branding_block"] img`,
-  //    ),
-  //  ).toBeVisible();
-  //  await siteLogoCheckbox.click();
-  //  await expect(siteLogoCheckbox).not.toBeChecked();
-  //  await expect(
-  //    (await canvas.getActivePreviewFrame()).locator(
-  //      `[data-canvas-component-id="block.system_branding_block"] img`,
-  //    ),
-  //  ).not.toBeVisible();
-  //  await siteLogoCheckbox.click();
-  //  await expect(siteLogoCheckbox).toBeChecked();
-  //  await expect(
-  //    (await canvas.getActivePreviewFrame()).locator(
-  //      `[data-canvas-component-id="block.system_branding_block"] img`,
-  //    ),
-  //  ).toBeVisible();
+    // Add and remove the site logo.
+    const imgLocator =
+      'xpath=//img[ancestor::*[starts-with(@id, "block-") and string-length(@id) = 42]]';
+    const siteLogoCheckbox = page.getByRole('checkbox', { name: 'Site logo' });
+    await expect(siteLogoCheckbox).not.toBeChecked();
+    await expect(
+      (await canvas.getActivePreviewFrame()).locator(imgLocator),
+    ).not.toBeVisible();
+    await siteLogoCheckbox.click();
+    await expect(siteLogoCheckbox).toBeChecked();
+    await expect(
+      (await canvas.getActivePreviewFrame()).locator(imgLocator),
+    ).toBeVisible();
+    await siteLogoCheckbox.click();
+    await expect(siteLogoCheckbox).not.toBeChecked();
+    await expect(
+      (await canvas.getActivePreviewFrame()).locator(imgLocator),
+    ).not.toBeVisible();
 
-  //  // Remove the site name.
-  //  const siteNameCheckbox = page
-  //    .locator(
-  //      `[data-testid="canvas-contextual-panel"] [data-drupal-selector="component-instance-form"]`,
-  //    )
-  //    .getByLabel('Site name');
-  //  await expect(siteNameCheckbox).toBeChecked();
-  //  await expect(
-  //    (await canvas.getActivePreviewFrame()).locator(
-  //      `[data-canvas-component-id="block.system_branding_block"]`,
-  //    ),
-  //  ).toHaveText('Drupal');
-  //  await siteNameCheckbox.click();
-  //  await expect(siteNameCheckbox).not.toBeChecked();
-  //  await expect(
-  //    (await canvas.getActivePreviewFrame()).locator(
-  //      `[data-canvas-component-id="block.system_branding_block"]`,
-  //    ),
-  //  ).not.toHaveText('Drupal');
+    // Add the site name.
+    const siteNameLocator =
+      'xpath=//a[ancestor::*[starts-with(@id, "block-") and string-length(@id) = 42]]';
+    const siteNameCheckbox = page.getByRole('checkbox', { name: 'Site name' });
+    await expect(siteNameCheckbox).not.toBeChecked();
+    await expect(
+      (await canvas.getActivePreviewFrame()).locator(siteNameLocator),
+    ).not.toBeVisible();
+    await siteNameCheckbox.click();
+    await expect(siteNameCheckbox).toBeChecked();
+    await expect(
+      (await canvas.getActivePreviewFrame()).locator(siteNameLocator),
+    ).toHaveText('Drupal');
 
-  //  // Verify the component is saved and renders with the new options.
-  //  await canvas.publishAllChanges();
-  //  await canvas.openCanvas(canvasPage);
-  //  await expect(
-  //    page.locator(
-  //      'xpath=//img[ancestor::*[starts-with(@id, "block-") and string-length(@id) = 42]]',
-  //    ),
-  //  ).toBeVisible();
-  //  await expect(
-  //    page.locator(
-  //      'xpath=//img[ancestor::*[starts-with(@id, "block-") and string-length(@id) = 42]]',
-  //    ),
-  //  ).toHaveAttribute('src', /logo\.svg/);
-  //  await expect(
-  //    page.locator(
-  //      'xpath=//img[ancestor::*[starts-with(@id, "block-") and string-length(@id) = 42]]',
-  //    ),
-  //  ).not.toHaveText('Drupal');
-  //});
+    // Verify the component is saved and renders with the new options.
+    await canvas.publishAllChanges();
+    await page.reload();
+    await expect(
+      (await canvas.getActivePreviewFrame()).locator(imgLocator),
+    ).not.toBeVisible();
+    await expect(
+      (await canvas.getActivePreviewFrame()).locator(siteNameLocator),
+    ).toHaveText('Drupal');
+  });
 });

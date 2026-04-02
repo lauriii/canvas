@@ -75,8 +75,10 @@ export function CanvasNavigationMixin<TBase extends Constructor<CanvasBase>>(
       ).toBeVisible();
       await expect(
         this.page
-          .locator('#canvasPreviewOverlay')
-          .getByText('Place items here'),
+          .locator(
+            '[data-testid="canvas-empty-region-drop-zone-content"], [data-testid="canvas-name-tag"], [data-testid="canvas-region-drop-zone-start-content"]',
+          )
+          .first(),
       ).toBeVisible();
     }
 
