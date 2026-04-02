@@ -1,0 +1,10 @@
+.container {
+  position: fixed;
+  z-index: 50;
+  top: var(--space-9);
+  right: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  gap: var(--space-3);
+}

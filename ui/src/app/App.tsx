@@ -18,8 +18,10 @@ import Toast from '@/components/Toast';
 import Topbar from '@/components/topbar/Topbar';
 import useExtensions from '@/features/extensions/useExtensions';
 import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler';
+import NotificationToastManager from '@/features/notifications/NotificationToastManager';
 import useNavigationListener from '@/hooks/useNavigationListener';
 import useRouteSync from '@/hooks/useRouteSync';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import type React from 'react';
 import type { CollisionDetection } from '@dnd-kit/core';
@@ -100,6 +102,7 @@ const App: React.FC = () => {
             {import.meta.env.DEV && <DevTools />}
             <SavingOverlay />
             <Toast />
+            {getCanvasSettings()?.devMode && <NotificationToastManager />}
           </DndContext>
         </ErrorBoundary>
       </div>

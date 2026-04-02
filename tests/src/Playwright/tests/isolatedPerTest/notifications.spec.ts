@@ -316,3 +316,210 @@ test.describe('Activity Center notifications', () => {
     await adminContext.close();
   });
 });
+
+test.describe('Toast notifications', () => {
+  test.beforeEach(async ({ drupal }) => {
+    await drupal.enableTestExtensions();
+    await drupal.loginAsAdmin();
+    await drupal.installModules([
+      'canvas_dev_mode',
+      'canvas_test_notifications',
+    ]);
+    await drupal.logout();
+  });
+
+  test('Toast appears for new notification', async ({
+    page,
+    drupal,
+    canvas,
+    browser,
+  }) => {
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    const adminDrupal = new Drupal({
+      page: adminPage,
+      drupalSite: drupal.drupalSite,
+    });
+    await adminDrupal.setTestCookie();
+    await adminDrupal.loginAsAdmin();
+
+    await drupal.login({ username: 'editor', password: 'editor' });
+    const canvasPage = await canvas.createCanvas();
+    await canvas.openCanvas(canvasPage);
+
+    // Seed notification AFTER page load so timestamp > pageOpenedAt.
+    await canvas.createNotification(
+      {
+        type: 'error',
+        title: 'Toast test error',
+        message: 'This should appear as a toast.',
+      },
+      adminPage,
+    );
+
+    // Wait for toast to appear.
+    await expect(async () => {
+      await expect(page.getByText('Toast test error')).toBeVisible();
+    }).toPass({ intervals: [2_000, 5_000], timeout: 30_000 });
+
+    await expect(
+      page.getByText('This should appear as a toast.'),
+    ).toBeVisible();
+
+    await adminContext.close();
+  });
+
+  test('Toast has correct type styling', async ({
+    page,
+    drupal,
+    canvas,
+    browser,
+  }) => {
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    const adminDrupal = new Drupal({
+      page: adminPage,
+      drupalSite: drupal.drupalSite,
+    });
+    await adminDrupal.setTestCookie();
+    await adminDrupal.loginAsAdmin();
+
+    await drupal.login({ username: 'editor', password: 'editor' });
+    const canvasPage = await canvas.createCanvas();
+    await canvas.openCanvas(canvasPage);
+
+    await canvas.createNotification(
+      {
+        type: 'error',
+        title: 'Error toast',
+        message: 'Error details.',
+      },
+      adminPage,
+    );
+    await canvas.createNotification(
+      {
+        type: 'warning',
+        title: 'Warning toast',
+        message: 'Warning details.',
+      },
+      adminPage,
+    );
+
+    // Wait for toasts to appear.
+    await expect(async () => {
+      await expect(page.getByText('Error toast')).toBeVisible();
+    }).toPass({ intervals: [2_000, 5_000], timeout: 30_000 });
+
+    await expect(page.getByText('Warning toast')).toBeVisible();
+
+    // Verify type-specific data attributes on toast cards.
+    const errorToast = page.locator('[data-type="error"]').filter({
+      hasText: 'Error toast',
+    });
+    const warningToast = page.locator('[data-type="warning"]').filter({
+      hasText: 'Warning toast',
+    });
+    await expect(errorToast).toBeVisible();
+    await expect(warningToast).toBeVisible();
+
+    await adminContext.close();
+  });
+
+  test('Dismiss marks as read', async ({ page, drupal, canvas, browser }) => {
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    const adminDrupal = new Drupal({
+      page: adminPage,
+      drupalSite: drupal.drupalSite,
+    });
+    await adminDrupal.setTestCookie();
+    await adminDrupal.loginAsAdmin();
+
+    await drupal.login({ username: 'editor', password: 'editor' });
+    const canvasPage = await canvas.createCanvas();
+    await canvas.openCanvas(canvasPage);
+
+    const bell = page.getByRole('button', { name: 'Notifications' });
+    const badge = page.locator('[class*="badge"]');
+
+    await canvas.createNotification(
+      {
+        type: 'error',
+        title: 'Dismiss test',
+        message: 'Dismiss this toast.',
+      },
+      adminPage,
+    );
+
+    // Wait for toast to appear.
+    await expect(async () => {
+      await expect(page.getByText('Dismiss test')).toBeVisible();
+    }).toPass({ intervals: [2_000, 5_000], timeout: 30_000 });
+
+    // Click dismiss on the toast.
+    await page.getByRole('button', { name: 'Dismiss notification' }).click();
+
+    // Toast should disappear.
+    await expect(page.getByText('Dismiss test')).toBeHidden();
+
+    // Open Activity Center — notification should be marked as read (no unread dot).
+    await bell.click();
+    await expect(page.getByText('Activity Center')).toBeVisible();
+    await expect(page.getByText('Dismiss test')).toBeVisible();
+    // Badge should not show since the only notification was marked read.
+    await expect(badge).toBeHidden();
+
+    await adminContext.close();
+  });
+
+  test('Toast and Activity Center show same notification', async ({
+    page,
+    drupal,
+    canvas,
+    browser,
+  }) => {
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    const adminDrupal = new Drupal({
+      page: adminPage,
+      drupalSite: drupal.drupalSite,
+    });
+    await adminDrupal.setTestCookie();
+    await adminDrupal.loginAsAdmin();
+
+    await drupal.login({ username: 'editor', password: 'editor' });
+    const canvasPage = await canvas.createCanvas();
+    await canvas.openCanvas(canvasPage);
+
+    const bell = page.getByRole('button', { name: 'Notifications' });
+
+    await canvas.createNotification(
+      {
+        type: 'info',
+        title: 'Shared notification',
+        message: 'Visible in both toast and activity center.',
+      },
+      adminPage,
+    );
+
+    // Wait for toast to appear.
+    await expect(async () => {
+      await expect(page.getByText('Shared notification')).toBeVisible();
+    }).toPass({ intervals: [2_000, 5_000], timeout: 30_000 });
+
+    // Open Activity Center — same notification should be there.
+    await bell.click();
+    await expect(
+      page.getByRole('heading', { name: 'Activity Center' }),
+    ).toBeVisible();
+    // The notification text should appear in the Activity Center list too
+    // (the popover dialog contains a second copy beyond the toast).
+    await expect(
+      page
+        .getByRole('dialog')
+        .getByText('Visible in both toast and activity center.'),
+    ).toBeVisible();
+
+    await adminContext.close();
+  });
+});
