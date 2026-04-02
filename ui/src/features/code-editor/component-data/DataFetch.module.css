@@ -4,8 +4,8 @@
 }
 
 .accordionChevron {
-  transform: rotate(-90deg);
   transition: transform 300ms;
+  transform: rotate(-90deg);
 }
 
 :global([data-state="open"]) .accordionChevron {
@@ -13,5 +13,5 @@
 }
 
 .errorWrapper {
-  background: #ffffff;
+  background: #fff;
 }

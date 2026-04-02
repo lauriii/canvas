@@ -3,12 +3,12 @@
 }
 
 .dragHandle {
-  cursor: grab;
-  flex-shrink: 0;
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   width: 24px;
+  cursor: grab;
   color: var(--blue-9);
 }
 
@@ -18,6 +18,6 @@
 
 :global([data-num-items="1"]  [data-canvas-drag-handle]) {
   cursor: default;
-  color: var(--gray-8);
   opacity: 0.4;
+  color: var(--gray-8);
 }

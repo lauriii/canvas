@@ -1,7 +1,7 @@
 .banner {
+  overflow: hidden;
   border: 1px solid #999;
   border-radius: 3px;
-  overflow: hidden;
 
   h2 {
     margin: 0;
@@ -13,15 +13,15 @@
     grid-template-columns: auto auto;
 
     .image img {
-      height: auto;
       display: block;
       width: 100%;
+      height: auto;
       object-fit: cover;
     }
 
     .content {
-      padding: 0.5rem;
       display: inline-block;
+      padding: 0.5rem;
     }
 
   }

@@ -61,7 +61,7 @@
 
 .defaultImageLabel {
   margin-right: 20px;
-  word-break: break-word;
+  overflow-wrap: break-word;
   color: var(--slate-11);
   font-size: 13px;
 }

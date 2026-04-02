@@ -10,7 +10,7 @@
     background-repeat: repeat;
     background-position: -5px -5px;
     background-size: 29px 30px;
-    box-shadow: inset 0 0 10px rgba(53, 129, 158, 0.3);
+    box-shadow: inset 0 0 10px rgb(53, 129, 158, 0.3);
   }
 }
 

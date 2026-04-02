@@ -1,31 +1,31 @@
 .hello-world-component {
-  padding: 20px;
-  background-color: #ccccff;
-  border-radius: 8px;
   max-width: 400px;
   margin: 0 auto;
+  padding: 20px;
   text-align: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  background-color: #ccf;
+  box-shadow: 0 4px 6px rgb(0, 0, 0, 0.1);
 }
 
 .hello-world-component .greeting {
-  font-size: 24px;
   margin-bottom: 15px;
+  font-size: 24px;
 }
 
 .hello-world-component .content {
-  font-size: 16px;
   margin-bottom: 20px;
+  font-size: 16px;
 }
 
 .hello-world-component .cta {
-  background-color: #007bff;
-  color: white;
   padding: 10px 20px;
-  text-align: center;
-  font-size: 16px;
-  border-radius: 8px;
   cursor: pointer;
+  text-align: center;
+  color: white;
+  border-radius: 8px;
+  background-color: #007bff;
+  font-size: 16px;
 }
 
 .hello-world-component .cta:hover {

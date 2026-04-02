@@ -9,11 +9,11 @@
 
 .preview {
   max-width: 592px;
-  padding: var(--space-3);
   margin-top: var(--space-2);
   margin-bottom: 0;
-  background-color: white;
+  padding: var(--space-3);
   border: 1px solid #e6e4df;
+  background-color: white;
   font-family: Arial, sans-serif;
 }
 
@@ -33,10 +33,10 @@
 }
 
 .description {
+  min-height: 3.08em; /* Two lines to avoid layout shift when content is filled. */
   color: #545454;
   font-family: arial, sans-serif;
   font-size: 12px;
   line-height: 1.54;
-  min-height: 3.08em; /* Two lines to avoid layout shift when content is filled. */
   overflow-wrap: break-word;
 }

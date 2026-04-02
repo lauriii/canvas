@@ -57,8 +57,8 @@
 }
 
 .isDragging {
-  opacity: 0.5;
   cursor: grabbing;
+  opacity: 0.5;
 }
 
 .emptyDropZone {
@@ -70,15 +70,15 @@
 }
 
 .dropIndicatorAbove::before {
-  content: '';
   position: absolute;
-  top: -4px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: var(--blue-9);
   z-index: 10;
+  top: -4px;
+  right: 0;
+  left: 0;
+  height: 2px;
+  content: '';
   border-radius: 1px;
+  background-color: var(--blue-9);
 }
 
 .dropIndicatorBelow {
@@ -86,13 +86,13 @@
 }
 
 .dropIndicatorBelow::after {
-  content: '';
   position: absolute;
+  z-index: 10;
+  right: 0;
   bottom: -4px;
   left: 0;
-  right: 0;
   height: 2px;
-  background-color: var(--blue-9);
-  z-index: 10;
+  content: '';
   border-radius: 1px;
+  background-color: var(--blue-9);
 }

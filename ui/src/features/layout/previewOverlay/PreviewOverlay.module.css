@@ -95,7 +95,7 @@
   &.updating {
     animation: 1.5s shine linear infinite;
     border-radius: 5px;
-    background: linear-gradient(110deg, rgba(255,255,255,0.2) 8%, rgba(255,255,255,0.8) 18%, rgba(255,255,255,0.2) 33%);
+    background: linear-gradient(110deg, rgb(255,255,255,0.2) 8%, rgb(255,255,255,0.8) 18%, rgb(255,255,255,0.2) 33%);
     background-size: 200% 200%;
     backdrop-filter: grayscale(100%)  opacity(40%);
   }
@@ -182,7 +182,7 @@
   width: calc(100% - 8px);
   height: calc(100% - 8px);
   pointer-events: none;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgb(255, 255, 255, 0.3);
   font-size: 12px;
   gap: var(--space-1);
   inset: 4px;
@@ -307,7 +307,7 @@
 .slotDropZone {
   position: absolute;
   pointer-events: none;
-  background: rgba(255, 100, 100, 0.3);
+  background: rgb(255, 100, 100, 0.3);
 
   &.isOver {
     &::after {

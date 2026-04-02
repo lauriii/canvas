@@ -1,11 +1,11 @@
 /* Style overrides for code mirror in Canvas. */
 
 .canvasCodeMirrorEditor {
-  font-size: var(--font-size-1);
   width: 100%;
   height: calc(100% - 2px);
   border: 1px solid var(--slate-6);
   border-left: none;
+  font-size: var(--font-size-1);
 }
 
 .canvasCodeMirrorEditor {

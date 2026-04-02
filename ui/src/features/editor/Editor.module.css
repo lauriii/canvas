@@ -1,19 +1,19 @@
 .editorPanelWrapper,
 .editorAllotment {
-  flex: 1;
   display: flex;
+  overflow: hidden;
+  flex: 1;
   flex-direction: column;
   min-width: 0;
-  overflow: hidden;
 }
 
 .editorMainPane,
 .editorSidebarPane {
   display: flex;
+  overflow: hidden;
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  overflow: hidden;
 }
 
 .editorAllotment {

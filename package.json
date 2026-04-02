@@ -23,7 +23,7 @@
     "lint:tsc": "npm run type-check --workspaces",
     "lint:cspell": "cspell . --no-progress",
     "lint:yaml": "yamllint '**/*.(yaml|yml)' --ignore='.gitlab/**' --ignore='.gitlab-ci.yml' --ignore='node_modules/**'",
-    "fix": "npm run lint:prettier -- --write && npm run lint:eslint -- --fix",
+    "fix": "npm run lint:prettier -- --write && npm run lint:eslint -- --fix && npm run lint:stylelint -- --fix",
     "test": "npx npm-run-all --parallel --continue-on-error test:*",
     "lint": "npx npm-run-all --parallel --continue-on-error lint:*"
   },

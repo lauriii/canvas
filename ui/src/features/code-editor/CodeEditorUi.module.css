@@ -21,8 +21,9 @@
 }
 
 .allotmentRoot {
-  flex: 1;
-  min-width: 0;
   --separator-border: var(--slate-6);
   --focus-border: var(--blue-7);
+
+  flex: 1;
+  min-width: 0;
 }

@@ -1,8 +1,8 @@
 .panel {
   border-radius: var(--panel-border-radius) !important;
   /* Glass effect */
-  background: transparent linear-gradient(173deg, rgba(255, 255, 255, 0.80) 0.02%, rgba(255, 255, 255, 0.90) 100.05%) !important;
-  box-shadow: 0 3px 40px 0 rgba(0, 0, 0, 0.08) !important;
+  background: transparent linear-gradient(173deg, rgb(255, 255, 255, 0.80) 0.02%, rgb(255, 255, 255, 0.90) 100.05%) !important;
+  box-shadow: 0 3px 40px 0 rgb(0, 0, 0, 0.08) !important;
   backdrop-filter: blur(47.5px);
 }
 

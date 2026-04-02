@@ -3,7 +3,7 @@
 
   & ~ * {
     transition: margin 0.1s ease-in-out;
-    transition-delay: 0;
+    transition-delay: 0s;
   }
 
   &[data-open="true"] + * {
@@ -18,10 +18,10 @@
 }
 
 .aiPanelContent {
-  height: 100%;
-  width: 0;
-  transition: width 0.3s ease-in-out;
   overflow: hidden;
+  width: 0;
+  height: 100%;
+  transition: width 0.3s ease-in-out;
 
   &[data-open="true"] {
     width: 310px;

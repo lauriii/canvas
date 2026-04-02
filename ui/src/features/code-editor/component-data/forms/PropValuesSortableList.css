@@ -1,7 +1,7 @@
 /* Drag handle styles */
 .sortable-drag-handle {
-  cursor: grab;
   flex-shrink: 0;
+  cursor: grab;
 }
 
 .sortable-drag-handle.disabled {
@@ -18,13 +18,13 @@
 
 /* Trash icon button styles */
 button.trash-icon-button {
-  background-color: #feebec;
   color: #e5484d;
+  background-color: #feebec;
 }
 
 button.trash-icon-button.disabled {
-  background-color: #00005506;
   color: #00083046;
+  background-color: #00005506;
 }
 
 button.trash-icon-button:not(.disabled):hover {

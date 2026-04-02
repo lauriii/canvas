@@ -1,13 +1,11 @@
 .card {
-  border: 1px solid #999;
-  border-radius: 3px;
-
   display: grid;
-  grid-template-rows: max-content 200px 1fr;
-
   overflow: hidden;
+  grid-template-rows: max-content 200px 1fr;
   width: 50%;
   max-width: 800px;
+  border: 1px solid #999;
+  border-radius: 3px;
 
   h2 {
     margin: 0;
@@ -15,9 +13,9 @@
   }
 
   img {
-    height: auto;
     display: block;
     width: 100%;
+    height: auto;
     object-fit: cover;
   }
 
@@ -31,9 +29,9 @@
   }
 
   footer {
-    background-color: #333;
-    color: #fff;
     padding: 0.5rem;
+    color: #fff;
+    background-color: #333;
   }
 }
 

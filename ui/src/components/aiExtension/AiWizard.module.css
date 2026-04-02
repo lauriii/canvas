@@ -1,13 +1,13 @@
 .aiWizard {
   width: fit-content;
   height: 100%;
-  background: white;
   padding: 16px;
+  background: white;
   font-family: sans-serif;
 
   h3 {
-    font-weight: 600;
     margin: 4px 0 16px;
+    font-weight: 600;
   }
 
   .blue-text {
@@ -30,14 +30,14 @@
 }
 
 .aiWizardBeta {
+  position: absolute;
+  top: -8px;
   color: var(--blue-9);
   font-size: var(--font-size-1);
   font-weight: var(--font-weight-medium);
-  position: absolute;
-  top: -8px;
 }
 
 .aiWizardSubtitle {
+  color: var(--slate-11);
   font-size: var(--font-size-2);
-  color: var(--Colors-Gray-11);
 }

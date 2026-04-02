@@ -1,6 +1,6 @@
 button.fpe-btn-popover-trigger {
-  width: 100%;
   justify-content: space-between;
+  width: 100%;
 }
 
 .fpe-btn-popover-trigger,
@@ -11,12 +11,12 @@ button.fpe-btn-popover-trigger {
 }
 
 .fpe-popover-content {
-  max-height: 300px;
   overflow: auto;
+  max-height: 300px;
 }
 
 .fpe-divider {
   height: 1px;
-  background-color: var(--gray-6);
   margin: 4px 0;
+  background-color: var(--gray-6);
 }

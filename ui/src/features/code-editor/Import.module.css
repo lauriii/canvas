@@ -4,7 +4,7 @@
   z-index: 100 !important;
   top: 10px !important;
   right: 30px !important;
-  box-shadow: 0 4px 12px rgba(5, 136, 240, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 12px rgb(5, 136, 240, 0.3), 0 2px 4px rgb(0, 0, 0, 0.1) !important;
 }
 
 .code {
