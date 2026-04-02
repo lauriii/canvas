@@ -32,15 +32,15 @@
   align-items: center;
   justify-content: center;
   margin: 0;
-  padding: 4px;
+  padding: var(--space-1);
 
   &.exitButton {
-    margin: 0 -4px 0 4px;
+    margin: 0 calc(var(--space-1) * -1) 0 var(--space-1);
   }
 }
 
 .verticalDivider {
-  height: 24px;
+  height: var(--space-5);
   margin-left: -1px;
   border-right: 1px solid var(--gray-5);
 }

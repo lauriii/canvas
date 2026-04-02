@@ -2,6 +2,11 @@
 # See https://redocly.com/docs/cli/ for more information.
 openapi.yml:
   struct:
+    # OpenAPI 3.0 `nullable` is used for runtime compatibility with
+    # league/openapi-psr7-validator v0.22 which does not support the 3.1
+    # `type: [x, null]` syntax.
+    - '#/components/schemas/Notification/properties/key/nullable'
+    - '#/components/schemas/Notification/properties/actions/nullable'
     - >-
       #/paths/~1canvas~1api~1v0~1config~1asset_library/post/requestBody/content/application~1json/examples/example
       of a global library/id

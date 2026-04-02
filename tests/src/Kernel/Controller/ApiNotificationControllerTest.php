@@ -86,6 +86,59 @@ class ApiNotificationControllerTest extends CanvasKernelTestBase {
     }
   }
 
+  public function testGetNotificationsWithActionsPassesValidation(): void {
+    $this->setUpCurrentUser([], ['access content', Page::CREATE_PERMISSION]);
+
+    $this->handler()->create([
+      'type' => 'error',
+      'title' => 'Import failed',
+      'message' => 'Could not connect to remote server.',
+      'actions' => [
+        ['label' => 'View logs', 'href' => '/admin/reports/dblog'],
+        ['label' => 'Retry', 'href' => '/admin/config/content/canvas'],
+      ],
+    ]);
+
+    $response = $this->request(Request::create('/canvas/api/v0/notifications'));
+    self::assertSame(200, $response->getStatusCode());
+
+    $json = static::decodeResponse($response);
+    $notification = $json['data']['notifications'][0];
+    self::assertSame('Import failed', $notification['title']);
+    self::assertIsArray($notification['actions']);
+    self::assertCount(2, $notification['actions']);
+    self::assertSame('View logs', $notification['actions'][0]['label']);
+    self::assertSame('/admin/reports/dblog', $notification['actions'][0]['href']);
+
+    // Validate against OpenAPI spec — this is the key assertion.
+    // Prior to the nullable fix, this would fail with:
+    // "items MUST be present if the type is array".
+    foreach ($json['data']['notifications'] as $n) {
+      $this->assertDataCompliesWithApiSpecification($n, 'Notification');
+    }
+  }
+
+  public function testGetNotificationsWithNullActionsPassesValidation(): void {
+    $this->setUpCurrentUser([], ['access content', Page::CREATE_PERMISSION]);
+
+    $this->handler()->create([
+      'type' => 'info',
+      'title' => 'No actions',
+      'message' => 'This notification has no actions.',
+    ]);
+
+    $response = $this->request(Request::create('/canvas/api/v0/notifications'));
+    self::assertSame(200, $response->getStatusCode());
+
+    $json = static::decodeResponse($response);
+    $notification = $json['data']['notifications'][0];
+    self::assertNull($notification['actions']);
+
+    foreach ($json['data']['notifications'] as $n) {
+      $this->assertDataCompliesWithApiSpecification($n, 'Notification');
+    }
+  }
+
   public function testGetNotificationsIncludesHasReadPerUser(): void {
     $user1 = $this->setUpCurrentUser([], ['access content', Page::CREATE_PERMISSION]);
 
@@ -173,6 +226,71 @@ class ApiNotificationControllerTest extends CanvasKernelTestBase {
     $response = $this->request(Request::create('/canvas/api/v0/notifications'));
     $json = static::decodeResponse($response);
     self::assertTrue($json['data']['notifications'][0]['hasRead']);
+  }
+
+  public function testMarkAllReadMarksEveryNotificationAsRead(): void {
+    $this->setUpCurrentUser([], ['access content', Page::CREATE_PERMISSION]);
+
+    $n1 = $this->handler()->create(['type' => 'info', 'title' => 'A', 'message' => 'M']);
+    $n2 = $this->handler()->create(['type' => 'warning', 'title' => 'B', 'message' => 'M']);
+    $n3 = $this->handler()->create(['type' => 'error', 'title' => 'C', 'message' => 'M']);
+    $n4 = $this->handler()->create(['type' => 'success', 'title' => 'D', 'message' => 'M']);
+
+    // Mark all as read in a single request.
+    $response = $this->request(Request::create(
+      '/canvas/api/v0/notifications/read',
+      'POST',
+      [],
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      (string) \json_encode(['ids' => [$n1['id'], $n2['id'], $n3['id'], $n4['id']]]),
+    ));
+    self::assertSame(204, $response->getStatusCode());
+
+    // All notifications should now be read.
+    $response = $this->request(Request::create('/canvas/api/v0/notifications'));
+    $json = static::decodeResponse($response);
+    foreach ($json['data']['notifications'] as $notification) {
+      self::assertTrue($notification['hasRead'], \sprintf(
+        'Notification "%s" (type: %s) should be marked as read.',
+        $notification['title'],
+        $notification['type'],
+      ));
+    }
+  }
+
+  public function testMarkAllReadDoesNotAffectOtherUsers(): void {
+    $this->setUpCurrentUser([], ['access content', Page::CREATE_PERMISSION]);
+
+    $n1 = $this->handler()->create(['type' => 'info', 'title' => 'A', 'message' => 'M']);
+    $n2 = $this->handler()->create(['type' => 'warning', 'title' => 'B', 'message' => 'M']);
+
+    // User 1 marks all as read.
+    $this->request(Request::create(
+      '/canvas/api/v0/notifications/read',
+      'POST',
+      [],
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      (string) \json_encode(['ids' => [$n1['id'], $n2['id']]]),
+    ));
+
+    // Switch to user 2.
+    $user2 = $this->createUser(['access content', Page::CREATE_PERMISSION]);
+    \assert($user2 !== FALSE);
+    $this->setCurrentUser($user2);
+
+    // User 2 should still see them as unread.
+    $response = $this->request(Request::create('/canvas/api/v0/notifications'));
+    $json = static::decodeResponse($response);
+    foreach ($json['data']['notifications'] as $notification) {
+      self::assertFalse($notification['hasRead'], \sprintf(
+        'Notification "%s" should be unread for user 2.',
+        $notification['title'],
+      ));
+    }
   }
 
   public function testMarkReadRejectsMissingIds(): void {

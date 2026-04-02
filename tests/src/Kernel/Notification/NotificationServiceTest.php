@@ -443,6 +443,49 @@ class NotificationServiceTest extends CanvasKernelTestBase {
     self::assertSame(2, $count);
   }
 
+  public function testMarkAllReadAcrossTypes(): void {
+    $handler = $this->handler();
+
+    $n1 = $handler->create(['type' => 'info', 'title' => 'Info', 'message' => 'M']);
+    $n2 = $handler->create(['type' => 'warning', 'title' => 'Warning', 'message' => 'M']);
+    $n3 = $handler->create(['type' => 'error', 'title' => 'Error', 'message' => 'M']);
+    $n4 = $handler->create(['type' => 'success', 'title' => 'Success', 'message' => 'M']);
+    $n5 = $handler->create(['type' => 'processing', 'title' => 'Processing', 'message' => 'M']);
+
+    $all_ids = [$n1['id'], $n2['id'], $n3['id'], $n4['id'], $n5['id']];
+    $handler->markRead(1, $all_ids);
+
+    $results = $handler->getRecent(1);
+    self::assertCount(5, $results);
+    foreach ($results as $n) {
+      self::assertTrue($n['hasRead'], \sprintf(
+        'Notification "%s" (type: %s) should be marked as read.',
+        $n['title'],
+        $n['type'],
+      ));
+    }
+  }
+
+  public function testMarkAllReadDoesNotAffectOtherUsers(): void {
+    $handler = $this->handler();
+
+    $n1 = $handler->create(['type' => 'info', 'title' => 'A', 'message' => 'M']);
+    $n2 = $handler->create(['type' => 'error', 'title' => 'B', 'message' => 'M']);
+
+    // Mark all as read for user 1.
+    $handler->markRead(1, [$n1['id'], $n2['id']]);
+
+    // User 1 sees all read.
+    foreach ($handler->getRecent(1) as $n) {
+      self::assertTrue($n['hasRead']);
+    }
+
+    // User 2 sees all unread.
+    foreach ($handler->getRecent(2) as $n) {
+      self::assertFalse($n['hasRead']);
+    }
+  }
+
   public function testMarkReadIdempotent(): void {
     $handler = $this->handler();
     $n = $handler->create(['type' => 'info', 'title' => 'T', 'message' => 'M']);

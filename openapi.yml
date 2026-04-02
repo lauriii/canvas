@@ -3351,9 +3351,8 @@ components:
             - warning
             - error
         key:
-          type:
-            - string
-            - 'null'
+          type: string
+          nullable: true
           description: Deduplication key. When a new processing, error, or warning notification is created with the same key, it replaces the previous one.
         title:
           type: string
@@ -3368,9 +3367,8 @@ components:
           type: boolean
           description: Whether the current user has marked this notification as read.
         actions:
-          type:
-            - array
-            - 'null'
+          type: array
+          nullable: true
           description: Optional action links displayed alongside the notification.
           items:
             type: object

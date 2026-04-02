@@ -1,0 +1,7 @@
+canvas_test_notifications.create:
+  path: '/admin/config/content/canvas/test-notifications'
+  defaults:
+    _title: 'Create Test Notification'
+    _form: 'Drupal\canvas_test_notifications\Form\CreateNotificationForm'
+  requirements:
+    _permission: 'administer site configuration'

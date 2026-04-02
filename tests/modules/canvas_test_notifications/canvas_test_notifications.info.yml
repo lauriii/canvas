@@ -1,0 +1,6 @@
+name: Drupal Canvas test notifications
+description: 'Provides a form to create test notifications for the Activity Center.'
+type: module
+dependencies:
+  - canvas:canvas
+package: Testing

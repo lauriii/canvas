@@ -18,44 +18,43 @@ const makeNotification = (
 });
 
 describe('computeBadgeCount', () => {
-  it('counts all unread notifications', () => {
-    const notifications = [
-      makeNotification({ id: '1', hasRead: false }),
-      makeNotification({ id: '2', hasRead: false }),
-      makeNotification({ id: '3', hasRead: true }),
-    ];
-    expect(computeBadgeCount(notifications)).toBe(2);
-  });
-
-  it('includes unread info and success', () => {
+  it('counts unread actionable notifications (info, warning, error)', () => {
     const notifications = [
       makeNotification({ id: '1', type: 'info', hasRead: false }),
-      makeNotification({ id: '2', type: 'success', hasRead: false }),
+      makeNotification({ id: '2', type: 'warning', hasRead: false }),
+      makeNotification({ id: '3', type: 'error', hasRead: false }),
     ];
-    expect(computeBadgeCount(notifications)).toBe(2);
+    expect(computeBadgeCount(notifications)).toBe(3);
   });
 
-  it('includes unread processing', () => {
+  it('excludes success and processing from badge count', () => {
     const notifications = [
-      makeNotification({ id: '1', type: 'processing', hasRead: false }),
+      makeNotification({ id: '1', type: 'success', hasRead: false }),
+      makeNotification({ id: '2', type: 'processing', hasRead: false }),
     ];
-    expect(computeBadgeCount(notifications)).toBe(1);
+    expect(computeBadgeCount(notifications)).toBe(0);
   });
 
   it('excludes read notifications', () => {
     const notifications = [
-      makeNotification({ id: '1', hasRead: true }),
-      makeNotification({ id: '2', hasRead: true }),
+      makeNotification({ id: '1', type: 'info', hasRead: true }),
+      makeNotification({ id: '2', type: 'error', hasRead: true }),
     ];
     expect(computeBadgeCount(notifications)).toBe(0);
   });
 
-  it('returns 0 when all read', () => {
+  it('counts only unread actionable in a mixed set', () => {
     const notifications = [
-      makeNotification({ id: '1', type: 'error', hasRead: true }),
-      makeNotification({ id: '2', type: 'warning', hasRead: true }),
-      makeNotification({ id: '3', type: 'info', hasRead: true }),
+      makeNotification({ id: '1', type: 'info', hasRead: false }),
+      makeNotification({ id: '2', type: 'success', hasRead: false }),
+      makeNotification({ id: '3', type: 'processing', hasRead: false }),
+      makeNotification({ id: '4', type: 'warning', hasRead: true }),
+      makeNotification({ id: '5', type: 'error', hasRead: false }),
     ];
-    expect(computeBadgeCount(notifications)).toBe(0);
+    expect(computeBadgeCount(notifications)).toBe(2);
+  });
+
+  it('returns 0 for empty list', () => {
+    expect(computeBadgeCount([])).toBe(0);
   });
 });

@@ -11,6 +11,7 @@ import PreviewControls from '@/components/PreviewControls';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import ContentPreviewSelector from '@/components/templates/ContentPreviewSelector';
 import UndoRedo from '@/components/UndoRedo';
+import NotificationBell from '@/features/notifications/NotificationBell';
 import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useGetPreviewContentEntitiesQuery } from '@/services/componentAndLayout';
@@ -157,6 +158,7 @@ const Topbar = () => {
             gap="2"
             width={leftRightColumnWidth}
           >
+            <NotificationBell />
             <PreviewControls isPreview={isPreview} />
             <UnpublishedChanges />
           </Flex>
