@@ -129,6 +129,41 @@ describe.runIf(isConfigured)('api service integration', () => {
     );
   });
 
+  it('should signal push start', async () => {
+    const apiService = await createApiService();
+    // @ts-expect-error allow accessing client directly in the test.
+    const response = await apiService.client.post('/canvas/api/v0/push/start');
+    expect(response).toBeDefined();
+  });
+
+  it('should signal push complete', async () => {
+    const apiService = await createApiService();
+    // @ts-expect-error allow accessing client directly in the test.
+    const response = await apiService.client.post(
+      '/canvas/api/v0/push/complete',
+    );
+    expect(response).toBeDefined();
+  });
+
+  it('should signal push fail without message', async () => {
+    const apiService = await createApiService();
+    // @ts-expect-error allow accessing client directly in the test.
+    const response = await apiService.client.post(
+      '/canvas/api/v0/push/fail',
+      {},
+    );
+    expect(response).toBeDefined();
+  });
+
+  it('should signal push fail with message', async () => {
+    const apiService = await createApiService();
+    // @ts-expect-error allow accessing client directly in the test.
+    const response = await apiService.client.post('/canvas/api/v0/push/fail', {
+      message: 'Build failed',
+    });
+    expect(response).toBeDefined();
+  });
+
   it('should allow updating the global asset library', async () => {
     const apiService = await createApiService();
     const assetLibrary = await apiService.getGlobalAssetLibrary();

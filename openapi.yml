@@ -2127,6 +2127,43 @@ paths:
           $ref: '#/components/responses/ClientErrorResponse'
         '403':
           $ref: '#/components/responses/AuthenticationErrorResponse'
+  /canvas/api/v0/push/complete:
+    description: Signal that a CLI push completed successfully.
+    post:
+      summary: Signal that a CLI push completed successfully.
+      responses:
+        '204':
+          description: Push completion recorded.
+        '403':
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+  /canvas/api/v0/push/fail:
+    description: Signal that a CLI push failed.
+    post:
+      summary: Signal that a CLI push failed.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: Optional error message describing why the push failed.
+      responses:
+        '204':
+          description: Push failure recorded.
+        '403':
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+  /canvas/api/v0/push/start:
+    description: Signal that a CLI push has started.
+    post:
+      summary: Signal that a CLI push has started.
+      responses:
+        '204':
+          description: Push start recorded.
+        '403':
+          $ref: '#/components/responses/AuthenticationErrorResponse'
   /canvas/api/v0/staged-update/auto-save:
     description: Auto-save endpoints for staged config updates.
     post:

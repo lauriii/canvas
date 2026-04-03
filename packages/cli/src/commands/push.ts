@@ -268,6 +268,7 @@ export function pushCommand(program: Command): void {
     .option('-d, --dir <directory>', 'Component directory')
     .option('-y, --yes', 'Skip confirmation prompts')
     .action(async (options: PushOptions) => {
+      let apiService: ApiService | undefined;
       try {
         p.intro(chalk.bold('Drupal Canvas CLI: push'));
         // Update config with CLI options.
@@ -318,7 +319,7 @@ export function pushCommand(program: Command): void {
           );
         }
 
-        const apiService = await createApiService();
+        apiService = await createApiService();
         const existingComponents =
           components.length > 0 ? await apiService.listComponents() : {};
         const remoteNames = new Set(Object.keys(existingComponents));
@@ -411,9 +412,11 @@ export function pushCommand(program: Command): void {
           });
           if (p.isCancel(confirmed) || !confirmed) {
             p.cancel('Operation cancelled');
-            process.exit(0);
+            return;
           }
         }
+
+        await apiService.signalPushStart();
 
         // Step 2: Build Tailwind CSS + Global CSS
         const s2 = p.spinner();
@@ -430,11 +433,9 @@ export function pushCommand(program: Command): void {
         );
         reportResults([tailwindResult], 'Built assets', 'Asset');
         if (!tailwindResult.success) {
-          p.note(
-            chalk.red('Tailwind build failed, global assets upload aborted.'),
+          throw new Error(
+            'Tailwind build failed, global assets upload aborted. Nothing was pushed.',
           );
-          p.note(chalk.red('Push aborted. Nothing was pushed.'));
-          process.exit(1);
         }
 
         // Step 3: Analyze and bundle imports (vendor + local) and generate canvas-manifest.json
@@ -499,12 +500,7 @@ export function pushCommand(program: Command): void {
           );
           if (componentResults.some((r) => !r.success)) {
             reportResults(componentResults, 'Built components', 'Component');
-            p.note(
-              chalk.red(
-                'Component build failed, push aborted. Nothing was pushed.',
-              ),
-            );
-            process.exit(1);
+            throw new Error('Component build failed. Nothing was pushed.');
           }
           reportResults(componentResults, 'Pushed components', 'Component');
         }
@@ -516,8 +512,7 @@ export function pushCommand(program: Command): void {
         );
         reportResults([globalCssResult], 'Pushed assets', 'Asset');
         if (!globalCssResult.success) {
-          p.note(chalk.red('Push aborted (incomplete). Try again.'));
-          process.exit(1);
+          throw new Error('Push aborted (incomplete). Try again.');
         }
 
         // Step 5: Upload vendor/local artifacts and sync manifest
@@ -577,8 +572,12 @@ export function pushCommand(program: Command): void {
           }
         }
 
+        await apiService.signalPushComplete();
         p.outro(`⬆️ Push completed`);
       } catch (error) {
+        await apiService?.signalPushFail(
+          error instanceof Error ? error.message : undefined,
+        );
         if (error instanceof Error) {
           p.note(chalk.red(`Error: ${error.message}`));
         } else {

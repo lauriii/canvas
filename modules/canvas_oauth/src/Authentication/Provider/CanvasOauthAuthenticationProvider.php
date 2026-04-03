@@ -54,8 +54,14 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
     ];
     $route_match = RouteMatch::createFromRequest($request);
 
-    // Special case: artifact upload route.
-    if ($route_match->getRouteName() === 'canvas.api.artifacts.upload') {
+    // Special case: artifact upload and push lifecycle routes.
+    $named_routes = [
+      'canvas.api.artifacts.upload',
+      'canvas.api.push.complete',
+      'canvas.api.push.fail',
+      'canvas.api.push.start',
+    ];
+    if (\in_array($route_match->getRouteName(), $named_routes, TRUE)) {
       return $this->simpleOauthAuthenticationProvider->applies($request);
     }
 

@@ -111,6 +111,9 @@ class CanvasOauthAuthenticationProviderTest extends CanvasKernelTestBase {
       ['canvas.component.status', [], FALSE],
       ['canvas.boot.entity', [], FALSE],
       ['canvas.api.artifacts.upload', [], TRUE],
+      ['canvas.api.push.complete', [], TRUE],
+      ['canvas.api.push.fail', [], TRUE],
+      ['canvas.api.push.start', [], TRUE],
     ];
   }
 

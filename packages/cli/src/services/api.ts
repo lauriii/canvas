@@ -487,6 +487,42 @@ export class ApiService {
   }
 
   /**
+   * Signals that a CLI push has started (best-effort).
+   */
+  async signalPushStart(): Promise<void> {
+    try {
+      await this.client.post('/canvas/api/v0/push/start');
+    } catch {
+      // Best-effort: signal errors are safe to ignore since they don't affect the push data.
+    }
+  }
+
+  /**
+   * Signals that a CLI push completed successfully (best-effort).
+   */
+  async signalPushComplete(): Promise<void> {
+    try {
+      await this.client.post('/canvas/api/v0/push/complete');
+    } catch {
+      // Best-effort: signal errors are safe to ignore since they don't affect the push data.
+    }
+  }
+
+  /**
+   * Signals that a CLI push failed (best-effort).
+   */
+  async signalPushFail(message?: string): Promise<void> {
+    try {
+      await this.client.post(
+        '/canvas/api/v0/push/fail',
+        message ? { message } : undefined,
+      );
+    } catch {
+      // Best-effort: signal errors are safe to ignore since they don't affect the push data.
+    }
+  }
+
+  /**
    * Parse Canvas API error responses into user-friendly messages.
    * Handles both structured validation errors and simple string errors.
    */
