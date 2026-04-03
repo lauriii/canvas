@@ -34,7 +34,10 @@ import FormPropTypeDate from '@/features/code-editor/component-data/forms/FormPr
 import FormPropTypeEnum from '@/features/code-editor/component-data/forms/FormPropTypeEnum';
 import FormPropTypeFormattedText from '@/features/code-editor/component-data/forms/FormPropTypeFormattedText';
 import FormPropTypeImage from '@/features/code-editor/component-data/forms/FormPropTypeImage';
-import FormPropTypeLink from '@/features/code-editor/component-data/forms/FormPropTypeLink';
+import FormPropTypeLink, {
+  DEFAULT_LINK_EXAMPLES,
+  linkFormatMap,
+} from '@/features/code-editor/component-data/forms/FormPropTypeLink';
 import FormPropTypeTextField from '@/features/code-editor/component-data/forms/FormPropTypeTextField';
 import FormPropTypeVideo from '@/features/code-editor/component-data/forms/FormPropTypeVideo';
 import SortableList from '@/features/code-editor/component-data/SortableList';
@@ -447,7 +450,27 @@ export default function Props() {
                     } else {
                       // Convert back to single value.
                       updates.items = undefined;
-                      updates.example = '';
+                      // If prop is required, restore the default example value.
+                      const isRequired = required.includes(propName);
+                      let defaultExample = '';
+                      if (isRequired) {
+                        if (prop.derivedType === 'link') {
+                          const linkType =
+                            prop.format && prop.format in linkFormatMap
+                              ? linkFormatMap[
+                                  prop.format as keyof typeof linkFormatMap
+                                ]
+                              : 'relative';
+                          defaultExample = DEFAULT_LINK_EXAMPLES[linkType];
+                        } else if (prop.derivedType === 'date') {
+                          defaultExample =
+                            DEFAULT_EXAMPLES[prop.format ?? 'date'] ?? '';
+                        } else {
+                          defaultExample =
+                            DEFAULT_EXAMPLES[prop.derivedType ?? ''] ?? '';
+                        }
+                      }
+                      updates.example = defaultExample;
                       updates.valueMode = undefined;
                       updates.limitedCount = undefined;
                     }

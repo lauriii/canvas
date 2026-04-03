@@ -1752,6 +1752,180 @@ describe('props in code editor', () => {
       });
     });
 
+    describe('restores default example value when disabling multiple values for required props', () => {
+      const testCases: Array<{
+        propType: string;
+        propName: string;
+        expectedExample: string;
+        expectedFormat?: string;
+        setup?: () => Promise<void>;
+      }> = [
+        {
+          propType: 'Text',
+          propName: 'Tags',
+          expectedExample: 'Example text',
+        },
+        {
+          propType: 'Integer',
+          propName: 'Count',
+          expectedExample: '0',
+        },
+        {
+          propType: 'Number',
+          propName: 'Price',
+          expectedExample: '0',
+        },
+        {
+          propType: 'Link',
+          propName: 'HomePage',
+          expectedExample: 'example',
+          expectedFormat: 'uri-reference',
+        },
+        {
+          propType: 'Link',
+          propName: 'ExternalLink',
+          expectedExample: 'https://example.com',
+          expectedFormat: 'uri',
+          setup: async () => {
+            // Change link type to Full URL.
+            const propId = selectCodeComponentProperty('props')(
+              store.getState(),
+            )[0].id;
+            const linkTypeSelect = document.getElementById(
+              `prop-link-type-${propId}`,
+            );
+            await userEvent.click(linkTypeSelect!);
+            const fullUrlOption = await screen.findByRole('option', {
+              name: 'Full URL',
+            });
+            await userEvent.click(fullUrlOption);
+          },
+        },
+        {
+          propType: 'Date and time',
+          propName: 'StartDate',
+          expectedExample: '2026-01-25',
+          expectedFormat: 'date',
+        },
+        {
+          propType: 'Date and time',
+          propName: 'CreatedAt',
+          expectedExample: '2026-01-25T12:00:00.000Z',
+          expectedFormat: 'date-time',
+          setup: async () => {
+            // Change date type to Date and time (date-time format).
+            const propId = selectCodeComponentProperty('props')(
+              store.getState(),
+            )[0].id;
+            const dateTypeSelect = document.getElementById(
+              `prop-date-type-${propId}`,
+            );
+            await userEvent.click(dateTypeSelect!);
+            const dateTimeOption = await screen.findByRole('option', {
+              name: 'Date and time',
+            });
+            await userEvent.click(dateTimeOption);
+          },
+        },
+        {
+          propType: 'List: text',
+          propName: 'Categories',
+          expectedExample: 'option_1',
+        },
+        {
+          propType: 'List: integer',
+          propName: 'Ratings',
+          expectedExample: '1',
+        },
+      ];
+
+      it.each(
+        testCases.map((testCase) => ({
+          ...testCase,
+          testName: testCase.expectedFormat
+            ? `${testCase.propType} prop (${testCase.expectedFormat})`
+            : `${testCase.propType} prop`,
+        })),
+      )(
+        '$testName',
+        async ({
+          propType,
+          propName,
+          expectedExample,
+          expectedFormat,
+          setup,
+        }) => {
+          await addProp(propType, propName);
+
+          // Run setup if provided (e.g., change format).
+          if (setup) {
+            await setup();
+            // Wait for setup changes to apply
+            await waitFor(() => {
+              const prop = selectCodeComponentProperty('props')(
+                store.getState(),
+              )[0];
+              if (expectedFormat) {
+                expect(prop.format).toBe(expectedFormat);
+              }
+            });
+          }
+
+          // Make prop required.
+          await userEvent.click(
+            screen.getByRole('switch', { name: 'Required' }),
+          );
+
+          // Verify initial example value and format.
+          await waitFor(() => {
+            const prop = selectCodeComponentProperty('props')(
+              store.getState(),
+            )[0];
+            expect(prop.example).toBe(expectedExample);
+            if (expectedFormat) {
+              expect(prop.format).toBe(expectedFormat);
+            }
+          });
+
+          // Enable multiple values.
+          const checkbox = await screen.findByRole('checkbox', {
+            name: 'Allow multiple values',
+          });
+          await act(async () => {
+            fireEvent.click(checkbox);
+          });
+
+          await waitFor(() => {
+            const prop = selectCodeComponentProperty('props')(
+              store.getState(),
+            )[0];
+            expect(prop.allowMultiple).toBe(true);
+            expect(prop.example).toEqual([]);
+          });
+
+          // Disable multiple values.
+          await act(async () => {
+            fireEvent.click(checkbox);
+          });
+
+          // Verify example value is restored.
+          await waitFor(() => {
+            const prop = selectCodeComponentProperty('props')(
+              store.getState(),
+            )[0];
+            expect(prop.allowMultiple).toBe(false);
+            expect(prop.items).toBeUndefined();
+            expect(prop.example).toBe(expectedExample);
+            if (expectedFormat) {
+              expect(prop.format).toBe(expectedFormat);
+            }
+            expect(prop.valueMode).toBeUndefined();
+            expect(prop.limitedCount).toBeUndefined();
+          });
+        },
+      );
+    });
+
     it('shows unlimited/limited value mode dropdown when multiple values is enabled', async () => {
       await addProp('Text', 'Tags');
       const checkbox = await screen.findByRole('checkbox', {

@@ -30,12 +30,12 @@ import styles from '@/features/code-editor/component-data/FormElement.module.css
 
 const BASE_URL = window.location.origin;
 
-const linkFormatMap = {
+export const linkFormatMap = {
   'uri-reference': 'relative',
   uri: 'full',
 } as const;
 
-const DEFAULT_LINK_EXAMPLES = {
+export const DEFAULT_LINK_EXAMPLES = {
   relative: 'example',
   full: 'https://example.com',
 };
