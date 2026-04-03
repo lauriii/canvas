@@ -110,6 +110,30 @@ describe('page-spec', () => {
     expect(result.page?.spec.root).toBe('canvas:component-tree');
   });
 
+  it('accepts an optional top-level uuid key', () => {
+    const result = parsePageSpec(
+      {
+        uuid: '123e4567-e89b-12d3-a456-426614174000',
+        title: 'Home',
+        elements: {
+          hero: {
+            type: 'js.hero',
+            props: {
+              title: 'Hello world',
+            },
+          },
+        },
+      },
+      '/tmp/pages/home.json',
+      {
+        componentNames: ['hero'],
+      },
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.page?.spec.root).toBe('canvas:component-tree');
+  });
+
   it('extracts page titles for discovery metadata', () => {
     const result = parsePageSpecMetadata(
       {

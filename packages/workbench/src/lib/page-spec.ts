@@ -10,6 +10,7 @@ import type { Spec } from '@json-render/core';
 import type { AuthoredSpecElementMap } from './authored-spec-utils';
 
 export interface AuthoredPageSpec {
+  uuid?: string;
   title: string;
   elements: AuthoredSpecElementMap;
 }
@@ -131,7 +132,7 @@ export function parsePageSpec(
   }
 
   const issues: PageSpecIssue[] = [];
-  const allowedTopLevelKeys = new Set(['$schema', 'title', 'elements']);
+  const allowedTopLevelKeys = new Set(['$schema', 'uuid', 'title', 'elements']);
   const unexpectedTopLevelKeys = Object.keys(value).filter(
     (key) => !allowedTopLevelKeys.has(key),
   );
