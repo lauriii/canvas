@@ -51,10 +51,6 @@ const trimTrailingNulls = <T>(
 const normalizeMultipleRecords = (
   value: PropsValuesOrArrayOfPropsValues,
 ): Array<PropsValues | null> => {
-  if (Array.isArray(value)) {
-    return value;
-  }
-
   if (value === null || value === undefined) {
     return [];
   }
