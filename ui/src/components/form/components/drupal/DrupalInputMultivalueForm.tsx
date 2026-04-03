@@ -64,11 +64,24 @@ const DrupalInputMultivalueForm = ({
   const popoverTextFieldWrapperRef = useRef<HTMLDivElement | null>(null);
   const popoverContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Sync displayValue with attributes.value when it changes (e.g., after AJAX updates)
+  // Sync displayValue when a genuine external value arrives (e.g. AJAX
+  // re-hyperscriptification after "Add another item" or "Remove").
   useEffect(() => {
-    const newValue = attributes.value || attributes.defaultValue || '';
-    setDisplayValue(newValue as string);
-    setTempValue(newValue as string);
+    const liveInput = inputWrapperRef.current?.querySelector(
+      'input',
+    ) as HTMLInputElement | null;
+    const liveValue = liveInput?.value ?? '';
+    const attrValue = (attributes.value ??
+      attributes.defaultValue ??
+      '') as string;
+
+    // Use the live input value when it is non-empty; fall back to the
+    // attribute value on the very first mount (before InputBehaviors has had
+    // a chance to populate the input).
+    const newValue = liveValue !== '' ? liveValue : attrValue;
+
+    setDisplayValue(newValue);
+    setTempValue(newValue);
   }, [attributes.value, attributes.defaultValue]);
 
   // Commit a value directly — used by the autocomplete selection handler so

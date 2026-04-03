@@ -305,7 +305,12 @@ configs.forEach((config) => {
       cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
       cy.waitForAjax();
 
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(1000);
       confirmInputs(`@${config.fieldAlias}`, config.reorderedValues);
+      // Refresh the page to ensure the update persists.
+      cy.reload();
+      confirmInputs(`@${config.fieldAlias}`, [...config.reorderedValues, '']);
     });
 
     it('can remove items using popover remove button', () => {

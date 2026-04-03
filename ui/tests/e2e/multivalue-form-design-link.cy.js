@@ -303,6 +303,8 @@ describe('Multivalue Form Design – Link Field', () => {
 
     cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
     cy.waitForAjax();
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(1000);
 
     // Wait for the DOM to reflect the new row order before asserting all values.
     cy.get('@unlimited-link')
@@ -317,6 +319,14 @@ describe('Multivalue Form Design – Link Field', () => {
       'https://drupal.org',
       'https://www.cypress.io',
       'https://www.example.com',
+    ]);
+    // Refresh the page to ensure the update persists.
+    cy.reload();
+    confirmUrlInputs('@unlimited-link', [
+      'https://drupal.org',
+      'https://www.cypress.io',
+      'https://www.example.com',
+      '',
     ]);
   });
 
