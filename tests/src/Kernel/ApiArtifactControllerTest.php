@@ -21,7 +21,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  * Tests the ApiArtifactController for push/pull API endpoints.
  */
 #[Group('canvas')]
-class ArtifactControllerTest extends CanvasKernelTestBase {
+class ApiArtifactControllerTest extends CanvasKernelTestBase {
 
   use RequestTrait;
   use UserCreationTrait;
