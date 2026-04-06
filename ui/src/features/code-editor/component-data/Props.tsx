@@ -126,17 +126,28 @@ export default function Props() {
     currentExample: unknown,
     newCount: number,
     defaultValue: string | number = '',
+    derivedType?: string | null,
   ) => {
+    // For complex object types (video, image), we need to preserve
+    // existing objects or use an empty array.
+    let newExample;
+    if (derivedType === 'video' || derivedType === 'image') {
+      const exampleArray = Array.isArray(currentExample) ? currentExample : [];
+      newExample = exampleArray.slice(0, newCount);
+    } else {
+      newExample = createArrayWithCount(
+        currentExample,
+        newCount,
+        defaultValue,
+      ) as string[] | number[];
+    }
+
     dispatch(
       updateProp({
         id: propId,
         updates: {
           limitedCount: newCount,
-          example: createArrayWithCount(
-            currentExample,
-            newCount,
-            defaultValue,
-          ) as string[] | number[],
+          example: newExample,
         },
       }),
     );
@@ -502,13 +513,24 @@ export default function Props() {
                         // The server requires maxItems >= 2 for array types, so enforce a minimum of 2.
                         const count = Math.max(2, prop.limitedCount ?? 2);
                         updates.limitedCount = count;
-                        // Use empty string as default to match single-value component behavior
-                        // (no default value unless explicitly set or required)
-                        updates.example = createArrayWithCount(
-                          prop.example,
-                          count,
-                          '',
-                        ) as string[] | number[];
+
+                        // For complex object types (video, image), we need to preserve
+                        // existing objects or use an empty array.
+                        if (
+                          prop.derivedType === 'video' ||
+                          prop.derivedType === 'image'
+                        ) {
+                          const exampleArray = Array.isArray(prop.example)
+                            ? prop.example
+                            : [];
+                          updates.example = exampleArray.slice(0, count);
+                        } else {
+                          updates.example = createArrayWithCount(
+                            prop.example,
+                            count,
+                            '',
+                          ) as string[] | number[];
+                        }
                       }
 
                       dispatch(updateProp({ id: prop.id, updates }));
@@ -571,6 +593,7 @@ export default function Props() {
                             prop.example,
                             newCount,
                             '',
+                            prop.derivedType,
                           );
                         }}
                         disabled={componentStatus}

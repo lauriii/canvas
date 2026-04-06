@@ -18,7 +18,10 @@ import {
   initialState,
   selectCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
-import { getPropMachineName } from '@/features/code-editor/utils/utils';
+import {
+  getPropMachineName,
+  serializeProps,
+} from '@/features/code-editor/utils/utils';
 import { type CodeComponentPropImageExample } from '@/types/CodeComponent';
 
 import Props, { REQUIRED_EXAMPLE_ERROR_MESSAGE } from './Props';
@@ -1946,46 +1949,6 @@ describe('props in code editor', () => {
       });
     });
 
-    it('switches between unlimited and limited value modes', async () => {
-      await addProp('Text', 'Tags');
-      const checkbox = await screen.findByRole('checkbox', {
-        name: 'Allow multiple values',
-      });
-
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
-
-      const propId = selectCodeComponentProperty('props')(store.getState())[0]
-        .id;
-      await waitFor(() => {
-        expect(
-          document.getElementById(`prop-value-mode-${propId}`),
-        ).toBeInTheDocument();
-      });
-
-      // Default should be unlimited.
-      await waitFor(() => {
-        const prop = selectCodeComponentProperty('props')(store.getState())[0];
-        expect(prop.valueMode).toBe('unlimited');
-      });
-
-      // Switch to limited mode.
-      const valueModeSelect = document.getElementById(
-        `prop-value-mode-${propId}`,
-      );
-      await userEvent.click(valueModeSelect!);
-      const limitedOption = await screen.findByRole('option', {
-        name: 'Limited',
-      });
-      await userEvent.click(limitedOption);
-
-      await waitFor(() => {
-        const prop = selectCodeComponentProperty('props')(store.getState())[0];
-        expect(prop.valueMode).toBe('limited');
-      });
-    });
-
     it('adds multiple example values in unlimited mode', async () => {
       await addProp('Text', 'Tags');
       const checkbox = await screen.findByRole('checkbox', {
@@ -2832,6 +2795,220 @@ describe('props in code editor', () => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
         expect(prop.example).toEqual(['2024-05-01', '2024-06-15']);
       });
+    });
+
+    // Tests for switching to limited mode across multiple prop types.
+    const limitedModeTestCases = [
+      {
+        propType: 'Text',
+        propName: 'Tags',
+        newLimitedCount: 4,
+        validateExample: (item: unknown) => {
+          // Text props can be empty strings initially.
+          expect(typeof item).toBe('string');
+        },
+      },
+      {
+        propType: 'Integer',
+        propName: 'Quantities',
+        newLimitedCount: 5,
+        validateExample: (item: unknown) => {
+          // Integer props should be strings (empty or numbers).
+          expect(typeof item).toBe('string');
+        },
+      },
+      {
+        propType: 'Number',
+        propName: 'Prices',
+        newLimitedCount: 3,
+        validateExample: (item: unknown) => {
+          // Number props should be strings (empty or numbers).
+          expect(typeof item).toBe('string');
+        },
+      },
+      {
+        propType: 'Link',
+        propName: 'SocialLinks',
+        newLimitedCount: 4,
+        validateExample: (item: unknown) => {
+          // Link props should be strings.
+          expect(typeof item).toBe('string');
+        },
+      },
+      {
+        propType: 'Date and time',
+        propName: 'EventDates',
+        newLimitedCount: 3,
+        validateExample: (item: unknown) => {
+          // Date props should be strings.
+          expect(typeof item).toBe('string');
+        },
+      },
+      {
+        propType: 'Video',
+        propName: 'VideoGallery',
+        newLimitedCount: 4,
+        validateExample: (item: unknown) => {
+          // Video props should be objects with src property (or empty initially).
+          if (item && typeof item === 'object') {
+            expect(item).toHaveProperty('src');
+          }
+        },
+      },
+      {
+        propType: 'Image',
+        propName: 'Gallery',
+        newLimitedCount: 3,
+        validateExample: (item: unknown) => {
+          // Image props should be objects with src property (or empty initially).
+          if (item && typeof item === 'object') {
+            expect(item).toHaveProperty('src');
+          }
+        },
+      },
+    ];
+
+    limitedModeTestCases.forEach(
+      ({ propType, propName, newLimitedCount, validateExample }) => {
+        it(`switches ${propType} prop to limited mode and updates count`, async () => {
+          await addProp(propType, propName);
+          const checkbox = await screen.findByRole('checkbox', {
+            name: 'Allow multiple values',
+          });
+          expect(checkbox).toBeInTheDocument();
+
+          // Enable multiple values.
+          await act(async () => {
+            fireEvent.click(checkbox);
+          });
+
+          const propId = selectCodeComponentProperty('props')(
+            store.getState(),
+          )[0].id;
+
+          await waitFor(() => {
+            expect(
+              document.getElementById(`prop-value-mode-${propId}`),
+            ).toBeInTheDocument();
+          });
+
+          // Default should be unlimited.
+          await waitFor(() => {
+            const prop = selectCodeComponentProperty('props')(
+              store.getState(),
+            )[0];
+            expect(prop.valueMode).toBe('unlimited');
+            expect(prop.allowMultiple).toBe(true);
+            expect(Array.isArray(prop.example)).toBe(true);
+          });
+
+          // Switch to limited mode.
+          const valueModeSelect = document.getElementById(
+            `prop-value-mode-${propId}`,
+          );
+          await userEvent.click(valueModeSelect!);
+          const limitedOption = await screen.findByRole('option', {
+            name: 'Limited',
+          });
+          await userEvent.click(limitedOption);
+
+          // Verify limited mode is activated without errors.
+          await waitFor(() => {
+            const prop = selectCodeComponentProperty('props')(
+              store.getState(),
+            )[0];
+            expect(prop.valueMode).toBe('limited');
+            expect(prop.limitedCount).toBe(2);
+            // Example should be an array.
+            expect(Array.isArray(prop.example)).toBe(true);
+            // Should not contain invalid values for the prop type.
+            if (Array.isArray(prop.example) && prop.example.length > 0) {
+              prop.example.forEach((item) => {
+                validateExample(item);
+              });
+            }
+          });
+
+          // Verify limited count input is visible.
+          await waitFor(() => {
+            expect(
+              document.getElementById(`prop-limited-count-${propId}`),
+            ).toBeInTheDocument();
+          });
+
+          // Change the limited count.
+          const countInput = document.getElementById(
+            `prop-limited-count-${propId}`,
+          ) as HTMLInputElement;
+          await userEvent.tripleClick(countInput);
+          await userEvent.keyboard(String(newLimitedCount));
+
+          // Verify the count change persists.
+          await waitFor(() => {
+            const prop = selectCodeComponentProperty('props')(
+              store.getState(),
+            )[0];
+            expect(prop.limitedCount).toBe(newLimitedCount);
+            expect(prop.valueMode).toBe('limited');
+            // Example should still be a valid array.
+            expect(Array.isArray(prop.example)).toBe(true);
+            // Verify array doesn't have invalid values after count change.
+            if (Array.isArray(prop.example) && prop.example.length > 0) {
+              prop.example.forEach((item) => {
+                validateExample(item);
+              });
+            }
+          });
+        });
+      },
+    );
+  });
+
+  describe('serialization with invalid video/image arrays', () => {
+    it('utils.ts must handle empty strings in video array without crashing', () => {
+      const videoPropsWithEmptyStrings = [
+        {
+          id: 'test-video-prop',
+          name: 'Videos',
+          type: 'array',
+          items: {
+            type: 'object',
+            $ref: 'json-schema-definitions://canvas.module/video',
+          },
+          example: ['', ''],
+          derivedType: 'video',
+          allowMultiple: true,
+          valueMode: 'limited',
+          limitedCount: 2,
+        },
+      ];
+
+      expect(() =>
+        serializeProps(videoPropsWithEmptyStrings as any),
+      ).not.toThrow();
+    });
+
+    it('utils.ts must handle empty strings in image array without crashing', () => {
+      const imagePropsWithEmptyStrings = [
+        {
+          id: 'test-image-prop',
+          name: 'Gallery',
+          type: 'array',
+          items: {
+            type: 'object',
+            $ref: 'json-schema-definitions://canvas.module/image',
+          },
+          example: ['', '', ''],
+          derivedType: 'image',
+          allowMultiple: true,
+          valueMode: 'limited',
+          limitedCount: 3,
+        },
+      ];
+
+      expect(() =>
+        serializeProps(imagePropsWithEmptyStrings as any),
+      ).not.toThrow();
     });
   });
 

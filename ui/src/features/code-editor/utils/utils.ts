@@ -108,9 +108,10 @@ function serializeExample(
     isNumberType: boolean;
     isStringArrayProp: boolean | undefined;
     isVideo: boolean;
+    isImage: boolean;
   },
 ) {
-  const { isNumberType, isStringArrayProp, isVideo } = flags;
+  const { isNumberType, isStringArrayProp, isVideo, isImage } = flags;
 
   // Multi-value props (allowMultiple)
   if (Array.isArray(example)) {
@@ -121,8 +122,13 @@ function serializeExample(
       return (example as string[]).filter((v) => v !== '');
     }
     if (isVideo) {
-      return (example as CodeComponentPropVideoExample[]).map(
-        serializeVideoSrc,
+      return (example as CodeComponentPropVideoExample[])
+        .filter((v) => v && typeof v === 'object' && v.src && v.src !== '')
+        .map(serializeVideoSrc);
+    }
+    if (isImage) {
+      return (example as CodeComponentPropImageExample[]).filter(
+        (v) => v && typeof v === 'object' && v.src && v.src !== '',
       );
     }
     return example;
@@ -172,6 +178,7 @@ export function serializeProps(props: CodeComponentProp[]) {
         const baseType = allowMultiple && items ? items.type : type;
         const isNumberType = ['integer', 'number'].includes(baseType);
         const isVideo = derivedType === 'video';
+        const isImage = derivedType === 'image';
 
         // Determine the actual type for serialization
         const serializedType = allowMultiple && items ? 'array' : type;
@@ -198,6 +205,7 @@ export function serializeProps(props: CodeComponentProp[]) {
                 isNumberType,
                 isStringArrayProp,
                 isVideo,
+                isImage,
               }),
             ],
           }),
