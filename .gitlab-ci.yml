@@ -340,9 +340,9 @@ phpunit:
       WHAT_TO_RUN=$([[ "$_PHPUNIT_TESTGROUPS" == "" ]] && echo "" || ([[ "$_PHPUNIT_TESTGROUPS" == "--all" ]] && echo "--directory $DRUPAL_PROJECT_FOLDER" || echo "$_PHPUNIT_TESTGROUPS"))
       echo "_PHPUNIT_CONCURRENT=$_PHPUNIT_CONCURRENT, _PHPUNIT_TESTGROUPS=$_PHPUNIT_TESTGROUPS, _PHPUNIT_EXTRA=$_PHPUNIT_EXTRA, WHAT_TO_RUN=$WHAT_TO_RUN"
       # Create an empty junit.xml because run-tests.sh does not write to this file but the artifact needs to exist.
-      echo "executing: sudo -u www-data -H -E php $CI_PROJECT_DIR/_drupal/web/core/scripts/run-tests.sh --php '$(which php)' --color --keep-results --concurrency $_CONCURRENCY_THREADS --repeat '1' --sqlite 'sites/default/files/.sqlite' --dburl $SIMPLETEST_DB --url $SIMPLETEST_BASE_URL --xml $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest --verbose --non-html $WHAT_TO_RUN $_PHPUNIT_EXTRA"
+      echo "executing: sudo -u www-data -H -E php $CI_PROJECT_DIR/_drupal/web/core/scripts/run-tests.sh --php '$(which php)' --color --keep-results --concurrency $_CONCURRENCY_THREADS --repeat '1' --sqlite 'sites/default/files/.sqlite' --dburl $SIMPLETEST_DB --url $SIMPLETEST_BASE_URL --xml $CI_PROJECT_DIR/_drupal/web/sites/default/files/simpletest --verbose --non-html $WHAT_TO_RUN $_PHPUNIT_EXTRA"
       ./vendor/bin/phpunit --version
-      sudo -u www-data -H -E  php $CI_PROJECT_DIR/_drupal/web/core/scripts/run-tests.sh --php "$(which php)" --color --keep-results --concurrency $_CONCURRENCY_THREADS --repeat "1" --sqlite "sites/default/files/.sqlite" --dburl $SIMPLETEST_DB --url $SIMPLETEST_BASE_URL --xml web/sites/default/files/simpletest --verbose --non-html $WHAT_TO_RUN $_PHPUNIT_EXTRA || EXIT_CODE=$?
+      sudo -u www-data -H -E  php $CI_PROJECT_DIR/_drupal/web/core/scripts/run-tests.sh --php "$(which php)" --color --keep-results --concurrency $_CONCURRENCY_THREADS --repeat "1" --sqlite "sites/default/files/.sqlite" --dburl $SIMPLETEST_DB --url $SIMPLETEST_BASE_URL --xml $CI_PROJECT_DIR/_drupal/web/sites/default/files/simpletest --verbose --non-html $WHAT_TO_RUN $_PHPUNIT_EXTRA || EXIT_CODE=$?
     # Auto-retry when random failures occur due to upstream bugs.
     # @see https://www.drupal.org/project/canvas/issues/3571997#comment-16458359
     # @todo Rewrite this after https://www.drupal.org/project/gitlab_templates/issues/3572371 lands
