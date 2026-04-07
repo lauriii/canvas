@@ -138,6 +138,9 @@ services:
   Drupal\canvas\Routing\ContentTemplatePreviewEntityEnhancer:
     tags:
       - { name: route_enhancer }
+  Drupal\canvas\Routing\CanvasEntityByUuidConverter:
+    tags:
+      - { name: paramconverter }
   Drupal\canvas\Routing\ContentTemplatePreviewEntityConverter:
     tags:
       - { name: paramconverter }

@@ -1293,6 +1293,18 @@ paths:
                 cannotUnpublishHomepage:
                   value:
                     error: "Cannot unpublish the homepage. Please set a different page as the homepage first."
+  '/canvas/api/v0/content/canvas_page/by-uuid/{entityUuid}':
+    description: Endpoint for retrieving a content entity by UUID.
+    get:
+      summary: Returns a single content entity by UUID with its component tree.
+      parameters:
+        - $ref: '#/components/parameters/entityUuid'
+      responses:
+        '200':
+          description: Content entity retrieved successfully.
+          $ref: '#/components/responses/ContentEntityResponse'
+        '404':
+          description: Content entity not found.
   '/canvas/api/v0/content/canvas_page/{entityId}':
     description: Endpoint for retrieving or deleting content entities.
     get:
@@ -4044,6 +4056,17 @@ components:
       examples:
         arbitraryEntityId:
           value: 42
+    entityUuid:
+      name: entityUuid
+      in: path
+      required: true
+      description: The entity UUID
+      schema:
+        type: string
+        format: uuid
+      examples:
+        arbitraryEntityUuid:
+          value: 550e8400-e29b-41d4-a716-446655440000
     configEntityId:
       name: configEntityId
       in: path

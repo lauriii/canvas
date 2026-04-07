@@ -294,6 +294,22 @@ canvas.api.content.get:
     canvas_external_api: true
   methods: [GET]
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
+canvas.api.content.get.by_uuid:
+  path: '/canvas/api/v0/content/canvas_page/by-uuid/{canvas_page}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiContentControllers::get'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _entity_access: 'canvas_page.view'
+  options:
+    parameters:
+      canvas_page:
+        type: canvas_entity_by_uuid:canvas_page
+    _format: 'json'
+    # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
+    canvas_external_api: true
+  methods: [GET]
+# @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 canvas.api.content.list:
   path: '/canvas/api/v0/content/{entity_type}'
   defaults:

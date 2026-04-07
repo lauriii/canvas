@@ -119,6 +119,7 @@ the resource, for example `administer code components` for code components and g
 | `GET`, `POST`            | `/canvas/api/v0/config/brand_kit`                       |
 | `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/brand_kit/{configEntityId}`      |
 | `GET`, `POST`            | `/canvas/api/v0/content/canvas_page`                    |
+| `GET`                    | `/canvas/api/v0/content/canvas_page/by-uuid/{uuid}`     |
 | `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/content/canvas_page/{contentEntityId}`  |
 | `POST`                   | `/canvas/api/v0/artifacts/upload`                       |
 | `GET`                    | `/canvas/api/v0/config/component`                       |

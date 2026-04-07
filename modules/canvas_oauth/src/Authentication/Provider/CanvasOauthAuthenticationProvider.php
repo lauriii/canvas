@@ -47,6 +47,7 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
     //   for all eligible content entity types.
     $page_route_names = [
       'canvas.api.content.get',
+      'canvas.api.content.get.by_uuid',
       'canvas.api.content.patch',
       'canvas.api.content.list',
       'canvas.api.content.delete',

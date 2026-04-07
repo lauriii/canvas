@@ -100,6 +100,7 @@ class CanvasOauthAuthenticationProviderTest extends CanvasKernelTestBase {
       ['canvas.api.content.create', [], TRUE],
       ['canvas.api.content.delete', [], TRUE],
       ['canvas.api.content.get', ['canvas_page' => "1"], TRUE],
+      ['canvas.api.content.get.by_uuid', ['canvas_page' => "550e8400-e29b-41d4-a716-446655440000"], TRUE],
       ['canvas.api.content.list', [], TRUE],
       ['canvas.api.content.patch', ['canvas_page' => "1"], TRUE],
       ['canvas.api.form.component_instance', [], FALSE],
