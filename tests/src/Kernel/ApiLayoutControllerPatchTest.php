@@ -449,11 +449,9 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $images = (new Crawler($data['html']))->filter('img')->extract(['src']);
     self::assertEquals([
       // @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup::UUID_STATIC_IMAGE
-      // @phpstan-ignore property.notFound
       Media::load(3)?->field_media_image->src_with_alternate_widths->getGeneratedUrl(),
       // @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup::UUID_STATIC_IMAGE2
       // @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup::UUID_MEDIA_IMAGE4
-      // @phpstan-ignore property.notFound
       Media::load(4)?->field_media_image->src_with_alternate_widths->getGeneratedUrl(),
     ], $images);
 

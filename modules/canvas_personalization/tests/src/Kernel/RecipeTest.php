@@ -45,7 +45,6 @@ final class RecipeTest extends KernelTestBase {
     $this->assertSame([
       1 => ['Personalization demo', '/personalization-test'],
     ], \array_map(
-      // @phpstan-ignore-next-line
       fn (Page $page) => [$page->label(), $page->get('path')->alias],
       Page::loadMultiple()
     ));
