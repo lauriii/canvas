@@ -84,7 +84,7 @@ and data consistency reasons.
 
 Canvas intentionally does not use Drupal core's [JSON:API module](https://jsonapi.org/), because:
 -  requiring the Drupal JSON:API module to be installed is excessive
--  Canvas's HTTP API does not need pagination support
+-  Canvas's config entity HTTP API does not need pagination support
 -  Canvas tracks all available Components as config entities, but those actually do not need to be exposed in full; there's
    no need to modify them from the  client-side UI, and there already is `Component::normalizeForClientSide()` which
    enriches it with additional metadata, matching the UI's needs

@@ -291,13 +291,6 @@ export function createPagesPullTask(
       const newCount = total - existingCount;
 
       const lines = [formatSummaryLine('page', total, newCount, existingCount)];
-      if (total >= 50) {
-        lines.push(
-          chalk.yellow(
-            '  ⚠ The API returned 50 pages (the maximum). Some pages may not have been fetched.',
-          ),
-        );
-      }
       return { summaryLines: lines, localOnlyCount: 0 };
     },
 

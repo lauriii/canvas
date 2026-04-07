@@ -175,7 +175,8 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     $content = $response->getContent();
     self::assertNotEmpty($content);
 
-    return json_decode($content, TRUE);
+    $decoded = json_decode($content, TRUE);
+    return array_column($decoded['data'], NULL, 'id');
   }
 
   /**
@@ -215,9 +216,11 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     $content = $response->getContent();
     self::assertNotEmpty($content, 'Response content should not be empty');
 
-    $data = json_decode($content, TRUE);
-    self::assertIsArray($data, 'Response data should be an array');
+    $decoded = json_decode($content, TRUE);
+    self::assertIsArray($decoded, 'Response data should be an array');
+    self::assertArrayHasKey('data', $decoded, 'Response should have a data key');
 
+    $data = array_column($decoded['data'], NULL, 'id');
     self::assertCount(count($this->pages), $data, 'Response should contain all test pages');
 
     foreach ($this->pages as $page) {
@@ -241,6 +244,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
 
     $expected_cache_contexts = [
       'url.query_args:search',
+      'url.query_args:page',
       'user.permissions',
     ];
     $actual_cache_contexts = $cache_metadata->getCacheContexts();
@@ -455,7 +459,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     $response = $this->apiContentController->list('canvas_page', Request::create(self::API_BASE_PATH, 'GET'));
     $content = $response->getContent();
     self::assertNotEmpty($content);
-    $data = json_decode($content, TRUE);
+    $data = array_column(json_decode($content, TRUE)['data'], NULL, 'id');
 
     $unpublished_page_id = (int) $unpublished_page->id();
     self::assertArrayHasKey($unpublished_page_id, $data, 'Unpublished page should be in the list');
@@ -471,6 +475,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     $cache_metadata = $response->getCacheableMetadata();
     $expected_cache_contexts = [
       'url.query_args:search',
+      'url.query_args:page',
       'user.permissions',
     ];
     $actual_cache_contexts = $cache_metadata->getCacheContexts();
@@ -503,7 +508,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     $response = $this->apiContentController->list('canvas_page', Request::create(self::API_BASE_PATH, 'GET'));
     $content = $response->getContent();
     self::assertNotEmpty($content);
-    $data = json_decode($content, TRUE);
+    $data = array_column(json_decode($content, TRUE)['data'], NULL, 'id');
 
     $draft_page_id = (int) $draft_page->id();
     self::assertArrayHasKey($draft_page_id, $data, 'Draft page should be in the list');
@@ -516,6 +521,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     $cache_metadata = $response->getCacheableMetadata();
     $expected_cache_contexts = [
       'url.query_args:search',
+      'url.query_args:page',
       'user.permissions',
     ];
     $actual_cache_contexts = $cache_metadata->getCacheContexts();
@@ -547,7 +553,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     $response = $this->apiContentController->list('canvas_page', Request::create(self::API_BASE_PATH, 'GET'));
     $content = $response->getContent();
     self::assertNotEmpty($content);
-    $data = json_decode($content, TRUE);
+    $data = array_column(json_decode($content, TRUE)['data'], NULL, 'id');
 
     $page_id = (int) $page->id();
     self::assertArrayHasKey($page_id, $data);
@@ -574,7 +580,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     $response = $this->apiContentController->list('canvas_page', Request::create(self::API_BASE_PATH, 'GET'));
     $content = $response->getContent();
     self::assertNotEmpty($content);
-    $data = json_decode($content, TRUE);
+    $data = array_column(json_decode($content, TRUE)['data'], NULL, 'id');
 
     $unpublished_page_id = (int) $unpublished_page->id();
     self::assertArrayHasKey($unpublished_page_id, $data);
@@ -588,6 +594,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     $cache_metadata = $response->getCacheableMetadata();
     $expected_cache_contexts = [
       'url.query_args:search',
+      'url.query_args:page',
       'user.permissions',
     ];
     $actual_cache_contexts = $cache_metadata->getCacheContexts();

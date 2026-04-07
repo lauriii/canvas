@@ -321,15 +321,28 @@ export class ApiService {
   }
 
   /**
-   * List all pages.
+   * List all pages, paginating through all results.
    */
   async listPages(): Promise<Record<string, PageListItem>> {
-    // @todo Paginate to fetch all pages after https://www.drupal.org/i/3502691 lands.
     try {
-      const response = await this.client.get(
-        '/canvas/api/v0/content/canvas_page',
-      );
-      return response.data;
+      const pages: Record<string, PageListItem> = {};
+      let nextUrl: string | null = '/canvas/api/v0/content/canvas_page';
+
+      while (nextUrl !== null) {
+        const response = await this.client.get(nextUrl);
+        const body = response.data as {
+          data: PageListItem[];
+          links?: Record<string, { href: string }>;
+        };
+
+        for (const page of body.data) {
+          pages[page.id] = page;
+        }
+
+        nextUrl = body.links?.next?.href ?? null;
+      }
+
+      return pages;
     } catch (error) {
       this.handleApiError(error);
       throw new Error('Failed to list pages');

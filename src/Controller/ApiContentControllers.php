@@ -34,6 +34,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Resource\OffsetPage;
 use Drupal\canvas\Resource\CanvasResourceLink;
 use Drupal\canvas\Resource\CanvasResourceLinkCollection;
 use Drupal\canvas\CanvasUriDefinitions;
@@ -241,23 +242,40 @@ final class ApiContentControllers extends ApiControllerBase {
     $query_cacheability->addCacheContexts(['url.query_args:search']);
 
     // Get the (ordered) list of content entity IDs to load, either:
-    // - without a search term: get the N newest content entities
+    // - without a search term: paginate the newest content entities
+    $offset = OffsetPage::DEFAULT_OFFSET;
+    $limit = OffsetPage::MAX_SIZE;
     if ($search === NULL) {
+      $query_cacheability->addCacheContexts(['url.query_args:page']);
+
+      $page = OffsetPage::createFromRequest($request);
+      $offset = $page->getOffset();
+      $limit = $page->getLimit();
+
       $content_entity_type = $this->entityTypeManager->getDefinition($entity_type);
       \assert($content_entity_type instanceof ContentEntityTypeInterface);
       $revision_created_field_name = $content_entity_type->getRevisionMetadataKey('revision_created');
       // @todo Ensure this is one of the required characteristics in https://www.drupal.org/project/canvas/issues/3498525.
       \assert(\is_string($revision_created_field_name));
 
+      $total_count = (int) $this->executeQueryInRenderContext(
+        $storage->getQuery()->accessCheck(TRUE)->count(),
+        $query_cacheability
+      );
+
       $entity_query = $storage->getQuery()
         ->accessCheck(TRUE)
         ->sort($revision_created_field_name, direction: 'DESC')
-        ->range(0, self::MAX_SEARCH_RESULTS);
+        ->range($offset, $limit);
 
       $ids = $this->executeQueryInRenderContext($entity_query, $query_cacheability);
+      \assert(\is_array($ids));
     }
     // - with a search term: get the N best matches using the entity reference
-    //   selection plugin, get all auto-save matches, and combine both
+    //   selection plugin, get all auto-save matches, and combine both.
+    //   Pagination is not supported for search, because it's not only
+    //   searching stored pages with a query, but also including matches
+    //   in auto-save results.
     else {
       \assert(\is_string($search));
       $search = trim($search);
@@ -266,20 +284,69 @@ final class ApiContentControllers extends ApiControllerBase {
         $this->getMatchingStoredEntityIds($entity_type, $search),
         $this->getMatchingAutoSavedEntityIds($entity_type, $search, $query_cacheability)
       );
+      $total_count = NULL;
     }
 
     /** @var \Drupal\Core\Entity\EntityPublishedInterface[] $content_entities */
     $content_entities = $storage->loadMultiple($ids);
-    $content_list = [];
-    foreach ($content_entities as $id => $content_entity) {
-      $content_list[$id] = $this->normalize($content_entity, $query_cacheability);
+    $data = [];
+    foreach ($content_entities as $content_entity) {
+      $data[] = $this->normalize($content_entity, $query_cacheability);
     }
 
-    $json_response = new CacheableJsonResponse($content_list);
-    // @todo add cache contexts for query params when introducing pagination in https://www.drupal.org/i/3502691.
+    $response_body = ['data' => $data];
+    if ($total_count !== NULL) {
+      $response_body['meta'] = ['count' => $total_count];
+      $response_body['links'] = $this->buildPaginationLinks($request, $offset, $limit, $total_count);
+    }
+
+    $json_response = new CacheableJsonResponse($response_body);
     $json_response->addCacheableDependency($query_cacheability);
 
     return $json_response;
+  }
+
+  /**
+   * Builds JSON:API-style pagination links for a collection response.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
+   * @param int $offset
+   *   The current page offset.
+   * @param int $limit
+   *   The current page size.
+   * @param int $total
+   *   The total number of items in the collection.
+   *
+   * @return array<string, array{href: string}>
+   *   An associative array of link objects keyed by relation type.
+   *
+   * @see https://jsonapi.org/format/#fetching-pagination
+   */
+  private function buildPaginationLinks(Request $request, int $offset, int $limit, int $total): array {
+    $uri = $request->getSchemeAndHttpHost() . $request->getBaseUrl() . $request->getPathInfo();
+    $existing_query = $request->query->all();
+    unset($existing_query['page']);
+
+    $make_link = static function (int $link_offset) use ($uri, $existing_query, $limit): array {
+      $query = $existing_query + ['page' => ['offset' => $link_offset, 'limit' => $limit]];
+      return ['href' => Url::fromUri($uri)->setOption('query', $query)->toString()];
+    };
+
+    $last_offset = $total > 0 ? (int) (floor(($total - 1) / $limit) * $limit) : 0;
+
+    $links = ['self' => $make_link($offset)];
+
+    if ($offset > 0) {
+      $links['first'] = $make_link(0);
+      $links['prev'] = $make_link(max(0, $offset - $limit));
+    }
+    if ($offset + $limit < $total) {
+      $links['next'] = $make_link($offset + $limit);
+      $links['last'] = $make_link($last_offset);
+    }
+
+    return $links;
   }
 
   /**
@@ -530,12 +597,12 @@ final class ApiContentControllers extends ApiControllerBase {
    * @param \Drupal\Core\Cache\CacheableMetadata $query_cacheability
    *   The value object to carry the query cacheability.
    *
-   * @return array
-   *   Returns IDs of entities.
+   * @return array|int
+   *   Returns IDs of entities, or a count when a count query is passed.
    *
    * @see \Drupal\jsonapi\Controller\EntityResource::executeQueryInRenderContext()
    */
-  private function executeQueryInRenderContext(QueryInterface $query, CacheableMetadata $query_cacheability) : array {
+  private function executeQueryInRenderContext(QueryInterface $query, CacheableMetadata $query_cacheability) : array|int {
     $context = new RenderContext();
     $results = $this->renderer->executeInRenderContext($context, function () use ($query) {
       return $query->execute();

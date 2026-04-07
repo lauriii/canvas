@@ -330,13 +330,6 @@ export function pushCommand(program: Command): void {
           includesPages && discoveredPages.length > 0
             ? await apiService.listPages()
             : {};
-        if (Object.keys(remotePages).length >= 50) {
-          p.log.warn(
-            chalk.yellow(
-              '⚠ The API returned 50 pages (the maximum). Some existing pages may be re-created as duplicates.',
-            ),
-          );
-        }
         const remotePageByUuid = new Map<string, PageListItem>();
         for (const remotePage of Object.values(remotePages)) {
           remotePageByUuid.set(remotePage.uuid, remotePage);

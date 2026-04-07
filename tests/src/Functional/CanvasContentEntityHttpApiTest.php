@@ -295,10 +295,23 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
       'canvas_page:2',
       'canvas_page_list',
     ];
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    $list_cache_contexts = ['url.query_args:page', 'url.query_args:search', 'user.permissions'];
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    \assert(\is_array($body));
+    $this->assertArrayHasKey('data', $body);
+    $this->assertArrayHasKey('meta', $body);
+    $this->assertSame(3, $body['meta']['count']);
+    // All 3 pages fit on one page, so no prev/next links.
+    $this->assertArrayHasKey('self', $body['links']);
+    $this->assertArrayNotHasKey('first', $body['links']);
+    $this->assertArrayNotHasKey('prev', $body['links']);
+    $this->assertArrayNotHasKey('next', $body['links']);
+    $this->assertArrayNotHasKey('last', $body['links']);
+
+    // Build a map keyed by entity ID for stable per-entity assertions.
     $no_auto_save_expected_pages = [
       // Page 1 has a path alias.
-      '1' => [
+      1 => [
         'id' => 1,
         'title' => 'Page 1',
         'status' => TRUE,
@@ -317,7 +330,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
         'uuid' => $this->pages[0]->uuid(),
       ],
       // Page 2 has no path alias.
-      '2' => [
+      2 => [
         'id' => 2,
         'title' => self::NEW_PAGE_TITLE,
         'status' => FALSE,
@@ -334,7 +347,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
         'internalPath' => '/page/2',
         'uuid' => $this->pages[1]->uuid(),
       ],
-      '3' => [
+      3 => [
         'id' => 3,
         'title' => 'Page 3',
         'status' => TRUE,
@@ -355,19 +368,23 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     ];
     $this->assertEquals(
       $no_auto_save_expected_pages,
-      $body
+      \array_column($body['data'], NULL, 'id')
     );
-    $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'HIT');
 
-    // Test searching by query parameter
+    // Test searching by query parameter — search returns {data: [...]} without meta/links.
     $search_url = Url::fromUri('base:/canvas/api/v0/content/canvas_page', ['query' => ['search' => 'Page 1']]);
     // Because page 2 isn't in these results, we don't get its cache tag.
     $expected_tags_without_page_2 = \array_diff($expected_tags, ['canvas_page:2']);
     // Confirm that the cache is not hit when a different request is made with query parameter.
     $search_body = $this->assertExpectedResponse('GET', $search_url, [], 200, ['languages:' . LanguageInterface::TYPE_CONTENT, 'url.query_args:search', 'user.permissions'], $expected_tags_without_page_2, 'UNCACHEABLE (request policy)', 'MISS');
+    \assert(\is_array($search_body));
+    $this->assertArrayHasKey('data', $search_body);
+    $this->assertArrayNotHasKey('meta', $search_body, 'Search results do not include a total count.');
+    $this->assertArrayNotHasKey('links', $search_body, 'Search results do not include pagination links.');
     $this->assertEquals(
       [
-        '1' => [
+        1 => [
           'id' => 1,
           'title' => 'Page 1',
           'status' => TRUE,
@@ -386,7 +403,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
           'uuid' => $this->pages[0]->uuid(),
         ],
       ],
-      $search_body
+      \array_column($search_body['data'], NULL, 'id')
     );
     // Confirm that the cache is hit when the same request is made again.
     $this->assertExpectedResponse('GET', $search_url, [], 200, ['languages:' . LanguageInterface::TYPE_CONTENT, 'url.query_args:search', 'user.permissions'], $expected_tags_without_page_2, 'UNCACHEABLE (request policy)', 'HIT');
@@ -394,7 +411,8 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     // Test searching by query parameter - substring match.
     $substring_search_url = Url::fromUri('base:/canvas/api/v0/content/canvas_page', ['query' => ['search' => 'age']]);
     $substring_search_body = $this->assertExpectedResponse('GET', $substring_search_url, [], 200, ['languages:' . LanguageInterface::TYPE_CONTENT, 'url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertEquals($no_auto_save_expected_pages, $substring_search_body);
+    \assert(\is_array($substring_search_body));
+    $this->assertEquals($no_auto_save_expected_pages, \array_column($substring_search_body['data'], NULL, 'id'));
 
     $autoSaveManager = $this->container->get(AutoSaveManager::class);
     $page_1 = Page::load(1);
@@ -409,17 +427,18 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $page_2->set('path', ['alias' => "/the-new-path"]);
     $autoSaveManager->saveEntity($page_2);
 
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    \assert(\is_array($body));
     $auto_save_expected_pages = $no_auto_save_expected_pages;
-    $auto_save_expected_pages['1']['autoSaveLabel'] = 'The updated title.';
-    $auto_save_expected_pages['1']['autoSavePath'] = '/the-updated-path';
-    $auto_save_expected_pages['2']['autoSaveLabel'] = 'The updated title2.';
-    $auto_save_expected_pages['2']['autoSavePath'] = '/the-new-path';
+    $auto_save_expected_pages[1]['autoSaveLabel'] = 'The updated title.';
+    $auto_save_expected_pages[1]['autoSavePath'] = '/the-updated-path';
+    $auto_save_expected_pages[2]['autoSaveLabel'] = 'The updated title2.';
+    $auto_save_expected_pages[2]['autoSavePath'] = '/the-new-path';
     $this->assertEquals(
       $auto_save_expected_pages,
-      $body
+      \array_column($body['data'], NULL, 'id')
     );
-    $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'HIT');
 
     // Confirm that if path alias is empty, the system path is used, not the
     // existing alias if set.
@@ -431,22 +450,84 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $page_2->set('path', NULL);
     $autoSaveManager->saveEntity($page_2);
 
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
-    $auto_save_expected_pages['1']['autoSavePath'] = '/page/1';
-    $auto_save_expected_pages['2']['autoSavePath'] = '/page/2';
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    \assert(\is_array($body));
+    $auto_save_expected_pages[1]['autoSavePath'] = '/page/1';
+    $auto_save_expected_pages[2]['autoSavePath'] = '/page/2';
     $this->assertEquals(
       $auto_save_expected_pages,
-      $body
+      \array_column($body['data'], NULL, 'id')
     );
 
     $autoSaveManager->delete($page_1);
     $autoSaveManager->delete($page_2);
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    \assert(\is_array($body));
     $this->assertEquals(
       $no_auto_save_expected_pages,
-      $body
+      \array_column($body['data'], NULL, 'id')
     );
-    $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'HIT');
+  }
+
+  public function testListPagination(): void {
+    $user = $this->createUser([Page::EDIT_PERMISSION], 'list_canvas_page_user');
+    \assert($user instanceof UserInterface);
+    $this->drupalLogin($user);
+
+    $list_cache_contexts = ['url.query_args:page', 'url.query_args:search', 'user.permissions'];
+    // Base tags present on every list response, regardless of which page is
+    // included in the result. canvas_page:2 is only present when page 2 is in
+    // the result set (page 2 has no path alias, so its entity cache tag is
+    // added during URL generation; pages with aliases add a path_alias tag
+    // instead).
+    $base_tags = [
+      AutoSaveManager::CACHE_TAG,
+      'config:system.site',
+      'http_response',
+      'canvas_page_list',
+    ];
+    $all_pages_tags = [...$base_tags, 'canvas_page:2'];
+
+    // Page 1 of 3 with limit=1: should have next/last but not first/prev.
+    $url_page1 = Url::fromUri('base:/canvas/api/v0/content/canvas_page', ['query' => ['page' => ['offset' => 0, 'limit' => 1]]]);
+    $body = $this->assertExpectedResponse('GET', $url_page1, [], 200, $list_cache_contexts, $base_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    \assert(\is_array($body));
+    $this->assertCount(1, $body['data']);
+    $this->assertSame(3, $body['meta']['count']);
+    $this->assertArrayHasKey('self', $body['links']);
+    $this->assertArrayNotHasKey('first', $body['links']);
+    $this->assertArrayNotHasKey('prev', $body['links']);
+    $this->assertArrayHasKey('next', $body['links']);
+    $this->assertArrayHasKey('last', $body['links']);
+    // The next link should point to offset=1.
+    $next_href = urldecode($body['links']['next']['href']);
+    $this->assertStringContainsString('page[offset]=1', $next_href);
+    $this->assertStringContainsString('page[limit]=1', $next_href);
+
+    // Middle page (offset=1, limit=1): should have first/prev/next/last.
+    // Pages are sorted by revision_created DESC; page 2 (saved second, no path
+    // alias) lands here, so canvas_page:2 is present in the cache tags.
+    $url_page2 = Url::fromUri('base:/canvas/api/v0/content/canvas_page', ['query' => ['page' => ['offset' => 1, 'limit' => 1]]]);
+    $body = $this->assertExpectedResponse('GET', $url_page2, [], 200, $list_cache_contexts, $all_pages_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    \assert(\is_array($body));
+    $this->assertCount(1, $body['data']);
+    $this->assertSame(3, $body['meta']['count']);
+    $this->assertArrayHasKey('first', $body['links']);
+    $this->assertArrayHasKey('prev', $body['links']);
+    $this->assertArrayHasKey('next', $body['links']);
+    $this->assertArrayHasKey('last', $body['links']);
+
+    // Last page (offset=2, limit=1): should have first/prev but not next/last.
+    $url_page3 = Url::fromUri('base:/canvas/api/v0/content/canvas_page', ['query' => ['page' => ['offset' => 2, 'limit' => 1]]]);
+    $body = $this->assertExpectedResponse('GET', $url_page3, [], 200, $list_cache_contexts, $base_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    \assert(\is_array($body));
+    $this->assertCount(1, $body['data']);
+    $this->assertSame(3, $body['meta']['count']);
+    $this->assertArrayHasKey('first', $body['links']);
+    $this->assertArrayHasKey('prev', $body['links']);
+    $this->assertArrayNotHasKey('next', $body['links']);
+    $this->assertArrayNotHasKey('last', $body['links']);
   }
 
   /**
@@ -470,12 +551,13 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $this->drupalLogin($user);
     // We have a cache tag for page 2 as it's the homepage, set in system.site
     // config.
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, Cache::mergeContexts(['url.query_args:search', 'user.permissions'], $extraCacheContexts), Cache::mergeTags([AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:2', 'canvas_page_list'], $extraCacheTags), 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, Cache::mergeContexts(['url.query_args:page', 'url.query_args:search', 'user.permissions'], $extraCacheContexts), Cache::mergeTags([AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:2', 'canvas_page_list'], $extraCacheTags), 'UNCACHEABLE (request policy)', 'MISS');
     \assert(\is_array($body));
-    \assert(\array_key_exists('1', $body) && \array_key_exists('links', $body['1']));
+    $data_by_id = \array_column($body['data'], NULL, 'id');
+    \assert(\array_key_exists(1, $data_by_id) && \array_key_exists('links', $data_by_id[1]));
     $this->assertEquals(
       $expectedLinks,
-      $body['1']['links']
+      $data_by_id[1]['links']
     );
   }
 
@@ -565,19 +647,20 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $user = $this->createUser([Page::EDIT_PERMISSION, Page::DELETE_PERMISSION], 'administer_canvas_page_user');
     \assert($user instanceof UserInterface);
     $this->drupalLogin($user);
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:2', 'canvas_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:page', 'url.query_args:search', 'user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:2', 'canvas_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
     \assert(\is_array($body));
-    \assert(\array_key_exists('2', $body) && \array_key_exists('links', $body['2']));
+    $data_by_id = \array_column($body['data'], NULL, 'id');
+    \assert(\array_key_exists(2, $data_by_id) && \array_key_exists('links', $data_by_id[2]));
     $this->assertEquals(
       [
         CanvasUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/canvas/editor/canvas_page/2')->toString(),
         CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => Url::fromUri('base:/canvas/editor/canvas_page/2')->toString(),
       ],
-      $body['2']['links'],
+      $data_by_id[2]['links'],
       'Links for page 2 should not include delete operation, as it is set as homepage.'
     );
     // Assert links for page 1.
-    \assert(\array_key_exists('1', $body) && \array_key_exists('links', $body['1']));
+    \assert(\array_key_exists(1, $data_by_id) && \array_key_exists('links', $data_by_id[1]));
     $this->assertEquals(
       [
         CanvasUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/canvas/editor/canvas_page/1')->toString(),
@@ -585,11 +668,11 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
         CanvasUriDefinitions::LINK_REL_UNPUBLISH => Url::fromUri('base:/canvas/api/v0/content/auto-save/canvas_page/1')->toString(),
         CanvasUriDefinitions::LINK_REL_DELETE => Url::fromUri('base:/canvas/api/v0/content/canvas_page/1')->toString(),
       ],
-      $body['1']['links'],
+      $data_by_id[1]['links'],
       'Links for page 1 should include delete and unpublish operations.'
     );
     // Assert links for page 3.
-    \assert(\array_key_exists('3', $body) && \array_key_exists('links', $body['3']));
+    \assert(\array_key_exists(3, $data_by_id) && \array_key_exists('links', $data_by_id[3]));
     $this->assertEquals(
       [
         CanvasUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/canvas/editor/canvas_page/3')->toString(),
@@ -597,7 +680,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
         CanvasUriDefinitions::LINK_REL_DELETE => Url::fromUri('base:/canvas/api/v0/content/canvas_page/3')->toString(),
         CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => Url::fromUri('base:/canvas/editor/canvas_page/3')->toString(),
       ],
-      $body['3']['links'],
+      $data_by_id[3]['links'],
       'Links for page 3 should include delete and unpublish operations.'
     );
   }
@@ -828,23 +911,27 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     \assert($user instanceof UserInterface);
     $this->drupalLogin($user);
 
+    $list_cache_contexts = ['url.query_args:page', 'url.query_args:search', 'user.permissions'];
+    $list_cache_tags = [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:2', 'canvas_page_list'];
+
     // Get the initial list.
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:2', 'canvas_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $list_cache_tags, 'UNCACHEABLE (request policy)', 'MISS');
     \assert(\is_array($body));
+    $data_by_id = \array_column($body['data'], NULL, 'id');
 
     // Page 1 is published, should have unpublish link and set-as-homepage link.
-    \assert(\array_key_exists('1', $body) && \array_key_exists('links', $body['1']));
-    $this->assertArrayHasKey(CanvasUriDefinitions::LINK_REL_UNPUBLISH, $body['1']['links'], 'Published page should have unpublish link.');
-    $this->assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_PUBLISH, $body['1']['links'], 'Published page should not have publish link.');
-    $this->assertArrayHasKey(CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE, $body['1']['links'], 'Published page should have set-as-homepage link.');
-    $this->assertFalse($body['1']['isNew'], 'Published page should not be marked as new.');
+    \assert(\array_key_exists(1, $data_by_id) && \array_key_exists('links', $data_by_id[1]));
+    $this->assertArrayHasKey(CanvasUriDefinitions::LINK_REL_UNPUBLISH, $data_by_id[1]['links'], 'Published page should have unpublish link.');
+    $this->assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_PUBLISH, $data_by_id[1]['links'], 'Published page should not have publish link.');
+    $this->assertArrayHasKey(CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE, $data_by_id[1]['links'], 'Published page should have set-as-homepage link.');
+    $this->assertFalse($data_by_id[1]['isNew'], 'Published page should not be marked as new.');
 
     // Page 2 is unpublished draft (never published), should have set-as-homepage link but not unpublish or publish link.
-    \assert(\array_key_exists('2', $body) && \array_key_exists('links', $body['2']));
-    $this->assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_UNPUBLISH, $body['2']['links'], 'Draft page should not have unpublish link.');
-    $this->assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_PUBLISH, $body['2']['links'], 'Draft page should not have publish link.');
-    $this->assertArrayHasKey(CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE, $body['2']['links'], 'Draft page should have set-as-homepage link.');
-    $this->assertTrue($body['2']['isNew'], 'Draft page should be marked as new.');
+    \assert(\array_key_exists(2, $data_by_id) && \array_key_exists('links', $data_by_id[2]));
+    $this->assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_UNPUBLISH, $data_by_id[2]['links'], 'Draft page should not have unpublish link.');
+    $this->assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_PUBLISH, $data_by_id[2]['links'], 'Draft page should not have publish link.');
+    $this->assertArrayHasKey(CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE, $data_by_id[2]['links'], 'Draft page should have set-as-homepage link.');
+    $this->assertTrue($data_by_id[2]['isNew'], 'Draft page should be marked as new.');
 
     // Create an unpublished page (published then unpublished).
     $unpublished_page = Page::create([
@@ -856,16 +943,17 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $unpublished_page->setUnpublished()->save();
 
     // Fetch the list again and check the unpublished page.
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:2', 'canvas_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $list_cache_tags, 'UNCACHEABLE (request policy)', 'MISS');
     \assert(\is_array($body));
+    $data_by_id = \array_column($body['data'], NULL, 'id');
 
-    $unpublished_page_id = (string) $unpublished_page->id();
-    \assert(\array_key_exists($unpublished_page_id, $body) && \array_key_exists('links', $body[$unpublished_page_id]));
-    $this->assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_UNPUBLISH, $body[$unpublished_page_id]['links'], 'Unpublished page should not have unpublish link.');
-    $this->assertArrayHasKey(CanvasUriDefinitions::LINK_REL_PUBLISH, $body[$unpublished_page_id]['links'], 'Unpublished page should have publish link.');
-    $this->assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE, $body[$unpublished_page_id]['links'], 'Unpublished page should not have set-as-homepage link.');
-    $this->assertFalse($body[$unpublished_page_id]['isNew'], 'Unpublished page should not be marked as new.');
-    $this->assertFalse($body[$unpublished_page_id]['status'], 'Unpublished page should have status false.');
+    $unpublished_page_id = (int) $unpublished_page->id();
+    \assert(\array_key_exists($unpublished_page_id, $data_by_id) && \array_key_exists('links', $data_by_id[$unpublished_page_id]));
+    $this->assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_UNPUBLISH, $data_by_id[$unpublished_page_id]['links'], 'Unpublished page should not have unpublish link.');
+    $this->assertArrayHasKey(CanvasUriDefinitions::LINK_REL_PUBLISH, $data_by_id[$unpublished_page_id]['links'], 'Unpublished page should have publish link.');
+    $this->assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE, $data_by_id[$unpublished_page_id]['links'], 'Unpublished page should not have set-as-homepage link.');
+    $this->assertFalse($data_by_id[$unpublished_page_id]['isNew'], 'Unpublished page should not be marked as new.');
+    $this->assertFalse($data_by_id[$unpublished_page_id]['status'], 'Unpublished page should have status false.');
 
     // Test that auto-save unpublish operation shows correct links.
     $autoSaveManager = $this->container->get(AutoSaveManager::class);
@@ -874,15 +962,16 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $page_1->setUnpublished();
     $autoSaveManager->saveEntity($page_1);
 
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:2', 'canvas_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $list_cache_tags, 'UNCACHEABLE (request policy)', 'MISS');
     \assert(\is_array($body));
+    $data_by_id = \array_column($body['data'], NULL, 'id');
 
     // Page 1 now has auto-save with unpublished status.
-    \assert(\array_key_exists('1', $body) && \array_key_exists('links', $body['1']));
-    $this->assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_UNPUBLISH, $body['1']['links'], 'Page with auto-saved unpublished status should not have unpublish link.');
-    $this->assertArrayHasKey(CanvasUriDefinitions::LINK_REL_PUBLISH, $body['1']['links'], 'Page with auto-saved unpublished status should have publish link (revert).');
-    $this->assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE, $body['1']['links'], 'Page with auto-saved unpublished status should not have set-as-homepage link.');
-    $this->assertFalse($body['1']['status'], 'Page should show auto-saved unpublished status.');
+    \assert(\array_key_exists(1, $data_by_id) && \array_key_exists('links', $data_by_id[1]));
+    $this->assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_UNPUBLISH, $data_by_id[1]['links'], 'Page with auto-saved unpublished status should not have unpublish link.');
+    $this->assertArrayHasKey(CanvasUriDefinitions::LINK_REL_PUBLISH, $data_by_id[1]['links'], 'Page with auto-saved unpublished status should have publish link (revert).');
+    $this->assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE, $data_by_id[1]['links'], 'Page with auto-saved unpublished status should not have set-as-homepage link.');
+    $this->assertFalse($data_by_id[1]['status'], 'Page should show auto-saved unpublished status.');
   }
 
   private function assertAuthenticationAndAuthorization(Url $url, string $method): void {

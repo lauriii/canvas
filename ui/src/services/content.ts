@@ -8,7 +8,9 @@ import type { StagedConfig } from '@/types/Config';
 import type { ContentStub } from '@/types/Content';
 
 export interface ContentListResponse {
-  [key: string]: ContentStub;
+  data: ContentStub[];
+  meta?: { count: number };
+  links?: Record<string, { href: string }>;
 }
 
 export interface DeleteContentRequest {
@@ -55,7 +57,7 @@ export const contentApi = createApi({
         };
       },
       transformResponse: (response: ContentListResponse) => {
-        return Object.values(response);
+        return response.data;
       },
       providesTags: [{ type: 'Content', id: 'LIST' }],
     }),
