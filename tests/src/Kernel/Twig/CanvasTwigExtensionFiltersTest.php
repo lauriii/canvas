@@ -8,13 +8,13 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\Image\ImageInterface;
-use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\canvas\Twig\CanvasTwigExtension;
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\file\FileInterface;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
 
 // cspell:ignore itok
 /**
@@ -26,6 +26,8 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 #[Group('canvas')]
 class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
 
+  use PredictableImageStyleItokTestTrait;
+
   /**
    * @var \Drupal\canvas\Twig\CanvasTwigExtension
    */
@@ -36,15 +38,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-
-    // Fixate the private key & hash salt to get predictable `itok`.
-    $this->container->get('state')->set('system.private_key', 'dynamic_image_style_private_key');
-    $settings_class = new \ReflectionClass(Settings::class);
-    $instance_property = $settings_class->getProperty('instance');
-    $settings = new Settings([
-      'hash_salt' => 'dynamic_image_style_hash_salt',
-    ]);
-    $instance_property->setValue(NULL, $settings);
+    $this->setupPredictableItok();
 
     // Mock File entity.
     $file = $this->createMock(FileInterface::class);
@@ -121,7 +115,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
    */
   private static function generateExpectedSrcSet(array $widths): string {
     return implode(', ', \array_map(
-      fn ($width) => "/sites/default/files/styles/canvas_parametrized_width--$width/public/balloons.png.avif?itok=Oa4IMo7_ {$width}w",
+      fn ($width) => "/sites/default/files/styles/canvas_parametrized_width--$width/public/balloons.png.avif?itok=TeB392qG {$width}w",
       $widths
     ));
   }

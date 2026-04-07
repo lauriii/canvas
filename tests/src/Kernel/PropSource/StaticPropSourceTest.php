@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+// cspell:ignore Qqzr
+
 namespace Drupal\Tests\canvas\Kernel\PropSource;
 
 use Drupal\Component\Utility\UrlHelper;
@@ -407,13 +409,13 @@ class StaticPropSourceTest extends PropSourceTestBase {
       ],
       'expected_user_value' => [
         [
-          'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--{width}/public/image-3.jpg.avif?itok=ZZaCKDGa'),
+          'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--{width}/public/image-3.jpg.avif?itok=X5Qqzr53'),
           'alt' => 'amazing',
           'width' => 80,
           'height' => 60,
         ],
         [
-          'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--{width}/public/image-2.jpg.avif?itok=XYZlDjzC'),
+          'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--{width}/public/image-2.jpg.avif?itok=IeQvQSDi'),
           'alt' => 'An image so amazing that to gaze upon it would melt your face',
           'width' => 80,
           'height' => 60,
@@ -602,7 +604,7 @@ class StaticPropSourceTest extends PropSourceTestBase {
           'alt' => 'amazing',
         ],
         [
-          'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--{width}/public/image-2.jpg.avif?itok=XYZlDjzC'),
+          'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--{width}/public/image-2.jpg.avif?itok=IeQvQSDi'),
           'alt' => 'An image so amazing that to gaze upon it would melt your face',
           'width' => 80,
           'height' => 60,

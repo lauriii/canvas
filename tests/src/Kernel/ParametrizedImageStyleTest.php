@@ -7,12 +7,12 @@ namespace Drupal\Tests\canvas\Kernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\File\FileUrlGeneratorInterface;
-use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\canvas\Entity\ParametrizedImageStyle;
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\file\FileRepositoryInterface;
 use Drupal\Tests\TestFileCreationTrait;
+use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
@@ -23,6 +23,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('canvas')]
 class ParametrizedImageStyleTest extends CanvasKernelTestBase {
 
+  use PredictableImageStyleItokTestTrait;
   use TestFileCreationTrait {
     getTestFiles as drupalGetTestFiles;
   }
@@ -32,15 +33,7 @@ class ParametrizedImageStyleTest extends CanvasKernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-
-    // Fixate the private key & hash salt to get predictable `itok`.
-    $this->container->get('state')->set('system.private_key', 'dynamic_image_style_private_key');
-    $settings_class = new \ReflectionClass(Settings::class);
-    $instance_property = $settings_class->getProperty('instance');
-    $settings = new Settings([
-      'hash_salt' => 'dynamic_image_style_hash_salt',
-    ]);
-    $instance_property->setValue(NULL, $settings);
+    $this->setupPredictableItok();
   }
 
   /**
@@ -52,7 +45,7 @@ class ParametrizedImageStyleTest extends CanvasKernelTestBase {
     // ::buildUrlTemplate() returns an absolute URL, just like ::buildUrl().
     $parametrized_image_style_url = ParametrizedImageStyle::load('canvas_parametrized_width')?->buildUrlTemplate('public://2025-04/cat.jpg');
     self::assertSame(
-      PublicStream::baseUrl() . '/styles/canvas_parametrized_width--{width}/public/2025-04/cat.jpg.avif?itok=Kyw8-Hxx',
+      PublicStream::baseUrl() . '/styles/canvas_parametrized_width--{width}/public/2025-04/cat.jpg.avif?itok=pLCTrcA4',
       $parametrized_image_style_url
     );
 
@@ -61,7 +54,7 @@ class ParametrizedImageStyleTest extends CanvasKernelTestBase {
     \assert($file_url_generator instanceof FileUrlGeneratorInterface);
     $parametrized_image_style_relative_url = $file_url_generator->transformRelative($parametrized_image_style_url);
     self::assertSame(
-      \base_path() . $this->siteDirectory . '/files/styles/canvas_parametrized_width--{width}/public/2025-04/cat.jpg.avif?itok=Kyw8-Hxx',
+      \base_path() . $this->siteDirectory . '/files/styles/canvas_parametrized_width--{width}/public/2025-04/cat.jpg.avif?itok=pLCTrcA4',
       $parametrized_image_style_relative_url
     );
   }

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+// cspell:ignore Qqzr
+
 namespace Drupal\Tests\canvas\Kernel\PropSource;
 
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
@@ -632,7 +634,7 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
       'expected_user_access_denied_message' => NULL,
       'expected_evaluation_with_node_host_entity' => new EvaluationResult(
         [
-          'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg?alternateWidths=::SITE_DIR_BASE_URL::' . UrlHelper::encodePath('/files/styles/canvas_parametrized_width--{width}/public/image-3.jpg.avif?itok=ZZaCKDGa'),
+          'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg?alternateWidths=::SITE_DIR_BASE_URL::' . UrlHelper::encodePath('/files/styles/canvas_parametrized_width--{width}/public/image-3.jpg.avif?itok=X5Qqzr53'),
           'alt' => 'amazing',
           'width' => 80,
           'height' => 60,
@@ -684,13 +686,13 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
       'expected_evaluation_with_node_host_entity' => new EvaluationResult(
         [
           [
-            'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg?alternateWidths=::SITE_DIR_BASE_URL::' . UrlHelper::encodePath('/files/styles/canvas_parametrized_width--{width}/public/image-3.jpg.avif?itok=ZZaCKDGa'),
+            'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg?alternateWidths=::SITE_DIR_BASE_URL::' . UrlHelper::encodePath('/files/styles/canvas_parametrized_width--{width}/public/image-3.jpg.avif?itok=X5Qqzr53'),
             'alt' => 'amazing',
             'width' => 80,
             'height' => 60,
           ],
           [
-            'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=::SITE_DIR_BASE_URL::' . UrlHelper::encodePath('/files/styles/canvas_parametrized_width--{width}/public/image-2.jpg.avif?itok=XYZlDjzC'),
+            'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=::SITE_DIR_BASE_URL::' . UrlHelper::encodePath('/files/styles/canvas_parametrized_width--{width}/public/image-2.jpg.avif?itok=IeQvQSDi'),
             'alt' => 'An image so amazing that to gaze upon it would melt your face',
             'width' => 80,
             'height' => 60,

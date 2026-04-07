@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// cspell:ignore Bwidth Fitok
+// cspell:ignore Bwidth Fitok Synx
 
 namespace Drupal\Tests\canvas\Kernel\EcosystemSupport;
 
@@ -13,7 +13,6 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\Site\Settings;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
@@ -23,6 +22,7 @@ use Drupal\jsonapi\ResourceType\ResourceType;
 use Drupal\jsonapi\ResourceType\ResourceTypeRepository;
 use Drupal\media\Entity\Media;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
@@ -37,6 +37,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 final class JsonapiSupportTest extends CanvasKernelTestBase {
 
   use MediaTypeCreationTrait;
+  use PredictableImageStyleItokTestTrait;
   use TestFileCreationTrait;
   use UserCreationTrait;
   use ContentTypeCreationTrait;
@@ -73,15 +74,7 @@ final class JsonapiSupportTest extends CanvasKernelTestBase {
     $this->installConfig(['node']);
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     $this->installEntitySchema('node');
-
-    // Fixate the private key & hash salt to get predictable `itok`.
-    $this->container->get('state')->set('system.private_key', 'dynamic_image_style_private_key');
-    $settings_class = new \ReflectionClass(Settings::class);
-    $instance_property = $settings_class->getProperty('instance');
-    $settings = new Settings([
-      'hash_salt' => 'dynamic_image_style_hash_salt',
-    ]);
-    $instance_property->setValue(NULL, $settings);
+    $this->setupPredictableItok();
 
     $this->user = $this->setUpCurrentUser([], [
       'access content',
@@ -272,7 +265,7 @@ final class JsonapiSupportTest extends CanvasKernelTestBase {
             'footer' => 'Test Card Footer',
             'loading' => 'lazy',
             'image' => [
-              'src' => '/' . $this->siteDirectory . '/files/image-test.png?alternateWidths=/' . ($this->siteDirectory) . '/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/image-test.png.avif%3Fitok%3DRreFpLsS',
+              'src' => '/' . $this->siteDirectory . '/files/image-test.png?alternateWidths=/' . ($this->siteDirectory) . '/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/image-test.png.avif%3Fitok%3DujSynxBM',
               'alt' => '',
               'width' => 40,
               'height' => 20,

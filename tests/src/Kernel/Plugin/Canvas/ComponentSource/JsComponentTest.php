@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
-// cspell:ignore Bwidth Fitok Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk
+// cspell:ignore Bwidth Fitok Synx Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -2679,7 +2679,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       ],
       [
         'image' => [
-          'src' => '::SITE_DIR_BASE_URL::/files/image-test.png?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/image-test.png.avif%3Fitok%3DRreFpLsS',
+          'src' => '::SITE_DIR_BASE_URL::/files/image-test.png?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/image-test.png.avif%3Fitok%3DujSynxBM',
           'alt' => '',
           'width' => 40,
           'height' => 20,

@@ -6,11 +6,11 @@ namespace Drupal\Tests\canvas\Kernel\PropSource;
 
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Core\File\FileExists;
-use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
@@ -38,6 +38,7 @@ abstract class PropSourceTestBase extends CanvasKernelTestBase {
   use ImageFieldCreationTrait;
   use MediaTypeCreationTrait;
   use NodeCreationTrait;
+  use PredictableImageStyleItokTestTrait;
   use UserCreationTrait;
   use TestFileCreationTrait;
   use VfsPublicStreamUrlTrait;
@@ -129,15 +130,7 @@ abstract class PropSourceTestBase extends CanvasKernelTestBase {
       ],
     ]);
     $test_media->save();
-
-    // Fixate the private key & hash salt to get predictable `itok`.
-    $this->container->get('state')->set('system.private_key', 'dynamic_image_style_private_key');
-    $settings_class = new \ReflectionClass(Settings::class);
-    $instance_property = $settings_class->getProperty('instance');
-    $settings = new Settings([
-      'hash_salt' => 'dynamic_image_style_hash_salt',
-    ]);
-    $instance_property->setValue(NULL, $settings);
+    $this->setupPredictableItok();
   }
 
   protected function allowSimplifiedExpectations(EvaluationResult $actual_result): EvaluationResult {

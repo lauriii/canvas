@@ -46,7 +46,7 @@ use Twig\Error\RuntimeError;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Twig\Error\SyntaxError;
 
-// cspell:ignore Bwidth Fitok
+// cspell:ignore Bwidth Fitok Synx
 
 /**
  * Tests Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent.
@@ -478,7 +478,7 @@ HTML,
   <img
    class="card--image"
    src="::SITE_DIR_BASE_URL::/files/balloons.png"
-        srcset="::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--16/public/balloons.png.avif?itok=Oa4IMo7_ 16w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--32/public/balloons.png.avif?itok=Oa4IMo7_ 32w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--48/public/balloons.png.avif?itok=Oa4IMo7_ 48w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--64/public/balloons.png.avif?itok=Oa4IMo7_ 64w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--96/public/balloons.png.avif?itok=Oa4IMo7_ 96w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--128/public/balloons.png.avif?itok=Oa4IMo7_ 128w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--256/public/balloons.png.avif?itok=Oa4IMo7_ 256w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--384/public/balloons.png.avif?itok=Oa4IMo7_ 384w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--640/public/balloons.png.avif?itok=Oa4IMo7_ 640w"
+        srcset="::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--16/public/balloons.png.avif?itok=TeB392qG 16w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--32/public/balloons.png.avif?itok=TeB392qG 32w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--48/public/balloons.png.avif?itok=TeB392qG 48w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--64/public/balloons.png.avif?itok=TeB392qG 64w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--96/public/balloons.png.avif?itok=TeB392qG 96w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--128/public/balloons.png.avif?itok=TeB392qG 128w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--256/public/balloons.png.avif?itok=TeB392qG 256w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--384/public/balloons.png.avif?itok=TeB392qG 384w, ::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--640/public/balloons.png.avif?itok=TeB392qG 640w"
      sizes="auto 100vw"
            alt="Hot air balloons"
            width="640"
@@ -6073,7 +6073,7 @@ HTML
         'footer' => 'Test Card Footer',
         'loading' => 'lazy',
         'image' => [
-          'src' => '::SITE_DIR_BASE_URL::/files/image-test.png?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/image-test.png.avif%3Fitok%3DRreFpLsS',
+          'src' => '::SITE_DIR_BASE_URL::/files/image-test.png?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/image-test.png.avif%3Fitok%3DujSynxBM',
           'alt' => '',
           'width' => 40,
           'height' => 20,
