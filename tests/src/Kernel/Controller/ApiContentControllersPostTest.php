@@ -20,6 +20,8 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
  * Tests the ApiContentControllers::post() method.
@@ -247,6 +249,55 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
         ],
       ],
     ];
+  }
+
+  public function testPostWithExplicitUuid(): void {
+    $uuid = 'a1b2c3d4-e5f6-4789-8abc-def012345678';
+    $response = $this->request(
+      Request::create(
+        self::URL,
+        'POST',
+        server: ['CONTENT_TYPE' => 'application/json'],
+        content: \json_encode([
+          'title' => 'Page With Explicit UUID',
+          'status' => FALSE,
+          'path' => '/page-with-uuid',
+          'components' => [],
+          'uuid' => $uuid,
+        ], JSON_THROW_ON_ERROR),
+      ),
+    );
+    $this->assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+    $this->assertSame($uuid, $this->decodeResponse($response)['uuid']);
+  }
+
+  public function testPostWithDuplicateUuid(): void {
+    $this->expectException(ConflictHttpException::class);
+    $this->expectExceptionMessage('An entity with UUID "a1b2c3d4-e5f6-4789-8abc-def012345678" already exists.');
+
+    $uuid = 'a1b2c3d4-e5f6-4789-8abc-def012345678';
+    Page::create([
+      'title' => 'Pre-existing page with known UUID',
+      'uuid' => $uuid,
+      'status' => FALSE,
+      'path' => ['alias' => '/existing-page'],
+      'components' => [],
+    ])->save();
+
+    $this->request(
+      Request::create(
+        self::URL,
+        'POST',
+        server: ['CONTENT_TYPE' => 'application/json'],
+        content: \json_encode([
+          'title' => 'Duplicate UUID Page',
+          'status' => FALSE,
+          'path' => '/duplicate-uuid-page',
+          'components' => [],
+          'uuid' => $uuid,
+        ], JSON_THROW_ON_ERROR),
+      ),
+    );
   }
 
   public function testPostWithEmptyContentRequest(): void {

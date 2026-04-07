@@ -177,12 +177,20 @@ final class ApiContentControllers extends ApiControllerBase {
       // @todo This won't check if the alias is already used, potentially
       //   creating duplicated aliases.
       $requestPath = $body['path'] ?? NULL;
-      $new = $this->entityTypeManager->getStorage($entity_type)->create([
+      $values = [
         'title' => $requestBodyTitle,
         'status' => $requestStatus,
         'components' => $requestComponents,
         'path' => $requestPath,
-      ]);
+      ];
+      if (isset($body['uuid'])) {
+        $values['uuid'] = $body['uuid'];
+        $existing = $this->entityTypeManager->getStorage($entity_type)->loadByProperties(['uuid' => $body['uuid']]);
+        if ($existing !== []) {
+          throw new ConflictHttpException(\sprintf('An entity with UUID "%s" already exists.', $body['uuid']));
+        }
+      }
+      $new = $this->entityTypeManager->getStorage($entity_type)->create($values);
       $violations = $new->getTypedData()->validate();
       if ($violations->count() > 0) {
         if ($validation_errors_response = self::createJsonResponseFromViolationSets($violations)) {

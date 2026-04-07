@@ -3775,6 +3775,10 @@ components:
         - path
         - components
       properties:
+        uuid:
+          type: string
+          format: uuid
+          description: Optional UUID to assign to the new page. If omitted, one is generated automatically.
         title:
           type: string
           description: The page title.
