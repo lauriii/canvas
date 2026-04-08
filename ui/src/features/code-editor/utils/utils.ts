@@ -403,6 +403,35 @@ export function deserializeProps(
       delete deserializedProp.$ref;
     }
 
+    // Backwards compatibility: remove stale contentMediaType /
+    // x-formatting-context fields that were incorrectly carried over when
+    // switching a prop away from 'formattedText' to a type with other
+    // distinguishing fields (a format or enum values), before the type-switch
+    // logic was fixed to clear those fields. Without this fix, those props
+    // would incorrectly re-derive as 'formattedText' on page load.
+    // @see https://www.drupal.org/i/3583386
+    if (
+      derivedType === 'formattedText' &&
+      (actualFormat || (actualEnumValues && actualEnumValues.length > 0))
+    ) {
+      delete deserializedProp.contentMediaType;
+      delete deserializedProp['x-formatting-context'];
+      // Remove stale fields from items for multi-value (allowMultiple) props.
+      if (allowMultiple && deserializedProp.items) {
+        delete deserializedProp.items.contentMediaType;
+        delete deserializedProp.items['x-formatting-context'];
+      }
+      // Re-derive the correct type now that the stale fields are removed.
+      deserializedProp.derivedType =
+        derivedPropTypes.find((type) =>
+          type.derive({
+            ...propForDerivation,
+            contentMediaType: undefined,
+            'x-formatting-context': undefined,
+          }),
+        )?.type ?? null;
+    }
+
     return deserializedProp;
   });
 }

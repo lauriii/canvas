@@ -219,6 +219,13 @@ export default function Props() {
                           derivedType: value,
                           $ref: undefined,
                           format: undefined,
+                          // Explicitly clear type-specific fields so they are not
+                          // carried over from a previously selected prop type.
+                          // When adding a new prop type with type-specific fields,
+                          // add those fields here explicitly so they are cleared
+                          // when switching away from that type.
+                          contentMediaType: undefined,
+                          'x-formatting-context': undefined,
                           example: defaultExample,
                           allowMultiple: false,
                           items: undefined,

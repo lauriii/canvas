@@ -1180,6 +1180,109 @@ describe('props in code editor', () => {
     });
   });
 
+  describe('prop type switching', () => {
+    it.each([
+      {
+        targetTypeName: 'Date and time',
+        expectedDerivedType: 'date' as const,
+        expectedFormat: 'date',
+      },
+      {
+        targetTypeName: 'Link',
+        expectedDerivedType: 'link' as const,
+        expectedFormat: 'uri-reference',
+      },
+      {
+        targetTypeName: 'Text',
+        expectedDerivedType: 'text' as const,
+        expectedFormat: undefined,
+      },
+      {
+        targetTypeName: 'Integer',
+        expectedDerivedType: 'integer' as const,
+        expectedFormat: undefined,
+      },
+      {
+        targetTypeName: 'Number',
+        expectedDerivedType: 'number' as const,
+        expectedFormat: undefined,
+      },
+      {
+        targetTypeName: 'Boolean',
+        expectedDerivedType: 'boolean' as const,
+        expectedFormat: undefined,
+      },
+      {
+        targetTypeName: 'Image',
+        expectedDerivedType: 'image' as const,
+        expectedFormat: undefined,
+      },
+      {
+        targetTypeName: 'Video',
+        expectedDerivedType: 'video' as const,
+        expectedFormat: undefined,
+      },
+      {
+        targetTypeName: 'List: text',
+        expectedDerivedType: 'listText' as const,
+        expectedFormat: undefined,
+      },
+      {
+        targetTypeName: 'List: integer',
+        expectedDerivedType: 'listInteger' as const,
+        expectedFormat: undefined,
+      },
+    ])(
+      'clears contentMediaType and x-formatting-context when switching from formattedText to $targetTypeName',
+      async ({ targetTypeName, expectedDerivedType, expectedFormat }) => {
+        // First, add a prop as 'Formatted text' — this sets contentMediaType and x-formatting-context.
+        await addProp('Formatted text', 'MyProp');
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            store.getState(),
+          )[0];
+          expect(prop.derivedType).toBe('formattedText');
+          expect(prop.contentMediaType).toBe('text/html');
+          expect(prop['x-formatting-context']).toBe('block');
+        });
+
+        // Switch the type to the target type.
+        const typeSelect = screen.getByRole('combobox', { name: 'Type' });
+        await userEvent.click(typeSelect);
+        const targetOption = await screen.findByRole('option', {
+          name: targetTypeName,
+        });
+        await userEvent.click(targetOption);
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            store.getState(),
+          )[0];
+          expect(prop.derivedType).toBe(expectedDerivedType);
+          // contentMediaType and x-formatting-context must be cleared so that the
+          // prop is not re-derived as 'formattedText' after a page reload.
+          expect(prop.contentMediaType).toBeUndefined();
+          expect(prop['x-formatting-context']).toBeUndefined();
+          if (expectedFormat) {
+            expect(prop.format).toBe(expectedFormat);
+          }
+        });
+
+        // Verify serialization does NOT include contentMediaType or x-formatting-context.
+        const serialized = serializeProps(
+          selectCodeComponentProperty('props')(store.getState()),
+        );
+        const serializedProp = Object.values(serialized)[0];
+        expect(serializedProp.contentMediaType).toBeUndefined();
+        expect(serializedProp['x-formatting-context']).toBeUndefined();
+        if (expectedFormat) {
+          expect(serializedProp.format).toBe(expectedFormat);
+        }
+      },
+    );
+  });
+
   describe('image data', () => {
     const aspectRatios = [
       ['1:1 (Square)', { width: 600, height: 600 }],
