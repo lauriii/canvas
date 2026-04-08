@@ -1,16 +1,50 @@
 import { arrayMove } from '@dnd-kit/sortable';
 
 import { updateProp } from '@/features/code-editor/codeEditorSlice';
+import { VALUE_MODE_LIMITED } from '@/types/CodeComponent';
 
 import type { DragEndEvent } from '@dnd-kit/core';
 import type { AppDispatch } from '@/app/store';
-import type { CodeComponentProp } from '@/types/CodeComponent';
+import type { CodeComponentProp, ValueMode } from '@/types/CodeComponent';
 
 /**
  * Utility functions for handling array-based prop values in component forms.
  * These functions are used across multiple form prop type components to manage
  * multiple values, drag-and-drop reordering, and array manipulations.
  */
+
+/**
+ * Creates a display array for rendering multivalue props.
+ *
+ * @param example - The example value(s) from the prop.
+ * @param valueMode - The value mode ('limited' or 'unlimited').
+ * @param limitedCount - The count limit for limited mode.
+ * @param allowMultiple - Whether multiple values are allowed.
+ * @returns The display array.
+ */
+export function createDisplayArray<T extends string | number>(
+  example: T | T[] | (string | number)[],
+  valueMode?: ValueMode,
+  limitedCount?: number,
+  allowMultiple?: boolean,
+): (string | number)[] {
+  const exampleArray = Array.isArray(example) ? example : [];
+
+  // In limited mode, ensure we have exactly limitedCount items.
+  if (
+    (allowMultiple === undefined || allowMultiple) &&
+    valueMode === VALUE_MODE_LIMITED &&
+    limitedCount
+  ) {
+    return Array.from(
+      { length: limitedCount },
+      (_, i) => exampleArray[i] ?? '',
+    );
+  }
+
+  // In unlimited mode, ensure we always have at least one item to display.
+  return exampleArray.length === 0 ? [''] : exampleArray;
+}
 
 /**
  * Creates a drag end handler for reordering array items

@@ -17,6 +17,7 @@ import {
 import { useRequiredProp } from '@/features/code-editor/hooks/useRequiredProp';
 import {
   createArrayDragEndHandler,
+  createDisplayArray,
   handleArrayAdd,
   handleArrayRemove,
   handleArrayValueChange,
@@ -65,18 +66,16 @@ export default function FormPropTypeDate({
 
   // For multiple values mode
   // Memoize to prevent unnecessary recomputations
-  const displayArray = useMemo(() => {
-    const exampleArray = Array.isArray(example) ? example : [];
-    // In limited mode, ensure we have exactly limitedCount items
-    if (allowMultiple && valueMode === 'limited') {
-      return Array.from(
-        { length: limitedCount },
-        (_, i) => exampleArray[i] || '',
-      );
-    }
-    // In unlimited mode, ensure we always have at least one item to display
-    return exampleArray.length === 0 ? [''] : exampleArray;
-  }, [example, allowMultiple, valueMode, limitedCount]);
+  const displayArray = useMemo(
+    () =>
+      createDisplayArray(
+        example,
+        valueMode,
+        limitedCount,
+        allowMultiple,
+      ) as string[],
+    [example, valueMode, limitedCount, allowMultiple],
+  );
 
   const handleDragEnd = createArrayDragEndHandler(displayArray, dispatch, id, {
     format: dateType,

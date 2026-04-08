@@ -1,6 +1,7 @@
 // @todo: Port tests from code-editor-component-data-props.cy.jsx to this file since we want to move away from
 //    Cypress unit tests toward vitest. https://www.drupal.org/i/3523490.
 import { describe, expect, it } from 'vitest';
+import { arrayMove } from '@dnd-kit/sortable';
 import {
   act,
   cleanup,
@@ -18,6 +19,7 @@ import {
   initialState,
   selectCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
+import { createDisplayArray } from '@/features/code-editor/utils/arrayPropUtils';
 import {
   getPropMachineName,
   serializeProps,
@@ -2157,6 +2159,132 @@ describe('props in code editor', () => {
         );
         expect(inputs.length).toBe(3);
       });
+    });
+
+    it('pads array to match limitedCount when loaded with fewer items', async () => {
+      const testCases = [
+        {
+          propType: 'Text',
+          itemType: 'string' as const,
+          derivedType: 'text' as const,
+          values: ['Tag1', 'Tag2', 'Tag3'] as string[],
+        },
+        {
+          propType: 'Integer',
+          itemType: 'integer' as const,
+          derivedType: 'integer' as const,
+          values: [100, 200, 300] as number[],
+        },
+        {
+          propType: 'Number',
+          itemType: 'number' as const,
+          derivedType: 'number' as const,
+          values: [1.5, 2.5, 3.5] as number[],
+        },
+        {
+          propType: 'Link',
+          itemType: 'string' as const,
+          derivedType: 'link' as const,
+          values: ['/link1', '/link2', '/link3'] as string[],
+          format: 'uri-reference' as const,
+        },
+        {
+          propType: 'Date',
+          itemType: 'string' as const,
+          derivedType: 'date' as const,
+          values: ['2024-01-01', '2024-02-01', '2024-03-01'] as string[],
+          format: 'date' as const,
+        },
+      ];
+
+      for (const testCase of testCases) {
+        const { propType, itemType, derivedType, values, format } = testCase;
+
+        cleanup();
+
+        // Simulate loading a prop from backend with only 3 items but limitedCount=5.
+        const propId = `limited-prop-${derivedType}`;
+        const storeWithLimitedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props: [
+                {
+                  id: propId,
+                  name: `Test${propType}`,
+                  type: 'array',
+                  items: { type: itemType, ...(format && { format }) },
+                  example: values,
+                  derivedType: derivedType,
+                  allowMultiple: true,
+                  valueMode: 'limited' as const,
+                  limitedCount: 5,
+                  ...(format && { format }),
+                },
+              ],
+            },
+            initialPropIds: [propId],
+          },
+        });
+
+        render(<Wrapper store={storeWithLimitedProp} />);
+
+        // Verify all 5 input fields render.
+        await waitFor(() => {
+          for (let i = 0; i < 5; i++) {
+            expect(
+              screen.getByTestId(`array-prop-value-${propId}-${i}`),
+            ).toBeInTheDocument();
+          }
+        });
+
+        const inputs: HTMLInputElement[] = [];
+        for (let i = 0; i < 5; i++) {
+          inputs.push(
+            screen.getByTestId(
+              `array-prop-value-${propId}-${i}`,
+            ) as HTMLInputElement,
+          );
+        }
+
+        // First 3 should have values.
+        expect(inputs[0].value).toBe(String(values[0]));
+        expect(inputs[1].value).toBe(String(values[1]));
+        expect(inputs[2].value).toBe(String(values[2]));
+
+        // Last 2 should be empty.
+        expect(inputs[3].value).toBe('');
+        expect(inputs[4].value).toBe('');
+
+        const prop = selectCodeComponentProperty('props')(
+          storeWithLimitedProp.getState(),
+        )[0];
+        const currentExample = prop.example as Array<string | number>;
+
+        // Use the same utility function that is used for creating the display array.
+        const displayArray = createDisplayArray(currentExample, 'limited', 5);
+
+        //Simulate reordering using arrayMove.
+        const reordered = arrayMove([...displayArray], 3, 0);
+
+        // Verify reordering worked.
+        expect(reordered[0]).toBe('');
+        expect(reordered[1]).toBe(values[0]);
+        expect(reordered[2]).toBe(values[1]);
+        expect(reordered[3]).toBe(values[2]);
+        expect(reordered[4]).toBe('');
+
+        // Verify no undefined values.
+        reordered.forEach((val) => {
+          expect(val).not.toBeUndefined();
+          expect(val).not.toBeNull();
+        });
+
+        // Verify no null in JSON.
+        expect(JSON.stringify(reordered)).not.toContain('null');
+      }
     });
 
     it('updates example array when changing limited count', async () => {

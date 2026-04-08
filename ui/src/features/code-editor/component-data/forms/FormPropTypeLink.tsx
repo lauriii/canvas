@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { Box, Flex, Select, Text, TextField } from '@radix-ui/themes';
 
@@ -15,6 +15,7 @@ import { REQUIRED_EXAMPLE_ERROR_MESSAGE } from '@/features/code-editor/component
 import { useRequiredProp } from '@/features/code-editor/hooks/useRequiredProp';
 import {
   createArrayDragEndHandler,
+  createDisplayArray,
   handleArrayAdd,
   handleArrayRemove,
   handleArrayValueChange,
@@ -91,9 +92,17 @@ export default function FormPropTypeLink({
     [dispatch, id, linkType],
   );
 
-  // For multiple values mode
-  const exampleArray = Array.isArray(example) ? example : [];
-  const displayArray = exampleArray.length === 0 ? [''] : exampleArray;
+  const displayArray = useMemo(
+    () =>
+      createDisplayArray(
+        example,
+        valueMode,
+        limitedCount,
+        allowMultiple,
+      ) as string[],
+    [example, valueMode, limitedCount, allowMultiple],
+  );
+
   // Add validity state for multiple values
   const [multiValueValidityStates, setMultiValueValidityStates] = useState<
     boolean[]
@@ -290,11 +299,7 @@ export default function FormPropTypeLink({
         {/* Multiple values mode */}
         {allowMultiple && (
           <PropValuesSortableList
-            items={
-              valueMode === VALUE_MODE_LIMITED
-                ? Array.from({ length: limitedCount }).map((_, index) => index)
-                : displayArray.map((_, index) => index)
-            }
+            items={displayArray.map((_, index) => index)}
             renderItem={renderInputField}
             onDragEnd={handleDragEnd}
             onRemove={

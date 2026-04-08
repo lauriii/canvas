@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Box, Flex, Text, TextField } from '@radix-ui/themes';
 
 import { useAppDispatch } from '@/app/hooks';
@@ -8,14 +9,12 @@ import {
 import { PropValuesSortableList } from '@/features/code-editor/component-data/forms/PropValuesSortableList';
 import {
   createArrayDragEndHandler,
+  createDisplayArray,
   handleArrayAdd,
   handleArrayRemove,
   handleArrayValueChange,
 } from '@/features/code-editor/utils/arrayPropUtils';
-import {
-  VALUE_MODE_LIMITED,
-  VALUE_MODE_UNLIMITED,
-} from '@/types/CodeComponent';
+import { VALUE_MODE_UNLIMITED } from '@/types/CodeComponent';
 
 import type { CodeComponentProp, ValueMode } from '@/types/CodeComponent';
 
@@ -39,11 +38,10 @@ export default function FormPropTypeArray({
 }) {
   const dispatch = useAppDispatch();
 
-  const exampleArray = Array.isArray(example) ? example : [];
-
-  // Ensure we always have at least one item to display in unlimited mode
-  const displayArray =
-    exampleArray.length === 0 ? ([''] as (string | number)[]) : exampleArray;
+  const displayArray = useMemo(
+    () => createDisplayArray(example, valueMode, limitedCount),
+    [example, valueMode, limitedCount],
+  );
 
   const handleDragEnd = createArrayDragEndHandler(displayArray, dispatch, id);
 
@@ -108,11 +106,7 @@ export default function FormPropTypeArray({
           Example value
         </Text>
         <PropValuesSortableList
-          items={
-            valueMode === VALUE_MODE_LIMITED
-              ? Array.from({ length: limitedCount }).map((_, index) => index)
-              : displayArray.map((_, index) => index)
-          }
+          items={displayArray.map((_, index) => index)}
           renderItem={renderInputField}
           onDragEnd={handleDragEnd}
           onRemove={
