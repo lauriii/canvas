@@ -28,6 +28,7 @@ describe('config', () => {
         clientId: '',
         clientSecret: '',
         includePages: false,
+        fonts: undefined,
         componentDir: './components',
       });
     });
@@ -40,11 +41,12 @@ describe('config', () => {
         clientSecret: '',
         componentDir: './components',
         deprecatedComponentDir: './components',
+        fonts: undefined,
         globalCssPath: './src/components/global.css',
         includePages: false,
         outputDir: 'dist',
         pagesDir: './pages',
-        scope: 'canvas:js_component canvas:asset_library',
+        scope: 'canvas:js_component canvas:asset_library canvas:brand_kit',
         siteUrl: '',
         userAgent: '',
       });
@@ -61,11 +63,12 @@ describe('config', () => {
         clientSecret: '',
         componentDir: './components',
         deprecatedComponentDir: './components',
+        fonts: undefined,
         globalCssPath: './src/components/global.css',
         includePages: false,
         outputDir: 'dist',
         pagesDir: './pages',
-        scope: 'canvas:js_component canvas:asset_library',
+        scope: 'canvas:js_component canvas:asset_library canvas:brand_kit',
         siteUrl: 'https://example.com',
         userAgent: '',
       });
@@ -253,6 +256,7 @@ describe('config', () => {
         clientSecret: 'test-secret',
         componentDir: process.cwd(),
         deprecatedComponentDir: './components',
+        fonts: undefined,
         globalCssPath: './src/components/global.css',
         includePages: true,
         outputDir: 'dist',
@@ -276,9 +280,10 @@ describe('config', () => {
         clientId: '',
         clientSecret: '',
         includePages: false,
-        scope: 'canvas:js_component canvas:asset_library',
+        scope: 'canvas:js_component canvas:asset_library canvas:brand_kit',
         componentDir: process.cwd(),
         deprecatedComponentDir: './components',
+        fonts: undefined,
         globalCssPath: './src/components/global.css',
         outputDir: 'dist',
         pagesDir: './pages',
@@ -293,7 +298,7 @@ describe('config', () => {
 
       expect(getConfig().includePages).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:page:create canvas:page:read canvas:page:edit',
+        'canvas:js_component canvas:asset_library canvas:brand_kit canvas:page:create canvas:page:read canvas:page:edit',
       );
     });
   });

@@ -1,11 +1,15 @@
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 import axios from 'axios';
 
-import { getConfig } from '../config.js';
+import { BRAND_KIT_GLOBAL_ID, getConfig } from '../config.js';
 
 import type { AxiosError, AxiosInstance } from 'axios';
 import type { CanvasComponentTree } from 'drupal-canvas/json-render-utils';
 import type {
   AssetLibrary,
+  BrandKit,
+  BrandKitFontEntry,
   Component,
   UploadedArtifact,
   UploadedArtifactResult,
@@ -532,6 +536,70 @@ export class ApiService {
       );
     } catch {
       // Best-effort: signal errors are safe to ignore since they don't affect the push data.
+    }
+  }
+
+  /**
+   * Upload a font file for Brand Kit (same endpoint as UI: artifacts/upload).
+   * Returns uri and fid for building a Brand Kit font entry.
+   * When filename is provided (e.g. slugified), it is used for the upload; otherwise the path basename is used.
+   */
+  async uploadFont(
+    filePath: string,
+    filename?: string,
+  ): Promise<UploadedArtifactResult> {
+    const buffer = await fs.readFile(filePath);
+    const name = filename ?? path.basename(filePath);
+    return this.uploadArtifact(name, buffer);
+  }
+
+  /**
+   * Download a file by URL using the authenticated client.
+   * URL may be relative (resolved against siteUrl) or absolute.
+   */
+  async downloadFile(url: string): Promise<Buffer> {
+    try {
+      const response = await this.client.get(url, {
+        responseType: 'arraybuffer',
+        transformResponse: [(data: unknown) => data],
+      });
+      return Buffer.from(response.data as ArrayBuffer);
+    } catch (error) {
+      this.handleApiError(error);
+      throw new Error(`Failed to download file: ${url}`);
+    }
+  }
+
+  /**
+   * Get a Brand Kit config entity by id.
+   */
+  async getBrandKit(id: string = BRAND_KIT_GLOBAL_ID): Promise<BrandKit> {
+    try {
+      const response = await this.client.get(
+        `/canvas/api/v0/config/brand_kit/${id}`,
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+      throw new Error(`Failed to get Brand Kit '${id}'`);
+    }
+  }
+
+  /**
+   * Update the global Brand Kit (replace the fonts array).
+   */
+  async updateBrandKit(data: {
+    fonts: BrandKitFontEntry[];
+  }): Promise<BrandKit> {
+    try {
+      const response = await this.client.patch(
+        `/canvas/api/v0/config/brand_kit/${BRAND_KIT_GLOBAL_ID}`,
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+      throw new Error(`Failed to update Brand Kit '${BRAND_KIT_GLOBAL_ID}'`);
     }
   }
 

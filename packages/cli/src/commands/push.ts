@@ -6,6 +6,10 @@ import * as p from '@clack/prompts';
 import { discoverCanvasProject } from '@drupal-canvas/discovery';
 
 import { ensureConfig, getConfig } from '../config.js';
+import {
+  buildFontPushPlannedResults,
+  pushFonts,
+} from '../lib/fonts/font-push.js';
 import { createApiService } from '../services/api.js';
 import { analyzeAndBundleImports } from '../utils/analyze-and-bundle-imports';
 import { buildTailwindForComponents } from '../utils/build-tailwind';
@@ -31,6 +35,7 @@ import { createProgressCallback, processInPool } from '../utils/request-pool';
 import type { Command } from 'commander';
 import type { ApiService } from '../services/api.js';
 import type {
+  BrandKitFontEntry,
   BuildManifest,
   UploadedArtifact,
   UploadedArtifactResult,
@@ -284,6 +289,7 @@ export function pushCommand(program: Command): void {
         const config = getConfig();
         const { componentDir, aliasBaseDir, outputDir } = config;
         const includesPages = config.includePages;
+        const hasBrandKitFontsConfig = config.fonts !== undefined;
         // Step 1. Discover all components and pages.
         const discoveryResult = await discoverCanvasProject({
           componentRoot: componentDir,
@@ -298,7 +304,11 @@ export function pushCommand(program: Command): void {
         const discoveredPages = includesPages ? allDiscoveredPages : [];
         const hasIgnoredPages = !includesPages && allDiscoveredPages.length > 0;
 
-        if (components.length === 0 && discoveredPages.length === 0) {
+        if (
+          components.length === 0 &&
+          discoveredPages.length === 0 &&
+          !hasBrandKitFontsConfig
+        ) {
           if (hasIgnoredPages) {
             p.log.info(
               'Ignoring local pages. Use --include-pages or set CANVAS_INCLUDE_PAGES=true to push them.',
@@ -307,6 +317,16 @@ export function pushCommand(program: Command): void {
           p.log.warn('No components or pages found.');
           p.outro('Push aborted (nothing to push)');
           return;
+        }
+
+        if (
+          components.length === 0 &&
+          discoveredPages.length === 0 &&
+          hasBrandKitFontsConfig
+        ) {
+          p.log.info(
+            'No components or pages found; syncing Brand Kit fonts from canvas.brand-kit.json.',
+          );
         }
 
         if (components.length === 0) {
@@ -324,6 +344,16 @@ export function pushCommand(program: Command): void {
           components.length > 0 ? await apiService.listComponents() : {};
         const remoteNames = new Set(Object.keys(existingComponents));
         const localNames = new Set(components.map((c) => c.name));
+
+        let remoteBrandKitFonts: BrandKitFontEntry[] = [];
+        if (config.fonts !== undefined) {
+          try {
+            const brandKit = await apiService.getBrandKit();
+            remoteBrandKitFonts = brandKit.fonts ?? [];
+          } catch {
+            remoteBrandKitFonts = [];
+          }
+        }
 
         // Fetch remote pages early for the planned operations summary.
         const remotePages =
@@ -375,6 +405,13 @@ export function pushCommand(program: Command): void {
               },
             ],
           })),
+          ...(config.fonts !== undefined
+            ? buildFontPushPlannedResults(config.fonts, remoteBrandKitFonts, {
+                create: operationLabels.create,
+                update: operationLabels.update,
+                delete: operationLabels.delete,
+              })
+            : []),
         ];
         if (plannedResults.length > 0) {
           reportResults(plannedResults, 'Planned operations', 'Item', {
@@ -398,6 +435,9 @@ export function pushCommand(program: Command): void {
             parts.push(
               `${discoveredPages.length} ${pluralize(discoveredPages.length, 'page')}`,
             );
+          }
+          if (hasBrandKitFontsConfig) {
+            parts.push('Brand Kit fonts (canvas.brand-kit.json)');
           }
           const confirmed = await p.confirm({
             message: `Push these changes to ${config.siteUrl}?`,
@@ -482,6 +522,8 @@ export function pushCommand(program: Command): void {
         }
 
         let componentResults: Result[] = [];
+        let includeGlobalCss = false;
+        let fontCount = 0;
 
         // Build and push components
         if (components.length > 0) {
@@ -507,9 +549,57 @@ export function pushCommand(program: Command): void {
         if (!globalCssResult.success) {
           throw new Error('Push aborted (incomplete). Try again.');
         }
+        includeGlobalCss = true;
+
+        // Step 4b: Push fonts from canvas.brand-kit.json (when configured)
+        if (config.fonts) {
+          const fontOutcomeLabels: Record<string, string> = {
+            create: chalk.green('Create'),
+            update: chalk.cyan('Update'),
+            delete: chalk.red('Delete'),
+            unchanged: chalk.dim('Unchanged'),
+          };
+          const fontSpinner = p.spinner();
+          fontSpinner.start('Pushing fonts');
+          try {
+            const result = await pushFonts(config, apiService);
+            fontCount = result.count + result.skipped + result.deleted;
+            const parts: string[] = [];
+            if (result.count > 0) {
+              parts.push(`${result.count} new`);
+            }
+            if (result.skipped > 0) {
+              parts.push(`${result.skipped} unchanged`);
+            }
+            if (result.deleted > 0) {
+              parts.push(`${result.deleted} deleted`);
+            }
+            fontSpinner.stop(
+              chalk.green(
+                parts.length > 0
+                  ? `${parts.join(', ')} font variants updated`
+                  : 'No font variants to update',
+              ),
+            );
+            if (result.outcomes.length > 0) {
+              reportResults(
+                result.outcomes.map((o) => ({
+                  itemName: o.itemName,
+                  success: true,
+                  details: [{ content: fontOutcomeLabels[o.operation] }],
+                })),
+                'Pushed fonts',
+                'Font variant',
+              );
+            }
+          } catch (err) {
+            fontSpinner.stop(chalk.red('Font push failed'));
+            throw err;
+          }
+        }
 
         // Step 5: Upload vendor/local artifacts and sync manifest
-        await syncManifestArtifacts(outputDir, {
+        const { artifactCount } = await syncManifestArtifacts(outputDir, {
           apiService,
           createSpinner: () => p.spinner(),
           logInfo: (msg) => p.log.info(msg),
@@ -566,7 +656,29 @@ export function pushCommand(program: Command): void {
         }
 
         await apiService.signalPushComplete();
-        p.outro(`⬆️ Push completed`);
+        const componentCount = components.length;
+        const parts = [];
+        if (componentCount > 0) {
+          parts.push(`${componentCount} ${pluralizeComponent(componentCount)}`);
+        }
+        if (discoveredPages.length > 0) {
+          parts.push(
+            `${discoveredPages.length} ${pluralize(discoveredPages.length, 'page')}`,
+          );
+        }
+        if (includeGlobalCss) {
+          parts.push('global CSS');
+        }
+        if (artifactCount > 0) {
+          parts.push(`${artifactCount} artifacts`);
+        }
+        if (fontCount > 0) {
+          parts.push(
+            `${fontCount} font ${fontCount === 1 ? 'variant' : 'variants'}`,
+          );
+        }
+
+        p.outro(`⬆️ Push completed: ${parts.join(', ') || 'done'}`);
       } catch (error) {
         await apiService?.signalPushFail(
           error instanceof Error ? error.message : undefined,

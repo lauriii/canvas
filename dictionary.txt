@@ -93,8 +93,15 @@ OPENCOLLECTIVE
 outro
 personalizable
 phenaproxima
+fontshare
+myfont
+nourl
+opsz
 placehold
 Postel
+slugified
+slugifies
+Slugifies
 Prebundle
 prebundling
 previewable
@@ -139,6 +146,8 @@ topbar
 trackpad
 tsconfigs
 tseslint
+unifont
+Unifont
 ultrawide
 uncollapse
 uncollapsed

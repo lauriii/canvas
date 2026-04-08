@@ -109,6 +109,7 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
       'INDEX js components' => ['canvas.api.config.list', ['canvas_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID], [], 'GET', []],
       'GET js component' => ['canvas.api.config.get', ['canvas_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID, 'canvas_config_entity' => 'test-code-component'], [], 'GET', []],
       'GET asset library' => ['canvas.api.config.get', ['canvas_config_entity_type_id' => AssetLibrary::ENTITY_TYPE_ID, 'canvas_config_entity' => AssetLibrary::GLOBAL_ID], [], 'GET', []],
+      'GET brand kit' => ['canvas.api.config.get', ['canvas_config_entity_type_id' => BrandKit::ENTITY_TYPE_ID, 'canvas_config_entity' => BrandKit::GLOBAL_ID], [], 'GET', []],
       'POST js component' => [
         'canvas.api.config.post',
         ['canvas_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID],
@@ -146,6 +147,13 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
             'compiled' => '// Updated compiled JS',
           ],
         ],
+      ],
+      'PATCH brand kit' => [
+        'canvas.api.config.patch',
+        ['canvas_config_entity_type_id' => BrandKit::ENTITY_TYPE_ID, 'canvas_config_entity' => BrandKit::GLOBAL_ID],
+        ['administer brand kit'],
+        'PATCH',
+        ['label' => 'Global brand kit'],
       ],
       'DELETE js component' => [
         'canvas.api.config.delete',

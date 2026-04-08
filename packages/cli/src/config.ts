@@ -24,6 +24,54 @@ export function loadEnvFiles() {
 // Load environment variables before creating config.
 loadEnvFiles();
 
+/** Defaults for provider-based font resolution (weights, styles, subsets). */
+export interface FontDefaults {
+  weights?: string[];
+  styles?: string[];
+  subsets?: string[];
+}
+
+/** Provider-specific options (e.g. Adobe kit ID). */
+export interface FontProviderOptions {
+  adobe?: { id: string[] };
+}
+
+/** Per-axis default value override (axis tag -> number). Used for variable fonts. */
+export type FontAxisDefaults = Record<string, number>;
+
+/** Shared fields for all font family entries. */
+interface FontFamilyEntryBase {
+  name: string;
+  weights?: string[];
+  styles?: string[];
+  /** Optional axis default overrides for variable fonts (e.g. { "wght": 500 }). Clamped to axis min/max. */
+  axisDefaults?: FontAxisDefaults;
+}
+
+/** Font family entry for a local file. */
+export interface LocalFontFamilyEntry extends FontFamilyEntryBase {
+  src: string;
+  provider?: never;
+  subsets?: never;
+}
+
+/** Font family entry for a provider-based font. */
+export interface ProviderFontFamilyEntry extends FontFamilyEntryBase {
+  provider?: 'google' | 'bunny' | 'fontshare' | 'fontsource' | 'npm' | 'adobe';
+  src?: never;
+  /** Subsets to request from the provider (e.g. ['latin', 'cyrillic']). */
+  subsets?: string[];
+}
+
+/** A single font family entry in canvas.brand-kit.json families. */
+export type FontFamilyEntry = LocalFontFamilyEntry | ProviderFontFamilyEntry;
+
+export interface FontsConfig {
+  defaults?: FontDefaults;
+  families: FontFamilyEntry[];
+  providers?: FontProviderOptions;
+}
+
 export interface Config {
   siteUrl: string;
   clientId: string;
@@ -39,6 +87,43 @@ export interface Config {
   pagesDir: string;
   deprecatedComponentDir: string;
   globalCssPath: string;
+  fonts?: FontsConfig;
+}
+
+/** Filename for Brand Kit (font) configuration in the project root. */
+export const BRAND_KIT_CONFIG_FILENAME = 'canvas.brand-kit.json';
+
+/** Global Brand Kit id used by the CLI for font sync (single site-wide kit). */
+export const BRAND_KIT_GLOBAL_ID = 'global';
+
+/** Top-level shape of canvas.brand-kit.json (fonts and future brand kit keys). */
+export interface BrandKitConfigFile {
+  fonts?: FontsConfig;
+}
+
+function loadFontsFromBrandKitFile(hostRoot: string): FontsConfig | undefined {
+  const configPath = path.resolve(hostRoot, BRAND_KIT_CONFIG_FILENAME);
+  if (!fs.existsSync(configPath)) {
+    return undefined;
+  }
+  const raw = fs.readFileSync(configPath, 'utf-8');
+  let parsed: BrandKitConfigFile;
+  try {
+    parsed = JSON.parse(raw) as BrandKitConfigFile;
+  } catch (err) {
+    const message =
+      err instanceof SyntaxError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    throw new Error(`Invalid JSON in ${BRAND_KIT_CONFIG_FILENAME}: ${message}`);
+  }
+  const fonts = parsed?.fonts;
+  if (fonts && typeof fonts === 'object' && Array.isArray(fonts.families)) {
+    return fonts;
+  }
+  return undefined;
 }
 
 const {
@@ -52,7 +137,8 @@ const {
 
 export const DEFAULT_INCLUDE_PAGES = false;
 
-const DEFAULT_SCOPE = 'canvas:js_component canvas:asset_library';
+const DEFAULT_SCOPE =
+  'canvas:js_component canvas:asset_library canvas:brand_kit';
 const DEFAULT_SCOPE_WITH_PAGES = `${DEFAULT_SCOPE} canvas:page:create canvas:page:read canvas:page:edit`;
 
 export function parseBooleanSetting(value: string): boolean | undefined {
@@ -109,6 +195,7 @@ let config: Config = {
   // but the new componentDir that supports flexible codebases defaults to process.cwd().
   deprecatedComponentDir: deprecatedComponentDir,
   globalCssPath: globalCssPath,
+  fonts: loadFontsFromBrandKitFile(process.cwd()),
 };
 
 export function getConfig(): Config {

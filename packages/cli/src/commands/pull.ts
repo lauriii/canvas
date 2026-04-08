@@ -8,6 +8,13 @@ import { discoverCanvasProject } from '@drupal-canvas/discovery';
 import { resolveHostGlobalCssPath } from '@drupal-canvas/vite-compat';
 
 import { ensureConfig, getConfig } from '../config';
+import {
+  buildExistingVariantKeys,
+  pullFonts,
+  readBrandKitConfig,
+  updateBrandKitConfig,
+  variantKey,
+} from '../lib/fonts/font-pull.js';
 import { createApiService } from '../services/api';
 import {
   parseBooleanOption,
@@ -412,10 +419,101 @@ export function createAssetsPullTask(
   };
 }
 
+export function createFontsPullTask(
+  apiService: ApiService,
+  projectRoot: string,
+): PullTask {
+  let totalFontVariants = 0;
+  let newCount = 0;
+  let existingCount = 0;
+
+  return {
+    async prepare(): Promise<PullTaskPrepareResult> {
+      const [brandKit, brandKitConfig] = await Promise.all([
+        apiService.getBrandKit(),
+        readBrandKitConfig(projectRoot),
+      ]);
+
+      const remoteFonts = brandKit.fonts ?? [];
+      totalFontVariants = remoteFonts.length;
+      if (totalFontVariants === 0) {
+        return { summaryLines: [], localOnlyCount: 0 };
+      }
+
+      const existingKeys = buildExistingVariantKeys(
+        brandKitConfig?.families ?? [],
+      );
+
+      existingCount = remoteFonts.filter((e) =>
+        existingKeys.has(
+          variantKey(e.family, e.weight ?? '400', e.style ?? 'normal'),
+        ),
+      ).length;
+      newCount = remoteFonts.filter(
+        (e) =>
+          e.url &&
+          !existingKeys.has(
+            variantKey(e.family, e.weight ?? '400', e.style ?? 'normal'),
+          ),
+      ).length;
+
+      return {
+        summaryLines: [
+          formatSummaryLine(
+            'font variant',
+            totalFontVariants,
+            newCount,
+            existingCount,
+          ),
+        ],
+        localOnlyCount: 0,
+      };
+    },
+
+    async execute(): Promise<PullTaskResult> {
+      const config = getConfig();
+      const result = await pullFonts(apiService, projectRoot, config.fonts);
+
+      const results: Result[] = [];
+
+      for (const entry of result.downloaded) {
+        results.push({
+          itemName: `${entry.name} ${entry.weights?.[0] ?? '400'} ${entry.styles?.[0] ?? 'normal'}`,
+          success: true,
+        });
+      }
+
+      if (result.skipped > 0) {
+        results.push({
+          itemName: 'font variants',
+          success: true,
+          details: [
+            {
+              content: `Skipped ${result.skipped} (already in config)`,
+            },
+          ],
+        });
+      }
+
+      if (result.count > 0) {
+        await updateBrandKitConfig(projectRoot, result.downloaded);
+      }
+
+      return {
+        results,
+        title: 'Pulled fonts',
+        label: 'Font variant',
+      };
+    },
+  };
+}
+
 export function pullCommand(program: Command): void {
   program
     .command('pull')
-    .description('pull components, global CSS, and optional pages from Drupal')
+    .description(
+      'pull components, global CSS, fonts, and optional pages from Drupal',
+    )
     .option('--client-id <id>', 'Client ID')
     .option('--client-secret <secret>', 'Client Secret')
     .option('--site-url <url>', 'Site URL')
@@ -452,10 +550,11 @@ export function pullCommand(program: Command): void {
 
         const s = p.spinner();
         const contentLabel = includesPages
-          ? 'components, global CSS and pages'
-          : 'components and global CSS';
+          ? 'components, global CSS, fonts, and pages'
+          : 'components, global CSS, and fonts';
 
         // Build pull tasks.
+        const projectRoot = process.cwd();
         const tasks: PullTask[] = [
           createComponentsPullTask(
             apiService,
@@ -464,9 +563,10 @@ export function pullCommand(program: Command): void {
           ),
           createAssetsPullTask(
             apiService,
-            resolveHostGlobalCssPath(process.cwd()),
+            resolveHostGlobalCssPath(projectRoot),
             options.skipOverwrite ?? false,
           ),
+          createFontsPullTask(apiService, projectRoot),
         ];
 
         if (includesPages) {

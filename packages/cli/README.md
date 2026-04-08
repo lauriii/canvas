@@ -22,10 +22,13 @@ npm install @drupal-canvas/cli
 
 ### Configuration
 
-The Canvas CLI uses two types of configuration:
+The Canvas CLI uses three types of configuration:
 
 - **canvas.config.json** - Repository-committed configuration for values tied to
   your codebase structure (where files are stored, build output locations)
+- **canvas.brand-kit.json** - Optional Brand Kit (font) configuration. When
+  present, `canvas push` and `canvas pull` use it to sync fonts with the global
+  Brand Kit. See [Font push (Brand Kit)](#font-push-brand-kit).
 - **.env** - Environmental configuration and secrets that should not be tracked
   in version control (site URLs, OAuth credentials)
 
@@ -53,13 +56,100 @@ properties:
 | Property        | Default                         | Description                                                                                                               |
 | --------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `componentDir`  | `process.cwd()`                 | Directory where Code Components are stored in the filesystem.                                                             |
-| `pagesDir`      | `"./pages"`                     | Directory where page specs are stored in the filesystem.                                                                  |
 | `aliasBaseDir`  | `"src"`                         | Base directory for module resolution when using path aliases in your components. Tied to your project's import structure. |
 | `outputDir`     | `"dist"`                        | Build output directory (similar to Vite's `build.outDir`). Defines where compiled assets are generated.                   |
 | `globalCssPath` | `"./src/components/global.css"` | Path to the global CSS file.                                                                                              |
 
 If `canvas.config.json` is not present, the CLI will use the default values
 shown above.
+
+#### canvas.brand-kit.json (Optional)
+
+Brand Kit (font) configuration lives in `canvas.brand-kit.json` in the project
+root. When this file is present, `canvas push` and `canvas pull` use it to sync
+fonts with the global Brand Kit. Example:
+
+```json
+{
+  "fonts": {
+    "defaults": {
+      "weights": ["400"],
+      "styles": ["normal"],
+      "subsets": ["latin"]
+    },
+    "families": [
+      {
+        "name": "Inter",
+        "provider": "google",
+        "weights": ["400", "700"],
+        "styles": ["normal", "italic"]
+      },
+      {
+        "name": "My Font",
+        "src": "fonts/MyFont-Regular.woff2",
+        "weights": ["400"],
+        "styles": ["normal"]
+      }
+    ]
+  }
+}
+```
+
+**Properties:**
+
+| Property        | Default                         | Description                                                                                                               |
+| --------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `componentDir`  | `process.cwd()`                 | Directory where Code Components are stored in the filesystem.                                                             |
+| `pagesDir`      | `"./pages"`                     | Directory where page specs are stored in the filesystem.                                                                  |
+| `aliasBaseDir`  | `"src"`                         | Base directory for module resolution when using path aliases in your components. Tied to your project's import structure. |
+| `outputDir`     | `"dist"`                        | Build output directory (similar to Vite's `build.outDir`). Defines where compiled assets are generated.                   |
+| `globalCssPath` | `"./src/components/global.css"` | Path to the global CSS file.                                                                                              |
+
+Font configuration lives in `canvas.brand-kit.json`. See
+[Font push (Brand Kit)](#font-push-brand-kit) for the full schema.
+
+If `canvas.config.json` is not present, the CLI will use the default values
+shown above.
+
+#### Font push (Brand Kit)
+
+When `canvas.brand-kit.json` is present, the `push` command will resolve each
+family (via a provider or a local file), upload the font files to the site, and
+sync the font list to the global Brand Kit. Push replaces the remote font set
+with the set from config; an empty `families` list clears all fonts on the
+global Brand Kit. Fonts are stored on the Brand Kit entity and generate
+`@font-face` CSS for the Canvas editor and front end. This uses
+[unifont](https://github.com/unjs/unifont) for provider-based families.
+
+**canvas.brand-kit.json shape:** The file has a top-level **`fonts`** key (other
+brand kit keys may be added later). Under `fonts`:
+
+- **`defaults`** (optional): Default `weights`, `styles`, and `subsets` applied
+  to provider-based families when not overridden per family.
+- **`families`**: Array of font family entries. Each entry is either:
+  - **Provider-based:** `name` (required), `provider` (optional: `google`,
+    `bunny`, `fontshare`, `fontsource`, `npm`, `adobe`), and optionally
+    `weights` (array of strings, e.g. `["400", "700"]` or `["100 900"]` for a
+    variable font range) and `styles` (array of strings, e.g.
+    `["normal", "italic"]`). Aligns with [Nuxt Fonts](https://fonts.nuxt.com)
+    (same unifont backend). Also optionally `subsets` and `axisDefaults` (for
+    variable fonts, see below). When a family does not set `subsets`, only the
+    `latin` subset is used (to avoid large variant counts).
+  - **Local file:** `name` (required), `src` (path relative to project root,
+    e.g. `fonts/MyFont.woff2`), and optionally `weights`, `styles` (arrays of
+    one value each for a single variant), and `axisDefaults`.
+  - **`axisDefaults`** (optional): For variable fonts, overrides the default
+    value for an axis (e.g. `"axisDefaults": { "wght": 500 }`). Values are
+    clamped to the axis min/max; omitted axes keep the font file’s default.
+- **`providers`** (optional): Provider-specific options (e.g.
+  `adobe: { id: ["your-kit-id"] }` for Adobe Fonts).
+
+`fontsource` is the Fontsource CDN API; `npm` resolves `@fontsource/*` and
+`@fontsource-variable/*` from `node_modules`. Variable font axes are extracted
+when possible (e.g. from the font file) and stored on the Brand Kit. The CLI
+adds human-readable axis names (e.g. "Weight", "Optical size") for common
+OpenType axis tags so the Brand Kit UI shows the same CSS axes sliders and
+labels as for fonts uploaded via the UI.
 
 If you still have `CANVAS_COMPONENT_DIR` set in your shell, `.env`, or
 `.canvasrc`, the CLI will warn you and offer to create or update
@@ -91,11 +181,9 @@ to get started.
 | _(none)_          | `CANVAS_ACCESS_TOKEN`  | (Optional) Pre-issued Bearer token. When set, skips the OAuth client credentials flow entirely. `CANVAS_CLIENT_ID`, `CANVAS_CLIENT_SECRET`, and `CANVAS_SCOPE` are ignored. Must not be empty if set. |
 | `--include-pages` | `CANVAS_INCLUDE_PAGES` | (Optional) Include pages in `pull` and `push`. Defaults to `false`. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                                   |
 
-**Note:** The `--scope` parameter defaults to
-`"canvas:js_component canvas:asset_library"`. When pages are explicitly enabled
-with `--include-pages` or `CANVAS_INCLUDE_PAGES=true`, the default scope expands
-to
-`"canvas:js_component canvas:asset_library canvas:page:create canvas:page:read canvas:page:edit"`.
+**Note:** When `CANVAS_SCOPE` is unset, the CLI uses the `canvas_oauth`
+defaults, including `canvas:brand_kit`. With `--include-pages` or
+`CANVAS_INCLUDE_PAGES`, it also adds the `canvas:page:*` scopes.
 
 #### Configuration Precedence
 
@@ -281,8 +369,8 @@ downloaded by default and can be controlled with `--skip-css` to exclude them or
 
 ### `pull`
 
-Pull code components and global CSS to your local filesystem. Pages are only
-included when explicitly enabled.
+Pull code components, global CSS, and fonts from Drupal to your local
+filesystem. Pages are only included when explicitly enabled.
 
 **Usage:**
 
@@ -332,9 +420,17 @@ Fully non-interactive, only pull new items:
 npx canvas pull --yes --skip-overwrite
 ```
 
-Pulls all components and global CSS from your site. Use `--include-pages` or
-`CANVAS_INCLUDE_PAGES=true` to include pages, and `--skip-overwrite` to skip
-items that already exist locally.
+Pulls all components, global CSS, and fonts from your site. Use
+`--include-pages` or `CANVAS_INCLUDE_PAGES=true` to include pages, and
+`--skip-overwrite` to skip items that already exist locally.
+
+**Fonts:** The pull command fetches fonts from the global Brand Kit, downloads
+font files into a `fonts/` directory, and adds local `src` entries to
+`canvas.brand-kit.json`. Matching is done at the variant level (family +
+weight + style). Variants already present in your config (e.g., from a previous
+push) are skipped, so push-then-pull is idempotent. New variants added via the
+Canvas UI for a family you already have in config are downloaded and appended to
+`families`. Requires the `canvas:brand_kit` OAuth scope.
 
 ---
 
@@ -650,10 +746,14 @@ Tailwind CSS, and uploads the selected content to your Drupal site including:
 
 1. **Components** - Built and uploaded as js_component config entities
 2. **Global CSS** - Tailwind CSS assets uploaded as asset_library
-3. **Vendor artifacts** - Bundled third-party dependencies
-4. **Local artifacts** - Bundled local imports (e.g., `@/utils`)
-5. **Shared chunks** - Common code shared between vendor bundles
-6. **Pages** - Canvas pages built from components, when enabled with
+3. **Fonts** - If `canvas.brand-kit.json` is present, fonts are resolved (via
+   unifont or local `src`), uploaded, and synced to the global Brand Kit.
+   Requires `canvas:brand_kit` OAuth scope. See
+   [Font push (Brand Kit)](#font-push-brand-kit).
+4. **Vendor artifacts** - Bundled third-party dependencies
+5. **Local artifacts** - Bundled local imports (e.g., `@/utils`)
+6. **Shared chunks** - Common code shared between vendor bundles
+7. **Pages** - Canvas pages built from components, when enabled with
    `--include-pages` or `CANVAS_INCLUDE_PAGES=true`.
 
 ---

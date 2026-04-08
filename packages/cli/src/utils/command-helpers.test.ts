@@ -16,7 +16,7 @@ describe('command-helpers', () => {
       siteUrl: '',
       clientId: '',
       clientSecret: '',
-      scope: 'canvas:js_component canvas:asset_library',
+      scope: 'canvas:js_component canvas:asset_library canvas:brand_kit',
       includePages: false,
       componentDir: './components',
       userAgent: '',
@@ -111,7 +111,7 @@ describe('command-helpers', () => {
 
       const config = getConfig();
       expect(config.scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:page:create canvas:page:read canvas:page:edit',
+        'canvas:js_component canvas:asset_library canvas:brand_kit canvas:page:create canvas:page:read canvas:page:edit',
       );
     });
 

@@ -4,9 +4,11 @@ import path from 'path';
 import yaml from 'js-yaml';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { setConfig } from '../config';
 import {
   createAssetsPullTask,
   createComponentsPullTask,
+  createFontsPullTask,
   createPagesPullTask,
 } from './pull';
 
@@ -764,6 +766,93 @@ describe('Pull Command', () => {
         await fs.readFile(path.join(tmpDir, 'index.json'), 'utf-8'),
       );
       expect(content.title).toBe('Local Home');
+    });
+  });
+
+  describe('createFontsPullTask', () => {
+    let tmpDir: string;
+
+    beforeEach(async () => {
+      tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pull-fonts-test-'));
+      setConfig({ fonts: undefined });
+    });
+
+    afterEach(async () => {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    });
+
+    function mockApiService(
+      fonts: Array<{
+        family: string;
+        weight: string;
+        style: string;
+        url?: string;
+      }>,
+    ): ApiService {
+      return {
+        getBrandKit: vi.fn().mockResolvedValue({
+          id: 'global',
+          fonts: fonts.map((f, i) => ({
+            id: `id-${i}`,
+            family: f.family,
+            uri: `public://canvas/font-${i}.woff2`,
+            format: 'woff2',
+            weight: f.weight,
+            style: f.style,
+            url: f.url ?? `/sites/default/files/font-${i}.woff2`,
+          })),
+        }),
+        downloadFile: vi.fn().mockResolvedValue(Buffer.from([0x00, 0x01])),
+      } as unknown as ApiService;
+    }
+
+    it('should include font variants in summary', async () => {
+      const api = mockApiService([
+        { family: 'Inter', weight: '400', style: 'normal' },
+      ]);
+      const task = createFontsPullTask(api, tmpDir);
+
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toHaveLength(1);
+      expect(summaryLines[0]).toContain('font variant');
+      expect(summaryLines[0]).toContain('1 new');
+    });
+
+    it('should return empty summary when no fonts on Brand Kit', async () => {
+      const api = mockApiService([]);
+      const task = createFontsPullTask(api, tmpDir);
+
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual([]);
+    });
+
+    it('should download fonts and update canvas.brand-kit.json on execute', async () => {
+      const api = mockApiService([
+        { family: 'My Font', weight: '400', style: 'normal' },
+      ]);
+      const task = createFontsPullTask(api, tmpDir);
+
+      await task.prepare();
+      const results = await task.execute();
+
+      expect(results.title).toBe('Pulled fonts');
+      expect(results.label).toBe('Font variant');
+      expect(results.results.length).toBeGreaterThanOrEqual(1);
+      expect(results.results[0].success).toBe(true);
+      expect(results.results[0].itemName).toContain('My Font');
+
+      const configPath = path.join(tmpDir, 'canvas.brand-kit.json');
+      const raw = await fs.readFile(configPath, 'utf-8');
+      const config = JSON.parse(raw) as {
+        fonts: { families: { name: string; src: string }[] };
+      };
+      expect(config.fonts.families).toHaveLength(1);
+      expect(config.fonts.families[0].name).toBe('My Font');
+      expect(config.fonts.families[0].src).toContain('fonts/');
+
+      const fontsDir = path.join(tmpDir, 'fonts');
+      const files = await fs.readdir(fontsDir);
+      expect(files.length).toBe(1);
     });
   });
 });
