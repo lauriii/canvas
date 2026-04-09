@@ -14,6 +14,7 @@ import {
   toPreviewPageSpec,
 } from '../lib/spec-discovery';
 
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { DiscoveryResult } from '@drupal-canvas/discovery';
 import type { Plugin } from 'vite';
 import type {
@@ -49,14 +50,28 @@ function isMockSpecPath(filePath: string): boolean {
   );
 }
 
+/**
+ * Whether to serve the Workbench shell index.html for a dev-server request.
+ * Mirrors SPA fallback: any extensionless path except APIs, Vite internals, and
+ * non-HTML entries under /canvas/ (so /canvas/workbench-preview.html still falls
+ * through to the static file handler).
+ */
 function shouldServeWorkbenchIndexHtml(requestUrl: string): boolean {
   const pathname = new URL(requestUrl, 'http://localhost').pathname;
 
-  if (pathname === '/') {
-    return true;
+  if (pathname.startsWith('/__canvas/')) {
+    return false;
   }
 
-  if (pathname.startsWith('/__canvas/')) {
+  if (pathname.startsWith('/@') || pathname.startsWith('/node_modules/')) {
+    return false;
+  }
+
+  if (pathname.startsWith('/__')) {
+    return false;
+  }
+
+  if (pathname.startsWith('/canvas/') && !pathname.endsWith('.html')) {
     return false;
   }
 
@@ -64,7 +79,7 @@ function shouldServeWorkbenchIndexHtml(requestUrl: string): boolean {
     return false;
   }
 
-  return pathname.startsWith('/component') || pathname.startsWith('/page');
+  return true;
 }
 
 function toExpectedMockPaths(component: PreviewManifestComponent): string[] {
@@ -264,6 +279,7 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
 
   return {
     name: 'canvas-workbench-discovery',
+    enforce: 'pre',
     resolveId(source) {
       if (source === virtualHostGlobalCssId) {
         return resolvedVirtualHostGlobalCssId;
@@ -293,6 +309,42 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
       await refresh();
 
       server.watcher.add(paths.watchRoots);
+
+      const workbenchIndexHtmlMiddleware = (
+        req: IncomingMessage,
+        res: ServerResponse,
+        next: (err?: unknown) => void,
+      ) => {
+        if (
+          req.method !== 'GET' ||
+          !req.url ||
+          !shouldServeWorkbenchIndexHtml(req.url)
+        ) {
+          next();
+          return;
+        }
+
+        void (async () => {
+          const transformed = await loadWorkbenchHtmlTemplate(
+            paths.appHtmlPath,
+            req.url!,
+            (url, html) => server.transformIndexHtml(url, html),
+          );
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'text/html');
+          res.end(transformed);
+        })().catch((error) => {
+          server.config.logger.error(
+            `Failed to serve Workbench app HTML: ${String(error)}`,
+          );
+          next(error);
+        });
+      };
+
+      // Register first so this plugin runs before other plugins' configureServer
+      // middleware; avoids mutating connect's stack with unshift (fragile in some
+      // Vite versions).
+      server.middlewares.use(workbenchIndexHtmlMiddleware);
 
       server.middlewares.use('/__canvas/discovery', (_req, res) => {
         void (async () => {
@@ -419,33 +471,6 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
           });
         },
       );
-
-      server.middlewares.use((req, res, next) => {
-        if (
-          req.method !== 'GET' ||
-          !req.url ||
-          !shouldServeWorkbenchIndexHtml(req.url)
-        ) {
-          next();
-          return;
-        }
-
-        void (async () => {
-          const transformed = await loadWorkbenchHtmlTemplate(
-            paths.appHtmlPath,
-            req.url!,
-            (url, html) => server.transformIndexHtml(url, html),
-          );
-          res.statusCode = 200;
-          res.setHeader('Content-Type', 'text/html');
-          res.end(transformed);
-        })().catch((error) => {
-          server.config.logger.error(
-            `Failed to serve Workbench app HTML: ${String(error)}`,
-          );
-          next(error);
-        });
-      });
 
       server.watcher.on('all', (event, filePath) => {
         if (!['add', 'change', 'unlink'].includes(event)) {

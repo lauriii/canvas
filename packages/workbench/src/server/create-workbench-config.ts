@@ -54,12 +54,12 @@ export function createWorkbenchConfig(
       exclude: ['next-image-standalone'],
     },
     plugins: [
+      createWorkbenchPlugin(paths),
       react(),
       tailwindcss(),
       ...drupalCanvasCompat({
         hostRoot: paths.hostProjectRoot,
       }),
-      createWorkbenchPlugin(paths),
     ] as any,
     resolve: {
       dedupe: [

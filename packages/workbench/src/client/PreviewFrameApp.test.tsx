@@ -1,6 +1,7 @@
 import { act } from 'react';
 import { renderSpec } from 'drupal-canvas/json-render-utils';
 import { createRoot } from 'react-dom/client';
+import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PreviewFrameApp } from './PreviewFrameApp';
@@ -10,6 +11,34 @@ import type { Root } from 'react-dom/client';
 import type { PreviewRenderRequest } from '@wb/lib/preview-contract';
 
 /** @vitest-environment jsdom */
+
+vi.mock('@wb/lib/discovery-client', () => ({
+  fetchDiscoveryResult: vi.fn().mockResolvedValue({
+    componentRoot: 'components',
+    projectRoot: '/proj',
+    components: [],
+    pages: [
+      {
+        name: 'Test',
+        slug: 'about',
+        uuid: null,
+        path: 'pages/about.json',
+        relativePath: 'pages/about.json',
+      },
+    ],
+    warnings: [],
+    stats: { scannedFiles: 0, ignoredFiles: 0 },
+  }),
+}));
+
+vi.mock('@wb/lib/preview-client', () => ({
+  fetchPreviewManifest: vi.fn().mockResolvedValue({
+    componentRoot: 'components',
+    components: [],
+    warnings: [],
+    globalCssUrl: null,
+  }),
+}));
 
 vi.mock('drupal-canvas/json-render-utils', () => ({
   defineComponentRegistry: vi.fn().mockResolvedValue({}),
@@ -111,7 +140,11 @@ describe('PreviewFrameApp', () => {
   it('scrolls to top when the preview target changes, not when the same target repeats', async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(<PreviewFrameApp />);
+      root.render(
+        <MemoryRouter>
+          <PreviewFrameApp />
+        </MemoryRouter>,
+      );
     });
 
     await dispatchRenderRequest(makeRequest('page-a', 'page'), renderSpecMock);
@@ -135,7 +168,11 @@ describe('PreviewFrameApp', () => {
   it('keeps scroll position when the same preview target updates again', async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(<PreviewFrameApp />);
+      root.render(
+        <MemoryRouter>
+          <PreviewFrameApp />
+        </MemoryRouter>,
+      );
     });
 
     await dispatchRenderRequest(makeRequest('page-a', 'page'), renderSpecMock);
@@ -150,5 +187,39 @@ describe('PreviewFrameApp', () => {
 
     expect(simulatedScrollY).toBe(180);
     expect(scrollToSpy.mock.calls.length).toBe(scrollToCallsAfterUserScroll);
+  });
+
+  it('posts shell-sync when an internal page link is clicked', async () => {
+    const postMessageSpy = vi.spyOn(window.parent, 'postMessage');
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <MemoryRouter>
+          <PreviewFrameApp />
+        </MemoryRouter>,
+      );
+    });
+
+    await act(async () => {
+      const link = document.createElement('a');
+      link.href = `${window.location.origin}/page/about`;
+      container.appendChild(link);
+      link.click();
+    });
+
+    const shellSyncCall = postMessageSpy.mock.calls.find(
+      (call) =>
+        call[0] &&
+        typeof call[0] === 'object' &&
+        'type' in call[0] &&
+        (call[0] as { type: string }).type === 'preview:shell-sync',
+    );
+    expect(shellSyncCall?.[0]).toMatchObject({
+      source: 'canvas-workbench-frame',
+      type: 'preview:shell-sync',
+      payload: { path: '/page/about' },
+    });
+    expect(shellSyncCall?.[1]).toBe(window.location.origin);
+    postMessageSpy.mockRestore();
   });
 });

@@ -1,27 +1,46 @@
-import { Component, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  Component,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   defineComponentRegistry,
   renderSpec,
 } from 'drupal-canvas/json-render-utils';
 import { CircleAlertIcon } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import {
   Alert,
   AlertDescription,
   AlertTitle,
 } from '@wb/client/components/ui/alert';
+import { fetchDiscoveryResult } from '@wb/lib/discovery-client';
+import { fetchPreviewManifest } from '@wb/lib/preview-client';
 import { isPreviewRenderRequest } from '@wb/lib/preview-contract';
 import { getPreviewTargetKey } from '@wb/lib/preview-target-key';
+import { resolveWorkbenchPreviewNavigation } from '@wb/lib/resolve-workbench-preview-navigation';
 
 import type { ErrorInfo, ReactNode } from 'react';
+import type { DiscoveryResult } from '@wb/lib/discovery-client';
 import type {
   PreviewFrameError,
   PreviewFrameReady,
   PreviewFrameRendered,
+  PreviewManifest,
   PreviewRenderRequest,
+  PreviewShellSync,
 } from '@wb/lib/preview-contract';
 
 function postFrameMessage(
-  message: PreviewFrameReady | PreviewFrameRendered | PreviewFrameError,
+  message:
+    | PreviewFrameReady
+    | PreviewFrameRendered
+    | PreviewFrameError
+    | PreviewShellSync,
 ): void {
   window.parent.postMessage(message, window.location.origin);
 }
@@ -103,14 +122,41 @@ class FrameRenderBoundary extends Component<
 }
 
 export function PreviewFrameApp() {
+  const navigate = useNavigate();
   const [activeRender, setActiveRender] = useState<RenderableState | null>(
     null,
   );
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [discoveryResult, setDiscoveryResult] =
+    useState<DiscoveryResult | null>(null);
+  const [previewManifest, setPreviewManifest] =
+    useState<PreviewManifest | null>(null);
   const lastPreviewTargetKeyRef = useRef<string | null>(null);
 
-  // The iframe document stays mounted when the shell switches pages or components.
-  // Reset window scroll when the preview target changes; keep scroll for HMR (same target).
+  const pageSlugs = useMemo(() => {
+    if (!discoveryResult) {
+      return new Set<string>();
+    }
+    return new Set(discoveryResult.pages.map((page) => page.slug));
+  }, [discoveryResult]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all([fetchDiscoveryResult(), fetchPreviewManifest()])
+      .then(([discovery, manifest]) => {
+        if (!cancelled) {
+          setDiscoveryResult(discovery);
+          setPreviewManifest(manifest);
+        }
+      })
+      .catch(() => {
+        /* Discovery failures leave resolver with empty data; links fall through to open. */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // The iframe document stays mounted when the shell switches pages or components.
   // Reset window scroll when the preview target changes; keep scroll for HMR (same target).
   useLayoutEffect(() => {
@@ -124,6 +170,59 @@ export function PreviewFrameApp() {
       lastPreviewTargetKeyRef.current = key;
     }
   }, [activeRender]);
+
+  const handleRenderRequest = useCallback(
+    async (request: PreviewRenderRequest): Promise<void> => {
+      if (request.payload.shellPath) {
+        navigate(request.payload.shellPath, { replace: true });
+      }
+
+      try {
+        setPreviewError(null);
+
+        await Promise.all(
+          request.payload.cssUrls.map(async (cssUrl) => {
+            await import(/* @vite-ignore */ cssUrl);
+          }),
+        );
+
+        const registry = await defineComponentRegistry(
+          request.payload.registrySources.map((source) => ({
+            name: source.name,
+            jsEntryPath: source.jsEntryUrl,
+          })),
+        );
+
+        const node = renderSpec(request.payload.spec, registry);
+        const renderType: RenderableState['type'] = request.payload.renderType;
+
+        setActiveRender({
+          type: renderType,
+          renderId: request.payload.renderId,
+          node,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? `${error.message}${error.stack ? `\n${error.stack}` : ''}`
+            : `Unknown render error: ${String(error)}`;
+        setActiveRender(null);
+        setPreviewError(message);
+        postFrameMessage({
+          source: 'canvas-workbench-frame',
+          type: 'preview:error',
+          payload: {
+            renderId: request.payload.renderId,
+            message,
+          },
+        });
+      }
+    },
+    [navigate],
+  );
+
+  const handleRenderRequestRef = useRef(handleRenderRequest);
+  handleRenderRequestRef.current = handleRenderRequest;
 
   useEffect(() => {
     postFrameMessage({
@@ -140,7 +239,7 @@ export function PreviewFrameApp() {
         return;
       }
 
-      void handleRenderRequest(event.data);
+      void handleRenderRequestRef.current(event.data);
     };
 
     window.addEventListener('message', handleMessage);
@@ -149,50 +248,100 @@ export function PreviewFrameApp() {
     };
   }, []);
 
-  async function handleRenderRequest(
-    request: PreviewRenderRequest,
-  ): Promise<void> {
-    try {
-      setPreviewError(null);
+  useEffect(() => {
+    const navigationContext = {
+      workbenchOrigin: window.location.origin,
+      pageSlugs,
+      manifestComponents: previewManifest?.components ?? [],
+    };
 
-      await Promise.all(
-        request.payload.cssUrls.map(async (cssUrl) => {
-          await import(/* @vite-ignore */ cssUrl);
-        }),
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (event.defaultPrevented) {
+        return;
+      }
+      if (event.button !== 0) {
+        return;
+      }
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+        return;
+      }
+
+      const eventTarget = event.target;
+      if (!(eventTarget instanceof Element)) {
+        return;
+      }
+
+      const anchor = eventTarget.closest('a[href]');
+      if (!(anchor instanceof HTMLAnchorElement)) {
+        return;
+      }
+
+      const targetAttr = anchor.target?.trim().toLowerCase();
+      if (targetAttr && targetAttr !== '_self') {
+        return;
+      }
+
+      const hrefAttr = anchor.getAttribute('href');
+      if (!hrefAttr || hrefAttr.trim().startsWith('javascript:')) {
+        return;
+      }
+
+      let resolved: URL;
+      try {
+        resolved = new URL(hrefAttr, window.location.href);
+      } catch {
+        return;
+      }
+
+      const current = new URL(window.location.href);
+      if (
+        resolved.origin === current.origin &&
+        resolved.pathname === current.pathname &&
+        resolved.search === current.search &&
+        hrefAttr.trim().startsWith('#')
+      ) {
+        return;
+      }
+
+      const decision = resolveWorkbenchPreviewNavigation(
+        resolved,
+        navigationContext,
       );
 
-      const registry = await defineComponentRegistry(
-        request.payload.registrySources.map((source) => ({
-          name: source.name,
-          jsEntryPath: source.jsEntryUrl,
-        })),
-      );
+      event.preventDefault();
 
-      const node = renderSpec(request.payload.spec, registry);
-      const renderType: RenderableState['type'] = request.payload.renderType;
+      if (decision.kind === 'open') {
+        window.open(decision.href, '_blank', 'noopener,noreferrer');
+        return;
+      }
 
-      setActiveRender({
-        type: renderType,
-        renderId: request.payload.renderId,
-        node,
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? `${error.message}${error.stack ? `\n${error.stack}` : ''}`
-          : `Unknown render error: ${String(error)}`;
-      setActiveRender(null);
-      setPreviewError(message);
+      navigate(decision.path);
       postFrameMessage({
         source: 'canvas-workbench-frame',
-        type: 'preview:error',
-        payload: {
-          renderId: request.payload.renderId,
-          message,
-        },
+        type: 'preview:shell-sync',
+        payload: { path: decision.path },
       });
-    }
-  }
+    };
+
+    document.addEventListener('click', handleDocumentClick, true);
+    return () => {
+      document.removeEventListener('click', handleDocumentClick, true);
+    };
+  }, [navigate, pageSlugs, previewManifest]);
+
+  useEffect(() => {
+    const handleSubmit = (event: Event) => {
+      const element = (event.target as HTMLElement | null)?.closest('form');
+      if (element) {
+        event.preventDefault();
+      }
+    };
+
+    document.addEventListener('submit', handleSubmit, true);
+    return () => {
+      document.removeEventListener('submit', handleSubmit, true);
+    };
+  }, []);
 
   return (
     <main style={{ padding: '1rem' }}>
