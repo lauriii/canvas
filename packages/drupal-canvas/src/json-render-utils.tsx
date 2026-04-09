@@ -3,6 +3,8 @@ import { fromJSONSchema } from 'zod';
 import { defineCatalog, resolveElementProps } from '@json-render/core';
 import { schema } from '@json-render/react/schema';
 
+import canvasSchema from '../../../schema.json';
+
 import type { ComponentType, ReactNode } from 'react';
 import type { ComponentMetadata } from '@drupal-canvas/discovery';
 import type { PropResolutionContext, Spec, UIElement } from '@json-render/core';
@@ -388,11 +390,50 @@ export function renderCanvasTree(
   return renderSpec(spec, registry);
 }
 
+/**
+ * Canvas JSON Schema `$ref` prefix used in component metadata.
+ */
+const CANVAS_REF_PREFIX = 'json-schema-definitions://canvas.module/';
+
+/**
+ * Rewrites Canvas-specific `$ref` URIs to local JSON Pointer refs (`#/$defs/...`)
+ * that Zod's `fromJSONSchema` can resolve natively.
+ */
+function rewriteCanvasRefs(node: unknown): unknown {
+  if (!node || typeof node !== 'object' || Array.isArray(node)) {
+    return node;
+  }
+  const record = node as Record<string, unknown>;
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(record)) {
+    if (
+      key === '$ref' &&
+      typeof value === 'string' &&
+      value.startsWith(CANVAS_REF_PREFIX)
+    ) {
+      result.$ref = `#/$defs/${value.slice(CANVAS_REF_PREFIX.length)}`;
+    } else {
+      result[key] = rewriteCanvasRefs(value);
+    }
+  }
+  return result;
+}
+
+/**
+ * Pre-rewritten Canvas $defs with local refs.
+ */
+const canvasDefs = rewriteCanvasRefs(canvasSchema.$defs) as Record<
+  string,
+  unknown
+>;
+
 function metadataToCatalogEntry(metadata: ComponentMetadata) {
   const jsonSchema: Record<string, unknown> = {
     type: 'object',
     ...metadata.props,
   };
+  // Include Canvas $defs so Zod can resolve rewritten local $ref pointers.
+  jsonSchema.$defs = canvasDefs;
 
   if (metadata.required.length > 0) {
     jsonSchema.required = metadata.required;
@@ -411,7 +452,9 @@ function metadataToCatalogEntry(metadata: ComponentMetadata) {
     jsonSchema.properties = properties;
   }
   return {
-    props: fromJSONSchema(jsonSchema),
+    props: fromJSONSchema(
+      rewriteCanvasRefs(jsonSchema) as Record<string, unknown>,
+    ),
     slots: slotNames,
   };
 }

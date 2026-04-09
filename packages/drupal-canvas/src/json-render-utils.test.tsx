@@ -1107,6 +1107,59 @@ describe('defineComponentRegistry', () => {
 });
 
 describe('defineComponentCatalog', () => {
+  it('should resolve Canvas $ref in metadata and create a valid catalog', () => {
+    const metadata: ComponentMetadata[] = [
+      {
+        name: 'Avatar',
+        machineName: 'avatar',
+        status: true,
+        props: {
+          properties: {
+            photo: {
+              title: 'Photo',
+              type: 'object',
+              $ref: 'json-schema-definitions://canvas.module/image',
+              examples: [
+                {
+                  src: 'https://placehold.co/600x600@2x.png',
+                  alt: 'Example image placeholder',
+                  width: 600,
+                  height: 600,
+                },
+              ],
+            },
+          },
+        },
+        required: [],
+        slots: {},
+      },
+    ];
+
+    const catalog = defineComponentCatalog(metadata);
+    expect(catalog.componentNames).toEqual(['js.avatar']);
+
+    // Validate a spec with resolved image props passes.
+    const spec = {
+      root: 'av',
+      elements: {
+        av: {
+          type: 'js.avatar',
+          props: {
+            photo: {
+              src: 'https://example.com/photo.jpg',
+              alt: 'A photo',
+              width: 600,
+              height: 600,
+            },
+          },
+          children: [],
+          slots: {},
+        },
+      },
+    };
+    expect(catalog.validate(spec).success).toBe(true);
+  });
+
   it('should create a catalog from component metadata', () => {
     const metadata: ComponentMetadata[] = [
       {
