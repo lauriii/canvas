@@ -198,12 +198,12 @@ testRunner.run('component-imports rule', rule, {
       errors: [
         {
           message:
-            'The `FormattedText` component was moved into the `drupal-canvas` package.',
+            'The `FormattedText` component was moved into the `drupal-canvas` package. The `@/lib/FormattedText` path is provided by Canvas and cannot be used for local files.',
           line: 2,
         },
         {
           message:
-            'The `FormattedText` component was moved into the `drupal-canvas` package.',
+            'The `FormattedText` component was moved into the `drupal-canvas` package. The `@/lib/FormattedText` path is provided by Canvas and cannot be used for local files.',
           line: 3,
         },
       ],
@@ -267,6 +267,92 @@ testRunner.run('component-imports rule', rule, {
           return <button>{title}</button>;
         };
       `,
+    },
+    {
+      name: 'should fail for component importing deprecated @/lib/utils',
+      code: `
+        import { cn } from '@/lib/utils';
+        export default ({ title }) => {
+          return <button>{title}</button>;
+        };
+      `,
+      filename: '/components/button/index.jsx',
+      errors: [
+        {
+          message:
+            'Utilities were moved into the `drupal-canvas` package. The `@/lib/utils` path is provided by Canvas and cannot be used for local files.',
+          line: 2,
+        },
+      ],
+      output: `
+        import { cn } from 'drupal-canvas';
+        export default ({ title }) => {
+          return <button>{title}</button>;
+        };
+      `,
+    },
+    {
+      name: 'should fail for component importing deprecated @/lib/jsonapi-utils',
+      code: `
+        import { deserialize } from '@/lib/jsonapi-utils';
+        export default ({ title }) => {
+          return <button>{title}</button>;
+        };
+      `,
+      filename: '/components/button/index.jsx',
+      errors: [
+        {
+          message:
+            'JSON:API utilities were moved into the `drupal-canvas` package. The `@/lib/jsonapi-utils` path is provided by Canvas and cannot be used for local files.',
+          line: 2,
+        },
+      ],
+      output: `
+        import { deserialize } from 'drupal-canvas';
+        export default ({ title }) => {
+          return <button>{title}</button>;
+        };
+      `,
+    },
+    {
+      name: 'should fail for component importing deprecated @/lib/drupal-utils',
+      code: `
+        import { absoluteUrl } from '@/lib/drupal-utils';
+        export default ({ title }) => {
+          return <button>{title}</button>;
+        };
+      `,
+      filename: '/components/button/index.jsx',
+      errors: [
+        {
+          message:
+            'Drupal utilities were moved into the `drupal-canvas` package. The `@/lib/drupal-utils` path is provided by Canvas and cannot be used for local files.',
+          line: 2,
+        },
+      ],
+      output: `
+        import { absoluteUrl } from 'drupal-canvas';
+        export default ({ title }) => {
+          return <button>{title}</button>;
+        };
+      `,
+    },
+    {
+      name: 'should not auto-fix @/lib/drupal-utils when sortMenu is imported',
+      code: `
+        import { sortMenu } from '@/lib/drupal-utils';
+        export default ({ title }) => {
+          return <button>{title}</button>;
+        };
+      `,
+      filename: '/components/button/index.jsx',
+      errors: [
+        {
+          message:
+            'Drupal utilities were moved into the `drupal-canvas` package. The `@/lib/drupal-utils` path is provided by Canvas and cannot be used for local files.',
+          line: 2,
+        },
+      ],
     },
     {
       name: 'should fail when importing util/helper from a component directory',

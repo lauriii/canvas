@@ -98,7 +98,7 @@ function checkImportSource(
     context.report({
       node,
       message:
-        'The `FormattedText` component was moved into the `drupal-canvas` package.',
+        'The `FormattedText` component was moved into the `drupal-canvas` package. The `@/lib/FormattedText` path is provided by Canvas and cannot be used for local files.',
       fix(fixer) {
         if (
           node.type === 'ImportDeclaration' &&
@@ -109,6 +109,57 @@ function checkImportSource(
             node,
             "import { FormattedText } from 'drupal-canvas';",
           );
+        }
+        return null;
+      },
+    });
+    return;
+  }
+
+  if (source === '@/lib/utils') {
+    context.report({
+      node,
+      message:
+        'Utilities were moved into the `drupal-canvas` package. The `@/lib/utils` path is provided by Canvas and cannot be used for local files.',
+      fix(fixer) {
+        return fixer.replaceText(node.source, "'drupal-canvas'");
+      },
+    });
+    return;
+  }
+
+  if (source === '@/lib/jsonapi-utils') {
+    context.report({
+      node,
+      message:
+        'JSON:API utilities were moved into the `drupal-canvas` package. The `@/lib/jsonapi-utils` path is provided by Canvas and cannot be used for local files.',
+      fix(fixer) {
+        return fixer.replaceText(node.source, "'drupal-canvas'");
+      },
+    });
+    return;
+  }
+
+  if (source === '@/lib/drupal-utils') {
+    context.report({
+      node,
+      message:
+        'Drupal utilities were moved into the `drupal-canvas` package. The `@/lib/drupal-utils` path is provided by Canvas and cannot be used for local files.',
+      fix(fixer) {
+        // 'sortMenu' exported from drupal-canvas is named 'sortLinksetMenu'
+        // to avoid conflict with sortMenu from jsonapi-utils,
+        // so automatic fix should not apply if sortMenu is imported.
+        const importsSortMenu =
+          node.type === 'ImportDeclaration' &&
+          node.specifiers.some(
+            (specifier) =>
+              specifier.local.name === 'sortMenu' ||
+              (specifier.type === 'ImportSpecifier' &&
+                specifier.imported.type === 'Identifier' &&
+                specifier.imported.name === 'sortMenu'),
+          );
+        if (!importsSortMenu) {
+          return fixer.replaceText(node.source, "'drupal-canvas'");
         }
         return null;
       },

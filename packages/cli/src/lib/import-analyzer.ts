@@ -4,6 +4,8 @@ import { parse } from '@babel/parser';
 import * as p from '@clack/prompts';
 import { ASSET_EXTENSIONS, JS_EXTENSIONS } from '@drupal-canvas/discovery';
 
+import { DRUPAL_CANVAS_EXTERNALS } from './vite-build-config';
+
 export type ImportCategory = 'alias' | 'third-party' | 'relative';
 
 export interface ParsedImport {
@@ -329,6 +331,10 @@ export async function collectImports(
         // These do not need to be bundled since they are existing components
         // that get built as part of the component build process.
         if (imp.source.startsWith('@/components/')) {
+          continue;
+        }
+        // Skip alias imports provided by Canvas's global import map.
+        if (DRUPAL_CANVAS_EXTERNALS.includes(imp.source)) {
           continue;
         }
         const resolvedPath = resolveAliasPath(imp.source, aliasBaseDir);

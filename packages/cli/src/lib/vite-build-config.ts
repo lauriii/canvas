@@ -16,7 +16,14 @@ export const DRUPAL_CANVAS_EXTERNALS = [
   'tailwind-merge',
   'drupal-jsonapi-params',
   'swr',
+  '@tailwindcss/typography',
   'drupal-canvas',
+  'next-image-standalone',
+  '@drupal-api-client/json-api-client',
+  '@/lib/FormattedText',
+  '@/lib/utils',
+  '@/lib/jsonapi-utils',
+  '@/lib/drupal-utils',
 ];
 
 export interface CanvasViteBuildConfigOptions {
