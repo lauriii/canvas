@@ -34,9 +34,15 @@ export interface UpdateContentRequest {
   status?: boolean;
 }
 
+export interface ContentListResult {
+  items: ContentStub[];
+  totalCount: number | null;
+}
+
 export interface ContentListParams {
   entityType: string;
   search?: string;
+  offset?: number;
 }
 
 export const contentApi = createApi({
@@ -44,20 +50,41 @@ export const contentApi = createApi({
   baseQuery: baseQueryWithAutoSaves,
   tagTypes: ['Content', 'StagedConfig', 'PendingChanges'],
   endpoints: (builder) => ({
-    getContentList: builder.query<ContentStub[], ContentListParams>({
-      query: ({ entityType, search }) => {
+    getContentList: builder.query<ContentListResult, ContentListParams>({
+      query: ({ entityType, search, offset }) => {
         const params = new URLSearchParams();
         if (search) {
           const normalizedSearch = search.toLowerCase().trim();
           params.append('search', normalizedSearch);
         }
+        if (offset && offset > 0) {
+          params.append('page[offset]', String(offset));
+        }
+        const hasParams = params.toString().length > 0;
         return {
           url: `/canvas/api/v0/content/${entityType}`,
-          params: search ? params : undefined,
+          params: hasParams ? params : undefined,
         };
       },
-      transformResponse: (response: ContentListResponse) => {
-        return response.data;
+      transformResponse: (
+        response: ContentListResponse,
+      ): ContentListResult => ({
+        items: response.data,
+        totalCount: response.meta?.count ?? null,
+      }),
+      serializeQueryArgs: ({ queryArgs }) => {
+        return `${queryArgs.entityType}-${queryArgs.search || ''}`;
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        if (arg.offset && arg.offset > 0) {
+          currentCache.items.push(...newItems.items);
+        } else {
+          currentCache.items = newItems.items;
+        }
+        currentCache.totalCount = newItems.totalCount;
+      },
+      forceRefetch: ({ currentArg, previousArg }) => {
+        return currentArg !== previousArg;
       },
       providesTags: [{ type: 'Content', id: 'LIST' }],
     }),
@@ -66,7 +93,53 @@ export const contentApi = createApi({
         url: `/canvas/api/v0/content/${entityType}/${entityId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'Content', id: 'LIST' }],
+      // Use optimistic update instead of cache invalidation to preserve scroll position and
+      // ensure the deleted item is removed from the UI. Cache invalidation re-fetches using the
+      // last subscribed query args (e.g., offset=50), which only updates that portion of the
+      // cache — if the deleted item was in an earlier page (e.g., offset=0), it remains visible.
+      async onQueryStarted(
+        { entityType, entityId },
+        { dispatch, queryFulfilled, getState },
+      ) {
+        const patchResults: Array<{ undo: () => void }> = [];
+        const state = getState() as any;
+        const queryCache = state[contentApi.reducerPath]?.queries;
+
+        if (queryCache) {
+          Object.keys(queryCache).forEach((queryKey) => {
+            const query = queryCache[queryKey];
+            if (
+              query?.endpointName === 'getContentList' &&
+              query?.originalArgs?.entityType === entityType
+            ) {
+              try {
+                const patchResult = dispatch(
+                  contentApi.util.updateQueryData(
+                    'getContentList',
+                    query.originalArgs,
+                    (draft) => {
+                      draft.items = draft.items.filter(
+                        (item) => String(item.id) !== String(entityId),
+                      );
+                      if (draft.totalCount !== null) {
+                        draft.totalCount -= 1;
+                      }
+                    },
+                  ),
+                );
+                patchResults.push(patchResult);
+              } catch {
+                // Query might not exist in cache
+              }
+            }
+          });
+        }
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResults.forEach((result) => result.undo());
+        }
+      },
     }),
     createContent: builder.mutation<
       CreateContentResponse,
@@ -77,7 +150,24 @@ export const contentApi = createApi({
         method: 'POST',
         body: entity_id ? { entity_id } : {},
       }),
-      invalidatesTags: [{ type: 'Content', id: 'LIST' }],
+      // Instead of invalidating the cache tag { type: 'Content', id: 'LIST' }, we manually refetch the first 50 items after creation.
+      // The newly added page is ensured to be the first item of the pages due to the sort order used by the backend.
+      // Since we are using pagination queries with offset for pages, if the last subscribed argument in RTK was with offset=50,
+      // then invalidating the cache tag would re-fetch with offset=50 without that newly added item.
+      async onQueryStarted({ entity_type }, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          // Force refetch from offset 0 to get fresh data including the new item.
+          dispatch(
+            contentApi.endpoints.getContentList.initiate(
+              { entityType: entity_type, offset: 0 },
+              { forceRefetch: true },
+            ),
+          );
+        } catch {
+          // If creation fails, no refetch needed
+        }
+      },
     }),
     updateContent: builder.mutation<void, UpdateContentRequest>({
       query: ({ entityType, entityId, status }) => ({
@@ -99,8 +189,8 @@ export const contentApi = createApi({
         const publishLinkRel = 'enable';
 
         // Update function to apply to matching queries
-        const updatePageData = (draft: ContentStub[]) => {
-          const page = draft.find(
+        const updatePageData = (draft: ContentListResult) => {
+          const page = draft.items.find(
             (item) => String(item.id) === String(entityId),
           );
           if (!page) {

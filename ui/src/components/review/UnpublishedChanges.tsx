@@ -81,9 +81,10 @@ const UnpublishedChanges = () => {
   const { showBoundary } = useErrorBoundary();
   const entity_form_fields = useAppSelector(selectPageData);
   // Fetch content list to get status information for all pages
-  const { data: pageItems } = useGetContentListQuery({
+  const { data: contentListData } = useGetContentListQuery({
     entityType: 'canvas_page',
   });
+  const pageItems = contentListData?.items;
 
   // If either the selected component or the preview layout is being updated, disable the Publish button.
   const isUpdating = isUpdatingComponent || isUpdatingPreview;

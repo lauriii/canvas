@@ -37,16 +37,15 @@ import {
   selectEditorFrameContext,
   selectPreviouslyEdited,
 } from '@/features/ui/uiSlice';
-import useDebounce from '@/hooks/useDebounce';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useEntityTitle } from '@/hooks/useEntityTitle';
+import { usePaginatedContentList } from '@/hooks/usePaginatedContentList';
 import { useSmartRedirect } from '@/hooks/useSmartRedirect';
 import { useTemplateCaption } from '@/hooks/useTemplateCaption';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import {
   useCreateContentMutation,
   useDeleteContentMutation,
-  useGetContentListQuery,
   useGetStagedConfigQuery,
   useSetStagedConfigMutation,
   useUpdateContentMutation,
@@ -105,20 +104,18 @@ const PageInfo = () => {
   const templateCaption = useTemplateCaption();
 
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   // @todo: https://www.drupal.org/i/3513566 this needs to be generalized to check all content entity types.
   const canCreatePages =
     !!canvasSettings.contentEntityCreateOperations?.canvas_page?.canvas_page;
+  // @todo Generalize in https://www.drupal.org/i/3498525
   const {
-    data: pageItems,
+    items: pageItems,
     isLoading: isPageItemsLoading,
     error: pageItemsError,
     isSuccess: isGetPageItemsSuccess,
-  } = useGetContentListQuery({
-    // @todo Generalize in https://www.drupal.org/i/3498525
-    entityType: 'canvas_page',
-    search: debouncedSearchTerm,
-  });
+    hasMore,
+    handleLoadMore,
+  } = usePaginatedContentList('canvas_page', searchTerm);
 
   const [
     createContent,
@@ -145,7 +142,7 @@ const PageInfo = () => {
   useEffect(() => {
     if (isGetPageItemsSuccess) {
       // Check if the current page is the homepage.
-      const homepage = pageItems.find(
+      const homepage = pageItems?.find(
         (page) => page.internalPath === homepagePath,
       );
       setIsCurrentPageHomepage(
@@ -367,6 +364,8 @@ const PageInfo = () => {
                   onUnpublish={handleUnpublishPage}
                   onPublish={handlePublishPage}
                   onDelete={handleDeletePage}
+                  hasMore={hasMore}
+                  onLoadMore={handleLoadMore}
                 />
               )}
               {pageItemsError && (

@@ -21,6 +21,7 @@ import {
 
 import EmptyStateCallout from '@/components/EmptyStateCallout';
 import ErrorCard from '@/components/error/ErrorCard';
+import InfiniteScrollObserver from '@/components/InfiniteScrollObserver';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
 
@@ -345,6 +346,9 @@ interface PageListProps {
   selectedPageId?: string | number;
   // Permissions
   canCreatePages?: boolean;
+  // Pagination
+  hasMore?: boolean;
+  onLoadMore?: () => void;
   // Event handlers
   onNewPage?: () => void;
   onDeletePage?: (item: ContentStub) => void;
@@ -363,6 +367,8 @@ const PageList = ({
   homepagePath,
   selectedPageId,
   canCreatePages = false,
+  hasMore = false,
+  onLoadMore,
   onNewPage,
   onDeletePage,
   onDuplicatePage,
@@ -462,6 +468,7 @@ const PageList = ({
               error={pageItemsError}
             />
           )}
+          {hasMore && <InfiniteScrollObserver onLoadMore={onLoadMore} />}
         </Box>
       </Skeleton>
       <Skeleton

@@ -187,9 +187,6 @@ describe('Navigation functionality', () => {
       // Wait for the DELETE request to be made and assert it
       cy.wait('@deletePage').its('response.statusCode').should('eq', 204);
 
-      // Wait for the GET request to the list endpoint which should be triggered by the deletion of a page.
-      cy.wait('@getList').its('response.statusCode').should('eq', 200);
-
       cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/1' });
       cy.findByTestId(navigationButtonTestId).click();
       cy.findByTestId(navigationContentTestId)
@@ -242,8 +239,6 @@ describe('Navigation functionality', () => {
       // Wait for the DELETE request to be made and assert it
       cy.wait('@deletePage').its('response.statusCode').should('eq', 204);
       cy.log('Deleted Untitled page');
-      // Wait for the GET request to the list endpoint which should be triggered by the deletion of a page.
-      cy.wait('@getList').its('response.statusCode').should('eq', 200);
       cy.url().should('not.contain', '/canvas/editor/canvas_page/4');
 
       // Confirm we are now on the homepage.

@@ -10,14 +10,13 @@ import {
   selectHomepageStagedConfigExists,
   setHomepagePath,
 } from '@/features/configuration/configurationSlice';
-import useDebounce from '@/hooks/useDebounce';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
+import { usePaginatedContentList } from '@/hooks/usePaginatedContentList';
 import { useSmartRedirect } from '@/hooks/useSmartRedirect';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import {
   useCreateContentMutation,
   useDeleteContentMutation,
-  useGetContentListQuery,
   useGetStagedConfigQuery,
   useSetStagedConfigMutation,
   useUpdateContentMutation,
@@ -36,19 +35,17 @@ const Pages = () => {
   const dispatch = useAppDispatch();
   const { entityType, entityId } = useParams();
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   const canCreatePages =
     !!canvasSettings.contentEntityCreateOperations?.canvas_page?.canvas_page;
 
   const {
-    data: pageItems,
+    items: pageItems,
     isLoading: isPageItemsLoading,
     error: pageItemsError,
-  } = useGetContentListQuery({
-    entityType: 'canvas_page',
-    search: debouncedSearchTerm,
-  });
+    hasMore,
+    handleLoadMore,
+  } = usePaginatedContentList('canvas_page', searchTerm);
 
   const [
     createContent,
@@ -220,6 +217,8 @@ const Pages = () => {
       onUnpublishPage={handleUnpublishPage}
       onPublishPage={handlePublishPage}
       onSearch={setSearchTerm}
+      hasMore={hasMore}
+      onLoadMore={handleLoadMore}
     />
   );
 };

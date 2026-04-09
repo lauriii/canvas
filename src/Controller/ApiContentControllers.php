@@ -265,6 +265,8 @@ final class ApiContentControllers extends ApiControllerBase {
       $revision_created_field_name = $content_entity_type->getRevisionMetadataKey('revision_created');
       // @todo Ensure this is one of the required characteristics in https://www.drupal.org/project/canvas/issues/3498525.
       \assert(\is_string($revision_created_field_name));
+      $id_key = $content_entity_type->getKey('id');
+      \assert(\is_string($id_key));
 
       $total_count = (int) $this->executeQueryInRenderContext(
         $storage->getQuery()->accessCheck(TRUE)->count(),
@@ -274,6 +276,11 @@ final class ApiContentControllers extends ApiControllerBase {
       $entity_query = $storage->getQuery()
         ->accessCheck(TRUE)
         ->sort($revision_created_field_name, direction: 'DESC')
+        // Add a secondary sort by entity ID to ensure stable pagination when
+        // multiple entities have the same revision_created timestamp. Without
+        // this, the database may return items in different orders across
+        // paginated requests, causing duplicates or missing items.
+        ->sort($id_key)
         ->range($offset, $limit);
 
       $ids = $this->executeQueryInRenderContext($entity_query, $query_cacheability);

@@ -26,6 +26,7 @@ import {
 
 import { useAppSelector } from '@/app/hooks';
 import EmptyStateCallout from '@/components/EmptyStateCallout';
+import InfiniteScrollObserver from '@/components/InfiniteScrollObserver';
 import { selectHomepagePath } from '@/features/configuration/configurationSlice';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 
@@ -367,6 +368,8 @@ const Navigation = ({
   onUnpublish,
   onPublish,
   onDelete,
+  hasMore = false,
+  onLoadMore,
 }: {
   loading: boolean;
   showNew: boolean;
@@ -379,6 +382,8 @@ const Navigation = ({
   onUnpublish?: (page: ContentStub) => void;
   onPublish?: (page: ContentStub) => void;
   onDelete?: (page: ContentStub) => void;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
 }) => {
   // Reset search when the component unmounts
   useEffect(() => {
@@ -447,16 +452,19 @@ const Navigation = ({
       <ScrollArea scrollbars="vertical" style={{ height: 175 }}>
         {loading && <p>Loading...</p>}
         {!loading && (
-          <ContentGroup
-            title="Pages"
-            items={items}
-            onSelect={onSelect}
-            onDuplicate={onDuplicate}
-            onSetHomepage={onSetHomepage}
-            onUnpublish={onUnpublish}
-            onPublish={onPublish}
-            onDelete={onDelete}
-          />
+          <>
+            <ContentGroup
+              title="Pages"
+              items={items}
+              onSelect={onSelect}
+              onDuplicate={onDuplicate}
+              onSetHomepage={onSetHomepage}
+              onUnpublish={onUnpublish}
+              onPublish={onPublish}
+              onDelete={onDelete}
+            />
+            {hasMore && <InfiniteScrollObserver onLoadMore={onLoadMore} />}
+          </>
         )}
       </ScrollArea>
     </div>

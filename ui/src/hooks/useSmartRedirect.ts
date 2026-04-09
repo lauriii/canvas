@@ -14,10 +14,11 @@ export const useSmartRedirect = () => {
   const { navigateToEditor } = useEditorNavigation();
   const homepagePath = useAppSelector(selectHomepagePath);
 
-  const { data: pageItems = [] } = useGetContentListQuery({
+  const { data } = useGetContentListQuery({
     entityType: 'canvas_page',
     search: '',
   });
+  const pageItems = data?.items ?? [];
 
   const redirectToNextBestPage = (excludePageId?: string) => {
     // Filter out the page being deleted if specified
