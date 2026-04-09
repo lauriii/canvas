@@ -26,6 +26,7 @@ use Drupal\Tests\block\Traits\BlockCreationTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
+use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\RandomGeneratorTrait;
@@ -56,6 +57,7 @@ if (!\class_exists(TestSetupInterface::class)) {
 class CanvasTestSetup implements TestSetupInterface {
 
   use ConstraintViolationsTestTrait;
+  use DataProviderWithComponentTreeTrait;
 
   // Fixed component instance UUIDs for testing sake.
   public const string UUID_EMPTY_COMPONENT = 'cea4c5b3-7921-4c6f-b388-da921bd1496d';
@@ -308,9 +310,10 @@ class CanvasTestSetup implements TestSetupInterface {
     // consistent key order, enabling deterministic auto-save hashing.
     $static_image_prop_source = StaticPropSource::parse($static_image_prop_source)->toArray();
     $use_uri = \Drupal::moduleHandler()->moduleExists('canvas_test_storable_prop_shape_alter');
-    $items = [
+    $items = self::populateActiveComponentVersionPlaceholders([
       [
         'component_id' => 'sdc.canvas_test_sdc.two_column',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'uuid' => self::UUID_TWO_COLUMN_UUID,
         'inputs' => [
           'width' => 50,
@@ -320,6 +323,7 @@ class CanvasTestSetup implements TestSetupInterface {
         'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
         'slot' => 'column_one',
         'component_id' => 'sdc.canvas_test_sdc.image',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'uuid' => self::UUID_STATIC_IMAGE,
         'inputs' => [
           'image' => ['target_id' => 3],
@@ -329,6 +333,7 @@ class CanvasTestSetup implements TestSetupInterface {
         'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
         'slot' => 'column_one',
         'component_id' => 'sdc.canvas_test_sdc.my-hero',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'uuid' => self::UUID_STATIC_CARD1,
         'inputs' => [
           'heading' => 'hello, world!',
@@ -341,6 +346,7 @@ class CanvasTestSetup implements TestSetupInterface {
         'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
         'slot' => 'column_one',
         'component_id' => 'js.test-code-component',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'uuid' => self::UUID_CODE_COMPONENT,
         'inputs' => [
           'heading' => 'Test Code Component Heading',
@@ -357,6 +363,7 @@ class CanvasTestSetup implements TestSetupInterface {
         'slot' => 'column_one',
         'uuid' => self::UUID_ALL_SLOTS_EMPTY,
         'component_id' => 'sdc.canvas_test_sdc.one_column',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'inputs' => [
           'width' => 'full',
         ],
@@ -366,6 +373,7 @@ class CanvasTestSetup implements TestSetupInterface {
         'slot' => 'column_two',
         'uuid' => self::UUID_STATIC_CARD2,
         'component_id' => 'sdc.canvas_test_sdc.my-hero',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'inputs' => [
           'heading' => 'Canvas Needs This For The Time Being',
           'cta1href' => $use_uri
@@ -378,6 +386,7 @@ class CanvasTestSetup implements TestSetupInterface {
         'slot' => 'column_two',
         'uuid' => self::UUID_STATIC_CARD3,
         'component_id' => 'sdc.canvas_test_sdc.my-hero',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'inputs' => [
           'heading' => 'Canvas Needs This For The Time Being',
           'cta1href' => $use_uri
@@ -390,6 +399,7 @@ class CanvasTestSetup implements TestSetupInterface {
         'slot' => 'column_two',
         'uuid' => self::UUID_STATIC_IMAGE2,
         'component_id' => 'sdc.canvas_test_sdc.image',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'inputs' => [
           'image' => ['target_id' => 4],
           // @todo Remove the line above in favor of the one below in https://www.drupal.org/project/canvas/issues/3576701
@@ -397,7 +407,7 @@ class CanvasTestSetup implements TestSetupInterface {
         ],
         'label' => 'Magnificent image!',
       ],
-    ];
+    ]);
     // Add a Media Library field to the article content type so we can
     // confirm it works in both page data and context forms.
     FieldStorageConfig::create([

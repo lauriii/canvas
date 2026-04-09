@@ -240,7 +240,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
  */
   #[DataProvider('providerInvalidComponentTree')]
   public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
-    self::populateActiveComponentVersionPlaceholders($component_tree);
+    $component_tree = self::populateActiveComponentVersionPlaceholders($component_tree);
     \assert($this->entity instanceof ContentTemplate);
     $this->entity->setComponentTree($component_tree);
     $this->assertValidationErrors($expected_messages);

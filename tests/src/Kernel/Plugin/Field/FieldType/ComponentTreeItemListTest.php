@@ -127,7 +127,7 @@ class ComponentTreeItemListTest extends CanvasKernelTestBase {
       ContentTemplate::ENTITY_TYPE_ID => ContentTemplate::create($host_entity_values),
       default => throw new \LogicException("Unhandled host entity type ID $host_entity_type_id in " . __METHOD__),
     };
-    self::populateActiveComponentVersionPlaceholders($value);
+    $value = self::populateActiveComponentVersionPlaceholders($value);
     $host_entity->setComponentTree($value);
 
     $typed_data_manager = $this->container->get(TypedDataManagerInterface::class);

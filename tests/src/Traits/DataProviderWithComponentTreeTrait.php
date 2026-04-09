@@ -33,11 +33,15 @@ trait DataProviderWithComponentTreeTrait {
    * method exists to fill it in and allow the test to run.
    *
    * @param array $component_tree
-   *   A component tree structure. Any component instances have no
-   *   component_version set will get its version populated with the active
-   *   version of the Component config entity.
+   *   A component tree, which may contain `::ACTIVE_VERSION_IN_SUT::` as the
+   *   component version.
+   *
+   * @return array
+   *   The same component tree, but with each component instance that specifies
+   *   `::ACTIVE_VERSION_IN_SUT::` as the version replaced by the active
+   *   version of the referenced Component config entity.
    */
-  protected static function populateActiveComponentVersionPlaceholders(array &$component_tree): void {
+  protected static function populateActiveComponentVersionPlaceholders(array $component_tree): array {
     foreach ($component_tree as &$item) {
       if (!\array_key_exists('component_version', $item) || empty($item['component_version'])) {
         throw new \LogicException('component_version must be set for component instances in test data. Use `::ACTIVE_VERSION_IN_SUT::` to get the active version of the referenced Component config entity for testing purposes.');
@@ -47,6 +51,7 @@ trait DataProviderWithComponentTreeTrait {
           ?->getActiveVersion();
       }
     }
+    return $component_tree;
   }
 
 }

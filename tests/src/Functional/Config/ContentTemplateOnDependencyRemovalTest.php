@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional\Config;
 
+use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
 use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Session\AccountInterface;
@@ -22,6 +23,8 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[RunTestsInSeparateProcesses]
 #[Group('canvas')]
 final class ContentTemplateOnDependencyRemovalTest extends FunctionalTestBase {
+
+  use DataProviderWithComponentTreeTrait;
 
   /**
    * {@inheritdoc}
@@ -114,10 +117,11 @@ final class ContentTemplateOnDependencyRemovalTest extends FunctionalTestBase {
       'content_entity_type_id' => 'node',
       'content_entity_type_bundle' => 'article',
       'content_entity_type_view_mode' => 'full',
-      'component_tree' => [
+      'component_tree' => self::populateActiveComponentVersionPlaceholders([
         [
           'uuid' => '02b766f7-0edc-4359-98bb-3f489e878330',
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+          'component_version' => '::ACTIVE_VERSION_IN_SUT::',
           'inputs' => [
             'heading' => [
               'sourceType' => PropSource::EntityField->value,
@@ -128,6 +132,7 @@ final class ContentTemplateOnDependencyRemovalTest extends FunctionalTestBase {
         [
           'uuid' => '4ca2cb2e-f9ac-40e5-83be-0f2d08b455b3',
           'component_id' => 'sdc.canvas_test_sdc.my-cta',
+          'component_version' => '::ACTIVE_VERSION_IN_SUT::',
           'inputs' => [
             'text' => [
               'sourceType' => PropSource::EntityField->value,
@@ -140,7 +145,7 @@ final class ContentTemplateOnDependencyRemovalTest extends FunctionalTestBase {
             'target' => '_blank',
           ],
         ],
-      ],
+      ]),
     ]);
     $template->setStatus(TRUE)->save();
     // All fields should be hard dependencies of the template.
