@@ -46,6 +46,7 @@
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
+    "jsdom": "^26.1.0",
     "shadcn": "^3.8.5",
     "tsdown": "^0.21.4",
     "typescript": "~5.9.3",

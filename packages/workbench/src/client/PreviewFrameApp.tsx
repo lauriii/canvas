@@ -1,4 +1,4 @@
-import { Component, useEffect, useState } from 'react';
+import { Component, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   defineComponentRegistry,
   renderSpec,
@@ -10,6 +10,7 @@ import {
   AlertTitle,
 } from '@wb/client/components/ui/alert';
 import { isPreviewRenderRequest } from '@wb/lib/preview-contract';
+import { getPreviewTargetKey } from '@wb/lib/preview-target-key';
 
 import type { ErrorInfo, ReactNode } from 'react';
 import type {
@@ -106,6 +107,23 @@ export function PreviewFrameApp() {
     null,
   );
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const lastPreviewTargetKeyRef = useRef<string | null>(null);
+
+  // The iframe document stays mounted when the shell switches pages or components.
+  // Reset window scroll when the preview target changes; keep scroll for HMR (same target).
+  // The iframe document stays mounted when the shell switches pages or components.
+  // Reset window scroll when the preview target changes; keep scroll for HMR (same target).
+  useLayoutEffect(() => {
+    if (!activeRender) {
+      lastPreviewTargetKeyRef.current = null;
+      return;
+    }
+    const key = getPreviewTargetKey(activeRender.type, activeRender.renderId);
+    if (lastPreviewTargetKeyRef.current !== key) {
+      window.scrollTo(0, 0);
+      lastPreviewTargetKeyRef.current = key;
+    }
+  }, [activeRender]);
 
   useEffect(() => {
     postFrameMessage({

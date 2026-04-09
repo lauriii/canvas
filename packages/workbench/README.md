@@ -62,7 +62,7 @@ use it.
 ## User docs
 
 For end-user guidance, see:
-https://project.pages.drupalcode.org/canvas/code-components/workbench/
+[https://project.pages.drupalcode.org/canvas/code-components/workbench/](https://project.pages.drupalcode.org/canvas/code-components/workbench/)
 
 ## How the Workbench runtime works
 
@@ -81,24 +81,16 @@ https://project.pages.drupalcode.org/canvas/code-components/workbench/
   `@drupal-canvas/discovery` and `@drupal-canvas/vite-compat`.
 - The packaged client is served from packaged source files through the Workbench
   Vite runtime, not from a standalone production-built browser bundle.
-- The packaged runtime:
-  - Exposes discovery data at `/__canvas/discovery` as JSON for the UI.
-  - Exposes preview manifest data at `/__canvas/preview-manifest` as JSON for
-    preview runtime decisions.
-  - Uses routes:
-  - `/component/<component-id>` for component previews.
-  - `/page/<slug>` for discovered pages, where `slug` comes from
-    `pages/<slug>.json`.
-- Watches the host project for relevant file changes (`component.yml`,
-  `*.component.yml`, and JS(X)/TS(X)/CSS files), sends targeted HMR update
-  events, refreshes discovery when needed, and reloads only the preview iframe
-  for source-only changes.
+- The packaged runtime exposes `/__canvas/discovery` and
+  `/__canvas/preview-manifest`, serves the shell on `/component/...` and
+  `/page/...`, and watches the host project for file changes. Source-only edits
+  update the preview via Vite HMR without remounting the iframe.
 
 ## Strict preview MVP contract
 
 Workbench preview currently uses a strict compatibility contract.
 
-- Workbench renders previews in an iframe at `/__canvas/preview-frame`.
+- Workbench renders previews in an iframe at `/canvas/workbench-preview.html`.
 - A discovered component is previewable only when its JS entry exists and has a
   supported extension (`.js`, `.jsx`, `.ts`, or `.tsx`).
 - Workbench imports component modules through Vite `@fs` URLs, from the
@@ -112,7 +104,7 @@ Workbench preview currently uses a strict compatibility contract.
 Workbench does not ingest arbitrary host Vite config/plugins automatically.
 
 - Supported module resolution via `@drupal-canvas/vite-compat` — see
-  [`packages/vite-compat/README.md`](../vite-compat/README.md)
+  `[packages/vite-compat/README.md](../vite-compat/README.md)`
 - Tailwind entrypoint: Workbench loads the host's global CSS (default
   `src/components/global.css`, configurable via `globalCssPath` in
   `canvas.config.json`) through a virtual Vite CSS module that imports the host

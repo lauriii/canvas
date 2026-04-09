@@ -27,6 +27,7 @@ import {
 } from '@wb/lib/preview-client';
 import { isPreviewFrameEvent } from '@wb/lib/preview-contract';
 import { toViteFsUrl } from '@wb/lib/preview-runtime';
+import { WORKBENCH_PREVIEW_HTML_PATH } from '@wb/lib/workbench-preview-constants';
 
 import type { Spec } from '@json-render/core';
 import type {
@@ -284,8 +285,8 @@ export function App() {
         | undefined,
     ) => {
       if (payload?.reloadFrameOnly) {
-        setIsFrameReady(false);
-        setIframeKey((value) => value + 1);
+        // Source-only change: the preview iframe is a separate Vite entry; Vite HMR
+        // updates modules in place. No parent-driven remount or extra preview:render.
         return;
       }
 
@@ -735,7 +736,7 @@ export function App() {
                 key={iframeKey}
                 ref={iframeRef}
                 title="Canvas component preview"
-                src="/__canvas/preview-frame"
+                src={WORKBENCH_PREVIEW_HTML_PATH}
                 className="h-full w-full"
                 sandbox="allow-scripts allow-same-origin"
               />

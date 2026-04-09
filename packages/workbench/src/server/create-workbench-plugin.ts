@@ -376,29 +376,6 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
         });
       });
 
-      server.middlewares.use('/__canvas/preview-frame', (req, res, next) => {
-        if (req.method !== 'GET') {
-          next();
-          return;
-        }
-
-        void (async () => {
-          const transformed = await loadWorkbenchHtmlTemplate(
-            paths.appHtmlPath,
-            req.url!,
-            (url, html) => server.transformIndexHtml(url, html),
-          );
-          res.statusCode = 200;
-          res.setHeader('Content-Type', 'text/html');
-          res.end(transformed);
-        })().catch((error) => {
-          server.config.logger.error(
-            `Failed to serve preview frame HTML: ${String(error)}`,
-          );
-          next(error);
-        });
-      });
-
       server.middlewares.use(
         '/__canvas/page-preview-spec',
         (req, res, next) => {
