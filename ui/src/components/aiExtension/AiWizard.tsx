@@ -755,7 +755,7 @@ const AiWizard = () => {
         </Flex>
         <DeepChat
           ref={chatElementRef}
-          history={chatHistory}
+          history={chatHistory.length > 0 ? chatHistory : undefined}
           images={{
             files: {
               acceptedFormats: '.jpg, .png, .jpeg',
