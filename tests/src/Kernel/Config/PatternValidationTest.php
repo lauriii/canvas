@@ -319,7 +319,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       'expected_messages' => [
         'component_tree' => 'The \'Drupal\Core\Block\TitleBlockPluginInterface\' component interface must be absent.',
         'component_tree.2.uuid' => 'This is not a valid UUID.',
-        'component_tree.2.inputs.block-invalid.' => [
+        'component_tree.2.inputs' => [
           "'label' is a required key.",
           "'label_display' is a required key.",
         ],

@@ -489,7 +489,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     $typed_data = $this->typedConfigManager->createFromNameAndData('block.settings.' . $plugin_id, $inputValues);
     $violations = $typed_data->validate();
     $violations->addAll($form_violations);
-    return $this->translateConstraintPropertyPathsAndRoot(['' => \sprintf('inputs.%s.', $component_instance_uuid)], $violations);
+    return $this->translateConstraintPropertyPathsAndRoot(['' => 'inputs.'], $violations);
   }
 
   protected function submitBlockConfigurationForm(

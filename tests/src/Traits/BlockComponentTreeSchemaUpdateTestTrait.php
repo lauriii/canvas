@@ -129,13 +129,13 @@ trait BlockComponentTreeSchemaUpdateTestTrait {
         self::UUID_INPUT_SCHEMA_CHANGE_POSSIBLE_VALUE_TWO => 'Modified block! Current foo value: 1. Change … is necessary.',
       ],
       [
-        '0.inputs.' . self::UUID_INPUT_SCHEMA_CHANGE_POSSIBLE_VALUE_ONE . '.' => "'change' is a required key.",
-        '0.inputs.' . self::UUID_INPUT_SCHEMA_CHANGE_POSSIBLE_VALUE_ONE . '.foo' => [
+        '0.inputs' => "'change' is a required key.",
+        '0.inputs.foo' => [
           'The value you selected is not a valid choice.',
           'This value should be of the correct primitive type.',
         ],
-        '2.inputs.' . self::UUID_INPUT_SCHEMA_CHANGE_POSSIBLE_VALUE_TWO . '.' => "'change' is a required key.",
-        '2.inputs.' . self::UUID_INPUT_SCHEMA_CHANGE_POSSIBLE_VALUE_TWO . '.foo' => [
+        '2.inputs' => "'change' is a required key.",
+        '2.inputs.foo' => [
           'The value you selected is not a valid choice.',
           'This value should be of the correct primitive type.',
         ],

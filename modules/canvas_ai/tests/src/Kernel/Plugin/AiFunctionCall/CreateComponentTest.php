@@ -162,7 +162,7 @@ final class CreateComponentTest extends CanvasKernelTestBase {
         'props_metadata' => $props_metadata,
       ]
     );
-    self::assertYamlError($result, 'Component validation errors: component_structure.: Prop "title" has invalid example value: [] Integer value found, but a string or an object is required component_structure.: Prop "count" has invalid example value: [] String value found, but an integer or an object is required component_structure.props.count.examples.0: This value should be of the correct primitive type.');
+    self::assertYamlError($result, 'Component validation errors: component_structure: Prop "title" has invalid example value: [] Integer value found, but a string or an object is required component_structure: Prop "count" has invalid example value: [] String value found, but an integer or an object is required component_structure.props.count.examples.0: This value should be of the correct primitive type.');
   }
 
   /**

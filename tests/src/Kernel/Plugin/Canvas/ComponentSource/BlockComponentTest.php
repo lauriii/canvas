@@ -574,8 +574,8 @@ HTML,
     $violationMap = \array_map(static fn(ConstraintViolationInterface $violation) => \sprintf('%s:%s', $violation->getPropertyPath(), $violation->getMessage()), \iterator_to_array($violations));
     self::assertCount(2, $violations, \implode(', ', $violationMap));
     self::assertEquals([
-      \sprintf('inputs.%s.canvas_page:This value should be of the correct primitive type.', $uuid),
-      \sprintf('inputs.%s.canvas_page:You better call me on the phone', $uuid),
+      'inputs.canvas_page:This value should be of the correct primitive type.',
+      'inputs.canvas_page:You better call me on the phone',
     ], $violationMap);
 
     // Test that the violation error bubbles to a parent entity.
@@ -611,8 +611,8 @@ HTML,
     $violationMap = \array_map(static fn(ConstraintViolationInterface $violation) => \sprintf('%s:%s', $violation->getPropertyPath(), $violation->getMessage()), \iterator_to_array($violations));
     self::assertCount(2, $violations, \implode(', ', $violationMap));
     self::assertEquals([
-      "components.0.inputs.922b4cbd-4b99-46ce-a253-ff80f8560e9d.canvas_page:This value should be of the correct primitive type.",
-      'components.0.inputs.922b4cbd-4b99-46ce-a253-ff80f8560e9d.canvas_page:There are no pages matching "There is no such place".',
+      "components.0.inputs.canvas_page:This value should be of the correct primitive type.",
+      'components.0.inputs.canvas_page:There are no pages matching "There is no such place".',
     ], $violationMap);
   }
 

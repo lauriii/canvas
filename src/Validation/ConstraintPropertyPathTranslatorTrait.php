@@ -23,7 +23,12 @@ trait ConstraintPropertyPathTranslatorTrait {
             $v->getMessageTemplate(),
             $v->getParameters(),
             $newRoot ?? $v->getRoot(),
-            preg_replace('/^' . preg_quote($prefix_original, '/') . '/', $prefix_new, $v->getPropertyPath()),
+            $v->getPropertyPath() === ''
+              // If this validation error targets the root, strip the trailing
+              // period off the new prefix.
+              ? rtrim($prefix_new, '.')
+              // Otherwise, prefix it.
+              : preg_replace('/^' . preg_quote($prefix_original, '/') . '/', $prefix_new, $v->getPropertyPath()),
             $v->getInvalidValue(),
             $v->getPlural(),
             $v->getCode(),
