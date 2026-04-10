@@ -20,7 +20,10 @@ import {
 } from '@wb/client/components/ui/alert';
 import { fetchDiscoveryResult } from '@wb/lib/discovery-client';
 import { fetchPreviewManifest } from '@wb/lib/preview-client';
-import { isPreviewRenderRequest } from '@wb/lib/preview-contract';
+import {
+  isPreviewRenderRequest,
+  isWorkbenchDiscoveryRefreshMessage,
+} from '@wb/lib/preview-contract';
 import { getPreviewTargetKey } from '@wb/lib/preview-target-key';
 import { resolveWorkbenchPreviewNavigation } from '@wb/lib/resolve-workbench-preview-navigation';
 
@@ -232,6 +235,18 @@ export function PreviewFrameApp() {
 
     const handleMessage = (event: MessageEvent<unknown>) => {
       if (event.origin !== window.location.origin) {
+        return;
+      }
+
+      if (isWorkbenchDiscoveryRefreshMessage(event.data)) {
+        void Promise.all([fetchDiscoveryResult(), fetchPreviewManifest()])
+          .then(([discovery, manifest]) => {
+            setDiscoveryResult(discovery);
+            setPreviewManifest(manifest);
+          })
+          .catch(() => {
+            /* Same as initial load: leave resolver data stale on failure. */
+          });
         return;
       }
 

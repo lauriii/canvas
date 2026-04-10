@@ -4,6 +4,7 @@ import {
   buildPreviewManifest,
   isPreviewFrameEvent,
   isPreviewRenderRequest,
+  isWorkbenchDiscoveryRefreshMessage,
   toPreviewManifestComponent,
 } from './preview-contract';
 
@@ -298,5 +299,26 @@ describe('preview-contract', () => {
         },
       }),
     ).toBe(false);
+  });
+
+  describe('isWorkbenchDiscoveryRefreshMessage', () => {
+    it('accepts the workbench discovery refresh shape', () => {
+      expect(
+        isWorkbenchDiscoveryRefreshMessage({
+          source: 'canvas-workbench-parent',
+          type: 'workbench:discovery-refresh',
+        }),
+      ).toBe(true);
+    });
+
+    it('rejects other messages', () => {
+      expect(isWorkbenchDiscoveryRefreshMessage(null)).toBe(false);
+      expect(
+        isWorkbenchDiscoveryRefreshMessage({
+          source: 'canvas-workbench-parent',
+          type: 'preview:render',
+        }),
+      ).toBe(false);
+    });
   });
 });

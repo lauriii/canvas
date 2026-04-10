@@ -7,6 +7,7 @@ import {
   getWorkbenchHostGlobalCssVirtualUrl,
 } from '@drupal-canvas/vite-compat';
 
+import { isTopLevelPageSpecPath } from '../lib/page-spec-path';
 import { buildPreviewManifest } from '../lib/preview-contract';
 import {
   toDiscoveredPageName,
@@ -35,11 +36,6 @@ function isComponentMetadataPath(filePath: string): boolean {
 function isPreviewSourcePath(filePath: string): boolean {
   const normalizedPath = filePath.replaceAll('\\', '/');
   return /\.(js|jsx|ts|tsx|css)$/.test(normalizedPath);
-}
-
-function isTopLevelPageSpecPath(filePath: string): boolean {
-  const normalizedPath = filePath.replaceAll('\\', '/');
-  return /(^|\/)pages\/[^/]+\.json$/.test(normalizedPath);
 }
 
 function isMockSpecPath(filePath: string): boolean {

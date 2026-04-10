@@ -28,6 +28,10 @@ import {
 import { isPreviewFrameEvent } from '@wb/lib/preview-contract';
 import { toViteFsUrl } from '@wb/lib/preview-runtime';
 import { WORKBENCH_PREVIEW_HTML_PATH } from '@wb/lib/workbench-preview-constants';
+import {
+  computeWorkbenchStructuralFingerprint,
+  shouldSkipWorkbenchIframeRemount,
+} from '@wb/lib/workbench-preview-iframe-remount';
 
 import type { Spec } from '@json-render/core';
 import type {
@@ -41,7 +45,9 @@ import type {
   PreviewManifestComponentMock,
   PreviewRenderRequest,
   PreviewWarning,
+  WorkbenchDiscoveryRefresh,
 } from '@wb/lib/preview-contract';
+import type { WorkbenchHotPayload } from '@wb/lib/workbench-preview-iframe-remount';
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state';
 const DEFAULT_COMPONENT_VARIANT_ID = '__default__';
@@ -115,6 +121,7 @@ export function App() {
   const [isFrameReady, setIsFrameReady] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const lastStructuralFingerprintRef = useRef<string | null>(null);
   const warningToastIdsRef = useRef<Set<string>>(new Set());
   const [sidebarDefaultOpen] = useState(getSidebarDefaultOpen);
 
@@ -254,6 +261,8 @@ export function App() {
 
         setDiscoveryResult(discovery);
         setPreviewManifest(manifest);
+        lastStructuralFingerprintRef.current =
+          computeWorkbenchStructuralFingerprint(discovery, manifest);
       })
       .catch((fetchError: unknown) => {
         if (!isMounted) {
@@ -277,13 +286,7 @@ export function App() {
       return;
     }
 
-    const onWorkbenchUpdate = (
-      payload:
-        | {
-            reloadFrameOnly?: boolean;
-          }
-        | undefined,
-    ) => {
+    const onWorkbenchUpdate = (payload: WorkbenchHotPayload | undefined) => {
       if (payload?.reloadFrameOnly) {
         // Source-only change: the preview iframe is a separate Vite entry; Vite HMR
         // updates modules in place. No parent-driven remount or extra preview:render.
@@ -292,8 +295,34 @@ export function App() {
 
       void loadWorkbenchData()
         .then(({ discovery, manifest }) => {
+          const previousFingerprint = lastStructuralFingerprintRef.current;
+          const nextFingerprint = computeWorkbenchStructuralFingerprint(
+            discovery,
+            manifest,
+          );
+
           setDiscoveryResult(discovery);
           setPreviewManifest(manifest);
+          lastStructuralFingerprintRef.current = nextFingerprint;
+
+          if (
+            shouldSkipWorkbenchIframeRemount({
+              payload,
+              previousFingerprint,
+              nextFingerprint,
+            })
+          ) {
+            const iframeWindow = iframeRef.current?.contentWindow;
+            if (iframeWindow) {
+              const message: WorkbenchDiscoveryRefresh = {
+                source: 'canvas-workbench-parent',
+                type: 'workbench:discovery-refresh',
+              };
+              iframeWindow.postMessage(message, window.location.origin);
+            }
+            return;
+          }
+
           setIsFrameReady(false);
           setIframeKey((value) => value + 1);
         })

@@ -52,6 +52,12 @@ export interface PreviewManifest {
   globalCssUrl: string | null;
 }
 
+/** Parent tells the preview iframe to refetch discovery/manifest without remounting (e.g. after page JSON save). */
+export interface WorkbenchDiscoveryRefresh {
+  source: 'canvas-workbench-parent';
+  type: 'workbench:discovery-refresh';
+}
+
 export interface PreviewRenderRequest {
   source: 'canvas-workbench-parent';
   type: 'preview:render';
@@ -197,6 +203,16 @@ export function buildPreviewManifest(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+export function isWorkbenchDiscoveryRefreshMessage(
+  value: unknown,
+): value is WorkbenchDiscoveryRefresh {
+  return (
+    isRecord(value) &&
+    value.source === 'canvas-workbench-parent' &&
+    value.type === 'workbench:discovery-refresh'
+  );
 }
 
 export function isPreviewRenderRequest(
