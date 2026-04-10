@@ -1,4 +1,4 @@
-# 7. Extensions API architecture
+# 9. Extensions API architecture
 
 Date: 2025-10-03
 
