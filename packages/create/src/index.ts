@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import * as p from '@clack/prompts';
 
 import templates from '../templates.json' with { type: 'json' };
+import { agentsCommand } from './agents.js';
 import createApp from './create.js';
 import { parseAgentSelection } from './lib/agent-selection.js';
 import { getDescription, getName, getVersion } from './lib/meta-info.js';
@@ -154,6 +155,8 @@ program
       process.exit(1);
     }
   });
+
+agentsCommand(program);
 
 // Handle errors.
 program.showHelpAfterError();

@@ -56,6 +56,7 @@ export async function setupAgentSkills(
 
     const hasSkillsDir = await pathExists(canonicalSkillsDir);
     if (!hasSkillsDir) {
+      info('No .agents/skills directory found. Skipping compatibility setup.');
       return;
     }
 
@@ -138,6 +139,9 @@ export async function setupAgentSkills(
 export async function defaultPromptForAgents(): Promise<AgentType[] | symbol> {
   const universalAgents = getUniversalAgents();
   const additionalAgents = getNonUniversalAgents();
+
+  // Add space between earlier message and the prompt.
+  p.log.message('');
 
   const selected = await searchMultiselect({
     message: 'Which additional agents should this codebase support?',

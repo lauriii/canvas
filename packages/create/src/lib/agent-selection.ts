@@ -10,6 +10,7 @@ const NONE_VALUE = 'none';
 
 export function parseAgentSelection(
   value: string | undefined,
+  label = '--agents',
 ): AgentType[] | undefined {
   if (value === undefined) {
     return undefined;
@@ -26,14 +27,14 @@ export function parseAgentSelection(
 
   if (selectedAgents.length === 0) {
     throw new Error(
-      'Invalid --agents value. Provide a comma-separated list or "none".',
+      `Invalid ${label} value. Provide a comma-separated list or "none".`,
     );
   }
 
   if (selectedAgents.includes(NONE_VALUE)) {
     if (selectedAgents.length > 1) {
       throw new Error(
-        'Invalid --agents value. "none" cannot be combined with other agents.',
+        `Invalid ${label} value. "none" cannot be combined with other agents.`,
       );
     }
 
@@ -44,12 +45,12 @@ export function parseAgentSelection(
 
   return selectedAgents.map((agent) => {
     if (!isAgentType(agent)) {
-      throw new Error(`Invalid --agents value. Unknown agent "${agent}".`);
+      throw new Error(`Invalid ${label} value. Unknown agent "${agent}".`);
     }
 
     if (isUniversalAgent(agent) || !nonUniversalAgents.has(agent)) {
       throw new Error(
-        `Invalid --agents value. Agent "${agent}" already uses .agents/skills.`,
+        `Invalid ${label} value. Agent "${agent}" already uses .agents/skills.`,
       );
     }
 

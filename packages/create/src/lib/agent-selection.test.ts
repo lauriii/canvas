@@ -24,6 +24,12 @@ describe('parseAgentSelection', () => {
     );
   });
 
+  it('uses custom label in error messages', () => {
+    expect(() => parseAgentSelection('made-up-agent', 'agents')).toThrow(
+      'Invalid agents value. Unknown agent "made-up-agent".',
+    );
+  });
+
   it('rejects universal agents', () => {
     expect(() => parseAgentSelection('codex')).toThrow(
       'Invalid --agents value. Agent "codex" already uses .agents/skills.',

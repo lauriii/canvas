@@ -57,6 +57,27 @@ npx @drupal-canvas/create@latest my-app --template acquia-nebula --agents claude
 If `--agents` is omitted, the CLI keeps the current interactive prompt on TTY
 runs. On non-interactive runs, it skips compatibility setup silently.
 
+### `agents` command
+
+Set up compatibility symlinks for additional agent skills directories in an
+existing project:
+
+```bash
+npx @drupal-canvas/create@latest agents
+```
+
+You can also provide the agents as an argument:
+
+```bash
+npx @drupal-canvas/create@latest agents claude-code,roo
+```
+
+Skip compatibility symlinks:
+
+```bash
+npx @drupal-canvas/create@latest agents none
+```
+
 ## Development
 
 Drupal Canvas Create is designed to be easily extendable with new templates.
