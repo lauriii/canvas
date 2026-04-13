@@ -2155,6 +2155,97 @@ paths:
                   error:
                     type: string
                     description: Error description
+  /canvas/api/v0/media/{media_type}/upload:
+    description: Upload a file and create a media entity
+    parameters:
+      - name: media_type
+        in: path
+        required: true
+        description: The media type (e.g. "image")
+        schema:
+          type: string
+    post:
+      summary: Upload a file and create a media entity
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload
+                title:
+                  type: string
+                  description: Title for the media (used for image media types)
+                alt:
+                  type: string
+                  description: Alt text for the media (used for image media types)
+            examples:
+              image-upload:
+                summary: Upload an image with alt text
+                value:
+                  file: (binary content of sunset.jpg)
+                  title: Sunset
+                  alt: A vibrant sunset over the horizon
+      responses:
+        '201':
+          description: Media entity created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - uuid
+                  - inputs_resolved
+                properties:
+                  id:
+                    type: integer
+                    description: The media entity ID
+                  uuid:
+                    type: string
+                    format: uuid
+                    description: The media entity UUID
+                  inputs_resolved:
+                    type: object
+                    description: Resolved input values for use in Canvas components
+                    properties:
+                      src:
+                        type: string
+                        format: uri-reference
+                        description: Image URL with ?alternateWidths query parameter
+                      alt:
+                        type: string
+                        description: Alt text
+                      width:
+                        type: integer
+                        description: Image width in pixels
+                      height:
+                        type: integer
+                        description: Image height in pixels
+              examples:
+                image-upload:
+                  summary: Successful image upload
+                  value:
+                    id: 5
+                    uuid: 6cc261b1-b981-4714-965b-d5a5871b10dd
+                    inputs_resolved:
+                      src: '/sites/default/files/2026-03/sunset.jpg?alternateWidths=/sites/default/files/styles/canvas_parametrized_width--1200/public/2026-03/sunset.jpg.avif'
+                      alt: A vibrant sunset over the horizon
+                      width: 400
+                      height: 300
+        '400':
+          $ref: '#/components/responses/ClientErrorResponse'
+        '403':
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '422':
+          $ref: '#/components/responses/ClientErrorResponse'
   /canvas/api/v0/notifications:
     description: Fetch recent notifications for the authenticated user.
     get:

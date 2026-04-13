@@ -86,15 +86,21 @@ scopes via a UI. Therefore, this is how Canvas OAuth provides a set of default O
 
 The following scopes are created as dynamic scopes (stored as config entities) upon installing the module:
 
-| Scope                  | Permission                   |
-|------------------------|------------------------------|
-| `canvas:js_component`  | `administer code components` |
-| `canvas:asset_library` | `administer code components` |
-| `canvas:brand_kit`     | `administer brand kit`       |
-| `canvas:page:read`     | `access content`             |
-| `canvas:page:create`   | `create canvas_page`         |
-| `canvas:page:edit`     | `edit canvas_page`           |
-| `canvas:page:delete`   | `delete canvas_page`         |
+| Scope                                | Permission                   |
+|--------------------------------------|------------------------------|
+| `canvas:js_component`                | `administer code components` |
+| `canvas:asset_library`               | `administer code components` |
+| `canvas:brand_kit`                   | `administer brand kit`       |
+| `canvas:page:read`                   | `access content`             |
+| `canvas:page:create`                 | `create canvas_page`         |
+| `canvas:page:edit`                   | `edit canvas_page`           |
+| `canvas:page:delete`                 | `delete canvas_page`         |
+| `canvas:media:{media_type_id}:create`| `create {media_type_id} media`|
+
+The media scopes are created dynamically for each media type that uses the `image` source plugin.
+For example, if an `image` media type exists, a `canvas:media:image:create` scope with the
+`create image media` permission will be created automatically on module installation and via post
+updates.
 
 Each scope is enabled for the [Client Credentials grant type](https://oauth.net/2/grant-types/client-credentials/).
 
@@ -122,4 +128,5 @@ the resource, for example `administer code components` for code components and g
 | `GET`                    | `/canvas/api/v0/content/canvas_page/by-uuid/{uuid}`     |
 | `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/content/canvas_page/{contentEntityId}`  |
 | `POST`                   | `/canvas/api/v0/artifacts/upload`                       |
+| `POST`                   | `/canvas/api/v0/media/{media_type}/upload`              |
 | `GET`                    | `/canvas/api/v0/config/component`                       |

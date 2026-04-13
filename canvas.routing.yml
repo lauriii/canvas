@@ -525,6 +525,21 @@ canvas.api.log_error:
   options:
     _format: 'json'
 
+canvas.api.media.upload:
+  path: '/canvas/api/v0/media/{media_type}/upload'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiMediaControllers::upload'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _entity_create_access: 'media:{media_type}'
+    _format: 'json'
+  methods: [POST]
+  options:
+    parameters:
+      media_type:
+        type: entity:media_type
+    canvas_external_api: true
+
 canvas.api.notifications.get:
   path: '/canvas/api/v0/notifications'
   defaults:

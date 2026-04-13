@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+use Drupal\canvas_oauth\MediaScopesHelper;
+
+/**
+ * Implements hook_install().
+ */
+function canvas_oauth_install(bool $is_syncing): void {
+  if ($is_syncing) {
+    return;
+  }
+  \Drupal::classResolver(MediaScopesHelper::class)->ensureMediaImageScopes();
+}

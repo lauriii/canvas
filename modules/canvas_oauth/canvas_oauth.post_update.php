@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Drupal\canvas_oauth\MediaScopesHelper;
 use Drupal\simple_oauth\Entity\Oauth2Scope;
 
 /**
@@ -176,4 +177,11 @@ function canvas_oauth_post_update_0002_canvas_brand_kit_scope(array &$sandbox): 
     ])->save();
   }
 
+}
+
+/**
+ * Install scopes for media types with the image source plugin.
+ */
+function canvas_oauth_post_update_0003_media_image_scopes(array &$sandbox): void {
+  \Drupal::classResolver(MediaScopesHelper::class)->ensureMediaImageScopes();
 }

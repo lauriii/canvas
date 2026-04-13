@@ -68,6 +68,11 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       return $this->simpleOauthAuthenticationProvider->applies($request);
     }
 
+    // Special case: media upload route. Media is not a Canvas provided entity.
+    if ($route_match->getRouteName() === 'canvas.api.media.upload') {
+      return $this->simpleOauthAuthenticationProvider->applies($request);
+    }
+
     // Apply to config entity routes for protected entity types.
     // @see \Drupal\canvas_oauth\Routing\CanvasOauthRouteSubscriber
     $entity_type_id = $route_match->getRawParameter('canvas_config_entity_type_id');

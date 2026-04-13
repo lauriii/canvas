@@ -6,9 +6,13 @@ namespace Drupal\Tests\canvas_oauth\Kernel;
 
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Url;
+use Drupal\Tests\canvas\Kernel\Traits\MockFileUploadTrait;
+use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
+use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\simple_oauth\Kernel\AuthorizedRequestBase;
+use Drupal\image\Entity\ImageStyle;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
@@ -21,6 +25,7 @@ use Drupal\simple_oauth\Exception\OAuthUnauthorizedHttpException;
 use Drupal\simple_oauth\Oauth2ScopeInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -31,7 +36,10 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
 
   use CreateTestJsComponentTrait;
+  use MediaTypeCreationTrait;
+  use MockFileUploadTrait;
   use RequestTrait;
+  use PredictableImageStyleItokTestTrait;
 
   /**
    * {@inheritdoc}
@@ -47,11 +55,14 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
 
   protected Page $page;
 
+  private string $testImagePath;
+
   /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->setupPredictableItok();
     // Parent class setup creates a redirect uri, which triggers the path_alias
     // storage to check if that's used as an alias. So we need to install it
     // manually instead of using the $modules array.
@@ -85,6 +96,42 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
     ]);
     $this->page->save();
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+  }
+
+  /**
+   * Sets up the environment for media upload tests.
+   *
+   * Installs additional entity schemas, config, and mocks the file system
+   * so that file uploads work in kernel tests.
+   */
+  private function setUpMediaUpload(): void {
+    $this->installEntitySchema('media');
+    $this->installEntitySchema('file');
+    $this->installSchema('file', ['file_usage']);
+    $this->installConfig(['field', 'system']);
+    // The media upload response resolves image derivatives which requires
+    // the canvas_parametrized_width image style. We don't really need to test
+    // the actual image style: we can avoid installing a dozen of modules just
+    // by ensuring an image style with that ID exists, as we only care about the
+    // Oauth authentication in this test.
+    // @see \Drupal\Tests\canvas\Kernel\CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES
+    // @see \Drupal\Tests\canvas\Kernel\Controller\ApiMediaControllersPostTest for proper test coverage of the operation itself.
+    ImageStyle::create([
+      'name' => 'canvas_parametrized_width',
+      'label' => 'Drupal Canvas parametrized width',
+    ])->save();
+
+    $this->createMediaType('image', [
+      'id' => 'image',
+      'label' => 'Image',
+    ]);
+
+    $this->mockFileSystemForUploads();
+
+    $source = \dirname(__DIR__, 5) . '/tests/fixtures/images/gracie-big.jpg';
+    $temp_dir = $this->container->get('file_system')->getTempDirectory();
+    $this->testImagePath = $temp_dir . '/canvas-oauth-test-upload-' . \uniqid() . '.jpg';
+    \copy($source, $this->testImagePath);
   }
 
   /**
@@ -446,6 +493,46 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
     ]);
     $client->save();
     return $client;
+  }
+
+  /**
+   * Creates a media upload request.
+   */
+  private function createMediaUploadRequest(): Request {
+    $request = Request::create(
+      Url::fromRoute('canvas.api.media.upload', ['media_type' => 'image'])->toString(),
+      'POST',
+      parameters: [],
+      files: [
+        'file' => new UploadedFile($this->testImagePath, 'gracie-big.jpg', 'image/jpeg', NULL, test: TRUE),
+      ],
+      server: ['CONTENT_TYPE' => 'multipart/form-data'],
+    );
+    return $request;
+  }
+
+  /**
+   * Tests media upload route with an invalid access token.
+   */
+  public function testMediaUploadRouteWithInvalidToken(): void {
+    $this->setUpMediaUpload();
+    $request = $this->createMediaUploadRequest();
+    $request->headers->set('Authorization', 'Bearer wicked-witch-of-the-west');
+    $this->expectException(OAuthUnauthorizedHttpException::class);
+    $this->expectExceptionMessage('The resource owner or authorization server denied the request');
+    $this->request($request);
+  }
+
+  /**
+   * Tests media upload route with a valid access token and permissions.
+   */
+  public function testMediaUploadRouteWithValidToken(): void {
+    $this->setUpMediaUpload();
+    $access_token = $this->requestAccessToken([Page::CREATE_PERMISSION, 'create image media']);
+    $request = $this->createMediaUploadRequest();
+    $request->headers->set('Authorization', 'Bearer ' . $access_token);
+    $response = $this->request($request);
+    self::assertTrue($response->isSuccessful());
   }
 
 }
