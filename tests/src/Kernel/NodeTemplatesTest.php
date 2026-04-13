@@ -452,7 +452,7 @@ HTML;
 
     // If we delete the field item, all good!
     $node->get('field_component_tree')->removeItem(1);
-    self::assertCount(0, $node->validate());
+    self::assertEntityIsValid($node);
   }
 
 }

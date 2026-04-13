@@ -138,48 +138,218 @@ class KernelTestBaseSniff implements Sniff {
 
     $tokens = $phpcsFile->getTokens();
     for ($i = $stackPtr; $i < $phpcsFile->numTokens; $i++) {
-      if ($tokens[$i]['code'] !== T_STRING || $tokens[$i]['content'] !== 'assertSame') {
-        continue;
+      // Pattern 1: assertSame([], self::violationsToArray(…))
+      if ($tokens[$i]['code'] === T_STRING && $tokens[$i]['content'] === 'assertSame') {
+        $this->checkAssertSamePattern($phpcsFile, $i);
       }
-      // Find the opening parenthesis after assertSame.
-      $openParen = $phpcsFile->findNext(T_WHITESPACE, $i + 1, NULL, TRUE);
-      if ($openParen === FALSE || $tokens[$openParen]['code'] !== T_OPEN_PARENTHESIS) {
-        continue;
+      // Pattern 2: assertCount(0, $x->validate()) or assertCount(0, $violations, getMessage…)
+      if ($tokens[$i]['code'] === T_STRING && $tokens[$i]['content'] === 'assertCount') {
+        $this->checkAssertCountPattern($phpcsFile, $i);
       }
-      // Check if the first argument is `[]`.
-      $firstArg = $phpcsFile->findNext(T_WHITESPACE, $openParen + 1, NULL, TRUE);
-      if ($firstArg === FALSE || $tokens[$firstArg]['code'] !== T_OPEN_SHORT_ARRAY) {
-        continue;
-      }
-      $afterOpenBracket = $phpcsFile->findNext(T_WHITESPACE, $firstArg + 1, NULL, TRUE);
-      if ($afterOpenBracket === FALSE || $tokens[$afterOpenBracket]['code'] !== T_CLOSE_SHORT_ARRAY) {
-        continue;
-      }
-      // Check for a comma after `[]`.
-      $comma = $phpcsFile->findNext(T_WHITESPACE, $afterOpenBracket + 1, NULL, TRUE);
-      if ($comma === FALSE || $tokens[$comma]['code'] !== T_COMMA) {
-        continue;
-      }
-      // Now check if the second argument starts with `self::violationsToArray(`.
-      $secondArgStart = $phpcsFile->findNext(T_WHITESPACE, $comma + 1, NULL, TRUE);
-      if ($secondArgStart === FALSE || $tokens[$secondArgStart]['code'] !== T_SELF) {
-        continue;
-      }
-      $doubleColon = $phpcsFile->findNext(T_WHITESPACE, $secondArgStart + 1, NULL, TRUE);
-      if ($doubleColon === FALSE || $tokens[$doubleColon]['code'] !== T_DOUBLE_COLON) {
-        continue;
-      }
-      $methodName = $phpcsFile->findNext(T_WHITESPACE, $doubleColon + 1, NULL, TRUE);
-      if ($methodName === FALSE || $tokens[$methodName]['code'] !== T_STRING || $tokens[$methodName]['content'] !== 'violationsToArray') {
-        continue;
-      }
+    }
+  }
 
+  /**
+   * Checks for assertSame([], self::violationsToArray(…)) pattern.
+   */
+  private function checkAssertSamePattern(File $phpcsFile, int $i): void {
+    $tokens = $phpcsFile->getTokens();
+
+    // Find the opening parenthesis after assertSame.
+    $openParen = $phpcsFile->findNext(T_WHITESPACE, $i + 1, NULL, TRUE);
+    if ($openParen === FALSE || $tokens[$openParen]['code'] !== T_OPEN_PARENTHESIS) {
+      return;
+    }
+    // Check if the first argument is `[]`.
+    $firstArg = $phpcsFile->findNext(T_WHITESPACE, $openParen + 1, NULL, TRUE);
+    if ($firstArg === FALSE || $tokens[$firstArg]['code'] !== T_OPEN_SHORT_ARRAY) {
+      return;
+    }
+    $afterOpenBracket = $phpcsFile->findNext(T_WHITESPACE, $firstArg + 1, NULL, TRUE);
+    if ($afterOpenBracket === FALSE || $tokens[$afterOpenBracket]['code'] !== T_CLOSE_SHORT_ARRAY) {
+      return;
+    }
+    // Check for a comma after `[]`.
+    $comma = $phpcsFile->findNext(T_WHITESPACE, $afterOpenBracket + 1, NULL, TRUE);
+    if ($comma === FALSE || $tokens[$comma]['code'] !== T_COMMA) {
+      return;
+    }
+    // Now check if the second argument starts with `self::violationsToArray(`.
+    $secondArgStart = $phpcsFile->findNext(T_WHITESPACE, $comma + 1, NULL, TRUE);
+    if ($secondArgStart === FALSE || $tokens[$secondArgStart]['code'] !== T_SELF) {
+      return;
+    }
+    $doubleColon = $phpcsFile->findNext(T_WHITESPACE, $secondArgStart + 1, NULL, TRUE);
+    if ($doubleColon === FALSE || $tokens[$doubleColon]['code'] !== T_DOUBLE_COLON) {
+      return;
+    }
+    $methodName = $phpcsFile->findNext(T_WHITESPACE, $doubleColon + 1, NULL, TRUE);
+    if ($methodName === FALSE || $tokens[$methodName]['code'] !== T_STRING || $tokens[$methodName]['content'] !== 'violationsToArray') {
+      return;
+    }
+
+    // Peek inside violationsToArray(…) to avoid false positives when the
+    // argument is a non-entity typed data object's validate() call.
+    $violationsOpenParen = $phpcsFile->findNext(T_WHITESPACE, $methodName + 1, NULL, TRUE);
+    if ($violationsOpenParen !== FALSE
+      && $tokens[$violationsOpenParen]['code'] === T_OPEN_PARENTHESIS
+      && isset($tokens[$violationsOpenParen]['parenthesis_closer'])
+    ) {
+      $isEntityValidate = $this->looksLikeEntityValidateCall(
+        $phpcsFile,
+        $violationsOpenParen + 1,
+        $tokens[$violationsOpenParen]['parenthesis_closer'],
+      );
+      // FALSE means the argument is recognizably a non-entity typed data
+      // object; skip. TRUE or NULL (pre-computed $violations variable, etc.)
+      // fall through to addError().
+      if ($isEntityValidate === FALSE) {
+        return;
+      }
+    }
+
+    $phpcsFile->addError(
+      'Use self::assertEntityIsValid($entity) instead of assertSame([], self::violationsToArray(…)). The assertEntityIsValid() method is provided by CanvasKernelTestBase.',
+      $i,
+      self::CODE_REQUIRE_ASSERT_ENTITY_IS_VALID,
+    );
+  }
+
+  /**
+   * Checks for assertCount(0, $x->validate()) and assertCount(0, $violations, getMessage…) patterns.
+   */
+  private function checkAssertCountPattern(File $phpcsFile, int $i): void {
+    $tokens = $phpcsFile->getTokens();
+
+    // Find the opening parenthesis after assertCount.
+    $openParen = $phpcsFile->findNext(T_WHITESPACE, $i + 1, NULL, TRUE);
+    if ($openParen === FALSE || $tokens[$openParen]['code'] !== T_OPEN_PARENTHESIS) {
+      return;
+    }
+    if (!isset($tokens[$openParen]['parenthesis_closer'])) {
+      return;
+    }
+    $closeParen = $tokens[$openParen]['parenthesis_closer'];
+
+    // Check if the first argument is `0`.
+    $firstArg = $phpcsFile->findNext(T_WHITESPACE, $openParen + 1, NULL, TRUE);
+    if ($firstArg === FALSE || $tokens[$firstArg]['code'] !== T_LNUMBER || $tokens[$firstArg]['content'] !== '0') {
+      return;
+    }
+    // Check for a comma after `0`.
+    $firstComma = $phpcsFile->findNext(T_WHITESPACE, $firstArg + 1, NULL, TRUE);
+    if ($firstComma === FALSE || $tokens[$firstComma]['code'] !== T_COMMA) {
+      return;
+    }
+
+    // Find the end of the second argument by scanning for the first top-level
+    // comma (depth-aware), so we know where the third argument starts.
+    $depth = 0;
+    $secondArgEnd = NULL;
+    for ($j = $firstComma + 1; $j < $closeParen; $j++) {
+      $code = $tokens[$j]['code'];
+      if (\in_array($code, [T_OPEN_PARENTHESIS, T_OPEN_SHORT_ARRAY, T_OPEN_SQUARE_BRACKET, T_OPEN_CURLY_BRACKET], TRUE)) {
+        $depth++;
+      }
+      elseif (\in_array($code, [T_CLOSE_PARENTHESIS, T_CLOSE_SHORT_ARRAY, T_CLOSE_SQUARE_BRACKET, T_CLOSE_CURLY_BRACKET], TRUE)) {
+        $depth--;
+      }
+      elseif ($depth === 0 && $code === T_COMMA) {
+        $secondArgEnd = $j;
+        break;
+      }
+    }
+
+    // Check whether the second argument is an entity's validate() call.
+    $isEntityValidate = $this->looksLikeEntityValidateCall(
+      $phpcsFile,
+      $firstComma + 1,
+      $secondArgEnd ?? $closeParen,
+    );
+    if ($isEntityValidate === TRUE) {
       $phpcsFile->addError(
-        'Use self::assertEntityIsValid($entity) instead of assertSame([], self::violationsToArray(…)). The assertEntityIsValid() method is provided by CanvasKernelTestBase.',
+        'Use self::assertEntityIsValid($entity) instead of assertCount(0, $entity->validate()). The assertEntityIsValid() method is provided by CanvasKernelTestBase.',
         $i,
         self::CODE_REQUIRE_ASSERT_ENTITY_IS_VALID,
       );
+      return;
     }
+
+    // If the second argument was a variable (no validate() call there), check
+    // if the third+ arguments contain getMessage, which strongly indicates this
+    // is asserting on constraint violations.
+    if ($secondArgEnd !== NULL) {
+      for ($j = $secondArgEnd + 1; $j < $closeParen; $j++) {
+        if ($tokens[$j]['code'] === T_STRING && $tokens[$j]['content'] === 'getMessage') {
+          $phpcsFile->addError(
+            'Use self::assertEntityIsValid($entity) instead of assertCount(0, $violations, …). The assertEntityIsValid() method is provided by CanvasKernelTestBase.',
+            $i,
+            self::CODE_REQUIRE_ASSERT_ENTITY_IS_VALID,
+          );
+          return;
+        }
+      }
+    }
+  }
+
+  /**
+   * Checks if a token range contains an entity's validate() call.
+   *
+   * Scans tokens between $start and $end for ->validate() or
+   * ->getTypedData()->validate(), applying a variable-name heuristic to
+   * distinguish entity validate() calls from non-entity typed data ones.
+   *
+   * @return bool|null
+   *   TRUE if the range contains what appears to be an entity's validate()
+   *   call, FALSE if it appears to be a non-entity typed data validate() call
+   *   (e.g. a field item list), or NULL if no validate() call was found or the
+   *   type cannot be determined.
+   */
+  private function looksLikeEntityValidateCall(File $phpcsFile, int $start, int $end): ?bool {
+    $tokens = $phpcsFile->getTokens();
+    $hasGetTypedData = FALSE;
+    $validatePos = NULL;
+    for ($j = $start; $j < $end; $j++) {
+      $code = $tokens[$j]['code'];
+      if ($code === T_STRING && $tokens[$j]['content'] === 'getTypedData') {
+        $hasGetTypedData = TRUE;
+      }
+      if ($code === T_STRING && $tokens[$j]['content'] === 'validate') {
+        $validatePos = $j;
+      }
+    }
+    if ($validatePos === NULL) {
+      return NULL;
+    }
+    // ->getTypedData()->validate(): unambiguously a config entity.
+    if ($hasGetTypedData) {
+      return TRUE;
+    }
+    // Direct $var->validate() or method-chain->validate(): use the variable
+    // name before -> to distinguish entity from typed data.
+    $objOp = $phpcsFile->findPrevious(T_OBJECT_OPERATOR, $validatePos - 1, $start);
+    if ($objOp === FALSE) {
+      return NULL;
+    }
+    $beforeArrow = $phpcsFile->findPrevious(T_WHITESPACE, $objOp - 1, $start, TRUE);
+    if ($beforeArrow === FALSE) {
+      return NULL;
+    }
+    if ($tokens[$beforeArrow]['code'] === T_VARIABLE) {
+      $varName = ltrim($tokens[$beforeArrow]['content'], '$');
+      // Variable names containing 'item' or 'tree' indicate typed data objects
+      // (e.g. $new_items, $item_list, $component_tree), not entities.
+      if (str_contains($varName, 'item') || str_contains($varName, 'tree')) {
+        return FALSE;
+      }
+      return TRUE;
+    }
+    if ($tokens[$beforeArrow]['code'] === T_CLOSE_PARENTHESIS) {
+      // Chained call like $page->getComponentTree()->validate(): the receiver
+      // is a method result, not identifiable as an entity without getTypedData().
+      return FALSE;
+    }
+    return NULL;
   }
 
 }

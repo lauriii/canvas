@@ -19,7 +19,6 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
-use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
  * Tests Drupal\canvas\Entity\ContentTemplate.
@@ -237,8 +236,7 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
       ], $template->get('component_tree'),
     );
     // Sanity-check that the test template is valid.
-    $violations = $template->getTypedData()->validate();
-    self::assertCount(0, $violations, \implode(', ', \array_map(static fn (ConstraintViolationInterface $violation) => $violation->getMessage(), \iterator_to_array($violations))));
+    self::assertEntityIsValid($template);
   }
 
   public function testAbsentContentTemplateKeepsCacheMetadata(): void {

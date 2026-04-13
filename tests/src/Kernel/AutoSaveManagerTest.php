@@ -188,7 +188,7 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
       'title' => '5 amazing uses for old toothbrushes',
       'components' => [],
     ]);
-    self::assertCount(0, iterator_to_array($canvas_page->validate()));
+    self::assertEntityIsValid($canvas_page);
     self::assertSame(SAVED_NEW, $canvas_page->save());
 
     $envelope = \Drupal::classResolver(ApiLayoutController::class)->get($canvas_page);
@@ -239,7 +239,7 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
       'langcode' => 'en',
       'components' => [],
     ]);
-    self::assertCount(0, iterator_to_array($page_en->validate()));
+    self::assertEntityIsValid($page_en);
     self::assertSame(SAVED_NEW, $page_en->save());
 
     // Add French translation.
@@ -406,7 +406,7 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
         'summary' => '',
       ],
     ]);
-    self::assertCount(0, $node->validate());
+    self::assertEntityIsValid($node);
     $this->assertSame(SAVED_NEW, $node->save());
 
     $envelope = \Drupal::classResolver(ApiLayoutController::class)->get($node);

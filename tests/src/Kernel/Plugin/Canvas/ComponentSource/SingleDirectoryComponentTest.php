@@ -5588,7 +5588,7 @@ HTML
     ])->save();
     if ($nodeValues !== NULL) {
       $hostEntity = Node::create($nodeValues);
-      self::assertCount(0, $hostEntity->validate());
+      self::assertEntityIsValid($hostEntity);
       $hostEntity->save();
     }
     else {

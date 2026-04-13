@@ -206,8 +206,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
       ];
     }
     $new_items->setValue($values);
-    $violations = $new_items->validate();
-    self::assertCount(0, $violations, \implode(', ', \array_map(static fn (ConstraintViolationInterface $violation): string => (string) $violation->getMessage(), \iterator_to_array($violations))));
+    self::assertSame([], self::violationsToArray($new_items->validate()));
 
     // Creating a component of this type should set the `component_version`
     // field property and column to the active version.
@@ -319,7 +318,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
         // Fix the missing example.
         $props['age']['examples'][] = 27;
         $js_component->setProps($props);
-        self::assertCount(0, $js_component->getTypedData()->validate());
+        self::assertEntityIsValid($js_component);
       }
       $js_component->save();
       return;
@@ -476,7 +475,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
     unset($props['name']);
     $js_component->set('required', []);
     $js_component->setProps($props);
-    self::assertCount(0, $js_component->getTypedData()->validate());
+    self::assertEntityIsValid($js_component);
 
     $autoSaveManager = \Drupal::service(AutoSaveManager::class);
     \assert($autoSaveManager instanceof AutoSaveManager);
@@ -507,7 +506,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
     if (!$usingHttpRequest) {
       $js_component->set('required', $requiredProps);
       $js_component->setProps($props);
-      self::assertCount(0, $js_component->getTypedData()->validate());
+      self::assertEntityIsValid($js_component);
       $js_component->save();
       return;
     }
@@ -585,7 +584,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
       $slots = $js_component->get('slots');
       $slots['intro'] = $slot;
       $js_component->set('slots', $slots);
-      self::assertCount(0, $js_component->getTypedData()->validate());
+      self::assertEntityIsValid($js_component);
       $js_component->save();
       return;
     }
@@ -765,7 +764,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
     if (!$usingHttpRequest) {
       $js_component->set('required', $requiredProps);
       $js_component->setProps($props);
-      self::assertCount(0, $js_component->getTypedData()->validate());
+      self::assertEntityIsValid($js_component);
       $js_component->save();
       return;
     }
@@ -824,7 +823,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
     if (!$usingHttpRequest) {
       $js_component->setProps($props);
       $js_component->set('slots', $slots);
-      self::assertCount(0, $js_component->getTypedData()->validate());
+      self::assertEntityIsValid($js_component);
       $js_component->save();
       return;
     }
@@ -889,7 +888,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
     unset($slots['description']);
     if (!$usingHttpRequest) {
       $js_component->set('slots', $slots);
-      self::assertCount(0, $js_component->getTypedData()->validate());
+      self::assertEntityIsValid($js_component);
       $js_component->save();
       return;
     }
@@ -966,7 +965,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
     ];
     if (!$usingHttpRequest) {
       $js_component->set('slots', $slots);
-      self::assertCount(0, $js_component->getTypedData()->validate());
+      self::assertEntityIsValid($js_component);
       $js_component->save();
       return;
     }

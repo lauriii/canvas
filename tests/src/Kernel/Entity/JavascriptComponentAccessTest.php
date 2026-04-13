@@ -69,7 +69,7 @@ final class JavascriptComponentAccessTest extends CanvasKernelTestBase {
       ],
       'dataDependencies' => [],
     ]);
-    self::assertCount(0, $js_component->getTypedData()->validate());
+    self::assertEntityIsValid($js_component);
     $js_component->save();
     $code_component_maintainer = $this->createUser([JavaScriptComponent::ADMIN_PERMISSION]);
     \assert($code_component_maintainer instanceof UserInterface);
@@ -88,7 +88,7 @@ final class JavascriptComponentAccessTest extends CanvasKernelTestBase {
     self::assertNotNull($component);
     self::assertTrue($component->status());
     self::assertContains($js_component->getConfigDependencyName(), $component->getDependencies()['config'] ?? []);
-    self::assertCount(0, $js_component->getTypedData()->validate());
+    self::assertEntityIsValid($js_component);
     // User should still have access to delete.
     self::assertEquals(
       AccessResult::allowed()->addCacheContexts(['user.permissions']),
@@ -111,7 +111,7 @@ final class JavascriptComponentAccessTest extends CanvasKernelTestBase {
       'created' => 0,
       'revision_created' => 0,
     ]);
-    self::assertCount(0, $page->validate());
+    self::assertEntityIsValid($page);
     $page->save();
     // Create some identical revisions.
     for ($i = 0; $i < 2; $i++) {
