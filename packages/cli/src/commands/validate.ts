@@ -4,15 +4,18 @@ import { discoverCanvasProject } from '@drupal-canvas/discovery';
 
 import { getConfig } from '../config.js';
 import {
+  pluralize,
   pluralizeComponent,
   updateConfigFromOptions,
   validateComponentOptions,
 } from '../utils/command-helpers';
 import { selectLocalComponents } from '../utils/component-selector.js';
 import { reportResults } from '../utils/report-results.js';
+import { validatePages } from '../utils/validate-page.js';
 import { validateComponent } from '../utils/validate.js';
 
 import type { Command } from 'commander';
+import type { Result } from '../types/Result.js';
 
 interface ValidateOptions {
   dir?: string;
@@ -29,7 +32,7 @@ interface ValidateOptions {
 export function validateCommand(program: Command): void {
   program
     .command('validate')
-    .description('validate local components')
+    .description('validate local components and pages')
     .option(
       '-d, --dir <directory>',
       'Component directory to validate the components in',
@@ -58,6 +61,7 @@ export function validateCommand(program: Command): void {
         updateConfigFromOptions(options);
 
         let componentDirectoriesToValidate: string[] = [];
+        let discoveryResult;
 
         if (options.deprecated) {
           // Validate options
@@ -88,8 +92,9 @@ export function validateCommand(program: Command): void {
           }
 
           const config = getConfig();
-          const discoveryResult = await discoverCanvasProject({
+          discoveryResult = await discoverCanvasProject({
             componentRoot: config.componentDir,
+            pagesRoot: config.pagesDir,
             projectRoot: process.cwd(),
           });
           componentDirectoriesToValidate = discoveryResult.components.map(
@@ -101,18 +106,18 @@ export function validateCommand(program: Command): void {
           componentDirectoriesToValidate.length,
         );
 
+        const results: Result[] = [];
+
         const s = p.spinner();
         s.start(`Validating ${componentPluralized}`);
 
-        const results = [];
         for (const componentDir of componentDirectoriesToValidate) {
-          results.push(
-            await validateComponent(
-              componentDir,
-              options.fix,
-              options.deprecated,
-            ),
+          const result = await validateComponent(
+            componentDir,
+            options.fix,
+            options.deprecated,
           );
+          results.push({ ...result, itemType: 'Component' });
         }
 
         s.stop(
@@ -121,7 +126,25 @@ export function validateCommand(program: Command): void {
           ),
         );
 
-        reportResults(results, 'Validation results', 'Component');
+        if (discoveryResult && discoveryResult.pages.length > 0) {
+          const pageSpinner = p.spinner();
+          pageSpinner.start(
+            `Validating ${discoveryResult.pages.length} ${pluralize(discoveryResult.pages.length, 'page')}`,
+          );
+
+          const { results: pageResults } = await validatePages(discoveryResult);
+          for (const result of pageResults) {
+            results.push({ ...result, itemType: 'Page' });
+          }
+
+          pageSpinner.stop(
+            chalk.green(
+              `Processed ${discoveryResult.pages.length} ${pluralize(discoveryResult.pages.length, 'page')}`,
+            ),
+          );
+        }
+
+        reportResults(results, 'Validation results', 'Item');
 
         const hasErrors = results.some((r) => !r.success);
         if (hasErrors) {

@@ -31,6 +31,7 @@ import {
 } from '../utils/prepare-push';
 import { reportResults } from '../utils/report-results';
 import { createProgressCallback, processInPool } from '../utils/request-pool';
+import { validatePages } from '../utils/validate-page';
 
 import type { Command } from 'commander';
 import type { ApiService } from '../services/api.js';
@@ -605,8 +606,35 @@ export function pushCommand(program: Command): void {
           logInfo: (msg) => p.log.info(msg),
         });
 
-        // Step 6: Push pages
+        // Validate and push pages.
         if (discoveredPages.length > 0) {
+          // Validate pages against the catalog.
+          const validationSpinner = p.spinner();
+          validationSpinner.start(
+            `Validating ${discoveredPages.length} ${pluralize(discoveredPages.length, 'page')}`,
+          );
+
+          const { results: pageValidationResults } =
+            await validatePages(discoveryResult);
+
+          validationSpinner.stop(
+            chalk.green(
+              `Validated ${discoveredPages.length} ${pluralize(discoveredPages.length, 'page')}`,
+            ),
+          );
+
+          if (pageValidationResults.some((r) => !r.success)) {
+            reportResults(
+              pageValidationResults,
+              'Page validation results',
+              'Page',
+            );
+            throw new Error(
+              'Page validation failed. Fix the errors above before pushing.',
+            );
+          }
+
+          // Prepare and push pages.
           const componentVersions = await apiService.listComponentVersions();
 
           const pageSpinner = p.spinner();
