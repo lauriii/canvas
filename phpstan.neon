@@ -56,6 +56,7 @@ parameters:
       path: src/Entity/Pattern.php
 # Canvas' custom PHPStan rules.
 rules:
+  - Canvas\PHPStan\Rules\DisallowDrupalFlushAllCachesRule
   - Canvas\PHPStan\Rules\NoDuplicateTraitUseRule
   - mglaman\PHPStanDrupal\Rules\Drupal\TodoCommentWithIssueUrlRule
 # Run `composer run phpstan-regenerate-ignores-for-11.3-and-higher` to update this list of ignores for Drupal >=11.3.

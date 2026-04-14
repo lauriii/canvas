@@ -99,25 +99,6 @@ function canvas_schema(): array {
 }
 
 /**
- * Implements hook_install().
- */
-function canvas_install(bool $is_syncing): void {
-  if ($is_syncing) {
-    return;
-  }
-  // Ensure canvas_stark is installed.
-  // For that to happen when installing canvas with a recipe, we cannot do this
-  // conditionally based on the `$is_syncing` flag.
-  // @see \Drupal\canvas\Theme\CanvasThemeNegotiator
-  // @see \Drupal\Core\Theme\ThemeNegotiator::determineActiveTheme()
-  \Drupal::service(ThemeInstallerInterface::class)->install(['canvas_stark']);
-
-  // @todo This is a bad practice, and shouldn't be needed, but without it some
-  //   tests are failing. Investigate in https://www.drupal.org/i/3580247
-  drupal_flush_all_caches();
-}
-
-/**
  * Implements hook_module_preinstall().
  */
 function canvas_module_preinstall(string $module): void {

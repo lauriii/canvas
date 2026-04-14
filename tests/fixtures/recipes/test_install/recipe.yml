@@ -1,0 +1,5 @@
+name: Testing install
+type: Test
+description: Tests that Canvas can be installed by a recipe at site install time.
+install:
+  - canvas

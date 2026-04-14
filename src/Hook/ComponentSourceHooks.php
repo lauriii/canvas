@@ -9,6 +9,7 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Asset\AttachedAssetsInterface;
 use Drupal\Core\Asset\LibraryDependencyResolverInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
@@ -36,6 +37,7 @@ readonly final class ComponentSourceHooks {
     private ThemeManagerInterface $themeManager,
     private ConfigFactoryInterface $configFactory,
     private RequestStack $requestStack,
+    private ThemeInstallerInterface $themeInstaller,
   ) {}
 
   const ASSET_LIBRARY_METHOD_MAPPING = [
@@ -60,6 +62,14 @@ readonly final class ComponentSourceHooks {
    */
   #[Hook('modules_installed')]
   public function modulesInstalled(array $modules, bool $is_syncing): void {
+    // Canvas needs canvas_stark in order to work, so *always* install it
+    // regardless of whether config is syncing. The theme installer is smart
+    // enough to return early if canvas_stark is already installed.
+    // @see \Drupal\canvas\Theme\CanvasThemeNegotiator
+    // @see \Drupal\Core\Theme\ThemeNegotiator::determineActiveTheme()
+    if (\in_array('canvas', $modules, TRUE)) {
+      $this->themeInstaller->install(['canvas_stark']);
+    }
     if ($is_syncing) {
       return;
     }
