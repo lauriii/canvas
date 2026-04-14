@@ -123,7 +123,11 @@ class CanvasAiHooks {
             break;
 
           case 'layout':
-            $replacements[$original] = $data['layout'] ?? NULL;
+            // Apostrophes in layout content break YAML parsing when this
+            // token is replaced into default_information_tools.
+            // Fix: double them, since '' is YAML's escape for a literal apostrophe.
+            // @todo Revert this after https://www.drupal.org/project/ai_agents/issues/3584463 gets fixed.
+            $replacements[$original] = isset($data['layout']) ? str_replace("'", "''", $data['layout']) : NULL;
             break;
 
           case 'derived_proptypes':
@@ -131,11 +135,12 @@ class CanvasAiHooks {
             break;
 
           case 'page_title':
-            $replacements[$original] = $data['page_title'] ?? NULL;
+            // Same apostrophe escaping as layout — see comment above.
+            $replacements[$original] = isset($data['page_title']) ? str_replace("'", "''", $data['page_title']) : NULL;
             break;
 
           case 'page_description':
-            $replacements[$original] = $data['page_description'] ?? NULL;
+            $replacements[$original] = isset($data['page_description']) ? str_replace("'", "''", $data['page_description']) : NULL;
             break;
 
           case 'active_component_uuid':
