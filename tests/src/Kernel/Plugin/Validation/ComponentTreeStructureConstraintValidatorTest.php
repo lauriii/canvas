@@ -316,6 +316,33 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           'layout.1.slot' => 'Invalid component tree item with UUID <em class="placeholder">d823d3c9-be9f-4053-8bc9-ad36914c345c</em>. A slot name must be present if a parent uuid is provided.',
         ],
       ],
+      'INVALID: child references parent with invalid component_version' => [
+        [
+          [
+            'uuid' => '2886421e-4ede-4bfb-956c-8afcd4ee8103',
+            'component_id' => 'sdc.canvas_test_sdc.props-slots',
+            'component_version' => 'bad-version',
+          ],
+          [
+            'uuid' => '80bf49ec-3d3f-4e76-98ed-2ce147397643',
+            'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+            'component_version' => 'b1e991f726a2a266',
+            'parent_uuid' => '2886421e-4ede-4bfb-956c-8afcd4ee8103',
+            'slot' => 'the_body',
+          ],
+          // No additional validation errors for the invalid version, no matter how many children that component instance contains.
+          [
+            'uuid' => '80bf49ec-3d3f-4e76-98ed-2ce147397644',
+            'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+            'component_version' => 'b1e991f726a2a266',
+            'parent_uuid' => '2886421e-4ede-4bfb-956c-8afcd4ee8103',
+            'slot' => 'the_body',
+          ],
+        ],
+        [
+          'layout.0.component_version' => "'bad-version' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-slots'. Available versions: '85a5c0c7dd53e0bb'.",
+        ],
+      ],
       'INVALID: valid tree, with unknown components' => [
         [
           [
