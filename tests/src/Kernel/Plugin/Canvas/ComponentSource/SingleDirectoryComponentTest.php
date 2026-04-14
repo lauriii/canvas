@@ -228,6 +228,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
       'sdc.canvas_test_sdc.one_column',
       'sdc.canvas_test_sdc.props-no-slots',
       'sdc.canvas_test_sdc.props-slots',
+      'sdc.canvas_test_sdc.select-fields',
       'sdc.canvas_test_sdc.shoe_badge',
       'sdc.canvas_test_sdc.shoe_tab',
       'sdc.canvas_test_sdc.shoe_tab_group',
@@ -601,6 +602,25 @@ HTML,
           'library' => [
             'core/components.canvas_test_sdc--image-required-with-example',
             'core/components.canvas_test_sdc--image-required-with-example',
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.select-fields' => [
+        'html' => <<<HTML
+<div class="select-fields">
+      <p class="select-fields__size">Size: medium</p>
+        <ul class="select-fields__colors">
+              <li class="select-fields__color">red</li>
+              <li class="select-fields__color">blue</li>
+          </ul>
+  </div>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.canvas_test_sdc--select-fields',
+            'core/components.canvas_test_sdc--select-fields',
           ],
         ],
       ],
@@ -2397,6 +2417,44 @@ HTML
           ],
         ],
       ],
+      'sdc.canvas_test_sdc.select-fields' => [
+        'prop_field_definitions' => [
+          'size' => [
+            'required' => FALSE,
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              [
+                'value' => 'medium',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+          'colors' => [
+            'required' => FALSE,
+            'field_type' => 'list_string',
+            'cardinality' => -1,
+            'field_storage_settings' => [
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              [
+                'value' => 'red',
+              ],
+              [
+                'value' => 'blue',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+        ],
+      ],
       'sdc.canvas_test_sdc.shoe_badge' => [
         'prop_field_definitions' => [
           'variant' => [
@@ -2957,6 +3015,13 @@ HTML
       'sdc.canvas_test_sdc.props-slots' => [
         'module' => [
           'core',
+          'canvas_test_sdc',
+        ],
+      ],
+      'sdc.canvas_test_sdc.select-fields' => [
+        'module' => [
+          'core',
+          'options',
           'canvas_test_sdc',
         ],
       ],
@@ -3839,12 +3904,6 @@ HTML
                   'blue',
                   'green_light',
                   'yellow',
-                ],
-                'meta:enum' => [
-                  'red' => 'Red',
-                  'blue' => 'Blue',
-                  'green.light' => 'Light Green',
-                  'yellow' => 'Yellow',
                 ],
               ],
             ],
@@ -4983,6 +5042,72 @@ HTML
                 0 => ['value' => 'There goes my hero'],
               ],
               'resolved' => 'There goes my hero',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.canvas_test_sdc.select-fields' => [
+        'expected_output_selectors' => [
+          ':contains("medium")',
+          ':contains("red")',
+          ':contains("blue")',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'size' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                'small',
+                'medium',
+                'large',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 'medium'],
+              ],
+              'resolved' => 'medium',
+            ],
+          ],
+          'colors' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'array',
+              'items' => [
+                'type' => 'string',
+                'enum' => [
+                  'red',
+                  'green',
+                  'blue',
+                  'yellow',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+              ],
+              'cardinality' => -1,
+            ],
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 'red'],
+                1 => ['value' => 'blue'],
+              ],
+              'resolved' => ['red', 'blue'],
             ],
           ],
         ],

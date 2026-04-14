@@ -23,6 +23,7 @@ export interface FieldDataItem {
     properties?: object;
     enum?: any[];
     format?: string;
+    maxItems?: number;
   };
   default_values: DefaultValues;
   [x: string | number | symbol]: unknown;

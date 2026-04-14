@@ -3,6 +3,7 @@ import {
   formStateToObject,
   getPropSchemas,
   getPropsValues,
+  propInputData,
   validateProp,
 } from '@/components/form/formUtil';
 
@@ -47,6 +48,9 @@ Value`,
   'canvas_component_props[all-props][media][selection][0][target_id]': 3,
   'canvas_component_props[all-props][mediaMultiple][selection][0][target_id]': 3,
   'canvas_component_props[all-props][mediaMultiple][selection][1][target_id]': 4,
+  'canvas_component_props[all-props][colors][]': ['green', 'yellow'],
+  'canvas_component_props[all-props][singleColor][]': ['green'],
+  'canvas_component_props[all-props][emptyColors][]': [],
   form_build_id: 'this-is-a-form-build-id',
   form_token: 'this-is-a-form-token',
   form_id: 'component_instance_form',
@@ -333,7 +337,35 @@ Value`,
       mediaMultiple: {
         selection: [{ target_id: '3' }, { target_id: '4' }],
       },
+      colors: ['green', 'yellow'],
+      singleColor: ['green'],
+      emptyColors: [],
     });
+  });
+
+  it('Should handle array values without [] suffix in key', () => {
+    // Same test but with keys lacking the Drupal `[]` suffix, e.g. when
+    // dispatched directly from JavaScript rather than server-rendered HTML.
+    const formStateWithoutBrackets = {
+      ...formState,
+      'canvas_component_props[all-props][colors]': ['green', 'yellow'],
+      'canvas_component_props[all-props][singleColor]': ['green'],
+      'canvas_component_props[all-props][emptyColors]': [],
+    };
+    // Remove the []-suffixed keys.
+    delete formStateWithoutBrackets[
+      'canvas_component_props[all-props][colors][]'
+    ];
+    delete formStateWithoutBrackets[
+      'canvas_component_props[all-props][singleColor][]'
+    ];
+    delete formStateWithoutBrackets[
+      'canvas_component_props[all-props][emptyColors][]'
+    ];
+    const asObject = formStateToObject(formStateWithoutBrackets, 'all-props');
+    expect(asObject.colors).to.deep.equal(['green', 'yellow']);
+    expect(asObject.singleColor).to.deep.equal(['green']);
+    expect(asObject.emptyColors).to.deep.equal([]);
   });
 });
 
@@ -371,7 +403,58 @@ Value`,
       ],
       media: '3',
       mediaMultiple: ['3', '4'],
+      colors: ['green', 'yellow'],
+      singleColor: ['green'],
+      emptyColors: [],
     });
+  });
+
+  it('Should truncate array props that exceed maxItems', () => {
+    // The component should not fail to render if there are more items selected
+    // This applies to both SDC and code components.
+    const maxItemsFormState = {
+      'canvas_component_props[all-props][tags][]': ['red', 'green', 'blue'],
+      form_build_id: 'test-form-build-id',
+      form_token: 'test-form-token',
+      form_id: 'component_instance_form',
+    };
+    const maxItemsInputAndUiData = {
+      version: '82b745980fd23b55',
+      selectedComponent: 'all-props',
+      selectedComponentType: 'sdc.sdc_test_all_props.all-props',
+      layout: [],
+      model: {
+        'all-props': {
+          resolved: {},
+          source: {},
+        },
+      },
+      components: {
+        'sdc.sdc_test_all_props.all-props': {
+          propSources: {
+            tags: {
+              jsonSchema: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                  enum: ['red', 'green', 'blue', 'yellow'],
+                },
+                maxItems: 2,
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const { propsValues } = getPropsValues(
+      maxItemsFormState,
+      maxItemsInputAndUiData,
+      {},
+    );
+
+    // Should be truncated to 2 items (maxItems: 2), not 3.
+    expect(propsValues.tags).to.deep.equal(['red', 'green']);
   });
 });
 
@@ -486,5 +569,60 @@ describe('validateProp', () => {
   it('fails when caller passes string for number prop (caller must coerce)', () => {
     const [valid] = validateProp('numProp', '123.45', minimalInputAndUiData);
     expect(valid).to.equal(false);
+  });
+
+  it('passes validation for array prop whose items schema contains meta:enum', () => {
+    const inputAndUiData = {
+      ...minimalInputAndUiData,
+      components: {
+        'test.type': {
+          propSources: {
+            colors: {
+              jsonSchema: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                  enum: ['red', 'green', 'blue'],
+                  'meta:enum': { red: 'Red', green: 'Green', blue: 'Blue' },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const [valid] = validateProp('colors', ['red'], inputAndUiData);
+    expect(valid).to.equal(true);
+  });
+});
+
+describe('propInputData', () => {
+  it('should produce clean prop names for single-value direct props', () => {
+    const formStateWithDirectProp = {
+      'canvas_component_props[comp1][size]': 'medium',
+      form_build_id: 'test',
+      form_token: 'test',
+      form_id: 'component_instance_form',
+    };
+    const uiData = {
+      selectedComponent: 'comp1',
+      selectedComponentType: 'sdc.test.comp1',
+      components: {
+        'sdc.test.comp1': {
+          propSources: {
+            size: {
+              jsonSchema: {
+                type: 'string',
+                enum: ['small', 'medium', 'large'],
+              },
+            },
+          },
+        },
+      },
+    };
+    const { propsInThisForm } = propInputData(formStateWithDirectProp, uiData);
+    expect(propsInThisForm).to.include('size');
+    // Single value props should not have brackets.
+    expect(propsInThisForm).to.not.include(']');
   });
 });

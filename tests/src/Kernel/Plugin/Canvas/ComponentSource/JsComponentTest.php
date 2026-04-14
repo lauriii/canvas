@@ -1798,11 +1798,6 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
                   'medium',
                   'large',
                 ],
-                'meta:enum' => [
-                  'small' => 'Small',
-                  'medium' => 'Medium',
-                  'large' => 'Large',
-                ],
               ],
             ],
             'sourceType' => 'static:field_item:list_string',

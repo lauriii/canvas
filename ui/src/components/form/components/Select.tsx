@@ -16,9 +16,14 @@ interface SelectProps {
   }>;
 }
 const Select: React.FC<SelectProps> = ({ attributes = {}, options = [] }) => {
+  // Extract `value` before passing attributes to a2p, because a2p joins arrays
+  // with spaces (intended for CSS classes). For <select multiple>, `value` must
+  // be an array so React can properly control which options are selected.
+  const { value, ...otherAttributes } = attributes;
   return (
     <select
-      {...a2p(attributes)}
+      {...a2p(otherAttributes)}
+      value={value}
       className={clsx(attributes.class || '', styles.select)}
       ref={(element) => {
         if (element && attributes.onChange) {

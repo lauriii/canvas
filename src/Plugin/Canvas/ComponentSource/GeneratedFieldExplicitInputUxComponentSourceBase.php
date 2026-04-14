@@ -1013,7 +1013,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // @see \Drupal\canvas\Form\ComponentInstanceForm
       $field_data[$prop_name] = [
         'required' => \in_array($prop_name, $this->getMetadata()->schema['required'] ?? [], TRUE),
-        'jsonSchema' => array_diff_key($prop_shape->resolvedSchema, array_flip(['meta:enum', 'x-translation-context'])),
+        'jsonSchema' => self::stripNonStandardJsonSchemaKeys($prop_shape->resolvedSchema),
       ] + \array_diff_key($default_static_prop_source->toArray(), \array_flip(['value']));
       if ($default_resolved->value !== NULL) {
         $field_data[$prop_name]['default_values']['source'] = $default_source_value;
@@ -1335,8 +1335,8 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
           $prop_evaluates_to_nothing = match ($source->getCardinality()) {
             // Nothing for single-cardinality prop: NULL evaluation result.
             1 => $evaluated === NULL,
-            // Nothing for multi-cardinality prop: empty array eval result.
-            default => $evaluated === [],
+            // Nothing for multi-cardinality prop: empty result.
+            default => $source->isEmpty(),
           };
           if (!$is_required_prop && $prop_evaluates_to_nothing) {
             continue;
@@ -1476,6 +1476,29 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       }
     }
     return $source->toArray();
+  }
+
+  /**
+   * Strips non-standard JSON Schema keys recursively from a schema array.
+   *
+   * Keys like `meta:enum` and `x-translation-context` are valid in SDC
+   * component definitions but are not part of the JSON Schema spec. They must
+   * be removed before sending the schema to the client, where a strict-mode
+   * JSON Schema validator (Ajv) would reject them as unknown keywords.
+   *
+   * @param array<string, mixed> $schema
+   *
+   * @return array<string, mixed>
+   */
+  protected static function stripNonStandardJsonSchemaKeys(array $schema): array {
+    $keys_to_remove = ['meta:enum', 'x-translation-context'];
+    $schema = array_diff_key($schema, array_flip($keys_to_remove));
+    foreach ($schema as $key => $value) {
+      if (\is_array($value)) {
+        $schema[$key] = self::stripNonStandardJsonSchemaKeys($value);
+      }
+    }
+    return $schema;
   }
 
   /**

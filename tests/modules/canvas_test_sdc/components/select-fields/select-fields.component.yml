@@ -1,0 +1,38 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Select fields
+description: A component with a single-select and a multi-select field.
+props:
+  type: object
+  properties:
+    size:
+      type: string
+      title: Size
+      description: Pick one size.
+      enum:
+        - small
+        - medium
+        - large
+      meta:enum:
+        small: Small
+        medium: Medium
+        large: Large
+      examples:
+        - medium
+    colors:
+      type: array
+      title: Colors
+      description: Pick one or more colors.
+      items:
+        type: string
+        enum:
+          - red
+          - green
+          - blue
+          - yellow
+        meta:enum:
+          red: Red
+          green: Green
+          blue: Blue
+          yellow: Yellow
+      examples:
+        - [red, blue]

@@ -183,10 +183,11 @@ const ComponentInstanceFormRenderer: React.FC<
       // We only care about the component instance form, not the entity form.
       if (formId === 'component_instance_form') {
         // Apply transforms for form state.
+        const transforms = persistentTransforms.current ?? {};
         const { propsValues: values, selectedModel } = getPropsValues(
           updates,
           inputAndUiData,
-          currentData ? currentData.transforms : {},
+          transforms,
         );
 
         if (Object.keys(values).length === 0) {
@@ -202,7 +203,7 @@ const ComponentInstanceFormRenderer: React.FC<
             ...inputAndUiData,
             model: { [selectedComponentId]: selectedModel },
           },
-          currentData ? currentData.transforms : {},
+          transforms,
         );
 
         // And then send data to backend - this will:

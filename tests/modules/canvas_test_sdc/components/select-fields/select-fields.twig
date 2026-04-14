@@ -1,0 +1,12 @@
+<div class="select-fields">
+  {% if size is not empty %}
+    <p class="select-fields__size">Size: {{ size }}</p>
+  {% endif %}
+  {% if colors is not empty %}
+    <ul class="select-fields__colors">
+      {% for color in colors %}
+        <li class="select-fields__color">{{ color }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>

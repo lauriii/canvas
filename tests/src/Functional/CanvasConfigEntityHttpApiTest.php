@@ -197,6 +197,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
         'sdc.canvas_test_sdc.image',
         'sdc.canvas_test_sdc.attributes',
         'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop',
+        'sdc.canvas_test_sdc.select-fields',
         'sdc.canvas_test_sdc.sparkline',
         'sdc.canvas_test_sdc.tags',
         'sdc.canvas_test_sdc.image-optional-without-example',

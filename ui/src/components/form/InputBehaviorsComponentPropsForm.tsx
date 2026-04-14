@@ -177,6 +177,14 @@ export const InputBehaviorsComponentPropsForm = (
 
   const parseNewValue = (e: React.ChangeEvent) => {
     const schemas = getPropSchemas(inputAndUiData);
+    const target = e.target as HTMLInputElement | HTMLSelectElement;
+
+    // A <select multiple> element's .value is only the last-clicked option.
+    // For array props rendered as multi-selects, collect every selected option.
+    if (target instanceof HTMLSelectElement && target.multiple) {
+      return Array.from(target.selectedOptions).map((opt) => opt.value);
+    }
+
     const rawValue = parseValue(
       (e.target as HTMLInputElement | HTMLSelectElement).value,
       e.target as HTMLInputElement,
@@ -232,16 +240,22 @@ export const InputBehaviorsComponentPropsForm = (
     // and there is no value stored for this prop, then we set that _none as the
     // selected option. This logic is only necessary in the component instance
     // form, hence it being located here.
-    if (
-      props.options.some((option: PropsValues) => option.value === '_none') &&
-      !inputAndUiData?.model?.[selectedComponent as keyof ComponentModels]
-        ?.resolved?.[propName]
-    ) {
-      propsOverrides.options = props.options.map((option: PropsValues) =>
-        option.value === '_none'
-          ? { ...option, selected: true }
-          : { ...option, selected: false },
-      );
+    if (props.options.some((option: PropsValues) => option.value === '_none')) {
+      if ('multiple' in props.attributes) {
+        // For multi-select (array props), _none has no meaning: an empty
+        // selection is represented as an empty array. Remove it entirely.
+        propsOverrides.options = props.options.filter(
+          (option: PropsValues) => option.value !== '_none',
+        );
+      } else if (
+        !inputAndUiData?.model?.[selectedComponent as keyof ComponentModels]
+          ?.resolved?.[propName]
+      ) {
+        propsOverrides.options = props.options.map((option: PropsValues) => ({
+          ...option,
+          selected: option.value === '_none',
+        }));
+      }
     }
   }
 
