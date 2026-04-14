@@ -1,9 +1,3 @@
-.dialogContent {
-  padding: var(--space-4) !important;
-  border-radius: var(--radius-3) !important;
-  box-shadow: var(--shadow-2) !important;
-}
-
 .headerCloseButton {
   position: absolute;
   top: var(--space-4);

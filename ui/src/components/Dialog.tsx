@@ -110,7 +110,7 @@ const Dialog = ({
         </Box>
       )}
       <ThemedDialog.Title className={styles.title}>
-        <Text size="1" weight="bold">
+        <Text size="2" weight="bold">
           {title}
         </Text>
       </ThemedDialog.Title>
