@@ -41,6 +41,7 @@ interface PullOptions {
   siteUrl?: string;
   scope?: string;
   includePages?: boolean;
+  includeBrandKit?: boolean;
   dir?: string;
   yes?: boolean;
   skipOverwrite?: boolean;
@@ -512,7 +513,7 @@ export function pullCommand(program: Command): void {
   program
     .command('pull')
     .description(
-      'pull components, global CSS, fonts, and optional pages from Drupal',
+      'pull components, global CSS, and optional fonts and pages from Drupal',
     )
     .option('--client-id <id>', 'Client ID')
     .option('--client-secret <secret>', 'Client Secret')
@@ -522,6 +523,15 @@ export function pullCommand(program: Command): void {
       new Option(
         '--include-pages [enabled]',
         'Include pages in the pull operation',
+      )
+        .preset('true')
+        .argParser(parseBooleanOption)
+        .default(undefined),
+    )
+    .addOption(
+      new Option(
+        '--include-brand-kit [enabled]',
+        'Include brand kit (fonts) in the pull operation',
       )
         .preset('true')
         .argParser(parseBooleanOption)
@@ -547,11 +557,13 @@ export function pullCommand(program: Command): void {
         const config = getConfig();
         const apiService = await createApiService();
         const includesPages = config.includePages;
+        const includesBrandKit = config.includeBrandKit;
 
         const s = p.spinner();
-        const contentLabel = includesPages
-          ? 'components, global CSS, fonts, and pages'
-          : 'components, global CSS, and fonts';
+        const contentParts: string[] = ['components', 'global CSS'];
+        if (includesBrandKit) contentParts.push('fonts');
+        if (includesPages) contentParts.push('pages');
+        const contentLabel = contentParts.join(', ');
 
         // Build pull tasks.
         const projectRoot = process.cwd();
@@ -566,8 +578,11 @@ export function pullCommand(program: Command): void {
             resolveHostGlobalCssPath(projectRoot),
             options.skipOverwrite ?? false,
           ),
-          createFontsPullTask(apiService, projectRoot),
         ];
+
+        if (includesBrandKit) {
+          tasks.push(createFontsPullTask(apiService, projectRoot));
+        }
 
         if (includesPages) {
           tasks.push(

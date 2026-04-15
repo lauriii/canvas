@@ -50,6 +50,7 @@ interface PushOptions {
   siteUrl?: string;
   scope?: string;
   includePages?: boolean;
+  includeBrandKit?: boolean;
   dir?: string;
   yes?: boolean;
 }
@@ -256,7 +257,7 @@ export function pushCommand(program: Command): void {
   program
     .command('push')
     .description(
-      'build and push local components, global CSS, vendor/local artifacts, and optional pages to Drupal',
+      'build and push local components, global CSS, vendor/local artifacts, and optional fonts and pages to Drupal',
     )
     .option('--client-id <id>', 'Client ID')
     .option('--client-secret <secret>', 'Client Secret')
@@ -271,6 +272,15 @@ export function pushCommand(program: Command): void {
         .argParser(parseBooleanOption)
         .default(undefined),
     )
+    .addOption(
+      new Option(
+        '--include-brand-kit [enabled]',
+        'Include brand kit (fonts) in the push operation',
+      )
+        .preset('true')
+        .argParser(parseBooleanOption)
+        .default(undefined),
+    )
     .option('-d, --dir <directory>', 'Component directory')
     .option('-y, --yes', 'Skip confirmation prompts')
     .action(async (options: PushOptions) => {
@@ -279,7 +289,6 @@ export function pushCommand(program: Command): void {
         p.intro(chalk.bold('Drupal Canvas CLI: push'));
         // Update config with CLI options.
         updateConfigFromOptions(options);
-
         await ensureConfig([
           'siteUrl',
           'clientId',
@@ -290,6 +299,7 @@ export function pushCommand(program: Command): void {
         const config = getConfig();
         const { componentDir, aliasBaseDir, outputDir } = config;
         const includesPages = config.includePages;
+        const includesBrandKit = config.includeBrandKit;
         const hasBrandKitFontsConfig = config.fonts !== undefined;
         // Step 1. Discover all components and pages.
         const discoveryResult = await discoverCanvasProject({
@@ -308,7 +318,7 @@ export function pushCommand(program: Command): void {
         if (
           components.length === 0 &&
           discoveredPages.length === 0 &&
-          !hasBrandKitFontsConfig
+          !(includesBrandKit && hasBrandKitFontsConfig)
         ) {
           if (hasIgnoredPages) {
             p.log.info(
@@ -323,6 +333,7 @@ export function pushCommand(program: Command): void {
         if (
           components.length === 0 &&
           discoveredPages.length === 0 &&
+          includesBrandKit &&
           hasBrandKitFontsConfig
         ) {
           p.log.info(
@@ -347,7 +358,7 @@ export function pushCommand(program: Command): void {
         const localNames = new Set(components.map((c) => c.name));
 
         let remoteBrandKitFonts: BrandKitFontEntry[] = [];
-        if (config.fonts !== undefined) {
+        if (includesBrandKit && config.fonts !== undefined) {
           try {
             const brandKit = await apiService.getBrandKit();
             remoteBrandKitFonts = brandKit.fonts ?? [];
@@ -406,7 +417,7 @@ export function pushCommand(program: Command): void {
               },
             ],
           })),
-          ...(config.fonts !== undefined
+          ...(includesBrandKit && config.fonts !== undefined
             ? buildFontPushPlannedResults(config.fonts, remoteBrandKitFonts, {
                 create: operationLabels.create,
                 update: operationLabels.update,
@@ -437,7 +448,7 @@ export function pushCommand(program: Command): void {
               `${discoveredPages.length} ${pluralize(discoveredPages.length, 'page')}`,
             );
           }
-          if (hasBrandKitFontsConfig) {
+          if (includesBrandKit && hasBrandKitFontsConfig) {
             parts.push('Brand Kit fonts (canvas.brand-kit.json)');
           }
           const confirmed = await p.confirm({
@@ -553,7 +564,7 @@ export function pushCommand(program: Command): void {
         includeGlobalCss = true;
 
         // Step 4b: Push fonts from canvas.brand-kit.json (when configured)
-        if (config.fonts) {
+        if (includesBrandKit && config.fonts) {
           const fontOutcomeLabels: Record<string, string> = {
             create: chalk.green('Create'),
             update: chalk.cyan('Update'),

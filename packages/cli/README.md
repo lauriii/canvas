@@ -172,18 +172,20 @@ You can copy the
 [`.env.example` file](https://git.drupalcode.org/project/canvas/-/blob/1.x/cli/.env.example)
 to get started.
 
-| CLI argument      | Environment variable   | Description                                                                                                                                                                                           |
-| ----------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--site-url`      | `CANVAS_SITE_URL`      | Base URL of your Drupal site. Can point to different environments (local dev, staging, production).                                                                                                   |
-| `--client-id`     | `CANVAS_CLIENT_ID`     | OAuth client ID. Different environments may have different OAuth clients with different permissions.                                                                                                  |
-| `--client-secret` | `CANVAS_CLIENT_SECRET` | OAuth client secret. This is a secret credential that must never be committed to version control.                                                                                                     |
-| `--scope`         | `CANVAS_SCOPE`         | (Optional) Space-separated list of OAuth scopes to request. Tied to your specific Drupal site's OAuth configuration. Defaults to standard scopes.                                                     |
-| _(none)_          | `CANVAS_ACCESS_TOKEN`  | (Optional) Pre-issued Bearer token. When set, skips the OAuth client credentials flow entirely. `CANVAS_CLIENT_ID`, `CANVAS_CLIENT_SECRET`, and `CANVAS_SCOPE` are ignored. Must not be empty if set. |
-| `--include-pages` | `CANVAS_INCLUDE_PAGES` | (Optional) Include pages in `pull` and `push`. Defaults to `false`. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                                   |
+| CLI argument          | Environment variable       | Description                                                                                                                                                                                           |
+| --------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--site-url`          | `CANVAS_SITE_URL`          | Base URL of your Drupal site. Can point to different environments (local dev, staging, production).                                                                                                   |
+| `--client-id`         | `CANVAS_CLIENT_ID`         | OAuth client ID. Different environments may have different OAuth clients with different permissions.                                                                                                  |
+| `--client-secret`     | `CANVAS_CLIENT_SECRET`     | OAuth client secret. This is a secret credential that must never be committed to version control.                                                                                                     |
+| `--scope`             | `CANVAS_SCOPE`             | (Optional) Space-separated list of OAuth scopes to request. Tied to your specific Drupal site's OAuth configuration. Defaults to standard scopes.                                                     |
+| _(none)_              | `CANVAS_ACCESS_TOKEN`      | (Optional) Pre-issued Bearer token. When set, skips the OAuth client credentials flow entirely. `CANVAS_CLIENT_ID`, `CANVAS_CLIENT_SECRET`, and `CANVAS_SCOPE` are ignored. Must not be empty if set. |
+| `--include-pages`     | `CANVAS_INCLUDE_PAGES`     | (Optional) Include pages in `pull` and `push`. Defaults to `false`. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                                   |
+| `--include-brand-kit` | `CANVAS_INCLUDE_BRAND_KIT` | (Optional) Include brand kit (fonts) in `pull` and `push`. Defaults to `false`. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                       |
 
 **Note:** When `CANVAS_SCOPE` is unset, the CLI uses the `canvas_oauth`
-defaults, including `canvas:brand_kit`. With `--include-pages` or
-`CANVAS_INCLUDE_PAGES`, it also adds the `canvas:page:*` scopes.
+defaults. With `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT`, it adds the
+`canvas:brand_kit` scope. With `--include-pages` or `CANVAS_INCLUDE_PAGES`, it
+also adds the `canvas:page:*` scopes.
 
 #### Configuration Precedence
 
@@ -430,7 +432,8 @@ font files into a `fonts/` directory, and adds local `src` entries to
 weight + style). Variants already present in your config (e.g., from a previous
 push) are skipped, so push-then-pull is idempotent. New variants added via the
 Canvas UI for a family you already have in config are downloaded and appended to
-`families`. Requires the `canvas:brand_kit` OAuth scope.
+`families`. Requires `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT` which
+will add the `canvas:brand_kit` OAuth scope.
 
 ---
 
@@ -748,7 +751,8 @@ Tailwind CSS, and uploads the selected content to your Drupal site including:
 2. **Global CSS** - Tailwind CSS assets uploaded as asset_library
 3. **Fonts** - If `canvas.brand-kit.json` is present, fonts are resolved (via
    unifont or local `src`), uploaded, and synced to the global Brand Kit.
-   Requires `canvas:brand_kit` OAuth scope. See
+   Requires `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT` which will add
+   the `canvas:brand_kit` OAuth scope. See
    [Font push (Brand Kit)](#font-push-brand-kit).
 4. **Vendor artifacts** - Bundled third-party dependencies
 5. **Local artifacts** - Bundled local imports (e.g., `@/utils`)

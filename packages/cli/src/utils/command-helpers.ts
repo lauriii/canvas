@@ -37,6 +37,7 @@ export function updateConfigFromOptions(options: {
   dir?: string;
   scope?: string;
   includePages?: boolean;
+  includeBrandKit?: boolean;
   all?: boolean;
   aliasBaseDir?: string;
   outputDir?: string;
@@ -53,7 +54,28 @@ export function updateConfigFromOptions(options: {
       !process.env.CANVAS_SCOPE &&
       usesManagedDefaultScope(currentConfig.scope)
     ) {
-      setConfig({ scope: getDefaultScope(options.includePages) });
+      setConfig({
+        scope: getDefaultScope(
+          options.includePages,
+          currentConfig.includeBrandKit,
+        ),
+      });
+    }
+  }
+  if (typeof options.includeBrandKit === 'boolean') {
+    const currentConfig = getConfig();
+    setConfig({ includeBrandKit: options.includeBrandKit });
+    if (
+      !options.scope &&
+      !process.env.CANVAS_SCOPE &&
+      usesManagedDefaultScope(currentConfig.scope)
+    ) {
+      setConfig({
+        scope: getDefaultScope(
+          currentConfig.includePages,
+          options.includeBrandKit,
+        ),
+      });
     }
   }
   if (options.scope) setConfig({ scope: options.scope });

@@ -79,6 +79,7 @@ export interface Config {
   scope: string;
   userAgent: string;
   includePages: boolean;
+  includeBrandKit: boolean;
   all?: boolean;
   // The following properties are loaded from canvas.config.json.
   aliasBaseDir: string;
@@ -136,10 +137,12 @@ const {
 } = resolveCanvasConfig({ hostRoot: process.cwd() });
 
 export const DEFAULT_INCLUDE_PAGES = false;
+export const DEFAULT_INCLUDE_BRAND_KIT = false;
 
-const DEFAULT_SCOPE =
-  'canvas:js_component canvas:asset_library canvas:brand_kit';
+const DEFAULT_SCOPE = 'canvas:js_component canvas:asset_library';
 const DEFAULT_SCOPE_WITH_PAGES = `${DEFAULT_SCOPE} canvas:page:create canvas:page:read canvas:page:edit`;
+const DEFAULT_SCOPE_WITH_BRAND_KIT = `${DEFAULT_SCOPE} canvas:brand_kit`;
+const DEFAULT_SCOPE_WITH_PAGES_AND_BRAND_KIT = `${DEFAULT_SCOPE_WITH_PAGES} canvas:brand_kit`;
 
 export function parseBooleanSetting(value: string): boolean | undefined {
   const normalizedValue = value.trim().toLowerCase();
@@ -155,15 +158,29 @@ export function parseBooleanSetting(value: string): boolean | undefined {
   return undefined;
 }
 
-export function getDefaultScope(includePages: boolean): string {
-  return includePages ? DEFAULT_SCOPE_WITH_PAGES : DEFAULT_SCOPE;
+export function getDefaultScope(
+  includePages: boolean,
+  includeBrandKit: boolean = false,
+): string {
+  if (includePages && includeBrandKit) {
+    return DEFAULT_SCOPE_WITH_PAGES_AND_BRAND_KIT;
+  }
+  if (includePages) {
+    return DEFAULT_SCOPE_WITH_PAGES;
+  }
+  if (includeBrandKit) {
+    return DEFAULT_SCOPE_WITH_BRAND_KIT;
+  }
+  return DEFAULT_SCOPE;
 }
 
 export function usesManagedDefaultScope(scope: string): boolean {
   return (
     scope.length === 0 ||
     scope === DEFAULT_SCOPE ||
-    scope === DEFAULT_SCOPE_WITH_PAGES
+    scope === DEFAULT_SCOPE_WITH_PAGES ||
+    scope === DEFAULT_SCOPE_WITH_BRAND_KIT ||
+    scope === DEFAULT_SCOPE_WITH_PAGES_AND_BRAND_KIT
   );
 }
 
@@ -180,13 +197,20 @@ const includePages = getEnvBoolean(
   DEFAULT_INCLUDE_PAGES,
 );
 
+const includeBrandKit = getEnvBoolean(
+  process.env.CANVAS_INCLUDE_BRAND_KIT,
+  DEFAULT_INCLUDE_BRAND_KIT,
+);
+
 let config: Config = {
   siteUrl: process.env.CANVAS_SITE_URL || '',
   clientId: process.env.CANVAS_CLIENT_ID || '',
   clientSecret: process.env.CANVAS_CLIENT_SECRET || '',
-  scope: process.env.CANVAS_SCOPE || getDefaultScope(includePages),
+  scope:
+    process.env.CANVAS_SCOPE || getDefaultScope(includePages, includeBrandKit),
   userAgent: process.env.CANVAS_USER_AGENT || '',
   includePages,
+  includeBrandKit,
   aliasBaseDir: aliasBaseDir,
   outputDir: outputDir,
   componentDir: componentDir,

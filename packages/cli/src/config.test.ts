@@ -44,9 +44,10 @@ describe('config', () => {
         fonts: undefined,
         globalCssPath: './src/components/global.css',
         includePages: false,
+        includeBrandKit: false,
         outputDir: 'dist',
         pagesDir: './pages',
-        scope: 'canvas:js_component canvas:asset_library canvas:brand_kit',
+        scope: 'canvas:js_component canvas:asset_library',
         siteUrl: '',
         userAgent: '',
       });
@@ -66,9 +67,10 @@ describe('config', () => {
         fonts: undefined,
         globalCssPath: './src/components/global.css',
         includePages: false,
+        includeBrandKit: false,
         outputDir: 'dist',
         pagesDir: './pages',
-        scope: 'canvas:js_component canvas:asset_library canvas:brand_kit',
+        scope: 'canvas:js_component canvas:asset_library',
         siteUrl: 'https://example.com',
         userAgent: '',
       });
@@ -259,6 +261,7 @@ describe('config', () => {
         fonts: undefined,
         globalCssPath: './src/components/global.css',
         includePages: true,
+        includeBrandKit: false,
         outputDir: 'dist',
         pagesDir: './pages',
         scope:
@@ -280,7 +283,8 @@ describe('config', () => {
         clientId: '',
         clientSecret: '',
         includePages: false,
-        scope: 'canvas:js_component canvas:asset_library canvas:brand_kit',
+        includeBrandKit: false,
+        scope: 'canvas:js_component canvas:asset_library',
         componentDir: process.cwd(),
         deprecatedComponentDir: './components',
         fonts: undefined,
@@ -298,7 +302,7 @@ describe('config', () => {
 
       expect(getConfig().includePages).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:brand_kit canvas:page:create canvas:page:read canvas:page:edit',
+        'canvas:js_component canvas:asset_library canvas:page:create canvas:page:read canvas:page:edit',
       );
     });
   });
