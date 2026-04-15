@@ -39,17 +39,28 @@ const DraggableDialogWrapper: React.FC<DraggableDialogWrapperProps> = ({
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
+      setIsDragging(false);
       onOpenChange(open);
       setPosition(initialPosition);
     },
     [initialPosition, onOpenChange],
   );
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+
+  const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    // Only begin dragging from primary (left) mouse button.
+    if (event.button !== 0) {
+      return;
+    }
     setIsDragging(true);
   };
 
   const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
+    (event: MouseEvent) => {
+      // Stop stale drag states if we missed mouseup outside the document/iframe.
+      if (isDragging && event.buttons === 0) {
+        setIsDragging(false);
+        return;
+      }
       if (isDragging && dialogRef.current) {
         // Ensure the dialog cannot be dragged so far off the edge that it can't be dragged back on again.
         const innerBound = 40;
@@ -58,8 +69,8 @@ const DraggableDialogWrapper: React.FC<DraggableDialogWrapperProps> = ({
         const minY = 0 - innerBound / 2;
         const maxY = windowHeight - innerBound;
         setPosition((prevPosition) => {
-          const newX = prevPosition.x + e.movementX;
-          const newY = prevPosition.y + e.movementY;
+          const newX = prevPosition.x + event.movementX;
+          const newY = prevPosition.y + event.movementY;
 
           return {
             x: Math.max(minX, Math.min(newX, maxX)),
@@ -79,14 +90,17 @@ const DraggableDialogWrapper: React.FC<DraggableDialogWrapperProps> = ({
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('blur', handleMouseUp);
     } else {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('blur', handleMouseUp);
     }
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('blur', handleMouseUp);
     };
   }, [handleMouseMove, isDragging]);
 
