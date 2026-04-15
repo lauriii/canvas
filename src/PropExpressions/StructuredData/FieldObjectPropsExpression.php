@@ -32,7 +32,6 @@ final class FieldObjectPropsExpression implements EntityFieldBasedPropExpression
     public readonly int|null $delta,
     public readonly array $objectPropsToFieldProps,
   ) {
-    \assert(!empty($this->objectPropsToFieldProps));
     \assert(Inspector::assertAllStrings(\array_keys($this->objectPropsToFieldProps)));
     \assert(Inspector::assertAll(function ($expr) {
       return $expr instanceof FieldPropExpression || $expr instanceof ReferenceFieldPropExpression;

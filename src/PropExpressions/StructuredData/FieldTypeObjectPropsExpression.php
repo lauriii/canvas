@@ -31,7 +31,6 @@ final class FieldTypeObjectPropsExpression implements FieldTypeBasedPropExpressi
     public readonly string $fieldType,
     public readonly array $objectPropsToFieldTypeProps,
   ) {
-    \assert(!empty($this->objectPropsToFieldTypeProps));
     \assert(Inspector::assertAllStrings(\array_keys($this->objectPropsToFieldTypeProps)));
     \assert(Inspector::assertAll(function ($expr) {
       return $expr instanceof FieldTypePropExpression || $expr instanceof ReferenceFieldTypePropExpression;

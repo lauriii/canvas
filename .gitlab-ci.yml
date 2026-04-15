@@ -105,7 +105,11 @@ variables:
   # Enable testing against next minor version of Drupal core
   OPT_IN_TEST_NEXT_MINOR: '1'
   # Target a specific 11.3 release, not 11.3.x-dev, to avoid breaking on evolving test expectations unnecessarily.
-  CORE_NEXT_MINOR: 11.3.3
+  # It should match the latest security release on the branch.
+  CORE_NEXT_MINOR: 11.3.7
+  # Target a specific 11.2 release, not 11.2.x-dev, to avoid breaking on evolving test expectations unnecessarily.
+  # It should match the latest security release on the branch.
+  DRUPAL_CORE: 11.2.11
 
   # Enable Canvas contributors to change this from `true` to `false` to disable E2E (end-to-end) tests.
   # (Useful when early in an MR and/or developing low-level functionality that is unlikely to affect E2E tests.)
