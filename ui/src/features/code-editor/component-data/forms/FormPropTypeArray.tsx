@@ -1,4 +1,6 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import clsx from 'clsx';
+import { arrayMove } from '@dnd-kit/sortable';
 import { Box, Flex, Text, TextField } from '@radix-ui/themes';
 
 import { useAppDispatch } from '@/app/hooks';
@@ -14,9 +16,70 @@ import {
   handleArrayRemove,
   handleArrayValueChange,
 } from '@/features/code-editor/utils/arrayPropUtils';
+import { getNumericInputError } from '@/features/code-editor/utils/numericInputUtils';
 import { VALUE_MODE_UNLIMITED } from '@/types/CodeComponent';
 
 import type { CodeComponentProp, ValueMode } from '@/types/CodeComponent';
+
+import styles from '@/features/code-editor/component-data/FormElement.module.css';
+
+/**
+ * Input for a single numeric array item (integer or number).
+ */
+function NumericArrayItem({
+  propId,
+  index,
+  value,
+  itemType,
+  isDisabled,
+  errorMessage,
+  onValueChange,
+  onErrorChange,
+}: {
+  propId: string;
+  index: number;
+  value: string | number;
+  itemType: 'integer' | 'number';
+  isDisabled: boolean;
+  errorMessage: string;
+  onValueChange: (index: number, value: string | number) => void;
+  onErrorChange: (index: number, error: string) => void;
+}) {
+  return (
+    <Box flexGrow="1" flexShrink="1">
+      <TextField.Root
+        autoComplete="off"
+        data-testid={`array-prop-value-${propId}-${index}`}
+        id={`array-prop-value-${propId}-${index}`}
+        type="number"
+        step={itemType === 'integer' ? 1 : 'any'}
+        value={value === '' || value == null ? '' : String(value)}
+        size="1"
+        placeholder={
+          itemType === 'integer' ? 'Enter an integer' : 'Enter a number'
+        }
+        onChange={(e) => {
+          const raw = e.target.value;
+          const error = getNumericInputError(raw, itemType);
+          if (error) {
+            onErrorChange(index, error);
+            return;
+          }
+          onErrorChange(index, '');
+          onValueChange(index, raw === '' ? '' : Number(raw));
+        }}
+        disabled={isDisabled}
+        className={clsx({ [styles.error]: !!errorMessage })}
+        {...(errorMessage ? { 'data-invalid-prop-value': true } : {})}
+      />
+      {errorMessage && (
+        <Text color="red" size="1">
+          {errorMessage}
+        </Text>
+      )}
+    </Box>
+  );
+}
 
 /**
  * Renders a form input for array-type props in a code component.
@@ -37,13 +100,25 @@ export default function FormPropTypeArray({
   limitedCount?: number;
 }) {
   const dispatch = useAppDispatch();
+  const [itemErrors, setItemErrors] = useState<string[]>([]);
+  useEffect(() => {
+    setItemErrors([]);
+  }, [itemType]);
 
   const displayArray = useMemo(
     () => createDisplayArray(example, valueMode, limitedCount),
     [example, valueMode, limitedCount],
   );
 
-  const handleDragEnd = createArrayDragEndHandler(displayArray, dispatch, id);
+  const handleDragEnd = createArrayDragEndHandler(
+    displayArray,
+    dispatch,
+    id,
+    undefined,
+    (oldIndex, newIndex) => {
+      setItemErrors((prev) => arrayMove([...prev], oldIndex, newIndex));
+    },
+  );
 
   const handleAdd = () => {
     // Use empty string as default to match single-value component behavior
@@ -52,6 +127,7 @@ export default function FormPropTypeArray({
   };
 
   const handleRemove = (index: number) => {
+    setItemErrors((prev) => prev.filter((_, i) => i !== index));
     handleArrayRemove(displayArray, dispatch, id, index);
   };
 
@@ -59,44 +135,45 @@ export default function FormPropTypeArray({
     handleArrayValueChange(displayArray, dispatch, id, index, value);
   };
 
-  const renderInputField = (index: number) => (
-    <Box flexGrow="1" flexShrink="1">
-      <TextField.Root
-        autoComplete="off"
-        data-testid={`array-prop-value-${id}-${index}`}
-        id={`array-prop-value-${id}-${index}`}
-        type={
-          itemType === 'integer' || itemType === 'number' ? 'number' : 'text'
-        }
-        step={itemType === 'integer' ? 1 : undefined}
-        value={
-          itemType === 'integer' || itemType === 'number'
-            ? displayArray[index] === '' || displayArray[index] === undefined
-              ? ''
-              : String(displayArray[index])
-            : String(displayArray[index] ?? '')
-        }
-        size="1"
-        onChange={(e) => {
-          const inputValue = e.target.value;
-          let value;
-          if (itemType === 'integer' || itemType === 'number') {
-            value = inputValue === '' ? '' : Number(inputValue);
-          } else {
-            value = inputValue;
-          }
-          handleValueChange(index, value);
-        }}
-        placeholder={
-          {
-            string: 'Enter a text value',
-            integer: 'Enter an integer',
-            number: 'Enter a number',
-          }[itemType]
-        }
-      />
-    </Box>
-  );
+  const renderInputField = (index: number) => {
+    if (itemType === 'integer' || itemType === 'number') {
+      return (
+        <NumericArrayItem
+          propId={id}
+          index={index}
+          value={displayArray[index] ?? ''}
+          itemType={itemType}
+          isDisabled={isDisabled}
+          errorMessage={itemErrors[index] ?? ''}
+          onValueChange={handleValueChange}
+          onErrorChange={(idx, error) => {
+            setItemErrors((prev) => {
+              const next = [...prev];
+              next[idx] = error;
+              return next;
+            });
+          }}
+        />
+      );
+    }
+
+    return (
+      <Box flexGrow="1" flexShrink="1">
+        <TextField.Root
+          autoComplete="off"
+          data-testid={`array-prop-value-${id}-${index}`}
+          id={`array-prop-value-${id}-${index}`}
+          type="text"
+          value={String(displayArray[index] ?? '')}
+          size="1"
+          onChange={(e) => {
+            handleValueChange(index, e.target.value);
+          }}
+          placeholder="Enter a text value"
+        />
+      </Box>
+    );
+  };
 
   return (
     <Flex direction="column" gap="4" flexGrow="1">

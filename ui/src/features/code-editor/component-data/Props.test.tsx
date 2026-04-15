@@ -294,6 +294,164 @@ describe('props in code editor', () => {
       });
     });
 
+    it('integer prop rejects decimal values and shows error', async () => {
+      await addProp('Integer', 'Count');
+      const integerInput = screen.getByRole('spinbutton', {
+        name: 'Example value',
+      });
+
+      // Type a valid integer first so the store has a value.
+      await userEvent.type(integerInput, '10');
+      await waitFor(() => {
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].example,
+        ).toEqual('10');
+      });
+
+      // Simulate entering a decimal value directly.
+      fireEvent.change(integerInput, { target: { value: '10.5' } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Integers cannot have decimal values.'),
+        ).toBeInTheDocument();
+      });
+
+      // Store should not be updated with the decimal value.
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].example,
+      ).not.toEqual('10.5');
+    });
+
+    it('integer prop rejects pasted decimal values and shows error', async () => {
+      await addProp('Integer', 'Count');
+      const integerInput = screen.getByRole('spinbutton', {
+        name: 'Example value',
+      });
+
+      // Paste a decimal value directly into the field.
+      await userEvent.click(integerInput);
+      await userEvent.paste('10.5');
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Integers cannot have decimal values.'),
+        ).toBeInTheDocument();
+      });
+
+      // Store should not be updated with the pasted decimal value.
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].example,
+      ).not.toEqual('10.5');
+    });
+
+    it('integer prop accepts valid negative integers', async () => {
+      await addProp('Integer', 'Offset');
+      const integerInput = screen.getByRole('spinbutton', {
+        name: 'Example value',
+      });
+
+      await userEvent.type(integerInput, '-42');
+
+      await waitFor(() => {
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].example,
+        ).toEqual('-42');
+      });
+      expect(
+        screen.queryByText('Integers cannot have decimal values.'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('integer prop clears error after valid input follows decimal', async () => {
+      await addProp('Integer', 'Count');
+      const integerInput = screen.getByRole('spinbutton', {
+        name: 'Example value',
+      });
+
+      // Enter decimal to trigger error.
+      fireEvent.change(integerInput, { target: { value: '10.5' } });
+      await waitFor(() => {
+        expect(
+          screen.getByText('Integers cannot have decimal values.'),
+        ).toBeInTheDocument();
+      });
+
+      // Correct to a valid integer.
+      fireEvent.change(integerInput, { target: { value: '10' } });
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Integers cannot have decimal values.'),
+        ).not.toBeInTheDocument();
+      });
+      await waitFor(() => {
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].example,
+        ).toEqual('10');
+      });
+    });
+
+    it('number prop accepts decimal values', async () => {
+      await addProp('Number', 'Rate');
+      const numberInput = screen.getByRole('spinbutton', {
+        name: 'Example value',
+      });
+
+      await userEvent.type(numberInput, '3.14');
+
+      await waitFor(() => {
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].example,
+        ).toEqual('3.14');
+      });
+      expect(
+        screen.queryByText('Integers cannot have decimal values.'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('number prop accepts negative decimal values', async () => {
+      await addProp('Number', 'Temperature');
+      const numberInput = screen.getByRole('spinbutton', {
+        name: 'Example value',
+      });
+
+      await userEvent.type(numberInput, '-3.14');
+
+      await waitFor(() => {
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].example,
+        ).toEqual('-3.14');
+      });
+    });
+
+    it('clears integer validation error when switching prop type from integer to number', async () => {
+      await addProp('Integer', 'Count');
+      const integerInput = screen.getByRole('spinbutton', {
+        name: 'Example value',
+      });
+
+      // Paste a decimal to trigger the validation error.
+      await userEvent.click(integerInput);
+      await userEvent.paste('1.5');
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Integers cannot have decimal values.'),
+        ).toBeInTheDocument();
+      });
+
+      // Switch prop type from Integer to Number.
+      await userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+      await userEvent.click(screen.getByRole('option', { name: 'Number' }));
+
+      // Error should be cleared after type change.
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Integers cannot have decimal values.'),
+        ).not.toBeInTheDocument();
+      });
+    });
+
     it('creates a new formatted text prop', async () => {
       await addProp('Formatted text', 'Description');
       expect(screen.getByLabelText('Example value')).toHaveAttribute(
@@ -1763,6 +1921,238 @@ describe('props in code editor', () => {
         expect(prop.valueMode).toBe('unlimited');
         expect(prop.limitedCount).toBe(1);
       });
+    });
+
+    it('multi-value integer prop rejects decimal values and shows error', async () => {
+      await addProp('Integer', 'Counts');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(true);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+      const arrayInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+
+      // Enter a decimal value in the integer array field.
+      fireEvent.change(arrayInput, { target: { value: '10.5' } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Integers cannot have decimal values.'),
+        ).toBeInTheDocument();
+      });
+
+      // Store should not be updated with the decimal value.
+      const storeExample = selectCodeComponentProperty('props')(
+        store.getState(),
+      )[0].example;
+      expect(storeExample).not.toContain(10.5);
+    });
+
+    it('multi-value integer prop rejects pasted decimal values and shows error', async () => {
+      await addProp('Integer', 'Counts');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(true);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+      const arrayInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+
+      // Paste a decimal value into the integer array field.
+      await userEvent.click(arrayInput);
+      await userEvent.paste('10.5');
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Integers cannot have decimal values.'),
+        ).toBeInTheDocument();
+      });
+
+      // Store should not be updated with the pasted decimal value.
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].example,
+      ).not.toContain(10.5);
+    });
+
+    it('multi-value integer prop accepts valid integers', async () => {
+      await addProp('Integer', 'Counts');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(true);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+      const arrayInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+
+      // Enter a valid integer.
+      fireEvent.change(arrayInput, { target: { value: '42' } });
+
+      await waitFor(() => {
+        const example = selectCodeComponentProperty('props')(
+          store.getState(),
+        )[0].example;
+        expect(example).toContain(42);
+      });
+      expect(
+        screen.queryByText('Integers cannot have decimal values.'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('multi-value number prop accepts decimal values', async () => {
+      await addProp('Number', 'Rates');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(true);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+      const arrayInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+
+      // Enter a valid decimal for number type.
+      fireEvent.change(arrayInput, { target: { value: '3.14' } });
+
+      await waitFor(() => {
+        const example = selectCodeComponentProperty('props')(
+          store.getState(),
+        )[0].example;
+        expect(example).toContain(3.14);
+      });
+      expect(
+        screen.queryByText('Integers cannot have decimal values.'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('multi-value integer prop accepts valid negative integers', async () => {
+      await addProp('Integer', 'Counts');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(true);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+      const arrayInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+
+      fireEvent.change(arrayInput, { target: { value: '-42' } });
+
+      await waitFor(() => {
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].example,
+        ).toContain(-42);
+      });
+      expect(
+        screen.queryByText('Integers cannot have decimal values.'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('multi-value integer prop clears error after valid input follows decimal', async () => {
+      await addProp('Integer', 'Counts');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(true);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+      const arrayInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+
+      // Enter decimal to trigger error.
+      fireEvent.change(arrayInput, { target: { value: '10.5' } });
+      await waitFor(() => {
+        expect(
+          screen.getByText('Integers cannot have decimal values.'),
+        ).toBeInTheDocument();
+      });
+
+      // Correct to a valid integer.
+      fireEvent.change(arrayInput, { target: { value: '10' } });
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Integers cannot have decimal values.'),
+        ).not.toBeInTheDocument();
+      });
+      await waitFor(() => {
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].example,
+        ).toContain(10);
+      });
+    });
+
+    it('multi-value number prop accepts negative decimal values', async () => {
+      await addProp('Number', 'Rates');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(true);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+      const arrayInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+
+      fireEvent.change(arrayInput, { target: { value: '-3.14' } });
+
+      await waitFor(() => {
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].example,
+        ).toContain(-3.14);
+      });
+      expect(
+        screen.queryByText('Integers cannot have decimal values.'),
+      ).not.toBeInTheDocument();
     });
 
     it('shows allow multiple checkbox for link prop type', async () => {

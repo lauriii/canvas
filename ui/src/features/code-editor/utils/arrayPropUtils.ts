@@ -52,6 +52,7 @@ export function createDisplayArray<T extends string | number>(
  * @param dispatch - Redux dispatch function
  * @param id - The prop ID
  * @param additionalUpdates - Optional additional updates to include in the dispatch
+ * @param onReorder - Optional callback invoked with (oldIndex, newIndex) after reorder
  * @returns A function that handles the drag end event
  */
 export function createArrayDragEndHandler<T extends string | number>(
@@ -59,6 +60,7 @@ export function createArrayDragEndHandler<T extends string | number>(
   dispatch: AppDispatch,
   id: CodeComponentProp['id'],
   additionalUpdates?: Partial<CodeComponentProp>,
+  onReorder?: (oldIndex: number, newIndex: number) => void,
 ) {
   return (event: DragEndEvent) => {
     const { active, over } = event;
@@ -75,6 +77,7 @@ export function createArrayDragEndHandler<T extends string | number>(
           updates: { example: newExample, ...additionalUpdates },
         }),
       );
+      onReorder?.(oldIndex, newIndex);
     }
   };
 }
