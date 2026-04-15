@@ -1,0 +1,13 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Canvas test SDC with a required single-cardinality integer prop
+props:
+  type: object
+  required:
+    - count
+  properties:
+    count:
+      type: integer
+      title: Count
+      description: A required integer value.
+      examples:
+        - 42

@@ -238,6 +238,11 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
 
     // Match SDC's developer-only validation of props.
     // @see \Drupal\Core\Template\ComponentsTwigExtension::validateProps()
+    // Any InvalidComponentException propagates to RenderSafeComponentContainer
+    // which in preview mode renders an empty container (no error text) so the
+    // canvas-island stays visible while the user corrects the value.
+    // @see \Drupal\canvas\Element\RenderSafeComponentContainer::handleComponentException()
+    // @see https://www.drupal.org/project/canvas/issues/3583639
     \assert($this->componentValidator->validateProps($props, $this->getComponentPlugin()));
     CacheableMetadata::createFromRenderArray($build)
       ->addCacheableDependency($component)
