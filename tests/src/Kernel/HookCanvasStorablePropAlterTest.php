@@ -7,7 +7,9 @@ namespace Drupal\Tests\canvas\Kernel;
 use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -50,6 +52,20 @@ class HookCanvasStorablePropAlterTest extends PropShapeRepositoryTest {
     $storable_prop_shapes['type=string&format=uri'] = new StorablePropShape(
       shape: $storable_prop_shapes['type=string&format=uri']->shape,
       fieldTypeProp: new FieldTypePropExpression('uri', 'value'),
+      fieldWidget: 'uri',
+    );
+
+    // 1b. The `link` → `uri` alteration also cascades to the array variants.
+    $storable_prop_shapes['type=array&items[type]=string&items[format]=uri'] = new StorablePropShape(
+      shape: new PropShape(['type' => 'array', 'items' => ['type' => 'string', 'format' => 'uri']]),
+      fieldTypeProp: new FieldTypePropExpression('uri', 'value'),
+      cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+      fieldWidget: 'uri',
+    );
+    $storable_prop_shapes['type=array&items[type]=string&items[format]=uri&maxItems=3'] = new StorablePropShape(
+      shape: new PropShape(['type' => 'array', 'items' => ['type' => 'string', 'format' => 'uri'], 'maxItems' => 3]),
+      fieldTypeProp: new FieldTypePropExpression('uri', 'value'),
+      cardinality: 3,
       fieldWidget: 'uri',
     );
 

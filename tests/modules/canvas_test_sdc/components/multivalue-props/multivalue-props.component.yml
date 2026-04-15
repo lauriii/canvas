@@ -1,0 +1,153 @@
+name: 'Multivalue Props Component'
+description: 'A SDC component for testing all multivalue prop types (text, link, number, relative_link, datetime, date) with both unlimited and limited (maxItems: 3) variants.'
+props:
+  type: object
+  required:
+    - text_required
+  properties:
+    text:
+      title: 'Text (Unlimited)'
+      description: 'An unlimited array of plain text strings.'
+      type: array
+      items:
+        type: string
+      examples:
+        - - 'Hello World'
+          - 'Sample Text'
+    text_limited:
+      title: 'Text (Limited)'
+      description: 'A limited array of plain text strings (max 3 items).'
+      type: array
+      maxItems: 3
+      items:
+        type: string
+      examples:
+        - - 'Hello World'
+          - 'Sample Text'
+    text_required:
+      title: 'Text (Required Unlimited)'
+      description: 'A required unlimited array of plain text strings.'
+      type: array
+      items:
+        type: string
+      examples:
+        - - 'Required Text 1'
+          - 'Required Text 2'
+    link:
+      title: 'Link (Unlimited)'
+      description: 'An unlimited array of absolute URI strings.'
+      type: array
+      items:
+        type: string
+        format: uri
+      examples:
+        -
+          - 'https://drupal.org'
+          - 'https://example.com'
+    link_limited:
+      title: 'Link (Limited)'
+      description: 'A limited array of absolute URI strings (max 3 items).'
+      type: array
+      maxItems: 3
+      items:
+        type: string
+        format: uri
+      examples:
+        -
+          - 'https://drupal.org'
+          - 'https://example.com'
+    relative_link:
+      title: 'Relative Link (Unlimited)'
+      description: 'An unlimited array of relative or absolute URI-reference strings.'
+      type: array
+      items:
+        type: string
+        format: uri-reference
+      examples:
+        - - /about
+          - /contact
+    relative_link_limited:
+      title: 'Relative Link (Limited)'
+      description: 'A limited array of relative or absolute URI-reference strings (max 3 items).'
+      type: array
+      maxItems: 3
+      items:
+        type: string
+        format: uri-reference
+      examples:
+        - - /about
+          - /contact
+    number:
+      title: 'Number (Unlimited)'
+      description: 'An unlimited array of numeric values.'
+      type: array
+      items:
+        type: number
+      examples:
+        - - 42
+          - 100
+    number_limited:
+      title: 'Number (Limited)'
+      description: 'A limited array of numeric values (max 3 items).'
+      type: array
+      maxItems: 3
+      items:
+        type: number
+      examples:
+        - - 42
+          - 100
+    integer:
+      title: 'Integer (Unlimited)'
+      description: 'An unlimited array of integer values.'
+      type: array
+      items:
+        type: integer
+      examples:
+        - - 7
+          - 14
+    integer_limited:
+      title: 'Integer (Limited)'
+      description: 'A limited array of integer values (max 3 items).'
+      type: array
+      maxItems: 3
+      items:
+        type: integer
+      examples:
+        - - 7
+          - 14
+    # @todo: Add the date time and date component with example values https://www.drupal.org/i/3530808
+    # is fixed.
+    datetime:
+      title: 'DateTime (Unlimited)'
+      description: 'An unlimited array of date-time strings.'
+      type: array
+      items:
+        type: string
+        format: date-time
+      examples: []
+    datetime_limited:
+      title: 'DateTime (Limited)'
+      description: 'A limited array of date-time strings (max 3 items).'
+      type: array
+      maxItems: 3
+      items:
+        type: string
+        format: date-time
+      examples: []
+    date:
+      title: 'Date (Unlimited)'
+      description: 'An unlimited array of date strings.'
+      type: array
+      items:
+        type: string
+        format: date
+      examples: []
+    date_limited:
+      title: 'Date (Limited)'
+      description: 'A limited array of date strings (max 3 items).'
+      type: array
+      maxItems: 3
+      items:
+        type: string
+        format: date
+      examples: []

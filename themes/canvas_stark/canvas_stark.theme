@@ -103,6 +103,7 @@ function canvas_stark_theme_suggestions_input_alter(array &$suggestions, array $
  */
 function canvas_stark_theme_suggestions_datetime_wrapper_alter(array &$suggestions, array $variables): void {
   // Check if this datetime wrapper is in a multivalue field context.
+  // @phpstan-ignore-next-line
   // @todo remove 'canvas_dev_mode' check once https://drupal.org/i/3577946 is fixed.
   if (\Drupal::moduleHandler()->moduleExists('canvas_dev_mode') &&
     isset($variables['element']['#multivalue_field_label']) &&
@@ -209,6 +210,7 @@ function canvas_stark_preprocess_field_multiple_value_form(array &$variables): v
   $variables['description_attributes'] = $variables['description']['attributes'] ?? [];
 
   // Only apply custom styling if canvas_dev_mode is enabled.
+  // @phpstan-ignore-next-line
   // @todo remove once https://drupal.org/i/3577946 is fixed.
   if (\Drupal::moduleHandler()->moduleExists('canvas_dev_mode')) {
     // Add classes to table columns to enable Canvas-specific styling.
@@ -312,6 +314,7 @@ function canvas_stark_preprocess_datetime_wrapper(array &$variables): void {
   }
 
   // Only apply custom styling if canvas_dev_mode is enabled.
+  // @phpstan-ignore-next-line
   // @todo remove once https://drupal.org/i/3577946 is fixed.
   if (\Drupal::moduleHandler()->moduleExists('canvas_dev_mode')) {
     // Pass field label to the template for multivalue datetime forms.
