@@ -779,7 +779,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
     ]);
 
     // The component tree should be valid.
-    self::assertCount(0, $entity->validate());
+    self::assertEntityIsValid($entity);
 
     // Now save the entity.
     $entity->save();
@@ -794,7 +794,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
     $this->generateComponentConfig();
 
     // Should still be valid.
-    self::assertCount(0, $entity->validate());
+    self::assertEntityIsValid($entity);
 
     // Should not trigger an exception during page view.
     $entityView = \Drupal::entityTypeManager()->getViewBuilder(Page::ENTITY_TYPE_ID)->view($entity);

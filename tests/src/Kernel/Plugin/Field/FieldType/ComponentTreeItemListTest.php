@@ -145,7 +145,6 @@ class ComponentTreeItemListTest extends CanvasKernelTestBase {
 
     // Every test case must be valid on its own.
     $violations = $item_list->validate();
-    // @phpcs:ignore Canvas.Tests.KernelTestBase.RequireAssertEntityIsValid
     $this->assertSame([], self::violationsToArray($violations));
 
     // The test case (a component tree) must also result in a valid entity that

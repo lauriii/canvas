@@ -105,7 +105,6 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
         ],
       ]);
       $violations = $item_list->validate();
-      // @phpcs:ignore Canvas.Tests.KernelTestBase.RequireAssertEntityIsValid
       self::assertSame([], self::violationsToArray($violations));
       self::assertInstanceOf(ComponentTreeItem::class, $item_list->get(0));
       self::assertInstanceOf(ComponentTreeItem::class, $item_list->get(1));

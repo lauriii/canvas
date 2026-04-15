@@ -122,7 +122,7 @@ abstract class CanvasKernelTestBase extends KernelTestBase {
    *
    * @return void
    *
-   * @see \Canvas\Sniffs\Tests\KernelTestBaseSniff::requireAssertEntityIsValid()
+   * @see \Canvas\PHPStan\Rules\KernelTestsMustUseAssertEntityIsValidRule
    */
   protected static function assertEntityIsValid(ContentEntityInterface|ConfigEntityInterface $entity): void {
     $violations = match(TRUE) {

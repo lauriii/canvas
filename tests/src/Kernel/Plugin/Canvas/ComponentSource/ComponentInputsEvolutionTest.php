@@ -482,7 +482,6 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     $pattern->save();
 
     // Component instances work well BEFORE the module update.
-    // @phpcs:ignore Canvas.Tests.KernelTestBase.RequireAssertEntityIsValid
     self::assertSame([], self::violationsToArray($page->getComponentTree()->validate()));
     self::assertSame($expected_pre_update_markup, self::getTextOfAllRenderedBlockComponentInstances($page));
 
@@ -554,7 +553,6 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
       self::assertNotEmpty(self::violationsToArray($component_tree_item->validate()));
       $component_tree_item->set('component_version', $new_version);
       self::assertEquals($new_version, $component_tree_item->getComponent()->getLoadedVersion());
-      // @phpcs:ignore Canvas.Tests.KernelTestBase.RequireAssertEntityIsValid
       self::assertSame([], self::violationsToArray($component_tree_item->validate()));
     }
 
