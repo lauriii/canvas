@@ -20,17 +20,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('canvas')]
 class NotificationCronHookTest extends CanvasKernelTestBase {
 
-  /**
-   * {@inheritdoc}
-   */
-  protected function setUp(): void {
-    parent::setUp();
-    $this->installSchema('canvas', [
-      'canvas_notification',
-      'canvas_notification_read',
-    ]);
-  }
-
   private function handler(): CanvasNotificationHandler {
     return $this->container->get(CanvasNotificationHandler::class);
   }

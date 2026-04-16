@@ -61,10 +61,6 @@ class ApiPushControllerTest extends CanvasKernelTestBase implements EventSubscri
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installSchema('canvas', [
-      'canvas_notification',
-      'canvas_notification_read',
-    ]);
     $this->installEntitySchema('user');
     $this->installEntitySchema('path_alias');
     $this->container->set('canvas_test.push_event_subscriber', $this);

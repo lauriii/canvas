@@ -20,17 +20,6 @@ use PHPUnit\Framework\Attributes\TestWith;
 #[Group('canvas')]
 class NotificationServiceTest extends CanvasKernelTestBase {
 
-  /**
-   * {@inheritdoc}
-   */
-  protected function setUp(): void {
-    parent::setUp();
-    $this->installSchema('canvas', [
-      'canvas_notification',
-      'canvas_notification_read',
-    ]);
-  }
-
   private function handler(): CanvasNotificationHandler {
     return $this->container->get(CanvasNotificationHandler::class);
   }
@@ -184,8 +173,10 @@ class NotificationServiceTest extends CanvasKernelTestBase {
 
   public function testCreateSuccessWithKeyDeletesReplaceableTypes(): void {
     // Insert pre-existing notifications directly to avoid cascading deletes
-    // from create() on KEY_REPLACE_TYPES during setup.
+    // from create() on KEY_REPLACE_TYPES during setup. Ensure the table exists
+    // first since we bypass the handler for these inserts.
     $db = $this->container->get('database');
+    $db->schema()->createTable(CanvasNotificationHandler::NOTIFICATION_TABLE, CanvasNotificationHandler::schemaDefinition()[CanvasNotificationHandler::NOTIFICATION_TABLE]);
     $db->insert(CanvasNotificationHandler::NOTIFICATION_TABLE)->fields([
       'id' => 'pre-1',
       'type' => 'processing',
@@ -231,8 +222,10 @@ class NotificationServiceTest extends CanvasKernelTestBase {
 
   public function testCreateInfoWithKeyDeletesReplaceableTypes(): void {
     // Insert pre-existing notifications directly to avoid cascading deletes
-    // from create() on KEY_REPLACE_TYPES during setup.
+    // from create() on KEY_REPLACE_TYPES during setup. Ensure the table exists
+    // first since we bypass the handler for these inserts.
     $db = $this->container->get('database');
+    $db->schema()->createTable(CanvasNotificationHandler::NOTIFICATION_TABLE, CanvasNotificationHandler::schemaDefinition()[CanvasNotificationHandler::NOTIFICATION_TABLE]);
     $db->insert(CanvasNotificationHandler::NOTIFICATION_TABLE)->fields([
       'id' => 'pre-1',
       'type' => 'processing',

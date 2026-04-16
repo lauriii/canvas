@@ -57,6 +57,7 @@ parameters:
 # Canvas' custom PHPStan rules.
 rules:
   - Canvas\PHPStan\Rules\DisallowDrupalFlushAllCachesRule
+  - Canvas\PHPStan\Rules\DisallowHookSchemaRule
   - Canvas\PHPStan\Rules\NoDuplicateTraitUseRule
   - Canvas\PHPStan\Rules\KernelTestsMustUseAssertEntityIsValidRule
   - Canvas\PHPStan\Rules\NoOptionalParametersInDataProviderTestsRule

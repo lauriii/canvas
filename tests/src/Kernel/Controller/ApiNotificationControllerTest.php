@@ -43,10 +43,6 @@ class ApiNotificationControllerTest extends CanvasKernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installSchema('canvas', [
-      'canvas_notification',
-      'canvas_notification_read',
-    ]);
     $this->installEntitySchema('user');
     $this->installEntitySchema('canvas_page');
     $this->installEntitySchema('path_alias');
