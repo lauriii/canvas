@@ -1,0 +1,8 @@
+services:
+  canvas_test_preview_messenger.preview_subscriber:
+    class: Drupal\canvas_test_preview_messenger\EventSubscriber\PreviewMessengerTestSubscriber
+    # Public messenger alias (Canvas decorator). Avoid @messenger.inner: that id is
+    # only created when decoration runs and is not a stable public reference.
+    arguments: ['@messenger']
+    tags:
+      - { name: event_subscriber }

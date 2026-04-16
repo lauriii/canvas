@@ -606,7 +606,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     // Uncheck this checkbox. This should change the (auto-saved) entity title.
     // @see \Drupal\canvas_test_article_fields\Hook\CanvasTestArticleFieldsHooks::canvasPageEntityGravyBuilder()
     $json['entity_form_fields'][CanvasTestArticleFieldsHooks::NO_MORE_GRAVY] = FALSE;
-    unset($json['isNew'], $json['isPublished'], $json['html'], $json['hasUnsavedStatusChange']);
+    unset($json['isNew'], $json['isPublished'], $json['html'], $json['hasUnsavedStatusChange'], $json['messages']);
     $json += $this->getPostContentsDefaults($node);
     $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', server: ['CONTENT_TYPE' => 'application/json'], content: \json_encode($json, \JSON_THROW_ON_ERROR)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
@@ -618,7 +618,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     // Re-check it. This should change the (auto-saved) entity title again.
     // @see \Drupal\canvas_test_article_fields\Hook\CanvasTestArticleFieldsHooks::canvasPageEntityGravyBuilder()
     $json['entity_form_fields'][CanvasTestArticleFieldsHooks::NO_MORE_GRAVY] = TRUE;
-    unset($json['isNew'], $json['isPublished'], $json['html'], $json['hasUnsavedStatusChange']);
+    unset($json['isNew'], $json['isPublished'], $json['html'], $json['hasUnsavedStatusChange'], $json['messages']);
     $json += $this->getPostContentsDefaults($node);
     $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', server: ['CONTENT_TYPE' => 'application/json'], content: \json_encode($json, \JSON_THROW_ON_ERROR)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());

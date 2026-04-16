@@ -232,6 +232,13 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       \Fiber::suspend($block);
     }
 
+    // In the Canvas editor preview iframe, do not render the messages block;
+    // messages are exposed on the layout API JSON for toast display in the
+    // shell.
+    if ($isPreview && $block instanceof MessagesBlockPluginInterface) {
+      return ['#markup' => ''];
+    }
+
     // @todo preview fallback handling (in case of no access or emptiness) in https://drupal.org/i/3497990
     // @see \Drupal\layout_builder\EventSubscriber\BlockComponentRenderArray::onBuildRender()
     $build = [

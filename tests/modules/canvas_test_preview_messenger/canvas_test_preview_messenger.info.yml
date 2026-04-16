@@ -1,0 +1,6 @@
+name: 'Test Canvas preview messenger (Playwright)'
+type: module
+description: 'Adds a Drupal status message on layout preview GET when the X-Canvas-Test-Preview-Message header or canvas_test_preview_message=1 query is set. For automated tests only.'
+dependencies:
+  - canvas:canvas
+package: Testing

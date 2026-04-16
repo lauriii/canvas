@@ -10,6 +10,7 @@ use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\TitleResolverInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\AttachmentsResponseProcessorInterface;
 use Drupal\Core\Render\Element;
@@ -39,6 +40,9 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  * displayed in an iframe, so assets are included in the HTML instead of being
  * handled separately.
  *
+ * Drupal status messages are omitted from the iframe HTML and included in the
+ * JSON payload under `messages` for the editor shell to show as toasts.
+ *
  * @see \Drupal\canvas\EventSubscriber\PreviewEnvelopeViewSubscriber::onViewPreviewEnvelope
  */
 final class CanvasPreviewRenderer extends HtmlRenderer {
@@ -56,6 +60,7 @@ final class CanvasPreviewRenderer extends HtmlRenderer {
     ThemeManagerInterface $theme_manager,
     #[Autowire(service: 'html_response.attachments_processor')]
     private readonly AttachmentsResponseProcessorInterface $attachmentsResponseProcessor,
+    private readonly MessengerInterface $messenger,
   ) {
     parent::__construct($title_resolver, $display_variant_manager, $event_dispatcher, $module_handler, $renderer, $render_cache, $renderer_config, $theme_manager);
   }
@@ -69,15 +74,39 @@ final class CanvasPreviewRenderer extends HtmlRenderer {
    * @see \Drupal\Core\EventSubscriber\HtmlResponseSubscriber
    */
   public function renderResponse(array $main_content, Request $request, RouteMatchInterface $route_match, array $additionalData = []): JsonResponse {
+    $messages = $this->collectPreviewMessages();
+
     $response = parent::renderResponse($main_content, $request, $route_match);
     \assert($response instanceof AttachmentsInterface);
     $response = $this->attachmentsResponseProcessor->processAttachments($response);
     \assert($response instanceof Response);
 
-    // @todo Expose warnings and errors to the Canvas UI: https://www.drupal.org/project/canvas/issues/3489302#comment-15877293
     return new JsonResponse([
       'html' => $response->getContent(),
+      'messages' => $messages,
     ] + $additionalData);
+  }
+
+  /**
+   * Builds a JSON-safe list of Drupal messages for the editor shell.
+   *
+   * @return array
+   *   List of arrays for preview JSON; each has string keys type and message.
+   *
+   * @see \Drupal\Core\Render\Element\StatusMessages::renderMessages()
+   */
+  private function collectPreviewMessages(): array {
+    $out = [];
+    foreach ($this->messenger->deleteAll() as $type => $messages) {
+      \assert(\is_array($messages));
+      foreach ($messages as $message) {
+        $out[] = [
+          'type' => $type,
+          'message' => $message,
+        ];
+      }
+    }
+    return $out;
   }
 
   /**

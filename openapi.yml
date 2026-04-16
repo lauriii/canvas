@@ -2299,6 +2299,8 @@ paths:
                   html:
                     type: string
                     description: HTML preview of the layout
+                  messages:
+                    $ref: '#/components/schemas/LayoutPreviewDrupalMessages'
                   layout:
                     type: array
                     description: Layout regions
@@ -2342,6 +2344,8 @@ paths:
                   html:
                     type: string
                     description: The HTML preview.
+                  messages:
+                    $ref: '#/components/schemas/LayoutPreviewDrupalMessages'
                   layout:
                     type: array
                     description: Layout regions
@@ -2392,6 +2396,8 @@ paths:
                   html:
                     type: string
                     description: The HTML preview.
+                  messages:
+                    $ref: '#/components/schemas/LayoutPreviewDrupalMessages'
                   autoSaves:
                     $ref: '#/components/schemas/AutoSaveConcurrencyControl'
         '401':
@@ -2673,6 +2679,8 @@ paths:
                   html:
                     type: string
                     description: HTML preview of the layout
+                  messages:
+                    $ref: '#/components/schemas/LayoutPreviewDrupalMessages'
                   layout:
                     type: array
                     description: Layout regions
@@ -2750,6 +2758,8 @@ paths:
                   html:
                     type: string
                     description: The HTML preview.
+                  messages:
+                    $ref: '#/components/schemas/LayoutPreviewDrupalMessages'
                   layout:
                     type: array
                     description: Layout regions
@@ -2808,6 +2818,8 @@ paths:
                   html:
                     type: string
                     description: The HTML preview.
+                  messages:
+                    $ref: '#/components/schemas/LayoutPreviewDrupalMessages'
                   autoSaves:
                     $ref: '#/components/schemas/AutoSaveConcurrencyControl'
         '401':
@@ -4238,6 +4250,25 @@ components:
           type: boolean
         isPublished:
           type: boolean
+    LayoutPreviewDrupalMessages:
+      title: Layout preview Drupal messages
+      type: array
+      description: Drupal status messages for the editor shell (omitted from preview HTML).
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+          - message
+        properties:
+          type:
+            type: string
+            description: Messenger type (for example status, warning, or error).
+          message:
+            type: string
+            description: >
+              Admin-safe HTML for toast display (links and typical inline markup
+              preserved; filtered with Xss::filterAdmin server-side).
     AutoSaveConcurrencyControl:
       title: Auto Save Concurrency Control
       type: object
