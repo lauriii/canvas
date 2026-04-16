@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { loadEnv } from 'vite';
 import {
   drupalCanvasCompat,
   drupalCanvasCompatServer,
@@ -24,6 +25,8 @@ export function createWorkbenchConfig(
     moduleUrl: import.meta.url,
     clientRootRelativePath: options.clientRootRelativePath,
   });
+  const env = loadEnv('development', process.cwd(), 'CANVAS_');
+  const siteUrl = env.CANVAS_SITE_URL || undefined;
   const require = createRequire(import.meta.url);
   // Workbench owns its React runtime. Resolve both packages from this package's
   // install tree so the app does not mix host React with Workbench React, and
@@ -43,6 +46,16 @@ export function createWorkbenchConfig(
       fs: {
         allow: paths.allowedFsRoots,
       },
+      ...(siteUrl
+        ? {
+            proxy: {
+              '/sites/': {
+                target: siteUrl,
+                changeOrigin: true,
+              },
+            },
+          }
+        : {}),
     },
     optimizeDeps: {
       // Base UI imports these CommonJS shim subpaths from ESM files. Prebundle

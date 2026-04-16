@@ -38,6 +38,7 @@ export interface AuthoredSpecElement {
   type: string;
   props?: unknown;
   slots?: AuthoredSpecSlots;
+  _provenance?: Record<string, unknown>;
 }
 
 export type AuthoredSpecElementMap = Record<string, AuthoredSpecElement>;

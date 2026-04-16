@@ -1,12 +1,34 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  collectUnreconciledMediaProps,
+  getUnreconciledMedia,
   serializeElementMapForServer,
   serializePropsForServer,
 } from './prop-transforms';
 
 import type { ComponentMetadata } from '@drupal-canvas/discovery';
 import type { CodeComponentPropSerialized } from '@drupal-canvas/ui/types/CodeComponent';
+import type { AuthoredSpecElementMap } from 'drupal-canvas/json-render-utils';
+
+const metadata: ComponentMetadata[] = [
+  {
+    name: 'hero',
+    machineName: 'hero',
+    status: true,
+    required: [],
+    slots: {},
+    props: {
+      properties: {
+        image: {
+          title: 'Image',
+          type: 'object',
+          $ref: 'json-schema-definitions://canvas.module/image',
+        },
+      },
+    },
+  },
+];
 
 describe('serializePropsForServer — formatted text transformer', () => {
   it('wraps formatted text string into { value, format } for block context', () => {
@@ -138,7 +160,7 @@ describe('serializePropsForServer — link transformer', () => {
 
 describe('serializeElementMapForServer', () => {
   it('serializes props for elements with known schemas', () => {
-    const metadata: ComponentMetadata[] = [
+    const heroMetadata: ComponentMetadata[] = [
       {
         name: 'Hero',
         machineName: 'hero',
@@ -172,7 +194,7 @@ describe('serializeElementMapForServer', () => {
       },
     };
 
-    expect(serializeElementMapForServer(elements, metadata)).toEqual({
+    expect(serializeElementMapForServer(elements, heroMetadata)).toEqual({
       'elem-1': {
         type: 'js.hero',
         props: {
@@ -192,5 +214,121 @@ describe('serializeElementMapForServer', () => {
     };
 
     expect(serializeElementMapForServer(elements, [])).toEqual(elements);
+  });
+
+  it('uses _provenance for image props during push serialization', () => {
+    const elements = {
+      hero: {
+        type: 'js.hero',
+        props: {
+          image: {
+            src: '/sites/default/files/example.jpg',
+            alt: 'Example image',
+            width: 1200,
+            height: 800,
+          },
+        },
+        _provenance: {
+          image: {
+            target_id: 42,
+          },
+        },
+      },
+    } as AuthoredSpecElementMap;
+
+    expect(serializeElementMapForServer(elements, metadata)).toEqual({
+      hero: {
+        type: 'js.hero',
+        props: {
+          image: {
+            target_id: 42,
+          },
+        },
+        _provenance: {
+          image: {
+            target_id: 42,
+          },
+        },
+      },
+    });
+  });
+});
+
+describe('getUnreconciledMedia', () => {
+  const imageSchema = {
+    title: 'Image',
+    type: 'object' as const,
+    $ref: 'json-schema-definitions://canvas.module/image',
+  };
+
+  it('matches data URLs', () => {
+    const value = { src: 'data:image/svg+xml;base64,PHN2Zz4=' };
+    expect(getUnreconciledMedia(value, imageSchema)).toEqual({
+      url: 'data:image/svg+xml;base64,PHN2Zz4=',
+      mediaType: 'image',
+    });
+  });
+
+  it('rejects relative URLs', () => {
+    const value = { src: './images/photo.jpg' };
+    expect(getUnreconciledMedia(value, imageSchema)).toBeNull();
+  });
+
+  it('rejects empty src', () => {
+    const value = { src: '' };
+    expect(getUnreconciledMedia(value, imageSchema)).toBeNull();
+  });
+});
+
+describe('collectUnreconciledMediaProps', () => {
+  it('collects data URL media props', () => {
+    const elements = {
+      logo: {
+        type: 'js.hero',
+        props: {
+          image: {
+            src: 'data:image/png;base64,abc123',
+            alt: 'Logo',
+          },
+        },
+      },
+    } as AuthoredSpecElementMap;
+
+    expect(collectUnreconciledMediaProps(elements, metadata)).toEqual([
+      {
+        elementId: 'logo',
+        propName: 'image',
+        src: 'data:image/png;base64,abc123',
+        mediaType: 'image',
+      },
+    ]);
+  });
+
+  it('flags external media URLs even when provenance is already present', () => {
+    const elements = {
+      hero: {
+        type: 'js.hero',
+        props: {
+          image: {
+            src: 'https://example.com/example.jpg',
+            alt: 'Example image',
+          },
+        },
+        _provenance: {
+          image: {
+            target_id: 42,
+          },
+        },
+      },
+    } as AuthoredSpecElementMap;
+
+    expect(collectUnreconciledMediaProps(elements, metadata)).toEqual([
+      {
+        elementId: 'hero',
+        propName: 'image',
+        src: 'https://example.com/example.jpg',
+        mediaType: 'image',
+      },
+    ]);
   });
 });

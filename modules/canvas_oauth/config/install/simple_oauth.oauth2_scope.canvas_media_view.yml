@@ -1,0 +1,24 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas_oauth
+id: canvas_media_view
+name: 'canvas:media:view'
+description: 'Drupal Canvas: View Media'
+grant_types:
+  authorization_code:
+    status: true
+    description: 'Authorization code access for viewing media'
+  refresh_token:
+    status: true
+    description: 'Refresh token access for viewing media'
+  client_credentials:
+    status: true
+    description: 'Client credentials access for viewing media'
+umbrella: false
+parent: null
+granularity_id: permission
+granularity_configuration:
+  permission: 'view media'

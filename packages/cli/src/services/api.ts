@@ -25,6 +25,12 @@ export interface ApiOptions {
   accessToken?: string;
 }
 
+export interface UploadedMedia<TInputsResolved = unknown> {
+  id: number;
+  uuid: string;
+  inputs_resolved: TInputsResolved;
+}
+
 export class ApiService {
   private client: AxiosInstance;
   private readonly siteUrl: string;
@@ -182,8 +188,6 @@ export class ApiService {
       } catch (error) {
         // Use the existing error handling to maintain consistency with original behavior
         this.handleApiError(error);
-        // This line should never be reached because handleApiError always throws
-        throw new Error('Failed to refresh access token');
       }
     })();
 
@@ -213,7 +217,6 @@ export class ApiService {
       return response.data;
     } catch (error) {
       this.handleApiError(error);
-      throw new Error('Failed to list components');
     }
   }
 
@@ -234,7 +237,6 @@ export class ApiService {
       return versions;
     } catch (error) {
       this.handleApiError(error);
-      throw new Error('Failed to list component versions');
     }
   }
 
@@ -257,7 +259,6 @@ export class ApiService {
         throw error;
       }
       this.handleApiError(error);
-      throw new Error(`Failed to create component: '${component.machineName}'`);
     }
   }
 
@@ -272,7 +273,6 @@ export class ApiService {
       return response.data;
     } catch (error) {
       this.handleApiError(error);
-      throw new Error(`Component '${machineName}' not found`);
     }
   }
 
@@ -291,7 +291,6 @@ export class ApiService {
       return response.data;
     } catch (error) {
       this.handleApiError(error);
-      throw new Error(`Failed to update component '${machineName}'`);
     }
   }
 
@@ -305,7 +304,6 @@ export class ApiService {
       );
     } catch (error) {
       this.handleApiError(error);
-      throw new Error(`Failed to delete component '${machineName}'`);
     }
   }
 
@@ -320,7 +318,6 @@ export class ApiService {
       return response.data;
     } catch (error) {
       this.handleApiError(error);
-      throw new Error('Failed to get global asset library');
     }
   }
 
@@ -349,7 +346,6 @@ export class ApiService {
       return pages;
     } catch (error) {
       this.handleApiError(error);
-      throw new Error('Failed to list pages');
     }
   }
 
@@ -364,7 +360,6 @@ export class ApiService {
       return response.data;
     } catch (error) {
       this.handleApiError(error);
-      throw new Error(`Failed to get page '${id}'`);
     }
   }
 
@@ -385,7 +380,6 @@ export class ApiService {
       return response.data;
     } catch (error) {
       this.handleApiError(error);
-      throw new Error(`Failed to create page '${page.title}'`);
     }
   }
 
@@ -409,7 +403,6 @@ export class ApiService {
       return response.data;
     } catch (error) {
       this.handleApiError(error);
-      throw new Error(`Failed to update page '${page.title}'`);
     }
   }
 
@@ -427,7 +420,6 @@ export class ApiService {
       return response.data;
     } catch (error) {
       this.handleApiError(error);
-      throw new Error('Failed to update global asset library');
     }
   }
 
@@ -454,7 +446,44 @@ export class ApiService {
       return response.data;
     } catch (error) {
       this.handleApiError(error);
-      throw new Error(`Failed to upload artifact: ${filename}`);
+    }
+  }
+
+  /**
+   * Upload a file and create a Drupal media entity.
+   */
+  async uploadMedia<TInputsResolved = unknown>(options: {
+    mediaType: string;
+    filename: string;
+    fileBuffer: Buffer;
+    data?: Record<string, string | Blob>;
+  }): Promise<UploadedMedia<TInputsResolved>> {
+    try {
+      const formData = new FormData();
+      formData.append(
+        'file',
+        new Blob([options.fileBuffer as unknown as BlobPart]),
+        options.filename,
+      );
+
+      for (const [key, value] of Object.entries(options.data ?? {})) {
+        formData.append(key, value);
+      }
+
+      const response = await this.client.post(
+        `/canvas/api/v0/media/${encodeURIComponent(options.mediaType)}/upload`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+        },
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
     }
   }
 
@@ -499,7 +528,6 @@ export class ApiService {
       };
     } catch (error) {
       this.handleApiError(error);
-      throw new Error('Failed to sync manifest');
     }
   }
 
@@ -566,7 +594,6 @@ export class ApiService {
       return Buffer.from(response.data as ArrayBuffer);
     } catch (error) {
       this.handleApiError(error);
-      throw new Error(`Failed to download file: ${url}`);
     }
   }
 
@@ -581,7 +608,6 @@ export class ApiService {
       return response.data;
     } catch (error) {
       this.handleApiError(error);
-      throw new Error(`Failed to get Brand Kit '${id}'`);
     }
   }
 
@@ -599,7 +625,6 @@ export class ApiService {
       return response.data;
     } catch (error) {
       this.handleApiError(error);
-      throw new Error(`Failed to update Brand Kit '${BRAND_KIT_GLOBAL_ID}'`);
     }
   }
 
@@ -787,7 +812,7 @@ export class ApiService {
   /**
    * Main error handler for API requests.
    */
-  private handleApiError(error: unknown): void {
+  private handleApiError(error: unknown): never {
     if (!axios.isAxiosError(error)) {
       if (error instanceof Error) {
         throw error;

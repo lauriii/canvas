@@ -94,9 +94,12 @@ export function reportResults(
   p.log.info(
     table(tableData, {
       spanningCells,
-      columns: hasDetails
-        ? { [headers.length - 1]: { width: 100, wrapWord: true } }
-        : {},
+      columns: {
+        0: { width: 60, wrapWord: true },
+        ...(hasDetails
+          ? { [headers.length - 1]: { width: 100, wrapWord: true } }
+          : {}),
+      },
     }),
   );
 }

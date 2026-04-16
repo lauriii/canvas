@@ -74,6 +74,31 @@ describe('api service', () => {
       expect(userAgentHeader).toBeUndefined();
     });
 
+    it('should upload media', async () => {
+      const client = await ApiService.create(mockConfig);
+
+      await expect(
+        client.uploadMedia({
+          mediaType: 'image',
+          filename: 'hero.jpg',
+          fileBuffer: Buffer.from('image-bytes'),
+          data: {
+            title: 'Hero',
+            alt: 'Uploaded image',
+          },
+        }),
+      ).resolves.toEqual({
+        id: 42,
+        uuid: 'media-uuid',
+        inputs_resolved: {
+          src: '/sites/default/files/image/uploaded.jpg',
+          alt: 'Uploaded image',
+          width: 1200,
+          height: 800,
+        },
+      });
+    });
+
     it('should handle invalid credentials', async () => {
       const client = await ApiService.create({
         ...mockConfig,

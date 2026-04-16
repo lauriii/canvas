@@ -1,6 +1,58 @@
+import { isRecord } from './utils';
+
 import type { ComponentMetadata } from '@drupal-canvas/discovery';
 import type { CodeComponentPropSerialized } from '@drupal-canvas/ui/types/CodeComponent';
 import type { AuthoredSpecElementMap } from 'drupal-canvas/json-render-utils';
+
+export interface UnreconciledMediaProp {
+  elementId: string;
+  propName: string;
+  src: string;
+  mediaType: string;
+}
+
+/**
+ * Describes how to identify and extract external URLs from a specific media
+ * prop type. Add new entries to `mediaDescriptors` to support additional
+ * media types (video, audio, etc.).
+ */
+interface MediaPropDescriptor {
+  /** The Drupal media bundle used for uploads (e.g. 'image'). */
+  mediaType: string;
+  matchesSchema(schema: CodeComponentPropSerialized): boolean;
+  getUrl(value: unknown): string | null;
+}
+
+const imageDescriptor: MediaPropDescriptor = {
+  mediaType: 'image',
+  matchesSchema: (schema) =>
+    schema.$ref === 'json-schema-definitions://canvas.module/image',
+  getUrl: (value) => {
+    if (!isRecord(value) || typeof value.src !== 'string') return null;
+    return value.src;
+  },
+};
+
+// Media type descriptors. The first matching descriptor is used.
+const mediaDescriptors: MediaPropDescriptor[] = [imageDescriptor];
+
+export interface UnreconciledMediaMatch {
+  url: string;
+  mediaType: string;
+}
+
+export function getUnreconciledMedia(
+  value: unknown,
+  schema?: CodeComponentPropSerialized,
+): UnreconciledMediaMatch | null {
+  const descriptor = schema
+    ? mediaDescriptors.find((d) => d.matchesSchema(schema))
+    : mediaDescriptors.find((d) => d.getUrl(value) !== null);
+  if (!descriptor) return null;
+  const url = descriptor.getUrl(value);
+  if (!url || !/^(https?:\/\/|data:)/i.test(url)) return null;
+  return { url, mediaType: descriptor.mediaType };
+}
 
 /**
  * A prop transformer that converts individual prop values between
@@ -10,7 +62,13 @@ interface PropTransformer {
   /** Returns true if the transformer handles the given prop schema. */
   matches(schema: CodeComponentPropSerialized): boolean;
   /** Converts a local/authored value to the server format (push direction). */
-  serialize(value: unknown, schema: CodeComponentPropSerialized): unknown;
+  serialize(
+    value: unknown,
+    context: {
+      schema: CodeComponentPropSerialized;
+      provenance?: unknown;
+    },
+  ): unknown;
 }
 
 /**
@@ -22,7 +80,7 @@ const formattedTextTransformer: PropTransformer = {
     return schema.contentMediaType === 'text/html';
   },
 
-  serialize(value, schema) {
+  serialize(value, { schema }) {
     if (typeof value !== 'string') {
       return value;
     }
@@ -53,7 +111,7 @@ const linkTransformer: PropTransformer = {
     );
   },
 
-  serialize(value, schema) {
+  serialize(value, { schema }) {
     if (typeof value !== 'string') {
       return value;
     }
@@ -68,8 +126,35 @@ const linkTransformer: PropTransformer = {
   },
 };
 
+/**
+ * Media props (images, and future media types).
+ * Authored: resolved media object. Server: stored provenance when available.
+ *
+ * Provenance may carry local-only metadata (e.g. `source_url`) that must not
+ * be sent to Drupal. Only the entity reference (`target_id` / `target_uuid`)
+ * is forwarded.
+ */
+const mediaTransformer: PropTransformer = {
+  matches(schema) {
+    return mediaDescriptors.some((d) => d.matchesSchema(schema));
+  },
+
+  serialize(value, { provenance }) {
+    if (isRecord(provenance)) {
+      if ('target_id' in provenance) {
+        return { target_id: provenance.target_id };
+      }
+      if ('target_uuid' in provenance) {
+        return { target_uuid: provenance.target_uuid };
+      }
+    }
+    return value;
+  },
+};
+
 // All transformers. Order matters: the first match wins.
 const transformers: PropTransformer[] = [
+  mediaTransformer,
   formattedTextTransformer,
   linkTransformer,
 ];
@@ -84,6 +169,7 @@ const transformers: PropTransformer[] = [
 export function serializePropsForServer(
   props: Record<string, unknown>,
   propSchemas: Record<string, CodeComponentPropSerialized>,
+  provenance: Record<string, unknown> = {},
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
@@ -98,7 +184,10 @@ export function serializePropsForServer(
     const transformer = transformers.find((t) => t.matches(schema));
 
     if (transformer) {
-      result[key] = transformer.serialize(value, schema);
+      result[key] = transformer.serialize(value, {
+        schema,
+        provenance: provenance[key],
+      });
     } else {
       result[key] = value;
     }
@@ -131,9 +220,44 @@ export function serializeElementMapForServer(
       props: serializePropsForServer(
         element.props as Record<string, unknown>,
         propSchemas,
+        element._provenance,
       ),
     };
   }
 
   return result;
+}
+
+export function collectUnreconciledMediaProps(
+  elements: AuthoredSpecElementMap,
+  metadata: ComponentMetadata[],
+): UnreconciledMediaProp[] {
+  const schemaMap = new Map(
+    metadata.map((m) => [`js.${m.machineName}`, m.props.properties ?? {}]),
+  );
+  const unreconciled: UnreconciledMediaProp[] = [];
+
+  for (const [elementId, element] of Object.entries(elements)) {
+    const propSchemas = schemaMap.get(element.type);
+    if (!propSchemas || !isRecord(element.props)) {
+      continue;
+    }
+
+    for (const [propName, value] of Object.entries(element.props)) {
+      const schema = propSchemas[propName];
+      if (!schema) continue;
+
+      const match = getUnreconciledMedia(value, schema);
+      if (match) {
+        unreconciled.push({
+          elementId,
+          propName,
+          src: match.url,
+          mediaType: match.mediaType,
+        });
+      }
+    }
+  }
+
+  return unreconciled;
 }

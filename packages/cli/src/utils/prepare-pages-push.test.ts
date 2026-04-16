@@ -161,6 +161,7 @@ describe('pushPages', () => {
           title: 'Home',
           components: [],
           filePath,
+          pendingMediaReconciliations: [],
         },
       },
     ];
@@ -199,6 +200,7 @@ describe('pushPages', () => {
           title: 'New Page',
           components: [],
           filePath,
+          pendingMediaReconciliations: [],
         },
       },
     ];

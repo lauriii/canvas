@@ -762,6 +762,43 @@ Tailwind CSS, and uploads the selected content to your Drupal site including:
 
 ---
 
+### `reconcile-media`
+
+Upload external media referenced in local page specs to Drupal and store
+provenance metadata so that pages can be pushed.
+
+When page specs contain image props with external URLs (e.g.
+`https://example.com/photo.jpg`), they cannot be pushed directly because Drupal
+expects a media entity reference. This command downloads each external image,
+uploads it to Drupal as a media entity, and updates the local page spec with the
+resolved image data and provenance (`target_id`).
+
+**Usage:**
+
+```bash
+npx canvas reconcile-media [options]
+```
+
+**Options:**
+
+- `-y, --yes`: Skip confirmation prompts (non-interactive mode)
+
+**Examples:**
+
+Reconcile all external media in local pages:
+
+```bash
+npx canvas reconcile-media
+```
+
+Non-interactive mode for CI/CD:
+
+```bash
+npx canvas reconcile-media --yes
+```
+
+---
+
 ### `validate`
 
 Validate local components using ESLint.

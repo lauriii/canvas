@@ -57,6 +57,10 @@
               "minLength": 1
             }
           }
+        },
+        "_provenance": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "additionalProperties": false

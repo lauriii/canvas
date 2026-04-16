@@ -68,4 +68,20 @@ export const handlers = [
 
     return HttpResponse.json({});
   }),
+
+  http.post('*/canvas/api/v0/media/:mediaType/upload', async ({ params }) => {
+    return HttpResponse.json(
+      {
+        id: 42,
+        uuid: 'media-uuid',
+        inputs_resolved: {
+          src: `/sites/default/files/${params.mediaType}/uploaded.jpg`,
+          alt: 'Uploaded image',
+          width: 1200,
+          height: 800,
+        },
+      },
+      { status: 201 },
+    );
+  }),
 ];

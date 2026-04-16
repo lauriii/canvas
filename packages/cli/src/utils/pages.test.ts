@@ -309,4 +309,60 @@ describe('pageToAuthoredSpec', () => {
       ),
     ).toEqual(page.components.map(({ inputs_resolved: _, ...rest }) => rest));
   });
+
+  it('stores media provenance in _provenance when inputs_resolved contains resolved media data', () => {
+    const page: Page = {
+      id: 1,
+      uuid: '27a539f5-2dd0-471a-a364-8fee7a024a73',
+      title: 'Gallery',
+      status: true,
+      path: '/gallery',
+      internalPath: '/page/1',
+      autoSaveLabel: null,
+      autoSavePath: null,
+      links: {},
+      components: [
+        {
+          uuid: 'image-uuid',
+          component_id: 'js.hero',
+          component_version: 'v1',
+          parent_uuid: null,
+          slot: null,
+          inputs: { image: { target_id: 42 } },
+          inputs_resolved: {
+            image: {
+              src: '/sites/default/files/example.jpg',
+              alt: 'Example image',
+              width: 1200,
+              height: 800,
+            },
+          },
+          label: null,
+        },
+      ],
+    };
+
+    expect(pageToAuthoredSpec(page)).toEqual({
+      uuid: '27a539f5-2dd0-471a-a364-8fee7a024a73',
+      title: 'Gallery',
+      elements: {
+        'image-uuid': {
+          type: 'js.hero',
+          props: {
+            image: {
+              src: '/sites/default/files/example.jpg',
+              alt: 'Example image',
+              width: 1200,
+              height: 800,
+            },
+          },
+          _provenance: {
+            image: {
+              target_id: 42,
+            },
+          },
+        },
+      },
+    });
+  });
 });

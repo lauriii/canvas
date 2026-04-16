@@ -95,6 +95,7 @@ The following scopes are created as dynamic scopes (stored as config entities) u
 | `canvas:page:create`                 | `create canvas_page`         |
 | `canvas:page:edit`                   | `edit canvas_page`           |
 | `canvas:page:delete`                 | `delete canvas_page`         |
+| `canvas:media:view`                  | `view media`                 |
 | `canvas:media:{media_type_id}:create`| `create {media_type_id} media`|
 
 The media scopes are created dynamically for each media type that uses the `image` source plugin.

@@ -8,6 +8,7 @@ import { buildDeprecatedCommand } from './commands/build-deprecated';
 import { downloadCommand } from './commands/download-deprecated';
 import { pullCommand } from './commands/pull';
 import { pushCommand } from './commands/push';
+import { reconcileMediaCommand } from './commands/reconcile-media';
 import { scaffoldCommand } from './commands/scaffold';
 import { uploadCommand } from './commands/upload-deprecated';
 import { validateCommand } from './commands/validate';
@@ -25,6 +26,7 @@ program
 downloadCommand(program);
 pullCommand(program);
 pushCommand(program);
+reconcileMediaCommand(program);
 scaffoldCommand(program);
 uploadCommand(program);
 buildDeprecatedCommand(program);

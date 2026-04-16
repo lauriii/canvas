@@ -115,7 +115,7 @@ export function parseElementMap(
       return;
     }
 
-    const allowedKeys = new Set(['type', 'props', 'slots']);
+    const allowedKeys = new Set(['type', 'props', 'slots', '_provenance']);
     const unexpectedKeys = Object.keys(elementValue).filter(
       (key) => !allowedKeys.has(key),
     );

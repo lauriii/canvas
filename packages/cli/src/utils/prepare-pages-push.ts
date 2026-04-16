@@ -2,7 +2,10 @@ import fs from 'fs/promises';
 import { loadComponentsMetadata } from '@drupal-canvas/discovery';
 
 import { authoredSpecToComponentTree } from './pages';
-import { serializeElementMapForServer } from './prop-transforms';
+import {
+  collectUnreconciledMediaProps,
+  serializeElementMapForServer,
+} from './prop-transforms';
 import { processInPool } from './request-pool';
 
 import type { DiscoveredPage, DiscoveryResult } from '@drupal-canvas/discovery';
@@ -10,6 +13,16 @@ import type { AuthoredSpecElementMap } from 'drupal-canvas/json-render-utils';
 import type { ApiService } from '../services/api';
 import type { Page, PageListItem } from '../types/Page';
 import type { Result } from '../types/Result';
+
+export interface PendingMediaReconciliation {
+  index: number;
+  title: string;
+  filePath: string;
+  elementId: string;
+  propName: string;
+  src: string;
+  mediaType: string;
+}
 
 export interface PagePushResult {
   title: string;
@@ -21,6 +34,9 @@ export interface PreparedPage {
   title: string;
   components: Page['components'];
   filePath: string;
+  pendingMediaReconciliations: Array<
+    Omit<PendingMediaReconciliation, 'index' | 'title' | 'filePath'>
+  >;
 }
 
 /**
@@ -34,6 +50,7 @@ export async function preparePages(
 ): Promise<{
   valid: Array<{ index: number; result: PreparedPage }>;
   failed: Array<{ index: number; error: Error }>;
+  pendingMediaReconciliations: PendingMediaReconciliation[];
 }> {
   const componentMetadata = await loadComponentsMetadata(discoveryResult);
 
@@ -43,6 +60,10 @@ export async function preparePages(
       title: string;
       elements: AuthoredSpecElementMap;
     };
+    const pendingMediaReconciliations = collectUnreconciledMediaProps(
+      spec.elements ?? {},
+      componentMetadata,
+    );
     const elements = serializeElementMapForServer(
       spec.elements ?? {},
       componentMetadata,
@@ -53,6 +74,7 @@ export async function preparePages(
       title: spec.title,
       components,
       filePath: localPage.path,
+      pendingMediaReconciliations,
     };
   });
 
@@ -63,6 +85,16 @@ export async function preparePages(
     failed: results
       .filter((r) => !r.success)
       .map((r) => ({ index: r.index, error: r.error! })),
+    pendingMediaReconciliations: results
+      .filter((r) => r.success && r.result)
+      .flatMap((r) =>
+        r.result!.pendingMediaReconciliations.map((entry) => ({
+          index: r.index,
+          title: r.result!.title,
+          filePath: r.result!.filePath,
+          ...entry,
+        })),
+      ),
   };
 }
 
