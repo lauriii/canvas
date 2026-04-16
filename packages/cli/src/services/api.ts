@@ -2,7 +2,8 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import axios from 'axios';
 
-import { BRAND_KIT_GLOBAL_ID, getConfig } from '../config.js';
+import { BRAND_KIT_GLOBAL_ID, ensureConfig, getConfig } from '../config.js';
+import { getTokenEntry, setTokenEntry } from '../lib/token-store.js';
 
 import type { AxiosError, AxiosInstance } from 'axios';
 import type { CanvasComponentTree } from 'drupal-canvas/json-render-utils';
@@ -23,6 +24,8 @@ export interface ApiOptions {
   scope: string;
   userAgent?: string;
   accessToken?: string;
+  refreshToken?: string;
+  tokenEndpoint?: string;
 }
 
 export interface UploadedMedia<TInputsResolved = unknown> {
@@ -39,6 +42,8 @@ export class ApiService {
   private readonly scope: string;
   private readonly userAgent: string;
   private accessToken: string | null = null;
+  private refreshToken: string | null = null;
+  private readonly tokenEndpoint: string | null;
   private refreshPromise: Promise<string> | null = null;
 
   private constructor(options: ApiOptions) {
@@ -47,6 +52,8 @@ export class ApiService {
     this.siteUrl = options.siteUrl;
     this.scope = options.scope;
     this.userAgent = options.userAgent || '';
+    this.refreshToken = options.refreshToken ?? null;
+    this.tokenEndpoint = options.tokenEndpoint ?? null;
 
     // Create the client without authorization headers by default
     const headers: Record<string, string> = {
@@ -145,16 +152,12 @@ export class ApiService {
   }
 
   /**
-   * Refresh the access token using client credentials.
+   * Refresh the access token.
+   * Supports both the refresh_token grant (user tokens from auth:login) and
+   * the client_credentials grant (service accounts).
    * Handles concurrent refresh attempts by reusing the same promise.
    */
   private async refreshAccessToken(): Promise<string> {
-    if (!this.clientId || !this.clientSecret) {
-      throw new Error(
-        'No client credentials configured; cannot refresh access token.',
-      );
-    }
-
     // If a refresh is already in progress, wait for it
     if (this.refreshPromise) {
       return this.refreshPromise;
@@ -163,6 +166,63 @@ export class ApiService {
     // Start a new refresh - create the promise immediately so concurrent calls share it
     this.refreshPromise = (async (): Promise<string> => {
       try {
+        // User token: use refresh_token grant.
+        if (this.refreshToken && this.tokenEndpoint) {
+          const response = await axios.post<{
+            access_token: string;
+            refresh_token?: string;
+            expires_in?: number;
+            error?: string;
+            error_description?: string;
+          }>(
+            this.tokenEndpoint,
+            new URLSearchParams({
+              grant_type: 'refresh_token',
+              refresh_token: this.refreshToken,
+              client_id: this.clientId,
+            }).toString(),
+            {
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            },
+          );
+
+          if (response.data.error) {
+            throw new Error(
+              response.data.error_description ??
+                response.data.error ??
+                'Session expired. Run `canvas login` to re-authenticate.',
+            );
+          }
+
+          const newToken = response.data.access_token;
+          this.accessToken = newToken;
+          this.refreshToken = response.data.refresh_token ?? this.refreshToken;
+          this.client.defaults.headers.common['Authorization'] =
+            `Bearer ${newToken}`;
+
+          // Persist updated tokens back to the store.
+          const entry = getTokenEntry(this.siteUrl);
+          if (entry) {
+            setTokenEntry(this.siteUrl, {
+              ...entry,
+              accessToken: newToken,
+              refreshToken: this.refreshToken ?? entry.refreshToken,
+              expiresAt: response.data.expires_in
+                ? Date.now() + response.data.expires_in * 1000
+                : undefined,
+            });
+          }
+
+          return newToken;
+        }
+
+        // Service account: use client_credentials grant.
+        if (!this.clientId || !this.clientSecret) {
+          throw new Error(
+            'No client credentials configured; cannot refresh access token.',
+          );
+        }
+
         const response = await this.client.post(
           '/oauth/token',
           new URLSearchParams({
@@ -838,7 +898,7 @@ export class ApiService {
   }
 }
 
-export function createApiService(): Promise<ApiService> {
+export async function createApiService(): Promise<ApiService> {
   const config = getConfig();
 
   if (!config.siteUrl) {
@@ -850,13 +910,28 @@ export function createApiService(): Promise<ApiService> {
   const accessToken = process.env.CANVAS_ACCESS_TOKEN;
 
   if (accessToken) {
-    return ApiService.create({
+    return await ApiService.create({
       siteUrl: config.siteUrl,
       clientId: '',
       clientSecret: '',
       scope: '',
       userAgent: config.userAgent,
       accessToken,
+    });
+  }
+
+  // Check for a stored user token from `canvas login`.
+  const tokenEntry = getTokenEntry(config.siteUrl);
+  if (tokenEntry) {
+    return await ApiService.create({
+      siteUrl: config.siteUrl,
+      clientId: tokenEntry.clientId,
+      clientSecret: '',
+      scope: '',
+      userAgent: config.userAgent,
+      accessToken: tokenEntry.accessToken,
+      refreshToken: tokenEntry.refreshToken,
+      tokenEndpoint: tokenEntry.tokenEndpoint,
     });
   }
 
@@ -878,11 +953,32 @@ export function createApiService(): Promise<ApiService> {
     );
   }
 
-  return ApiService.create({
+  return await ApiService.create({
     siteUrl: config.siteUrl,
     clientId: config.clientId,
     clientSecret: config.clientSecret,
     scope: config.scope,
     userAgent: config.userAgent,
   });
+}
+
+/**
+ * Returns true when the user has a stored OAuth token for the given site URL
+ * or a pre-issued access token in the environment.
+ * Used by commands to skip prompting for client credentials when not needed.
+ */
+export function isUserAuthenticated(siteUrl: string): boolean {
+  if (process.env.CANVAS_ACCESS_TOKEN) return true;
+  return getTokenEntry(siteUrl) !== null;
+}
+
+/**
+ * Ensures siteUrl is configured, then prompts for client credentials only
+ * when the user has no stored OAuth token and no CANVAS_ACCESS_TOKEN set.
+ */
+export async function ensureAuthConfig(): Promise<void> {
+  await ensureConfig(['siteUrl']);
+  if (!isUserAuthenticated(getConfig().siteUrl!)) {
+    await ensureConfig(['clientId', 'clientSecret', 'scope']);
+  }
 }

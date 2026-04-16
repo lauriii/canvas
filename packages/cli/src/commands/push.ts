@@ -10,7 +10,7 @@ import {
   buildFontPushPlannedResults,
   pushFonts,
 } from '../lib/fonts/font-push.js';
-import { createApiService } from '../services/api.js';
+import { createApiService, ensureAuthConfig } from '../services/api.js';
 import { analyzeAndBundleImports } from '../utils/analyze-and-bundle-imports';
 import { buildTailwindForComponents } from '../utils/build-tailwind';
 import {
@@ -289,13 +289,9 @@ export function pushCommand(program: Command): void {
         p.intro(chalk.bold('Drupal Canvas CLI: push'));
         // Update config with CLI options.
         updateConfigFromOptions(options);
-        await ensureConfig([
-          'siteUrl',
-          'clientId',
-          'clientSecret',
-          'scope',
-          'componentDir',
-        ]);
+
+        await ensureAuthConfig();
+        await ensureConfig(['componentDir']);
         const config = getConfig();
         const { componentDir, aliasBaseDir, outputDir } = config;
         const includesPages = config.includePages;

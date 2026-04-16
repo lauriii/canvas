@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import * as p from '@clack/prompts';
 
 import { ensureConfig, getConfig } from '../config.js';
-import { createApiService } from '../services/api.js';
+import { createApiService, ensureAuthConfig } from '../services/api.js';
 import { buildTailwindForComponents } from '../utils/build-tailwind-deprecated';
 import {
   pluralizeComponent,
@@ -81,13 +81,8 @@ export function uploadCommand(program: Command): void {
         updateConfigFromOptions(options);
 
         // Ensure all required config is present
-        await ensureConfig([
-          'siteUrl',
-          'clientId',
-          'clientSecret',
-          'scope',
-          'deprecatedComponentDir',
-        ]);
+        await ensureAuthConfig();
+        await ensureConfig(['deprecatedComponentDir']);
         const config = getConfig();
 
         // Select components and global CSS to upload

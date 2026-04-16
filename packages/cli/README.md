@@ -16,9 +16,15 @@ npm install @drupal-canvas/cli
 
 1. Install the Drupal Canvas OAuth module (`canvas_oauth`), which is shipped as
    a submodule of Drupal Canvas.
-2. Follow the
-   [configuration steps of the module](https://git.drupalcode.org/project/canvas/-/tree/1.x/modules/canvas_oauth#22-configuration)
-   to set up a client with an ID and secret.
+2. Choose an authentication flow:
+   - **Interactive login (recommended for individual developers):** Follow the
+     [authorization code setup](https://git.drupalcode.org/project/canvas/-/tree/1.x/modules/canvas_oauth#23-interactive-login-with-canvas-login)
+     and run `npx canvas login`. Tokens are stored in
+     `~/.config/drupal-canvas/oauth.json` and used automatically — no
+     environment variables needed.
+   - **Client credentials (for CI/CD or service accounts):** Follow the
+     [client credentials setup](https://git.drupalcode.org/project/canvas/-/tree/1.x/modules/canvas_oauth#22-configuration)
+     and configure `CANVAS_CLIENT_ID` and `CANVAS_CLIENT_SECRET`.
 
 ### Configuration
 
@@ -179,6 +185,7 @@ to get started.
 | `--client-secret`     | `CANVAS_CLIENT_SECRET`     | OAuth client secret. This is a secret credential that must never be committed to version control.                                                                                                     |
 | `--scope`             | `CANVAS_SCOPE`             | (Optional) Space-separated list of OAuth scopes to request. Tied to your specific Drupal site's OAuth configuration. Defaults to standard scopes.                                                     |
 | _(none)_              | `CANVAS_ACCESS_TOKEN`      | (Optional) Pre-issued Bearer token. When set, skips the OAuth client credentials flow entirely. `CANVAS_CLIENT_ID`, `CANVAS_CLIENT_SECRET`, and `CANVAS_SCOPE` are ignored. Must not be empty if set. |
+| _(none)_              | _(none)_                   | User tokens from `canvas auth login` are stored in `~/.config/drupal-canvas/oauth.json` (keyed by site URL) and used automatically. No environment variable is needed.                                |
 | `--include-pages`     | `CANVAS_INCLUDE_PAGES`     | (Optional) Include pages in `pull` and `push`. Defaults to `false`. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                                   |
 | `--include-brand-kit` | `CANVAS_INCLUDE_BRAND_KIT` | (Optional) Include brand kit (fonts) in `pull` and `push`. Defaults to `false`. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                       |
 
@@ -795,6 +802,64 @@ Non-interactive mode for CI/CD:
 
 ```bash
 npx canvas reconcile-media --yes
+```
+
+---
+
+### `login`
+
+Log in to a Canvas site via browser using the OAuth 2.0 authorization code flow
+with PKCE. Stores the resulting access and refresh tokens in
+`~/.config/drupal-canvas/oauth.json` (keyed by site URL). After logging in,
+`canvas push` and `canvas pull` use the stored token automatically.
+
+**Usage:**
+
+```bash
+npx canvas login [options]
+```
+
+**Options:**
+
+- `--site-url <url>`: Canvas site URL (prompted if not provided)
+- `--client-id <id>`: OAuth client ID for the consumer configured in Drupal
+  admin
+- `--port <number>`: Local callback port (default: `4444`). The consumer's
+  redirect URI must match: `http://localhost:<port>/callback`.
+
+**Example:**
+
+```bash
+npx canvas login --site-url https://example.com --client-id my-cli-client
+```
+
+The CLI opens your browser to the Drupal login page, waits for authorization,
+then saves your tokens locally. Requires the consumer to be configured for the
+Authorization Code grant with `http://localhost:4444/callback` (or the port you
+specify) as a redirect URI — see the
+[canvas_oauth setup guide](https://git.drupalcode.org/project/canvas/-/tree/1.x/modules/canvas_oauth#23-interactive-login-with-canvas-login).
+
+---
+
+### `logout`
+
+Remove stored credentials for a Canvas site from
+`~/.config/drupal-canvas/oauth.json`.
+
+**Usage:**
+
+```bash
+npx canvas logout [options]
+```
+
+**Options:**
+
+- `--site-url <url>`: Canvas site URL to log out of (prompted if not provided)
+
+**Example:**
+
+```bash
+npx canvas logout --site-url https://example.com
 ```
 
 ---

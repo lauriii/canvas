@@ -5,7 +5,7 @@ import yaml from 'js-yaml';
 import * as p from '@clack/prompts';
 
 import { ensureConfig, getConfig } from '../config';
-import { createApiService } from '../services/api';
+import { createApiService, ensureAuthConfig } from '../services/api';
 import {
   pluralizeComponent,
   updateConfigFromOptions,
@@ -78,13 +78,8 @@ export function downloadCommand(program: Command): void {
         updateConfigFromOptions(options);
 
         // Ensure all required config is present
-        await ensureConfig([
-          'siteUrl',
-          'clientId',
-          'clientSecret',
-          'scope',
-          'deprecatedComponentDir',
-        ]);
+        await ensureAuthConfig();
+        await ensureConfig(['deprecatedComponentDir']);
 
         const config = getConfig();
         const apiService = await createApiService();

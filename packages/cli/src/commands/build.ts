@@ -3,7 +3,8 @@ import chalk from 'chalk';
 import * as p from '@clack/prompts';
 import { discoverCanvasProject } from '@drupal-canvas/discovery';
 
-import { ensureConfig, getConfig } from '../config';
+import { getConfig } from '../config';
+import { ensureAuthConfig } from '../services/api';
 import { analyzeAndBundleImports } from '../utils/analyze-and-bundle-imports';
 import { buildComponent } from '../utils/build-component';
 import { buildTailwindForComponents } from '../utils/build-tailwind';
@@ -58,7 +59,7 @@ export function buildCommand(program: Command): void {
         await fs.rm(outputDir, { recursive: true, force: true });
 
         if (!skipTailwind) {
-          await ensureConfig(['siteUrl', 'clientId', 'clientSecret']);
+          await ensureAuthConfig();
         }
         // Step 1: Discover all components
         const s1 = p.spinner();

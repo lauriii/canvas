@@ -15,7 +15,7 @@ import {
   updateBrandKitConfig,
   variantKey,
 } from '../lib/fonts/font-pull.js';
-import { createApiService } from '../services/api';
+import { createApiService, ensureAuthConfig } from '../services/api';
 import {
   parseBooleanOption,
   pluralizeComponent,
@@ -548,13 +548,8 @@ export function pullCommand(program: Command): void {
       try {
         updateConfigFromOptions(options);
 
-        await ensureConfig([
-          'siteUrl',
-          'clientId',
-          'clientSecret',
-          'scope',
-          'componentDir',
-        ]);
+        await ensureAuthConfig();
+        await ensureConfig(['componentDir']);
 
         const config = getConfig();
         const apiService = await createApiService();

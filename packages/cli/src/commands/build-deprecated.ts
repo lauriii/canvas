@@ -2,7 +2,7 @@
 import chalk from 'chalk';
 import * as p from '@clack/prompts';
 
-import { ensureConfig } from '../config.js';
+import { ensureAuthConfig } from '../services/api.js';
 import { buildComponent } from '../utils/build-deprecated';
 import { buildTailwindForComponents } from '../utils/build-tailwind-deprecated';
 import {
@@ -67,7 +67,7 @@ export function buildDeprecatedCommand(program: Command): void {
         updateConfigFromOptions(options);
 
         if (!skipTailwind) {
-          await ensureConfig(['siteUrl', 'clientId', 'clientSecret']);
+          await ensureAuthConfig();
         }
 
         // Select components to build
