@@ -323,7 +323,9 @@ Cypress.Commands.add('drupalRelativeURL', (pathname, callback) => {
  */
 Cypress.Commands.add('drupalDismissPreviewToasts', () => {
   cy.get('body').then(($body) => {
-    const $btns = $body.find('button[aria-label="Dismiss"]');
+    const $btns = $body
+      .find('[data-testid="drupal-preview-messages"]')
+      .find('button[aria-label="Dismiss notification"]');
     if ($btns.length) {
       cy.wrap($btns).click({ multiple: true, force: true });
     }

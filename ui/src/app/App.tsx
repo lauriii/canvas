@@ -18,6 +18,7 @@ import Toast from '@/components/Toast';
 import Topbar from '@/components/topbar/Topbar';
 import useExtensions from '@/features/extensions/useExtensions';
 import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler';
+import DrupalPreviewMessageToaster from '@/features/notifications/DrupalPreviewMessageToaster';
 import NotificationToastManager from '@/features/notifications/NotificationToastManager';
 import useNavigationListener from '@/hooks/useNavigationListener';
 import useRouteSync from '@/hooks/useRouteSync';
@@ -118,6 +119,7 @@ const App: React.FC = () => {
             {import.meta.env.DEV && <DevTools />}
             <SavingOverlay />
             <Toast />
+            <DrupalPreviewMessageToaster />
             {getCanvasSettings()?.devMode && <NotificationToastManager />}
           </DndContext>
         </ErrorBoundary>

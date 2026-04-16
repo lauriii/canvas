@@ -88,11 +88,9 @@ test.describe('Drupal preview messenger (E2E)', () => {
       layoutJson.messages?.some((m) => m.message.includes(PROBE_MESSAGE)),
     ).toBe(true);
 
-    // Sonner default toaster uses containerAriaLabel="Notifications".
+    // DrupalPreviewMessageToaster exposes a region with data-testid for tests.
     await expect(
-      page
-        .getByRole('region', { name: 'Notifications' })
-        .getByText(PROBE_MESSAGE),
+      page.getByTestId('drupal-preview-messages').getByText(PROBE_MESSAGE),
     ).toBeVisible({ timeout: 20_000 });
   });
 });
