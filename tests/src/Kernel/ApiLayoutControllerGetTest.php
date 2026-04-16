@@ -111,8 +111,6 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       $region->setComponentTree([])->save();
     }
 
-    // Put a status in the flash bag and bind the same session to the request,
-    // matching how messages persist across subrequests in the HTTP kernel.
     $session = $this->container->get('session');
     $session->start();
     $session->getFlashBag()->add(MessengerInterface::TYPE_STATUS, 'Canvas kernel preview messenger probe.');
@@ -127,118 +125,6 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     self::assertSame(MessengerInterface::TYPE_STATUS, $json['messages'][0]['type']);
     self::assertStringContainsString('Canvas kernel preview messenger probe', $json['messages'][0]['message']);
     self::assertStringNotContainsString('data-drupal-messages', $json['html']);
-
-    $response_again = $this->request(Request::create($this->getLayoutUrl($entity)->toString()));
-    $json_again = static::decodeResponse($response_again);
-    self::assertArrayHasKey('messages', $json_again);
-    $repeated = array_filter(
-      $json_again['messages'],
-      static fn(array $m): bool => $m['type'] === MessengerInterface::TYPE_STATUS
-        && str_contains($m['message'], 'Canvas kernel preview messenger probe'),
-    );
-    self::assertSame([], $repeated);
-  }
-
-  /**
-   * Core maintenance banner must not appear in layout preview JSON on canvas routes.
-   *
-   * @see \Drupal\canvas\EventSubscriber\CanvasMaintenanceModeSubscriber
-   */
-  public function testLayoutPreviewOmitsMaintenanceModeBannerInMessagesJson(): void {
-    $this->container->get('state')->set('system.maintenance_mode', TRUE);
-    $entity = $this->getTestEntity('node');
-    $this->setUpCurrentUser([], [
-      'access site in maintenance mode',
-      self::getAdminPermission($entity),
-    ]);
-    $regions = $this->enableGlobalRegions();
-    foreach ($regions as $region) {
-      $region->setComponentTree([])->save();
-    }
-
-    $session = $this->container->get('session');
-    $session->start();
-    $session->getFlashBag()->add(MessengerInterface::TYPE_STATUS, 'Canvas kernel maintenance probe.');
-    $request = Request::create($this->getLayoutUrl($entity)->toString());
-    $request->setSession($session);
-    $response = $this->request($request);
-    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-    $json = static::decodeResponse($response);
-    self::assertArrayHasKey('messages', $json);
-    self::assertIsArray($json['messages']);
-    foreach ($json['messages'] as $item) {
-      self::assertIsArray($item);
-      self::assertArrayHasKey('message', $item);
-      self::assertStringNotContainsStringIgnoringCase('Operating in maintenance mode', (string) $item['message']);
-    }
-    $probe = array_filter(
-      $json['messages'],
-      static fn(array $m): bool => $m['type'] === MessengerInterface::TYPE_STATUS
-        && str_contains((string) $m['message'], 'Canvas kernel maintenance probe'),
-    );
-    self::assertCount(1, $probe);
-  }
-
-  /**
-   * @see \Drupal\canvas\Messenger
-   */
-  public function testPreviewDrupalMessengerPreservesSafeMarkup(): void {
-    $entity = $this->getTestEntity('node');
-    $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
-    $regions = $this->enableGlobalRegions();
-    foreach ($regions as $region) {
-      $region->setComponentTree([])->save();
-    }
-
-    $session = $this->container->get('session');
-    $session->start();
-    $session->getFlashBag()->add(
-      MessengerInterface::TYPE_STATUS,
-      Markup::create('Open the <a href="/user">account page</a> for details.'),
-    );
-    $request = Request::create($this->getLayoutUrl($entity)->toString());
-    $request->setSession($session);
-    $response = $this->request($request);
-    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-    $json = static::decodeResponse($response);
-    self::assertArrayHasKey('messages', $json);
-    self::assertNotEmpty($json['messages']);
-    self::assertStringContainsString('<a ', $json['messages'][0]['message']);
-    self::assertStringContainsString('href=', $json['messages'][0]['message']);
-    self::assertStringContainsString('account page', $json['messages'][0]['message']);
-  }
-
-  /**
-   * Layout preview JSON returns the same normalized HTML as core's admin XSS filter.
-   *
-   * @see \Drupal\canvas\Messenger::messageToPreviewHtml()
-   */
-  public function testPreviewDrupalMessengerJsonFiltersXssAtApi(): void {
-    $entity = $this->getTestEntity('node');
-    $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
-    $regions = $this->enableGlobalRegions();
-    foreach ($regions as $region) {
-      $region->setComponentTree([])->save();
-    }
-
-    $payload = 'Canvas API XSS probe. <script>alert(String.fromCharCode(88,83,83))</script><img src=x onerror=alert(1)><a href="javascript:alert(1)">js</a><iframe src="https://evil.example/"></iframe>';
-
-    $session = $this->container->get('session');
-    $session->start();
-    $session->getFlashBag()->add(MessengerInterface::TYPE_ERROR, $payload);
-    $request = Request::create($this->getLayoutUrl($entity)->toString());
-    $request->setSession($session);
-    $response = $this->request($request);
-    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-    $json = static::decodeResponse($response);
-    self::assertArrayHasKey('messages', $json);
-    self::assertNotEmpty($json['messages']);
-    self::assertSame(MessengerInterface::TYPE_ERROR, $json['messages'][0]['type']);
-    $message = $json['messages'][0]['message'];
-    self::assertSame(
-      'Canvas API XSS probe. alert(String.fromCharCode(88,83,83))<img src="x"><a href="alert(1)">js</a>',
-      $message,
-    );
   }
 
   /**

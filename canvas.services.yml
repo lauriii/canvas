@@ -266,9 +266,4 @@ services:
   Drupal\canvas\EventSubscriber\CanvasMaintenanceModeSubscriber:
     public: false
     decorates: maintenance_mode_subscriber
-    arguments:
-      - '@.inner'
-      - '@maintenance_mode'
-      - '@current_user'
-      - '@event_dispatcher'
-      - '@page_cache_kill_switch'
+    arguments: ['@.inner']

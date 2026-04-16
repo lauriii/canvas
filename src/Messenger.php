@@ -9,21 +9,10 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 
 /**
- * Decorator to limit messenger use on Canvas API routes.
+ * Decorates messenger to suppress messages on most Canvas API routes.
  *
- * Most Canvas JSON endpoints should not accumulate flash messages. Layout
- * preview routes are an exception: messages must be stored so
- * \Drupal\canvas\Render\MainContent\CanvasPreviewRenderer can return them in
- * the JSON payload for the editor shell (and omit them from iframe HTML).
- *
- * Add and read policy uses the injected route match (same as other services).
- *
- * On layout preview API routes, messages from all(), messagesByType(),
- * deleteAll(), and deleteByType() are normalized to admin-safe HTML for JSON
- * (see messageToPreviewHtml()).
- *
- * (The only messages relevant in the Canvas UI are validation errors, and
- * those are displayed when reviewing/publishing all auto-saved changes.)
+ * Layout preview routes are an exception: messages are kept and normalized to
+ * admin-safe HTML so the layout preview response can include them in JSON.
  */
 readonly class Messenger implements MessengerInterface {
 

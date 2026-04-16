@@ -11,6 +11,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Site\MaintenanceModeEvents;
 use Drupal\Core\Site\MaintenanceModeInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Event\TerminateEvent;
@@ -22,6 +23,7 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 final class CanvasMaintenanceModeSubscriber implements EventSubscriberInterface {
 
   public function __construct(
+    #[Autowire(service: '.inner')]
     private readonly MaintenanceModeSubscriber $inner,
     private readonly MaintenanceModeInterface $maintenanceMode,
     private readonly AccountInterface $account,
