@@ -358,7 +358,43 @@ describe('Pull Command', () => {
       expect(results.results[0].success).toBe(true);
 
       const cssContent = await fs.readFile(globalCssPath, 'utf-8');
-      expect(cssContent).toBe('body { margin: 0; }');
+      expect(cssContent).toBe('@import "tailwindcss";\nbody { margin: 0; }');
+    });
+
+    it('should prepend @import tailwindcss when remote CSS omits it', async () => {
+      const api = mockApiService('@layer theme {\n  :root { --x: 1; }\n}');
+      const task = createAssetsPullTask(api, globalCssPath, false);
+
+      await task.prepare();
+      await task.execute();
+
+      const cssContent = await fs.readFile(globalCssPath, 'utf-8');
+      expect(cssContent).toBe(
+        '@import "tailwindcss";\n@layer theme {\n  :root { --x: 1; }\n}',
+      );
+    });
+
+    it('should not duplicate @import when remote CSS already has tailwindcss entry', async () => {
+      const remote =
+        "@import 'tailwindcss';\n@layer base {\n  body { margin: 0; }\n}";
+      const api = mockApiService(remote);
+      const task = createAssetsPullTask(api, globalCssPath, false);
+
+      await task.prepare();
+      await task.execute();
+
+      expect(await fs.readFile(globalCssPath, 'utf-8')).toBe(remote);
+    });
+
+    it('should not duplicate @import when remote uses double-quoted tailwindcss', async () => {
+      const remote = '@import "tailwindcss";\n.foo { color: red; }';
+      const api = mockApiService(remote);
+      const task = createAssetsPullTask(api, globalCssPath, false);
+
+      await task.prepare();
+      await task.execute();
+
+      expect(await fs.readFile(globalCssPath, 'utf-8')).toBe(remote);
     });
 
     it('should skip writing global.css with skipOverwrite when it already exists', async () => {

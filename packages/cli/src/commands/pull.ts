@@ -21,6 +21,7 @@ import {
   pluralizeComponent,
   updateConfigFromOptions,
 } from '../utils/command-helpers';
+import { ensureTailwindImportAtTop } from '../utils/ensure-global-css-tailwind-import';
 import { pageToAuthoredSpec } from '../utils/pages';
 import { reportResults } from '../utils/report-results';
 
@@ -403,7 +404,8 @@ export function createAssetsPullTask(
           });
         } else {
           await fs.mkdir(path.dirname(globalCssPath), { recursive: true });
-          await fs.writeFile(globalCssPath, globalCss, 'utf-8');
+          const outputCss = ensureTailwindImportAtTop(globalCss);
+          await fs.writeFile(globalCssPath, outputCss, 'utf-8');
           results.push({ itemName: 'global.css', success: true });
         }
       } catch (error) {
