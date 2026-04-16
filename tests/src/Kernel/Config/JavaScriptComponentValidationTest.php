@@ -188,7 +188,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
   }
 
   #[DataProvider('providerInvalidEnumsAndExamples')]
-  public function testInvalidEnumsAndExamples(string $json_schema_type, array $enum_and_examples_both, ?array $meta_enum, array $indexed_validation_errors, array $expected_validation_errors = []): void {
+  public function testInvalidEnumsAndExamples(string $json_schema_type, array $enum_and_examples_both, ?array $meta_enum, array $indexed_validation_errors, array $expected_validation_errors): void {
     $this->entity->set('props', [
       'tested_enum_prop' => array_merge([
         'type' => $json_schema_type,

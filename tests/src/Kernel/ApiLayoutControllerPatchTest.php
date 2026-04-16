@@ -293,7 +293,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
  * Tests .
  */
   #[DataProvider('providerValid')]
-  public function test(string $entity_type, bool $withAutoSave = FALSE, bool $withGlobal = FALSE): void {
+  public function test(string $entity_type, bool $withAutoSave, bool $withGlobal): void {
     $entity = $this->getTestEntity($entity_type);
     $url = $this->getLayoutUrl($entity)->toString();
     $this->setUpCurrentUser([], [
@@ -508,7 +508,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
 
   public static function providerValid(): iterable {
     foreach (['node', ContentTemplate::ENTITY_TYPE_ID] as $entity_type) {
-      yield "$entity_type: fresh state, no global" => [$entity_type];
+      yield "$entity_type: fresh state, no global" => [$entity_type, FALSE, FALSE];
       yield "$entity_type: fresh state, global" => [$entity_type, FALSE, TRUE];
       yield "$entity_type: existing auto-save, no global" => [$entity_type, TRUE, FALSE];
       yield "$entity_type: existing auto-save, global" => [$entity_type, TRUE, TRUE];

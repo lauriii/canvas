@@ -85,7 +85,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
    *   Consider removing in https://www.drupal.org/i/3498525.
    */
   #[DataProvider('entityData')]
-  public function testController(string $entity_type, array $permissions, array $values, ?string $expected_exception_message = NULL): void {
+  public function testController(string $entity_type, array $permissions, array $values, ?string $expected_exception_message): void {
     $this->installEntitySchema($entity_type);
 
     $this->setUpCurrentUser([], $permissions);
@@ -135,6 +135,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           'description' => 'This is a test page.',
           'components' => [],
         ],
+        NULL,
       ],
       'entity_test' => [
         'entity_test',

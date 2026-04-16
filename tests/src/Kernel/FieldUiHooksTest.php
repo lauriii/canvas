@@ -83,7 +83,7 @@ final class FieldUiHooksTest extends CanvasKernelTestBase {
     string $entity_type,
     string $bundle,
     bool $create_template,
-    ?string $route_name = NULL,
+    ?string $route_name,
   ): void {
     $this->createContentType(['type' => $bundle]);
     if ($create_template) {
@@ -165,6 +165,7 @@ final class FieldUiHooksTest extends CanvasKernelTestBase {
         'create_template' => FALSE,
         'entity_type' => 'node',
         'bundle' => 'article',
+        'route_name' => NULL,
       ],
       'permission with at-least one template present' => [
         'permissions' => [ContentTemplate::ADMIN_PERMISSION],
@@ -172,6 +173,7 @@ final class FieldUiHooksTest extends CanvasKernelTestBase {
         'create_template' => TRUE,
         'entity_type' => 'node',
         'bundle' => 'article',
+        'route_name' => NULL,
       ],
       'permission with at-least one template present but different route' => [
         'permissions' => [ContentTemplate::ADMIN_PERMISSION],
@@ -187,6 +189,7 @@ final class FieldUiHooksTest extends CanvasKernelTestBase {
         'create_template' => TRUE,
         'entity_type' => 'node',
         'bundle' => 'article',
+        'route_name' => NULL,
       ],
       'no permission with at-least one template present' => [
         'permissions' => [],
@@ -194,6 +197,7 @@ final class FieldUiHooksTest extends CanvasKernelTestBase {
         'create_template' => TRUE,
         'entity_type' => 'node',
         'bundle' => 'article',
+        'route_name' => NULL,
       ],
     ];
   }

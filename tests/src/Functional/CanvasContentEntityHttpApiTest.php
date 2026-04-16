@@ -537,7 +537,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
    * @param list<string> $extraCacheTags
    */
   #[DataProvider('metaOperationsProvider')]
-  public function testListMetaOperations(array $permissions, array $expectedLinks, array $extraCacheContexts = [], array $extraCacheTags = []): void {
+  public function testListMetaOperations(array $permissions, array $expectedLinks, array $extraCacheContexts, array $extraCacheTags): void {
     $url = Url::fromUri('base:/canvas/api/v0/content/canvas_page');
     array_walk($expectedLinks, fn(&$value) => $value = Url::fromUri($value)->toString());
     // Enable canvas_test_access, which will disable view permission for page 1
@@ -572,6 +572,8 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
           CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => 'base:/canvas/editor/canvas_page/1',
           CanvasUriDefinitions::LINK_REL_UNPUBLISH => 'base:/canvas/api/v0/content/auto-save/canvas_page/1',
         ],
+        [],
+        [],
       ],
       'can edit and delete' => [
         [Page::EDIT_PERMISSION, Page::DELETE_PERMISSION],
@@ -581,6 +583,8 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
           CanvasUriDefinitions::LINK_REL_UNPUBLISH => 'base:/canvas/api/v0/content/auto-save/canvas_page/1',
           CanvasUriDefinitions::LINK_REL_DELETE => 'base:/canvas/api/v0/content/canvas_page/1',
         ],
+        [],
+        [],
       ],
       'can create, edit and delete' => [
         [Page::CREATE_PERMISSION, Page::EDIT_PERMISSION, Page::DELETE_PERMISSION],
@@ -591,6 +595,8 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
           CanvasUriDefinitions::LINK_REL_DUPLICATE => 'base:/canvas/api/v0/content/canvas_page',
           CanvasUriDefinitions::LINK_REL_DELETE => 'base:/canvas/api/v0/content/canvas_page/1',
         ],
+        [],
+        [],
       ],
       'can create and edit, with extra cache metadata' => [
         [Page::CREATE_PERMISSION, Page::EDIT_PERMISSION],

@@ -48,7 +48,7 @@ class StaticPropSourceTest extends PropSourceTestBase {
     CacheableMetadata $expected_cacheability,
     string $expected_prop_expression,
     array $expected_dependencies,
-    array $permissions = [],
+    array $permissions,
   ): void {
     $this->setUpCurrentUser([], $permissions);
     $prop_source_example = StaticPropSource::parse([
@@ -145,6 +145,7 @@ class StaticPropSourceTest extends PropSourceTestBase {
       'expected_cacheability' => $permanent_cacheability,
       'expected_prop_expression' => FieldTypePropExpression::class,
       'expected_dependencies' => [],
+      'permissions' => [],
     ];
     yield "scalar shape, field type=uri, cardinality=1" => [
       'sourceType' => 'static:field_item:uri',
@@ -164,6 +165,7 @@ class StaticPropSourceTest extends PropSourceTestBase {
       'expected_cacheability' => $permanent_cacheability,
       'expected_prop_expression' => FieldTypePropExpression::class,
       'expected_dependencies' => [],
+      'permissions' => [],
     ];
     yield "scalar shape, field type=boolean, cardinality=1" => [
       'sourceType' => 'static:field_item:boolean',
@@ -183,6 +185,7 @@ class StaticPropSourceTest extends PropSourceTestBase {
       'expected_cacheability' => $permanent_cacheability,
       'expected_prop_expression' => FieldTypePropExpression::class,
       'expected_dependencies' => [],
+      'permissions' => [],
     ];
     // A simple (expression targeting a simple prop) array example (with
     // cardinality specified, rather than the default of `cardinality=1`).
@@ -219,6 +222,7 @@ class StaticPropSourceTest extends PropSourceTestBase {
       'expected_cacheability' => $permanent_cacheability,
       'expected_prop_expression' => FieldTypePropExpression::class,
       'expected_dependencies' => [],
+      'permissions' => [],
     ];
     yield "object shape, daterange field, cardinality=1" => [
       'sourceType' => 'static:field_item:daterange',
@@ -252,6 +256,7 @@ class StaticPropSourceTest extends PropSourceTestBase {
           'datetime_range',
         ],
       ],
+      'permissions' => [],
     ];
     // A complex (expression targeting multiple props) array example (with
     // cardinality specified, rather than the default of `cardinality=1`).
@@ -310,6 +315,7 @@ class StaticPropSourceTest extends PropSourceTestBase {
           'datetime_range',
         ],
       ],
+      'permissions' => [],
     ];
     yield "complex empty example with entity_reference, user has explicitly removed input (value is NULL)" => [
       'sourceType' => 'static:field_item:entity_reference',
@@ -360,6 +366,7 @@ class StaticPropSourceTest extends PropSourceTestBase {
           'media',
         ],
       ],
+      'permissions' => [],
     ];
 
     yield "complex non-empty example with entity_reference and multiple target bundles but same field name" => [

@@ -45,8 +45,8 @@ final class CanvasTwigExtensionTest extends CanvasKernelTestBase {
     string $component_id,
     bool $props_handled_by_twig,
     string $slot_selector,
-    array $render_array_additions = [],
-    bool $is_preview = FALSE,
+    array $render_array_additions,
+    bool $is_preview,
   ): void {
     $heading = $this->randomMachineName();
     $uuid = $this->container->get(UuidInterface::class)->generate();
