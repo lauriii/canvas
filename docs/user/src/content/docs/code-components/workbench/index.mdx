@@ -73,6 +73,10 @@ Workbench looks for the following files in your project:
 - Component mocks: `mocks.json` and `*.mocks.json`
 - Page specs: `pages/*.json`
 
+Workbench only discovers those files inside the configured `componentDir` and
+`pagesDir`. Files elsewhere in the repository are ignored until you update
+`canvas.config.json` to point at that tree.
+
 ## Component preview behavior
 
 For each component, Workbench keeps a default preview that uses the first
@@ -87,6 +91,9 @@ This makes it easy to keep a quick default preview and add richer,
 scenario-specific previews side by side.
 
 ## Next steps
+
+To export standalone preview artifacts, see
+[Code components - Workbench preview build](./preview-build/).
 
 To add tabbed mock previews, see
 [Code components - Workbench mocks](./mocks/).

@@ -67,6 +67,7 @@ hyperscriptify
 hyperscriptifying
 ianvs
 importmap
+inlines
 interactable
 inwidget
 jangregor

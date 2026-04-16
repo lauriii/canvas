@@ -18,38 +18,51 @@ const packageRoot = path.resolve(currentDir, '..');
 const clientRoot = path.join(packageRoot, 'dist/client/src/client');
 
 const incomingArgs = process.argv.slice(2);
-const hasExplicitCommand =
-  incomingArgs[0] !== undefined && !incomingArgs[0].startsWith('-');
 
-const command = hasExplicitCommand ? incomingArgs[0] : 'dev';
-const passThroughArgs = hasExplicitCommand
-  ? incomingArgs.slice(1)
-  : incomingArgs;
+function runChild(args) {
+  const child = spawn(process.execPath, args, {
+    stdio: 'inherit',
+    cwd: process.cwd(),
+    env: process.env,
+  });
 
-const viteArgs = [
-  command,
-  clientRoot,
-  '--config',
-  path.join(packageRoot, 'dist/server/vite.published.config.mjs'),
-  ...passThroughArgs,
-];
+  child.on('exit', (code, signal) => {
+    if (signal) {
+      process.kill(process.pid, signal);
+      return;
+    }
 
-const child = spawn(process.execPath, [viteBinPath, ...viteArgs], {
-  stdio: 'inherit',
-  cwd: process.cwd(),
-  env: process.env,
-});
+    process.exit(code ?? 0);
+  });
 
-child.on('exit', (code, signal) => {
-  if (signal) {
-    process.kill(process.pid, signal);
-    return;
-  }
+  child.on('error', (error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
 
-  process.exit(code ?? 0);
-});
+if (incomingArgs[0] === 'preview-build') {
+  const previewBuildBinPath = path.join(
+    packageRoot,
+    'dist/server/src/server/preview-build.mjs',
+  );
+  runChild([previewBuildBinPath, ...incomingArgs.slice(1)]);
+} else {
+  const hasExplicitCommand =
+    incomingArgs[0] !== undefined && !incomingArgs[0].startsWith('-');
 
-child.on('error', (error) => {
-  console.error(error);
-  process.exit(1);
-});
+  const command = hasExplicitCommand ? incomingArgs[0] : 'dev';
+  const passThroughArgs = hasExplicitCommand
+    ? incomingArgs.slice(1)
+    : incomingArgs;
+
+  const viteArgs = [
+    command,
+    clientRoot,
+    '--config',
+    path.join(packageRoot, 'dist/server/vite.published.config.mjs'),
+    ...passThroughArgs,
+  ];
+
+  runChild([viteBinPath, ...viteArgs]);
+}
