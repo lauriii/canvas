@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { Flex, Text, TextField } from '@radix-ui/themes';
 
@@ -37,9 +37,48 @@ export default function FormPropTypeTextField({
 
   // Single string state: empty means no error, non-empty is the error message.
   const [invalidError, setInvalidError] = useState('');
+
+  // Local display value — decouples what the user is actively typing from the
+  // stored example. This prevents the input from resetting (e.g. "10.0" → "10")
+  // when an error causes the onChange to return early without dispatching.
+  const [displayValue, setDisplayValue] = useState(String(example ?? ''));
+
+  // Keep a ref so the sync effect can read the latest displayValue without
+  // adding it as a dependency (which would re-run on every keystroke).
+  const displayValueRef = useRef(displayValue);
+  displayValueRef.current = displayValue;
+
+  // Keep a ref for example so the type-change effect below can read the
+  // current example without adding it as a dependency.
+  const exampleRef = useRef(example);
+  exampleRef.current = example;
+
+  // When the prop type changes, reset both the error and the display value so
+  // stale input from the previous type is cleared.
   useEffect(() => {
     setInvalidError('');
+    setDisplayValue(String(exampleRef.current ?? ''));
   }, [type]);
+
+  // Sync displayValue when the store example changes externally (e.g. when a
+  // required default is filled in, or reordering triggers a re-render), but
+  // NOT when the difference is only a trailing zero — e.g. display "10.0"
+  // while the store holds "10". Comparing numerically avoids stripping the
+  // trailing zero while the user is still typing.
+  useEffect(() => {
+    const storedStr = String(example ?? '');
+    if (isNumeric) {
+      const displayNum =
+        displayValueRef.current !== '' ? Number(displayValueRef.current) : null;
+      const storedNum = storedStr !== '' ? Number(storedStr) : null;
+      if (displayNum !== storedNum) {
+        setDisplayValue(storedStr);
+      }
+    } else {
+      // For non-numeric types there are no trailing-zero concerns; always sync.
+      setDisplayValue(storedStr);
+    }
+  }, [example, isNumeric]);
 
   const { showRequiredError, setShowRequiredError } = useRequiredProp(
     required,
@@ -74,11 +113,12 @@ export default function FormPropTypeTextField({
               number: 'Enter a number',
             }[type]
           }
-          value={example ?? ''}
+          value={displayValue}
           size="1"
           onChange={(e) => {
             const raw = e.target.value;
             if (isNumeric) {
+              setDisplayValue(raw);
               const error = getNumericInputError(raw, type);
               if (error) {
                 setInvalidError(error);

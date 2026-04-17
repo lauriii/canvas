@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { arrayMove } from '@dnd-kit/sortable';
 import { Box, Flex, Text, TextField } from '@radix-ui/themes';
@@ -45,6 +45,28 @@ function NumericArrayItem({
   onValueChange: (index: number, value: string | number) => void;
   onErrorChange: (index: number, error: string) => void;
 }) {
+  const [displayValue, setDisplayValue] = useState(String(value ?? ''));
+
+  // Keep a ref so the effect below can read the latest displayValue without
+  // adding it as a dependency (which would re-run on every keystroke and
+  // strip trailing zeros such as "10.0" while the user is still typing).
+  const displayValueRef = useRef(displayValue);
+  displayValueRef.current = displayValue;
+
+  // Sync the display string when the store value changes externally (e.g. on
+  // reorder or add/remove), but NOT when the difference is only a trailing
+  // zero (e.g. display "10.0" while store holds 10). Comparing numerically
+  // lets the user keep typing "10.0" without the zero being stripped.
+  useEffect(() => {
+    const storedStr = String(value ?? '');
+    const displayNum =
+      displayValueRef.current !== '' ? Number(displayValueRef.current) : null;
+    const storedNum = storedStr !== '' ? Number(storedStr) : null;
+    if (displayNum !== storedNum) {
+      setDisplayValue(storedStr);
+    }
+  }, [value]);
+
   return (
     <Box flexGrow="1" flexShrink="1">
       <TextField.Root
@@ -53,13 +75,14 @@ function NumericArrayItem({
         id={`array-prop-value-${propId}-${index}`}
         type="number"
         step={itemType === 'integer' ? 1 : 'any'}
-        value={value === '' || value == null ? '' : String(value)}
+        value={displayValue}
         size="1"
         placeholder={
           itemType === 'integer' ? 'Enter an integer' : 'Enter a number'
         }
         onChange={(e) => {
           const raw = e.target.value;
+          setDisplayValue(raw);
           const error = getNumericInputError(raw, itemType);
           if (error) {
             onErrorChange(index, error);

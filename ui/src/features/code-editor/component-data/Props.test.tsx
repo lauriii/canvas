@@ -309,7 +309,8 @@ describe('props in code editor', () => {
       });
 
       // Simulate entering a decimal value directly.
-      fireEvent.change(integerInput, { target: { value: '10.5' } });
+      await userEvent.clear(integerInput);
+      await userEvent.type(integerInput, '10.5');
 
       await waitFor(() => {
         expect(
@@ -370,7 +371,8 @@ describe('props in code editor', () => {
       });
 
       // Enter decimal to trigger error.
-      fireEvent.change(integerInput, { target: { value: '10.5' } });
+      await userEvent.clear(integerInput);
+      await userEvent.type(integerInput, '10.5');
       await waitFor(() => {
         expect(
           screen.getByText('Integers cannot have decimal values.'),
@@ -378,7 +380,8 @@ describe('props in code editor', () => {
       });
 
       // Correct to a valid integer.
-      fireEvent.change(integerInput, { target: { value: '10' } });
+      await userEvent.clear(integerInput);
+      await userEvent.type(integerInput, '10');
       await waitFor(() => {
         expect(
           screen.queryByText('Integers cannot have decimal values.'),
@@ -422,6 +425,74 @@ describe('props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0].example,
         ).toEqual('-3.14');
       });
+    });
+
+    it('integer prop input does not reset to previous valid value when a decimal is entered', async () => {
+      await addProp('Integer', 'Count');
+      const integerInput = screen.getByRole('spinbutton', {
+        name: 'Example value',
+      });
+
+      // Type a valid integer so the store has a value.
+      await userEvent.type(integerInput, '10');
+      await waitFor(() => {
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].example,
+        ).toEqual('10');
+      });
+
+      // Clear the field and paste a decimal. The paste produces '10.5' as a
+      // single change event, bypassing jsdom's per-character number sanitization.
+      await userEvent.clear(integerInput);
+      await userEvent.click(integerInput);
+      await userEvent.paste('10.5');
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Integers cannot have decimal values.'),
+        ).toBeInTheDocument();
+      });
+
+      // The input must still show the decimal value that the user pasted — it
+      // must NOT have reset to empty (the stored value after clear) or to '10'.
+      expect(integerInput).toHaveValue(10.5);
+
+      // Store should not be updated with the decimal value.
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].example,
+      ).not.toEqual('10.5');
+    });
+
+    it('number prop preserves trailing zeros while typing (e.g. 10.0)', async () => {
+      await addProp('Number', 'Rate');
+      const numberInput = screen.getByRole('spinbutton', {
+        name: 'Example value',
+      });
+
+      // Use fireEvent.change to inject '10.0' directly.
+      fireEvent.change(numberInput, { target: { value: '10.0' } });
+
+      // The input shows the numeric value 10 (10.0 === 10).
+      expect(numberInput).toHaveValue(10);
+
+      // The store must hold the raw string '10.0', preserving the trailing zero.
+      await waitFor(() => {
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].example,
+        ).toEqual('10.0');
+      });
+
+      // Continue: simulate the user appending '4' to reach '10.04'.
+      fireEvent.change(numberInput, { target: { value: '10.04' } });
+
+      await waitFor(() => {
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].example,
+        ).toEqual('10.04');
+      });
+      expect(
+        screen.queryByText('Integers cannot have decimal values.'),
+      ).not.toBeInTheDocument();
     });
 
     it('clears integer validation error when switching prop type from integer to number', async () => {
@@ -1867,9 +1938,7 @@ describe('props in code editor', () => {
       });
       expect(checkbox).toBeInTheDocument();
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
@@ -1888,9 +1957,7 @@ describe('props in code editor', () => {
       });
       expect(checkbox).toBeInTheDocument();
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
@@ -1909,9 +1976,7 @@ describe('props in code editor', () => {
       });
       expect(checkbox).toBeInTheDocument();
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
@@ -1928,9 +1993,7 @@ describe('props in code editor', () => {
       const checkbox = await screen.findByRole('checkbox', {
         name: 'Allow multiple values',
       });
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
@@ -1942,7 +2005,7 @@ describe('props in code editor', () => {
       const arrayInput = screen.getByTestId(`array-prop-value-${propId}-0`);
 
       // Enter a decimal value in the integer array field.
-      fireEvent.change(arrayInput, { target: { value: '10.5' } });
+      await userEvent.type(arrayInput, '10.5');
 
       await waitFor(() => {
         expect(
@@ -1962,9 +2025,7 @@ describe('props in code editor', () => {
       const checkbox = await screen.findByRole('checkbox', {
         name: 'Allow multiple values',
       });
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
@@ -1996,9 +2057,7 @@ describe('props in code editor', () => {
       const checkbox = await screen.findByRole('checkbox', {
         name: 'Allow multiple values',
       });
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
@@ -2010,7 +2069,7 @@ describe('props in code editor', () => {
       const arrayInput = screen.getByTestId(`array-prop-value-${propId}-0`);
 
       // Enter a valid integer.
-      fireEvent.change(arrayInput, { target: { value: '42' } });
+      await userEvent.type(arrayInput, '42');
 
       await waitFor(() => {
         const example = selectCodeComponentProperty('props')(
@@ -2028,9 +2087,7 @@ describe('props in code editor', () => {
       const checkbox = await screen.findByRole('checkbox', {
         name: 'Allow multiple values',
       });
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
@@ -2042,7 +2099,7 @@ describe('props in code editor', () => {
       const arrayInput = screen.getByTestId(`array-prop-value-${propId}-0`);
 
       // Enter a valid decimal for number type.
-      fireEvent.change(arrayInput, { target: { value: '3.14' } });
+      await userEvent.type(arrayInput, '3.14');
 
       await waitFor(() => {
         const example = selectCodeComponentProperty('props')(
@@ -2055,14 +2112,12 @@ describe('props in code editor', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('multi-value integer prop accepts valid negative integers', async () => {
-      await addProp('Integer', 'Counts');
+    it('multi-value number prop preserves trailing zeros while typing (e.g. 10.0)', async () => {
+      await addProp('Number', 'Rates');
       const checkbox = await screen.findByRole('checkbox', {
         name: 'Allow multiple values',
       });
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
@@ -2073,7 +2128,51 @@ describe('props in code editor', () => {
         .id;
       const arrayInput = screen.getByTestId(`array-prop-value-${propId}-0`);
 
-      fireEvent.change(arrayInput, { target: { value: '-42' } });
+      // Simulate typing '10.0' character by character.
+      await userEvent.type(arrayInput, '10.0');
+
+      // The input display value must still show '10.0' (trailing zero preserved).
+      expect(arrayInput).toHaveValue(10.0);
+
+      // The store should hold the numeric value 10.
+      await waitFor(() => {
+        const example = selectCodeComponentProperty('props')(
+          store.getState(),
+        )[0].example;
+        expect(example).toContain(10);
+      });
+
+      // Continue typing to reach 10.04.
+      await userEvent.type(arrayInput, '4');
+
+      await waitFor(() => {
+        const example = selectCodeComponentProperty('props')(
+          store.getState(),
+        )[0].example;
+        expect(example).toContain(10.04);
+      });
+      expect(
+        screen.queryByText('Integers cannot have decimal values.'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('multi-value integer prop accepts valid negative integers', async () => {
+      await addProp('Integer', 'Counts');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      fireEvent.click(checkbox);
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(true);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+      const arrayInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+
+      await userEvent.type(arrayInput, '-42');
 
       await waitFor(() => {
         expect(
@@ -2090,9 +2189,7 @@ describe('props in code editor', () => {
       const checkbox = await screen.findByRole('checkbox', {
         name: 'Allow multiple values',
       });
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
@@ -2104,7 +2201,7 @@ describe('props in code editor', () => {
       const arrayInput = screen.getByTestId(`array-prop-value-${propId}-0`);
 
       // Enter decimal to trigger error.
-      fireEvent.change(arrayInput, { target: { value: '10.5' } });
+      await userEvent.type(arrayInput, '10.5');
       await waitFor(() => {
         expect(
           screen.getByText('Integers cannot have decimal values.'),
@@ -2112,7 +2209,8 @@ describe('props in code editor', () => {
       });
 
       // Correct to a valid integer.
-      fireEvent.change(arrayInput, { target: { value: '10' } });
+      await userEvent.clear(arrayInput);
+      await userEvent.type(arrayInput, '10');
       await waitFor(() => {
         expect(
           screen.queryByText('Integers cannot have decimal values.'),
@@ -2130,9 +2228,7 @@ describe('props in code editor', () => {
       const checkbox = await screen.findByRole('checkbox', {
         name: 'Allow multiple values',
       });
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
@@ -2143,7 +2239,7 @@ describe('props in code editor', () => {
         .id;
       const arrayInput = screen.getByTestId(`array-prop-value-${propId}-0`);
 
-      fireEvent.change(arrayInput, { target: { value: '-3.14' } });
+      await userEvent.type(arrayInput, '-3.14');
 
       await waitFor(() => {
         expect(
@@ -2226,9 +2322,7 @@ describe('props in code editor', () => {
       expect(checkbox).toBeInTheDocument();
 
       // Enable multiple values.
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
@@ -2236,9 +2330,7 @@ describe('props in code editor', () => {
       });
 
       // Disable multiple values.
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
@@ -2389,9 +2481,7 @@ describe('props in code editor', () => {
           const checkbox = await screen.findByRole('checkbox', {
             name: 'Allow multiple values',
           });
-          await act(async () => {
-            fireEvent.click(checkbox);
-          });
+          fireEvent.click(checkbox);
 
           await waitFor(() => {
             const prop = selectCodeComponentProperty('props')(
@@ -2402,9 +2492,7 @@ describe('props in code editor', () => {
           });
 
           // Disable multiple values.
-          await act(async () => {
-            fireEvent.click(checkbox);
-          });
+          fireEvent.click(checkbox);
 
           // Verify example value is restored.
           await waitFor(() => {
@@ -2431,9 +2519,7 @@ describe('props in code editor', () => {
       });
       expect(checkbox).toBeInTheDocument();
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
         .id;
@@ -2450,9 +2536,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
         .id;
@@ -2508,9 +2592,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
         .id;
@@ -2566,9 +2648,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
         .id;
@@ -2611,9 +2691,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
         .id;
@@ -2786,9 +2864,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
         .id;
@@ -2886,9 +2962,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
         .id;
@@ -2928,9 +3002,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
         .id;
@@ -2964,9 +3036,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
         .id;
@@ -2986,9 +3056,7 @@ describe('props in code editor', () => {
         expect(prop.allowMultiple).toBe(true);
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
@@ -3011,9 +3079,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
         .id;
@@ -3076,9 +3142,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
         .id;
@@ -3176,9 +3240,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
@@ -3194,9 +3256,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
       expect(checkbox).toBeInTheDocument();
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
       await waitFor(() => {
         const prop = selectCodeComponentProperty('props')(store.getState())[0];
         expect(prop.allowMultiple).toBe(true);
@@ -3217,9 +3277,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
         .id;
@@ -3267,9 +3325,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
         .id;
@@ -3321,9 +3377,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
         .id;
@@ -3373,9 +3427,7 @@ describe('props in code editor', () => {
         name: 'Allow multiple values',
       });
 
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
+      fireEvent.click(checkbox);
 
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
         .id;
@@ -3499,9 +3551,7 @@ describe('props in code editor', () => {
           expect(checkbox).toBeInTheDocument();
 
           // Enable multiple values.
-          await act(async () => {
-            fireEvent.click(checkbox);
-          });
+          fireEvent.click(checkbox);
 
           const propId = selectCodeComponentProperty('props')(
             store.getState(),
@@ -4442,9 +4492,7 @@ describe('props in code editor', () => {
         });
 
         // Enable multi-value
-        await act(async () => {
-          fireEvent.click(checkbox);
-        });
+        fireEvent.click(checkbox);
 
         await waitFor(() => {
           const prop = selectCodeComponentProperty('props')(
@@ -4458,9 +4506,7 @@ describe('props in code editor', () => {
         });
 
         // Disable multi-value
-        await act(async () => {
-          fireEvent.click(checkbox);
-        });
+        fireEvent.click(checkbox);
 
         await waitFor(() => {
           const prop = selectCodeComponentProperty('props')(
