@@ -380,6 +380,22 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       ],
       [],
     ];
+    yield 'Valid: string array with enum' => [
+      [
+        'type' => 'array',
+        'title' => 'Red or blue',
+        'items' => [
+          'type' => 'string',
+          'enum' => ['red', 'blue'],
+          'meta:enum' => [
+            'red' => 'Red',
+            'blue' => 'Blue',
+          ],
+        ],
+        'examples' => [['red', 'red', 'blue']],
+      ],
+      [],
+    ];
     yield 'Invalid: string array with format and an example violating the format' => [
       [
         'type' => 'array',
