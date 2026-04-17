@@ -6,6 +6,7 @@ use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Hook\Attribute\LegacyRequirementsHook;
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\CanvasNotificationHandler;
 
 /**
  * Implements hook_module_preinstall().
@@ -33,6 +34,18 @@ function canvas_module_preuninstall(string $module, bool $is_syncing): void {
   }
 
   \Drupal::service(AutoSaveManager::class)->deleteAll();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function canvas_uninstall(bool $is_syncing): void {
+  $schema = \Drupal::database()->schema();
+  foreach ([CanvasNotificationHandler::NOTIFICATION_TABLE, CanvasNotificationHandler::NOTIFICATION_READ_TABLE] as $table) {
+    if ($schema->tableExists($table)) {
+      $schema->dropTable($table);
+    }
+  }
 }
 
 /**
