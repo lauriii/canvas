@@ -10,11 +10,21 @@ import {
 } from '@/features/code-editor/component-data/FormElement';
 import { PropValuesSortableList } from '@/features/code-editor/component-data/forms/PropValuesSortableList';
 import {
+  DEFAULT_EXAMPLES,
+  REQUIRED_EXAMPLE_ERROR_MESSAGE,
+} from '@/features/code-editor/component-data/Props';
+import {
+  useRequiredProp,
+  useSyncRequiredArrayError,
+} from '@/features/code-editor/hooks/useRequiredProp';
+import {
   createArrayDragEndHandler,
   createDisplayArray,
+  dispatchUpdateProp,
   handleArrayAdd,
   handleArrayRemove,
   handleArrayValueChange,
+  hasNonEmptyArrayValue,
 } from '@/features/code-editor/utils/arrayPropUtils';
 import { getNumericInputError } from '@/features/code-editor/utils/numericInputUtils';
 import { VALUE_MODE_UNLIMITED } from '@/types/CodeComponent';
@@ -113,12 +123,14 @@ export default function FormPropTypeArray({
   example = [],
   itemType = 'string',
   isDisabled = false,
+  required = false,
   valueMode = VALUE_MODE_UNLIMITED,
   limitedCount = 1,
 }: Pick<CodeComponentProp, 'id'> & {
   example: string[] | number[];
   itemType: 'string' | 'integer' | 'number';
   isDisabled?: boolean;
+  required?: boolean;
   valueMode?: ValueMode;
   limitedCount?: number;
 }) {
@@ -132,6 +144,27 @@ export default function FormPropTypeArray({
     () => createDisplayArray(example, valueMode, limitedCount),
     [example, valueMode, limitedCount],
   );
+
+  // Check if the array has at least one non-empty value.
+  const hasNonEmptyValue = hasNonEmptyArrayValue(example);
+
+  // Use a normalized example value for the hook since `![]` is false in JS,
+  // which would prevent the hook from detecting empty arrays.
+  const { showRequiredError, setShowRequiredError } = useRequiredProp(
+    required,
+    hasNonEmptyValue ? 'non-empty' : '',
+    () => {
+      // Prefill with a default value when required is toggled on.
+      const exampleKey = itemType === 'string' ? 'text' : itemType;
+      dispatchUpdateProp(dispatch, id, {
+        example: [DEFAULT_EXAMPLES[exampleKey]],
+      });
+    },
+    [dispatch, id, itemType],
+  );
+
+  // Keep error state in sync with whether the array has non-empty values.
+  useSyncRequiredArrayError(required, hasNonEmptyValue, setShowRequiredError);
 
   const handleDragEnd = createArrayDragEndHandler(
     displayArray,
@@ -215,6 +248,13 @@ export default function FormPropTypeArray({
           onAdd={valueMode === VALUE_MODE_UNLIMITED ? handleAdd : undefined}
           isDisabled={isDisabled}
           mode={valueMode}
+          errorMessage={
+            showRequiredError && (
+              <Text color="red" size="1">
+                {REQUIRED_EXAMPLE_ERROR_MESSAGE}
+              </Text>
+            )
+          }
         />
       </FormElement>
     </Flex>

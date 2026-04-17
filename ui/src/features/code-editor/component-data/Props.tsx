@@ -292,6 +292,7 @@ export default function Props() {
                       | 'number'
                   }
                   isDisabled={componentStatus}
+                  required={required.includes(propName)}
                   valueMode={prop.valueMode}
                   limitedCount={prop.limitedCount}
                 />
@@ -365,7 +366,12 @@ export default function Props() {
             case 'listInteger':
               return (
                 <FormPropTypeEnum
-                  type={prop.type as 'string' | 'number' | 'integer'}
+                  type={
+                    (prop.type === 'array' ? prop.items?.type : prop.type) as
+                      | 'string'
+                      | 'number'
+                      | 'integer'
+                  }
                   id={prop.id}
                   required={required.includes(propName)}
                   enum={prop.enum || []}
@@ -420,24 +426,39 @@ export default function Props() {
                     if (checked) {
                       // Convert to array type - for date and link types.
                       if (['date', 'link'].includes(prop.derivedType ?? '')) {
+                        const isRequired = required.includes(propName);
                         updates.type = 'array';
                         updates.items = {
                           type: 'string',
                           format: prop.format,
                         };
-                        // Initialize with empty array
-                        updates.example = [];
+                        // Preserve the current example value for required props
+                        // so the required error doesn't flash during the transition.
+                        updates.example =
+                          isRequired &&
+                          prop.example &&
+                          typeof prop.example === 'string'
+                            ? [prop.example]
+                            : [];
                         updates.valueMode = VALUE_MODE_UNLIMITED;
                         updates.limitedCount = 1;
                       } else if (
                         ['string', 'integer', 'number'].includes(prop.type)
                       ) {
+                        const isRequired = required.includes(propName);
                         // Convert to array type - for primitive types.
                         updates.type = 'array';
                         updates.items = {
                           type: prop.type as 'string' | 'integer' | 'number',
                         };
-                        updates.example = [];
+                        // Preserve the current example value for required props
+                        // so the required error doesn't flash during the transition.
+                        updates.example =
+                          isRequired &&
+                          prop.example !== '' &&
+                          prop.example !== undefined
+                            ? ([prop.example] as string[] | number[])
+                            : [];
                         updates.valueMode = VALUE_MODE_UNLIMITED;
                         updates.limitedCount = 1;
                       } else if (prop.type === 'object') {
@@ -467,12 +488,44 @@ export default function Props() {
                       }
                     } else {
                       // Convert back to single value.
+                      // Restore the original type from items before clearing.
+                      if (prop.items?.type) {
+                        updates.type = prop.items.type as
+                          | 'string'
+                          | 'integer'
+                          | 'number'
+                          | 'boolean'
+                          | 'object';
+                      }
                       updates.items = undefined;
-                      // If prop is required, restore the default example value.
+                      // If prop is required, try to preserve the first value
+                      // from the current array example so that the user's
+                      // selection survives the single ↔ multi toggle
+                      // round-trip. Fall back to type-specific defaults when
+                      // the array is empty.
                       const isRequired = required.includes(propName);
                       let defaultExample = '';
                       if (isRequired) {
-                        if (prop.derivedType === 'link') {
+                        if (
+                          Array.isArray(prop.example) &&
+                          prop.example.length > 0 &&
+                          String(prop.example[0]) !== ''
+                        ) {
+                          defaultExample = String(prop.example[0]);
+                        } else if (
+                          ['listText', 'listInteger'].includes(
+                            prop.derivedType ?? '',
+                          )
+                        ) {
+                          // For list types, use the first valid (non-empty) enum
+                          // option as the fallback.
+                          const firstValid = prop.enum?.find(
+                            (item) => item.value !== '' && item.label !== '',
+                          );
+                          if (firstValid) {
+                            defaultExample = String(firstValid.value);
+                          }
+                        } else if (prop.derivedType === 'link') {
                           const linkType =
                             prop.format && prop.format in linkFormatMap
                               ? linkFormatMap[

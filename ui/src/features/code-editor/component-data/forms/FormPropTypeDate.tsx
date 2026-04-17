@@ -3,7 +3,6 @@ import clsx from 'clsx';
 import { Box, Flex, Select, Text, TextField } from '@radix-ui/themes';
 
 import { useAppDispatch } from '@/app/hooks';
-import { updateProp } from '@/features/code-editor/codeEditorSlice';
 import {
   Divider,
   FormElement,
@@ -14,13 +13,18 @@ import {
   DEFAULT_EXAMPLES,
   REQUIRED_EXAMPLE_ERROR_MESSAGE,
 } from '@/features/code-editor/component-data/Props';
-import { useRequiredProp } from '@/features/code-editor/hooks/useRequiredProp';
+import {
+  useRequiredProp,
+  useSyncRequiredArrayError,
+} from '@/features/code-editor/hooks/useRequiredProp';
 import {
   createArrayDragEndHandler,
   createDisplayArray,
+  dispatchUpdateProp,
   handleArrayAdd,
   handleArrayRemove,
   handleArrayValueChange,
+  hasNonEmptyArrayValue,
 } from '@/features/code-editor/utils/arrayPropUtils';
 import {
   VALUE_MODE_LIMITED,
@@ -173,21 +177,38 @@ export default function FormPropTypeDate({
   );
   const defaultValue = DEFAULT_EXAMPLES[dateType] as string;
 
+  // For multi-value mode, normalize the example so `useRequiredProp` can
+  // detect empty arrays (since `![]` is false in JS).
+  const hasNonEmptyValue = hasNonEmptyArrayValue(allowMultiple ? example : []);
+
   const { showRequiredError, setShowRequiredError } = useRequiredProp(
     required,
-    example,
+    allowMultiple ? (hasNonEmptyValue ? 'non-empty' : '') : example,
     () => {
-      dispatch(
-        updateProp({
-          id,
-          updates: { example: defaultValue, format: dateType },
-        }),
-      );
-      if (dateType === 'date-time') {
-        setDatetimeLocalForInput(utcToLocalTimeConversion(defaultValue));
+      if (allowMultiple) {
+        dispatchUpdateProp(dispatch, id, {
+          example: [defaultValue],
+          format: dateType,
+        });
+      } else {
+        dispatchUpdateProp(dispatch, id, {
+          example: defaultValue,
+          format: dateType,
+        });
+        if (dateType === 'date-time') {
+          setDatetimeLocalForInput(utcToLocalTimeConversion(defaultValue));
+        }
       }
     },
-    [dispatch, id, dateType],
+    [dispatch, id, dateType, allowMultiple],
+  );
+
+  // Keep error state in sync with whether the array has non-empty values.
+  useSyncRequiredArrayError(
+    required,
+    hasNonEmptyValue,
+    setShowRequiredError,
+    allowMultiple,
   );
 
   return (
@@ -210,25 +231,18 @@ export default function FormPropTypeDate({
             if (allowMultiple) {
               setMultiValueValidityStates([true]);
 
-              dispatch(
-                updateProp({
-                  id,
-                  updates: {
-                    example: [newDefaultValue],
-                    format: value,
-                    valueMode: VALUE_MODE_UNLIMITED,
-                    limitedCount: undefined,
-                  },
-                }),
-              );
+              dispatchUpdateProp(dispatch, id, {
+                example: [newDefaultValue],
+                format: value,
+                valueMode: VALUE_MODE_UNLIMITED,
+                limitedCount: undefined,
+              });
             } else {
               // Single value mode - just update format and example
-              dispatch(
-                updateProp({
-                  id,
-                  updates: { example: newDefaultValue, format: value },
-                }),
-              );
+              dispatchUpdateProp(dispatch, id, {
+                example: newDefaultValue,
+                format: value,
+              });
               if (value === 'date-time') {
                 setDatetimeLocalForInput(
                   utcToLocalTimeConversion(newDefaultValue),
@@ -267,12 +281,10 @@ export default function FormPropTypeDate({
                 dateType === 'date-time'
                   ? localTimeToUtcConversion(value)
                   : value;
-              dispatch(
-                updateProp({
-                  id,
-                  updates: { example: convertedValue, format: dateType },
-                }),
-              );
+              dispatchUpdateProp(dispatch, id, {
+                example: convertedValue,
+                format: dateType,
+              });
               if (dateType === 'date-time') {
                 setDatetimeLocalForInput(value);
               }
@@ -301,9 +313,16 @@ export default function FormPropTypeDate({
             onAdd={valueMode === VALUE_MODE_UNLIMITED ? handleAdd : undefined}
             isDisabled={isDisabled}
             mode={valueMode}
+            errorMessage={
+              showRequiredError && (
+                <Text color="red" size="1">
+                  {REQUIRED_EXAMPLE_ERROR_MESSAGE}
+                </Text>
+              )
+            }
           />
         )}
-        {showRequiredError && (
+        {!allowMultiple && showRequiredError && (
           <Text color="red" size="1">
             {REQUIRED_EXAMPLE_ERROR_MESSAGE}
           </Text>

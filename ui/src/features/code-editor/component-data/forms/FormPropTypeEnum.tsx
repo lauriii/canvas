@@ -14,7 +14,6 @@ import {
 import './FormPropTypeEnum.css';
 
 import { useAppDispatch } from '@/app/hooks';
-import { updateProp } from '@/features/code-editor/codeEditorSlice';
 import {
   Divider,
   FormElement,
@@ -25,6 +24,10 @@ import {
   REQUIRED_EXAMPLE_ERROR_MESSAGE,
 } from '@/features/code-editor/component-data/Props';
 import { useRequiredProp } from '@/features/code-editor/hooks/useRequiredProp';
+import {
+  dispatchUpdateProp,
+  hasNonEmptyArrayValue,
+} from '@/features/code-editor/utils/arrayPropUtils';
 import {
   VALUE_MODE_LIMITED,
   VALUE_MODE_UNLIMITED,
@@ -78,33 +81,51 @@ export default function FormPropTypeEnum({
     return enumValues.filter((item) => validateValue(item));
   }, [enumValues]);
 
+  // Normalize for useRequiredProp: ![] is false in JS, so an empty selection
+  // must be mapped to an empty string so the hook's empty-check works.
+  const hasNonEmptyMultiValue = hasNonEmptyArrayValue(
+    allowMultiple ? defaultValue : [],
+  );
+  const normalizedExampleForHook: string | string[] = allowMultiple
+    ? hasNonEmptyMultiValue
+      ? 'non-empty'
+      : ''
+    : (defaultValue as string);
+
   const { showRequiredError, setShowRequiredError } = useRequiredProp(
     required,
-    defaultValue,
+    normalizedExampleForHook,
     () => {
-      // If no valid enum values, prefill with a default option
-      if (validEnumValues.length === 0) {
-        const defaultOption = DEFAULT_ENUM_OPTIONS[type];
-        dispatch(
-          updateProp({
-            id,
-            updates: {
-              enum: [defaultOption],
-              example: String(defaultOption.value),
-            },
-          }),
-        );
-      } else if (!defaultValue) {
-        // If we have valid values but no default, set the first one
-        dispatch(
-          updateProp({
-            id,
-            updates: { example: String(validEnumValues[0].value) },
-          }),
-        );
+      if (allowMultiple) {
+        // Multi-value mode: select the first available option or add a default one.
+        if (validEnumValues.length === 0) {
+          const defaultOption = DEFAULT_ENUM_OPTIONS[type];
+          dispatchUpdateProp(dispatch, id, {
+            enum: [defaultOption],
+            example: [String(defaultOption.value)],
+          });
+        } else {
+          dispatchUpdateProp(dispatch, id, {
+            example: [String(validEnumValues[0].value)],
+          });
+        }
+      } else {
+        // Single-value mode (existing logic).
+        if (validEnumValues.length === 0) {
+          const defaultOption = DEFAULT_ENUM_OPTIONS[type];
+          dispatchUpdateProp(dispatch, id, {
+            enum: [defaultOption],
+            example: String(defaultOption.value),
+          });
+        } else if (!defaultValue) {
+          // If we have valid values but no default, set the first one
+          dispatchUpdateProp(dispatch, id, {
+            example: String(validEnumValues[0].value),
+          });
+        }
       }
     },
-    [dispatch, id, type, validEnumValues],
+    [dispatch, id, type, validEnumValues, allowMultiple],
   );
 
   // Normalize defaultValue to always work with arrays internally when allowMultiple is true
@@ -124,22 +145,29 @@ export default function FormPropTypeEnum({
     return selectedValues.filter((v) => validValueStrings.includes(v));
   }, [selectedValues, validEnumValues]);
 
-  // Show error when required but no valid example or no options
+  // Show error when required but no valid example or no options.
+  // Also handles the multi-value case where defaultValue is an empty array
+  // (![] is false in JS, so we use hasNonEmptyMultiValue instead).
   useEffect(() => {
-    if (required && (validEnumValues.length === 0 || !defaultValue)) {
+    const hasNoValue = allowMultiple ? !hasNonEmptyMultiValue : !defaultValue;
+    if (required && (validEnumValues.length === 0 || hasNoValue)) {
       setShowRequiredError(true);
     } else {
       setShowRequiredError(false);
     }
-  }, [required, defaultValue, validEnumValues.length, setShowRequiredError]);
+  }, [
+    required,
+    defaultValue,
+    validEnumValues.length,
+    setShowRequiredError,
+    allowMultiple,
+    hasNonEmptyMultiValue,
+  ]);
 
   const handleDefaultValueChange = (value: string | number) => {
-    dispatch(
-      updateProp({
-        id,
-        updates: { example: value === NONE_VALUE ? '' : String(value) },
-      }),
-    );
+    dispatchUpdateProp(dispatch, id, {
+      example: value === NONE_VALUE ? '' : String(value),
+    });
   };
 
   return (
@@ -200,7 +228,7 @@ export default function FormPropTypeEnum({
               }
             }
 
-            dispatch(updateProp({ id, updates }));
+            dispatchUpdateProp(dispatch, id, updates);
           }}
         />
       </FormElement>
@@ -276,12 +304,9 @@ export default function FormPropTypeEnum({
                                     ? newSelected.map((v) => Number(v))
                                     : newSelected;
 
-                                dispatch(
-                                  updateProp({
-                                    id,
-                                    updates: { example: typedExample },
-                                  }),
-                                );
+                                dispatchUpdateProp(dispatch, id, {
+                                  example: typedExample,
+                                });
                               }}
                             />
                             {item.label}

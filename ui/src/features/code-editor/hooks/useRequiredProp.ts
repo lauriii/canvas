@@ -1,6 +1,40 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
+ * Keeps the required-error flag in sync with whether a multi-value prop's
+ * example array contains at least one non-empty item.
+ *
+ * Call this after `useRequiredProp` to replace the repetitive `useEffect`
+ * that appears in FormPropTypeArray, FormPropTypeDate, and FormPropTypeLink.
+ *
+ * @param required - Whether the prop is currently marked as required.
+ * @param hasNonEmptyValue - Whether the example array has at least one value.
+ *   Derive this with `hasNonEmptyArrayValue()` from arrayPropUtils.
+ * @param setShowRequiredError - The setter returned by `useRequiredProp`.
+ * @param allowMultiple - Pass false to skip the sync (single-value mode).
+ *   Defaults to true so FormPropTypeArray can call this without arguments.
+ */
+export function useSyncRequiredArrayError(
+  required: boolean,
+  hasNonEmptyValue: boolean,
+  setShowRequiredError: (show: boolean) => void,
+  allowMultiple = true,
+): void {
+  useEffect(() => {
+    if (allowMultiple) {
+      setShowRequiredError(required && !hasNonEmptyValue);
+    } else {
+      // allowMultiple is false: clear any multi-value error that was showing.
+      // This fires both during the multi→single transition and whenever
+      // `required` changes in steady-state single-value mode. In both cases
+      // clearing is correct — single-value components manage their own error
+      // state via their onChange handlers.
+      setShowRequiredError(false);
+    }
+  }, [required, hasNonEmptyValue, setShowRequiredError, allowMultiple]);
+}
+
+/**
  * Custom hook to manage required prop logic, including pre-filling example values
  * and handling validation errors.
  *

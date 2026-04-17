@@ -99,6 +99,8 @@ interface SortableListProps {
   isDisabled?: boolean;
   /** Mode for multiple values in array props. See ValueMode type. */
   mode: ValueMode;
+  /** Optional content rendered between the list and the Add button. */
+  errorMessage?: ReactNode;
 }
 
 /**
@@ -113,6 +115,7 @@ export function PropValuesSortableList({
   onAdd,
   isDisabled = false,
   mode,
+  errorMessage,
 }: SortableListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -154,6 +157,7 @@ export function PropValuesSortableList({
           ))}
         </SortableContext>
       </DndContext>
+      {errorMessage}
       {mode === VALUE_MODE_UNLIMITED && onAdd && (
         <Button
           size="1"

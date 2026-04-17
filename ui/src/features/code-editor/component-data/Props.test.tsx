@@ -2347,6 +2347,10 @@ describe('props in code editor', () => {
         propType: string;
         propName: string;
         expectedExample: string;
+        // Expected example after enabling multivalue. The current single value
+        // is preserved in the array to avoid a required-error flash during the
+        // transition (applies to all prop types).
+        expectedMultiExample?: string[];
         expectedFormat?: string;
         setup?: () => Promise<void>;
       }> = [
@@ -2354,27 +2358,32 @@ describe('props in code editor', () => {
           propType: 'Text',
           propName: 'Tags',
           expectedExample: 'Example text',
+          expectedMultiExample: ['Example text'],
         },
         {
           propType: 'Integer',
           propName: 'Count',
           expectedExample: '0',
+          expectedMultiExample: ['0'],
         },
         {
           propType: 'Number',
           propName: 'Price',
           expectedExample: '0',
+          expectedMultiExample: ['0'],
         },
         {
           propType: 'Link',
           propName: 'HomePage',
           expectedExample: 'example',
+          expectedMultiExample: ['example'],
           expectedFormat: 'uri-reference',
         },
         {
           propType: 'Link',
           propName: 'ExternalLink',
           expectedExample: 'https://example.com',
+          expectedMultiExample: ['https://example.com'],
           expectedFormat: 'uri',
           setup: async () => {
             // Change link type to Full URL.
@@ -2395,12 +2404,14 @@ describe('props in code editor', () => {
           propType: 'Date and time',
           propName: 'StartDate',
           expectedExample: '2026-01-25',
+          expectedMultiExample: ['2026-01-25'],
           expectedFormat: 'date',
         },
         {
           propType: 'Date and time',
           propName: 'CreatedAt',
           expectedExample: '2026-01-25T12:00:00.000Z',
+          expectedMultiExample: ['2026-01-25T12:00:00.000Z'],
           expectedFormat: 'date-time',
           setup: async () => {
             // Change date type to Date and time (date-time format).
@@ -2421,11 +2432,13 @@ describe('props in code editor', () => {
           propType: 'List: text',
           propName: 'Categories',
           expectedExample: 'option_1',
+          expectedMultiExample: ['option_1'],
         },
         {
           propType: 'List: integer',
           propName: 'Ratings',
           expectedExample: '1',
+          expectedMultiExample: ['1'],
         },
       ];
 
@@ -2442,6 +2455,7 @@ describe('props in code editor', () => {
           propType,
           propName,
           expectedExample,
+          expectedMultiExample,
           expectedFormat,
           setup,
         }) => {
@@ -2488,7 +2502,7 @@ describe('props in code editor', () => {
               store.getState(),
             )[0];
             expect(prop.allowMultiple).toBe(true);
-            expect(prop.example).toEqual([]);
+            expect(prop.example).toEqual(expectedMultiExample ?? []);
           });
 
           // Disable multiple values.
@@ -4517,6 +4531,1143 @@ describe('props in code editor', () => {
           expect(prop.example).toBe('');
         });
       });
+    });
+  });
+
+  describe('required multivalue prop validation', () => {
+    const enableMultipleValues = async () => {
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+    };
+    const toggleRequired = async () => {
+      await userEvent.click(screen.getByRole('switch', { name: 'Required' }));
+    };
+
+    const getPropId = () =>
+      selectCodeComponentProperty('props')(store.getState())[0].id;
+    const getFirstProp = () =>
+      selectCodeComponentProperty('props')(store.getState())[0];
+
+    // Test cases for types that use FormPropTypeArray (text, integer, number) ──
+    // These types auto-prefill a default value when required is toggled on
+    // because FormPropTypeArray normalizes the empty-array check.
+    const arrayPropTestCases = [
+      {
+        propType: 'Text',
+        propName: 'Tags',
+        expectedPrefill: ['Example text'],
+        newValue: 'New value',
+      },
+      {
+        propType: 'Integer',
+        propName: 'Count',
+        expectedPrefill: ['0'],
+        newValue: '5',
+      },
+      {
+        propType: 'Number',
+        propName: 'Price',
+        expectedPrefill: ['0'],
+        newValue: '9.99',
+      },
+    ];
+
+    describe.each(arrayPropTestCases)(
+      '$propType prop',
+      ({ propType, propName, expectedPrefill, newValue }) => {
+        it('prefills at least one default value when required is toggled on', async () => {
+          await addProp(propType, propName);
+          await enableMultipleValues();
+          await toggleRequired();
+
+          await waitFor(() => {
+            expect(getFirstProp().example).toEqual(expectedPrefill);
+          });
+
+          expect(
+            screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+          ).not.toBeInTheDocument();
+        });
+
+        it('shows error when all values are cleared', async () => {
+          await addProp(propType, propName);
+          await enableMultipleValues();
+          await toggleRequired();
+
+          await waitFor(() => {
+            expect(getFirstProp().example).toEqual(expectedPrefill);
+          });
+
+          const firstInput = screen.getByTestId(
+            `array-prop-value-${getPropId()}-0`,
+          );
+          await userEvent.clear(firstInput);
+
+          await waitFor(() => {
+            expect(
+              screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).toBeInTheDocument();
+          });
+        });
+
+        it('clears error when a value is added back', async () => {
+          await addProp(propType, propName);
+          await enableMultipleValues();
+          await toggleRequired();
+
+          await waitFor(() => {
+            expect(getFirstProp().example).toEqual(expectedPrefill);
+          });
+
+          const firstInput = screen.getByTestId(
+            `array-prop-value-${getPropId()}-0`,
+          );
+          await userEvent.clear(firstInput);
+
+          await waitFor(() => {
+            expect(
+              screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).toBeInTheDocument();
+          });
+
+          await userEvent.type(firstInput, newValue);
+
+          await waitFor(() => {
+            expect(
+              screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).not.toBeInTheDocument();
+          });
+        });
+
+        it('clears error when required is toggled off', async () => {
+          await addProp(propType, propName);
+          await enableMultipleValues();
+          await toggleRequired();
+
+          await waitFor(() => {
+            expect(getFirstProp().example).toEqual(expectedPrefill);
+          });
+
+          const firstInput = screen.getByTestId(
+            `array-prop-value-${getPropId()}-0`,
+          );
+          await userEvent.clear(firstInput);
+
+          await waitFor(() => {
+            expect(
+              screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).toBeInTheDocument();
+          });
+
+          await toggleRequired();
+
+          await waitFor(() => {
+            expect(
+              screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).not.toBeInTheDocument();
+          });
+        });
+
+        it('shows no error when required is off and has no values', async () => {
+          await addProp(propType, propName);
+          await enableMultipleValues();
+
+          expect(
+            screen.getByRole('switch', { name: 'Required' }),
+          ).not.toBeChecked();
+
+          expect(
+            screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+          ).not.toBeInTheDocument();
+        });
+      },
+    );
+
+    // Test cases for Link prop (relative and full URL) ──
+    // Link uses FormPropTypeLink which prefills the single-string default
+    // via useRequiredProp. In multivalue mode the flow is: toggle required
+    // first (which prefills the single value), then enable multivalue.
+    const linkPropTestCases = [
+      {
+        variant: 'relative path',
+        expectedPrefill: 'example',
+        newValue: 'new-path',
+        setup: undefined as (() => Promise<void>) | undefined,
+      },
+      {
+        variant: 'full URL',
+        expectedPrefill: 'https://example.com',
+        newValue: 'https://new-example.com',
+        setup: async () => {
+          const propId = selectCodeComponentProperty('props')(
+            store.getState(),
+          )[0].id;
+          const linkTypeSelect = document.getElementById(
+            `prop-link-type-${propId}`,
+          );
+          await userEvent.click(linkTypeSelect!);
+          const fullUrlOption = await screen.findByRole('option', {
+            name: 'Full URL',
+          });
+          await userEvent.click(fullUrlOption);
+        },
+      },
+    ];
+
+    describe.each(linkPropTestCases)(
+      'Link prop ($variant)',
+      ({ expectedPrefill, newValue, setup }) => {
+        it('prefills a default value when required is toggled on then multivalue is enabled', async () => {
+          await addProp('Link', 'MyLink');
+          if (setup) await setup();
+          await toggleRequired();
+
+          // Verify single-value prefill.
+          await waitFor(() => {
+            expect(getFirstProp().example).toBe(expectedPrefill);
+          });
+
+          await enableMultipleValues();
+
+          await waitFor(() => {
+            expect(getFirstProp().allowMultiple).toBe(true);
+          });
+
+          expect(
+            screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+          ).not.toBeInTheDocument();
+        });
+
+        it('shows error when all values are cleared', async () => {
+          await addProp('Link', 'MyLink');
+          if (setup) await setup();
+          await enableMultipleValues();
+          await toggleRequired();
+
+          // Type a value so we can clear it.
+          const firstInput = screen.getByTestId(
+            `array-prop-value-${getPropId()}-0`,
+          );
+          await userEvent.type(firstInput, expectedPrefill);
+
+          await waitFor(() => {
+            expect(
+              screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).not.toBeInTheDocument();
+          });
+
+          await userEvent.clear(firstInput);
+
+          await waitFor(() => {
+            expect(
+              screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).toBeInTheDocument();
+          });
+        });
+
+        it('clears error when a value is added back', async () => {
+          await addProp('Link', 'MyLink');
+          if (setup) await setup();
+          await enableMultipleValues();
+          await toggleRequired();
+
+          const firstInput = screen.getByTestId(
+            `array-prop-value-${getPropId()}-0`,
+          );
+          await userEvent.type(firstInput, expectedPrefill);
+          await userEvent.clear(firstInput);
+
+          await waitFor(() => {
+            expect(
+              screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).toBeInTheDocument();
+          });
+
+          await userEvent.type(firstInput, newValue);
+
+          await waitFor(() => {
+            expect(
+              screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).not.toBeInTheDocument();
+          });
+        });
+
+        it('clears error when required is toggled off', async () => {
+          await addProp('Link', 'MyLink');
+          if (setup) await setup();
+          await enableMultipleValues();
+          await toggleRequired();
+
+          const firstInput = screen.getByTestId(
+            `array-prop-value-${getPropId()}-0`,
+          );
+          await userEvent.type(firstInput, expectedPrefill);
+          await userEvent.clear(firstInput);
+
+          await waitFor(() => {
+            expect(
+              screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).toBeInTheDocument();
+          });
+
+          await toggleRequired();
+
+          await waitFor(() => {
+            expect(
+              screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).not.toBeInTheDocument();
+          });
+        });
+
+        it('shows no error when required is off and has no values', async () => {
+          await addProp('Link', 'MyLink');
+          if (setup) await setup();
+          await enableMultipleValues();
+
+          expect(
+            screen.getByRole('switch', { name: 'Required' }),
+          ).not.toBeChecked();
+
+          expect(
+            screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+          ).not.toBeInTheDocument();
+        });
+      },
+    );
+
+    // Test cases for Date and time prop (date-only and date-time) ──
+    // Date uses FormPropTypeDate which prefills via useRequiredProp.
+    // In multivalue mode the flow is similar to Link.
+    const datePropTestCases = [
+      {
+        variant: 'date only',
+        expectedPrefill: '2026-01-25',
+        newValue: '2027-06-15',
+        setup: undefined as (() => Promise<void>) | undefined,
+      },
+      {
+        variant: 'date-time',
+        expectedPrefill: '2026-01-25T12:00:00.000Z',
+        newValue: '2027-06-15T10:30',
+        setup: async () => {
+          const propId = selectCodeComponentProperty('props')(
+            store.getState(),
+          )[0].id;
+          const dateTypeSelect = document.getElementById(
+            `prop-date-type-${propId}`,
+          );
+          await userEvent.click(dateTypeSelect!);
+          const dateTimeOption = await screen.findByRole('option', {
+            name: 'Date and time',
+          });
+          await userEvent.click(dateTimeOption);
+        },
+      },
+    ];
+
+    describe.each(datePropTestCases)(
+      'Date and time prop ($variant)',
+      ({ expectedPrefill, newValue, setup }) => {
+        it('prefills a default value when required is toggled on then multivalue is enabled', async () => {
+          await addProp('Date and time', 'EventDate');
+          if (setup) await setup();
+          await toggleRequired();
+
+          // Verify single-value prefill.
+          await waitFor(() => {
+            expect(getFirstProp().example).toBe(expectedPrefill);
+          });
+
+          await enableMultipleValues();
+
+          await waitFor(() => {
+            expect(getFirstProp().allowMultiple).toBe(true);
+          });
+
+          expect(
+            screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+          ).not.toBeInTheDocument();
+        });
+
+        it('shows error when all values are cleared', async () => {
+          await addProp('Date and time', 'EventDate');
+          if (setup) await setup();
+          await enableMultipleValues();
+          await toggleRequired();
+
+          // Type a value so we can clear it.
+          const firstInput = screen.getByTestId(
+            `array-prop-value-${getPropId()}-0`,
+          );
+          fireEvent.change(firstInput, { target: { value: newValue } });
+
+          await waitFor(() => {
+            expect(
+              screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).not.toBeInTheDocument();
+          });
+
+          fireEvent.change(firstInput, { target: { value: '' } });
+
+          await waitFor(() => {
+            expect(
+              screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).toBeInTheDocument();
+          });
+        });
+
+        it('clears error when a value is added back', async () => {
+          await addProp('Date and time', 'EventDate');
+          if (setup) await setup();
+          await enableMultipleValues();
+          await toggleRequired();
+
+          const firstInput = screen.getByTestId(
+            `array-prop-value-${getPropId()}-0`,
+          );
+
+          fireEvent.change(firstInput, { target: { value: newValue } });
+          fireEvent.change(firstInput, { target: { value: '' } });
+
+          await waitFor(() => {
+            expect(
+              screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).toBeInTheDocument();
+          });
+
+          fireEvent.change(firstInput, { target: { value: newValue } });
+
+          await waitFor(() => {
+            expect(
+              screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).not.toBeInTheDocument();
+          });
+        });
+
+        it('clears error when required is toggled off', async () => {
+          await addProp('Date and time', 'EventDate');
+          if (setup) await setup();
+          await enableMultipleValues();
+          await toggleRequired();
+
+          const firstInput = screen.getByTestId(
+            `array-prop-value-${getPropId()}-0`,
+          );
+          fireEvent.change(firstInput, { target: { value: newValue } });
+          fireEvent.change(firstInput, { target: { value: '' } });
+
+          await waitFor(() => {
+            expect(
+              screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).toBeInTheDocument();
+          });
+
+          await toggleRequired();
+
+          await waitFor(() => {
+            expect(
+              screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).not.toBeInTheDocument();
+          });
+        });
+
+        it('shows no error when required is off and has no values', async () => {
+          await addProp('Date and time', 'EventDate');
+          if (setup) await setup();
+          await enableMultipleValues();
+
+          expect(
+            screen.getByRole('switch', { name: 'Required' }),
+          ).not.toBeChecked();
+
+          expect(
+            screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+          ).not.toBeInTheDocument();
+        });
+      },
+    );
+
+    // In limited mode the array has a fixed number of inputs.  Clearing every
+    // slot while the prop is required must surface the validation error.
+    describe('limited multivalue mode required validation', () => {
+      const switchToLimitedMode = async (propId: string) => {
+        const valueModeSelect = document.getElementById(
+          `prop-value-mode-${propId}`,
+        );
+        await userEvent.click(valueModeSelect!);
+        const limitedOption = await screen.findByRole('option', {
+          name: 'Limited',
+        });
+        await userEvent.click(limitedOption);
+        // Default limitedCount is 2; wait for the count input to appear.
+        await waitFor(() => {
+          expect(
+            document.getElementById(`prop-limited-count-${propId}`),
+          ).toBeInTheDocument();
+        });
+      };
+
+      const limitedModeCases = [
+        {
+          propType: 'Text',
+          propName: 'Tags',
+          expectedPrefill: ['Example text'],
+          newValue: 'recovered',
+        },
+        {
+          propType: 'Integer',
+          propName: 'Count',
+          expectedPrefill: ['0'],
+          newValue: '42',
+        },
+        {
+          propType: 'Number',
+          propName: 'Price',
+          expectedPrefill: ['0'],
+          newValue: '3.14',
+        },
+      ];
+
+      describe.each(limitedModeCases)(
+        '$propType prop',
+        ({ propType, propName, expectedPrefill, newValue }) => {
+          it('shows error when all limited inputs are cleared', async () => {
+            await addProp(propType, propName);
+            await enableMultipleValues();
+            await toggleRequired();
+
+            const propId = getPropId();
+            await switchToLimitedMode(propId);
+
+            // The prefilled value should survive the mode switch.
+            await waitFor(() => {
+              expect(getFirstProp().example).toEqual(
+                expect.arrayContaining(expectedPrefill),
+              );
+            });
+
+            // Clear the first (prefilled) slot — all remaining slots are empty.
+            const firstInput = screen.getByTestId(
+              `array-prop-value-${propId}-0`,
+            );
+            await userEvent.clear(firstInput);
+
+            await waitFor(() => {
+              expect(
+                screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+              ).toBeInTheDocument();
+            });
+          });
+
+          it('clears error when a value is added back in limited mode', async () => {
+            await addProp(propType, propName);
+            await enableMultipleValues();
+            await toggleRequired();
+
+            const propId = getPropId();
+            await switchToLimitedMode(propId);
+
+            const firstInput = screen.getByTestId(
+              `array-prop-value-${propId}-0`,
+            );
+            await userEvent.clear(firstInput);
+
+            await waitFor(() => {
+              expect(
+                screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+              ).toBeInTheDocument();
+            });
+
+            await userEvent.type(firstInput, newValue);
+
+            await waitFor(() => {
+              expect(
+                screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+              ).not.toBeInTheDocument();
+            });
+          });
+
+          it('clears error when required is toggled off in limited mode', async () => {
+            await addProp(propType, propName);
+            await enableMultipleValues();
+            await toggleRequired();
+
+            const propId = getPropId();
+            await switchToLimitedMode(propId);
+
+            const firstInput = screen.getByTestId(
+              `array-prop-value-${propId}-0`,
+            );
+            await userEvent.clear(firstInput);
+
+            await waitFor(() => {
+              expect(
+                screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+              ).toBeInTheDocument();
+            });
+
+            await toggleRequired();
+
+            await waitFor(() => {
+              expect(
+                screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+              ).not.toBeInTheDocument();
+            });
+          });
+        },
+      );
+    });
+
+    const listPropTestCases = [
+      {
+        propType: 'List: text',
+        propName: 'Categories',
+        optionLabel: 'Option 1',
+        expectedPrefill: ['option_1'],
+      },
+      {
+        propType: 'List: integer',
+        propName: 'Ratings',
+        optionLabel: '1',
+        expectedPrefill: ['1'],
+      },
+    ];
+
+    describe.each(listPropTestCases)(
+      '$propType prop (multivalue required)',
+      ({ propType, propName, optionLabel, expectedPrefill }) => {
+        it('prefills at least one default option when required is toggled on', async () => {
+          await addProp(propType, propName);
+          await enableMultipleValues();
+          await toggleRequired();
+
+          await waitFor(() => {
+            expect(getFirstProp().example).toEqual(expectedPrefill);
+          });
+
+          expect(
+            screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+          ).not.toBeInTheDocument();
+        });
+
+        it('shows error when all selected options are removed', async () => {
+          await addProp(propType, propName);
+          // Toggle required first so a default option is created, then
+          // enable multivalue (the example is preserved as [value]).
+          await toggleRequired();
+          await enableMultipleValues();
+
+          await waitFor(() => {
+            expect(getFirstProp().example).toEqual(expectedPrefill);
+          });
+
+          expect(
+            screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+          ).not.toBeInTheDocument();
+
+          // Open the popover and deselect the only option.
+          await userEvent.click(
+            screen.getByRole('button', { name: /1 selected/i }),
+          );
+          const optionCheckbox = await screen.findByRole('checkbox', {
+            name: optionLabel,
+          });
+          await userEvent.click(optionCheckbox);
+
+          await waitFor(() => {
+            expect(
+              screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).toBeInTheDocument();
+          });
+        });
+
+        it('clears error when an option is selected again', async () => {
+          await addProp(propType, propName);
+          await toggleRequired();
+          await enableMultipleValues();
+
+          // Open popover and deselect.
+          await userEvent.click(
+            screen.getByRole('button', { name: /1 selected/i }),
+          );
+          const optionCheckbox = await screen.findByRole('checkbox', {
+            name: optionLabel,
+          });
+          await userEvent.click(optionCheckbox);
+
+          await waitFor(() => {
+            expect(
+              screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).toBeInTheDocument();
+          });
+
+          // Re-select the option.
+          await userEvent.click(optionCheckbox);
+
+          await waitFor(() => {
+            expect(
+              screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).not.toBeInTheDocument();
+          });
+        });
+
+        it('clears error when required is toggled off', async () => {
+          await addProp(propType, propName);
+          await toggleRequired();
+          await enableMultipleValues();
+
+          // Open popover and deselect.
+          await userEvent.click(
+            screen.getByRole('button', { name: /1 selected/i }),
+          );
+          const optionCheckbox = await screen.findByRole('checkbox', {
+            name: optionLabel,
+          });
+          await userEvent.click(optionCheckbox);
+
+          await waitFor(() => {
+            expect(
+              screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).toBeInTheDocument();
+          });
+
+          await toggleRequired();
+
+          await waitFor(() => {
+            expect(
+              screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).not.toBeInTheDocument();
+          });
+        });
+
+        it('shows no error when required is off and no option is selected', async () => {
+          await addProp(propType, propName);
+          await enableMultipleValues();
+
+          expect(
+            screen.getByRole('switch', { name: 'Required' }),
+          ).not.toBeChecked();
+
+          expect(
+            screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+          ).not.toBeInTheDocument();
+        });
+      },
+    );
+
+    describe('clears error when disabling multivalue for required props with cleared values', () => {
+      /**
+       * Test scenario: When a required prop in multivalue mode has all its values
+       * cleared (showing an error), and then multivalue is disabled, the error
+       * should be cleared along with the default value restoration.
+       *
+       */
+      const toggleErrorClearTestCases = [
+        {
+          propType: 'Text',
+          propName: 'Tags',
+          expectedDefaultValue: 'Example text',
+          setup: undefined as (() => Promise<void>) | undefined,
+          optionLabel: undefined as string | undefined,
+        },
+        {
+          propType: 'Integer',
+          propName: 'Count',
+          expectedDefaultValue: '0',
+          setup: undefined,
+          optionLabel: undefined,
+        },
+        {
+          propType: 'Number',
+          propName: 'Price',
+          expectedDefaultValue: '0',
+          setup: undefined,
+          optionLabel: undefined,
+        },
+        {
+          propType: 'Link',
+          propName: 'HomePage',
+          expectedDefaultValue: 'example',
+          setup: undefined,
+          optionLabel: undefined,
+        },
+        {
+          propType: 'Link',
+          propName: 'ExternalLink',
+          expectedDefaultValue: 'https://example.com',
+          setup: async () => {
+            // Change link type to Full URL.
+            const propId = selectCodeComponentProperty('props')(
+              store.getState(),
+            )[0].id;
+            const linkTypeSelect = document.getElementById(
+              `prop-link-type-${propId}`,
+            );
+            await userEvent.click(linkTypeSelect!);
+            const fullUrlOption = await screen.findByRole('option', {
+              name: 'Full URL',
+            });
+            await userEvent.click(fullUrlOption);
+          },
+          optionLabel: undefined,
+        },
+        {
+          propType: 'Date and time',
+          propName: 'StartDate',
+          expectedDefaultValue: '2026-01-25',
+          setup: undefined,
+          optionLabel: undefined,
+        },
+        {
+          propType: 'Date and time',
+          propName: 'CreatedAt',
+          expectedDefaultValue: '2026-01-25T12:00:00.000Z',
+          setup: async () => {
+            // Change date type to Date and time (date-time format).
+            const propId = selectCodeComponentProperty('props')(
+              store.getState(),
+            )[0].id;
+            const dateTypeSelect = document.getElementById(
+              `prop-date-type-${propId}`,
+            );
+            await userEvent.click(dateTypeSelect!);
+            const dateTimeOption = await screen.findByRole('option', {
+              name: 'Date and time',
+            });
+            await userEvent.click(dateTimeOption);
+          },
+          optionLabel: undefined,
+        },
+        {
+          propType: 'List: text',
+          propName: 'Categories',
+          expectedDefaultValue: 'option_1',
+          setup: undefined,
+          optionLabel: 'Option 1',
+        },
+        {
+          propType: 'List: integer',
+          propName: 'Ratings',
+          expectedDefaultValue: '1',
+          setup: undefined,
+          optionLabel: '1',
+        },
+      ];
+
+      describe.each(toggleErrorClearTestCases)(
+        '$propType prop',
+        ({ propType, propName, expectedDefaultValue, setup, optionLabel }) => {
+          it('clears error when disabling multivalue with cleared values and required is on', async () => {
+            await addProp(propType, propName);
+            if (setup) await setup();
+
+            const requiredToggle = screen.getByRole('switch', {
+              name: 'Required',
+            });
+            await userEvent.click(requiredToggle);
+
+            await waitFor(() => {
+              expect(
+                selectCodeComponentProperty('props')(store.getState())[0]
+                  .example,
+              ).toBe(expectedDefaultValue);
+            });
+
+            const multiValueCheckbox = screen.getByRole('checkbox', {
+              name: 'Allow multiple values',
+            });
+            await act(async () => {
+              fireEvent.click(multiValueCheckbox);
+            });
+
+            await waitFor(() => {
+              expect(
+                selectCodeComponentProperty('props')(store.getState())[0]
+                  .allowMultiple,
+              ).toBe(true);
+            });
+
+            // For list types, deselect the option from the popover; for others, clear the array input
+            if (propType.includes('List:')) {
+              await userEvent.click(
+                screen.getByRole('button', { name: /1 selected/i }),
+              );
+              const optionCheckbox = await screen.findByRole('checkbox', {
+                name: optionLabel!,
+              });
+              await userEvent.click(optionCheckbox);
+            } else {
+              const getPropId = () =>
+                selectCodeComponentProperty('props')(store.getState())[0].id;
+              const firstInput = screen.getByTestId(
+                `array-prop-value-${getPropId()}-0`,
+              );
+              if (propType.includes('Date')) {
+                fireEvent.change(firstInput, { target: { value: '' } });
+              } else {
+                await userEvent.clear(firstInput);
+              }
+            }
+
+            await waitFor(() => {
+              expect(
+                screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+              ).toBeInTheDocument();
+            });
+
+            await act(async () => {
+              fireEvent.click(multiValueCheckbox);
+            });
+
+            await waitFor(() => {
+              const prop = selectCodeComponentProperty('props')(
+                store.getState(),
+              )[0];
+              expect(prop.allowMultiple).toBe(false);
+              expect(prop.example).toBe(expectedDefaultValue);
+            });
+
+            expect(
+              screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).not.toBeInTheDocument();
+          });
+
+          it('error does not persist through multivalue toggle cycle with required prop', async () => {
+            await addProp(propType, propName);
+            if (setup) await setup();
+
+            const requiredToggle = screen.getByRole('switch', {
+              name: 'Required',
+            });
+            const multiValueCheckbox = screen.getByRole('checkbox', {
+              name: 'Allow multiple values',
+            });
+
+            await userEvent.click(requiredToggle);
+
+            await act(async () => {
+              fireEvent.click(multiValueCheckbox);
+            });
+
+            // For list types, deselect the option from the popover; for others, clear the array input
+            if (propType.includes('List:')) {
+              await userEvent.click(
+                screen.getByRole('button', { name: /1 selected/i }),
+              );
+              const optionCheckbox = await screen.findByRole('checkbox', {
+                name: optionLabel!,
+              });
+              await userEvent.click(optionCheckbox);
+            } else {
+              const getPropId = () =>
+                selectCodeComponentProperty('props')(store.getState())[0].id;
+              const firstInput = screen.getByTestId(
+                `array-prop-value-${getPropId()}-0`,
+              );
+
+              if (propType.includes('Date')) {
+                fireEvent.change(firstInput, { target: { value: '' } });
+              } else {
+                await userEvent.clear(firstInput);
+              }
+            }
+
+            await waitFor(() => {
+              expect(
+                screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+              ).toBeInTheDocument();
+            });
+
+            // Toggle multivalue OFF
+            await act(async () => {
+              fireEvent.click(multiValueCheckbox);
+            });
+
+            await waitFor(() => {
+              const prop = selectCodeComponentProperty('props')(
+                store.getState(),
+              )[0];
+              expect(prop.example).toBe(expectedDefaultValue);
+              expect(prop.allowMultiple).toBe(false);
+              expect(
+                screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+              ).not.toBeInTheDocument();
+            });
+          });
+        },
+      );
+    });
+
+    describe('preserves selected default value when toggling multivalue off for list props', () => {
+      /**
+       * Helper: add custom enum options to the current List prop.
+       * @param propId - The ID of the prop (used for test-id selectors).
+       * @param values - Array of string values to type into option inputs.
+       */
+      const addEnumOptions = async (propId: string, values: string[]) => {
+        for (let i = 0; i < values.length; i++) {
+          await userEvent.click(
+            screen.getByRole('button', { name: 'Add value' }),
+          );
+          await userEvent.type(
+            screen.getByTestId(`canvas-prop-enum-value-${propId}-${i}`),
+            values[i],
+          );
+        }
+      };
+
+      const listPreservationCases = [
+        {
+          propType: 'List: text' as const,
+          propName: 'Tags',
+          options: ['a', 'b'],
+          expectedDefault: 'a',
+        },
+        {
+          propType: 'List: integer' as const,
+          propName: 'Ratings',
+          options: ['10', '20'],
+          expectedDefault: '10',
+        },
+      ];
+
+      describe.each(listPreservationCases)(
+        '$propType prop',
+        ({ propType, propName, options, expectedDefault }) => {
+          it('preserves the default value after enable → disable multivalue round-trip', async () => {
+            await addProp(propType, propName);
+            const propId = getPropId();
+
+            await addEnumOptions(propId, options);
+            await waitFor(() => {
+              expect(getFirstProp().enum!.length).toBe(options.length);
+            });
+
+            // Toggle required → first option is auto-selected.
+            await toggleRequired();
+
+            await waitFor(() => {
+              expect(getFirstProp().example).toBe(expectedDefault);
+            });
+
+            await enableMultipleValues();
+
+            await waitFor(() => {
+              const prop = getFirstProp();
+              expect(prop.allowMultiple).toBe(true);
+              expect(prop.example).toEqual([expectedDefault]);
+            });
+
+            const checkbox = screen.getByRole('checkbox', {
+              name: 'Allow multiple values',
+            });
+            await act(async () => {
+              fireEvent.click(checkbox);
+            });
+
+            await waitFor(() => {
+              const prop = getFirstProp();
+              expect(prop.allowMultiple).toBe(false);
+              expect(prop.items).toBeUndefined();
+              expect(prop.example).toBe(expectedDefault);
+            });
+
+            expect(
+              screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).not.toBeInTheDocument();
+          });
+
+          it('falls back to the first enum option when array is empty on disable', async () => {
+            await addProp(propType, propName);
+            const propId = getPropId();
+
+            await addEnumOptions(propId, options);
+
+            await waitFor(() => {
+              expect(getFirstProp().enum!.length).toBe(options.length);
+            });
+
+            await enableMultipleValues();
+
+            await waitFor(() => {
+              const prop = getFirstProp();
+              expect(prop.allowMultiple).toBe(true);
+              expect(prop.example).toEqual([]);
+            });
+            const checkbox = screen.getByRole('checkbox', {
+              name: 'Allow multiple values',
+            });
+            await act(async () => {
+              fireEvent.click(checkbox);
+            });
+
+            await waitFor(() => {
+              const prop = getFirstProp();
+              expect(prop.allowMultiple).toBe(false);
+              expect(prop.example).toBe('');
+            });
+          });
+        },
+      );
+    });
+
+    // When a required prop already has a prefilled single value and the user
+    // checks "Allow multiple values", the existing value must be wrapped in an
+    // array instead of being reset to [].
+    describe('does not reset example when enabling multiple values on a required prop', () => {
+      const preservationCases = [
+        {
+          propType: 'Text',
+          propName: 'Tags',
+          expectedExample: 'Example text',
+          expectedMultiExample: ['Example text'],
+        },
+        {
+          propType: 'Integer',
+          propName: 'Count',
+          expectedExample: '0',
+          expectedMultiExample: ['0'],
+        },
+        {
+          propType: 'Number',
+          propName: 'Price',
+          expectedExample: '0',
+          expectedMultiExample: ['0'],
+        },
+      ];
+
+      describe.each(preservationCases)(
+        '$propType prop',
+        ({ propType, propName, expectedExample, expectedMultiExample }) => {
+          it('wraps the existing example in an array and shows no error', async () => {
+            await addProp(propType, propName);
+            await toggleRequired();
+
+            // Verify the single-value prefill.
+            await waitFor(() => {
+              expect(getFirstProp().example).toBe(expectedExample);
+            });
+
+            // Enable multiple values — value must be preserved, NOT reset to [].
+            await enableMultipleValues();
+
+            await waitFor(() => {
+              const prop = getFirstProp();
+              expect(prop.allowMultiple).toBe(true);
+              expect(prop.example).toEqual(expectedMultiExample);
+            });
+
+            // No error should flash immediately after the transition.
+            expect(
+              screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+            ).not.toBeInTheDocument();
+          });
+        },
+      );
     });
   });
 });

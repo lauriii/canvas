@@ -4,7 +4,6 @@ import { Box, Flex, Select, Text, TextField } from '@radix-ui/themes';
 
 import { useAppDispatch } from '@/app/hooks';
 import { jsonSchemaValidate } from '@/components/form/formUtil';
-import { updateProp } from '@/features/code-editor/codeEditorSlice';
 import {
   Divider,
   FormElement,
@@ -12,13 +11,18 @@ import {
 } from '@/features/code-editor/component-data/FormElement';
 import { PropValuesSortableList } from '@/features/code-editor/component-data/forms/PropValuesSortableList';
 import { REQUIRED_EXAMPLE_ERROR_MESSAGE } from '@/features/code-editor/component-data/Props';
-import { useRequiredProp } from '@/features/code-editor/hooks/useRequiredProp';
+import {
+  useRequiredProp,
+  useSyncRequiredArrayError,
+} from '@/features/code-editor/hooks/useRequiredProp';
 import {
   createArrayDragEndHandler,
   createDisplayArray,
+  dispatchUpdateProp,
   handleArrayAdd,
   handleArrayRemove,
   handleArrayValueChange,
+  hasNonEmptyArrayValue,
 } from '@/features/code-editor/utils/arrayPropUtils';
 import {
   VALUE_MODE_LIMITED,
@@ -75,21 +79,36 @@ export default function FormPropTypeLink({
   }
 
   const [isExampleValueValid, setIsExampleValueValid] = useState(true);
+
+  // For multi-value mode, normalize the example so `useRequiredProp` can
+  // detect empty arrays (since `![]` is false in JS).
+  const hasNonEmptyValue = hasNonEmptyArrayValue(allowMultiple ? example : []);
+
   const { showRequiredError, setShowRequiredError } = useRequiredProp(
     required,
-    example,
+    allowMultiple ? (hasNonEmptyValue ? 'non-empty' : '') : example,
     () => {
-      dispatch(
-        updateProp({
-          id,
-          updates: {
-            example: DEFAULT_LINK_EXAMPLES[linkType],
-            format: linkType === 'full' ? 'uri' : 'uri-reference',
-          },
-        }),
-      );
+      if (allowMultiple) {
+        dispatchUpdateProp(dispatch, id, {
+          example: [DEFAULT_LINK_EXAMPLES[linkType]],
+          format: linkType === 'full' ? 'uri' : 'uri-reference',
+        });
+      } else {
+        dispatchUpdateProp(dispatch, id, {
+          example: DEFAULT_LINK_EXAMPLES[linkType],
+          format: linkType === 'full' ? 'uri' : 'uri-reference',
+        });
+      }
     },
-    [dispatch, id, linkType],
+    [dispatch, id, linkType, allowMultiple],
+  );
+
+  // Keep error state in sync with whether the array has non-empty values.
+  useSyncRequiredArrayError(
+    required,
+    hasNonEmptyValue,
+    setShowRequiredError,
+    allowMultiple,
   );
 
   const displayArray = useMemo(
@@ -206,30 +225,20 @@ export default function FormPropTypeLink({
 
             // In multi-value mode, reset the array to a single default value
             if (allowMultiple) {
-              dispatch(
-                updateProp({
-                  id,
-                  updates: {
-                    example: [newDefaultValue],
-                    format: newFormat,
-                    valueMode: VALUE_MODE_UNLIMITED,
-                    limitedCount: undefined,
-                  },
-                }),
-              );
+              dispatchUpdateProp(dispatch, id, {
+                example: [newDefaultValue],
+                format: newFormat,
+                valueMode: VALUE_MODE_UNLIMITED,
+                limitedCount: undefined,
+              });
               // Reset validity states to a single valid entry
               setMultiValueValidityStates([true]);
             } else {
               // Single value mode - just update format and example
-              dispatch(
-                updateProp({
-                  id,
-                  updates: {
-                    example: newDefaultValue,
-                    format: newFormat,
-                  },
-                }),
-              );
+              dispatchUpdateProp(dispatch, id, {
+                example: newDefaultValue,
+                format: newFormat,
+              });
             }
           }}
           size="1"
@@ -270,15 +279,10 @@ export default function FormPropTypeLink({
                   setIsExampleValueValid(true); // Reset validation state on change
                   // Show/hide error based on whether field is empty while required
                   setShowRequiredError(required && !input.value);
-                  dispatch(
-                    updateProp({
-                      id,
-                      updates: {
-                        example: input.value,
-                        format: linkType === 'full' ? 'uri' : 'uri-reference',
-                      },
-                    }),
-                  );
+                  dispatchUpdateProp(dispatch, id, {
+                    example: input.value,
+                    format: linkType === 'full' ? 'uri' : 'uri-reference',
+                  });
                 }}
                 onBlur={(e) => {
                   setIsExampleValueValid(
@@ -308,9 +312,16 @@ export default function FormPropTypeLink({
             onAdd={valueMode === VALUE_MODE_UNLIMITED ? handleAdd : undefined}
             isDisabled={isDisabled}
             mode={valueMode}
+            errorMessage={
+              showRequiredError && (
+                <Text color="red" size="1">
+                  {REQUIRED_EXAMPLE_ERROR_MESSAGE}
+                </Text>
+              )
+            }
           />
         )}
-        {showRequiredError && (
+        {!allowMultiple && showRequiredError && (
           <Text color="red" size="1">
             {REQUIRED_EXAMPLE_ERROR_MESSAGE}
           </Text>
