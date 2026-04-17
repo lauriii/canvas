@@ -169,9 +169,10 @@ canvasData.v0:
     - canvas/canvasData.v0.baseUrl
     - canvas/canvasData.v0.branding
     - canvas/canvasData.v0.breadcrumbs
+    - canvas/canvasData.v0.jsonapiSettings
     - canvas/canvasData.v0.mainEntity
     - canvas/canvasData.v0.pageTitle
-    - canvas/canvasData.v0.jsonapiSettings
+    - canvas/canvasData.v0.themeAssets
   drupalSettings:
     canvasData:
       v0: {}
@@ -226,6 +227,19 @@ canvasData.v0.jsonapiSettings:
     canvasData:
       v0:
         jsonapiSettings: null
+
+canvasData.v0.themeAssets:
+  dependencies:
+    - core/drupalSettings
+  drupalSettings:
+    canvasData:
+      v0:
+        themeAssets:
+          logo:
+            url: null
+          favicon:
+            url: null
+            mimeType: null
 
 multivalue-form:
   css:

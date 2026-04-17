@@ -63,6 +63,10 @@ export interface DrupalSettings {
       jsonapiSettings: null | {
         apiPrefix: string;
       };
+      themeAssets: {
+        logo: { url: string };
+        favicon: { url: string; mimeType: string };
+      };
     };
   };
   canvasExtension: object;

@@ -71,6 +71,45 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
   }
 
   /**
+   * Tests v 0 using drupal settings get theme assets.
+   *
+   * @legacy-covers \Drupal\canvas\CodeComponentDataProvider::getCanvasDataThemeAssetsV0
+   */
+  public function testV0UsingDrupalSettingsGetThemeAssets(): void {
+    $page = Page::create([
+      'title' => 'Test page',
+      'type' => 'page',
+      'components' => [
+        [
+          'uuid' => CanvasTestSetup::UUID_COMPONENT_SDC,
+          'component_id' => 'js.canvas_test_code_components_using_drupalsettings_get_theme_assets',
+        ],
+      ],
+    ]);
+    $page->save();
+
+    $regular_user = $this->drupalCreateUser(['access content']);
+    $this->assertInstanceOf(AccountInterface::class, $regular_user);
+    $this->drupalLogin($regular_user);
+
+    $this->drupalGet($page->toUrl());
+
+    $drupalSettings = $this->getDrupalSettings();
+    $this->assertArrayHasKey(CodeComponentDataProvider::CANVAS_DATA_KEY, $drupalSettings);
+    self::assertSame([
+      'themeAssets' => [
+        'logo' => [
+          'url' => '/core/themes/stark/logo.svg',
+        ],
+        'favicon' => [
+          'url' => '/core/misc/favicon.ico',
+          'mimeType' => 'image/vnd.microsoft.icon',
+        ],
+      ],
+    ], $drupalSettings[CodeComponentDataProvider::CANVAS_DATA_KEY][CodeComponentDataProvider::V0]);
+  }
+
+  /**
    * Tests v 0 not using drupal settings.
    *
    * @legacy-covers \Drupal\canvas\CodeComponentDataProvider

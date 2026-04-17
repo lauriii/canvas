@@ -263,6 +263,9 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       'js.canvas_test_code_components_using_drupalsettings_get_site_data' => [
         'prop_field_definitions' => [],
       ],
+      'js.canvas_test_code_components_using_drupalsettings_get_theme_assets' => [
+        'prop_field_definitions' => [],
+      ],
       'js.canvas_test_code_components_using_get_page_data' => [
         'prop_field_definitions' => [],
       ],
@@ -865,6 +868,29 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
           'import_maps' => $default_imports,
         ],
       ],
+      'js.canvas_test_code_components_using_drupalsettings_get_theme_assets' => [
+        'cacheability' => (clone $default_cacheability)
+          ->setCacheTags([
+            'config:canvas.js_component.canvas_test_code_components_using_drupalsettings_get_theme_assets',
+          ]),
+        'attachments' => [
+          'library' => [
+            'canvas/astro_island.canvas_test_code_components_using_drupalsettings_get_theme_assets',
+            ...$default_libraries,
+          ],
+          'html_head_link' => [
+            ...$default_html_head_links,
+            [
+              [
+                'rel' => 'modulepreload',
+                'fetchpriority' => 'high',
+                'href' => \sprintf('/%s/files/astro-island/YA8XnDFY2bejxOaOhkOI0tf8p26EOJcqAjvZvT1TSiA.js', $site_path),
+              ],
+            ],
+          ],
+          'import_maps' => $default_imports,
+        ],
+      ],
     ], $rendered_without_html);
   }
 
@@ -1151,6 +1177,11 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       'js.canvas_test_code_components_using_drupalsettings_get_site_data' => [
         'config' => [
           'canvas.js_component.canvas_test_code_components_using_drupalsettings_get_site_data',
+        ],
+      ],
+      'js.canvas_test_code_components_using_drupalsettings_get_theme_assets' => [
+        'config' => [
+          'canvas.js_component.canvas_test_code_components_using_drupalsettings_get_theme_assets',
         ],
       ],
       'js.canvas_test_code_components_using_get_page_data' => [
@@ -1695,6 +1726,16 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       'js.canvas_test_code_components_using_drupalsettings_get_site_data' => [
         'expected_output_selectors' => [
           'canvas-island[opts*="Using drupalSettings getSiteData"][props="{}"]',
+          'script[blocking="render"][src*="/packages/astro-hydration/dist/client.js"]',
+        ],
+        'source' => 'Code component',
+        'metadata' => ['slots' => []],
+        'propSources' => [],
+        'transforms' => [],
+      ],
+      'js.canvas_test_code_components_using_drupalsettings_get_theme_assets' => [
+        'expected_output_selectors' => [
+          'canvas-island[opts*="Using drupalSettings getThemeAssets"][props="{}"]',
           'script[blocking="render"][src*="/packages/astro-hydration/dist/client.js"]',
         ],
         'source' => 'Code component',

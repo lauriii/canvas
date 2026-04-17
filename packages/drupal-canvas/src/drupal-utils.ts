@@ -80,6 +80,11 @@ interface PageData {
   mainEntity: EntityMetadata | null;
 }
 
+interface ThemeAssets {
+  logo: { url: string };
+  favicon: { url: string; mimeType: string };
+}
+
 interface SiteData {
   branding: {
     homeUrl: string;
@@ -87,6 +92,7 @@ interface SiteData {
     siteSlogan: string;
   };
   baseUrl: string;
+  themeAssets: ThemeAssets;
 }
 
 export const getPageData = (): PageData => {
@@ -111,6 +117,10 @@ export const getSiteData = (): SiteData => {
       siteSlogan: '',
     },
     baseUrl: window.drupalSettings?.canvasData?.v0?.baseUrl || '/',
+    themeAssets: window.drupalSettings?.canvasData?.v0?.themeAssets || {
+      logo: { url: '' },
+      favicon: { url: '', mimeType: '' },
+    },
   };
   window.parent.postMessage({
     type: '_canvas_useswr_data_fetch',

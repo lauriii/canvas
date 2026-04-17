@@ -1,0 +1,39 @@
+uuid: b5c6d7e8-f9a0-4123-8567-901234abcdef
+langcode: en
+status: true
+dependencies:
+  enforced: {  }
+machineName: canvas_test_code_components_using_drupalsettings_get_theme_assets
+name: 'Using drupalSettings getThemeAssets'
+required: {  }
+props: {  }
+slots: {  }
+js:
+  original: |-
+    import { getSiteData } from '@/lib/drupal-utils';
+
+    const WithDrupalSettingsThemeAssets = () => {
+      const { logo } = getSiteData().themeAssets;
+      return (
+        <img src={logo.url} alt="Site logo" />
+      );
+    };
+
+    export default WithDrupalSettingsThemeAssets;
+  compiled: |
+    import { jsx as _jsx } from "react/jsx-runtime";
+    import { getSiteData } from '@/lib/drupal-utils';
+    const WithDrupalSettingsThemeAssets = ()=>{
+        const { logo } = getSiteData().themeAssets;
+        return /*#__PURE__*/ _jsx("img", {
+            src: logo.url,
+            alt: "Site logo"
+        });
+    };
+    export default WithDrupalSettingsThemeAssets;
+css:
+  original: ''
+  compiled: ''
+dataDependencies:
+  drupalSettings:
+    - v0.themeAssets

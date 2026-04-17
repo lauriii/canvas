@@ -223,12 +223,13 @@ canvas.js_component.*:
             label: 'Canvas Drupal settings needed by the component'
             constraints:
               Choice:
+                - v0.baseUrl
                 - v0.branding
                 - v0.breadcrumbs
+                - v0.jsonapiSettings
                 - v0.mainEntity
                 - v0.pageTitle
-                - v0.jsonapiSettings
-                - v0.baseUrl
+                - v0.themeAssets
 
 canvas.page_region.*:
   type: config_entity

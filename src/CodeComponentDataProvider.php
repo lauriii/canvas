@@ -144,6 +144,27 @@ readonly final class CodeComponentDataProvider {
   }
 
   /**
+   * Returns theme assets for V0 of drupalSettings.canvasData.
+   *
+   * @return array[]
+   */
+  public function getCanvasDataThemeAssetsV0(): array {
+    return [
+      self::V0 => [
+        'themeAssets' => [
+          'logo' => [
+            'url' => theme_get_setting('logo.url') ?? '',
+          ],
+          'favicon' => [
+            'url' => theme_get_setting('favicon.url') ?? '',
+            'mimeType' => theme_get_setting('favicon.mimetype') ?? '',
+          ],
+        ],
+      ],
+    ];
+  }
+
+  /**
    * Parses the js code and attach the associated library.
    *
    * @param string $jsCode

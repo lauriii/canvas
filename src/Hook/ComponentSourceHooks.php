@@ -44,9 +44,10 @@ readonly final class ComponentSourceHooks {
     'canvas/canvasData.v0.baseUrl' => 'getCanvasDataBaseUrlV0',
     'canvas/canvasData.v0.branding' => 'getCanvasDataBrandingV0',
     'canvas/canvasData.v0.breadcrumbs' => 'getCanvasDataBreadcrumbsV0',
+    'canvas/canvasData.v0.jsonapiSettings' => 'getCanvasDataJsonApiSettingsV0',
     'canvas/canvasData.v0.mainEntity' => 'getCanvasDataMainEntityV0',
     'canvas/canvasData.v0.pageTitle' => 'getCanvasDataPageTitleV0',
-    'canvas/canvasData.v0.jsonapiSettings' => 'getCanvasDataJsonApiSettingsV0',
+    'canvas/canvasData.v0.themeAssets' => 'getCanvasDataThemeAssetsV0',
   ];
 
   /**
@@ -171,6 +172,12 @@ readonly final class ComponentSourceHooks {
       // Allow overrides: only set if still NULL.
       if (NestedArray::getValue($settings, [...$path, 'jsonapiSettings']) === NULL) {
         $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.jsonapiSettings'));
+      }
+    }
+    if ($all || \in_array('canvas/canvasData.v0.themeAssets', $all_attached_asset_libraries, TRUE)) {
+      // Allow overrides: only set if still NULL.
+      if (NestedArray::getValue($settings, [...$path, 'themeAssets', 'logo', 'url']) === NULL) {
+        $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.themeAssets'));
       }
     }
     if (!empty($canvasData)) {
