@@ -95,6 +95,7 @@ async function loadComponentMocks(
   componentRoot: string,
   allComponentNames: string[],
   componentExampleProps: Record<string, unknown>,
+  componentRequiredPropNames: string[],
 ): Promise<{
   mocks: PreviewManifestComponentMock[];
   warnings: PreviewWarning[];
@@ -129,6 +130,7 @@ async function loadComponentMocks(
       componentName: component.name,
       componentNames: allComponentNames,
       componentExampleProps,
+      componentRequiredPropNames,
     });
     warnings.push(...parsed.warnings);
     mocks.push(...parsed.mocks);
@@ -382,6 +384,7 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
                 manifest.componentRoot,
                 discoveredComponentNames,
                 exampleProps,
+                componentPreviewMetadata.requiredPropNames,
               );
               return {
                 component: {

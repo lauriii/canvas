@@ -145,6 +145,8 @@ describe('vite-compat', () => {
       metadataPath,
       [
         'name: Hero',
+        'required:',
+        '  - title',
         'props:',
         '  properties:',
         '    title:',
@@ -162,6 +164,7 @@ describe('vite-compat', () => {
       exampleProps: {
         title: 'Hello',
       },
+      requiredPropNames: ['title'],
     });
   });
 

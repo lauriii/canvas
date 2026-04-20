@@ -134,6 +134,7 @@ export function drupalCanvasCompatServer(
 export interface ComponentPreviewMetadata {
   label: string | null;
   exampleProps: Record<string, unknown>;
+  requiredPropNames: string[];
 }
 
 export async function extractComponentPreviewMetadataFromComponentYaml(
@@ -145,6 +146,11 @@ export async function extractComponentPreviewMetadataFromComponentYaml(
     const root = asRecord(parsed);
     const props = asRecord(root?.props);
     const properties = asRecord(props?.properties);
+    const requiredPropNames = Array.isArray(root?.required)
+      ? root.required.filter(
+          (value): value is string => typeof value === 'string',
+        )
+      : [];
 
     const exampleProps: Record<string, unknown> = {};
     if (properties) {
@@ -164,11 +170,13 @@ export async function extractComponentPreviewMetadataFromComponentYaml(
     return {
       label: typeof root?.name === 'string' ? root.name : null,
       exampleProps,
+      requiredPropNames,
     };
   } catch {
     return {
       label: null,
       exampleProps: {},
+      requiredPropNames: [],
     };
   }
 }

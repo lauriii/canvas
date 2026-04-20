@@ -440,6 +440,7 @@ async function loadComponentMocks(options: {
   component: PreviewManifestComponent;
   discoveryResult: DiscoveryResult;
   componentExampleProps: Record<string, unknown>;
+  componentRequiredPropNames: string[];
 }): Promise<{
   mocks: PreviewManifestComponentMock[];
   warnings: PreviewIssue[];
@@ -477,6 +478,7 @@ async function loadComponentMocks(options: {
         (component) => component.name,
       ),
       componentExampleProps: options.componentExampleProps,
+      componentRequiredPropNames: options.componentRequiredPropNames,
     });
 
     warnings.push(...parsed.warnings.map((warning) => toPreviewIssue(warning)));
@@ -691,6 +693,7 @@ export async function buildPreviewArtifact(
         component: selectedComponentForMocks,
         discoveryResult,
         componentExampleProps: componentMetadata.exampleProps,
+        componentRequiredPropNames: componentMetadata.requiredPropNames,
       });
       combinedWarnings.push(...loadedMocks.warnings);
 

@@ -213,6 +213,7 @@ describe('preview-build', () => {
           exampleProps: {
             title: 'Example',
           },
+          requiredPropNames: [],
         }),
         bundleInteractivePreview: async () => ({
           js: 'console.log("mock-runtime");',
@@ -412,6 +413,7 @@ describe('preview-build', () => {
         extractMetadata: async () => ({
           label: 'Card',
           exampleProps: {},
+          requiredPropNames: [],
         }),
         bundleInteractivePreview: async () => {
           throw new Error('mock bundle failed');

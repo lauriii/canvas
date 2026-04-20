@@ -28,6 +28,7 @@ export function toPreviewManifestComponentMocks(
     componentName: string;
     componentNames: string[];
     componentExampleProps?: Record<string, unknown>;
+    componentRequiredPropNames?: string[];
   },
 ): {
   mocks: PreviewManifestComponentMock[];
@@ -37,6 +38,7 @@ export function toPreviewManifestComponentMocks(
     componentName: options.componentName,
     componentNames: options.componentNames,
     componentExampleProps: options.componentExampleProps,
+    componentRequiredPropNames: options.componentRequiredPropNames,
   });
 
   return {

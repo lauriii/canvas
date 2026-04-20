@@ -45,7 +45,7 @@ describe('mock-spec', () => {
     });
   });
 
-  it('merges shorthand mock props with component example props', () => {
+  it('merges only required example props into shorthand mock props', () => {
     const result = parseMockSpecArray(
       {
         mocks: [
@@ -66,6 +66,7 @@ describe('mock-spec', () => {
           backgroundColor: 'crust',
           darkVariant: true,
         },
+        componentRequiredPropNames: ['title', 'darkVariant'],
       },
     );
 
@@ -74,7 +75,6 @@ describe('mock-spec', () => {
       type: 'hero',
       props: {
         title: 'Example title',
-        backgroundColor: 'crust',
         darkVariant: false,
       },
     });
@@ -202,6 +202,7 @@ describe('mock-spec', () => {
           entryTierName: 'Starter',
           buttonLabel: 'Choose {tier}',
         },
+        componentRequiredPropNames: ['entryTierName'],
       },
     );
 
@@ -209,7 +210,6 @@ describe('mock-spec', () => {
       type: 'pricing-table',
       props: {
         entryTierName: 'Starter',
-        buttonLabel: 'Choose {tier}',
       },
     });
     expect(normalized.spec.elements['pricing-table-in-section']).toEqual({
@@ -395,6 +395,7 @@ describe('mock-spec', () => {
           entryTierName: 'Starter',
           buttonLabel: 'Choose {tier}',
         },
+        componentRequiredPropNames: ['entryTierName'],
       },
     );
 
@@ -403,7 +404,6 @@ describe('mock-spec', () => {
       type: 'pricing-table',
       props: {
         entryTierName: 'Starter',
-        buttonLabel: 'Choose {tier}',
       },
     });
   });

@@ -46,6 +46,7 @@ describe('spec-discovery', () => {
         componentExampleProps: {
           textAlign: 'left',
         },
+        componentRequiredPropNames: ['textAlign'],
       },
     );
 
