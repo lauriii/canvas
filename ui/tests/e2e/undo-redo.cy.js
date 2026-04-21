@@ -19,49 +19,27 @@ describe('Undo/Redo functionality', () => {
     // Assert that the undo button is disabled initially.
     cy.get('button[aria-label="Undo"]').should('be.disabled');
 
+    const heroOverlaySelector =
+      '#canvasPreviewOverlay [data-canvas-component-id="sdc.canvas_test_sdc.my-hero"]';
+
     // Check there are three heroes initially.
-    cy.testInIframe(
-      '[data-component-id="canvas_test_sdc:my-hero"]',
-      (myHeroComponent) => {
-        expect(myHeroComponent.length).to.equal(3);
-      },
-    );
-    cy.intercept('POST', '**/canvas/api/v0/layout/node/1').as('getPreview');
+    cy.get(heroOverlaySelector).should('have.length', 3);
+
     cy.insertComponent({ name: 'Two Column' });
 
-    // Click on the menu item with data-canvas-name="Hero" inside menu.
-    cy.insertComponent({ name: 'Hero' });
-    cy.wait('@getPreview');
+    // Insert by component id to disambiguate from other components also named
+    // "Hero" (e.g. the JS component in canvas_children_slot_component).
+    cy.insertComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
 
-    cy.getIframeBody().find(
-      '[data-component-id="canvas_test_sdc:my-hero"]',
-      (myHeroComponent) => {
-        expect(myHeroComponent.length).to.equal(4);
-      },
-    );
-    // Undo
+    cy.get(heroOverlaySelector).should('have.length', 4);
+
+    // Undo.
     cy.realPress(['Meta', 'Z']);
-    cy.wait('@getPreview');
-
-    // Assert that the component was deleted from the layout.
-    cy.getIframeBody().find(
-      '[data-component-id="canvas_test_sdc:my-hero"]',
-      (myHeroComponent) => {
-        expect(myHeroComponent.length).to.equal(3);
-      },
-    );
+    cy.get(heroOverlaySelector).should('have.length', 3);
 
     // Redo.
     cy.realPress(['Meta', 'Shift', 'Z']);
-    cy.wait('@getPreview');
-
-    // Assert that the component was again added to the layout.
-    cy.getIframeBody().find(
-      '[data-component-id="canvas_test_sdc:my-hero"]',
-      (myHeroComponent) => {
-        expect(myHeroComponent.length).to.equal(4);
-      },
-    );
+    cy.get(heroOverlaySelector).should('have.length', 4);
   });
 
   it('Component instance form values are included in Undo/Redo', () => {
