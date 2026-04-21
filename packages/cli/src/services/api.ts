@@ -428,8 +428,9 @@ export class ApiService {
    */
   async createPage(page: {
     title: string;
+    description: string;
     status: boolean;
-    path: string | null;
+    path: string;
     components: CanvasComponentTree;
   }): Promise<Page> {
     try {
@@ -450,8 +451,9 @@ export class ApiService {
     id: string | number,
     page: {
       title: string;
+      description: string;
       status: boolean;
-      path: string | null;
+      path: string;
       components: CanvasComponentTree;
     },
   ): Promise<Page> {

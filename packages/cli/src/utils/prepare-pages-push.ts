@@ -32,6 +32,8 @@ export interface PagePushResult {
 export interface PreparedPage {
   uuid: string | null;
   title: string;
+  description: string;
+  path: string;
   components: Page['components'];
   filePath: string;
   pendingMediaReconciliations: Array<
@@ -58,6 +60,8 @@ export async function preparePages(
     const fileContent = await fs.readFile(localPage.path, 'utf-8');
     const spec = JSON.parse(fileContent) as {
       title: string;
+      description?: string;
+      path?: string;
       elements: AuthoredSpecElementMap;
     };
     const pendingMediaReconciliations = collectUnreconciledMediaProps(
@@ -72,6 +76,8 @@ export async function preparePages(
     return {
       uuid: localPage.uuid,
       title: spec.title,
+      description: spec.description ?? '',
+      path: spec.path ?? '',
       components,
       filePath: localPage.path,
       pendingMediaReconciliations,
@@ -121,16 +127,18 @@ export async function pushPages(
     if (remotePage) {
       await apiService.updatePage(remotePage.id, {
         title: page.title,
+        description: page.description,
         status: remotePage.status,
-        path: remotePage.path,
+        path: page.path,
         components: page.components,
       });
       return { title: page.title, operation: 'Updated' as const };
     } else {
       const created = await apiService.createPage({
         title: page.title,
+        description: page.description,
         status: false,
-        path: '',
+        path: page.path,
         components: page.components,
       });
       // Write the server-assigned UUID back into the local file.

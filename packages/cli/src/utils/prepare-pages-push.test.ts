@@ -52,6 +52,7 @@ function mockPageListItem(
     autoSaveLabel: null,
     autoSavePath: null,
     links: {},
+    description: '',
   };
 }
 
@@ -159,6 +160,8 @@ describe('pushPages', () => {
         result: {
           uuid: 'page-uuid-1',
           title: 'Home',
+          description: '',
+          path: '/home',
           components: [],
           filePath,
           pendingMediaReconciliations: [],
@@ -198,6 +201,8 @@ describe('pushPages', () => {
         result: {
           uuid: null as string | null,
           title: 'New Page',
+          description: '',
+          path: '',
           components: [],
           filePath,
           pendingMediaReconciliations: [],

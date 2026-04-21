@@ -115,6 +115,7 @@ class ApiContentControllersGetTest extends CanvasKernelTestBase {
         'autoSaveLabel' => NULL,
         'autoSavePath' => NULL,
         'components' => [],
+        'description' => '',
         'links' => [
           CanvasUriDefinitions::LINK_REL_UNPUBLISH => '/canvas/api/v0/content/auto-save/canvas_page/1',
           CanvasUriDefinitions::LINK_REL_EDIT => '/canvas/editor/canvas_page/1',
@@ -189,6 +190,7 @@ class ApiContentControllersGetTest extends CanvasKernelTestBase {
             'inputs_resolved' => ['heading' => 'Nested'],
           ],
         ],
+        'description' => '',
         'links' => [
           CanvasUriDefinitions::LINK_REL_UNPUBLISH => '/canvas/api/v0/content/auto-save/canvas_page/1',
           CanvasUriDefinitions::LINK_REL_EDIT => '/canvas/editor/canvas_page/1',

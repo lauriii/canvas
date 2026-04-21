@@ -3,7 +3,7 @@
   "title": "Canvas page spec",
   "description": "Authored Canvas page format. Workbench normalizes this into an @json-render/react-compatible spec by synthesizing the canvas:component-tree root wrapper.",
   "type": "object",
-  "required": ["title", "elements"],
+  "required": ["title", "path", "elements"],
   "properties": {
     "$schema": {
       "type": "string",
@@ -19,6 +19,14 @@
       "type": "string",
       "minLength": 1,
       "description": "Page metadata. Workbench may surface this separately from the normalized @json-render/react-compatible spec."
+    },
+    "path": {
+      "type": "string",
+      "description": "Page path alias."
+    },
+    "description": {
+      "type": "string",
+      "description": "Page meta description."
     },
     "elements": {
       "type": "object",

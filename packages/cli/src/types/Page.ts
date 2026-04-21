@@ -11,6 +11,7 @@ export interface Page {
   autoSavePath: string | null;
   links: Record<string, string>;
   components: CanvasComponentTree;
+  description: string;
 }
 
 export type PageListItem = Omit<Page, 'components'>;

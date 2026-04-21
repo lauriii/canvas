@@ -132,8 +132,15 @@ export function authoredSpecToComponentTree(
 }
 
 export function pageToAuthoredSpec(page: Page): Record<string, unknown> {
+  const meta: Record<string, unknown> = {
+    uuid: page.uuid,
+    title: page.title,
+    path: page.path,
+    description: page.description,
+  };
+
   if (page.components.length === 0) {
-    return { uuid: page.uuid, title: page.title, elements: {} };
+    return { ...meta, elements: {} };
   }
 
   const components = page.components.map((node) => ({
@@ -161,5 +168,5 @@ export function pageToAuthoredSpec(page: Page): Record<string, unknown> {
     }
   }
 
-  return { uuid: page.uuid, title: page.title, elements };
+  return { ...meta, elements };
 }

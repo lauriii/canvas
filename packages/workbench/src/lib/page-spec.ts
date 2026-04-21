@@ -132,7 +132,14 @@ export function parsePageSpec(
   }
 
   const issues: PageSpecIssue[] = [];
-  const allowedTopLevelKeys = new Set(['$schema', 'uuid', 'title', 'elements']);
+  const allowedTopLevelKeys = new Set([
+    '$schema',
+    'uuid',
+    'title',
+    'path',
+    'description',
+    'elements',
+  ]);
   const unexpectedTopLevelKeys = Object.keys(value).filter(
     (key) => !allowedTopLevelKeys.has(key),
   );

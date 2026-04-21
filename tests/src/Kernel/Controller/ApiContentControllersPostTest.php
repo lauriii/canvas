@@ -127,6 +127,7 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
         'autoSaveLabel' => NULL,
         'autoSavePath' => NULL,
         'components' => [],
+        'description' => '',
         'links' => [
           CanvasUriDefinitions::LINK_REL_EDIT => '/canvas/editor/canvas_page/2',
           CanvasUriDefinitions::LINK_REL_DUPLICATE => '/canvas/api/v0/content/canvas_page',
@@ -150,6 +151,7 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
         'autoSaveLabel' => NULL,
         'autoSavePath' => NULL,
         'components' => [],
+        'description' => '',
         'links' => [
           CanvasUriDefinitions::LINK_REL_EDIT => '/canvas/editor/canvas_page/2',
           CanvasUriDefinitions::LINK_REL_DUPLICATE => '/canvas/api/v0/content/canvas_page',
@@ -175,6 +177,7 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
         'autoSaveLabel' => NULL,
         'autoSavePath' => NULL,
         'components' => [],
+        'description' => '',
         'links' => [
           CanvasUriDefinitions::LINK_REL_UNPUBLISH => '/canvas/api/v0/content/auto-save/canvas_page/2',
           CanvasUriDefinitions::LINK_REL_EDIT => '/canvas/editor/canvas_page/2',
@@ -241,6 +244,7 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
             'inputs_resolved' => ['heading' => 'Nested'],
           ],
         ],
+        'description' => '',
         'links' => [
           CanvasUriDefinitions::LINK_REL_UNPUBLISH => '/canvas/api/v0/content/auto-save/canvas_page/2',
           CanvasUriDefinitions::LINK_REL_EDIT => '/canvas/editor/canvas_page/2',

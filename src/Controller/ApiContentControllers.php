@@ -82,7 +82,7 @@ final class ApiContentControllers extends ApiControllerBase {
 
     $generated_url = $canvas_page->toUrl()->toString(TRUE);
     $cacheability->addCacheableDependency($generated_url);
-    $data = $this->normalizeWithComponents($canvas_page, $cacheability);
+    $data = $this->normalizeWithMetadataAndComponents($canvas_page, $cacheability);
 
     $json_response = new CacheableJsonResponse($data);
     $json_response->addCacheableDependency($cacheability);
@@ -123,7 +123,10 @@ final class ApiContentControllers extends ApiControllerBase {
       $body['path'] = ['alias' => $body['path'], 'pid' => $existing_pid];
     }
 
-    foreach (['title', 'status', 'path', 'components'] as $field_name) {
+    foreach (['title', 'status', 'path', 'components', 'description'] as $field_name) {
+      if (!\array_key_exists($field_name, $body)) {
+        continue;
+      }
       $field_access = $canvas_page->get($field_name)->access(operation: 'edit', return_as_object: TRUE);
       if ($field_access->isForbidden()) {
         throw new CacheableAccessDeniedHttpException(
@@ -142,7 +145,7 @@ final class ApiContentControllers extends ApiControllerBase {
     $canvas_page->save();
 
     // The response is never cacheable, so it will be discarded.
-    $data = $this->normalizeWithComponents($canvas_page, new CacheableMetadata());
+    $data = $this->normalizeWithMetadataAndComponents($canvas_page, new CacheableMetadata());
 
     return new JsonResponse($data, Response::HTTP_OK);
   }
@@ -177,11 +180,13 @@ final class ApiContentControllers extends ApiControllerBase {
       // @todo This won't check if the alias is already used, potentially
       //   creating duplicated aliases.
       $requestPath = $body['path'] ?? NULL;
+      $requestDescription = $body['description'] ?? NULL;
       $values = [
         'title' => $requestBodyTitle,
         'status' => $requestStatus,
         'components' => $requestComponents,
         'path' => $requestPath,
+        'description' => $requestDescription,
       ];
       if (isset($body['uuid'])) {
         $values['uuid'] = $body['uuid'];
@@ -200,7 +205,7 @@ final class ApiContentControllers extends ApiControllerBase {
       $new->save();
     }
     \assert($new instanceof ContentEntityInterface && $new instanceof EntityPublishedInterface);
-    $data = $this->normalizeWithComponents($new, new CacheableMetadata());
+    $data = $this->normalizeWithMetadataAndComponents($new, new CacheableMetadata());
     // This was the app client uses instead of `id`, added for BC compatibility.
     // @todo Remove this in a follow-up, along with the anyOf added to
     //   openapi.yml file
@@ -437,6 +442,37 @@ final class ApiContentControllers extends ApiControllerBase {
       // @see https://jsonapi.org/format/#document-links
       'links' => $linkCollection->asArray(),
     ];
+  }
+
+  /**
+   * Normalizes content entity including metadata and component tree fields.
+   *
+   * @param \Drupal\Core\Entity\EntityPublishedInterface&\Drupal\Core\Entity\ContentEntityInterface $content_entity
+   *   The content entity to prepare data for.
+   * @param \Drupal\Core\Cache\CacheableMetadata $url_cacheability
+   *   The cacheability metadata object to add URL dependencies to.
+   *
+   * @return array
+   *   An associative array containing the normalized entity.
+   */
+  private function normalizeWithMetadataAndComponents(EntityPublishedInterface&ContentEntityInterface $content_entity, CacheableMetadata $url_cacheability): array {
+    $data = $this->normalizeWithComponents($content_entity, $url_cacheability);
+
+    if ($content_entity->hasField('description')) {
+      $field_access = $content_entity->get('description')->access('view', return_as_object: TRUE);
+      if (!$field_access->isForbidden()) {
+        $data['description'] = $content_entity->get('description')->getString();
+      }
+      $url_cacheability->addCacheableDependency($field_access);
+    }
+
+    // Move links last for legibility.
+    if (isset($data['links'])) {
+      $links = $data['links'];
+      unset($data['links']);
+      $data['links'] = $links;
+    }
+    return $data;
   }
 
   /**

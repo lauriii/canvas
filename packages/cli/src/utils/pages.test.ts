@@ -217,6 +217,7 @@ describe('pageToAuthoredSpec', () => {
       id: 1,
       uuid: '27a539f5-2dd0-471a-a364-8fee7a024a73',
       title: 'Empty Page',
+      description: '',
       status: true,
       path: '/empty',
       internalPath: '/page/1',
@@ -229,6 +230,8 @@ describe('pageToAuthoredSpec', () => {
     expect(pageToAuthoredSpec(page)).toEqual({
       uuid: '27a539f5-2dd0-471a-a364-8fee7a024a73',
       title: 'Empty Page',
+      path: '/empty',
+      description: '',
       elements: {},
     });
   });
@@ -238,6 +241,7 @@ describe('pageToAuthoredSpec', () => {
       id: 1,
       uuid: '27a539f5-2dd0-471a-a364-8fee7a024a73',
       title: 'Test',
+      description: '',
       status: true,
       path: '/test',
       internalPath: '/page/1',
@@ -275,6 +279,7 @@ describe('pageToAuthoredSpec', () => {
       id: 1,
       uuid: '27a539f5-2dd0-471a-a364-8fee7a024a73',
       title: 'Test',
+      description: '',
       status: true,
       path: '/test',
       internalPath: '/page/1',
@@ -315,6 +320,7 @@ describe('pageToAuthoredSpec', () => {
       id: 1,
       uuid: '27a539f5-2dd0-471a-a364-8fee7a024a73',
       title: 'Home',
+      description: 'Welcome to the homepage',
       status: true,
       path: '/home',
       internalPath: '/page/1',
@@ -364,6 +370,8 @@ describe('pageToAuthoredSpec', () => {
     expect(result).toMatchObject({
       uuid: '27a539f5-2dd0-471a-a364-8fee7a024a73',
       title: 'Home',
+      path: '/home',
+      description: 'Welcome to the homepage',
       elements: {
         [heroUuid]: {
           slots: {
@@ -391,6 +399,7 @@ describe('pageToAuthoredSpec', () => {
       id: 1,
       uuid: '27a539f5-2dd0-471a-a364-8fee7a024a73',
       title: 'Gallery',
+      description: '',
       status: true,
       path: '/gallery',
       internalPath: '/page/1',
@@ -421,6 +430,8 @@ describe('pageToAuthoredSpec', () => {
     expect(pageToAuthoredSpec(page)).toEqual({
       uuid: '27a539f5-2dd0-471a-a364-8fee7a024a73',
       title: 'Gallery',
+      path: '/gallery',
+      description: '',
       elements: {
         'image-uuid': {
           type: 'js.hero',

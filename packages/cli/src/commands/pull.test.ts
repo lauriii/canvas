@@ -442,6 +442,7 @@ describe('Pull Command', () => {
       autoSaveLabel: null,
       autoSavePath: null,
       links: {},
+      description: '',
     });
 
     const mockPage = (
