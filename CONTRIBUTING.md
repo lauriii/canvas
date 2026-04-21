@@ -54,22 +54,17 @@ php core/scripts/drupal recipe modules/contrib/canvas/tests/fixtures/recipes/tes
 9. If you want to run *all* tests locally: `composer require drupal/simple_oauth:^6 jangregor/phpstan-prophecy league/openapi-psr7-validator devizzent/cebe-php-openapi --dev && composer update`
 
 ### During development
-The following commands assume the recommended development details outlined above, particularly the location of the `vendor` directory. If your `vendor` directory is not adjacent to your `index.php` — if you created your environment using [`drupal/recommended-project`](https://packagist.org/packages/drupal/recommended-project), for example — you will need to adjust the command path (i.e., `../vendor` instead of `vendor`).
 
-### Usage of the commands
-#### `phpcs`
-Manually, from the Drupal project root (i.e. where `index.php` lives):
+From the Canvas project root
 ```shell
-vendor/bin/phpcs -s modules/contrib/canvas/ --standard=modules/contrib/canvas/phpcs.xml --basepath=modules/contrib/canvas
-```
-#### `phpstan`
-Manually, from the Drupal project root (i.e. where `index.php` lives):
-```shell
-php vendor/bin/phpstan analyze modules/contrib/canvas --memory-limit=256M --configuration=modules/contrib/canvas/phpstan.neon
-```
-#### OpenAPI spec
-From the Canvas project root:
-```shell
+# Validate PHP (coding standards & static analysis).
+composer run phpcs
+composer run phpstan
+
+# Canvas' back-end test. The output provides guidance on how to run a subset. Running all tests is best left to CI.
+composer run phpunit
+
+# OpenAPI linting.
 npx @redocly/cli@latest lint openapi.yml
 ```
 
