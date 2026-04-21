@@ -71,7 +71,7 @@ export function specToAuthoredElementMap(
 
     elements[key] = {
       type: element.type,
-      props: element.props ?? {},
+      props: isRecord(element.props) ? element.props : {},
       ...(Object.keys(slots).length > 0 ? { slots } : {}),
     };
   }
@@ -109,7 +109,9 @@ export function authoredSpecToComponentTree(
       uuid,
       component_id: element.type,
       component_version: componentVersions?.get(element.type) ?? '',
-      inputs: (element.props as Record<string, unknown>) ?? {},
+      inputs: isRecord(element.props)
+        ? (element.props as Record<string, unknown>)
+        : {},
       parent_uuid: parent?.parentUuid ?? null,
       slot: parent?.slot ?? null,
       label: null,
@@ -126,7 +128,9 @@ export function pageToAuthoredSpec(page: Page): Record<string, unknown> {
 
   const components = page.components.map((node) => ({
     ...node,
-    inputs: node.inputs_resolved ?? ({} as Record<string, unknown>),
+    inputs: isRecord(node.inputs_resolved)
+      ? node.inputs_resolved
+      : ({} as Record<string, unknown>),
   }));
 
   const spec = canvasTreeToSpec(components);

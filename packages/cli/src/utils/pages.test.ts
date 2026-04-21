@@ -198,6 +198,43 @@ describe('pageToAuthoredSpec', () => {
     });
   });
 
+  it('saves empty component props returned from the api as an array as an empty object', () => {
+    const page: Page = {
+      id: 1,
+      uuid: '27a539f5-2dd0-471a-a364-8fee7a024a73',
+      title: 'Test',
+      status: true,
+      path: '/test',
+      internalPath: '/page/1',
+      autoSaveLabel: null,
+      autoSavePath: null,
+      links: {},
+      components: [
+        {
+          uuid: '48030ccd-8ed3-4d90-8866-bb0fe55dda0d',
+          component_id: 'js.spacer',
+          component_version: 'v1',
+          parent_uuid: null,
+          slot: null,
+          inputs: [] as unknown as Record<string, unknown>,
+          inputs_resolved: [] as unknown as Record<string, unknown>,
+          label: null,
+        },
+      ],
+    };
+
+    const result = pageToAuthoredSpec(page) as {
+      elements: AuthoredSpecElementMap;
+    };
+
+    expect(result.elements).toEqual({
+      '48030ccd-8ed3-4d90-8866-bb0fe55dda0d': {
+        type: 'js.spacer',
+        props: {},
+      },
+    });
+  });
+
   it('normalizes array inputs to empty props', () => {
     const page: Page = {
       id: 1,
