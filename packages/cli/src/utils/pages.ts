@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { canvasTreeToSpec } from 'drupal-canvas/json-render-utils';
 
 import { isRecord } from './utils';
@@ -7,6 +8,9 @@ import type {
   CanvasComponentTree,
 } from 'drupal-canvas/json-render-utils';
 import type { Page } from '../types/Page';
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isResolvedMediaValue(
   value: unknown,
@@ -90,29 +94,35 @@ export function authoredSpecToComponentTree(
   elements: AuthoredSpecElementMap,
   componentVersions?: Map<string, string>,
 ): CanvasComponentTree {
-  // Build a reverse lookup: child UUID → { parentUuid, slotName }
-  const childToParent = new Map<string, { parentUuid: string; slot: string }>();
+  // Map element keys to valid UUIDs, generating new ones for non-UUID keys.
+  const keyToUuid = new Map<string, string>();
+  for (const key of Object.keys(elements)) {
+    keyToUuid.set(key, UUID_RE.test(key) ? key : randomUUID());
+  }
 
-  for (const [uuid, element] of Object.entries(elements)) {
+  // Build a reverse lookup: child key → { parentKey, slotName }
+  const childToParent = new Map<string, { parentKey: string; slot: string }>();
+
+  for (const [key, element] of Object.entries(elements)) {
     if (!element.slots) continue;
-    for (const [slotName, childUuids] of Object.entries(element.slots)) {
-      for (const childUuid of childUuids) {
-        childToParent.set(childUuid, { parentUuid: uuid, slot: slotName });
+    for (const [slotName, childKeys] of Object.entries(element.slots)) {
+      for (const childKey of childKeys) {
+        childToParent.set(childKey, { parentKey: key, slot: slotName });
       }
     }
   }
 
   const components: CanvasComponentTree = [];
-  for (const [uuid, element] of Object.entries(elements)) {
-    const parent = childToParent.get(uuid);
+  for (const [key, element] of Object.entries(elements)) {
+    const parent = childToParent.get(key);
     components.push({
-      uuid,
+      uuid: keyToUuid.get(key)!,
       component_id: element.type,
       component_version: componentVersions?.get(element.type) ?? '',
       inputs: isRecord(element.props)
         ? (element.props as Record<string, unknown>)
         : {},
-      parent_uuid: parent?.parentUuid ?? null,
+      parent_uuid: parent ? (keyToUuid.get(parent.parentKey) ?? null) : null,
       slot: parent?.slot ?? null,
       label: null,
     });
