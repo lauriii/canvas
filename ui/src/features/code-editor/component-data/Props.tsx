@@ -291,7 +291,7 @@ export default function Props() {
                       | 'integer'
                       | 'number'
                   }
-                  isDisabled={componentStatus}
+                  isDisabled={disabledPropIds.has(prop.id)}
                   required={required.includes(propName)}
                   valueMode={prop.valueMode}
                   limitedCount={prop.limitedCount}
@@ -376,7 +376,7 @@ export default function Props() {
                   required={required.includes(propName)}
                   enum={prop.enum || []}
                   example={prop.example as string | string[]}
-                  isDisabled={componentStatus}
+                  isDisabled={disabledPropIds.has(prop.id)}
                   allowMultiple={prop.allowMultiple}
                   valueMode={prop.valueMode}
                   limitedCount={prop.limitedCount}
@@ -548,7 +548,7 @@ export default function Props() {
 
                     dispatch(updateProp({ id: prop.id, updates }));
                   }}
-                  disabled={componentStatus}
+                  disabled={disabledPropIds.has(prop.id)}
                 />
                 <Label htmlFor={`prop-allow-multiple-${prop.id}`}>
                   Allow multiple values
@@ -595,7 +595,7 @@ export default function Props() {
 
                       dispatch(updateProp({ id: prop.id, updates }));
                     }}
-                    disabled={componentStatus}
+                    disabled={disabledPropIds.has(prop.id)}
                   >
                     <Select.Trigger
                       id={`prop-value-mode-${prop.id}`}
@@ -656,7 +656,7 @@ export default function Props() {
                             prop.derivedType,
                           );
                         }}
-                        disabled={componentStatus}
+                        disabled={disabledPropIds.has(prop.id)}
                       >
                         <TextField.Slot side="right">
                           <Flex gap="0">
@@ -676,7 +676,8 @@ export default function Props() {
                                 );
                               }}
                               disabled={
-                                componentStatus || (prop.limitedCount ?? 2) <= 2
+                                disabledPropIds.has(prop.id) ||
+                                (prop.limitedCount ?? 2) <= 2
                               }
                               aria-label="Decrease count"
                               style={{
@@ -730,7 +731,7 @@ export default function Props() {
                                     ).length ?? Infinity)
                                   : Infinity;
                                 return (
-                                  componentStatus ||
+                                  disabledPropIds.has(prop.id) ||
                                   (prop.limitedCount ?? 2) >= maxLimit
                                 );
                               })()}
@@ -749,7 +750,7 @@ export default function Props() {
                                           item.label !== '',
                                       ).length ?? Infinity)
                                     : Infinity;
-                                  return componentStatus ||
+                                  return disabledPropIds.has(prop.id) ||
                                     (prop.limitedCount ?? 2) >= maxLimit
                                     ? 'not-allowed'
                                     : 'pointer';

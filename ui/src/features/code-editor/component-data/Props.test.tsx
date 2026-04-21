@@ -5670,4 +5670,249 @@ describe('props in code editor', () => {
       );
     });
   });
+
+  describe('new multivalue props on exposed component', () => {
+    beforeEach(() => {
+      cleanup();
+    });
+    it('enables allow multiple values checkbox for new props on exposed component', async () => {
+      const exposedStore = makeStore({
+        codeEditor: {
+          ...initialState,
+          codeComponent: {
+            ...initialState.codeComponent,
+            status: true,
+            props: [],
+          },
+          initialPropIds: [],
+        },
+      });
+
+      render(<Wrapper store={exposedStore} />);
+
+      const addButtons = screen.getAllByRole('button', { name: 'Add' });
+      await userEvent.click(addButtons[0]);
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('textbox', { name: 'Prop name' }),
+        ).toBeInTheDocument();
+      });
+
+      const allPropNameInputs = screen.getAllByRole('textbox', {
+        name: 'Prop name',
+      });
+      const allTypeSelects = screen.getAllByRole('combobox', { name: 'Type' });
+      const lastIndex = allPropNameInputs.length - 1;
+
+      await userEvent.click(allTypeSelects[lastIndex]);
+      const option = await screen.findByRole('option', { name: 'Text' });
+      await userEvent.click(option);
+
+      await waitFor(() => {
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      });
+
+      await userEvent.type(allPropNameInputs[lastIndex], 'NewTags');
+
+      // Now verify the checkbox is enabled for the new prop.
+      await waitFor(() => {
+        const checkbox = screen.getByRole('checkbox', {
+          name: 'Allow multiple values',
+        });
+        expect(checkbox).not.toBeDisabled();
+      });
+    });
+
+    it('can add a new multivalue prop in already existing component and enter values in it', async () => {
+      const exposedStore = makeStore({
+        codeEditor: {
+          ...initialState,
+          codeComponent: {
+            ...initialState.codeComponent,
+            status: true,
+            props: [
+              {
+                id: 'existing-prop-id',
+                name: 'title',
+                type: 'string',
+                example: 'Example title',
+                derivedType: 'text',
+              },
+            ],
+          },
+          initialPropIds: ['existing-prop-id'],
+        },
+      });
+
+      render(<Wrapper store={exposedStore} />);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+      await waitFor(() => {
+        const inputs = screen.getAllByRole('textbox', {
+          name: 'Prop name',
+        });
+        expect(inputs.length).toBeGreaterThan(1);
+      });
+
+      const allPropNameInputs = screen.getAllByRole('textbox', {
+        name: 'Prop name',
+      });
+      const allTypeSelects = screen.getAllByRole('combobox', { name: 'Type' });
+      const lastIndex = allPropNameInputs.length - 1;
+
+      // Click on the type select for the new prop.
+      await userEvent.click(allTypeSelects[lastIndex]);
+
+      // Wait for dropdown to open and find the Text option.
+      const option = await screen.findByRole('option', { name: 'Text' });
+      await userEvent.click(option);
+
+      await waitFor(() => {
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      });
+
+      await userEvent.type(allPropNameInputs[lastIndex], 'Tags');
+
+      // Get the prop ID and verify the checkbox is present and enabled.
+      await waitFor(() => {
+        const props = selectCodeComponentProperty('props')(
+          exposedStore.getState(),
+        );
+        expect(props.length).toBeGreaterThan(1);
+      });
+
+      const newProp = selectCodeComponentProperty('props')(
+        exposedStore.getState(),
+      ).find((p) => p.name === 'Tags');
+      const propId = newProp!.id;
+
+      const allCheckboxes = screen.getAllByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      const targetCheckbox = allCheckboxes.find(
+        (cb) => cb.id === `prop-allow-multiple-${propId}`,
+      ) as HTMLInputElement;
+
+      expect(targetCheckbox).not.toBeDisabled();
+      fireEvent.click(targetCheckbox);
+
+      // Verify that unlimited mode starts with one empty input field.
+      await waitFor(() => {
+        const inputs = screen.getAllByTestId(
+          new RegExp(`array-prop-value-${propId}-\\d+`),
+        );
+        expect(inputs.length).toBe(1);
+      });
+
+      const firstInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+      await userEvent.type(firstInput, 'tag1');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      await waitFor(() => {
+        expect(
+          screen.getByTestId(`array-prop-value-${propId}-1`),
+        ).toBeInTheDocument();
+      });
+      const secondInput = screen.getByTestId(`array-prop-value-${propId}-1`);
+      await userEvent.type(secondInput, 'tag2');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      await waitFor(() => {
+        expect(
+          screen.getByTestId(`array-prop-value-${propId}-2`),
+        ).toBeInTheDocument();
+      });
+      const thirdInput = screen.getByTestId(`array-prop-value-${propId}-2`);
+      await userEvent.type(thirdInput, 'tag3');
+
+      // Verify all values are stored correctly.
+      await waitFor(() => {
+        const updatedProp = selectCodeComponentProperty('props')(
+          exposedStore.getState(),
+        ).find((p) => p.id === propId);
+        expect(updatedProp?.example).toEqual(['tag1', 'tag2', 'tag3']);
+        expect(updatedProp?.allowMultiple).toBe(true);
+      });
+    });
+
+    it('allows changing value mode to limited for new multivalue prop on exposed component', async () => {
+      const exposedStore = makeStore({
+        codeEditor: {
+          ...initialState,
+          codeComponent: {
+            ...initialState.codeComponent,
+            status: true,
+            props: [],
+          },
+          initialPropIds: [],
+        },
+      });
+
+      render(<Wrapper store={exposedStore} />);
+
+      const addButtons = screen.getAllByRole('button', { name: 'Add' });
+      await userEvent.click(addButtons[0]);
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('textbox', { name: 'Prop name' }),
+        ).toBeInTheDocument();
+      });
+
+      const allPropNameInputs = screen.getAllByRole('textbox', {
+        name: 'Prop name',
+      });
+      const allTypeSelects = screen.getAllByRole('combobox', { name: 'Type' });
+      const lastIndex = allPropNameInputs.length - 1;
+
+      await userEvent.click(allTypeSelects[lastIndex]);
+      const option = await screen.findByRole('option', { name: 'Integer' });
+      await userEvent.click(option);
+
+      await waitFor(() => {
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      });
+
+      await userEvent.type(allPropNameInputs[lastIndex], 'NewNumbers');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      fireEvent.click(checkbox);
+
+      await waitFor(() => {
+        const props = selectCodeComponentProperty('props')(
+          exposedStore.getState(),
+        );
+        const newProp = props.find((p) => p.name === 'NewNumbers');
+        expect(newProp?.valueMode).toBe('unlimited');
+      });
+
+      const newPropId = selectCodeComponentProperty('props')(
+        exposedStore.getState(),
+      ).find((p) => p.name === 'NewNumbers')?.id;
+
+      const valueModeSelect = document.getElementById(
+        `prop-value-mode-${newPropId}`,
+      );
+      expect(valueModeSelect).not.toBeDisabled();
+
+      await userEvent.click(valueModeSelect!);
+      const limitedOption = await screen.findByRole('option', {
+        name: 'Limited',
+      });
+      await userEvent.click(limitedOption);
+
+      // Verify value mode changed to limited.
+      await waitFor(() => {
+        const props = selectCodeComponentProperty('props')(
+          exposedStore.getState(),
+        );
+        const newProp = props.find((p) => p.name === 'NewNumbers');
+        expect(newProp?.valueMode).toBe('limited');
+        expect(newProp?.limitedCount).toBeGreaterThanOrEqual(2);
+      });
+    });
+  });
 });
