@@ -1,0 +1,147 @@
+# cspell:ignore multis
+langcode: en
+status: true
+dependencies: {  }
+machineName: multis
+name: 'Four Multiple Links'
+required: {  }
+props:
+  relative:
+    type: array
+    items:
+      type: string
+      format: uri-reference
+    title: Relative
+    examples:
+      -
+        - first-path
+  relativeTwo:
+    type: array
+    items:
+      type: string
+      format: uri-reference
+    maxItems: 4
+    title: 'Relative Two'
+    examples:
+      -
+        - another-first-path
+  absolute:
+    type: array
+    items:
+      type: string
+      format: uri
+    title: Absolute
+    examples:
+      -
+        - 'https://drupal.org'
+  absoluteTwo:
+    type: array
+    items:
+      type: string
+      format: uri
+    maxItems: 4
+    title: 'Absolute Two'
+    examples:
+      -
+        - 'https://github.com'
+slots: {  }
+js:
+  original: |
+    // See https://project.pages.drupalcode.org/canvas/ for documentation on how to build a code component
+
+    const Component = ({
+      relative = [],
+      relativeTwo = [],
+      absolute = [],
+      absoluteTwo = [],
+    }) => {
+      return (
+        <>
+        <div className="text-3xl" data-field="relative">
+          <h3>Relative</h3>
+          {relative.map((p,i) => <p data-item={i} key={i}>{p}</p>)}
+        </div>
+          <div className="text-3xl" data-field="relative-two">
+          <h3>Relative Two</h3>
+          {relativeTwo.map((p,i) => <p data-item={i} key={i}>{p}</p>)}
+        </div>
+          <div className="text-3xl" data-field="absolute">
+          <h3>Absolute</h3>
+          {absolute.map((p,i) => <p data-item={i} key={i}>{p}</p>)}
+        </div>
+          <div className="text-3xl" data-field="absolute-two">
+          <h3>Absolute Two</h3>
+          {absoluteTwo.map((p,i) => <p data-item={i} key={i}>{p}</p>)}
+        </div>
+        </>
+      );
+    };
+
+    export default Component;
+  compiled: |
+    import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+    // See https://project.pages.drupalcode.org/canvas/ for documentation on how to build a code component
+    const Component = ({ relative = [], relativeTwo = [], absolute = [], absoluteTwo = [] })=>{
+        return /*#__PURE__*/ _jsxs(_Fragment, {
+            children: [
+                /*#__PURE__*/ _jsxs("div", {
+                    className: "text-3xl",
+                    "data-field": "relative",
+                    children: [
+                        /*#__PURE__*/ _jsx("h3", {
+                            children: "Relative"
+                        }),
+                        relative.map((p, i)=>/*#__PURE__*/ _jsx("p", {
+                                "data-item": i,
+                                children: p
+                            }, i))
+                    ]
+                }),
+                /*#__PURE__*/ _jsxs("div", {
+                    className: "text-3xl",
+                    "data-field": "relative-two",
+                    children: [
+                        /*#__PURE__*/ _jsx("h3", {
+                            children: "Relative Two"
+                        }),
+                        relativeTwo.map((p, i)=>/*#__PURE__*/ _jsx("p", {
+                                "data-item": i,
+                                children: p
+                            }, i))
+                    ]
+                }),
+                /*#__PURE__*/ _jsxs("div", {
+                    className: "text-3xl",
+                    "data-field": "absolute",
+                    children: [
+                        /*#__PURE__*/ _jsx("h3", {
+                            children: "Absolute"
+                        }),
+                        absolute.map((p, i)=>/*#__PURE__*/ _jsx("p", {
+                                "data-item": i,
+                                children: p
+                            }, i))
+                    ]
+                }),
+                /*#__PURE__*/ _jsxs("div", {
+                    className: "text-3xl",
+                    "data-field": "absolute-two",
+                    children: [
+                        /*#__PURE__*/ _jsx("h3", {
+                            children: "Absolute Two"
+                        }),
+                        absoluteTwo.map((p, i)=>/*#__PURE__*/ _jsx("p", {
+                                "data-item": i,
+                                children: p
+                            }, i))
+                    ]
+                })
+            ]
+        });
+    };
+    export default Component;
+css:
+  original: ''
+  compiled: |
+    /*! tailwindcss v4.1.13 | MIT License | https://tailwindcss.com */
+dataDependencies: {  }

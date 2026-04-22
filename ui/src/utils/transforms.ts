@@ -29,23 +29,29 @@ type BaseTransformOptions = {
 };
 
 /**
- * Maps empty strings to null and removes trailing null entries.
+ * Maps empty strings to null and removes leading and trailing null entries.
  *
  * Empty strings become null to preserve positional placeholders so the backend
- * can render filled rows at the correct positions. Trailing nulls are removed
- * because rows empty at the end have no positional significance.
+ * can render filled rows at the correct positions. Leading and trailing nulls
+ * are removed because rows empty at the start or end have no positional
+ * significance.
  */
-const trimTrailingNulls = <T>(
-  values: Array<T | null | string>,
-): Array<T | null> => {
+const trimNulls = <T>(values: Array<T | null | string>): Array<T | null> => {
   const normalized = values.map((v) =>
     v === '' ? null : v,
   ) as Array<T | null>;
+
+  let start = 0;
+  while (start < normalized.length && normalized[start] === null) {
+    start++;
+  }
+
   let end = normalized.length;
-  while (end > 0 && normalized[end - 1] === null) {
+  while (end > start && normalized[end - 1] === null) {
     end--;
   }
-  return normalized.slice(0, end);
+
+  return normalized.slice(start, end);
 };
 
 const normalizeMultipleRecords = (
@@ -152,7 +158,7 @@ export interface LinkPropShape extends StaticPropSource {
   };
 }
 
-const resolveEntityUri = (uri: string): string => {
+export const resolveEntityUri = (uri: string): string => {
   const match = uri.match(ENTITY_AUTOCOMPLETE_MATCH);
   // LinkWidget with autocomplete support only supports matching on node
   // entities.
@@ -203,7 +209,7 @@ const link: Transformer<
       : (record as PropsValues);
   });
   if (options.multiple) {
-    return trimTrailingNulls(returnValue);
+    return trimNulls(returnValue);
   }
   return returnValue[0] ?? null;
 };
@@ -286,11 +292,15 @@ const dateTime: Transformer<
     if ('time' in record) {
       timeString = record.time;
     }
+    if (!dateString && !timeString) {
+      return null;
+    }
+
     // @todo Update this in https://www.drupal.org/project/canvas/issues/3501281, which will allow removing the FE-special casing in \Drupal\canvas\PropExpressions\StructuredData\Evaluator::evaluate()
     return new Date(`${dateString} ${timeString}+0000`).toISOString();
   });
   if (options.multiple) {
-    return trimTrailingNulls(returnValue);
+    return trimNulls(returnValue);
   }
   const singleValue = returnValue.shift();
   if (singleValue === undefined) {

@@ -47,6 +47,11 @@ type ClearFieldErrorPayload = {
   fieldName: string;
 };
 
+type RemoveFieldValuePayload = {
+  formId: FormId;
+  fieldName: string | string[];
+};
+
 type SetFieldValuePayload = {
   formId: FormId;
   fieldName: string;
@@ -129,6 +134,31 @@ export const formStateSlice = createSlice({
         return newState;
       },
     ),
+    removeFieldValue: create.reducer(
+      (state, action: PayloadAction<RemoveFieldValuePayload>) => {
+        const formState = state[action.payload.formId];
+        if (!formState?.values) {
+          return state;
+        }
+
+        const fieldNames = Array.isArray(action.payload.fieldName)
+          ? action.payload.fieldName
+          : [action.payload.fieldName];
+
+        const newValues = { ...formState.values };
+        fieldNames.forEach((fieldName) => {
+          delete newValues[fieldName];
+        });
+
+        return {
+          ...state,
+          [action.payload.formId]: {
+            ...formState,
+            values: newValues,
+          },
+        };
+      },
+    ),
   }),
   selectors: {
     selectCurrentComponent: (state) => state.currentComponent,
@@ -173,4 +203,5 @@ export const {
   setFieldValue,
   clearFieldError,
   clearFieldValues,
+  removeFieldValue,
 } = formStateSlice.actions;

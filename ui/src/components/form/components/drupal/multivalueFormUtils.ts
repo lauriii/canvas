@@ -69,17 +69,17 @@ export const isRemoveButtonEnabled = (
  * the AJAX behavior. The button is hidden by CSS but remains in the DOM.
  *
  * @param triggerElement - The DOM element that triggers the action (should be inside a table row)
- * @returns boolean - true if the remove button was found and triggered, false otherwise
+ * @returns string | null - The name attribute of the remove button if found and triggered, null otherwise
  */
 export const triggerDrupalRemoveButton = (
   triggerElement: HTMLElement | null,
-): boolean => {
-  if (!triggerElement) return false;
+): string | null => {
+  if (!triggerElement) return null;
 
   // Traverse up from the trigger element to find the containing table row,
   // then locate the Drupal remove button in the .canvas-remove-action cell.
   const tableRow = triggerElement.closest('tr');
-  if (!tableRow) return false;
+  if (!tableRow) return null;
 
   // Find the original Drupal remove button directly (the hidden input/button
   // that carries the AJAX behavior). The cell and button are hidden by
@@ -89,9 +89,10 @@ export const triggerDrupalRemoveButton = (
   );
   if (removeActionCell) {
     const removeButton = removeActionCell.querySelector(
-      'input[type="submit"]',
-    ) as HTMLElement | null;
+      'input[type="submit"][data-once="drupal-ajax"]',
+    ) as HTMLInputElement | null;
     if (removeButton) {
+      const buttonName = removeButton.getAttribute('name');
       // Dispatch mousedown first (some Drupal AJAX handlers listen for it),
       // then click — mirroring what Drupal's AJAX system expects.
       const mousedownEvent = new MouseEvent('mousedown', {
@@ -101,91 +102,64 @@ export const triggerDrupalRemoveButton = (
       });
       removeButton.dispatchEvent(mousedownEvent);
       removeButton.click();
-      return true;
+      return buttonName;
     }
   }
 
-  return false;
+  return null;
 };
 
 /**
- * Copy attributes from a source element or object to a target object.
+ * Programmatically set an input value and trigger React's onChange pipeline.
  *
- * This helper copies all attributes except for those specified in the skip list.
- * It works with both DOM elements (reading from their attributes) and plain objects.
- * This is useful for transferring validation and configuration attributes from
- * hidden Drupal inputs to visible React inputs.
- *
- * @param source - The element or object to copy attributes from
- * @param attributesToSkip - Array of attribute names to skip (defaults to ['id', 'name', 'class', 'style', 'value', 'type', 'defaultValue', 'onChange', 'data-field-label'])
- * @returns An object with attribute names as keys and their values
+ * Uses the native HTMLInputElement prototype setter to set the value, then
+ * calls onChange (and optionally onBlur) directly via the React fiber props
+ * attached to the DOM node. This bypasses React's internal value tracker which
+ * would otherwise suppress the change event.
  */
-export const copyInputAttributes = (
-  source: HTMLElement | Record<string, any> | null,
-  attributesToSkip: string[] = [
-    'id',
-    'name',
-    'class',
-    'style',
-    'value',
-    'type',
-    'defaultValue',
-    'onChange',
-    'data-field-label',
-  ],
-): Record<string, any> => {
-  const copiedAttributes: Record<string, any> = {};
-
-  if (!source) return copiedAttributes;
-
-  // Check if source is a DOM element.
-  if (source instanceof HTMLElement) {
-    // Convert attributes to array and filter out the ones to skip.
-    Array.from(source.attributes).forEach((attr) => {
-      if (!attributesToSkip.includes(attr.name)) {
-        copiedAttributes[attr.name] = attr.value;
-      }
-    });
-  } else {
-    // Source is a plain object, filter out unwanted keys.
-    Object.keys(source).forEach((key) => {
-      if (!attributesToSkip.includes(key) && source[key] !== undefined) {
-        copiedAttributes[key] = source[key];
-      }
-    });
-  }
-
-  return copiedAttributes;
-};
-
-/**
- * Update an input element's value using the native value setter and dispatch events.
- *
- * This ensures that both React's controlled input handlers and Drupal's AJAX handlers
- * are properly notified of the value change. This is necessary because directly setting
- * input.value doesn't trigger React's onChange handlers.
- *
- * @param inputElement - The input element to update
- * @param value - The new value to set
- */
-export const updateInputValue = (
-  inputElement: HTMLInputElement | null,
+export const dispatchSyntheticChange = (
+  input: HTMLInputElement,
   value: string,
+  blur: boolean = true,
 ): void => {
-  if (!inputElement) return;
-
-  // Only update if the value has actually changed.
-  if (inputElement.value === value) return;
-
-  // Use the native value setter to bypass React's controlled-input override.
   const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-    HTMLInputElement.prototype,
+    window.HTMLInputElement.prototype,
     'value',
   )?.set;
 
-  nativeInputValueSetter?.call(inputElement, value);
+  nativeInputValueSetter?.call(input, value);
 
-  // Dispatch both input and change events so React and Drupal handlers are notified.
-  inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-  inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+  const propsKey = Object.keys(input).find((k) => k.startsWith('__reactProps'));
+  const reactProps = propsKey ? (input as any)[propsKey] : null;
+
+  if (reactProps?.onChange) {
+    const event = new Event('change');
+    Object.defineProperty(event, 'target', { writable: false, value: input });
+    reactProps.onChange(event);
+  } else {
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  if (blur) {
+    if (reactProps?.onBlur) {
+      const event = new Event('blur');
+      Object.defineProperty(event, 'target', { writable: false, value: input });
+      reactProps.onBlur(event);
+    } else {
+      input.dispatchEvent(new Event('blur', { bubbles: true }));
+    }
+  }
+};
+
+/**
+ * Returns true when jQuery UI autocomplete menu is currently visible.
+ */
+export const isAutocompleteMenuOpen = (input: HTMLInputElement): boolean => {
+  const $jq =
+    typeof window !== 'undefined' && (window as any).jQuery
+      ? (window as any).jQuery
+      : null;
+  return !!(
+    $jq && $jq(input).data('ui-autocomplete')?.menu?.element?.is?.(':visible')
+  );
 };

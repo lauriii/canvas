@@ -1,7 +1,6 @@
 import {
   coerceValueForSchema,
   formStateToObject,
-  getPropSchemas,
   getPropsValues,
   propInputData,
   validateProp,

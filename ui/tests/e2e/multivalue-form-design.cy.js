@@ -39,12 +39,19 @@ describe('Multivalue Form Design (canvas_dev_mode)', () => {
       .find('[class*="_listItem_"]')
       .click();
     // Type in the input field that appears in the popover.
-    cy.get('[role="dialog"]').find('input[type="text"]').clear();
-    cy.get('[role="dialog"]').find('input[type="text"]').type(text);
+    cy.get('[role="dialog"][data-state="open"]').should('be.visible');
+    cy.get('[role="dialog"][data-state="open"]')
+      .find('input[type="text"]')
+      .clear({ force: true });
+    cy.get('[role="dialog"][data-state="open"]')
+      .find('input[type="text"]')
+      .type(text);
     // Press Enter to commit the value (required for the value to update).
-    cy.get('[role="dialog"]').find('input[type="text"]').type('{enter}');
+    cy.get('[role="dialog"][data-state="open"]')
+      .find('input[type="text"]')
+      .type('{enter}');
     // Wait for popover to close after Enter.
-    cy.get('[role="dialog"]').should('not.exist');
+    cy.get('[role="dialog"][data-state="open"]').should('not.exist');
   };
 
   /**
@@ -351,17 +358,17 @@ describe('Multivalue Form Design (canvas_dev_mode)', () => {
       .find('[class*="_listItem_"]')
       .click();
 
-    cy.get('[role="dialog"]').should('be.visible');
+    cy.get('[role="dialog"][data-state="open"]').should('be.visible');
 
-    cy.get('[role="dialog"]')
+    cy.get('[role="dialog"][data-state="open"]')
       .findByRole('button', { name: /Remove/i })
       .should('be.visible');
 
-    cy.get('[role="dialog"]')
+    cy.get('[role="dialog"][data-state="open"]')
       .findByRole('button', { name: /Remove/i })
       .click();
 
-    cy.get('[role="dialog"]').should('not.exist');
+    cy.get('[role="dialog"][data-state="open"]').should('not.exist');
 
     cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
     cy.waitForAjax();
@@ -384,20 +391,23 @@ describe('Multivalue Form Design (canvas_dev_mode)', () => {
       .find('[class*="_listItem_"]')
       .click();
 
-    cy.get('[role="dialog"]').should('be.visible');
+    cy.get('[role="dialog"][data-state="open"]').should('be.visible');
 
-    cy.get('[role="dialog"]').should('contain', 'Canvas Unlimited Text');
+    cy.get('[role="dialog"][data-state="open"]').should(
+      'contain',
+      'Canvas Unlimited Text',
+    );
 
-    cy.get('[role="dialog"]')
+    cy.get('[role="dialog"][data-state="open"]')
       .find('input[type="text"]')
       .should('be.visible')
       .should('have.value', 'Marshmallow Coast');
 
-    cy.get('[role="dialog"]').find('[aria-label="Close"]').should('exist');
-
-    cy.get('[role="dialog"]').find('[aria-label="Close"]');
-    cy.get('[aria-label="Close"]').click();
-    cy.get('[role="dialog"]').should('not.exist');
+    cy.get('[role="dialog"][data-state="open"]')
+      .find('[aria-label="Close"]')
+      .should('exist');
+    cy.get('[role="dialog"][data-state="open"] [aria-label="Close"]').click();
+    cy.get('[role="dialog"][data-state="open"]').should('not.exist');
   });
 
   it('popover discards uncommitted changes when closed without Enter', () => {
@@ -416,15 +426,17 @@ describe('Multivalue Form Design (canvas_dev_mode)', () => {
       .find('[class*="_listItem_"]')
       .click();
 
-    cy.get('[role="dialog"]').find('input[type="text"]').clear();
-    cy.get('[role="dialog"]')
+    cy.get('[role="dialog"][data-state="open"]')
+      .find('input[type="text"]')
+      .clear();
+    cy.get('[role="dialog"][data-state="open"]')
       .find('input[type="text"]')
       .type('This should not be saved');
 
-    cy.get('[role="dialog"]').find('[aria-label="Close"]');
-    cy.get('[aria-label="Close"]').click();
+    cy.get('[role="dialog"][data-state="open"]').find('[aria-label="Close"]');
+    cy.get('[role="dialog"][data-state="open"] [aria-label="Close"]').click();
 
-    cy.get('[role="dialog"]').should('not.exist');
+    cy.get('[role="dialog"][data-state="open"]').should('not.exist');
 
     verifyRowText('@unlimited-text', 0, originalText);
   });
@@ -444,12 +456,14 @@ describe('Multivalue Form Design (canvas_dev_mode)', () => {
       .find('[class*="_listItem_"]')
       .click();
 
-    cy.get('[role="dialog"]').find('input[type="text"]').clear();
-    cy.get('[role="dialog"]')
+    cy.get('[role="dialog"][data-state="open"]')
+      .find('input[type="text"]')
+      .clear();
+    cy.get('[role="dialog"][data-state="open"]')
       .find('input[type="text"]')
       .type('Modified Item 1{enter}');
 
-    cy.get('[role="dialog"]').should('not.exist');
+    cy.get('[role="dialog"][data-state="open"]').should('not.exist');
 
     cy.intercept({
       url: '**/canvas/api/v0/layout/node/2',

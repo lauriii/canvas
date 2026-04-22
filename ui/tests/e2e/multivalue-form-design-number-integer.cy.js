@@ -20,10 +20,16 @@ const typeInRow = (alias, rowIndex, value) => {
     .eq(rowIndex)
     .find('[class*="_listItem_"]')
     .click();
-  cy.get('[role="dialog"]').find('input[type="number"]').clear();
-  cy.get('[role="dialog"]').find('input[type="number"]').type(value);
-  cy.get('[role="dialog"]').find('input[type="number"]').type('{enter}');
-  cy.get('[role="dialog"]').should('not.exist');
+  cy.get('[role="dialog"][data-state="open"]')
+    .find('input[type="number"]')
+    .clear();
+  cy.get('[role="dialog"][data-state="open"]')
+    .find('input[type="number"]')
+    .type(value);
+  cy.get('[role="dialog"][data-state="open"]')
+    .find('input[type="number"]')
+    .type('{enter}');
+  cy.get('[role="dialog"][data-state="open"]').should('not.exist');
 };
 
 /**
@@ -350,17 +356,17 @@ configs.forEach((config) => {
         .find('[class*="_listItem_"]')
         .click();
 
-      cy.get('[role="dialog"]').should('be.visible');
+      cy.get('[role="dialog"][data-state="open"]').should('be.visible');
 
-      cy.get('[role="dialog"]')
+      cy.get('[role="dialog"][data-state="open"]')
         .findByRole('button', { name: /Remove/i })
         .should('be.visible');
 
-      cy.get('[role="dialog"]')
+      cy.get('[role="dialog"][data-state="open"]')
         .findByRole('button', { name: /Remove/i })
         .click();
 
-      cy.get('[role="dialog"]').should('not.exist');
+      cy.get('[role="dialog"][data-state="open"]').should('not.exist');
       cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
       cy.waitForAjax();
 
@@ -382,18 +388,22 @@ configs.forEach((config) => {
         .find('[class*="_listItem_"]')
         .click();
 
-      cy.get('[role="dialog"]')
+      cy.get('[role="dialog"][data-state="open"]')
         .should('be.visible')
         .and('contain', config.fieldLabel);
-      cy.get('[role="dialog"]')
+      cy.get('[role="dialog"][data-state="open"]')
         .find('input[type="number"]')
         .should('be.visible')
         .should('have.value', config.defaultValue);
 
-      cy.get('[role="dialog"]').find('[aria-label="Close"]').should('exist');
+      cy.get('[role="dialog"][data-state="open"]')
+        .find('[aria-label="Close"]')
+        .should('exist');
 
-      cy.get('[aria-label="Close"]').click();
-      cy.get('[role="dialog"]').should('not.exist');
+      cy.get('[role="dialog"][data-state="open"]')
+        .find('[aria-label="Close"]')
+        .click();
+      cy.get('[role="dialog"][data-state="open"]').should('not.exist');
     });
 
     it('popover discards uncommitted changes when closed without Enter', () => {
@@ -410,10 +420,16 @@ configs.forEach((config) => {
         .find('[class*="_listItem_"]')
         .click();
 
-      cy.get('[role="dialog"]').find('input[type="number"]').clear();
-      cy.get('[role="dialog"]').find('input[type="number"]').type('99');
-      cy.get('[aria-label="Close"]').click();
-      cy.get('[role="dialog"]').should('not.exist');
+      cy.get('[role="dialog"][data-state="open"]')
+        .find('input[type="number"]')
+        .clear();
+      cy.get('[role="dialog"][data-state="open"]')
+        .find('input[type="number"]')
+        .type('99');
+      cy.get('[role="dialog"][data-state="open"]')
+        .find('[aria-label="Close"]')
+        .click();
+      cy.get('[role="dialog"][data-state="open"]').should('not.exist');
 
       verifyRowText(`@${config.fieldAlias}`, 0, config.defaultValue);
     });
@@ -487,17 +503,19 @@ configs.forEach((config) => {
           .find('[class*="_listItem_"]')
           .click();
 
-        cy.get('[role="dialog"]').should('be.visible');
+        cy.get('[role="dialog"][data-state="open"]').should('be.visible');
 
         // Remove button should be enabled when there are multiple items
-        cy.get('[role="dialog"]')
+        cy.get('[role="dialog"][data-state="open"]')
           .findByRole('button', { name: /Remove/i })
           .should('be.visible')
           .should('not.be.disabled');
 
         // Close popover
-        cy.get('[aria-label="Close"]').click();
-        cy.get('[role="dialog"]').should('not.exist');
+        cy.get('[role="dialog"][data-state="open"]')
+          .find('[aria-label="Close"]')
+          .click();
+        cy.get('[role="dialog"][data-state="open"]').should('not.exist');
 
         // Now remove the second item to leave only one
         cy.get(`@${config.fieldAlias}`)
@@ -506,14 +524,14 @@ configs.forEach((config) => {
           .find('[class*="_listItem_"]')
           .click();
 
-        cy.get('[role="dialog"]').should('be.visible');
+        cy.get('[role="dialog"][data-state="open"]').should('be.visible');
 
-        cy.get('[role="dialog"]')
+        cy.get('[role="dialog"][data-state="open"]')
           .findByRole('button', { name: /Remove/i })
           .should('be.visible')
           .click();
 
-        cy.get('[role="dialog"]').should('not.exist');
+        cy.get('[role="dialog"][data-state="open"]').should('not.exist');
         cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
         cy.waitForAjax();
 
@@ -530,17 +548,19 @@ configs.forEach((config) => {
           .find('[class*="_listItem_"]')
           .click();
 
-        cy.get('[role="dialog"]').should('be.visible');
+        cy.get('[role="dialog"][data-state="open"]').should('be.visible');
 
         // Remove button should be DISABLED because field is required and only one item exists
-        cy.get('[role="dialog"]')
+        cy.get('[role="dialog"][data-state="open"]')
           .findByRole('button', { name: /Remove/i })
           .should('be.visible')
           .should('be.disabled');
 
         // Close popover
-        cy.get('[aria-label="Close"]').click();
-        cy.get('[role="dialog"]').should('not.exist');
+        cy.get('[role="dialog"][data-state="open"]')
+          .find('[aria-label="Close"]')
+          .click();
+        cy.get('[role="dialog"][data-state="open"]').should('not.exist');
       });
 
       it('enables remove button when required field has multiple items', function () {
@@ -588,17 +608,19 @@ configs.forEach((config) => {
           .find('[class*="_listItem_"]')
           .click();
 
-        cy.get('[role="dialog"]').should('be.visible');
+        cy.get('[role="dialog"][data-state="open"]').should('be.visible');
 
         // Remove button should be enabled when there are multiple items
-        cy.get('[role="dialog"]')
+        cy.get('[role="dialog"][data-state="open"]')
           .findByRole('button', { name: /Remove/i })
           .should('be.visible')
           .should('not.be.disabled');
 
         // Close popover without removing
-        cy.get('[aria-label="Close"]').click();
-        cy.get('[role="dialog"]').should('not.exist');
+        cy.get('[role="dialog"][data-state="open"]')
+          .find('[aria-label="Close"]')
+          .click();
+        cy.get('[role="dialog"][data-state="open"]').should('not.exist');
 
         // Remove one item to get down to 2 items
         cy.get(`@${config.fieldAlias}`)
@@ -607,11 +629,11 @@ configs.forEach((config) => {
           .find('[class*="_listItem_"]')
           .click();
 
-        cy.get('[role="dialog"]')
+        cy.get('[role="dialog"][data-state="open"]')
           .findByRole('button', { name: /Remove/i })
           .click();
 
-        cy.get('[role="dialog"]').should('not.exist');
+        cy.get('[role="dialog"][data-state="open"]').should('not.exist');
         cy.waitForAjax();
 
         // Still 2 items, remove should still be enabled
@@ -625,12 +647,14 @@ configs.forEach((config) => {
           .find('[class*="_listItem_"]')
           .click();
 
-        cy.get('[role="dialog"]')
+        cy.get('[role="dialog"][data-state="open"]')
           .findByRole('button', { name: /Remove/i })
           .should('be.visible')
           .should('not.be.disabled');
 
-        cy.get('[aria-label="Close"]').click();
+        cy.get('[role="dialog"][data-state="open"]')
+          .find('[aria-label="Close"]')
+          .click();
       });
     });
   });

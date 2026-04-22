@@ -50,6 +50,9 @@ export function getField(page: Page, propName: string): Locator {
 
 /** Clicks the "+ Add new" button inside a field wrapper to append a blank row. */
 export async function clickAddNew(fieldWrapper: Locator): Promise<void> {
+  await expect(
+    fieldWrapper.page().locator('body[data-canvas-ajax-behaviors="true"]'),
+  ).not.toBeAttached();
   await fieldWrapper.getByRole('button', { name: '+ Add new' }).click();
 }
 
@@ -62,12 +65,15 @@ export async function openPopoverForRow(
   fieldWrapper: Locator,
   rowIndex: number,
 ): Promise<void> {
-  await fieldWrapper
+  const item = await fieldWrapper
     .locator('tbody tr')
     .nth(rowIndex)
-    .locator('[class*="_listItem_"]')
-    .click();
-  await expect(page.locator('[role="dialog"]')).toBeVisible();
+    .locator('[class*="_listItem_"]');
+  await item.focus();
+  await item.click();
+  await expect(
+    page.locator('[role="dialog"][data-state="open"]'),
+  ).toBeVisible();
 }
 
 /**
@@ -82,11 +88,13 @@ export async function typeInPopover(
   inputSelector: string,
   value: string,
 ): Promise<void> {
-  const dialog = page.locator('[role="dialog"]');
+  const dialog = page.locator('[role="dialog"][data-state="open"]');
   const input = dialog.locator(inputSelector);
   await input.fill(value);
   await input.press('Enter');
-  await expect(page.locator('[role="dialog"]')).not.toBeVisible();
+  await expect(
+    page.locator('[role="dialog"][data-state="open"]'),
+  ).not.toBeVisible();
 }
 
 /**
@@ -102,19 +110,44 @@ export async function typeInPopoverWithoutCommit(
   inputSelector: string,
   value: string,
 ): Promise<void> {
-  const dialog = page.locator('[role="dialog"]');
+  const dialog = page.locator('[role="dialog"][data-state="open"]');
   const input = dialog.locator(inputSelector);
   await input.fill(value);
 }
 
 /**
- * Closes the currently open popover by clicking the × (Close) button.
+ * Closes the currently open popover by pressing Escape.
+ * Using Escape key instead of clicking the Close button avoids issues with
+ * UI elements (like resize handles) intercepting pointer events.
  * Verifies the dialog closes successfully.
  * @param page - The Playwright Page object
  */
-export async function closePopoverViaCloseButton(page: Page): Promise<void> {
-  const dialog = page.locator('[role="dialog"]');
-  await dialog.locator('[aria-label="Close"]').click();
+export async function closePopoverWithEscape(page: Page): Promise<void> {
+  const dialog = page.locator('[role="dialog"][data-state="open"]');
+  await expect(dialog).toBeVisible();
+
+  // Ensure focus is inside the popover so Escape is handled consistently.
+  const focusTarget = dialog
+    .locator('input, textarea, [contenteditable="true"], button')
+    .first();
+  if (await focusTarget.count()) {
+    await focusTarget.focus();
+  } else {
+    await dialog.focus();
+  }
+
+  await page.keyboard.press('Escape');
+
+  // Retry using dialog context in case the first Escape is swallowed.
+  if (await dialog.isVisible()) {
+    await dialog.press('Escape');
+  }
+
+  // Final fallback: use the explicit close control.
+  if (await dialog.isVisible()) {
+    await dialog.getByRole('button', { name: 'Close' }).click({ force: true });
+  }
+
   await expect(dialog).not.toBeVisible();
 }
 
@@ -127,7 +160,7 @@ export async function typeRelativeLinkViaAutocomplete(
   page: Page,
   nodeTitle: string,
 ): Promise<void> {
-  const dialog = page.locator('[role="dialog"]');
+  const dialog = page.locator('[role="dialog"][data-state="open"]');
   const input = dialog.locator('input[type="text"]').first();
   await input.fill('');
   await input.pressSequentially(nodeTitle);
@@ -137,9 +170,9 @@ export async function typeRelativeLinkViaAutocomplete(
     .first();
   await expect(suggestion).toBeVisible({ timeout: 10000 });
   await suggestion.click();
-  await input.press('Enter');
-
-  await expect(page.locator('[role="dialog"]')).not.toBeVisible();
+  await expect(
+    page.locator('[role="dialog"][data-state="open"]'),
+  ).not.toBeVisible();
 }
 
 /**
@@ -199,13 +232,15 @@ export async function typeDatetimeInPopover(
   dateValue: string,
   timeValue: string,
 ): Promise<void> {
-  const dialog = page.locator('[role="dialog"]');
+  const dialog = page.locator('[role="dialog"][data-state="open"]');
   const dateInput = dialog.locator('input[type="date"]');
   const timeInput = dialog.locator('input[type="time"]');
   await dateInput.fill(dateValue);
   await timeInput.fill(timeValue);
   await timeInput.press('Enter');
-  await expect(page.locator('[role="dialog"]')).not.toBeVisible();
+  await expect(
+    page.locator('[role="dialog"][data-state="open"]'),
+  ).not.toBeVisible();
 }
 
 /**

@@ -122,7 +122,9 @@ describe('Multivalue Media Form Design (canvas_dev_mode)', () => {
       .should('not.be.disabled')
       .click();
 
-    cy.findByRole('dialog', { timeout: 10000 }).as('dialog');
+    cy.get('[role="dialog"][aria-modal="true"]', { timeout: 10000 }).as(
+      'dialog',
+    );
     cy.selectorShouldHaveUpdatedFormBuildId(entityFormSelector);
 
     cy.get('@dialog')
@@ -133,7 +135,7 @@ describe('Multivalue Media Form Design (canvas_dev_mode)', () => {
 
     cy.get('@dialog').findByRole('button', { name: 'Insert selected' }).click();
 
-    cy.findByRole('dialog').should('not.exist');
+    cy.get('[role="dialog"][aria-modal="true"]').should('not.exist');
 
     cy.wait('@updatePreview', { timeout: 10000 });
     cy.findByLabelText('Loading Preview').should('not.exist');

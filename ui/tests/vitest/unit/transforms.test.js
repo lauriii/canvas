@@ -148,10 +148,7 @@ describe('Transforms - link', () => {
     ]);
   });
 
-  it('Should preserve the position of a value when earlier rows are empty', () => {
-    // Row 0 is empty, row 1 has a value. The result must keep a null
-    // placeholder at index 0 so the backend renders the value in row 1,
-    // not row 0.
+  it('Should trim trailing and leading nulls', () => {
     fieldData.sourceTypeSettings.instance.title = 0;
     expect(
       transforms.link(
@@ -163,10 +160,10 @@ describe('Transforms - link', () => {
         { multiple: true },
         fieldData,
       ),
-    ).toEqual([null, 'https://example.com']);
+    ).toEqual(['https://example.com']);
   });
 
-  it('Should trim trailing nulls but keep leading/middle nulls', () => {
+  it('Should trim leading nulls', () => {
     // Rows 0 and 1 are empty, row 2 has a value.
     fieldData.sourceTypeSettings.instance.title = 0;
     expect(
@@ -179,7 +176,7 @@ describe('Transforms - link', () => {
         { multiple: true },
         fieldData,
       ),
-    ).toEqual([null, null, 'https://example.com']);
+    ).toEqual(['https://example.com']);
   });
 
   it('Should return an empty array when all rows are empty', () => {
@@ -458,10 +455,7 @@ describe('Transforms - dateTime', () => {
     expect(transforms.dateTime({ date: '' }, {}, undefined)).to.equal(null);
   });
 
-  it('should preserve the position of a value when earlier rows are empty', () => {
-    // Row 0 is empty, row 1 has a value. The result must keep a null
-    // placeholder at index 0 so the backend renders the value in row 1,
-    // not row 0.
+  it('should trim trailing and leading', () => {
     expect(
       transforms.dateTime(
         [
@@ -472,10 +466,10 @@ describe('Transforms - dateTime', () => {
         { type: 'date', multiple: true },
         datePropSource,
       ),
-    ).toEqual([null, '2024-06-01']);
+    ).toEqual(['2024-06-01']);
   });
 
-  it('should trim trailing nulls but keep leading/middle nulls', () => {
+  it('should trim trailing and leading nulls but keep middle nulls', () => {
     // Rows 0 and 1 are empty, row 2 has a value.
     expect(
       transforms.dateTime(
@@ -487,7 +481,7 @@ describe('Transforms - dateTime', () => {
         { type: 'date', multiple: true },
         datePropSource,
       ),
-    ).toEqual([null, null, '2024-06-01']);
+    ).toEqual(['2024-06-01']);
   });
 
   it('should return an empty array when all rows are empty', () => {

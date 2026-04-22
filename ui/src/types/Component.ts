@@ -17,6 +17,7 @@ export interface FieldDataItem {
   sourceTypeSettings?: {
     storage?: object;
     instance?: object;
+    cardinality?: number;
   };
   jsonSchema?: {
     type: 'number' | 'integer' | 'string' | 'boolean' | 'array' | 'object';

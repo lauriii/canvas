@@ -277,6 +277,9 @@ export function propInputData(
 ) {
   const { selectedComponent, components, selectedComponentType } =
     inputAndUiData;
+
+  const component = components?.[selectedComponentType];
+
   // Keep track of fields that are part of a group of fields that result
   // in a single prop value being stored, such as individual date and time
   // fields being stored as a single datetime prop.
@@ -288,7 +291,14 @@ export function propInputData(
   Object.keys(formState).forEach((itemKey) => {
     if (itemKey.includes(`canvas_component_props[${selectedComponent}][`)) {
       const propName = toPropName(itemKey, selectedComponent);
-      if (propsInThisForm.includes(propName)) {
+      // @ts-ignore
+      const cardinality =
+        isPropSourceComponent(component) &&
+        component?.propSources?.[propName]?.sourceTypeSettings?.cardinality;
+      if (
+        propsInThisForm.includes(propName) &&
+        (!cardinality || cardinality === 1)
+      ) {
         // If we hit a prop that is already in `propsInThisForm`, add it
         // to the array keeping track of props that have multiple single
         // value form elements associated with it.
@@ -302,9 +312,7 @@ export function propInputData(
 
   const propsWithObjectValues: PropsValues = {};
   const propsWithSourceStorageSettings: PropsValues = {};
-  // OpenAPI already ensures this exists, but the condition check is here
-  // to soothe Typescript.
-  const component = components?.[selectedComponentType];
+
   if (isPropSourceComponent(component)) {
     Object.entries(component.propSources).forEach(
       // @ts-ignore
@@ -586,3 +594,14 @@ export class ComponentPreviewUpdateEvent extends Event {
     return this.previewBackgroundUpdate;
   }
 }
+
+export const isDateOnly = (val: string): boolean =>
+  /^\d{4}-\d{2}-\d{2}$/.test(val);
+export const isTimeOnly = (val: string): boolean =>
+  /^\d{2}:\d{2}(:\d{2})?$/.test(val);
+
+export const toDateTime = (val: string): string => {
+  if (isDateOnly(val)) return `${val}T00:00:00Z`;
+  if (isTimeOnly(val)) return `1970-01-01T${val}Z`;
+  return val;
+};

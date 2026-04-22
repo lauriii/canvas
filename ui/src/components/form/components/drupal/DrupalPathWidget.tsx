@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 import { skipToken } from '@reduxjs/toolkit/query';
 
@@ -69,6 +69,11 @@ const DrupalPathWidget = ({
 
   const { entityId, entityType } = useParams();
   const titleInput = useEntityTitle();
+
+  // Keep a ref to the latest onChange so handleChange can call it without
+  // needing it in the useCallback dependency array.
+  const onChangeRef = useRef(attributes.onChange);
+  onChangeRef.current = attributes.onChange;
   const { data: fetchedLayout } = useGetPageLayoutQuery(
     entityId && entityType ? { entityId, entityType } : skipToken,
   );
@@ -99,15 +104,12 @@ const DrupalPathWidget = ({
     setIsInitialized(true);
   }, [titleInput, isInitialized, initialValue]);
 
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setPathValue(e.target.value);
-      if (attributes.onChange) {
-        attributes.onChange(e);
-      }
-    },
-    [attributes],
-  );
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setPathValue(e.target.value);
+    if (onChangeRef.current) {
+      onChangeRef.current(e);
+    }
+  }, []);
 
   const handleManualChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

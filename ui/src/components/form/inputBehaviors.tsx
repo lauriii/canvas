@@ -233,7 +233,6 @@ export const InputBehaviorsCommon = ({
 
     attributes.onChange = (e: React.ChangeEvent) => {
       delete attributes['data-invalid-prop-value'];
-
       const formId = attributes['data-form-id'] as FormId;
       if (formId) {
         dispatch(
@@ -264,7 +263,7 @@ export const InputBehaviorsCommon = ({
       ) {
         const validationResult = validateNewValue(e, newValue);
         if (!shouldUpdateFormState(e, validationResult)) {
-          if (formId) {
+          if (formId && validationResult?.valid === false) {
             dispatchFieldError(dispatch, formId, fieldName, validationResult);
           }
           return;
@@ -272,10 +271,15 @@ export const InputBehaviorsCommon = ({
       }
 
       // If no AJAX operations are in progress, update the form state and store.
-      if (!isAjaxing()) {
+      if (
+        !isAjaxing() &&
+        (!e.target?.hasAttribute ||
+          !e.target.hasAttribute('data-canvas-stage-changes'))
+      ) {
         commitFormState({ ...formValues, [fieldName]: newValue });
         return;
       }
+
       // This is only reached if AJAX operations are in progress. Add an event
       // listener to update the form state once ajax is complete.
       const stopListener = () => {
@@ -315,7 +319,10 @@ export const InputBehaviorsCommon = ({
       >
         <OriginalInput
           {...passProps}
-          attributes={attributes}
+          attributes={{
+            ...attributes,
+            'data-has-field-error': fieldError ? 'true' : 'false',
+          }}
           options={options}
         />
         {fieldError && (

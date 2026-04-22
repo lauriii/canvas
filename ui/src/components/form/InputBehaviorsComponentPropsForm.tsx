@@ -10,6 +10,7 @@ import {
   getPropsValues,
   propInputData,
   shouldSkipPropValidation,
+  toDateTime,
   toPropName,
   validateProp,
 } from '@/components/form/formUtil';
@@ -178,6 +179,14 @@ export const InputBehaviorsComponentPropsForm = (
   const parseNewValue = (e: React.ChangeEvent) => {
     const schemas = getPropSchemas(inputAndUiData);
     const target = e.target as HTMLInputElement | HTMLSelectElement;
+    const eventFieldName = target.name;
+    const fieldName = eventFieldName;
+    const isNestedArraySubfield =
+      fieldName &&
+      schemas?.[propName]?.type === 'array' &&
+      fieldName.startsWith(
+        `canvas_component_props[${selectedComponent}][${propName}][`,
+      );
 
     // A <select multiple> element's .value is only the last-clicked option.
     // For array props rendered as multi-selects, collect every selected option.
@@ -190,7 +199,6 @@ export const InputBehaviorsComponentPropsForm = (
       e.target as HTMLInputElement,
       schemas?.[propName],
     );
-    const fieldName = (e.target as HTMLInputElement | HTMLSelectElement).name;
     if (
       // If there are no transforms, we cannot use them, just return the raw
       // value. Note that the 'undefined' check here is technically not required
@@ -202,7 +210,11 @@ export const InputBehaviorsComponentPropsForm = (
       // overhead of transforms.
       !(propName in transforms) ||
       // Or if the prop relies on multiple input fields.
-      multipleInputsSingleValue.includes(propName)
+      multipleInputsSingleValue.includes(propName) ||
+      // Nested updates for array props (for example multivalue `_weight` and
+      // `value` subfields) should bypass per-field transforms. Transforms will
+      // be applied at the entire-prop level.
+      isNestedArraySubfield
     ) {
       return rawValue;
     }
@@ -221,7 +233,16 @@ export const InputBehaviorsComponentPropsForm = (
     ) {
       const schemas = getPropSchemas(inputAndUiData);
       const schema = schemas?.[toPropName(fieldName, selectedComponent)];
-      const valueToValidate = coerceValueForSchema(newValue, schema);
+
+      let valueToValidate = coerceValueForSchema(newValue, schema);
+
+      if ([schema?.format, schema?.items?.format].includes('date-time')) {
+        valueToValidate = toDateTime(valueToValidate);
+      }
+
+      if (schema?.type === 'array' && !Array.isArray(valueToValidate)) {
+        valueToValidate = [valueToValidate];
+      }
       const [valid, validate] = validateProp(
         toPropName(fieldName, selectedComponent),
         valueToValidate,
