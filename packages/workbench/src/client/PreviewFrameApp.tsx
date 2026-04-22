@@ -28,7 +28,7 @@ import { getPreviewTargetKey } from '@wb/lib/preview-target-key';
 import { resolveWorkbenchPreviewNavigation } from '@wb/lib/resolve-workbench-preview-navigation';
 
 import type { ErrorInfo, ReactNode } from 'react';
-import type { DiscoveryResult } from '@wb/lib/discovery-client';
+import type { EnrichedDiscoveryResult } from '@wb/lib/discovery-client';
 import type {
   PreviewFrameError,
   PreviewFrameReady,
@@ -131,7 +131,7 @@ export function PreviewFrameApp() {
   );
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [discoveryResult, setDiscoveryResult] =
-    useState<DiscoveryResult | null>(null);
+    useState<EnrichedDiscoveryResult | null>(null);
   const [previewManifest, setPreviewManifest] =
     useState<PreviewManifest | null>(null);
   const lastPreviewTargetKeyRef = useRef<string | null>(null);
@@ -141,6 +141,19 @@ export function PreviewFrameApp() {
       return new Set<string>();
     }
     return new Set(discoveryResult.pages.map((page) => page.slug));
+  }, [discoveryResult]);
+
+  const pagePathToSlug = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!discoveryResult) {
+      return map;
+    }
+    for (const page of discoveryResult.pages) {
+      if (page.pagePath) {
+        map.set(page.pagePath, page.slug);
+      }
+    }
+    return map;
   }, [discoveryResult]);
 
   useEffect(() => {
@@ -267,6 +280,7 @@ export function PreviewFrameApp() {
     const navigationContext = {
       workbenchOrigin: window.location.origin,
       pageSlugs,
+      pagePathToSlug,
       manifestComponents: previewManifest?.components ?? [],
     };
 
@@ -342,7 +356,7 @@ export function PreviewFrameApp() {
     return () => {
       document.removeEventListener('click', handleDocumentClick, true);
     };
-  }, [navigate, pageSlugs, previewManifest]);
+  }, [navigate, pageSlugs, pagePathToSlug, previewManifest]);
 
   useEffect(() => {
     const handleSubmit = (event: Event) => {

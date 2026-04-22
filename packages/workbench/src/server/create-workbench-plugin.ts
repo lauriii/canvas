@@ -18,6 +18,7 @@ import {
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { DiscoveryResult } from '@drupal-canvas/discovery';
 import type { Plugin } from 'vite';
+import type { EnrichedDiscoveredPage } from '../lib/discovery-client';
 import type {
   PreviewManifestComponent,
   PreviewManifestComponentMock,
@@ -139,34 +140,53 @@ async function loadComponentMocks(
   return { mocks, warnings };
 }
 
-async function loadPageTitle(pagePath: string): Promise<string | null> {
+interface PageFileMetadata {
+  title: string | null;
+  path: string | null;
+}
+
+async function loadPageFileMetadata(
+  filePath: string,
+): Promise<PageFileMetadata> {
   let fileContent: string;
   try {
-    fileContent = await fs.readFile(pagePath, 'utf-8');
+    fileContent = await fs.readFile(filePath, 'utf-8');
   } catch {
-    return null;
+    return { title: null, path: null };
   }
 
   let parsedJson: unknown;
   try {
     parsedJson = JSON.parse(fileContent);
   } catch {
-    return null;
+    return { title: null, path: null };
   }
 
-  return toDiscoveredPageName(
+  const title = toDiscoveredPageName(
     parsedJson,
-    pagePath,
-    path.basename(pagePath, '.json'),
+    filePath,
+    path.basename(filePath, '.json'),
   );
+
+  const obj = parsedJson as Record<string, unknown>;
+  let pagePath = typeof obj.path === 'string' && obj.path ? obj.path : null;
+  if (pagePath && !pagePath.startsWith('/')) {
+    pagePath = `/${pagePath}`;
+  }
+
+  return { title, path: pagePath };
 }
 
 async function enrichDiscoveredPages(discoveryResult: DiscoveryResult) {
-  const pages = await Promise.all(
-    discoveryResult.pages.map(async (page) => ({
-      ...page,
-      name: (await loadPageTitle(page.path)) ?? page.name,
-    })),
+  const pages: EnrichedDiscoveredPage[] = await Promise.all(
+    discoveryResult.pages.map(async (page) => {
+      const metadata = await loadPageFileMetadata(page.path);
+      return {
+        ...page,
+        name: metadata.title ?? page.name,
+        pagePath: metadata.path,
+      };
+    }),
   );
 
   return {

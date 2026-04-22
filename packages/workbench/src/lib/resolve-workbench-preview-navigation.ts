@@ -7,6 +7,7 @@ export type ResolveWorkbenchPreviewNavigationResult =
 export interface ResolveWorkbenchPreviewNavigationContext {
   workbenchOrigin: string;
   pageSlugs: ReadonlySet<string>;
+  pagePathToSlug: ReadonlyMap<string, string>;
   manifestComponents: ReadonlyArray<PreviewManifestComponent>;
 }
 
@@ -18,7 +19,8 @@ export function resolveWorkbenchPreviewNavigation(
   resolvedUrl: URL,
   context: ResolveWorkbenchPreviewNavigationContext,
 ): ResolveWorkbenchPreviewNavigationResult {
-  const { workbenchOrigin, pageSlugs, manifestComponents } = context;
+  const { workbenchOrigin, pageSlugs, pagePathToSlug, manifestComponents } =
+    context;
 
   if (
     resolvedUrl.protocol === 'mailto:' ||
@@ -94,6 +96,14 @@ export function resolveWorkbenchPreviewNavigation(
     pathname.startsWith('/__')
   ) {
     return { kind: 'open', href: resolvedUrl.href };
+  }
+
+  const matchedSlug = pagePathToSlug.get(pathname);
+  if (matchedSlug) {
+    return {
+      kind: 'navigate',
+      path: `/page/${matchedSlug}${resolvedUrl.search}`,
+    };
   }
 
   return { kind: 'open', href: resolvedUrl.href };

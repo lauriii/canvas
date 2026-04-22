@@ -35,6 +35,10 @@ function manifestComponent(
 const baseContext = {
   workbenchOrigin: origin,
   pageSlugs: new Set(['about', 'home']),
+  pagePathToSlug: new Map([
+    ['/about-us', 'about'],
+    ['/home', 'home'],
+  ]),
   manifestComponents: [
     manifestComponent('hero', 2),
     manifestComponent('footer', 0),
@@ -127,6 +131,30 @@ describe('resolveWorkbenchPreviewNavigation', () => {
     expect(resolveWorkbenchPreviewNavigation(url, baseContext)).toEqual({
       kind: 'open',
       href: `${origin}/@fs/foo`,
+    });
+  });
+
+  it('navigates to page when URL matches a page path', () => {
+    const url = new URL(`${origin}/about-us`);
+    expect(resolveWorkbenchPreviewNavigation(url, baseContext)).toEqual({
+      kind: 'navigate',
+      path: '/page/about',
+    });
+  });
+
+  it('navigates to page preserving search params when matching page path', () => {
+    const url = new URL(`${origin}/home?foo=bar`);
+    expect(resolveWorkbenchPreviewNavigation(url, baseContext)).toEqual({
+      kind: 'navigate',
+      path: '/page/home?foo=bar',
+    });
+  });
+
+  it('opens same-origin URL that does not match any page path', () => {
+    const url = new URL(`${origin}/unknown-path`);
+    expect(resolveWorkbenchPreviewNavigation(url, baseContext)).toEqual({
+      kind: 'open',
+      href: `${origin}/unknown-path`,
     });
   });
 });

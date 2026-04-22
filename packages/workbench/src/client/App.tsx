@@ -37,7 +37,7 @@ import type { Spec } from '@json-render/core';
 import type {
   DiscoveredComponent,
   DiscoveredPage,
-  DiscoveryResult,
+  EnrichedDiscoveryResult,
 } from '@wb/lib/discovery-client';
 import type {
   PreviewManifest,
@@ -114,7 +114,7 @@ export function App() {
     mockIndex?: string;
   }>();
   const [discoveryResult, setDiscoveryResult] =
-    useState<DiscoveryResult | null>(null);
+    useState<EnrichedDiscoveryResult | null>(null);
   const [previewManifest, setPreviewManifest] =
     useState<PreviewManifest | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -146,7 +146,7 @@ export function App() {
     location.pathname === '/page' || location.pathname.startsWith('/page/');
 
   const loadWorkbenchData = useCallback(async (): Promise<{
-    discovery: DiscoveryResult;
+    discovery: EnrichedDiscoveryResult;
     manifest: PreviewManifest;
   }> => {
     const [discovery, manifest] = await Promise.all([
