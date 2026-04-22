@@ -40,7 +40,7 @@ export function CanvasFoldersMixin<TBase extends Constructor<CanvasBase>>(
       // Verify the folder was created.
       await expect(
         this.page.locator(`[data-canvas-folder-name="${name}"]`),
-      ).toBeVisible();
+      ).toBeVisible({ timeout: 15_000 });
     }
 
     async deleteFolder(name: string) {
@@ -98,17 +98,31 @@ export function CanvasFoldersMixin<TBase extends Constructor<CanvasBase>>(
       await expect(newComponentLocation).toContainText(componentName);
     }
 
-    async moveComponentOutOfFolder(componentName: string, folder: string) {
-      const componentLocator = `[data-testid="canvas-primary-panel"] [data-canvas-name="${componentName}"]`;
-      const dropzoneLocator = `[data-testid="canvas-primary-panel"] [data-testid="canvas-uncategorized-drop-zone-js_component"]`;
-      await this.drag(componentLocator, dropzoneLocator);
+    async moveComponentOutOfFolder(componentName: string) {
+      const panel = `[data-testid="canvas-primary-panel"]`;
+      const componentLocator = `${panel} [data-canvas-name="${componentName}"]`;
+      const uncategorized = `${panel} [data-testid="canvas-uncategorized-drop-zone-js_component"]`;
+      await this.drag(componentLocator, uncategorized);
       const newComponentLocation = this.page
-        .locator(
-          `[data-testid="canvas-primary-panel"] [data-canvas-folder-name="${folder}"]`,
-        )
-        .locator('..')
+        .locator(uncategorized)
         .locator(`[data-canvas-name="${componentName}"]`);
 
+      await expect(newComponentLocation).toBeVisible();
+      await expect(newComponentLocation).toContainText(componentName);
+    }
+
+    async moveComponentToLibraryLocation(
+      componentName: string,
+      folderName: string,
+    ) {
+      const panel = `[data-testid="canvas-primary-panel"]`;
+      const componentLocator = `${panel} [data-canvas-name="${componentName}"]`;
+      const dropzoneLocator = `${panel} [data-canvas-folder-name="${folderName}"]`;
+      await this.drag(componentLocator, dropzoneLocator);
+      const newComponentLocation = this.page
+        .locator(`${panel} [data-canvas-folder-name="${folderName}"]`)
+        .locator('..')
+        .locator(`[data-canvas-name="${componentName}"]`);
       await expect(newComponentLocation).toBeVisible();
       await expect(newComponentLocation).toContainText(componentName);
     }

@@ -41,6 +41,8 @@ const LibraryToolbar = ({
   const textFieldRef = useRef<HTMLDivElement>(null);
   const isSubmittingRef = useRef(false);
   const shouldFocusInputRef = useRef(false);
+  const suppressBlurSubmitRef = useRef(false);
+  const isFinishingSuccessfulCreateRef = useRef(false);
 
   useEffect(() => {
     if (isCreatingFolder) {
@@ -81,27 +83,41 @@ const LibraryToolbar = ({
     setValidationError('');
     reset();
     isSubmittingRef.current = false;
+    isFinishingSuccessfulCreateRef.current = false;
     onFolderCreating?.(false);
   };
 
   const handleCreateFolder = async () => {
-    if (isSubmittingRef.current || isLoading) {
+    if (
+      isFinishingSuccessfulCreateRef.current ||
+      isSubmittingRef.current ||
+      isLoading
+    ) {
+      suppressBlurSubmitRef.current = false;
       return;
     }
 
     const trimmedName = folderName.trim();
 
     if (!trimmedName || trimmedName === 'New folder' || validationError) {
+      suppressBlurSubmitRef.current = false;
       cancelFolderCreation();
       return;
     }
 
     isSubmittingRef.current = true;
-
-    await createFolder({
-      name: trimmedName,
-      type: type,
-    });
+    try {
+      await createFolder({
+        name: trimmedName,
+        type: type,
+      }).unwrap();
+      isFinishingSuccessfulCreateRef.current = true;
+    } catch {
+      // Error UI uses `isError` / `error` from the mutation hook.
+    } finally {
+      isSubmittingRef.current = false;
+      suppressBlurSubmitRef.current = false;
+    }
   };
 
   const handleOnChange = (newName: string) => {
@@ -115,19 +131,27 @@ const LibraryToolbar = ({
   };
 
   const handleBlur = () => {
-    handleCreateFolder();
+    if (suppressBlurSubmitRef.current) {
+      return;
+    }
+    if (isFinishingSuccessfulCreateRef.current) {
+      return;
+    }
+    void handleCreateFolder();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleCreateFolder();
+      suppressBlurSubmitRef.current = true;
+      void handleCreateFolder();
     } else if (e.key === 'Escape') {
       cancelFolderCreation();
     }
   };
 
   const handleAddFolderClick = () => {
+    isFinishingSuccessfulCreateRef.current = false;
     shouldFocusInputRef.current = true;
     setIsCreatingFolder(true);
     onFolderCreating?.(true);
@@ -192,7 +216,7 @@ const LibraryToolbar = ({
                     data-testid="canvas-library-new-folder-button"
                   >
                     <FolderIcon />
-                    Add folder
+                    Folder
                   </DropdownMenu.Item>
                 </PermissionCheck>
               </DropdownMenu.Content>

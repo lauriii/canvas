@@ -1,4 +1,7 @@
+import { useAppDispatch } from '@/app/hooks';
 import {
+  componentAndLayoutApi,
+  rebuildComponentIndexedFolders,
   useGetFoldersQuery,
   useUpdateFolderMutation,
 } from '@/services/componentAndLayout';
@@ -6,6 +9,7 @@ import {
 import type { DragEndEvent } from '@dnd-kit/core';
 
 export function useDropOnFolderHandler() {
+  const dispatch = useAppDispatch();
   const { data: folders } = useGetFoldersQuery();
   const [updateFolder] = useUpdateFolderMutation();
 
@@ -65,7 +69,23 @@ export function useDropOnFolderHandler() {
       const [draggedEntry] = allFoldersOfType.splice(draggedIndex, 1);
       allFoldersOfType.splice(targetIndex, 0, draggedEntry);
 
-      // Update weights for all reordered folders.
+      const patchResult = dispatch(
+        componentAndLayoutApi.util.updateQueryData(
+          'getFolders',
+          undefined,
+          (draft) => {
+            allFoldersOfType.forEach(([id], index) => {
+              if (draft.folders[id]) {
+                draft.folders[id].weight = index;
+              }
+            });
+            draft.componentIndexedFolders = rebuildComponentIndexedFolders(
+              draft.folders,
+            );
+          },
+        ),
+      );
+
       const updatePromises = allFoldersOfType.map(([id, folder], index) => {
         if (folder.weight !== index) {
           return updateFolder({
@@ -75,14 +95,25 @@ export function useDropOnFolderHandler() {
               items: folder.items || [],
               weight: index,
             },
+            skipFoldersOptimistic: true,
           });
         }
         return null;
       });
 
+      const pendingUpdates = updatePromises.filter(Boolean);
       try {
-        await Promise.all(updatePromises.filter(Boolean));
+        await Promise.all(pendingUpdates.map((p) => p!.unwrap()));
+        if (pendingUpdates.length > 0) {
+          dispatch(
+            componentAndLayoutApi.util.invalidateTags([
+              { type: 'Folders', id: 'LIST' },
+              { type: 'Layout' },
+            ]),
+          );
+        }
       } catch (error) {
+        patchResult.undo();
         console.error('Failed to update folder order:', error);
         throw new Error('Failed to reorder folders. Please try again.');
       }
@@ -102,6 +133,38 @@ export function useDropOnFolderHandler() {
       return;
     }
 
+    const patchResult = dispatch(
+      componentAndLayoutApi.util.updateQueryData(
+        'getFolders',
+        undefined,
+        (draft) => {
+          if (priorFolder) {
+            const pid = priorFolder.id;
+            const current = draft.folders[pid];
+            if (current) {
+              current.items = (current.items || []).filter(
+                (item: string) => item !== componentId,
+              );
+            }
+          }
+          if (newFolder) {
+            const nid = newFolder.id;
+            const current = draft.folders[nid];
+            if (current) {
+              const nextItems = [...(current.items || [])];
+              if (!nextItems.includes(componentId)) {
+                nextItems.push(componentId);
+              }
+              current.items = nextItems;
+            }
+          }
+          draft.componentIndexedFolders = rebuildComponentIndexedFolders(
+            draft.folders,
+          );
+        },
+      ),
+    );
+
     if (priorFolder) {
       const items = priorFolder.items || [];
       try {
@@ -112,8 +175,10 @@ export function useDropOnFolderHandler() {
             items: items.filter((item: string) => item !== componentId),
             weight: priorFolder.weight,
           },
-        });
+          skipFoldersOptimistic: true,
+        }).unwrap();
       } catch (error) {
+        patchResult.undo();
         console.error('Failed to remove item from folder:', error);
         throw new Error('Failed to remove item from folder. Please try again.');
       }
@@ -129,11 +194,22 @@ export function useDropOnFolderHandler() {
             items,
             weight: newFolder.weight,
           },
-        });
+          skipFoldersOptimistic: true,
+        }).unwrap();
       } catch (error) {
+        patchResult.undo();
         console.error('Failed to add item to folder:', error);
         throw new Error('Failed to add item to folder. Please try again.');
       }
+    }
+
+    if (priorFolder || newFolder) {
+      dispatch(
+        componentAndLayoutApi.util.invalidateTags([
+          { type: 'Folders', id: 'LIST' },
+          { type: 'Layout' },
+        ]),
+      );
     }
   };
 

@@ -362,9 +362,30 @@ test.describe('Folder Management', () => {
     await canvas.createCodeComponent('Three', code);
 
     await canvas.moveComponentIntoFolder('One', '1337 Code');
-    await canvas.moveComponentOutOfFolder('One', '1337 Code');
+    await canvas.moveComponentOutOfFolder('One');
     await canvas.moveComponentIntoFolder('One', 'Suboptimal Code');
     await canvas.moveComponentIntoFolder('One', '1337 Code');
-    await canvas.moveComponentOutOfFolder('One', '1337 Code');
+    await canvas.moveComponentOutOfFolder('One');
+  });
+
+  test('moveComponentToLibraryLocation moves code component into folder', async ({
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.createCanvas();
+    await canvas.openCodePanel();
+    await canvas.addFolder('Library Location Target');
+
+    const code = await readFile(
+      'tests/fixtures/code_components/page-elements/PageTitle.jsx',
+      'utf-8',
+    );
+    await canvas.createCodeComponent('LocationTest', code);
+
+    await canvas.moveComponentToLibraryLocation(
+      'LocationTest',
+      'Library Location Target',
+    );
   });
 });

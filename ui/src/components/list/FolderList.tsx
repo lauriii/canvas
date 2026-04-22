@@ -64,8 +64,10 @@ const FolderList = ({
 
   // Sync local folderName state when the folder.name prop changes (e.g., after successful rename)
   useEffect(() => {
-    setFolderName(folder.name);
-  }, [folder.name]);
+    if (!isRenaming) {
+      setFolderName(folder.name);
+    }
+  }, [folder.name, isRenaming]);
 
   useEffect(() => {
     if (isSuccess) {
