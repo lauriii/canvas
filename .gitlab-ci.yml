@@ -298,13 +298,12 @@ phpcs-rules-match-drupal-11:
 
 # Tests the minimum Drupal core version Canvas supports: 11.2.
 phpunit:
-  # Auto-retry when random failures occur due to upstream bugs.
-  # @see https://www.drupal.org/project/canvas/issues/3571997#comment-16458359
   needs: []
-  retry:
-    max: 2
-    exit_codes: 112
   variables:
+    # Upstream's .test-variables sets this to $CI_PROJECT_DIR/$_WEB_ROOT/sites/simpletest/browser_output,
+    # which resolves to web/... because $_WEB_ROOT defaults to "web". Canvas puts Drupal under
+    # _drupal/, so override to the actual path where browser output is written.
+    BROWSERTEST_OUTPUT_DIRECTORY: $CI_PROJECT_DIR/_drupal/web/sites/simpletest/browser_output
     DRUPAL_TEST_WEBSERVER_USER: www-data
     DRUPAL_TEST_WEBDRIVER_AUTOSTART: true
     DRUPAL_TEST_WEBDRIVER_BINARY: "chromedriver"
@@ -324,13 +323,17 @@ phpunit:
     # 💡To run only tests in a specific group, e.g. `canvas_component_sources` or `canvas_data_model__prop_expressions`.
     # _PHPUNIT_TESTGROUPS: canvas_component_sources
 
-  # TRICKY: duplicate all of the upstream `.phpunit-base`'s `script` to add conditional auto-retry functionality
-  # @todo Work with upstream `gitlab_templates` project to allow this logic to be injected without repeating everything
   before_script:
     - !reference [ .drupal ]
     - !reference [.drupal-enable-test-modules]
     - !reference [ .canvas-ui ]
     - composer run install-dev-deps
+    # Forward-port upstream fix for https://www.drupal.org/project/drupal/issues/3582249
+    # (PHPUnit SourceMapper races with concurrent test cleanup under sites/simpletest,
+    # causing "RecursiveDirectoryIterator: Failed to open directory" random failures).
+    # Fixed on Drupal 11.x (commit 3753f904, 2026-03-30); not yet in 11.2.x. Idempotent —
+    # becomes a no-op once the minimum supported core version ships the fix.
+    - sed -i '\|<directory>\.\./sites</directory>|d' $CI_PROJECT_DIR/_drupal/web/core/phpunit.xml.dist
   script:
     # Remove all spaces from _PHPUNIT_TESTGROUPS for reliable checking and to
     # ensure only one string is passed to bin/phpunit or run-tests.sh
@@ -347,10 +350,6 @@ phpunit:
       echo "executing: sudo -u www-data -H -E php $CI_PROJECT_DIR/_drupal/web/core/scripts/run-tests.sh --php '$(which php)' --color --keep-results --concurrency $_CONCURRENCY_THREADS --repeat '1' --sqlite 'sites/default/files/.sqlite' --dburl $SIMPLETEST_DB --url $SIMPLETEST_BASE_URL --xml $CI_PROJECT_DIR/_drupal/web/sites/default/files/simpletest --verbose --non-html $WHAT_TO_RUN $_PHPUNIT_EXTRA"
       ./vendor/bin/phpunit --version
       sudo -u www-data -H -E  php $CI_PROJECT_DIR/_drupal/web/core/scripts/run-tests.sh --php "$(which php)" --color --keep-results --concurrency $_CONCURRENCY_THREADS --repeat "1" --sqlite "sites/default/files/.sqlite" --dburl $SIMPLETEST_DB --url $SIMPLETEST_BASE_URL --xml $CI_PROJECT_DIR/_drupal/web/sites/default/files/simpletest --verbose --non-html $WHAT_TO_RUN $_PHPUNIT_EXTRA || EXIT_CODE=$?
-    # Auto-retry when random failures occur due to upstream bugs.
-    # @see https://www.drupal.org/project/canvas/issues/3571997#comment-16458359
-    # @todo Rewrite this after https://www.drupal.org/project/gitlab_templates/issues/3572371 lands
-    - grep "RecursiveDirectoryIterator" $CI_PROJECT_DIR/_drupal/web/sites/default/files/simpletest/phpunit-*.xml && exit 112 || true
     - exit $EXIT_CODE
   parallel:
     # @see https://www.drupal.org/node/3444548
