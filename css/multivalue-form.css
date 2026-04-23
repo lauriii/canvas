@@ -66,8 +66,23 @@
 .multivalue-container .tabledrag-toggle-weight-wrapper,
 .multivalue-container .tabledrag-toggle-weight,
 .multivalue-container td.tabledrag-hide,
-.multivalue-container .field-weight {
+.multivalue-container th.tabledrag-hide,
+.multivalue-container .field-weight,
+.multivalue-container [name*="_weight"],
+.multivalue-container td.delta-order,
+.multivalue-container table.field-multiple-table > thead > tr > th:last-child {
   display: none;
+}
+
+.multivalue-container .ajax-progress,
+.multivalue-container .ajax-progress-throbber,
+[data-canvas-multiple-values] ~ .ajax-progress {
+  display: none;
+}
+
+.multivalue-container .tabledrag-changed,
+.multivalue-container .tabledrag-changed-warning {
+  display: none !important;
 }
 
 /* Position form-item container for absolute positioning of toggle */
@@ -107,7 +122,6 @@
 
 .add-new-wrapper button::before,
 .add-new-wrapper input[type="submit"]::before {
-  content: "+";
   font-size: 16px;
   font-weight: 600;
 }
@@ -127,16 +141,6 @@
   padding: 0 0 0 8px;
 }
 
-.multivalue-container .tabledrag-changed {
-  display: none;
-}
-
-/* Hide the "You have unsaved changes" warning message for multivalue forms. */
-.multivalue-container .tabledrag-changed-warning {
-  display: none !important;
-}
-
-/* Style the tabledrag anchor to display the custom SVG icon */
 .multivalue-container .canvas-drag-handle a.tabledrag-handle {
   display: flex;
   align-items: center;
@@ -199,6 +203,25 @@
   display: none;
 }
 
+/* A shimmer effect for new rows being added via AJAX. */
+@keyframes canvas-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.canvas-skeleton-shimmer {
+  height: 20px;
+  animation: canvas-shimmer 1.2s infinite linear;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+}
+
 /* Hide legends and fieldset borders in multivalue form field content */
 .canvas-multivalue-field-content fieldset {
   margin: 0;
@@ -214,4 +237,3 @@
   margin: 0;
   padding: 0;
 }
-

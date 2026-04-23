@@ -262,7 +262,7 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
     foreach (Element::children($element) as $key) {
       // Mark input elements.
       if (isset($element[$key]['#type']) &&
-          \in_array($element[$key]['#type'], ['textfield', 'number', 'url', 'entity_autocomplete'], TRUE)) {
+          \in_array($element[$key]['#type'], ['textfield', 'number', 'url', 'entity_autocomplete', 'submit'], TRUE)) {
         $element[$key]['#is_multivalue_form'] = TRUE;
         $element[$key]['#attributes']['data-field-label'] = $field_label;
         // Hide the sub-field label for url and entity_autocomplete types so

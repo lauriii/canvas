@@ -94,7 +94,13 @@ function canvas_stark_theme_suggestions_input_alter(array &$suggestions, array $
   if (\Drupal::moduleHandler()->moduleExists('canvas_dev_mode') &&
     isset($variables['element']['#is_multivalue_form']) &&
     $variables['element']['#is_multivalue_form']) {
-    $suggestions[] = 'input__multivalue_form';
+    $type = $variables['element']['#type'] ?? '';
+    if ($type === 'submit') {
+      $suggestions[] = 'input__submit__multivalue_form';
+    }
+    else {
+      $suggestions[] = 'input__multivalue_form';
+    }
   }
 }
 
@@ -241,6 +247,7 @@ function canvas_stark_preprocess_field_multiple_value_form(array &$variables): v
     }
     if (isset($variables['button']['#value'])) {
       $variables['button']['#value'] = t('+ Add new');
+      $variables['button']['#attributes']['data-multivalue-add-new'] = 'true';
     }
   }
 }

@@ -62,7 +62,6 @@
   width: 235px;
   max-width: 235px;
   padding: 8px;
-  transform: translateX(-30px);
   border: 1px solid var(--gray-6);
   border-radius: 4px;
   background-color: white;

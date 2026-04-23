@@ -23,7 +23,7 @@ describe('Can save and load patterns', () => {
       cy.openLayersPanel();
       cy.get('.canvas--viewport-overlay')
         .findByLabelText('Two Column')
-        .realClick({ position: 'bottomRight' });
+        .realClick({ position: 'bottomRight', scrollBehavior: false });
       cy.log(
         'Save the entire node 1 layout as a pattern, so it can be added to a different node.',
       );
@@ -35,13 +35,13 @@ describe('Can save and load patterns', () => {
         '.canvas--viewport-overlay [data-canvas-component-id="sdc.canvas_test_sdc.image"]',
       )
         .first()
-        .trigger('contextmenu');
+        .rightclick({ force: true });
       cy.findByText('Delete').click();
       cy.get(
         '.canvas--viewport-overlay [data-canvas-component-id="sdc.canvas_test_sdc.image"]',
       )
         .first()
-        .trigger('contextmenu');
+        .rightclick({ force: true });
       cy.findByText('Delete').click();
       cy.waitForComponentNotInPreview('Image');
 

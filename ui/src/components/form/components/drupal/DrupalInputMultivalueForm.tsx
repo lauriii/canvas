@@ -323,7 +323,7 @@ const DrupalInputMultivalueForm = ({
         }}
         side="left"
         align="start"
-        sideOffset={6}
+        sideOffset={36}
         className={clsx(styles.popoverContent, [
           !popoverOpen && styles.visuallyHiddenInput,
         ])}
