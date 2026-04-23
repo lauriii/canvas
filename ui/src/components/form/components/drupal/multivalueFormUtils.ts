@@ -2,6 +2,11 @@
  * Utility functions for multivalue form components.
  */
 
+import type {
+  EvaluatedComponentModel,
+  ResolvedValues,
+} from '@/features/layout/layoutModelSlice';
+
 /**
  * Determine if the remove button should be enabled for a multivalue field item.
  *
@@ -73,6 +78,7 @@ export const isRemoveButtonEnabled = (
  */
 export const triggerDrupalRemoveButton = (
   triggerElement: HTMLElement | null,
+  formId: string | null = '',
 ): string | null => {
   if (!triggerElement) return null;
 
@@ -81,6 +87,7 @@ export const triggerDrupalRemoveButton = (
   const tableRow = triggerElement.closest('tr');
   if (!tableRow) return null;
 
+  tableRow.hidden = true;
   // Find the original Drupal remove button directly (the hidden input/button
   // that carries the AJAX behavior). The cell and button are hidden by
   // CSS but remain in the DOM.
@@ -92,16 +99,19 @@ export const triggerDrupalRemoveButton = (
       'input[type="submit"][data-once="drupal-ajax"]',
     ) as HTMLInputElement | null;
     if (removeButton) {
+      if (formId !== 'component_instance_form') {
+        // Dispatch mousedown first (some Drupal AJAX handlers listen for it),
+        // then click — mirroring what Drupal's AJAX system expects.
+        const mousedownEvent = new MouseEvent('mousedown', {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+        });
+        removeButton.dispatchEvent(mousedownEvent);
+        removeButton.click();
+      }
       const buttonName = removeButton.getAttribute('name');
-      // Dispatch mousedown first (some Drupal AJAX handlers listen for it),
-      // then click — mirroring what Drupal's AJAX system expects.
-      const mousedownEvent = new MouseEvent('mousedown', {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-      });
-      removeButton.dispatchEvent(mousedownEvent);
-      removeButton.click();
+
       return buttonName;
     }
   }
@@ -162,4 +172,58 @@ export const isAutocompleteMenuOpen = (input: HTMLInputElement): boolean => {
   return !!(
     $jq && $jq(input).data('ui-autocomplete')?.menu?.element?.is?.(':visible')
   );
+};
+
+/**
+ * Extract the numeric index of an item in a multivalue field from its input name.
+ *
+ * Given a field name like `field_example[0][value]` and a prop name like
+ * `field_example`, returns 0.
+ *
+ * @param name - The full input name attribute value
+ * @param propName - The resolved prop name for the field
+ * @returns The zero-based index, or null if it cannot be determined
+ */
+export const extractPositionFromFieldName = (
+  name: string,
+  propName: string,
+): number | null => {
+  if (!name || !propName) return null;
+
+  const escapedPropName = propName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = name.match(new RegExp(`\\[${escapedPropName}\\]\\[(\\d+)\\]`));
+  if (match && match[1]) {
+    return parseInt(match[1], 10);
+  }
+  return null;
+};
+
+/**
+ * Build a patched EvaluatedComponentModel with a specific array item removed.
+ *
+ * Creates a shallow-cloned model with the item at `position` spliced out of
+ * the `propName` array in `resolved` (and left untouched elsewhere).
+ *
+ * @param model - The current evaluated component model
+ * @param propName - The prop whose array value should be modified
+ * @param position - The zero-based index of the item to remove
+ * @returns A new model object with the item removed
+ */
+export const buildModelWithItemRemoved = (
+  model: EvaluatedComponentModel,
+  propName: string,
+  position: number,
+): EvaluatedComponentModel => {
+  const oldValue: unknown[] = (model.resolved[propName] as unknown[]) || [];
+  const newValue = [...oldValue];
+  newValue.splice(position, 1);
+
+  return {
+    ...model,
+    source: model.source,
+    resolved: {
+      ...model.resolved,
+      [propName]: newValue,
+    } as ResolvedValues,
+  };
 };

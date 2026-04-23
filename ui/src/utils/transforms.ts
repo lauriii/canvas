@@ -289,10 +289,16 @@ const dateTime: Transformer<
     if (type === 'date') {
       return dateString;
     }
-    if ('time' in record) {
+    if ('time' in record && record.time) {
       timeString = record.time;
     }
     if (!dateString && !timeString) {
+      return null;
+    }
+
+    try {
+      return new Date(`${dateString} ${timeString}+0000`).toISOString();
+    } catch (e) {
       return null;
     }
 

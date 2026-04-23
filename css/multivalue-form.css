@@ -90,7 +90,7 @@
   width: 100%;
   padding: 8px 12px;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, opacity .3s ease;
   color: #0090FF;
   border: none;
   border-bottom-right-radius: 4px;

@@ -68,11 +68,11 @@ function registerNumericTypeTests(config: NumericTypeTestConfig): void {
       await typeInPopover(page, 'input[type="number"]', addVal);
       await verifyRowText(field, 2, addVal);
 
-      const previewFrame = await canvas.getActivePreviewFrame();
-      const listItems = previewFrame.locator(`${listId} li`);
-      await expect(listItems.nth(0)).toContainText(val1);
-      await expect(listItems.nth(1)).toContainText(val2);
-      await expect(listItems.nth(2)).toContainText(addVal);
+      await canvas.testInPreviewFrame(`${listId} li`, async (listItems) => {
+        await expect(listItems.nth(0)).toContainText(val1);
+        await expect(listItems.nth(1)).toContainText(val2);
+        await expect(listItems.nth(2)).toContainText(addVal);
+      });
       expect(await getAllRowTexts(field)).toEqual([val1, val2, addVal, '']);
     });
 
@@ -94,11 +94,13 @@ function registerNumericTypeTests(config: NumericTypeTestConfig): void {
       expect(await getAllRowTexts(field)).toEqual([val2, '']);
 
       // Assert that page is also updated.
-      const previewFrame = await canvas.getActivePreviewFrame();
-      const listItems = previewFrame.locator(`${listId} li`);
-      await expect(listItems).toHaveCount(1);
-      await expect(listItems.nth(0)).toContainText(val2);
-      await expect(previewFrame.locator(listId)).not.toContainText(val1);
+      await canvas.testInPreviewFrame(`${listId} li`, async (listItems) => {
+        await expect(listItems).toHaveCount(1);
+        await expect(listItems.nth(0)).toContainText(val2);
+      });
+      await canvas.testInPreviewFrame(listId, async (list) => {
+        await expect(list).not.toContainText(val1);
+      });
     });
 
     test('popover opens and closes correctly', async ({ page }) => {
@@ -124,24 +126,28 @@ function registerNumericTypeTests(config: NumericTypeTestConfig): void {
 
     test('can reorder items using drag and drop', async ({ page, canvas }) => {
       const field = getField(page, propName);
-      const previewFrame1 = await canvas.getActivePreviewFrame();
-      const listItems1 = previewFrame1.locator(`${listId} li`);
-      await expect(listItems1.nth(0)).toContainText(val1);
-      await expect(listItems1.nth(1)).toContainText(val2);
+
+      await canvas.testInPreviewFrame(`${listId} li`, async (listItems) => {
+        await expect(listItems.nth(0)).toContainText(val1);
+        await expect(listItems.nth(1)).toContainText(val2);
+      });
+
       await dragRow(field, 0, 1);
+
       // Verify the preview reflects the new order.
-      const previewFrame2 = await canvas.getActivePreviewFrame();
-      const listItems2 = previewFrame2.locator(`${listId} li`);
-      await expect(listItems2.nth(0)).toContainText(val2);
-      await expect(listItems2.nth(1)).toContainText(val1);
+      await canvas.testInPreviewFrame(`${listId} li`, async (listItems) => {
+        await expect(listItems.nth(0)).toContainText(val2);
+        await expect(listItems.nth(1)).toContainText(val1);
+      });
       expect(await getAllRowTexts(field)).toEqual([val2, val1, '']);
+
       await page.reload();
 
       // Assert that the order of dragging is also maintained after page refresh.
-      const previewFrame3 = await canvas.getActivePreviewFrame();
-      const listItems3 = previewFrame3.locator(`${listId} li`);
-      await expect(listItems3.nth(0)).toContainText(val2);
-      await expect(listItems3.nth(1)).toContainText(val1);
+      await canvas.testInPreviewFrame(`${listId} li`, async (listItems) => {
+        await expect(listItems.nth(0)).toContainText(val2);
+        await expect(listItems.nth(1)).toContainText(val1);
+      });
       expect(await getAllRowTexts(field)).toEqual([val2, val1, '']);
     });
 
@@ -155,22 +161,24 @@ function registerNumericTypeTests(config: NumericTypeTestConfig): void {
       await openPopoverForRow(page, field, 2);
       await typeInPopover(page, 'input[type="number"]', persistVal);
       await verifyRowText(field, 2, persistVal);
-      const previewFrame = await canvas.getActivePreviewFrame();
-      const listItems = previewFrame.locator(`${listId} li`);
-      // Asserting that the values are updated on the page instance as well.
-      await expect(listItems.nth(0)).toContainText(val1);
-      await expect(listItems.nth(1)).toContainText(val2);
-      await expect(listItems.nth(2)).toContainText(persistVal);
+
+      await canvas.testInPreviewFrame(`${listId} li`, async (listItems) => {
+        // Asserting that the values are updated on the page instance as well.
+        await expect(listItems.nth(0)).toContainText(val1);
+        await expect(listItems.nth(1)).toContainText(val2);
+        await expect(listItems.nth(2)).toContainText(persistVal);
+      });
       expect(await getAllRowTexts(field)).toEqual([val1, val2, persistVal, '']);
 
       await page.reload();
       await expect(page.locator(`.field--name-${propName}`)).toBeVisible();
-      const previewFrame2 = await canvas.getActivePreviewFrame();
-      const listItems2 = previewFrame2.locator(`${listId} li`);
-      // Asserting that the values are same on the page instance after refresh.
-      await expect(listItems2.nth(0)).toContainText(val1);
-      await expect(listItems2.nth(1)).toContainText(val2);
-      await expect(listItems2.nth(2)).toContainText(persistVal);
+
+      await canvas.testInPreviewFrame(`${listId} li`, async (listItems) => {
+        // Asserting that the values are same on the page instance after refresh.
+        await expect(listItems.nth(0)).toContainText(val1);
+        await expect(listItems.nth(1)).toContainText(val2);
+        await expect(listItems.nth(2)).toContainText(persistVal);
+      });
       field = getField(page, propName);
       expect(await getAllRowTexts(field)).toEqual([val1, val2, persistVal, '']);
     });
@@ -222,12 +230,13 @@ function registerNumericTypeTests(config: NumericTypeTestConfig): void {
       await typeInPopover(page, 'input[type="number"]', addVal);
       await verifyRowText(field, 0, addVal);
 
-      const previewFrame = await canvas.getActivePreviewFrame();
-      const listItems = previewFrame.locator(
+      await canvas.testInPreviewFrame(
         `${listId.replace('-list', '-limited-list')} li`,
+        async (listItems) => {
+          await expect(listItems.nth(0)).toContainText(addVal);
+          await expect(listItems.nth(1)).toContainText(val2);
+        },
       );
-      await expect(listItems.nth(0)).toContainText(addVal);
-      await expect(listItems.nth(1)).toContainText(val2);
       expect(await getAllRowTexts(field)).toEqual([addVal, val2, '']);
     });
 
@@ -246,30 +255,35 @@ function registerNumericTypeTests(config: NumericTypeTestConfig): void {
 
     test('can reorder items using drag and drop', async ({ page, canvas }) => {
       const field = getField(page, propNameLimited);
-      const previewFrame1 = await canvas.getActivePreviewFrame();
-      const listItems1 = previewFrame1.locator(
+      await canvas.testInPreviewFrame(
         `${listId.replace('-list', '-limited-list')} li`,
+        async (listItems1) => {
+          await expect(listItems1.nth(0)).toContainText(val1);
+          await expect(listItems1.nth(1)).toContainText(val2);
+        },
       );
-      await expect(listItems1.nth(0)).toContainText(val1);
-      await expect(listItems1.nth(1)).toContainText(val2);
+
       await dragRow(field, 0, 1);
       // Verify the preview reflects the new order.
-      const previewFrame2 = await canvas.getActivePreviewFrame();
-      const listItems2 = previewFrame2.locator(
+      await canvas.testInPreviewFrame(
         `${listId.replace('-list', '-limited-list')} li`,
+        async (listItems2) => {
+          await expect(listItems2.nth(0)).toContainText(val2);
+          await expect(listItems2.nth(1)).toContainText(val1);
+        },
       );
-      await expect(listItems2.nth(0)).toContainText(val2);
-      await expect(listItems2.nth(1)).toContainText(val1);
+
       expect(await getAllRowTexts(field)).toEqual([val2, val1, '']);
       await page.reload();
 
       // Assert that the order of dragging is also maintained after page refresh.
-      const previewFrame3 = await canvas.getActivePreviewFrame();
-      const listItems3 = previewFrame3.locator(
+      await canvas.testInPreviewFrame(
         `${listId.replace('-list', '-limited-list')} li`,
+        async (listItems3) => {
+          await expect(listItems3.nth(0)).toContainText(val2);
+          await expect(listItems3.nth(1)).toContainText(val1);
+        },
       );
-      await expect(listItems3.nth(0)).toContainText(val2);
-      await expect(listItems3.nth(1)).toContainText(val1);
       expect(await getAllRowTexts(field)).toEqual([val2, val1, '']);
     });
   });
@@ -318,12 +332,17 @@ test.describe('Multivalue Prop Types', () => {
         await typeInPopover(page, '.form-text', 'Marshmallow Coast');
         await verifyRowText(field, 2, 'Marshmallow Coast');
 
-        const previewFrame = await canvas.getActivePreviewFrame();
-        const textListItems = previewFrame.locator('#text-list li');
-        // Asserting that the values are updated on the page instance as well.
-        await expect(textListItems.nth(0)).toContainText('Hello World');
-        await expect(textListItems.nth(1)).toContainText('Sample Text');
-        await expect(textListItems.nth(2)).toContainText('Marshmallow Coast');
+        await canvas.testInPreviewFrame(
+          '#text-list li',
+          async (textListItems) => {
+            // Asserting that the values are updated on the page instance as well.
+            await expect(textListItems.nth(0)).toContainText('Hello World');
+            await expect(textListItems.nth(1)).toContainText('Sample Text');
+            await expect(textListItems.nth(2)).toContainText(
+              'Marshmallow Coast',
+            );
+          },
+        );
         expect(await getAllRowTexts(field)).toEqual([
           'Hello World',
           'Sample Text',
@@ -350,13 +369,16 @@ test.describe('Multivalue Prop Types', () => {
         expect(await getAllRowTexts(field)).toEqual(['Sample Text', '']);
 
         // Assert that page is also updated.
-        const previewFrame = await canvas.getActivePreviewFrame();
-        const textListItems = previewFrame.locator('#text-list li');
-        await expect(textListItems).toHaveCount(1);
-        await expect(textListItems.nth(0)).toContainText('Sample Text');
-        await expect(previewFrame.locator('#text-list')).not.toContainText(
-          'Hello World',
+        await canvas.testInPreviewFrame(
+          '#text-list li',
+          async (textListItems) => {
+            await expect(textListItems).toHaveCount(1);
+            await expect(textListItems.nth(0)).toContainText('Sample Text');
+          },
         );
+        await canvas.testInPreviewFrame('#text-list', async (textList) => {
+          await expect(textList).not.toContainText('Hello World');
+        });
       });
 
       test('popover opens and closes correctly', async ({ page }) => {
@@ -387,16 +409,18 @@ test.describe('Multivalue Prop Types', () => {
         canvas,
       }) => {
         const field = getField(page, PROP_NAMES.TEXT);
-        const previewFrame1 = await canvas.getActivePreviewFrame();
-        const textListItems1 = previewFrame1.locator('#text-list li');
-        await expect(textListItems1.nth(0)).toContainText('Hello World');
-        await expect(textListItems1.nth(1)).toContainText('Sample Text');
+        await canvas.testInPreviewFrame('#text-list li', async (textList) => {
+          await expect(textList.nth(0)).toContainText('Hello World');
+          await expect(textList.nth(1)).toContainText('Sample Text');
+        });
+
         await dragRow(field, 0, 1);
         // Verify the preview reflects the new order.
-        const previewFrame2 = await canvas.getActivePreviewFrame();
-        const textListItems2 = previewFrame2.locator('#text-list li');
-        await expect(textListItems2.nth(0)).toContainText('Sample Text');
-        await expect(textListItems2.nth(1)).toContainText('Hello World');
+        await canvas.testInPreviewFrame('#text-list li', async (textList) => {
+          await expect(textList.nth(0)).toContainText('Sample Text');
+          await expect(textList.nth(1)).toContainText('Hello World');
+        });
+
         expect(await getAllRowTexts(field)).toEqual([
           'Sample Text',
           'Hello World',
@@ -405,11 +429,11 @@ test.describe('Multivalue Prop Types', () => {
         await page.reload();
 
         // Assert that the order of dragging is also maintained after page refresh.
-        const previewFrame3 = await canvas.getActivePreviewFrame();
-        const textListItems3 = previewFrame3.locator('#text-list li');
+        await canvas.testInPreviewFrame('#text-list li', async (textList) => {
+          await expect(textList.nth(0)).toContainText('Sample Text');
+          await expect(textList.nth(1)).toContainText('Hello World');
+        });
         // Asserting that the values are same on the page instance after refresh.
-        await expect(textListItems3.nth(0)).toContainText('Sample Text');
-        await expect(textListItems3.nth(1)).toContainText('Hello World');
         expect(await getAllRowTexts(field)).toEqual([
           'Sample Text',
           'Hello World',
@@ -426,12 +450,15 @@ test.describe('Multivalue Prop Types', () => {
         await openPopoverForRow(page, field, 2);
         await typeInPopover(page, '.form-text', 'Persisted Value');
         await verifyRowText(field, 2, 'Persisted Value');
-        const previewFrame = await canvas.getActivePreviewFrame();
-        const textListItems = previewFrame.locator('#text-list li');
         // Asserting that the values are updated on the page instance as well.
-        await expect(textListItems.nth(0)).toContainText('Hello World');
-        await expect(textListItems.nth(1)).toContainText('Sample Text');
-        await expect(textListItems.nth(2)).toContainText('Persisted Value');
+        await canvas.testInPreviewFrame(
+          '#text-list li',
+          async (textListItems) => {
+            await expect(textListItems.nth(0)).toContainText('Hello World');
+            await expect(textListItems.nth(1)).toContainText('Sample Text');
+            await expect(textListItems.nth(2)).toContainText('Persisted Value');
+          },
+        );
         expect(await getAllRowTexts(field)).toEqual([
           'Hello World',
           'Sample Text',
@@ -440,12 +467,15 @@ test.describe('Multivalue Prop Types', () => {
         ]);
         await page.reload();
 
-        const previewFrame2 = await canvas.getActivePreviewFrame();
-        const textListItems2 = previewFrame2.locator('#text-list li');
         // Asserting that the values are same on the page instance after refresh.
-        await expect(textListItems2.nth(0)).toContainText('Hello World');
-        await expect(textListItems2.nth(1)).toContainText('Sample Text');
-        await expect(textListItems2.nth(2)).toContainText('Persisted Value');
+        await canvas.testInPreviewFrame(
+          '#text-list li',
+          async (textListItems) => {
+            await expect(textListItems.nth(0)).toContainText('Hello World');
+            await expect(textListItems.nth(1)).toContainText('Sample Text');
+            await expect(textListItems.nth(2)).toContainText('Persisted Value');
+          },
+        );
         expect(await getAllRowTexts(field)).toEqual([
           'Hello World',
           'Sample Text',
@@ -504,10 +534,13 @@ test.describe('Multivalue Prop Types', () => {
         await typeInPopover(page, '.form-text', 'Edited Text');
         await verifyRowText(field, 0, 'Edited Text');
 
-        const previewFrame = await canvas.getActivePreviewFrame();
-        const textListItems = previewFrame.locator('#text-limited-list li');
-        await expect(textListItems.nth(0)).toContainText('Edited Text');
-        await expect(textListItems.nth(1)).toContainText('Sample Text');
+        await canvas.testInPreviewFrame(
+          '#text-limited-list li',
+          async (textListItems) => {
+            await expect(textListItems.nth(0)).toContainText('Edited Text');
+            await expect(textListItems.nth(1)).toContainText('Sample Text');
+          },
+        );
         expect(await getAllRowTexts(field)).toEqual([
           'Edited Text',
           'Sample Text',
@@ -545,16 +578,22 @@ test.describe('Multivalue Prop Types', () => {
         canvas,
       }) => {
         const field = getField(page, PROP_NAMES.TEXT_LIMITED);
-        const previewFrame1 = await canvas.getActivePreviewFrame();
-        const textListItems1 = previewFrame1.locator('#text-limited-list li');
-        await expect(textListItems1.nth(0)).toContainText('Hello World');
-        await expect(textListItems1.nth(1)).toContainText('Sample Text');
+        await canvas.testInPreviewFrame(
+          '#text-limited-list li',
+          async (textListItems) => {
+            await expect(textListItems.nth(0)).toContainText('Hello World');
+            await expect(textListItems.nth(1)).toContainText('Sample Text');
+          },
+        );
         await dragRow(field, 0, 1);
         // Verify the preview reflects the new order.
-        const previewFrame2 = await canvas.getActivePreviewFrame();
-        const textListItems2 = previewFrame2.locator('#text-limited-list li');
-        await expect(textListItems2.nth(0)).toContainText('Sample Text');
-        await expect(textListItems2.nth(1)).toContainText('Hello World');
+        await canvas.testInPreviewFrame(
+          '#text-limited-list li',
+          async (textListItems) => {
+            await expect(textListItems.nth(0)).toContainText('Sample Text');
+            await expect(textListItems.nth(1)).toContainText('Hello World');
+          },
+        );
         expect(await getAllRowTexts(field)).toEqual([
           'Sample Text',
           'Hello World',
@@ -563,10 +602,13 @@ test.describe('Multivalue Prop Types', () => {
         await page.reload();
 
         // Assert that the order of dragging is also maintained after page refresh.
-        const previewFrame3 = await canvas.getActivePreviewFrame();
-        const textListItems3 = previewFrame3.locator('#text-limited-list li');
-        await expect(textListItems3.nth(0)).toContainText('Sample Text');
-        await expect(textListItems3.nth(1)).toContainText('Hello World');
+        await canvas.testInPreviewFrame(
+          '#text-limited-list li',
+          async (textListItems) => {
+            await expect(textListItems.nth(0)).toContainText('Sample Text');
+            await expect(textListItems.nth(1)).toContainText('Hello World');
+          },
+        );
         expect(await getAllRowTexts(field)).toEqual([
           'Sample Text',
           'Hello World',
@@ -659,13 +701,21 @@ test.describe('Multivalue Prop Types', () => {
           'https://examplenew.com',
         );
         await verifyRowText(field, 2, 'https://examplenew.com');
-        const previewFrame = await canvas.getActivePreviewFrame();
-        const linkListItems = previewFrame.locator('#link-list li');
-        // Asserting that the values are updated on the page instance as well.
-        await expect(linkListItems.nth(0)).toContainText('https://drupal.org');
-        await expect(linkListItems.nth(1)).toContainText('https://example.com');
-        await expect(linkListItems.nth(2)).toContainText(
-          'https://examplenew.com',
+
+        await canvas.testInPreviewFrame(
+          '#link-list li',
+          async (linkListItems) => {
+            // Asserting that the values are updated on the page instance as well.
+            await expect(linkListItems.nth(0)).toContainText(
+              'https://drupal.org',
+            );
+            await expect(linkListItems.nth(1)).toContainText(
+              'https://example.com',
+            );
+            await expect(linkListItems.nth(2)).toContainText(
+              'https://examplenew.com',
+            );
+          },
         );
         expect(await getAllRowTexts(field)).toEqual([
           'https://drupal.org',
@@ -696,13 +746,18 @@ test.describe('Multivalue Prop Types', () => {
         ]);
 
         // Assert that page is also updated.
-        const previewFrame = await canvas.getActivePreviewFrame();
-        const linkListItems = previewFrame.locator('#link-list li');
-        await expect(linkListItems).toHaveCount(1);
-        await expect(linkListItems.nth(0)).toContainText('https://example.com');
-        await expect(previewFrame.locator('#link-list')).not.toContainText(
-          'https://drupal.org',
+        await canvas.testInPreviewFrame(
+          '#link-list li',
+          async (linkListItems) => {
+            await expect(linkListItems).toHaveCount(1);
+            await expect(linkListItems.nth(0)).toContainText(
+              'https://example.com',
+            );
+          },
         );
+        await canvas.testInPreviewFrame('#link-list', async (linkList) => {
+          await expect(linkList).not.toContainText('https://drupal.org');
+        });
       });
 
       test('popover opens and closes correctly', async ({ page }) => {
@@ -733,11 +788,16 @@ test.describe('Multivalue Prop Types', () => {
         canvas,
       }) => {
         const field = getField(page, PROP_NAMES.LINK);
-        const previewFrame1 = await canvas.getActivePreviewFrame();
-        const linkListItems1 = previewFrame1.locator('#link-list li');
-        await expect(linkListItems1.nth(0)).toContainText('https://drupal.org');
-        await expect(linkListItems1.nth(1)).toContainText(
-          'https://example.com',
+        await canvas.testInPreviewFrame(
+          '#link-list li',
+          async (linkListItems) => {
+            await expect(linkListItems.nth(0)).toContainText(
+              'https://drupal.org',
+            );
+            await expect(linkListItems.nth(1)).toContainText(
+              'https://example.com',
+            );
+          },
         );
         expect(await getAllRowTexts(field)).toEqual([
           'https://drupal.org',
@@ -745,23 +805,18 @@ test.describe('Multivalue Prop Types', () => {
           '',
         ]);
         await dragRow(field, 0, 1);
-        const previewFrame2 = await canvas.getActivePreviewFrame();
-        const linkListItems2 = previewFrame2.locator('#link-list li');
-        await expect(linkListItems2.nth(0)).toContainText(
-          'https://example.com',
-        );
-        await expect(linkListItems2.nth(1)).toContainText('https://drupal.org');
-        expect(await getAllRowTexts(field)).toEqual([
-          'https://example.com',
-          'https://drupal.org',
-          '',
-        ]);
-
         // Verify the preview reflects the new order.
-        const previewFrame = await canvas.getActivePreviewFrame();
-        const linkListItems = previewFrame.locator('#link-list li');
-        await expect(linkListItems.nth(0)).toContainText('https://example.com');
-        await expect(linkListItems.nth(1)).toContainText('https://drupal.org');
+        await canvas.testInPreviewFrame(
+          '#link-list li',
+          async (linkListItems) => {
+            await expect(linkListItems.nth(0)).toContainText(
+              'https://example.com',
+            );
+            await expect(linkListItems.nth(1)).toContainText(
+              'https://drupal.org',
+            );
+          },
+        );
         expect(await getAllRowTexts(field)).toEqual([
           'https://example.com',
           'https://drupal.org',
@@ -770,12 +825,17 @@ test.describe('Multivalue Prop Types', () => {
         await page.reload();
 
         // Assert that the order of dragging is also maintained after page refresh.
-        const previewFrame3 = await canvas.getActivePreviewFrame();
-        const linkListItems3 = previewFrame3.locator('#link-list li');
-        await expect(linkListItems3.nth(0)).toContainText(
-          'https://example.com',
+        await canvas.testInPreviewFrame(
+          '#link-list li',
+          async (linkListItems) => {
+            await expect(linkListItems.nth(0)).toContainText(
+              'https://example.com',
+            );
+            await expect(linkListItems.nth(1)).toContainText(
+              'https://drupal.org',
+            );
+          },
         );
-        await expect(linkListItems3.nth(1)).toContainText('https://drupal.org');
         expect(await getAllRowTexts(field)).toEqual([
           'https://example.com',
           'https://drupal.org',
@@ -792,13 +852,20 @@ test.describe('Multivalue Prop Types', () => {
         await openPopoverForRow(page, field, 2);
         await typeInPopover(page, 'input[type="url"]', 'https://persisted.com');
         await verifyRowText(field, 2, 'https://persisted.com');
-        const previewFrame = await canvas.getActivePreviewFrame();
-        const linkListItems = previewFrame.locator('#link-list li');
         // Asserting that the values are updated on the page instance as well.
-        await expect(linkListItems.nth(0)).toContainText('https://drupal.org');
-        await expect(linkListItems.nth(1)).toContainText('https://example.com');
-        await expect(linkListItems.nth(2)).toContainText(
-          'https://persisted.com',
+        await canvas.testInPreviewFrame(
+          '#link-list li',
+          async (linkListItems) => {
+            await expect(linkListItems.nth(0)).toContainText(
+              'https://drupal.org',
+            );
+            await expect(linkListItems.nth(1)).toContainText(
+              'https://example.com',
+            );
+            await expect(linkListItems.nth(2)).toContainText(
+              'https://persisted.com',
+            );
+          },
         );
         expect(await getAllRowTexts(field)).toEqual([
           'https://drupal.org',
@@ -808,15 +875,20 @@ test.describe('Multivalue Prop Types', () => {
         ]);
 
         await page.reload();
-        const previewFrame2 = await canvas.getActivePreviewFrame();
-        const linkListItems2 = previewFrame2.locator('#link-list li');
         // Asserting that the values are same on the page instance after refresh.
-        await expect(linkListItems2.nth(0)).toContainText('https://drupal.org');
-        await expect(linkListItems2.nth(1)).toContainText(
-          'https://example.com',
-        );
-        await expect(linkListItems2.nth(2)).toContainText(
-          'https://persisted.com',
+        await canvas.testInPreviewFrame(
+          '#link-list li',
+          async (linkListItems) => {
+            await expect(linkListItems.nth(0)).toContainText(
+              'https://drupal.org',
+            );
+            await expect(linkListItems.nth(1)).toContainText(
+              'https://example.com',
+            );
+            await expect(linkListItems.nth(2)).toContainText(
+              'https://persisted.com',
+            );
+          },
         );
         expect(await getAllRowTexts(field)).toEqual([
           'https://drupal.org',
@@ -876,10 +948,17 @@ test.describe('Multivalue Prop Types', () => {
         await typeInPopover(page, 'input[type="url"]', 'https://edited.com');
         await verifyRowText(field, 0, 'https://edited.com');
 
-        const previewFrame = await canvas.getActivePreviewFrame();
-        const linkListItems = previewFrame.locator('#link-limited-list li');
-        await expect(linkListItems.nth(0)).toContainText('https://edited.com');
-        await expect(linkListItems.nth(1)).toContainText('https://example.com');
+        await canvas.testInPreviewFrame(
+          '#link-limited-list li',
+          async (linkListItems) => {
+            await expect(linkListItems.nth(0)).toContainText(
+              'https://edited.com',
+            );
+            await expect(linkListItems.nth(1)).toContainText(
+              'https://example.com',
+            );
+          },
+        );
         expect(await getAllRowTexts(field)).toEqual([
           'https://edited.com',
           'https://example.com',
@@ -917,20 +996,30 @@ test.describe('Multivalue Prop Types', () => {
         canvas,
       }) => {
         const field = getField(page, PROP_NAMES.LINK_LIMITED);
-        const previewFrame1 = await canvas.getActivePreviewFrame();
-        const linkListItems1 = previewFrame1.locator('#link-limited-list li');
-        await expect(linkListItems1.nth(0)).toContainText('https://drupal.org');
-        await expect(linkListItems1.nth(1)).toContainText(
-          'https://example.com',
+        await canvas.testInPreviewFrame(
+          '#link-limited-list li',
+          async (linkListItems) => {
+            await expect(linkListItems.nth(0)).toContainText(
+              'https://drupal.org',
+            );
+            await expect(linkListItems.nth(1)).toContainText(
+              'https://example.com',
+            );
+          },
         );
         await dragRow(field, 0, 1);
         // Verify the preview reflects the new order.
-        const previewFrame2 = await canvas.getActivePreviewFrame();
-        const linkListItems2 = previewFrame2.locator('#link-limited-list li');
-        await expect(linkListItems2.nth(0)).toContainText(
-          'https://example.com',
+        await canvas.testInPreviewFrame(
+          '#link-limited-list li',
+          async (linkListItems) => {
+            await expect(linkListItems.nth(0)).toContainText(
+              'https://example.com',
+            );
+            await expect(linkListItems.nth(1)).toContainText(
+              'https://drupal.org',
+            );
+          },
         );
-        await expect(linkListItems2.nth(1)).toContainText('https://drupal.org');
         expect(await getAllRowTexts(field)).toEqual([
           'https://example.com',
           'https://drupal.org',
@@ -939,12 +1028,17 @@ test.describe('Multivalue Prop Types', () => {
         await page.reload();
 
         // Assert that the order of dragging is also maintained after page refresh.
-        const previewFrame3 = await canvas.getActivePreviewFrame();
-        const linkListItems3 = previewFrame3.locator('#link-limited-list li');
-        await expect(linkListItems3.nth(0)).toContainText(
-          'https://example.com',
+        await canvas.testInPreviewFrame(
+          '#link-limited-list li',
+          async (linkListItems) => {
+            await expect(linkListItems.nth(0)).toContainText(
+              'https://example.com',
+            );
+            await expect(linkListItems.nth(1)).toContainText(
+              'https://drupal.org',
+            );
+          },
         );
-        await expect(linkListItems3.nth(1)).toContainText('https://drupal.org');
         expect(await getAllRowTexts(field)).toEqual([
           'https://example.com',
           'https://drupal.org',
@@ -991,9 +1085,9 @@ test.describe('Multivalue Prop Types', () => {
       await typeInPopover(page, 'input[type="number"]', decimalValue);
       await verifyRowText(field, 2, decimalValue);
 
-      const previewFrame = await canvas.getActivePreviewFrame();
-      const listItems = previewFrame.locator('#number-list li');
-      await expect(listItems.nth(2)).toContainText(decimalValue);
+      await canvas.testInPreviewFrame('#number-list li', async (listItems) => {
+        await expect(listItems.nth(2)).toContainText(decimalValue);
+      });
       expect(await getAllRowTexts(field)).toEqual([
         '42',
         '100',
@@ -1075,11 +1169,14 @@ test.describe('Multivalue Prop Types', () => {
           formatDatetimeForDisplay('2025-12-26', '10:00'),
         );
 
-        const previewFrame = await canvas.getActivePreviewFrame();
-        const listItems = previewFrame.locator('#datetime-list li');
-        await expect(listItems.nth(0)).toContainText('2025-12-24');
-        await expect(listItems.nth(1)).toContainText('2025-12-25');
-        await expect(listItems.nth(2)).toContainText('2025-12-26');
+        await canvas.testInPreviewFrame(
+          '#datetime-list li',
+          async (listItems) => {
+            await expect(listItems.nth(0)).toContainText('2025-12-24');
+            await expect(listItems.nth(1)).toContainText('2025-12-25');
+            await expect(listItems.nth(2)).toContainText('2025-12-26');
+          },
+        );
         expect(await getAllRowTexts(field)).toEqual([
           formatDatetimeForDisplay('2025-12-24', '08:00'),
           formatDatetimeForDisplay('2025-12-25', '09:00'),
@@ -1109,12 +1206,14 @@ test.describe('Multivalue Prop Types', () => {
           formatDatetimeForDisplay('2025-12-25', '09:00'),
         );
 
-        const previewFrame = await canvas.getActivePreviewFrame();
-        await previewFrame.locator('#datetime-list').scrollIntoViewIfNeeded();
-        const items = previewFrame.locator('#datetime-list li');
-        await expect(items).toHaveCount(2);
-        await expect(items.nth(0)).toContainText('2025-11-24T08:00:00.000Z');
-        await expect(items.nth(1)).toContainText('2025-12-25T09:00:00.000Z');
+        await canvas.testInPreviewFrame('#datetime-list', async (list) => {
+          await list.scrollIntoViewIfNeeded();
+        });
+        await canvas.testInPreviewFrame('#datetime-list li', async (items) => {
+          await expect(items).toHaveCount(2);
+          await expect(items.nth(0)).toContainText('2025-11-24T08:00:00.000Z');
+          await expect(items.nth(1)).toContainText('2025-12-25T09:00:00.000Z');
+        });
 
         await openPopoverForRow(page, field, 0);
         await page
@@ -1130,12 +1229,17 @@ test.describe('Multivalue Prop Types', () => {
         ]);
 
         // Assert that page is also updated.
-        // const previewFrame = await canvas.getActivePreviewFrame();
-        // await previewFrame.locator('#datetime-list').scrollIntoViewIfNeeded();
-        const listItems = previewFrame.locator('#datetime-list li');
-        await expect(listItems).toHaveCount(1);
-        await expect(listItems.nth(0)).toContainText(
-          '2025-12-25T09:00:00.000Z',
+        await canvas.testInPreviewFrame('#datetime-list', async (list) => {
+          await list.scrollIntoViewIfNeeded();
+        });
+        await canvas.testInPreviewFrame(
+          '#datetime-list li',
+          async (listItems) => {
+            await expect(listItems).toHaveCount(1);
+            await expect(listItems.nth(0)).toContainText(
+              '2025-12-25T09:00:00.000Z',
+            );
+          },
         );
       });
 
@@ -1182,16 +1286,22 @@ test.describe('Multivalue Prop Types', () => {
           1,
           formatDatetimeForDisplay('2025-12-25', '09:00'),
         );
-        const previewFrame1 = await canvas.getActivePreviewFrame();
-        const listItems1 = previewFrame1.locator('#datetime-list li');
-        await expect(listItems1.nth(0)).toContainText('2025-12-24');
-        await expect(listItems1.nth(1)).toContainText('2025-12-25');
+        await canvas.testInPreviewFrame(
+          '#datetime-list li',
+          async (listItems) => {
+            await expect(listItems.nth(0)).toContainText('2025-12-24');
+            await expect(listItems.nth(1)).toContainText('2025-12-25');
+          },
+        );
         await dragRow(field, 0, 1);
         // Verify the preview reflects the new order.
-        const previewFrame2 = await canvas.getActivePreviewFrame();
-        const listItems2 = previewFrame2.locator('#datetime-list li');
-        await expect(listItems2.nth(0)).toContainText('2025-12-25');
-        await expect(listItems2.nth(1)).toContainText('2025-12-24');
+        await canvas.testInPreviewFrame(
+          '#datetime-list li',
+          async (listItems) => {
+            await expect(listItems.nth(0)).toContainText('2025-12-25');
+            await expect(listItems.nth(1)).toContainText('2025-12-24');
+          },
+        );
         expect(await getAllRowTexts(field)).toEqual([
           formatDatetimeForDisplay('2025-12-25', '09:00'),
           formatDatetimeForDisplay('2025-12-24', '08:00'),
@@ -1200,10 +1310,13 @@ test.describe('Multivalue Prop Types', () => {
         await page.reload();
 
         // Assert that the order of dragging is also maintained after page refresh.
-        const previewFrame3 = await canvas.getActivePreviewFrame();
-        const listItems3 = previewFrame3.locator('#datetime-list li');
-        await expect(listItems3.nth(0)).toContainText('2025-12-25');
-        await expect(listItems3.nth(1)).toContainText('2025-12-24');
+        await canvas.testInPreviewFrame(
+          '#datetime-list li',
+          async (listItems) => {
+            await expect(listItems.nth(0)).toContainText('2025-12-25');
+            await expect(listItems.nth(1)).toContainText('2025-12-24');
+          },
+        );
         expect(await getAllRowTexts(field)).toEqual([
           formatDatetimeForDisplay('2025-12-25', '09:00'),
           formatDatetimeForDisplay('2025-12-24', '08:00'),
@@ -1242,11 +1355,14 @@ test.describe('Multivalue Prop Types', () => {
           2,
           formatDatetimeForDisplay('2026-03-01', '12:00'),
         );
-        const previewFrame = await canvas.getActivePreviewFrame();
-        const listItems = previewFrame.locator('#datetime-list li');
-        await expect(listItems.nth(0)).toContainText('2025-12-24');
-        await expect(listItems.nth(1)).toContainText('2025-12-25');
-        await expect(listItems.nth(2)).toContainText('2026-03-01');
+        await canvas.testInPreviewFrame(
+          '#datetime-list li',
+          async (listItems) => {
+            await expect(listItems.nth(0)).toContainText('2025-12-24');
+            await expect(listItems.nth(1)).toContainText('2025-12-25');
+            await expect(listItems.nth(2)).toContainText('2026-03-01');
+          },
+        );
         expect(await getAllRowTexts(field)).toEqual([
           formatDatetimeForDisplay('2025-12-24', '08:00'),
           formatDatetimeForDisplay('2025-12-25', '09:00'),
@@ -1254,11 +1370,14 @@ test.describe('Multivalue Prop Types', () => {
         ]);
 
         await page.reload();
-        const previewFrame2 = await canvas.getActivePreviewFrame();
-        const listItems2 = previewFrame2.locator('#datetime-list li');
-        await expect(listItems2.nth(0)).toContainText('2025-12-24');
-        await expect(listItems2.nth(1)).toContainText('2025-12-25');
-        await expect(listItems2.nth(2)).toContainText('2026-03-01');
+        await canvas.testInPreviewFrame(
+          '#datetime-list li',
+          async (listItems) => {
+            await expect(listItems.nth(0)).toContainText('2025-12-24');
+            await expect(listItems.nth(1)).toContainText('2025-12-25');
+            await expect(listItems.nth(2)).toContainText('2026-03-01');
+          },
+        );
         expect(await getAllRowTexts(field)).toEqual([
           formatDatetimeForDisplay('2025-12-24', '08:00'),
           formatDatetimeForDisplay('2025-12-25', '09:00'),
@@ -1336,13 +1455,16 @@ test.describe('Multivalue Prop Types', () => {
           1,
           formatDatetimeForDisplay('2025-12-25', '09:00'),
         );
-        const previewFrame = await canvas.getActivePreviewFrame();
-        const listItems = previewFrame.locator('#datetime-limited-list li');
-        await expect(listItems.nth(0)).toContainText(
-          formatDatetimeForDisplay('2025-12-24', '08:00'),
-        );
-        await expect(listItems.nth(1)).toContainText(
-          formatDatetimeForDisplay('2025-12-25', '09:00'),
+        await canvas.testInPreviewFrame(
+          '#datetime-limited-list li',
+          async (listItems) => {
+            await expect(listItems.nth(0)).toContainText(
+              formatDatetimeForDisplay('2025-12-24', '08:00'),
+            );
+            await expect(listItems.nth(1)).toContainText(
+              formatDatetimeForDisplay('2025-12-25', '09:00'),
+            );
+          },
         );
         expect(await getAllRowTexts(field)).toEqual([
           formatDatetimeForDisplay('2025-12-24', '08:00'),
@@ -1383,23 +1505,29 @@ test.describe('Multivalue Prop Types', () => {
         canvas,
       }) => {
         const field = getField(page, PROP_NAMES.DATETIME_LIMITED);
-        const previewFrame1 = await canvas.getActivePreviewFrame();
-        const listItems1 = previewFrame1.locator('#datetime-limited-list li');
-        await expect(listItems1.nth(0)).toContainText(
-          formatDatetimeForDisplay('2025-06-15', '10:30'),
-        );
-        await expect(listItems1.nth(1)).toContainText(
-          formatDatetimeForDisplay('2025-07-20', '14:45'),
+        await canvas.testInPreviewFrame(
+          '#datetime-limited-list li',
+          async (listItems) => {
+            await expect(listItems.nth(0)).toContainText(
+              formatDatetimeForDisplay('2025-06-15', '10:30'),
+            );
+            await expect(listItems.nth(1)).toContainText(
+              formatDatetimeForDisplay('2025-07-20', '14:45'),
+            );
+          },
         );
         await dragRow(field, 0, 1);
         // Verify the preview reflects the new order.
-        const previewFrame2 = await canvas.getActivePreviewFrame();
-        const listItems2 = previewFrame2.locator('#datetime-limited-list li');
-        await expect(listItems2.nth(0)).toContainText(
-          formatDatetimeForDisplay('2025-07-20', '14:45'),
-        );
-        await expect(listItems2.nth(1)).toContainText(
-          formatDatetimeForDisplay('2025-06-15', '10:30'),
+        await canvas.testInPreviewFrame(
+          '#datetime-limited-list li',
+          async (listItems) => {
+            await expect(listItems.nth(0)).toContainText(
+              formatDatetimeForDisplay('2025-07-20', '14:45'),
+            );
+            await expect(listItems.nth(1)).toContainText(
+              formatDatetimeForDisplay('2025-06-15', '10:30'),
+            );
+          },
         );
         expect(await getAllRowTexts(field)).toEqual([
           formatDatetimeForDisplay('2025-07-20', '14:45'),
@@ -1409,13 +1537,16 @@ test.describe('Multivalue Prop Types', () => {
         await page.reload();
 
         // Assert that the order of dragging is also maintained after page refresh.
-        const previewFrame3 = await canvas.getActivePreviewFrame();
-        const listItems3 = previewFrame3.locator('#datetime-limited-list li');
-        await expect(listItems3.nth(0)).toContainText(
-          formatDatetimeForDisplay('2025-07-20', '14:45'),
-        );
-        await expect(listItems3.nth(1)).toContainText(
-          formatDatetimeForDisplay('2025-06-15', '10:30'),
+        await canvas.testInPreviewFrame(
+          '#datetime-limited-list li',
+          async (listItems) => {
+            await expect(listItems.nth(0)).toContainText(
+              formatDatetimeForDisplay('2025-07-20', '14:45'),
+            );
+            await expect(listItems.nth(1)).toContainText(
+              formatDatetimeForDisplay('2025-06-15', '10:30'),
+            );
+          },
         );
         expect(await getAllRowTexts(field)).toEqual([
           formatDatetimeForDisplay('2025-07-20', '14:45'),
@@ -1458,11 +1589,11 @@ test.describe('Multivalue Prop Types', () => {
         await typeInPopover(page, 'input[type="date"]', '2025-12-25');
         await verifyRowText(field, 2, formatDateForDisplay('2025-12-25'));
 
-        const previewFrame = await canvas.getActivePreviewFrame();
-        const listItems = previewFrame.locator('#date-list li');
-        await expect(listItems.nth(0)).toContainText('2026-04-27');
-        await expect(listItems.nth(1)).toContainText('2026-04-28');
-        await expect(listItems.nth(2)).toContainText('2025-12-25');
+        await canvas.testInPreviewFrame('#date-list li', async (listItems) => {
+          await expect(listItems.nth(0)).toContainText('2026-04-27');
+          await expect(listItems.nth(1)).toContainText('2026-04-28');
+          await expect(listItems.nth(2)).toContainText('2025-12-25');
+        });
         expect(await getAllRowTexts(field)).toEqual([
           formatDateForDisplay('2026-04-27'),
           formatDateForDisplay('2026-04-28'),
@@ -1482,12 +1613,17 @@ test.describe('Multivalue Prop Types', () => {
         await openPopoverForRow(page, field, 1);
         await typeInPopover(page, 'input[type="date"]', '2026-04-28');
         await verifyRowText(field, 1, formatDateForDisplay('2026-04-28'));
-        const previewFrame = await canvas.getActivePreviewFrame();
-        // await previewFrame.locator('#date-list').scrollIntoViewIfNeeded();
-        const initialItems = previewFrame.locator('#date-list li');
-        await expect(initialItems).toHaveCount(2);
-        await expect(initialItems.nth(0)).toContainText('2026-04-27');
-        await expect(initialItems.nth(1)).toContainText('2026-04-28');
+        await canvas.testInPreviewFrame('#date-list', async (list) => {
+          await list.scrollIntoViewIfNeeded();
+        });
+        await canvas.testInPreviewFrame(
+          '#date-list li',
+          async (initialItems) => {
+            await expect(initialItems).toHaveCount(2);
+            await expect(initialItems.nth(0)).toContainText('2026-04-27');
+            await expect(initialItems.nth(1)).toContainText('2026-04-28');
+          },
+        );
         await openPopoverForRow(page, field, 0);
         await page
           .locator('[role="dialog"][data-state="open"]')
@@ -1502,11 +1638,13 @@ test.describe('Multivalue Prop Types', () => {
         ]);
 
         // Assert that page is also updated.
-        await previewFrame.locator('#date-list').scrollIntoViewIfNeeded();
-
-        const listItems = previewFrame.locator('#date-list li');
-        await expect(listItems).toHaveCount(1);
-        await expect(listItems.nth(0)).toContainText('2026-04-28');
+        await canvas.testInPreviewFrame('#date-list', async (list) => {
+          await list.scrollIntoViewIfNeeded();
+        });
+        await canvas.testInPreviewFrame('#date-list li', async (listItems) => {
+          await expect(listItems).toHaveCount(1);
+          await expect(listItems.nth(0)).toContainText('2026-04-28');
+        });
       });
 
       test('popover opens and closes correctly', async ({ page }) => {
@@ -1570,22 +1708,22 @@ test.describe('Multivalue Prop Types', () => {
         canvas,
       }) => {
         const field = getField(page, PROP_NAMES.DATE);
-        const previewFrame1 = await canvas.getActivePreviewFrame();
-        const listItems1 = previewFrame1.locator('#date-list li');
         await openPopoverForRow(page, field, 0);
         await typeInPopover(page, 'input[type="date"]', '2026-04-27');
         await verifyRowText(field, 0, formatDateForDisplay('2026-04-27'));
         await openPopoverForRow(page, field, 1);
         await typeInPopover(page, 'input[type="date"]', '2026-04-28');
         await verifyRowText(field, 1, formatDateForDisplay('2026-04-28'));
-        await expect(listItems1.nth(0)).toContainText('2026-04-27');
-        await expect(listItems1.nth(1)).toContainText('2026-04-28');
+        await canvas.testInPreviewFrame('#date-list li', async (listItems) => {
+          await expect(listItems.nth(0)).toContainText('2026-04-27');
+          await expect(listItems.nth(1)).toContainText('2026-04-28');
+        });
         await dragRow(field, 0, 1);
         // Verify the preview reflects the new order.
-        const previewFrame2 = await canvas.getActivePreviewFrame();
-        const listItems2 = previewFrame2.locator('#date-list li');
-        await expect(listItems2.nth(0)).toContainText('2026-04-28');
-        await expect(listItems2.nth(1)).toContainText('2026-04-27');
+        await canvas.testInPreviewFrame('#date-list li', async (listItems) => {
+          await expect(listItems.nth(0)).toContainText('2026-04-28');
+          await expect(listItems.nth(1)).toContainText('2026-04-27');
+        });
         expect(await getAllRowTexts(field)).toEqual([
           formatDateForDisplay('2026-04-28'),
           formatDateForDisplay('2026-04-27'),
@@ -1594,10 +1732,10 @@ test.describe('Multivalue Prop Types', () => {
         await page.reload();
 
         // Assert that the order of dragging is also maintained after page refresh.
-        const previewFrame3 = await canvas.getActivePreviewFrame();
-        const listItems3 = previewFrame3.locator('#date-list li');
-        await expect(listItems3.nth(0)).toContainText('2026-04-28');
-        await expect(listItems3.nth(1)).toContainText('2026-04-27');
+        await canvas.testInPreviewFrame('#date-list li', async (listItems) => {
+          await expect(listItems.nth(0)).toContainText('2026-04-28');
+          await expect(listItems.nth(1)).toContainText('2026-04-27');
+        });
         expect(await getAllRowTexts(field)).toEqual([
           formatDateForDisplay('2026-04-28'),
           formatDateForDisplay('2026-04-27'),
@@ -1623,11 +1761,11 @@ test.describe('Multivalue Prop Types', () => {
         await openPopoverForRow(page, field, 2);
         await typeInPopover(page, 'input[type="date"]', '2026-03-01');
         await verifyRowText(field, 2, formatDateForDisplay('2026-03-01'));
-        const previewFrame = await canvas.getActivePreviewFrame();
-        const listItems = previewFrame.locator('#date-list li');
-        await expect(listItems.nth(0)).toContainText('2026-04-27');
-        await expect(listItems.nth(1)).toContainText('2026-04-28');
-        await expect(listItems.nth(2)).toContainText('2026-03-01');
+        await canvas.testInPreviewFrame('#date-list li', async (listItems) => {
+          await expect(listItems.nth(0)).toContainText('2026-04-27');
+          await expect(listItems.nth(1)).toContainText('2026-04-28');
+          await expect(listItems.nth(2)).toContainText('2026-03-01');
+        });
         expect(await getAllRowTexts(field)).toEqual([
           formatDateForDisplay('2026-04-27'),
           formatDateForDisplay('2026-04-28'),
@@ -1635,11 +1773,11 @@ test.describe('Multivalue Prop Types', () => {
         ]);
 
         await page.reload();
-        const previewFrame2 = await canvas.getActivePreviewFrame();
-        const listItems2 = previewFrame2.locator('#date-list li');
-        await expect(listItems2.nth(0)).toContainText('2026-04-27');
-        await expect(listItems2.nth(1)).toContainText('2026-04-28');
-        await expect(listItems2.nth(2)).toContainText('2026-03-01');
+        await canvas.testInPreviewFrame('#date-list li', async (listItems) => {
+          await expect(listItems.nth(0)).toContainText('2026-04-27');
+          await expect(listItems.nth(1)).toContainText('2026-04-28');
+          await expect(listItems.nth(2)).toContainText('2026-03-01');
+        });
         expect(await getAllRowTexts(field)).toEqual([
           formatDateForDisplay('2026-04-27'),
           formatDateForDisplay('2026-04-28'),
@@ -1666,12 +1804,15 @@ test.describe('Multivalue Prop Types', () => {
         await typeInPopover(page, 'input[type="date"]', '2026-04-27');
         await verifyRowText(field, 0, formatDateForDisplay('2026-04-27'));
 
-        const previewFrame = await canvas.getActivePreviewFrame();
-        await previewFrame
-          .locator('#date-limited-list')
-          .scrollIntoViewIfNeeded();
-        const listItems = previewFrame.locator('#date-limited-list li');
-        await expect(listItems.nth(0)).toContainText('2026-04-27');
+        await canvas.testInPreviewFrame('#date-limited-list', async (list) => {
+          await list.scrollIntoViewIfNeeded();
+        });
+        await canvas.testInPreviewFrame(
+          '#date-limited-list li',
+          async (listItems) => {
+            await expect(listItems.nth(0)).toContainText('2026-04-27');
+          },
+        );
         expect(await getAllRowTexts(field)).toContain(
           formatDateForDisplay('2026-04-27'),
         );
@@ -1709,23 +1850,29 @@ test.describe('Multivalue Prop Types', () => {
         canvas,
       }) => {
         const field = getField(page, PROP_NAMES.DATE_LIMITED);
-        const previewFrame1 = await canvas.getActivePreviewFrame();
-        const listItems1 = previewFrame1.locator('#date-limited-list li');
-        await expect(listItems1.nth(0)).toContainText(
-          formatDateForDisplay('2025-09-10'),
-        );
-        await expect(listItems1.nth(1)).toContainText(
-          formatDateForDisplay('2025-10-15'),
+        await canvas.testInPreviewFrame(
+          '#date-limited-list li',
+          async (listItems) => {
+            await expect(listItems.nth(0)).toContainText(
+              formatDateForDisplay('2025-09-10'),
+            );
+            await expect(listItems.nth(1)).toContainText(
+              formatDateForDisplay('2025-10-15'),
+            );
+          },
         );
         await dragRow(field, 0, 1);
         // Verify the preview reflects the new order.
-        const previewFrame2 = await canvas.getActivePreviewFrame();
-        const listItems2 = previewFrame2.locator('#date-limited-list li');
-        await expect(listItems2.nth(0)).toContainText(
-          formatDateForDisplay('2025-10-15'),
-        );
-        await expect(listItems2.nth(1)).toContainText(
-          formatDateForDisplay('2025-09-10'),
+        await canvas.testInPreviewFrame(
+          '#date-limited-list li',
+          async (listItems) => {
+            await expect(listItems.nth(0)).toContainText(
+              formatDateForDisplay('2025-10-15'),
+            );
+            await expect(listItems.nth(1)).toContainText(
+              formatDateForDisplay('2025-09-10'),
+            );
+          },
         );
         expect(await getAllRowTexts(field)).toEqual([
           formatDateForDisplay('2025-10-15'),
@@ -1735,13 +1882,16 @@ test.describe('Multivalue Prop Types', () => {
         await page.reload();
 
         // Assert that the order of dragging is also maintained after page refresh.
-        const previewFrame3 = await canvas.getActivePreviewFrame();
-        const listItems3 = previewFrame3.locator('#date-limited-list li');
-        await expect(listItems3.nth(0)).toContainText(
-          formatDateForDisplay('2025-10-15'),
-        );
-        await expect(listItems3.nth(1)).toContainText(
-          formatDateForDisplay('2025-09-10'),
+        await canvas.testInPreviewFrame(
+          '#date-limited-list li',
+          async (listItems) => {
+            await expect(listItems.nth(0)).toContainText(
+              formatDateForDisplay('2025-10-15'),
+            );
+            await expect(listItems.nth(1)).toContainText(
+              formatDateForDisplay('2025-09-10'),
+            );
+          },
         );
         expect(await getAllRowTexts(field)).toEqual([
           formatDateForDisplay('2025-10-15'),
@@ -1801,13 +1951,14 @@ test.describe('Relative Link Component', () => {
       await openPopoverForRow(page, field, 2);
       await typeRelativeLinkViaAutocomplete(page, 'article');
       await verifyRowText(field, 2, 'Article One (1)');
-      const previewFrame = await canvas.getActivePreviewFrame();
-      const relativeLinkListItems = previewFrame.locator(
+      await canvas.testInPreviewFrame(
         '#relative-link-list li',
+        async (relativeLinkListItems) => {
+          await expect(relativeLinkListItems.nth(0)).toContainText('/about');
+          await expect(relativeLinkListItems.nth(1)).toContainText('/contact');
+          await expect(relativeLinkListItems.nth(2)).toContainText('/node/1');
+        },
       );
-      await expect(relativeLinkListItems.nth(0)).toContainText('/about');
-      await expect(relativeLinkListItems.nth(1)).toContainText('/contact');
-      await expect(relativeLinkListItems.nth(2)).toContainText('/node/1');
       expect(await getAllRowTexts(field)).toEqual([
         '/about',
         '/contact',
@@ -1822,10 +1973,13 @@ test.describe('Relative Link Component', () => {
     }) => {
       const field = getField(page, PROP_NAMES.RELATIVE_LINK);
       await expect(field.locator('tbody tr')).toHaveCount(3);
-      const previewFrame = await canvas.getActivePreviewFrame();
-      const initialItems = previewFrame.locator('#relative-link-list li');
-      await expect(initialItems.nth(0)).toContainText('/about');
-      await expect(initialItems.nth(1)).toContainText('/contact');
+      await canvas.testInPreviewFrame(
+        '#relative-link-list li',
+        async (initialItems) => {
+          await expect(initialItems.nth(0)).toContainText('/about');
+          await expect(initialItems.nth(1)).toContainText('/contact');
+        },
+      );
       await openPopoverForRow(page, field, 0);
       await page
         .locator('[role="dialog"][data-state="open"]')
@@ -1838,14 +1992,16 @@ test.describe('Relative Link Component', () => {
       expect(await getAllRowTexts(field)).toEqual(['/contact', '']);
 
       // Assert that page is also updated.
-      const relativeLinkListItems = previewFrame.locator(
+      await canvas.testInPreviewFrame(
         '#relative-link-list li',
+        async (relativeLinkListItems) => {
+          await expect(relativeLinkListItems).toHaveCount(1);
+          await expect(relativeLinkListItems.nth(0)).toContainText('/contact');
+        },
       );
-      await expect(relativeLinkListItems).toHaveCount(1);
-      await expect(relativeLinkListItems.nth(0)).toContainText('/contact');
-      await expect(
-        previewFrame.locator('#relative-link-list'),
-      ).not.toContainText('/about');
+      await canvas.testInPreviewFrame('#relative-link-list', async (list) => {
+        await expect(list).not.toContainText('/about');
+      });
     });
 
     test('popover opens and closes correctly', async ({ page }) => {
@@ -1871,26 +2027,35 @@ test.describe('Relative Link Component', () => {
 
     test('can reorder items using drag and drop', async ({ page, canvas }) => {
       const field = getField(page, PROP_NAMES.RELATIVE_LINK);
-      const previewFrame1 = await canvas.getActivePreviewFrame();
-      const textListItems1 = previewFrame1.locator('#relative-link-list li');
-      await expect(textListItems1.nth(0)).toContainText('/about');
-      await expect(textListItems1.nth(1)).toContainText('/contact');
+      await canvas.testInPreviewFrame(
+        '#relative-link-list li',
+        async (textListItems) => {
+          await expect(textListItems.nth(0)).toContainText('/about');
+          await expect(textListItems.nth(1)).toContainText('/contact');
+        },
+      );
       expect(await getAllRowTexts(field)).toEqual(['/about', '/contact', '']);
       await dragRow(field, 0, 1);
       // Verify the preview reflects the new order.
-      const previewFrame2 = await canvas.getActivePreviewFrame();
-      const textListItems2 = previewFrame2.locator('#relative-link-list li');
-      await expect(textListItems2.nth(0)).toContainText('/contact');
-      await expect(textListItems2.nth(1)).toContainText('/about');
+      await canvas.testInPreviewFrame(
+        '#relative-link-list li',
+        async (textListItems) => {
+          await expect(textListItems.nth(0)).toContainText('/contact');
+          await expect(textListItems.nth(1)).toContainText('/about');
+        },
+      );
       expect(await getAllRowTexts(field)).toEqual(['/contact', '/about', '']);
 
       await page.reload();
 
       // Asserting that the values are same on the page instance after refresh.
-      const previewFrame3 = await canvas.getActivePreviewFrame();
-      const textListItems3 = previewFrame3.locator('#relative-link-list li');
-      await expect(textListItems3.nth(0)).toContainText('/contact');
-      await expect(textListItems3.nth(1)).toContainText('/about');
+      await canvas.testInPreviewFrame(
+        '#relative-link-list li',
+        async (textListItems) => {
+          await expect(textListItems.nth(0)).toContainText('/contact');
+          await expect(textListItems.nth(1)).toContainText('/about');
+        },
+      );
       expect(await getAllRowTexts(field)).toEqual(['/contact', '/about', '']);
     });
 
@@ -1903,11 +2068,15 @@ test.describe('Relative Link Component', () => {
       await openPopoverForRow(page, field, 2);
       await typeRelativeLinkViaAutocomplete(page, 'article');
       await verifyRowText(field, 2, 'Article One (1)');
-      const previewFrame1 = await canvas.getActivePreviewFrame();
-      const textListItems1 = previewFrame1.locator('#relative-link-list li');
-      await expect(textListItems1.nth(0)).toContainText('/about');
-      await expect(textListItems1.nth(1)).toContainText('/contact');
-      await expect(textListItems1.nth(2)).toContainText('/node/1');
+      // Asserting that the values are updated on the page instance as well.
+      await canvas.testInPreviewFrame(
+        '#relative-link-list li',
+        async (textListItems) => {
+          await expect(textListItems.nth(0)).toContainText('/about');
+          await expect(textListItems.nth(1)).toContainText('/contact');
+          await expect(textListItems.nth(2)).toContainText('/node/1');
+        },
+      );
       expect(await getAllRowTexts(field)).toEqual([
         '/about',
         '/contact',
@@ -1916,11 +2085,15 @@ test.describe('Relative Link Component', () => {
       ]);
       await page.reload();
 
-      const previewFrame2 = await canvas.getActivePreviewFrame();
-      const textListItems2 = previewFrame2.locator('#relative-link-list li');
-      await expect(textListItems2.nth(0)).toContainText('/about');
-      await expect(textListItems2.nth(1)).toContainText('/contact');
-      await expect(textListItems2.nth(2)).toContainText('/node/1');
+      // Asserting that the values are same on the page instance after refresh.
+      await canvas.testInPreviewFrame(
+        '#relative-link-list li',
+        async (textListItems) => {
+          await expect(textListItems.nth(0)).toContainText('/about');
+          await expect(textListItems.nth(1)).toContainText('/contact');
+          await expect(textListItems.nth(2)).toContainText('/node/1');
+        },
+      );
       expect(await getAllRowTexts(field)).toEqual([
         '/about',
         '/contact',
@@ -1976,12 +2149,13 @@ test.describe('Relative Link Component', () => {
       await typeRelativeLinkViaAutocomplete(page, 'article');
       await verifyRowText(field, 0, 'Article One (1)');
 
-      const previewFrame = await canvas.getActivePreviewFrame();
-      const relativeLinkListItems = previewFrame.locator(
+      await canvas.testInPreviewFrame(
         '#relative-link-limited-list li',
+        async (relativeLinkListItems) => {
+          await expect(relativeLinkListItems.nth(0)).toContainText('/node/1');
+          await expect(relativeLinkListItems.nth(1)).toContainText('/contact');
+        },
       );
-      await expect(relativeLinkListItems.nth(0)).toContainText('/node/1');
-      await expect(relativeLinkListItems.nth(1)).toContainText('/contact');
       expect(await getAllRowTexts(field)).toEqual([
         'Article One (1)',
         '/contact',
@@ -2016,30 +2190,33 @@ test.describe('Relative Link Component', () => {
 
     test('can reorder items using drag and drop', async ({ page, canvas }) => {
       const field = getField(page, PROP_NAMES.RELATIVE_LINK_LIMITED);
-      const previewFrame1 = await canvas.getActivePreviewFrame();
-      const relativeLinkListItems1 = previewFrame1.locator(
+      await canvas.testInPreviewFrame(
         '#relative-link-limited-list li',
+        async (relativeLinkListItems) => {
+          await expect(relativeLinkListItems.nth(0)).toContainText('/about');
+          await expect(relativeLinkListItems.nth(1)).toContainText('/contact');
+        },
       );
-      await expect(relativeLinkListItems1.nth(0)).toContainText('/about');
-      await expect(relativeLinkListItems1.nth(1)).toContainText('/contact');
       await dragRow(field, 0, 1);
       // Verify the preview reflects the new order.
-      const previewFrame2 = await canvas.getActivePreviewFrame();
-      const relativeLinkListItems2 = previewFrame2.locator(
+      await canvas.testInPreviewFrame(
         '#relative-link-limited-list li',
+        async (relativeLinkListItems) => {
+          await expect(relativeLinkListItems.nth(0)).toContainText('/contact');
+          await expect(relativeLinkListItems.nth(1)).toContainText('/about');
+        },
       );
-      await expect(relativeLinkListItems2.nth(0)).toContainText('/contact');
-      await expect(relativeLinkListItems2.nth(1)).toContainText('/about');
       expect(await getAllRowTexts(field)).toEqual(['/contact', '/about', '']);
       await page.reload();
 
       // Assert that the order of dragging is also maintained after page refresh.
-      const previewFrame3 = await canvas.getActivePreviewFrame();
-      const relativeLinkListItems3 = previewFrame3.locator(
+      await canvas.testInPreviewFrame(
         '#relative-link-limited-list li',
+        async (relativeLinkListItems) => {
+          await expect(relativeLinkListItems.nth(0)).toContainText('/contact');
+          await expect(relativeLinkListItems.nth(1)).toContainText('/about');
+        },
       );
-      await expect(relativeLinkListItems3.nth(0)).toContainText('/contact');
-      await expect(relativeLinkListItems3.nth(1)).toContainText('/about');
       expect(await getAllRowTexts(field)).toEqual(['/contact', '/about', '']);
     });
   });

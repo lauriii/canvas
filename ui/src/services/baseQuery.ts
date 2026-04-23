@@ -31,6 +31,9 @@ export const pushCanvasLayoutRequest = () => {
   if (typeof canvasSettings?.canvasLayoutRequestInProgress === 'undefined') {
     canvasSettings.canvasLayoutRequestInProgress = [];
   }
+  // Set body attribute to allow CSS to block use of elements that may cause
+  // conflicts during layout / model / entity updating requests.
+  document.body.setAttribute('data-canvas-layout-request-in-progress', 'true');
   canvasSettings.canvasLayoutRequestInProgress.push(true);
 };
 
@@ -41,6 +44,9 @@ export const popCanvasLayoutRequest = () => {
     // Notify the application that the layout request has completed.
     const event = new CustomEvent('canvasLayoutRequestComplete');
     document.dispatchEvent(event);
+    setTimeout(() => {
+      document.body.removeAttribute('data-canvas-layout-request-in-progress');
+    }, 10);
   }
 };
 

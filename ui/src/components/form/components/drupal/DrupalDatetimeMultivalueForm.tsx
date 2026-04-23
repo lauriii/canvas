@@ -4,11 +4,18 @@ import { ArrowRightIcon, Cross2Icon, TrashIcon } from '@radix-ui/react-icons';
 import * as Popover from '@radix-ui/react-popover';
 import { Button, Flex, Text } from '@radix-ui/themes';
 
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { toPropName } from '@/components/form/formUtil';
 import { removeFieldValue } from '@/features/form/formStateSlice';
+import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
+import { selectEditorFrameContext } from '@/features/ui/uiSlice';
+import useInputUIData from '@/hooks/useInputUIData';
+import { useUpdateComponentMutation } from '@/services/preview';
 
 import {
+  buildModelWithItemRemoved,
   dispatchSyntheticChange,
+  extractPositionFromFieldName,
   isRemoveButtonEnabled,
   triggerDrupalRemoveButton,
 } from './multivalueFormUtils';
@@ -74,6 +81,12 @@ const DrupalDatetimeMultivalueForm = ({
   fieldLabel?: string;
 }) => {
   const dispatch = useAppDispatch();
+  const inputUIData = useInputUIData();
+  const [patchComponent] = useUpdateComponentMutation({
+    fixedCacheKey: inputUIData?.selectedComponent || '-',
+  });
+  const editorFrameContext = useAppSelector(selectEditorFrameContext);
+
   const triggerRowRef = useRef<HTMLDivElement | null>(null);
   const triggerButtonRef = useRef<HTMLButtonElement | null>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -208,12 +221,12 @@ const DrupalDatetimeMultivalueForm = ({
     setTimeout(() => {
       const dateInput = getDateInput();
       const { name } = dateInput || {};
+      const formId = dateInput?.getAttribute('data-form-id');
 
       const removeButtonName: string | null = triggerDrupalRemoveButton(
         triggerRowRef.current,
+        formId as string,
       );
-      const formId = dateInput?.getAttribute('data-form-id');
-      console.log('form id', formId);
       if (removeButtonName && name && formId) {
         const fieldNames: string[] = [name];
 
@@ -231,6 +244,25 @@ const DrupalDatetimeMultivalueForm = ({
 
         // Add the remove button name
         fieldNames.push(removeButtonName);
+        // If this is a component, update the model to reflect the removal
+        // immediately, then fire the actual Drupal AJAX click.
+        if (formId === 'component_instance_form') {
+          const propName = toPropName(name, inputUIData.selectedComponent);
+          const position = extractPositionFromFieldName(name, propName);
+          const model = inputUIData.model?.[inputUIData.selectedComponent];
+          if (!model || !isEvaluatedComponentModel(model)) {
+            return;
+          }
+          patchComponent({
+            type: editorFrameContext,
+            componentInstanceUuid: inputUIData.selectedComponent,
+            componentType: `${inputUIData.selectedComponentType}@${inputUIData.version}`,
+            model: buildModelWithItemRemoved(model, propName, position ?? 0),
+          });
+          // Second call: now that the model is patched, invoke the real
+          // Drupal AJAX click (no formId passed so the click is not suppressed).
+          setTimeout(() => triggerDrupalRemoveButton(triggerRowRef.current));
+        }
 
         dispatch(
           removeFieldValue({
@@ -238,7 +270,6 @@ const DrupalDatetimeMultivalueForm = ({
             fieldName: fieldNames,
           }),
         );
-        return;
       }
     });
   };
@@ -315,6 +346,7 @@ const DrupalDatetimeMultivalueForm = ({
           {/* Remove Button - disabled when removing is not allowed */}
           <Flex justify="center" className={styles.removeButtonContainer}>
             <Button
+              data-multivalue-remove-item="true"
               variant="ghost"
               color="red"
               size="1"

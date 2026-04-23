@@ -4,13 +4,20 @@ import { ArrowRightIcon, Cross2Icon, TrashIcon } from '@radix-ui/react-icons';
 import * as Popover from '@radix-ui/react-popover';
 import { Box, Button, Flex, Text } from '@radix-ui/themes';
 
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import DrupalInput from '@/components/form/components/drupal/DrupalInput';
+import { toPropName } from '@/components/form/formUtil';
 import { removeFieldValue } from '@/features/form/formStateSlice';
+import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
+import { selectEditorFrameContext } from '@/features/ui/uiSlice';
+import useInputUIData from '@/hooks/useInputUIData';
+import { useUpdateComponentMutation } from '@/services/preview';
 import { resolveEntityUri } from '@/utils/transforms';
 
 import {
+  buildModelWithItemRemoved,
   dispatchSyntheticChange,
+  extractPositionFromFieldName,
   isAutocompleteMenuOpen,
   isRemoveButtonEnabled,
   triggerDrupalRemoveButton,
@@ -49,6 +56,11 @@ const DrupalInputMultivalueForm = ({
   };
 }) => {
   const dispatch = useAppDispatch();
+  const inputUIData = useInputUIData();
+  const [patchComponent] = useUpdateComponentMutation({
+    fixedCacheKey: inputUIData?.selectedComponent || '-',
+  });
+  const editorFrameContext = useAppSelector(selectEditorFrameContext);
   const isAutocomplete =
     attributes?.class instanceof Array &&
     attributes?.class?.includes('form-autocomplete');
@@ -219,24 +231,52 @@ const DrupalInputMultivalueForm = ({
     setPopoverOpenAndRefocus(false);
     resumePreviewUpdates();
     setTimeout(() => {
-      const removeButtonName: string | null =
-        triggerDrupalRemoveButton(triggerElement);
+      const formId = attributes['data-form-id'] as string | undefined;
+      const { name } = attributes;
 
-      // If we successfully triggered the remove button and have the necessary data, dispatch removeFieldValue
-      if (removeButtonName && attributes['data-form-id'] && attributes.name) {
-        const fieldNames: string[] = [attributes.name];
+      // First call: pass formId so the click is suppressed for
+      // component_instance_form, but the button name is still returned.
+      const removeButtonName: string | null = triggerDrupalRemoveButton(
+        triggerElement,
+        formId,
+      );
+
+      // If we successfully triggered the remove button and have the necessary
+      // data, dispatch removeFieldValue.
+      if (removeButtonName && formId && name) {
+        const fieldNames: string[] = [name];
 
         // Add the _weight field (replace [value] with [_weight])
-        if (attributes.name.includes('[value]')) {
-          fieldNames.push(attributes.name.replace('[value]', '[_weight]'));
+        if (name.includes('[value]')) {
+          fieldNames.push(name.replace('[value]', '[_weight]'));
         }
 
         // Add the remove button name
         fieldNames.push(removeButtonName);
 
+        // If this is a component, update the model to reflect the removal
+        // immediately, then fire the actual Drupal AJAX click.
+        if (formId === 'component_instance_form') {
+          const propName = toPropName(name, inputUIData.selectedComponent);
+          const position = extractPositionFromFieldName(name, propName);
+          const model = inputUIData.model?.[inputUIData.selectedComponent];
+          if (!model || !isEvaluatedComponentModel(model)) {
+            return;
+          }
+          patchComponent({
+            type: editorFrameContext,
+            componentInstanceUuid: inputUIData.selectedComponent,
+            componentType: `${inputUIData.selectedComponentType}@${inputUIData.version}`,
+            model: buildModelWithItemRemoved(model, propName, position ?? 0),
+          });
+          // Second call: now that the model is patched, invoke the real
+          // Drupal AJAX click (no formId passed so the click is not suppressed).
+          setTimeout(() => triggerDrupalRemoveButton(triggerElement));
+        }
+
         dispatch(
           removeFieldValue({
-            formId: attributes['data-form-id'] as any,
+            formId: formId as any,
             fieldName: fieldNames,
           }),
         );
@@ -317,6 +357,7 @@ const DrupalInputMultivalueForm = ({
         </Box>
         <Flex justify="center" className={styles.removeButtonContainer}>
           <Button
+            data-multivalue-remove-item="true"
             variant="ghost"
             color="red"
             size="1"

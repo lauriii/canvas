@@ -271,12 +271,13 @@ export const InputBehaviorsCommon = ({
       }
 
       // If no AJAX operations are in progress, update the form state and store.
-      if (
-        !isAjaxing() &&
-        (!e.target?.hasAttribute ||
-          !e.target.hasAttribute('data-canvas-stage-changes'))
-      ) {
-        commitFormState({ ...formValues, [fieldName]: newValue });
+      if (!isAjaxing()) {
+        if (
+          !e.target?.hasAttribute ||
+          !e.target.hasAttribute('data-canvas-stage-changes')
+        ) {
+          commitFormState({ ...formValues, [fieldName]: newValue });
+        }
         return;
       }
 

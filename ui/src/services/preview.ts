@@ -58,6 +58,7 @@ export const previewApi = createApi({
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         const { data, meta } = await queryFulfilled;
         const { html, autoSaves } = data;
+        pushCanvasLayoutRequest();
         dispatch(
           pendingChangesApi.util.invalidateTags([
             { type: 'PendingChanges', id: 'LIST' },
@@ -66,6 +67,7 @@ export const previewApi = createApi({
         // Update our preview slice.
         dispatch(setHtml(html));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+        popCanvasLayoutRequest();
         dispatch(setPostPreviewCompleted(true));
       },
     }),
