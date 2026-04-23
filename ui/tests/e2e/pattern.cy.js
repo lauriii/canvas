@@ -31,17 +31,18 @@ describe('Can save and load patterns', () => {
       // First remove the two image components because they will otherwise crash
       // due to the test not creating them in a way that allows the media entity
       // to be found based on filename.
-      cy.get(
-        '.canvas--viewport-overlay [data-canvas-component-id="sdc.canvas_test_sdc.image"]',
-      )
+      const imageComponentSelector =
+        '.canvas--viewport-overlay [data-canvas-component-id="sdc.canvas_test_sdc.image"]';
+      cy.get(imageComponentSelector).first().scrollIntoView();
+      cy.get(imageComponentSelector)
         .first()
-        .rightclick({ force: true });
+        .rightclick({ force: true, scrollBehavior: false });
       cy.findByText('Delete').click();
-      cy.get(
-        '.canvas--viewport-overlay [data-canvas-component-id="sdc.canvas_test_sdc.image"]',
-      )
+      cy.get(imageComponentSelector).should('have.length', 1);
+      cy.get(imageComponentSelector).first().scrollIntoView();
+      cy.get(imageComponentSelector)
         .first()
-        .rightclick({ force: true });
+        .rightclick({ force: true, scrollBehavior: false });
       cy.findByText('Delete').click();
       cy.waitForComponentNotInPreview('Image');
 
