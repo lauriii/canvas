@@ -5,7 +5,14 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
 // cspell:ignore Druplicons
+use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\node\Entity\NodeType;
+use Drupal\Tests\canvas\Kernel\Plugin\Field\FieldType\ComponentTreeItemListTest;
+use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Depends;
 use Drupal\canvas\Controller\ApiConfigControllers;
@@ -71,6 +78,7 @@ use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
  */
 abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements LoggerInterface, ServiceModifierInterface {
 
+  use DataProviderWithComponentTreeTrait;
   use RfcLoggerTrait;
   use UninstallValidatorTestTrait;
   use UserCreationTrait;
@@ -895,6 +903,70 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
    * @return \Generator<string, array{ComponentConfigEntityId, array<string|int, mixed>, array<string|int, mixed>|null}>
    */
   abstract public static function providerResolvedComponentInputs(): \Generator;
+
+  /**
+   * Tests the expected component inputs are symmetrically translatable.
+   *
+   * @see \Drupal\canvas\ComponentSource\ComponentInstanceInputsConfigSchemaGeneratorInterface
+   * @legacy-covers \Drupal\canvas\Plugin\DataType\ComponentInputs::getTranslatableInputKeys()
+   */
+  #[DataProvider('providerGetTranslatableInputKeys')]
+  public function testGetTranslatableInputKeys(string $host_entity_type_id, array $host_entity_values, string $component_id, array $inputs, array $expected_translatable_inputs): void {
+    $this->generateComponentConfig();
+    // Content templates require nodes to exist, the full view mode, and >=1
+    // bundle.
+    if ($host_entity_type_id === ContentTemplate::ENTITY_TYPE_ID) {
+      $this->enableModules(['node', 'field']);
+      $this->installConfig(['node']);
+      NodeType::create(['type' => 'article', 'name' => 'Article'])->save();
+    }
+
+    // Simulate the expected host entity containing this component tree exists,
+    // without actually creating (and saving) the host entity.
+    $host_entity = match ($host_entity_type_id) {
+      Page::ENTITY_TYPE_ID => Page::create($host_entity_values)->enforceIsNew(FALSE),
+      PageRegion::ENTITY_TYPE_ID => PageRegion::create($host_entity_values),
+      Pattern::ENTITY_TYPE_ID => Pattern::create($host_entity_values),
+      ContentTemplate::ENTITY_TYPE_ID => ContentTemplate::create($host_entity_values),
+      default => throw new \LogicException("Unhandled host entity type ID $host_entity_type_id in " . __METHOD__),
+    };
+
+    // Set the tree, ensure it is valid.
+    $host_entity->setComponentTree(self::populateActiveComponentVersionPlaceholders([
+      [
+        'uuid' => '7f2359f1-3e4a-48fb-8534-db4d848f6422',
+        'component_id' => $component_id,
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
+        'inputs' => $inputs,
+      ],
+    ]));
+    if ($host_entity instanceof ContentEntityInterface) {
+      $this->installEntitySchema($host_entity_type_id);
+    }
+    self::assertEntityIsValid($host_entity);
+
+    self::assertSame(
+      $expected_translatable_inputs,
+      $host_entity->getComponentTree()
+        ->getComponentTreeItemByUuid('7f2359f1-3e4a-48fb-8534-db4d848f6422')
+        ?->get('inputs')
+          ->getTranslatableInputKeys(),
+    );
+  }
+
+  public static function providerGetTranslatableInputKeys(): \Generator {
+    foreach (ComponentTreeItemListTest::hostEntityProvider() as $host_entity_type_label => [$host_entity_type_id, $entity_values, $expected_host_entity_cache_tag]) {
+      foreach (iterator_to_array(static::providerSymmetricallyTranslatableComponentInstanceScenarios($host_entity_type_id)) as $scenario_label => $expectations) {
+        $label = "$host_entity_type_label | $scenario_label";
+        yield $label => [$host_entity_type_id, $entity_values, ...$expectations];
+      }
+    }
+  }
+
+  /**
+   * @return \Generator<string, array{string, array<string, mixed>, string[]}>
+   */
+  abstract public static function providerSymmetricallyTranslatableComponentInstanceScenarios(string $host_entity_type_id): \Generator;
 
   abstract protected function triggerBrokenComponent(ComponentInterface $component): ?BrokenPluginManagerInterface;
 

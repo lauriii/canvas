@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Attribute;
 
+use Drupal\canvas\ComponentSource\FallbackComponentInstanceInputsConfigSchemaGenerator;
 use Drupal\Component\Plugin\Attribute\Plugin;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
@@ -40,6 +41,9 @@ final class ComponentSource extends Plugin {
    * @param class-string|false $updater
    *   FQCN to a ComponentInstanceUpdaterInterface implementation, or FALSE
    *   if no updater.
+   * @param class-string $inputs_config_schema_generator
+   *   FQCN to a ComponentInstanceInputsConfigSchemaGeneratorInterface
+   *   implementation.
    */
   public function __construct(
     public readonly string $id,
@@ -49,6 +53,7 @@ final class ComponentSource extends Plugin {
     public readonly ?string $deriver = NULL,
     public readonly array $discoveryCacheTags = [],
     public readonly string|false $updater = FALSE,
+    public readonly string $inputs_config_schema_generator = FallbackComponentInstanceInputsConfigSchemaGenerator::class,
   ) {
     if (\is_string($discovery)) {
       \assert(class_exists($discovery));
@@ -56,6 +61,7 @@ final class ComponentSource extends Plugin {
     if (\is_string($this->updater)) {
       \assert(class_exists($this->updater));
     }
+    \assert(class_exists($this->inputs_config_schema_generator));
   }
 
 }

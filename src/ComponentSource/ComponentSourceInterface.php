@@ -42,6 +42,15 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * - updater: a ComponentInstanceUpdaterInterface — handles updating existing
  *   component instances to the active (aka latest) version of the Component
  *   config entity
+ * - inputs_config_schema_generator: a
+ *   ComponentInstanceInputsConfigSchemaGeneratorInterface — handles generating
+ *   a config schema for component instances, which enables both predictable
+ *   config exports and (config) translation support for component instances'
+ *   inputs. The default/fallback implementation is able to provide predictable
+ *   config exports for any component source plugin automatically. Automatic
+ *   translation support is impossible, because that requires both understanding
+ *   how that source stores its explicit inputs and generating an editing UX,
+ *   which may require a custom Configuration Translation `form_element_class`.
  *
  * @see \Drupal\canvas\Attribute\ComponentSource
  * @see \Drupal\canvas\ComponentSource\ComponentSourceBase
@@ -49,6 +58,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * @see \Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface
  * @see \Drupal\canvas\ComponentSource\ComponentCandidatesDiscoveryInterface
  * @see \Drupal\canvas\ComponentSource\ComponentInstanceUpdaterInterface
+ * @see \Drupal\canvas\ComponentSource\ComponentInstanceInputsConfigSchemaGeneratorInterface
  *
  * @phpstan-import-type PropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
  * @phpstan-import-type SingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs

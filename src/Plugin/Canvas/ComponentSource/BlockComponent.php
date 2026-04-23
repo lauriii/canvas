@@ -64,6 +64,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
   supportsImplicitInputs: TRUE,
   discovery: BlockComponentDiscovery::class,
   updater: FALSE,
+  inputs_config_schema_generator: BlockComponentInstanceInputsConfigSchemaGenerator::class,
   // @see \Drupal\Core\Block\BlockManager::__construct()
   // @see \Drupal\canvas\Block\BlockManagerDecorator
   // @todo Update after https://www.drupal.org/project/drupal/issues/3001284 lands
@@ -276,6 +277,12 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   private static function removeConfigSchemaLabels(array $config_schema): array {
     $normalized = [];
     foreach ($config_schema as $key => $value) {
+      // TRICKY: this is being omitted despite
+      // https://www.drupal.org/project/canvas/issues/3572850. In a way, it
+      // makes sense: every block plugin has this due to `type: block_settings`,
+      // so it is kinda pointless to compute the version hash. However, then
+      // `label_display` should also have been omitted.
+      // @todo Change this in https://www.drupal.org/project/canvas/issues/3572850.
       if ($key === 'label') {
         continue;
       }
@@ -299,6 +306,16 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    */
   public function getDefaultExplicitInput(bool $only_required = FALSE): array {
     // @todo implement $only_required handling after https://www.drupal.org/i/3521221.
+    // @todo handle requiredness per component version: https://www.drupal.org/project/canvas/issues/3558531
+    // @todo Expose `label` input in https://www.drupal.org/project/canvas/issues/3572850
+    // (Until this is implemented, block component instances are "unforgiving":
+    // they will fail to pass validation unless all explicit inputs are
+    // specified, including `label` and `label_display`. These two are hidden
+    // from the Content Creator, but Canvas requires them to be stored. Consider
+    // introducing a similar "optimizeInputs()" implementation for blocks as for
+    // SDCs, because for most block instances storing these two is pointless,
+    // and until these are exposed to the Content Creator, it is pointless for
+    // all block component instances.)
     return $this->getBlockPlugin()->defaultConfiguration();
   }
 

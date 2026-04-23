@@ -135,6 +135,22 @@ Storing these as separate `field prop`s simplifies supporting both symmetric and
 
 (Drupal's Content Translation module natively supports configuring this.)
 
+The same 6 `field prop`s are also stored for `component instance`s stored in config entities. This allows them to be
+loaded into `ComponentTreeItem` objects and then treated (validated etc) identically to `component instance`s stored in
+content entities.
+However, config entities have a few additional needs:
+1. they need to be exportable to YAML, which means the `field prop`s must be exportable to YAML. This is trivial for the
+   _tree_ column group (they are all strings), but the _inputs_ column group requires the JSON blob to be stored as a
+   string in YAML, and then JSON decoded when loaded into a `ComponentTreeItem` object
+2. that in turn is insufficient for Configuration Translation to be supported: `component tree`s stored in config
+   entities must _also_ be translatable, and this requires configuration schema to describe _which_ inputs are
+   translatable
+
+To make its `component instance`s translatable, a `Component Source Plugin` can specify an
+`inputs_config_schema_generator` class (see `\Drupal\canvas\ComponentSource\ComponentInstanceInputsConfigSchemaGeneratorInterface`).
+
+For content entities (stored in the `ComponentTreeItem` field type), the same generator determines which input keys are translatable via `ComponentTreeItem::getTranslatableInputKeys()`. This provides a single source of truth for translatability between config entity translation (configuration schema discovered by `config_translation`) and content entity translation (used by `content_translation` to validate and synchronize per-key overrides).
+
 #### 3.2.1 The columns (`field prop`s) storing the tree structure
 
 The `uuid`, `component_id`, `component_version`, `parent_uuid` and `slot` columns model the tree structure.

@@ -28,6 +28,7 @@ use Symfony\Component\Filesystem\Path;
   supportsImplicitInputs: FALSE,
   discovery: SingleDirectoryComponentDiscovery::class,
   updater: GeneratedFieldExplicitInputUxComponentInstanceUpdater::class,
+  inputs_config_schema_generator: GeneratedFieldExplicitInputUxComponentInstanceInputsConfigSchemaGenerator::class,
   // @see \Drupal\Core\Theme\ComponentPluginManager::__construct()
   discoveryCacheTags: ['component_plugins'],
 )]

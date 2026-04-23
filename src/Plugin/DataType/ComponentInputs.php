@@ -8,6 +8,8 @@ use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropSource\AdaptedPropSource;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Config\Schema\Mapping;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -15,6 +17,9 @@ use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
 use Drupal\canvas\MissingComponentInputsException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\ComponentSource\ComponentInstanceInputsConfigSchemaGeneratorInterface;
+use Drupal\canvas\Entity\Component;
+use Drupal\Core\DependencyInjection\ClassResolverInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ContentAwareDependentInterface;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\StaticPropSource;
@@ -253,6 +258,160 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
     }
 
     return $this->inputs;
+  }
+
+  /**
+   * Resolves the config schema mapping for a component instance.
+   *
+   * This is the single source of truth for determining which inputs are
+   * translatable. Both config entity translation (ComponentSpecificInputs)
+   * and content entity translation (getTranslatableInputKeys()) use this logic.
+   *
+   * @param string $component_id
+   *   The component ID.
+   * @param string $component_version
+   *   The component version.
+   * @param array $actual_inputs
+   *   The actual input values provided for this component instance.
+   *
+   * @return array
+   *   The config schema mapping with translatable markers.
+   *
+   * @see \Drupal\canvas\Config\Schema\ComponentSpecificInputs
+   * @see https://www.drupal.org/project/canvas/issues/3583684
+   */
+  public static function resolveConfigSchemaMapping(string $component_id, string $component_version, array $actual_inputs): array {
+    $component = Component::load($component_id);
+    // Non-existent Component. Robustness principle.
+    if ($component === NULL) {
+      // @see https://en.wikipedia.org/wiki/Robustness_principle
+      return [];
+    }
+
+    try {
+      $component_source = $component->loadVersion($component_version)
+        ->getComponentSource();
+    }
+    // Non-existent Component version. Fall back to active version.
+    // @see \Drupal\canvas\Entity\VersionedConfigEntityBase::assertVersionExists()
+    catch (\OutOfRangeException) {
+      try {
+        $component_source = $component->loadVersion($component->getActiveVersion())
+          ->getComponentSource();
+      }
+      catch (\OutOfRangeException) {
+        // Active version also failed. Robustness.
+        return [];
+      }
+    }
+
+    $generator_class = $component_source->getPluginDefinition()['inputs_config_schema_generator'] ?? NULL;
+    \assert(\is_string($generator_class));
+    // TRICKY: this cannot use constructor injection because both callers
+    // (ComponentSpecificInputs — a config schema class, and ComponentTreeItem —
+    // a field item) cannot use constructor injection. Using
+    // \Drupal::service() is pragmatic and consistent with this class already
+    // using static lookups such as Component::load().
+    $generator = \Drupal::service(ClassResolverInterface::class)
+      ->getInstanceFromDefinition($generator_class);
+    \assert($generator instanceof ComponentInstanceInputsConfigSchemaGeneratorInterface);
+
+    $mapping = $generator->getConfigSchemaMapping($component_source);
+    $mapping = $generator->refineForInstance($mapping, $actual_inputs, $component_id, $component_version);
+
+    return $mapping;
+  }
+
+  /**
+   * Determines which input keys are translatable for this component instance.
+   *
+   * Uses the same ComponentInstanceInputsConfigSchemaGeneratorInterface
+   * strategy that ComponentSpecificInputs uses for config entity translation.
+   * This provides a single source of truth for both config translation and
+   * content translation.
+   *
+   * @return string[]
+   *   The input keys that are translatable for this component instance.
+   *
+   * @see ::resolveConfigSchemaMapping()
+   * @see \Drupal\canvas\Config\Schema\ComponentSpecificInputs
+   * @see https://www.drupal.org/project/canvas/issues/3583684
+   */
+  public function getTranslatableInputKeys(): array {
+    $component_instance = $this->getParent();
+    \assert($component_instance instanceof ComponentTreeItem);
+
+    try {
+      $actual_inputs = $component_instance->getInputs() ?? [];
+    }
+    // Ensure this works correctly even on invalid data.
+    catch (\Exception) {
+      $actual_inputs = [];
+    }
+
+    $mapping = self::resolveConfigSchemaMapping(
+      $component_instance->getComponentId(),
+      $component_instance->getComponentVersion(),
+      $actual_inputs,
+    );
+
+    return \array_keys(\array_filter(
+      $mapping,
+      static fn ($def, $key) => self::isTranslatableInputAccordingToConfigSchema($def, $actual_inputs[$key] ?? NULL),
+      ARRAY_FILTER_USE_BOTH,
+    ));
+  }
+
+  /**
+   * Helper to determine whether a config schema definition is translatable.
+   *
+   * Designed to maximally reuse core's config schema infrastructure. This
+   * leverages Mapping::hasTranslatableElements(), which is during validation of
+   * config entities. An ephemeral `type: mapping` config schema is used to
+   * achieve reuse.
+   *
+   * @param array $config_schema_definition_for_input
+   *   A config schema definition for a component's explicit input. This may be
+   *   as simple as a single scalar value, or as complex as an entire tree.
+   * @param mixed $actual_input
+   *   The actual stored value for this key of the component instance's inputs.
+   *
+   * @return bool
+   *   Whether $config_schema_definition_for_input is considered translatable:
+   *   - if it has `translatable: true`
+   *   - if after resolving, it has `translatable: true`
+   *   - if it is not describing a scalar value but a tree structure: if either
+   *     of those are true at any level
+   *
+   * @internal
+   */
+  private static function isTranslatableInputAccordingToConfigSchema(array $config_schema_definition_for_input, mixed $actual_input): bool {
+    static $typed_config;
+    if ($typed_config === NULL) {
+      $typed_config = \Drupal::service('config.typed');
+      \assert($typed_config instanceof TypedConfigManagerInterface);
+    }
+
+    // Build a data definition for a `type: mapping` containing a single key in
+    // the mapping, with full config schema type resolving (e.g. `type: label`
+    // is marked translatable and `type: required_label` is not, but because it
+    // extends `type: label`, it inherits the translatability).
+    $ephemeral_mapping = new Mapping($typed_config->buildDataDefinition(
+      definition: [
+        'type' => 'mapping',
+        'mapping' => [
+          'is_this_translatable' => $config_schema_definition_for_input,
+        ],
+      ],
+      value: $actual_input,
+    ));
+
+    // Due to the way config schema ignores missing values (Mapping::parse()) it
+    // is required to pass a NULL value for the config schema definition being
+    // checked for translatability; otherwise it won't resolve at all.
+    // @see \Drupal\Core\Config\Schema\ArrayElement::parse()
+    $ephemeral_mapping->setValue(['is_this_translatable' => $actual_input]);
+    return $ephemeral_mapping->hasTranslatableElements();
   }
 
 }

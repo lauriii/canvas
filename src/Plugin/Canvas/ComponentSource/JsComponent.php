@@ -36,6 +36,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   supportsImplicitInputs: FALSE,
   discovery: JsComponentDiscovery::class,
   updater: GeneratedFieldExplicitInputUxComponentInstanceUpdater::class,
+  inputs_config_schema_generator: GeneratedFieldExplicitInputUxComponentInstanceInputsConfigSchemaGenerator::class,
   // @see \Drupal\canvas\EntityHandlers\JavascriptComponentStorage::doPostSave()
   discoveryCacheTags: ['config:js_component_list'],
 )]

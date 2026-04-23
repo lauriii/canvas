@@ -7081,6 +7081,122 @@ HTML
     return 'Twig\Error\LoaderError occurred during rendering of component';
   }
 
+  /**
+   * {@inheritdoc}
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentInstanceInputsConfigSchemaGenerator
+   */
+  public static function providerSymmetricallyTranslatableComponentInstanceScenarios(string $host_entity_type_id): \Generator {
+    yield 'Single-cardinality; All-StaticPropSource inputs' => [
+      'sdc.canvas_test_sdc.my-cta',
+      [
+        'text' => 'Powered by Drupal Canvas',
+        'href' => [
+          'uri' => 'https://drupal.org/project/canvas',
+          'options' => [],
+        ],
+        'target' => '_blank',
+      ],
+      // `target` is not translatable because its prop shape (an `enum`) is not
+      // considered translatable.
+      ['text', 'href'],
+    ];
+
+    // Only the ContentTemplate config entity type allows using structured data
+    // prop source types: EntityFieldPropSource and HostEntityUrlPropSource.
+    if ($host_entity_type_id === ContentTemplate::ENTITY_TYPE_ID) {
+      yield 'Single-cardinality;  StaticPropSource + HostEntityUrlPropSource' => [
+        'sdc.canvas_test_sdc.my-cta',
+        [
+          'text' => 'Static text',
+          // HostEntityUrlPropSource: never translatable.
+          'href' => [
+            'sourceType' => PropSource::HostEntityUrl->value,
+            'absolute' => TRUE,
+          ],
+        ],
+        // Only 'text' should be translatable; 'href' is populated by
+        // HostEntityUrlPropSource (non-translatable).
+        ['text'],
+      ];
+
+      yield 'EntityFieldPropSource + StaticPropSource' => [
+        'sdc.canvas_test_sdc.my-cta',
+        [
+          // EntityFieldPropSource: never translatable.
+          'text' => [
+            'sourceType' => PropSource::EntityField->value,
+            'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+          ],
+          'href' => 'https://example.com',
+        ],
+        // Only 'href' should be translatable; 'text' is populated by
+        // EntityFieldPropSource (non-translatable).
+        ['href'],
+      ];
+
+      yield 'Single-cardinality; EntityFieldPropSource + HostEntityUrl' => [
+        'sdc.canvas_test_sdc.my-cta',
+        [
+          // EntityFieldPropSource: never translatable.
+          'text' => [
+            'sourceType' => PropSource::EntityField->value,
+            'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+          ],
+          // HostEntityUrlPropSource: never translatable.
+          'href' => [
+            'sourceType' => PropSource::HostEntityUrl->value,
+            'absolute' => TRUE,
+          ],
+        ],
+        // Both inputs are translatable in principle, but not on this instance,
+        // because neither is populated by a StaticPropSource.
+        [],
+      ];
+    }
+
+    yield 'Single-cardinality;  All-StaticPropSource inputs … but only for some optional props' => [
+      'sdc.canvas_test_sdc.my-hero',
+      [
+        'heading' => 'Welcome to Canvas',
+        // ⚠️ `subheading` is optional and not populated, but should still
+        // be translatable.
+        'cta1href' => 'https://www.drupal.org/project/canvas',
+        'cta2' => 'Learn more',
+      ],
+      ['heading', 'subheading', 'cta1', 'cta1href', 'cta2'],
+    ];
+
+    yield 'Multiple-cardinality; All-StaticPropSource inputs' => [
+      'sdc.canvas_test_sdc.tags',
+      [
+        'tags' => ['Hello', 'World'],
+      ],
+      ['tags'],
+    ];
+
+    yield 'Multiple-cardinality; All-StaticPropSource inputs, but all empty' => [
+      'sdc.canvas_test_sdc.tags',
+      [
+        'tags' => [],
+      ],
+      ['tags'],
+    ];
+
+    yield 'Both single- and multiple-cardinality; All-StaticPropSource inputs' => [
+      'sdc.canvas_test_sdc.image-gallery',
+      [
+        'caption' => 'Amazing Gracie shots',
+        // ⚠️ `images` is required and not populated. (This could occur for an
+        // auto-save: data is allowed to be invalid.)
+        'images' => [],
+      ],
+      // `caption` is translatable, but `images` is not: its shape is not
+      // considered translatable.
+      ['caption'],
+    ];
+  }
+
   public static function providerResolvedComponentInputs(): \Generator {
     yield 'SDC that does not exist' => [
       'sdc.sdc_test.missing_component',

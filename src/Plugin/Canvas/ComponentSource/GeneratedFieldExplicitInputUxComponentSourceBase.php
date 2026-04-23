@@ -253,8 +253,10 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
   /**
    * {@inheritdoc}
+   *
+   * @return array{'required': string[], 'shapes': array<string, array>}
    */
-  protected function getExplicitInputDefinitions(): array {
+  public function getExplicitInputDefinitions(): array {
     // Use the referenced Component version to determine required props.
     $required = \array_keys(\array_filter($this->configuration['prop_field_definitions'], static fn (array $definition) => $definition['required'] ?? FALSE));
     $prop_shapes = self::getComponentInputsForMetadata($this->getSourceSpecificComponentId(), $this->getMetadata());

@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+// cspell:ignore gitane
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputTranslatability;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Depends;
@@ -51,9 +53,9 @@ final class BlockComponentTest extends ComponentSourceTestBase {
   /**
    * {@inheritdoc}
    *
-   * 5 additional Block Component config entities due to the additional modules.
+   * 6 additional Block Component config entities due to the additional modules.
    */
-  protected int $expectedDefaultComponentInstallCount = self::DEFAULT_COMPONENT_INSTALL_COUNT + 5;
+  protected int $expectedDefaultComponentInstallCount = self::DEFAULT_COMPONENT_INSTALL_COUNT + 6;
 
   use BlockComponentTreeTestTrait;
 
@@ -106,6 +108,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
     self::assertSame([
       'block.canvas_test_block_input_none',
       'block.canvas_test_block_input_schema_change_poc',
+      BlockComponent::SOURCE_PLUGIN_ID . '.' . CanvasTestBlockInputTranslatability::PLUGIN_ID,
       'block.canvas_test_block_input_validatable',
       'block.canvas_test_block_input_validatable_crash',
       'block.canvas_test_block_optional_contexts',
@@ -147,6 +150,15 @@ final class BlockComponentTest extends ComponentSourceTestBase {
           'label_display' => '0',
           'provider' => 'canvas_test_block',
           'foo' => 'bar',
+        ],
+      ],
+      BlockComponent::SOURCE_PLUGIN_ID . '.' . CanvasTestBlockInputTranslatability::PLUGIN_ID => [
+        'default_settings' => [
+          'id' => CanvasTestBlockInputTranslatability::PLUGIN_ID,
+          'label' => 'Canvas Test Block for testing input translatability',
+          'label_display' => '0',
+          'provider' => 'canvas_test_block',
+          ...CanvasTestBlockInputTranslatability::DEFAULT_CONFIGURATION,
         ],
       ],
       'block.canvas_test_block_input_validatable' => [
@@ -193,6 +205,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
     self::assertSame([
       'block.canvas_test_block_input_none' => CanvasTestBlockInputNone::class,
       'block.canvas_test_block_input_schema_change_poc' => CanvasTestBlockInputSchemaChangePoc::class,
+      BlockComponent::SOURCE_PLUGIN_ID . '.' . CanvasTestBlockInputTranslatability::PLUGIN_ID => CanvasTestBlockInputTranslatability::class,
       'block.canvas_test_block_input_validatable' => CanvasTestBlockInputValidatable::class,
       'block.canvas_test_block_input_validatable_crash' => CanvasTestBlockInputValidatableCrash::class,
       'block.canvas_test_block_optional_contexts' => CanvasTestBlockOptionalContexts::class,
@@ -265,19 +278,19 @@ HTML,
         'cacheability' => $default_cacheability,
         'attachments' => [],
       ],
-      'block.canvas_test_block_input_validatable' => [
+      BlockComponent::SOURCE_PLUGIN_ID . '.' . CanvasTestBlockInputTranslatability::PLUGIN_ID => [
         'html' => <<<HTML
 <div id="block-some-uuid--3">
 
 
-      <div>Hello, Canvas!</div>
+      First bar: Gitane
   </div>
 
 HTML,
         'cacheability' => $default_cacheability,
         'attachments' => [],
       ],
-      'block.canvas_test_block_input_validatable_crash' => [
+      'block.canvas_test_block_input_validatable' => [
         'html' => <<<HTML
 <div id="block-some-uuid--4">
 
@@ -289,9 +302,21 @@ HTML,
         'cacheability' => $default_cacheability,
         'attachments' => [],
       ],
-      'block.canvas_test_block_optional_contexts' => [
+      'block.canvas_test_block_input_validatable_crash' => [
         'html' => <<<HTML
 <div id="block-some-uuid--5">
+
+
+      <div>Hello, Canvas!</div>
+  </div>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [],
+      ],
+      'block.canvas_test_block_optional_contexts' => [
+        'html' => <<<HTML
+<div id="block-some-uuid--6">
 
 
       Test Block with optional context value: @todo in https://www.drupal.org/i/3485502
@@ -314,6 +339,9 @@ HTML,
       ],
       'block.canvas_test_block_input_schema_change_poc' => [
         'expected_output_selectors' => ['div:contains("Current foo value: bar")'],
+      ],
+      BlockComponent::SOURCE_PLUGIN_ID . '.' . CanvasTestBlockInputTranslatability::PLUGIN_ID => [
+        'expected_output_selectors' => ['div:contains("First bar: Gitane")'],
       ],
       'block.canvas_test_block_input_validatable' => [
         'expected_output_selectors' => ['div:contains("Hello, Canvas!")'],
@@ -404,6 +432,7 @@ HTML,
     self::assertSame([
       'block.canvas_test_block_input_none' => $dependencies,
       'block.canvas_test_block_input_schema_change_poc' => $dependencies,
+      BlockComponent::SOURCE_PLUGIN_ID . '.' . CanvasTestBlockInputTranslatability::PLUGIN_ID => $dependencies,
       'block.canvas_test_block_input_validatable' => $dependencies,
       'block.canvas_test_block_input_validatable_crash' => $dependencies,
       'block.canvas_test_block_optional_contexts' => $dependencies,
@@ -632,6 +661,44 @@ HTML,
 
   protected function getExpectedVerboseErrorMessage(): string {
     return 'This block is broken or missing.';
+  }
+
+  public static function providerSymmetricallyTranslatableComponentInstanceScenarios(string $host_entity_type_id): \Generator {
+    yield 'common scenario' => [
+      'block.system_branding_block',
+      [
+        'label' => 'Branding is important, right?',
+        'label_display' => 'visible',
+        'use_site_logo' => FALSE,
+        'use_site_name' => TRUE,
+        'use_site_slogan' => TRUE,
+      ],
+      ['label'],
+    ];
+
+    yield 'nesting & config schema type resolution' => [
+      BlockComponent::SOURCE_PLUGIN_ID . '.' . CanvasTestBlockInputTranslatability::PLUGIN_ID,
+      [
+        'label' => 'Translations matter!',
+        'label_display' => 'visible',
+        'top_level_translatable_regardless_of_type' => 'nope',
+        'deeply_nested_translatable' => [
+          [
+            'foo' => 'Huh?',
+            'bar' => 'Gitane',
+          ],
+        ],
+      ],
+      [
+        'label',
+        // 💡Anything can be marked translatable for block plugins' settings,
+        // even `type: ignore`.
+        'top_level_translatable_regardless_of_type',
+        // 💡Every level of the settings is traversed; anything translatable
+        // makes this top-level key eligible for translation.
+        'deeply_nested_translatable',
+      ],
+    ];
   }
 
   public static function providerResolvedComponentInputs(): \Generator {

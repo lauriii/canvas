@@ -89,6 +89,105 @@ class ComponentTreeItemListTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests ::getTranslatableInputKeys() scenarios across entity types.
+   *
+   * Tests only edge case scenarios: invalid component trees. This ensures that
+   * ::getTranslatableInputKeys() always returns a sensible result, even when
+   * translating an invalid component tree — which could occur e.g. for an
+   * auto-saved version of it.
+   *
+   * These are source-agnostic. Non-edge case scenarios are tested for each
+   * component source.
+   *
+   * @see \Drupal\canvas\ComponentSource\ComponentInstanceInputsConfigSchemaGeneratorInterface
+   * @see \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\ComponentSourceTestBase::testGetTranslatableInputKeys()
+   * @legacy-covers \Drupal\canvas\Plugin\DataType\ComponentInputs::getTranslatableInputKeys()
+   */
+  #[DataProvider('hostEntityProvider')]
+  public function testGetTranslatableInputKeysSourceAgnosticEdgeCases(string $host_entity_type_id, array $host_entity_values): void {
+    // Content templates require nodes to exist, the full view mode, and >=1
+    // bundle.
+    if ($host_entity_type_id === ContentTemplate::ENTITY_TYPE_ID) {
+      $this->enableModules(['node', 'field']);
+      $this->installConfig(['node']);
+      NodeType::create(['type' => 'article', 'name' => 'Article'])->save();
+    }
+
+    // Simulate the expected host entity containing this component tree exists,
+    // without actually creating (and saving) the host entity.
+    $host_entity = match ($host_entity_type_id) {
+      Page::ENTITY_TYPE_ID => Page::create($host_entity_values)->enforceIsNew(FALSE),
+      PageRegion::ENTITY_TYPE_ID => PageRegion::create($host_entity_values),
+      Pattern::ENTITY_TYPE_ID => Pattern::create($host_entity_values),
+      ContentTemplate::ENTITY_TYPE_ID => ContentTemplate::create($host_entity_values),
+      default => throw new \LogicException("Unhandled host entity type ID $host_entity_type_id in " . __METHOD__),
+    };
+    if ($host_entity instanceof ContentEntityInterface) {
+      $this->installEntitySchema($host_entity_type_id);
+    }
+
+    $get_translatable_input_keys = function (string $component_instance_uuid) use ($host_entity): ?array {
+      return $host_entity->getComponentTree()
+        ->getComponentTreeItemByUuid($component_instance_uuid)
+        ?->get('inputs')
+          ->getTranslatableInputKeys();
+    };
+
+    // Scenario 1: Non-existent Component.
+    // Should robustly return [] without crashing.
+    $host_entity->setComponentTree([
+      [
+        'uuid' => 'd6f7e5f2-b3c1-5d0f-9e2f-b9d8e4f0c3f5',
+        'component_id' => 'nonexistent.component.id',
+        'component_version' => 'abc123',
+        'inputs' => ['key' => 'value'],
+      ],
+    ]);
+    $this->assertSame(
+      [],
+      $get_translatable_input_keys('d6f7e5f2-b3c1-5d0f-9e2f-b9d8e4f0c3f5'),
+      'Scenario 1: Non-existent Component should return empty array (robustness principle).'
+    );
+
+    // Scenario 2: Invalid component version (falls back to active).
+    // Use a valid component but an invalid version string.
+    $host_entity->setComponentTree([
+      [
+        'uuid' => 'e7f8f6f3-c4d2-5e1f-0f3f-c0e9f5f1d4f6',
+        'component_id' => 'sdc.canvas_test_sdc.my-cta',
+        'component_version' => 'invalid_version_xyz',
+        'inputs' => [
+          'text' => 'Some text',
+          'href' => ['uri' => 'https://example.com', 'options' => []],
+        ],
+      ],
+    ]);
+    // Should fall back to active version and return same keys as Scenario 1.
+    $this->assertSame(
+      ['text', 'href'],
+      $get_translatable_input_keys('e7f8f6f3-c4d2-5e1f-0f3f-c0e9f5f1d4f6'),
+      'Scenario 2: Invalid version should fall back to active version and return same translatable keys.'
+    );
+
+    // Scenario 3: Malformed/NULL inputs (treated as empty for refinement).
+    // The method should handle NULL inputs gracefully and return the component version's translatable keys.
+    $host_entity->setComponentTree([
+      [
+        'uuid' => 'f8f9f7f4-d5e3-5f2f-1f4f-d1f0f6f2e5f7',
+        'component_id' => 'sdc.canvas_test_sdc.my-cta',
+        'component_version' => '89881c04a0fde367',
+        'inputs' => [],
+      ],
+    ]);
+    // With empty inputs, all props that are translatable by definition should be returned.
+    $this->assertSame(
+      ['text', 'href'],
+      $get_translatable_input_keys('f8f9f7f4-d5e3-5f2f-1f4f-d1f0f6f2e5f7'),
+      'Scenario 3: Empty inputs should return all translatable props for the component version.'
+    );
+  }
+
+  /**
    * Tests hydration and rendering.
    *
    * @legacy-covers ::getHydratedTree

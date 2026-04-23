@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
 // cspell:ignore Bwidth Fitok Synx Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk
+
+use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -63,6 +66,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSourceBaseTestBase {
 
   use CacheBustingTrait;
+  use CreateTestJsComponentTrait;
 
   protected readonly AssetResolverInterface $assetResolver;
   protected readonly CodeComponentDataProvider $codeComponentDataProvider;
@@ -2692,6 +2696,31 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     // The code component was deleted by bypassing lots of protections.
     // @see ::triggerBrokenComponent()
     return \sprintf('The JavaScript Component with ID `%s` does not exist.', self::PSEUDO_RANDOM_CODE_COMPONENT_ID);
+  }
+
+  #[DataProvider('providerGetTranslatableInputKeys')]
+  public function testGetTranslatableInputKeys(string $host_entity_type_id, array $host_entity_values, string $component_id, array $inputs, array $expected_translatable_inputs): void {
+    $this->createMyCtaComponentFromSdc();
+    parent::testGetTranslatableInputKeys($host_entity_type_id, $host_entity_values, $component_id, $inputs, $expected_translatable_inputs);
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentInstanceInputsConfigSchemaGenerator
+   */
+  public static function providerSymmetricallyTranslatableComponentInstanceScenarios(string $host_entity_type_id): \Generator {
+    foreach (SingleDirectoryComponentTest::providerSymmetricallyTranslatableComponentInstanceScenarios($host_entity_type_id) as $label => $test_case) {
+      // Reuse all the "my-cta" test cases from the SDC source's test coverage
+      // (because an equivalent code component can easily be made). Do not
+      // repeat other test cases; they're powered by the same logic anyway.
+      // @see \Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait::createMyCtaComponentFromSdc()
+      if ($test_case[0] !== 'sdc.canvas_test_sdc.my-cta') {
+        continue;
+      }
+      $test_case[0] = 'js.my-cta';
+      yield $label => $test_case;
+    }
   }
 
   public static function providerResolvedComponentInputs(): \Generator {
