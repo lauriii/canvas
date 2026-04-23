@@ -302,6 +302,14 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
     ];
+    // If a required prop stays required while something else changes, the
+    // existing input must be preserved unchanged.
+    yield "Required prop stays required while a new optional prop is added" => [
+      'b2d91be1e5b7cc1b',
+      [self::class, 'addOptionalProp'],
+      ComponentInstanceUpdateAttemptResult::Latest,
+      [self::class, 'assertRequiredPropInputPreserved'],
+    ];
   }
 
   protected static function assertOptionalBecameRequiredWithDefault(ComponentTreeItem $component_instance): void {
@@ -354,6 +362,82 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
     $component = Component::load('js.test');
     self::assertNotNull($component);
     $this->assertCount($setup_callback === NULL ? 1 : 2, $component->getVersions());
+  }
+
+  /**
+   * Tests that garbage inputs are preserved or overridden based on validity.
+   *
+   * This cannot use the main providerUpdate data provider because garbage
+   * inputs fail tree validation (which is correct behavior — the data
+   * represents pre-1.1 corruption). See https://www.drupal.org/i/3579086.
+   */
+  #[DataProvider('providerUpdateWithGarbageInput')]
+  public function testUpdateWithGarbageInput(string $setup_method, callable $assertion_callback): void {
+    $sut = new GeneratedFieldExplicitInputUxComponentInstanceUpdater();
+
+    // Add a new required `voice` prop to create a new version. Depending on
+    // the scenario, the garbage `voice` value already present on the
+    // component instance may or may not be valid for the new prop.
+    $this->{$setup_method}();
+
+    // Create a component tree with garbage input: `voice` doesn't exist in
+    // the original version's schema but has a value in the instance. This
+    // simulates data from before Canvas 1.1 where inputs could exist for
+    // props that didn't exist.
+    $component_tree_value = [
+      [
+        'uuid' => self::COMPONENT_INSTANCE_UUID,
+        'component_id' => 'js.test',
+        'component_version' => self::ORIGINAL_VERSION_HASH,
+        'parent_uuid' => NULL,
+        'inputs' => [
+          'required_text' => 'Canvas is large and in charge!',
+          'optional_text' => 'shouting',
+          'voice' => 'garbage value',
+        ],
+      ],
+    ];
+    // Skip validation: garbage inputs are intentionally invalid.
+    $component_tree = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
+    $component_tree->setValue($component_tree_value);
+    $component_instance = $component_tree->getComponentTreeItemByUuid(self::COMPONENT_INSTANCE_UUID);
+    self::assertNotNull($component_instance);
+
+    $this->assertSame(ComponentInstanceUpdateAttemptResult::Latest, $sut->update($component_instance));
+
+    // When the "garbage" value is valid for the new prop, it has to be
+    // preserved. When it's invalid, the default value of the new required prop
+    // must override it.
+    $assertion_callback($component_instance);
+  }
+
+  public static function providerUpdateWithGarbageInput(): \Generator {
+    // The garbage value 'garbage value' is a valid `string`, so once the
+    // new (plain string) `voice` prop is added to the schema it aligns with
+    // the input and is kept as-is.
+    yield "Garbage value is valid for the newly added prop — preserved" => [
+      'addRequiredProp',
+      [self::class, 'assertGarbageVoicePreserved'],
+    ];
+    // The garbage value 'garbage value' is NOT in the enum for the new
+    // `voice` prop, so it is replaced with the prop's default (example)
+    // value.
+    yield "Garbage value is invalid for the newly added prop — overridden" => [
+      'addRequiredEnumProp',
+      [self::class, 'assertGarbageVoiceOverridden'],
+    ];
+  }
+
+  protected static function assertGarbageVoicePreserved(ComponentTreeItem $component_instance): void {
+    $inputs = $component_instance->getInputs() ?? [];
+    self::assertArrayHasKey('voice', $inputs);
+    self::assertEquals('garbage value', $inputs['voice']);
+  }
+
+  protected static function assertGarbageVoiceOverridden(ComponentTreeItem $component_instance): void {
+    $inputs = $component_instance->getInputs() ?? [];
+    self::assertArrayHasKey('voice', $inputs);
+    self::assertEquals('polite', $inputs['voice']);
   }
 
   public function testAddingOptionalArrayPropToInUseComponentCanUpdate(): void {
@@ -546,6 +630,23 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
       ->save();
   }
 
+  protected function addRequiredEnumProp(): void {
+    $props = $this->jsComponent->getProps();
+    $required_props = $this->jsComponent->getRequiredProps();
+    \assert(!\is_null($props));
+    $props['voice'] = [
+      'type' => 'string',
+      'title' => 'Voice',
+      'enum' => ['polite', 'loud'],
+      'examples' => ['polite'],
+    ];
+    $required_props[] = 'voice';
+    $this->jsComponent
+      ->setProps($props)
+      ->set('required', $required_props)
+      ->save();
+  }
+
   protected function changePropType(): void {
     $props = $this->jsComponent->getProps();
     \assert(!\is_null($props));
@@ -669,6 +770,12 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
     ];
     $this->jsComponent->set('slots', $slots)
       ->save();
+  }
+
+  protected static function assertRequiredPropInputPreserved(ComponentTreeItem $component_instance): void {
+    $inputs = $component_instance->getInputs() ?? [];
+    self::assertArrayHasKey('required_text', $inputs);
+    self::assertSame('Canvas is large and in charge!', $inputs['required_text']);
   }
 
   protected static function assertOptionalPropRemoved(ComponentTreeItem $component_instance): void {
