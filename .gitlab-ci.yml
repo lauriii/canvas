@@ -586,7 +586,7 @@ playwright:
   needs: []
   parallel:
     matrix:
-      - SHARD: [ "1/5", "2/5", "3/5", "4/5", "5/5" ]
+      - SHARD: [ "1/6", "2/6", "3/6", "4/6", "5/6", "6/6" ]
         #PROJECT: [ "chromium", "firefox", "webkit" ]
   rules:
     - *e2e-tests-are-enabled-rule
@@ -638,7 +638,9 @@ playwright:
 
 playwright-reports:
   stage: report
-  when: always
+  rules:
+    - *e2e-tests-are-enabled-rule
+    - *manual-rule
   needs:
     - playwright
   image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
