@@ -76,6 +76,7 @@ JSONified
 jsxs
 langcode
 leftbar
+liftup
 lightningcss
 Linkit
 Mautic
