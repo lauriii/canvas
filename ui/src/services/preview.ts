@@ -16,10 +16,13 @@ import type { RootState } from '@/app/store';
 import type {
   ComponentModel,
   EvaluatedComponentModel,
+  PropSource,
+  ResolvedValues,
 } from '@/features/layout/layoutModelSlice';
 import type { EditorFrameContext } from '@/features/ui/uiSlice';
 import type { ConflictError } from '@/services/pendingChangesApi';
 import type { AutoSavesHash } from '@/types/AutoSaves';
+import type { InputUIData } from '@/types/Form';
 
 export type UpdateComponentResultType = {
   html: string;
@@ -113,6 +116,89 @@ export const previewApi = createApi({
 
 export const { usePostPreviewMutation, useUpdateComponentMutation } =
   previewApi;
+
+/**
+ * A hook that wraps useUpdateComponentMutation with a simpler interface.
+ *
+ * Instead of manually constructing the full UpdateComponentQueryArg at every
+ * call site, consumers pass only the model payload. The hook derives
+ * `type`, `componentInstanceUuid`, and `componentType` from `inputUIData`.
+ *
+ * @param inputUIData - The return value of useInputUIData().
+ */
+export const usePatchComponent = () => {
+  const [updateComponent] = useUpdateComponentMutation();
+
+  return (
+    inputUIData: InputUIData,
+    model: UpdateComponentQueryArg['model'],
+  ) => {
+    const {
+      selectedComponent,
+      selectedComponentType,
+      version,
+      editorFrameContext,
+    } = inputUIData;
+    return updateComponent({
+      type: editorFrameContext,
+      componentInstanceUuid: selectedComponent,
+      componentType: `${selectedComponentType}@${version}`,
+      model,
+    });
+  };
+};
+
+/**
+ * A targeted variant of usePatchComponent for the common case of updating a
+ * single prop on the current component.
+ *
+ * The caller provides only the prop name and its new source/resolved values.
+ * The hook spreads the existing model's source and resolved, overriding just
+ * the named prop — avoiding the repetitive spread boilerplate at every call
+ * site.
+ *
+ * Only valid for EvaluatedComponentModel instances (components with source
+ * data). Returns null without patching if the current model is not evaluated.
+ */
+export const usePatchProp = () => {
+  const [updateComponent] = useUpdateComponentMutation();
+
+  return (
+    inputUIData: InputUIData,
+    propName: string,
+    sourceValue: PropSource | PropSource['value'],
+    resolvedValue: ResolvedValues[string],
+  ) => {
+    const {
+      selectedComponent,
+      selectedComponentType,
+      version,
+      editorFrameContext,
+      model,
+    } = inputUIData;
+
+    const selectedModel = model?.[selectedComponent];
+    if (!selectedModel || !('source' in selectedModel)) {
+      return null;
+    }
+
+    return updateComponent({
+      type: editorFrameContext,
+      componentInstanceUuid: selectedComponent,
+      componentType: `${selectedComponentType}@${version}`,
+      model: {
+        source: {
+          ...selectedModel.source,
+          [propName]: sourceValue,
+        },
+        resolved: {
+          ...selectedModel.resolved,
+          [propName]: resolvedValue,
+        },
+      },
+    });
+  };
+};
 
 // A selector that returns the current updateComponent mutation loading state
 // given a component ID.

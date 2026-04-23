@@ -2,25 +2,10 @@ import clsx from 'clsx';
 import { Cross2Icon, TextIcon } from '@radix-ui/react-icons';
 import { Box, Flex, Text } from '@radix-ui/themes';
 
-import { useAppSelector } from '@/app/hooks';
 import InputDescription from '@/components/form/components/drupal/InputDescription';
-import {
-  isEvaluatedComponentModel,
-  selectLayout,
-  selectModel,
-} from '@/features/layout/layoutModelSlice';
-import { findComponentByUuid } from '@/features/layout/layoutUtils';
-import {
-  EditorFrameContext,
-  selectSelectedComponentUuid,
-} from '@/features/ui/uiSlice';
-import { useGetComponentsQuery } from '@/services/componentAndLayout';
-import { useUpdateComponentMutation } from '@/services/preview';
+import useInputUIData from '@/hooks/useInputUIData';
+import { usePatchProp } from '@/services/preview';
 
-import type {
-  ComponentModel,
-  EvaluatedComponentModel,
-} from '@/features/layout/layoutModelSlice';
 import type {
   CanvasComponent,
   DefaultValues,
@@ -50,20 +35,9 @@ const LinkedFieldBox = ({
   const parts = fullLabel.split(SLASH_SEPARATOR);
   const shortTitle = parts[parts.length - 1];
 
-  const { data: components } = useGetComponentsQuery();
-  const model = useAppSelector(selectModel);
-  const layout = useAppSelector(selectLayout);
-  const selectedComponent = useAppSelector(selectSelectedComponentUuid);
-  const selectedComponentId: string = selectedComponent || 'noop';
-  const selectedModel: ComponentModel | EvaluatedComponentModel =
-    model[selectedComponentId] || {};
-  const node = findComponentByUuid(layout, selectedComponentId);
-  const [selectedComponentType, version] = (
-    node ? (node.type as string) : 'noop'
-  ).split('@');
-  const [patchComponent] = useUpdateComponentMutation({
-    fixedCacheKey: selectedComponentId,
-  });
+  const inputUIData = useInputUIData();
+  const { components, selectedComponentType } = inputUIData;
+  const patchProp = usePatchProp();
   const unlinkField = () => {
     const component: CanvasComponent | undefined =
       components?.[selectedComponentType];
@@ -78,27 +52,16 @@ const LinkedFieldBox = ({
       return;
     }
     const default_values: DefaultValues = propData?.default_values || {};
-    if (isEvaluatedComponentModel(selectedModel)) {
-      patchComponent({
-        type: EditorFrameContext.TEMPLATE,
-        componentInstanceUuid: selectedComponentId,
-        componentType: `${selectedComponentType}@${version}`,
-        model: {
-          source: {
-            ...selectedModel.source,
-            [propName]: {
-              expression: propData.expression,
-              sourceType: propData.sourceType,
-              sourceTypeSettings: propData.sourceTypeSettings,
-            },
-          },
-          resolved: {
-            ...selectedModel.resolved,
-            [propName]: default_values.resolved,
-          },
-        },
-      });
-    }
+    patchProp(
+      inputUIData,
+      propName,
+      {
+        expression: propData.expression,
+        sourceType: propData.sourceType,
+        sourceTypeSettings: propData.sourceTypeSettings,
+      },
+      default_values.resolved,
+    );
   };
 
   return (

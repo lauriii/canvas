@@ -24,7 +24,6 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import {
-  selectEditorFrameContext,
   selectLatestUndoRedoActionId,
   selectSelectedComponentUuid,
 } from '@/features/ui/uiSlice';
@@ -36,7 +35,7 @@ import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { useGetComponentInstanceFormQuery } from '@/services/componentInstanceForm';
 import {
   selectUpdateComponentLoadingState,
-  useUpdateComponentMutation,
+  usePatchComponent,
 } from '@/services/preview';
 import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
 import { isPropSourceComponent } from '@/types/Component';
@@ -72,8 +71,12 @@ const ComponentInstanceFormRenderer: React.FC<
   const { queryString } = props;
   const { showBoundary } = useErrorBoundary();
   const inputAndUiData: InputUIData = useInputUIData();
-  const { selectedComponentType, version, selectedComponent } = inputAndUiData;
-  const editorFrameContext = useAppSelector(selectEditorFrameContext);
+  const {
+    selectedComponentType,
+    selectedComponent,
+    editorFrameContext,
+    components,
+  } = inputAndUiData;
 
   const [jsxFormContent, setJsxFormContent] =
     useState<React.ReactElement | null>(null);
@@ -92,11 +95,8 @@ const ComponentInstanceFormRenderer: React.FC<
         skip,
       },
     );
-  const { data: components } = useGetComponentsQuery();
 
-  const [patchComponent] = useUpdateComponentMutation({
-    fixedCacheKey: selectedComponentId,
-  });
+  const patchComponent = usePatchComponent();
 
   useEffect(() => {
     if (error) {
@@ -218,29 +218,19 @@ const ComponentInstanceFormRenderer: React.FC<
 
         const component = components?.[selectedComponentType];
         if (isEvaluatedComponentModel(selectedModel) && component) {
-          patchComponent({
-            type: editorFrameContext,
-            componentInstanceUuid: selectedComponentId,
-            componentType: `${selectedComponentType}@${version}`,
-            model: {
-              source: syncPropSourcesToResolvedValues(
-                selectedModel.source,
-                component,
-                resolved,
-              ),
+          patchComponent(inputAndUiData, {
+            source: syncPropSourcesToResolvedValues(
+              selectedModel.source,
+              component,
               resolved,
-            },
+            ),
+            resolved,
           });
           return;
         }
-        patchComponent({
-          type: editorFrameContext,
-          componentInstanceUuid: selectedComponentId,
-          componentType: `${selectedComponentType}@${version}`,
-          model: {
-            ...selectedModel,
-            resolved,
-          },
+        patchComponent(inputAndUiData, {
+          ...selectedModel,
+          resolved,
         });
       }
     };

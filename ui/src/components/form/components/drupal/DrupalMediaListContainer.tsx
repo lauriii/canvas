@@ -19,13 +19,11 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 
-import { useAppSelector } from '@/app/hooks';
 import { toPropName } from '@/components/form/formUtil';
 import { syncPropSourcesToResolvedValues } from '@/components/form/InputBehaviorsComponentPropsForm';
 import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
-import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import useInputUIData from '@/hooks/useInputUIData';
-import { useUpdateComponentMutation } from '@/services/preview';
+import { usePatchComponent, usePatchProp } from '@/services/preview';
 import { isAjaxing } from '@/utils/isAjaxing';
 
 import type { ReactNode } from 'react';
@@ -34,7 +32,6 @@ import type {
   EvaluatedComponentModel,
   Sources,
 } from '@/features/layout/layoutModelSlice';
-import type { EditorFrameContext } from '@/features/ui/uiSlice';
 
 /**
  * Reads all `target_id` inputs inside a wrapper element and returns their
@@ -55,53 +52,15 @@ function collectTargetIds(
 }
 
 /**
- * Builds the `patchComponent` payload for a drag-reorder operation.
- * Updates both `source[propName].value` and `resolved[propName]` to the new
- * target-id order.
- */
-function buildReorderPatch(
-  model: EvaluatedComponentModel,
-  propName: string,
-  targetIds: string[],
-  editorFrameContext: EditorFrameContext,
-  selectedComponent: string,
-  selectedComponentType: string,
-  version: string,
-) {
-  return {
-    type: editorFrameContext,
-    componentInstanceUuid: selectedComponent,
-    componentType: `${selectedComponentType}@${version}`,
-    model: {
-      source: {
-        ...model.source,
-        [propName]: {
-          ...model.source[propName],
-          value: targetIds,
-        },
-      },
-      resolved: {
-        ...model.resolved,
-        [propName]: targetIds,
-      },
-    },
-  };
-}
-
-/**
- * Builds the `patchComponent` payload for a remove operation.
+ * Builds the model payload for a remove operation.
  * Clears the prop value (or resets to required defaults) and syncs sources to
  * resolved values.
  */
-function buildRemovePatch(
+function buildRemoveModel(
   model: EvaluatedComponentModel,
   propName: string,
   propSourceData: any,
   componentData: any,
-  editorFrameContext: EditorFrameContext,
-  selectedComponent: string,
-  selectedComponentType: string,
-  version: string,
 ) {
   const isRequired = !!propSourceData?.required;
 
@@ -115,13 +74,8 @@ function buildRemovePatch(
   }
 
   return {
-    type: editorFrameContext,
-    componentInstanceUuid: selectedComponent,
-    componentType: `${selectedComponentType}@${version}`,
-    model: {
-      source: syncPropSourcesToResolvedValues(source, componentData, resolved),
-      resolved,
-    },
+    source: syncPropSourcesToResolvedValues(source, componentData, resolved),
+    resolved,
   };
 }
 interface DrupalMediaListContainerProps {
@@ -141,17 +95,10 @@ const DrupalMediaListContainer = ({
   const elementIdMapRef = useRef<Map<React.ReactElement, string>>(new Map());
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputUIData = useInputUIData();
-  const editorFrameContext = useAppSelector(selectEditorFrameContext);
-  const {
-    selectedComponent,
-    selectedComponentType,
-    version,
-    model,
-    components,
-  } = inputUIData || {};
-  const [patchComponent] = useUpdateComponentMutation({
-    fixedCacheKey: selectedComponent,
-  });
+  const { selectedComponent, selectedComponentType, model, components } =
+    inputUIData;
+  const patchComponent = usePatchComponent();
+  const patchProp = usePatchProp();
   const selectedModel = useMemo(
     () => model?.[selectedComponent] || null,
     [model, selectedComponent],
@@ -208,17 +155,12 @@ const DrupalMediaListContainer = ({
             wrapperRef.current,
             selectedComponent,
           );
-          if (propName) {
-            patchComponent(
-              buildReorderPatch(
-                selectedModel,
-                propName,
-                targetIds,
-                editorFrameContext,
-                selectedComponent,
-                selectedComponentType,
-                version,
-              ),
+          if (propName && isEvaluatedComponentModel(selectedModel)) {
+            patchProp(
+              inputUIData,
+              propName,
+              { ...selectedModel.source[propName], value: targetIds },
+              targetIds,
             );
           }
         });
@@ -231,15 +173,7 @@ const DrupalMediaListContainer = ({
           el.setAttribute('value', index.toString());
         });
     },
-    [
-      editorFrameContext,
-      onSort,
-      patchComponent,
-      selectedComponent,
-      selectedComponentType,
-      selectedModel,
-      version,
-    ],
+    [onSort, patchProp, inputUIData, selectedComponent, selectedModel],
   );
 
   // Handle sort by reordering the elements in state
@@ -302,21 +236,17 @@ const DrupalMediaListContainer = ({
       if (!componentData || !propSourceData) {
         return;
       }
-      const removePatch = buildRemovePatch(
+      const removeModel = buildRemoveModel(
         selectedModel,
         propName,
         propSourceData,
         componentData,
-        editorFrameContext,
-        selectedComponent,
-        selectedComponentType,
-        version,
       );
 
       setTimeout(() => {
         const interval = setInterval(() => {
           if (!isAjaxing()) {
-            patchComponent(removePatch);
+            patchComponent(inputUIData, removeModel);
             clearInterval(interval);
           }
         });
@@ -350,12 +280,11 @@ const DrupalMediaListContainer = ({
     }
   }, [
     itemIds,
+    inputUIData,
     components,
     selectedComponent,
     selectedComponentType,
     selectedModel,
-    version,
-    editorFrameContext,
     patchComponent,
   ]);
 

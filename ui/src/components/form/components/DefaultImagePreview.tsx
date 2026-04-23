@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useAppSelector } from '@/app/hooks';
 import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
-import {
-  EditorFrameContext,
-  selectEditorFrameContext,
-} from '@/features/ui/uiSlice';
+import { EditorFrameContext } from '@/features/ui/uiSlice';
 import useInputUIData from '@/hooks/useInputUIData';
 import useMutationObserver from '@/hooks/useMutationObserver';
-import { useUpdateComponentMutation } from '@/services/preview';
+import { usePatchProp } from '@/services/preview';
 import { isPropSourceComponent } from '@/types/Component';
 
 import type { CodeComponentPropImageExample } from '@/types/CodeComponent';
@@ -56,18 +52,16 @@ const isEmptyValue = (value: unknown): boolean => {
 };
 
 const DefaultImagePreview = ({ propName }: DefaultImagePreviewProps) => {
-  const editorFrameContext = useAppSelector(selectEditorFrameContext);
+  const inputUIData = useInputUIData();
   const {
     selectedComponent: selectedComponentId,
     components,
     selectedComponentType,
-    version,
     model,
-  } = useInputUIData();
+    editorFrameContext,
+  } = inputUIData;
 
-  const [patchComponent] = useUpdateComponentMutation({
-    fixedCacheKey: selectedComponentId,
-  });
+  const patchProp = usePatchProp();
 
   const [hasMediaInWidget, setHasMediaInWidget] = useState(false);
   const fieldsetRef = useRef<Element | null>(null);
@@ -158,24 +152,7 @@ const DefaultImagePreview = ({ propName }: DefaultImagePreviewProps) => {
       return;
     }
 
-    patchComponent({
-      type: editorFrameContext,
-      componentInstanceUuid: selectedComponentId,
-      componentType: `${selectedComponentType}@${version}`,
-      model: {
-        source: {
-          ...selectedModel.source,
-          [propName]: {
-            ...propData,
-            value: [],
-          },
-        },
-        resolved: {
-          ...selectedModel.resolved,
-          [propName]: [],
-        },
-      },
-    });
+    patchProp(inputUIData, propName, { ...propData, value: [] }, []);
   };
 
   if (!isShowingDefaultImage || !defaultImageValue) {

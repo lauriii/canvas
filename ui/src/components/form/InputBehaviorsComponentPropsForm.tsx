@@ -23,10 +23,8 @@ import { FORM_TYPES } from '@/features/form/constants';
 import { selectFormValues } from '@/features/form/formStateSlice';
 import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
 import { setPreviewBackgroundUpdate } from '@/features/pagePreview/previewSlice';
-import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import useInputUIData from '@/hooks/useInputUIData';
-import { useGetComponentsQuery } from '@/services/componentAndLayout';
-import { useUpdateComponentMutation } from '@/services/preview';
+import { usePatchComponent } from '@/services/preview';
 import { isPropSourceComponent } from '@/types/Component';
 import { parseValue } from '@/utils/function-utils';
 
@@ -49,18 +47,15 @@ export const InputBehaviorsComponentPropsForm = (
    * rendering in the correct React Router context so we can't get the selected component ID from the url in inputBehaviors.tsx.
    * We already have a workaround for this for the Redux provider, could we do the same for the React Router context?
    */
-  const editorFrameContext = useAppSelector(selectEditorFrameContext);
   const dispatch = useAppDispatch();
   const polledBackgroundUpdate = useRef<number | null>(null);
   const { attributes } = props;
-  const { data: components } = useGetComponentsQuery();
   const transforms = useComponentTransforms();
   const inputAndUiData = useInputUIData();
-  const { selectedComponentType, version, selectedComponent } = inputAndUiData;
+  const { selectedComponentType, selectedComponent, components } =
+    inputAndUiData;
   const component = components?.[selectedComponentType] as PropSourceComponent;
-  const [patchComponent] = useUpdateComponentMutation({
-    fixedCacheKey: selectedComponent,
-  });
+  const patchComponent = usePatchComponent();
 
   const fieldName = attributes.name || attributes['data-canvas-name'];
   const propName = toPropName(fieldName, selectedComponent);
@@ -112,18 +107,13 @@ export const InputBehaviorsComponentPropsForm = (
 
     if (isEvaluatedComponentModel(selectedModel) && component) {
       const updateBackend = () => {
-        patchComponent({
-          type: editorFrameContext,
-          componentInstanceUuid: selectedComponent,
-          componentType: `${selectedComponentType}@${version}`,
-          model: {
-            source: syncPropSourcesToResolvedValues(
-              selectedModel.source,
-              component,
-              resolved,
-            ),
+        patchComponent(newInputAndUiData, {
+          source: syncPropSourcesToResolvedValues(
+            selectedModel.source,
+            component,
             resolved,
-          },
+          ),
+          resolved,
         });
       };
       if (backgroundPreviewUpdate) {
@@ -144,14 +134,9 @@ export const InputBehaviorsComponentPropsForm = (
       updateBackend();
       return;
     }
-    patchComponent({
-      type: editorFrameContext,
-      componentInstanceUuid: selectedComponent,
-      componentType: `${selectedComponentType}@${version}`,
-      model: {
-        ...selectedModel,
-        resolved,
-      },
+    patchComponent(newInputAndUiData, {
+      ...selectedModel,
+      resolved,
     });
   };
 
