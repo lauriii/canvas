@@ -150,7 +150,7 @@ export function parseElementMap(
 
     elements[elementId] = {
       type: elementValue.type,
-      ...('props' in elementValue ? { props: elementValue.props } : {}),
+      props: elementValue.props ?? {},
       ...(slots ? { slots } : {}),
     };
   });
@@ -159,6 +159,20 @@ export function parseElementMap(
     elements: issues.length > 0 ? null : elements,
     issues,
   };
+}
+
+export function normalizeElementMapProps(
+  elements: AuthoredSpecElementMap,
+): AuthoredSpecElementMap {
+  return Object.fromEntries(
+    Object.entries(elements).map(([elementId, element]) => [
+      elementId,
+      {
+        ...element,
+        props: element.props ?? {},
+      },
+    ]),
+  );
 }
 
 export function validateSlotReferences(

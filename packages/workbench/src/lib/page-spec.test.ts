@@ -63,6 +63,22 @@ describe('page-spec', () => {
     });
   });
 
+  it('normalizes page elements with no props to empty props', () => {
+    const normalized = normalizePageSpec({
+      title: 'Home',
+      elements: {
+        spacer: {
+          type: 'js.spacer',
+        },
+      },
+    });
+
+    expect(normalized.spec.elements.spacer).toEqual({
+      type: 'js.spacer',
+      props: {},
+    });
+  });
+
   it('parses valid page specs and accepts js-prefixed component names', () => {
     const result = parsePageSpec(
       {

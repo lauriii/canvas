@@ -30,7 +30,6 @@
     },
     "elements": {
       "type": "object",
-      "minProperties": 1,
       "description": "Authored page elements. Workbench preserves key insertion order when synthesizing canvas:component-tree children.",
       "propertyNames": {
         "not": {

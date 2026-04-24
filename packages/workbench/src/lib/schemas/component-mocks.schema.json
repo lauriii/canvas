@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Canvas component mocks",
-  "description": "Authored Canvas component mock file format. The file contains a top-level mocks array, and each mock entry uses the props, props and slots, or advanced format documented for Workbench component mocks.",
+  "description": "Authored Canvas component mock file format. The file contains a top-level mocks array, and each mock entry uses the props, props and slots, no-props, no-props and slots, or advanced format documented for Workbench component mocks.",
   "type": "object",
   "required": ["mocks"],
   "properties": {
@@ -80,7 +80,7 @@
       "oneOf": [
         {
           "title": "Props format",
-          "required": ["name", "props"],
+          "required": ["name"],
           "not": {
             "anyOf": [
               {
@@ -97,7 +97,7 @@
         },
         {
           "title": "Props and slots format",
-          "required": ["name", "props", "slots", "elements"],
+          "required": ["name", "slots", "elements"],
           "not": {
             "anyOf": [
               {

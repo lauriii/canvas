@@ -1,6 +1,7 @@
 import {
   isNonEmptyString,
   isRecord,
+  normalizeElementMapProps,
   parseElementMap,
   validateElementMapSlotReferences,
   validateSpecComponentTypes,
@@ -52,13 +53,14 @@ function getTopLevelPageElementIds(elements: AuthoredSpecElementMap): string[] {
 
 export function normalizePageSpec(page: AuthoredPageSpec): NormalizedPageSpec {
   const topLevelElementIds = getTopLevelPageElementIds(page.elements);
+  const elements = normalizeElementMapProps(page.elements);
 
   return {
     title: page.title,
     spec: {
       root: 'canvas:component-tree',
       elements: {
-        ...page.elements,
+        ...elements,
         'canvas:component-tree': {
           type: 'canvas:component-tree',
           props: {},
