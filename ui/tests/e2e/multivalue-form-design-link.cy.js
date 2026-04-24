@@ -75,6 +75,27 @@ describe('Multivalue Form Design – Link Field', () => {
   };
 
   /**
+   * Types into a row and waits for the resulting preview update.
+   *
+   * Registers the intercept before typeUrlInRow so the preview POST triggered
+   * by the {enter} keypress (or the autocomplete selection) is reliably captured.
+   */
+  const typeUrlInRowAwaitPreview = (
+    fieldAlias,
+    rowIndex,
+    title,
+    useAutocomplete = false,
+  ) => {
+    cy.intercept({
+      url: '**/canvas/api/v0/layout/node/*',
+      times: 1,
+      method: 'POST',
+    }).as('updatePreview');
+    typeUrlInRow(fieldAlias, rowIndex, title, useAutocomplete);
+    cy.wait('@updatePreview');
+  };
+
+  /**
    * Helper to verify the text shown in the URL list item of a row.
    */
   const verifyUrlRowText = (fieldAlias, rowIndex, expectedText) => {
@@ -449,16 +470,8 @@ describe('Multivalue Form Design – Link Field', () => {
       .as('unlimited-link');
     cy.get('@unlimited-link').scrollIntoView();
 
-    cy.intercept({
-      url: '**/canvas/api/v0/layout/node/2',
-      times: 1,
-      method: 'POST',
-    }).as('updatePreview');
-
     // Populate the empty second row URL using the popover interface.
-    typeUrlInRow('@unlimited-link', 1, 'https://www.example.com');
-
-    cy.wait('@updatePreview');
+    typeUrlInRowAwaitPreview('@unlimited-link', 1, 'https://www.example.com');
     cy.findByLabelText('Loading Preview').should('not.exist');
 
     // Verify the URL was set.
@@ -483,23 +496,8 @@ describe('Multivalue Form Design – Link Field', () => {
 
     const entityFormSelector = '[data-testid="canvas-page-data-form"]';
 
-    const interceptPreview = () => {
-      cy.intercept({
-        url: '**/canvas/api/v0/layout/node/2',
-        times: 1,
-        method: 'POST',
-      }).as('updatePreview');
-    };
-
-    const waitForPreview = () => {
-      cy.get(document.activeElement).blur();
-      cy.wait('@updatePreview');
-    };
-
-    // Register intercept before action, then populate the empty second item first.
-    interceptPreview();
-    typeUrlInRow('@unlimited-link', 1, 'https://www.example.com');
-    waitForPreview();
+    // Populate the empty second item first.
+    typeUrlInRowAwaitPreview('@unlimited-link', 1, 'https://www.example.com');
 
     // Verify the "+ Add new" button text.
     cy.get('@unlimited-link')
@@ -515,10 +513,8 @@ describe('Multivalue Form Design – Link Field', () => {
     cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
     cy.get('@unlimited-link').find('tbody tr').should('have.length', 3);
 
-    // Register intercept before action, then populate the new item.
-    interceptPreview();
-    typeUrlInRow('@unlimited-link', 2, 'https://www.cypress.io');
-    waitForPreview();
+    // Populate the new item.
+    typeUrlInRowAwaitPreview('@unlimited-link', 2, 'https://www.cypress.io');
     cy.waitForAjax();
 
     confirmUrlInputs('@unlimited-link', [
@@ -540,23 +536,8 @@ describe('Multivalue Form Design – Link Field', () => {
 
     const entityFormSelector = '[data-testid="canvas-page-data-form"]';
 
-    const interceptPreview = () => {
-      cy.intercept({
-        url: '**/canvas/api/v0/layout/node/2',
-        times: 1,
-        method: 'POST',
-      }).as('updatePreview');
-    };
-
-    const waitForPreview = () => {
-      cy.get(document.activeElement).blur();
-      cy.wait('@updatePreview');
-    };
-
-    // Register intercept before action, then populate the empty second item.
-    interceptPreview();
-    typeUrlInRow('@unlimited-link', 1, 'https://www.example.com');
-    waitForPreview();
+    // Populate the empty second item.
+    typeUrlInRowAwaitPreview('@unlimited-link', 1, 'https://www.example.com');
 
     // Add a third item.
     cy.get('@unlimited-link')
@@ -565,10 +546,8 @@ describe('Multivalue Form Design – Link Field', () => {
     cy.selectorShouldHaveUpdatedFormBuildId(entityFormSelector);
     cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
 
-    // Register intercept before action, then populate the third item.
-    interceptPreview();
-    typeUrlInRow('@unlimited-link', 2, 'https://www.cypress.io');
-    waitForPreview();
+    // Populate the third item.
+    typeUrlInRowAwaitPreview('@unlimited-link', 2, 'https://www.cypress.io');
     cy.waitForAjax();
 
     confirmUrlInputs('@unlimited-link', [
@@ -598,6 +577,20 @@ describe('Multivalue Form Design – Link Field', () => {
       .should('have.length', 3);
     cy.get('@unlimited-link').scrollIntoView({ offset: { top: -400 } });
 
+    // The drag-handle reorder does NOT submit a Drupal form AJAX POST (unlike
+    // typing into a popover, which posts to /canvas/api/v0/form/content-entity).
+    // It dispatches only through the preview pathway: POST
+    // /canvas/api/v0/layout/node/2 → ApiLayoutController::post →
+    // autoSaveManager->saveEntity(), which is what cy.reload() below reads.
+    //
+    // Multiple preview POSTs can fire around a drag (debounced updates from
+    // typing's tail end, intermediate drag-state updates, and the final
+    // reorder POST). We can't rely on "the first /layout/node/2 POST after
+    // realDnd" being the one with the reorder — it's often a stale POST from
+    // an earlier action. Instead, inspect every intercepted request body and
+    // assert that at least one carries the expected post-reorder sort order.
+    cy.intercept('POST', '**/canvas/api/v0/layout/node/2').as('previewUpdate');
+
     cy.get(
       '[data-drupal-selector="edit-field-cvt-unlimited-link"] tr.draggable:nth-child(3) [title="Change order"]',
     ).realDnd(
@@ -605,19 +598,18 @@ describe('Multivalue Form Design – Link Field', () => {
       dndDefaults,
     );
 
+    cy.assertMultivalueReorder({
+      alias: 'previewUpdate',
+      fieldName: 'field_cvt_unlimited_link',
+      valueKey: 'uri',
+      expectedOrder: [
+        'https://drupal.org',
+        'https://www.cypress.io',
+        'https://www.example.com',
+      ],
+    });
     cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
     cy.waitForAjax();
-    // eslint-disable-next-line cypress/no-unnecessary-waiting
-    cy.wait(1000);
-
-    // Wait for the DOM to reflect the new row order before asserting all values.
-    cy.get('@unlimited-link')
-      .find('tbody tr')
-      .eq(1)
-      .find('[class*="_listItem_"]')
-      .eq(0)
-      .find('[class*="_itemText_"]')
-      .should('have.text', 'https://www.cypress.io');
 
     confirmUrlInputs('@unlimited-link', [
       'https://drupal.org',
@@ -646,23 +638,8 @@ describe('Multivalue Form Design – Link Field', () => {
 
     const entityFormSelector = '[data-testid="canvas-page-data-form"]';
 
-    const interceptPreview = () => {
-      cy.intercept({
-        url: '**/canvas/api/v0/layout/node/2',
-        times: 1,
-        method: 'POST',
-      }).as('updatePreview');
-    };
-
-    const waitForPreview = () => {
-      cy.get(document.activeElement).blur();
-      cy.wait('@updatePreview');
-    };
-
-    // Register intercept before action, then populate the empty second item.
-    interceptPreview();
-    typeUrlInRow('@unlimited-link', 1, 'https://www.example.com');
-    waitForPreview();
+    // Populate the empty second item.
+    typeUrlInRowAwaitPreview('@unlimited-link', 1, 'https://www.example.com');
 
     // Add a third item.
     cy.get('@unlimited-link')
@@ -671,10 +648,8 @@ describe('Multivalue Form Design – Link Field', () => {
     cy.selectorShouldHaveUpdatedFormBuildId(entityFormSelector);
     cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
 
-    // Register intercept before action, then populate the third item.
-    interceptPreview();
-    typeUrlInRow('@unlimited-link', 2, 'https://www.cypress.io');
-    waitForPreview();
+    // Populate the third item.
+    typeUrlInRowAwaitPreview('@unlimited-link', 2, 'https://www.cypress.io');
     cy.waitForAjax();
 
     confirmUrlInputs('@unlimited-link', [
@@ -812,16 +787,12 @@ describe('Multivalue Form Design – Link Field', () => {
 
     cy.get('[role="dialog"][data-state="open"]').should('not.exist');
 
-    cy.intercept({
-      url: '**/canvas/api/v0/layout/node/2',
-      times: 1,
-      method: 'POST',
-    }).as('updatePreview');
-
     // Modify the second row's URL.
-    typeUrlInRow('@unlimited-link', 1, 'https://second-modified.com');
-
-    cy.wait('@updatePreview');
+    typeUrlInRowAwaitPreview(
+      '@unlimited-link',
+      1,
+      'https://second-modified.com',
+    );
     cy.findByLabelText('Loading Preview').should('not.exist');
 
     // Verify both URL values are maintained.
@@ -944,24 +915,9 @@ describe('Multivalue Form Design – Link Field', () => {
       .should('have.length', 2);
     verifyUrlRowText('@relative-link', 0, '/node/1');
 
-    const interceptPreview = (alias) => {
-      cy.intercept({
-        url: '**/canvas/api/v0/layout/node/2',
-        times: 1,
-        method: 'POST',
-      }).as(alias);
-    };
-
-    const waitForPreview = (alias) => {
-      cy.get(document.activeElement).blur();
-      cy.wait(`@${alias}`);
-      cy.findByLabelText('Loading Preview').should('not.exist');
-    };
-
-    // Register intercept before action, then edit the URL to a different relative path.
-    interceptPreview('updatePreview');
-    typeUrlInRow('@relative-link', 1, 'I am an empty node', true);
-    waitForPreview('updatePreview');
+    // Edit the URL to a different relative path.
+    typeUrlInRowAwaitPreview('@relative-link', 1, 'I am an empty node', true);
+    cy.findByLabelText('Loading Preview').should('not.exist');
 
     verifyUrlRowText('@relative-link', 1, 'I am an empty node (2)');
 
@@ -975,16 +931,15 @@ describe('Multivalue Form Design – Link Field', () => {
     cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
     cy.get('@relative-link').find('tbody tr').should('have.length', 3);
 
-    // Register intercept before populating the new (empty) row – committing a
-    // value into an empty field reliably triggers the preview POST.
-    interceptPreview('updatePreview');
-    typeUrlInRow(
+    // Populate the new (empty) row – committing a value into an empty field
+    // reliably triggers the preview POST.
+    typeUrlInRowAwaitPreview(
       '@relative-link',
       2,
       'Canvas Needs This For The Time Being',
       true,
     );
-    waitForPreview('updatePreview');
+    cy.findByLabelText('Loading Preview').should('not.exist');
 
     verifyUrlRowText(
       '@relative-link',

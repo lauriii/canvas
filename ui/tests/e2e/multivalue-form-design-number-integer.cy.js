@@ -44,47 +44,41 @@ const verifyRowText = (alias, rowIndex, expectedText) => {
 };
 
 /**
- * Helper to wait for the preview layout update.
+ * Types into a row and waits for the resulting preview update.
+ *
+ * The intercept MUST be registered before the {enter} keypress inside typeInRow,
+ * otherwise the preview POST can fire before the alias exists and cy.wait hangs.
  */
-const waitForPreview = () => {
+const typeInRowAwaitPreview = (alias, rowIndex, value) => {
   cy.intercept({
     url: '**/canvas/api/v0/layout/node/2',
     times: 1,
     method: 'POST',
   }).as('updatePreview');
-  cy.get(document.activeElement).blur();
+  typeInRow(alias, rowIndex, value);
   cy.wait('@updatePreview');
 };
 
 /**
  * Helper to confirm the contents of all rows.
+ *
+ * Uses retryable `should` assertions on each row's text so it waits for the DOM
+ * to settle after an async update (e.g. preview POST, drag reorder).
  */
 const confirmInputs = (alias, inputContent) => {
   cy.get(alias)
     .find('[class*="_listItem_"]')
     .should('have.length', inputContent.length);
+  cy.get(alias).find('tbody tr').should('have.length', inputContent.length);
 
-  cy.get(alias)
-    .find('tbody tr')
-    .should('have.length', inputContent.length)
-    .then(($rows) => {
-      const items = [];
-      $rows.each((ix, row) => {
-        const listItem = Cypress.$(row).find('[class*="_listItem_"]');
-        if (listItem.length > 0) {
-          const textElement = listItem.find('[class*="_itemText_"]');
-          if (textElement.length > 0) {
-            const text = textElement.text().trim();
-            items.push(text === 'Empty' ? '' : text);
-          } else {
-            items.push('');
-          }
-        } else {
-          items.push('');
-        }
-      });
-      expect(items).to.deep.equal(inputContent);
-    });
+  inputContent.forEach((expected, ix) => {
+    const expectedText = expected === '' ? 'Empty' : expected;
+    cy.get(alias)
+      .find('tbody tr')
+      .eq(ix)
+      .find('[class*="_itemText_"]')
+      .should('have.text', expectedText);
+  });
 };
 
 /**
@@ -198,16 +192,8 @@ configs.forEach((config) => {
 
       cy.intercept('POST', '**/canvas/api/v0/form/content-entity/**');
 
-      cy.intercept({
-        url: '**/canvas/api/v0/layout/node/2',
-        times: 1,
-        method: 'POST',
-      }).as('updatePreview');
-
       // Populate the empty second item using the popover interface.
-      typeInRow(`@${config.fieldAlias}`, 1, config.testValues[0]);
-
-      cy.wait('@updatePreview');
+      typeInRowAwaitPreview(`@${config.fieldAlias}`, 1, config.testValues[0]);
       cy.findByLabelText('Loading Preview').should('not.exist');
 
       verifyRowText(`@${config.fieldAlias}`, 1, config.testValues[0]);
@@ -229,8 +215,7 @@ configs.forEach((config) => {
       const entityFormSelector = '[data-testid="canvas-page-data-form"]';
 
       // Populate the empty second item first.
-      typeInRow(`@${config.fieldAlias}`, 1, config.testValues[0]);
-      waitForPreview();
+      typeInRowAwaitPreview(`@${config.fieldAlias}`, 1, config.testValues[0]);
 
       cy.get(`@${config.fieldAlias}`)
         .findByRole('button', { name: '+ Add new' })
@@ -245,8 +230,7 @@ configs.forEach((config) => {
       cy.get(`@${config.fieldAlias}`).find('tbody tr').should('have.length', 3);
 
       // Populate the new item.
-      typeInRow(`@${config.fieldAlias}`, 2, config.testValues[1]);
-      waitForPreview();
+      typeInRowAwaitPreview(`@${config.fieldAlias}`, 2, config.testValues[1]);
       cy.waitForAjax();
 
       confirmInputs(`@${config.fieldAlias}`, [
@@ -268,8 +252,7 @@ configs.forEach((config) => {
       const entityFormSelector = '[data-testid="canvas-page-data-form"]';
 
       // Set up three items.
-      typeInRow(`@${config.fieldAlias}`, 1, config.testValues[0]);
-      waitForPreview();
+      typeInRowAwaitPreview(`@${config.fieldAlias}`, 1, config.testValues[0]);
 
       cy.get(`@${config.fieldAlias}`)
         .findByRole('button', { name: '+ Add new' })
@@ -277,8 +260,7 @@ configs.forEach((config) => {
       cy.selectorShouldHaveUpdatedFormBuildId(entityFormSelector);
       cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
 
-      typeInRow(`@${config.fieldAlias}`, 2, config.testValues[1]);
-      waitForPreview();
+      typeInRowAwaitPreview(`@${config.fieldAlias}`, 2, config.testValues[1]);
       cy.waitForAjax();
 
       confirmInputs(`@${config.fieldAlias}`, [
@@ -301,6 +283,13 @@ configs.forEach((config) => {
         .find('.canvas-drag-handle a.tabledrag-handle')
         .should('have.length', 3);
 
+      // Register intercept before the drag so we capture every preview POST
+      // the reorder triggers (multiple can fire; the one that carries the
+      // reordered `_weight` values is what we wait for below).
+      cy.intercept('POST', '**/canvas/api/v0/layout/node/2').as(
+        'previewUpdate',
+      );
+
       cy.get(
         `[data-drupal-selector="${config.drupalSelector}"] tr.draggable:nth-child(3) [title="Change order"]`,
       ).realDnd(
@@ -308,11 +297,20 @@ configs.forEach((config) => {
         dndDefaults,
       );
 
+      // `drupalSelector` is `edit-<field_name-with-dashes>`; convert to the
+      // form-field name shape (`field_cvt_unlimited_number`) used in the POST
+      // body.
+      const fieldName = config.drupalSelector
+        .replace(/^edit-/, '')
+        .replace(/-/g, '_');
+      cy.assertMultivalueReorder({
+        alias: 'previewUpdate',
+        fieldName,
+        expectedOrder: config.reorderedValues,
+      });
       cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
       cy.waitForAjax();
 
-      // eslint-disable-next-line cypress/no-unnecessary-waiting
-      cy.wait(1000);
       confirmInputs(`@${config.fieldAlias}`, config.reorderedValues);
       // Refresh the page to ensure the update persists.
       cy.reload();
@@ -328,8 +326,7 @@ configs.forEach((config) => {
         .closest('.js-form-wrapper')
         .as(config.fieldAlias);
 
-      typeInRow(`@${config.fieldAlias}`, 1, config.testValues[0]);
-      waitForPreview();
+      typeInRowAwaitPreview(`@${config.fieldAlias}`, 1, config.testValues[0]);
 
       cy.get(`@${config.fieldAlias}`)
         .findByRole('button', { name: '+ Add new' })
@@ -339,8 +336,7 @@ configs.forEach((config) => {
       );
       cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
 
-      typeInRow(`@${config.fieldAlias}`, 2, config.testValues[1]);
-      waitForPreview();
+      typeInRowAwaitPreview(`@${config.fieldAlias}`, 2, config.testValues[1]);
       cy.waitForAjax();
 
       confirmInputs(`@${config.fieldAlias}`, [
@@ -443,12 +439,8 @@ configs.forEach((config) => {
         .closest('.js-form-wrapper')
         .as(config.fieldAlias);
 
-      typeInRow(`@${config.fieldAlias}`, 0, config.testValues[2]);
-      waitForPreview();
-
-      typeInRow(`@${config.fieldAlias}`, 1, config.testValues[3]);
-
-      waitForPreview();
+      typeInRowAwaitPreview(`@${config.fieldAlias}`, 0, config.testValues[2]);
+      typeInRowAwaitPreview(`@${config.fieldAlias}`, 1, config.testValues[3]);
       cy.findByLabelText('Loading Preview').should('not.exist');
 
       verifyRowText(`@${config.fieldAlias}`, 0, config.testValues[2]);
@@ -488,8 +480,7 @@ configs.forEach((config) => {
           .should('have.length', 2);
 
         // Fill the empty second item
-        typeInRow(`@${config.fieldAlias}`, 1, config.testValues[0]);
-        waitForPreview();
+        typeInRowAwaitPreview(`@${config.fieldAlias}`, 1, config.testValues[0]);
 
         confirmInputs(`@${config.fieldAlias}`, [
           config.defaultValue,
@@ -579,8 +570,7 @@ configs.forEach((config) => {
         const entityFormSelector = '[data-testid="canvas-page-data-form"]';
 
         // Fill the empty second item
-        typeInRow(`@${config.fieldAlias}`, 1, config.testValues[0]);
-        waitForPreview();
+        typeInRowAwaitPreview(`@${config.fieldAlias}`, 1, config.testValues[0]);
 
         // Add a third item
         cy.get(`@${config.fieldAlias}`)
@@ -590,8 +580,7 @@ configs.forEach((config) => {
         cy.selectorShouldHaveUpdatedFormBuildId(entityFormSelector);
         cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
 
-        typeInRow(`@${config.fieldAlias}`, 2, config.testValues[1]);
-        waitForPreview();
+        typeInRowAwaitPreview(`@${config.fieldAlias}`, 2, config.testValues[1]);
         cy.waitForAjax();
 
         // Now we have 3 items
