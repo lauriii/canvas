@@ -1,0 +1,50 @@
+.layout {
+  display: flex;
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.center {
+  display: flex;
+  overflow: hidden;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.resizeHandle {
+  position: relative;
+  flex-shrink: 0;
+  width: 1px;
+  cursor: col-resize;
+  background: var(--slate-6);
+  touch-action: none;
+}
+
+.resizeHandle::after {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  bottom: 0;
+  left: -4px;
+  content: '';
+}
+
+.rightColumn {
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 0;
+  transition: width 0.15s ease-out;
+}
+
+.rightColumnHidden {
+  overflow: hidden;
+  width: 0;
+  min-width: 0;
+  pointer-events: none;
+}

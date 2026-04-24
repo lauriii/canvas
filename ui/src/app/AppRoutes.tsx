@@ -17,7 +17,7 @@ import SideMenu from '@/components/sideMenu/SideMenu';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
 import CodeEditorContainer from '@/features/code-editor/CodeEditorContainer';
 import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
-import Editor from '@/features/editor/Editor';
+import EditorLayout from '@/features/editor/EditorLayout';
 import TemplateRoot from '@/features/editor/TemplateRoot';
 import PagePreview from '@/features/pagePreview/PagePreview';
 import PatternDialogs from '@/features/pattern/PatternDialogs';
@@ -105,7 +105,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             path: '/editor/:entityType/:entityId',
             element: (
               <UiShell>
-                <Editor context={EditorFrameContext.ENTITY} />
+                <EditorLayout context={EditorFrameContext.ENTITY} />
               </UiShell>
             ),
             children: [
@@ -135,7 +135,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             path: '/template/:entityType/:bundle/:viewMode/:previewEntityId',
             element: (
               <UiShell>
-                <Editor context={EditorFrameContext.TEMPLATE} />
+                <EditorLayout context={EditorFrameContext.TEMPLATE} />
               </UiShell>
             ),
             children: [

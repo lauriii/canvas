@@ -401,12 +401,10 @@ Cypress.Commands.add('drupalSession', () => {
 Cypress.Commands.add(
   'previewReady',
   (iframeSelector = initializedReadyPreviewIframeSelector) => {
-    // Not logging these assertions to try and keep the command log a bit tidier
-    cy.get('.canvasEditorFrameScalingContainer', { log: false }).should(
-      'have.css',
-      'opacity',
-      '1',
-    );
+    // Not logging these assertions to try and keep the command log a bit tidier.
+    cy.get('[data-testid="canvas-editor-frame"]', {
+      log: false,
+    }).should('have.css', 'opacity', '1');
     cy.get(iframeSelector, { log: false, timeout: 10000 }).as('iframe');
     cy.get(iframeSelector, { log: false }).its('0.contentDocument', {
       log: false,

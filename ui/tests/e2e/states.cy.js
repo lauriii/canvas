@@ -75,12 +75,14 @@ describe('states', () => {
     const controller = '[REV] Checkbox A: Toggle conditionally visible field';
     const target = '[REV] Visible when Checkbox A is checked';
     cy.findByLabelText(controller).should('be.checked');
+    cy.findByLabelText(target).scrollIntoView();
     cy.findByLabelText(target).should('be.visible');
     cy.findByLabelText(controller).uncheck();
     cy.findByLabelText(controller).should('not.be.checked');
     cy.findByLabelText(target).should('not.be.visible');
     cy.findByLabelText(controller).check();
     cy.findByLabelText(controller).should('be.checked');
+    cy.findByLabelText(target).scrollIntoView();
     cy.findByLabelText(target).should('be.visible');
   });
 
@@ -102,12 +104,14 @@ describe('states', () => {
       '[REV] Checkbox C: Toggle visibility of another checkbox';
     const target = '[REV] Visible when Checkbox C is checked';
     cy.findByLabelText(controller).should('be.checked');
+    cy.findByLabelText(target).scrollIntoView();
     cy.findByLabelText(target).should('be.visible');
     cy.findByLabelText(controller).uncheck();
     cy.findByLabelText(controller).should('not.be.checked');
     cy.findByLabelText(target).should('not.be.visible');
     cy.findByLabelText(controller).check();
     cy.findByLabelText(controller).should('be.checked');
+    cy.findByLabelText(target).scrollIntoView();
     cy.findByLabelText(target).should('be.visible');
   });
 
