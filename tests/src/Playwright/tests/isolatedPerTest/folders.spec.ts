@@ -3,6 +3,8 @@ import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
+test.use({ modules: ['canvas_test_sdc'], enableTestExtensions: true });
+
 /**
  * Tests folder management in Drupal Canvas.
  */
@@ -220,9 +222,6 @@ test.describe('Folder Management', () => {
   });
 
   test('Folder deletion', async ({ page, drupal, canvas }) => {
-    await drupal.loginAsAdmin();
-    await drupal.installModules(['canvas_test_sdc']);
-    await drupal.logout();
     await drupal.login({ username: 'editor', password: 'editor' });
     await canvas.createCanvas();
     await canvas.openLibraryPanel();

@@ -2,14 +2,12 @@ import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
-test.describe('Components with Children Slots', () => {
-  test.beforeEach(async ({ drupal }) => {
-    await drupal.enableTestExtensions();
-    await drupal.loginAsAdmin();
-    await drupal.installModules(['canvas_children_slot_component']);
-    await drupal.logout();
-  });
+test.use({
+  modules: ['canvas_children_slot_component'],
+  enableTestExtensions: true,
+});
 
+test.describe('Components with Children Slots', () => {
   test('Can add and edit Hero component that uses Container with children', async ({
     drupal,
     canvas,

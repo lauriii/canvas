@@ -5,14 +5,9 @@ import { isolatedPerTest as test } from '../../fixtures/test.js';
 /**
  * This test suite will verify that links in the preview are intercepted.
  */
-test.describe('Preview Link Behavior', () => {
-  test.beforeEach(async ({ drupal }) => {
-    await drupal.enableTestExtensions();
-    await drupal.loginAsAdmin();
-    await drupal.installModules(['canvas_test_sdc']);
-    await drupal.logout();
-  });
+test.use({ modules: ['canvas_test_sdc'], enableTestExtensions: true });
 
+test.describe('Preview Link Behavior', () => {
   test('Can view a preview and change preview width', async ({
     page,
     drupal,

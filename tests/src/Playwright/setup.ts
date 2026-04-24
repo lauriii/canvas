@@ -2,15 +2,25 @@ import fs from 'fs';
 import path from 'path';
 import { type Drupal } from '@drupal/playwright';
 
-export async function setupSite({ drupal }: { drupal: Drupal }) {
+export async function setupSite({
+  drupal,
+  modules = [],
+  enableTestExtensions = false,
+}: {
+  drupal: Drupal;
+  modules?: string[];
+  enableTestExtensions?: boolean;
+}) {
   const page = drupal.page;
 
   try {
     await drupal.setTestCookie();
     await drupal.loginAsAdmin();
     await drupal.setPreprocessing({ css: true, javascript: true });
-    await drupal.enableTestExtensions();
-    await drupal.installModules(['canvas']);
+    if (enableTestExtensions) {
+      await drupal.enableTestExtensions();
+    }
+    await drupal.installModules(['canvas', ...modules]);
     await drupal.createRole({ name: 'editor' });
     await drupal.addPermissions({
       role: 'editor',

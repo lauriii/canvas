@@ -2,14 +2,9 @@ import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
-test.describe('Perform CRUD operations on components', () => {
-  test.beforeEach(async ({ drupal, page }) => {
-    await drupal.loginAsAdmin();
-    await drupal.enableTestExtensions();
-    await drupal.installModules(['canvas_test_sdc']);
-    await drupal.logout();
-  });
+test.use({ modules: ['canvas_test_sdc'], enableTestExtensions: true });
 
+test.describe('Perform CRUD operations on components', () => {
   test('Layer and Components Panel', async ({ page, drupal, canvas }) => {
     await drupal.login({ username: 'editor', password: 'editor' });
     await canvas.openCanvas(await canvas.createCanvas());

@@ -7,11 +7,11 @@ import { isolatedPerTest as test } from '../../fixtures/test.js';
  * This test suite will verify Canvas AI related features.
  */
 
+test.use({ modules: ['canvas_ai_test'], enableTestExtensions: true });
+
 test.describe('AI Features', () => {
   test.beforeEach(async ({ drupal }) => {
-    await drupal.enableTestExtensions();
     await drupal.loginAsAdmin();
-    await drupal.installModules(['canvas_ai_test']);
     await drupal.createRole({ name: 'ai_editor' });
     await drupal.createUser({
       email: `ai_editor@example.com`,

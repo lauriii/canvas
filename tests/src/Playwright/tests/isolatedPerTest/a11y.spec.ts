@@ -7,13 +7,9 @@ import { isolatedPerTest as test } from '../../fixtures/test.js';
  * Perfunctory accessibility scan.
  */
 
-test.describe('Basic accessibility', () => {
-  test.beforeEach(async ({ drupal }) => {
-    await drupal.loginAsAdmin();
-    await drupal.installModules(['canvas_test_sdc']);
-    await drupal.logout();
-  });
+test.use({ modules: ['canvas_test_sdc'], enableTestExtensions: true });
 
+test.describe('Basic accessibility', () => {
   test('Axe scan', async ({ page, drupal, canvas }, testInfo) => {
     // These are the rules that these screens currently violate.
     // @todo not do that.

@@ -3,17 +3,12 @@ import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
-test.describe('Activity Center notifications', () => {
-  test.beforeEach(async ({ drupal }) => {
-    await drupal.enableTestExtensions();
-    await drupal.loginAsAdmin();
-    await drupal.installModules([
-      'canvas_dev_mode',
-      'canvas_test_notifications',
-    ]);
-    await drupal.logout();
-  });
+test.use({
+  modules: ['canvas_dev_mode', 'canvas_test_notifications'],
+  enableTestExtensions: true,
+});
 
+test.describe('Activity Center notifications', () => {
   test('Full notification lifecycle', async ({
     page,
     drupal,
@@ -318,16 +313,6 @@ test.describe('Activity Center notifications', () => {
 });
 
 test.describe('Toast notifications', () => {
-  test.beforeEach(async ({ drupal }) => {
-    await drupal.enableTestExtensions();
-    await drupal.loginAsAdmin();
-    await drupal.installModules([
-      'canvas_dev_mode',
-      'canvas_test_notifications',
-    ]);
-    await drupal.logout();
-  });
-
   test('Toast appears for new notification', async ({
     page,
     drupal,

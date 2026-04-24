@@ -4,14 +4,9 @@ import { isolatedPerTest as test } from '../../fixtures/test.js';
 
 import type { Request } from '@playwright/test';
 
-test.describe('Routing', () => {
-  test.beforeEach(async ({ drupal }) => {
-    await drupal.enableTestExtensions();
-    await drupal.loginAsAdmin();
-    await drupal.installModules(['canvas_test_sdc']);
-    await drupal.logout();
-  });
+test.use({ modules: ['canvas_test_sdc'], enableTestExtensions: true });
 
+test.describe('Routing', () => {
   test('Visits a component router URL directly', async ({
     page,
     canvas,

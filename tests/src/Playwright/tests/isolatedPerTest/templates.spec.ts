@@ -3,11 +3,11 @@ import { expect } from '@playwright/test';
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
 // cspell:ignore Bwidth Fitok treehouse
+test.use({ modules: ['canvas_test_sdc'], enableTestExtensions: true });
+
 test.describe('Templates - General', () => {
   test.beforeEach(async ({ drupal, page }) => {
-    await drupal.enableTestExtensions();
     await drupal.loginAsAdmin();
-    await drupal.installModules(['canvas_test_sdc']);
 
     await page.goto('/admin/structure/types/add');
     await page.getByRole('textbox', { name: 'name' }).fill('Article');

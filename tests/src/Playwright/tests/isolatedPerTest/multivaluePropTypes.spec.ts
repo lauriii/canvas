@@ -20,6 +20,11 @@ import {
   verifyRowText,
 } from './multivaluePropTypes.helpers.js';
 
+test.use({
+  modules: ['canvas_test_sdc', 'datetime', 'datetime_range', 'canvas_dev_mode'],
+  enableTestExtensions: true,
+});
+
 interface NumericTypeTestConfig {
   propName: string;
   propNameLimited: string;
@@ -293,15 +298,6 @@ test.describe('Multivalue Prop Types', () => {
   let canvasPage: { entity_type: string; entity_id: number };
 
   test.beforeEach(async ({ drupal, canvas }) => {
-    await drupal.loginAsAdmin();
-    await drupal.installModules([
-      'canvas_test_sdc',
-      'datetime',
-      'datetime_range',
-      // @todo remove once https://drupal.org/i/3577946 is fixed.
-      'canvas_dev_mode',
-    ]);
-    await drupal.logout();
     await drupal.login({ username: 'editor', password: 'editor' });
     canvasPage = await canvas.createCanvas();
     await canvas.openCanvas(canvasPage);
@@ -1908,13 +1904,6 @@ test.describe('Multivalue Prop Types', () => {
 test.describe('Relative Link Component', () => {
   test.beforeEach(async ({ drupal, canvas, page }) => {
     await drupal.loginAsAdmin();
-    await drupal.installModules([
-      'canvas_test_sdc',
-      'datetime',
-      'datetime_range',
-      // @todo remove once https://drupal.org/i/3577946 is fixed.
-      'canvas_dev_mode',
-    ]);
     // This is needed to test the entity_autocomplete functionality.
     await page.goto('/admin/structure/types/add');
     await page.getByRole('textbox', { name: 'name' }).fill('Article');

@@ -35,12 +35,12 @@ async function getPreviewImageOrder(
   return alts;
 }
 
+test.use({ modules: ['canvas_test_sdc'], enableTestExtensions: true });
+
 test.describe('Media Multi-Cardinality', () => {
   test.beforeEach(async ({ drupal }) => {
-    await drupal.enableTestExtensions();
     await drupal.loginAsAdmin();
     await drupal.applyRecipe(`core/recipes/image_media_type`);
-    await drupal.installModules(['canvas_test_sdc']);
     await drupal.logout();
   });
 

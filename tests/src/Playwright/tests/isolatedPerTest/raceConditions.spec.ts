@@ -2,17 +2,12 @@ import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
-test.describe('Test race conditions are avoided', () => {
-  test.beforeEach(async ({ drupal }) => {
-    await drupal.enableTestExtensions();
-    await drupal.loginAsAdmin();
-    await drupal.installModules([
-      'canvas_test_sdc',
-      'canvas_test_autocomplete',
-    ]);
-    await drupal.logout();
-  });
+test.use({
+  modules: ['canvas_test_sdc', 'canvas_test_autocomplete'],
+  enableTestExtensions: true,
+});
 
+test.describe('Test race conditions are avoided', () => {
   test('Avoids race condition between AJAX and layout updates', async ({
     page,
     drupal,

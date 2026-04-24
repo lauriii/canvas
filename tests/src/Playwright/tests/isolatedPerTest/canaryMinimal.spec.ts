@@ -6,14 +6,9 @@ import { isolatedPerTest as test } from '../../fixtures/test.js';
  * Tests installing Drupal Canvas.
  */
 
-test.describe('Canary Canvas Minimal', () => {
-  test.beforeEach(async ({ drupal }) => {
-    await drupal.enableTestExtensions();
-    await drupal.loginAsAdmin();
-    await drupal.installModules(['canvas_test_sdc']);
-    await drupal.logout();
-  });
+test.use({ modules: ['canvas_test_sdc'], enableTestExtensions: true });
 
+test.describe('Canary Canvas Minimal', () => {
   test('View page', async ({ page, drupal, canvas }) => {
     await drupal.login({ username: 'editor', password: 'editor' });
     const canvasPage = await canvas.createCanvas();

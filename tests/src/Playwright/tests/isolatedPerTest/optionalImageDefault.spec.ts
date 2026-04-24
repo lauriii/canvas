@@ -2,15 +2,15 @@ import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
+test.use({
+  modules: ['canvas_test_sdc', 'canvas_test_e2e_code_components'],
+  enableTestExtensions: true,
+});
+
 test.describe('Optional Image Default Management', () => {
   test.beforeEach(async ({ drupal }) => {
-    await drupal.enableTestExtensions();
     await drupal.loginAsAdmin();
     await drupal.applyRecipe(`core/recipes/image_media_type`);
-    await drupal.installModules([
-      'canvas_test_sdc',
-      'canvas_test_e2e_code_components',
-    ]);
     await drupal.logout();
   });
 

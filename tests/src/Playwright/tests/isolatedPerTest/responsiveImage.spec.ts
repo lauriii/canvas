@@ -5,12 +5,12 @@ import { isolatedPerTest as test } from '../../fixtures/test.js';
 /**
  * Tests the correct size of image is fetched.
  */
+test.use({ modules: ['canvas_test_sdc'], enableTestExtensions: true });
+
 test.describe('Responsive Image', () => {
   test.beforeEach(async ({ drupal }) => {
-    await drupal.enableTestExtensions();
     await drupal.loginAsAdmin();
     await drupal.applyRecipe(`core/recipes/image_media_type`);
-    await drupal.installModules(['canvas_test_sdc']);
     await drupal.logout();
   });
 

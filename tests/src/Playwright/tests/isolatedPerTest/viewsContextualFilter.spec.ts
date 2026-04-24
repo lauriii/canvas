@@ -2,11 +2,14 @@ import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
+test.use({
+  modules: ['canvas_test_views_contextual'],
+  enableTestExtensions: true,
+});
+
 test.describe('Views contextual filter in Canvas preview', () => {
   test.beforeEach(async ({ drupal, page }) => {
-    await drupal.enableTestExtensions();
     await drupal.loginAsAdmin();
-    await drupal.installModules(['canvas_test_views_contextual']);
     await page.goto('/admin/structure/types/add');
     await page.getByRole('textbox', { name: 'name' }).fill('Article');
     await page.getByRole('button', { name: 'Save' }).click();

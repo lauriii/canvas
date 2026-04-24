@@ -15,10 +15,14 @@ export const isolatedPerTest = isolatedPerTestBase.extend<{
   canvas: Canvas;
   ai: Ai;
   beforeEach: void;
+  modules: string[];
+  enableTestExtensions: boolean;
 }>({
+  modules: [[], { option: true }],
+  enableTestExtensions: [false, { option: true }],
   beforeEach: [
-    async ({ drupal }, use) => {
-      await setupSite({ drupal });
+    async ({ drupal, modules, enableTestExtensions }, use) => {
+      await setupSite({ drupal, modules, enableTestExtensions });
       await use();
     },
     { auto: true },
