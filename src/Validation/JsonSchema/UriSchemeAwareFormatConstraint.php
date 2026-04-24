@@ -34,7 +34,7 @@ final class UriSchemeAwareFormatConstraint extends FormatConstraint {
     // Expand the check for valid URIs & URI references, to also validate
     // `x-allowed-schemes`, if specified.
     // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat::toDataTypeShapeRequirements()
-    if ($after === $before && \in_array($schema->format, [JsonSchemaStringFormat::Iri->value, JsonSchemaStringFormat::IriReference->value, JsonSchemaStringFormat::Uri->value, JsonSchemaStringFormat::UriReference->value], TRUE)) {
+    if ($after === $before && JsonSchemaStringFormat::from($schema->format)->isUriEsque()) {
       \assert(\is_string($element));
       if (!property_exists($schema, 'x-allowed-schemes')) {
         return;

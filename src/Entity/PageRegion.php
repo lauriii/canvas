@@ -229,7 +229,11 @@ final class PageRegion extends ComponentTreeConfigEntityBase {
       fn ($s) => $s !== CanvasPageVariant::MAIN_CONTENT_REGION,
     );
 
-    $blocks = \Drupal::service('entity_type.manager')->getStorage('block')->loadByProperties(['theme' => $theme, 'status' => TRUE]);
+    $blocks = \Drupal::service('entity_type.manager')->getStorage('block')
+      ->loadByProperties([
+        'theme' => $theme,
+        'status' => TRUE,
+      ]);
 
     $regions = [];
     foreach ($blocks as $block) {

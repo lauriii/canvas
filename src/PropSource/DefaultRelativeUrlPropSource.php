@@ -164,15 +164,10 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
   }
 
   private static function isUrlJsonSchema(array $property_definition): bool {
-    if ($property_definition['type'] !== 'string') {
+    if ($property_definition['type'] !== 'string' || !\array_key_exists('format', $property_definition)) {
       return FALSE;
     }
-    return \in_array($property_definition['format'] ?? '', [
-      JsonSchemaStringFormat::Uri->value,
-      JsonSchemaStringFormat::UriReference->value,
-      JsonSchemaStringFormat::Iri->value,
-      JsonSchemaStringFormat::IriReference->value,
-    ], TRUE);
+    return JsonSchemaStringFormat::from($property_definition['format'])->isUriEsque();
   }
 
   public function asChoice(): string {

@@ -831,9 +831,8 @@ final class EntityFieldPropSourceMatcher {
     //   available to the end user.
     $levels_to_recurse = match ($primitive_type) {
       JsonSchemaType::Object => 2,
-      JsonSchemaType::String => match ($schema['format'] ?? NULL) {
-        JsonSchemaStringFormat::Uri->value, JsonSchemaStringFormat::UriReference->value => 2,
-        JsonSchemaStringFormat::Iri->value, JsonSchemaStringFormat::IriReference->value => 2,
+      JsonSchemaType::String => match (TRUE) {
+        JsonSchemaStringFormat::tryFrom($schema['format'] ?? '')?->isUriEsque() => 2,
         default => 1,
       },
       default => 1,

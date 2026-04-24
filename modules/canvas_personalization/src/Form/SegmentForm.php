@@ -81,7 +81,10 @@ final class SegmentForm extends EntityForm {
           'delete' => [
             '#type' => 'link',
             '#title' => $this->t('Delete %rule', ['%rule' => $rule_label]),
-            '#url' => Url::fromRoute('entity.segment.delete_segment_rule', ['segment' => $this->entity->id(), 'rule' => $rule_id]),
+            '#url' => Url::fromRoute(
+              'entity.segment.delete_segment_rule',
+              ['segment' => $this->entity->id(), 'rule' => $rule_id],
+            ),
           ],
         ],
       ];

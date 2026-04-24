@@ -279,7 +279,7 @@ class ShapeMatchingHooks {
         isset($storable_prop_shape->shape->schema['contentMediaType'])
         && $storable_prop_shape->shape->schema['contentMediaType'] === 'image/*'
         // Stream wrapper URIs can only be `format: uri|iri`.
-        && \in_array($storable_prop_shape->shape->schema['format'], [JsonSchemaStringFormat::Uri->value, JsonSchemaStringFormat::Iri->value], TRUE)
+        && JsonSchemaStringFormat::from($storable_prop_shape->shape->schema['format'])->allowsOnlyAbsoluteUri()
         // @see json-schema-definitions://canvas.module/stream-wrapper-image-uri
         && ($storable_prop_shape->shape->schema['x-allowed-schemes'] ?? []) === ['public']
       )

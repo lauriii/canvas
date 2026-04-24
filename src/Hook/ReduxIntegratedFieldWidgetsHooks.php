@@ -367,7 +367,11 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
     // Only proceed if this is a Canvas page data or component instance form.
     // This restructures the render array to simplify integration of the
     // CKEditor5 React component.
-    if (isset($element['#attributes']['data-form-id']) && \in_array($element['#attributes']['data-form-id'], [ComponentInstanceForm::FORM_ID, ModuleHooks::PAGE_DATA_FORM_ID], TRUE)) {
+    $relevant_forms = [
+      ComponentInstanceForm::FORM_ID,
+      ModuleHooks::PAGE_DATA_FORM_ID,
+    ];
+    if (isset($element['#attributes']['data-form-id']) && \in_array($element['#attributes']['data-form-id'], $relevant_forms, TRUE)) {
       $element['value']['#attributes']['data-form-id'] = $element['#attributes']['data-form-id'];
       // The data-editor-for attribute triggers a vanilla JS initialization of
       // CKEditor5. Rename the attribute so we can instead use a React-specific
@@ -389,7 +393,11 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
         // Include the #name and #id render array properties as name and id
         // attributes.
         \assert(\is_iterable($element['format']['format']['#attributes']));
-        $element['value']['#attributes']['data-canvas-format-select-attributes'] = Json::encode([...$element['format']['format']['#attributes'], 'name' => $element['format']['format']['#name'], 'id' => $element['format']['format']['#id']]);
+        $element['value']['#attributes']['data-canvas-format-select-attributes'] = Json::encode([
+          ...$element['format']['format']['#attributes'],
+          'name' => $element['format']['format']['#name'],
+          'id' => $element['format']['format']['#id'],
+        ]);
         if (isset($element['format']['format']['#options'])) {
           // Serialize the list of available text formats to pass via attribute.
           $element['value']['#attributes']['data-canvas-available-formats'] = Json::encode($element['format']['format']['#options']);

@@ -291,4 +291,24 @@ enum JsonSchemaStringFormat: string {
     };
   }
 
+  public function allowsOnlyAbsoluteUri(): bool {
+    // IRIs are a superset of URIs.
+    // @see https://en.wikipedia.org/wiki/Internationalized_Resource_Identifier
+    return \in_array($this->value, [
+      self::Iri->value,
+      self::Uri->value,
+    ], TRUE);
+  }
+
+  public function allowsBothAbsoluteOrRelativeUri(): bool {
+    return \in_array($this->value, [
+      self::IriReference->value,
+      self::UriReference->value,
+    ], TRUE);
+  }
+
+  public function isUriEsque(): bool {
+    return $this->allowsOnlyAbsoluteUri() || $this->allowsBothAbsoluteOrRelativeUri();
+  }
+
 }

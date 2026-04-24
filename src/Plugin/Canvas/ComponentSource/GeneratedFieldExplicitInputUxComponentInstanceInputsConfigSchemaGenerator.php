@@ -59,12 +59,7 @@ final readonly class GeneratedFieldExplicitInputUxComponentInstanceInputsConfigS
         && !\array_key_exists('enum', $prop_shape)
         && (
           !\array_key_exists('format', $prop_shape)
-          || \in_array($prop_shape['format'], [
-            JsonSchemaStringFormat::Iri->value,
-            JsonSchemaStringFormat::IriReference->value,
-            JsonSchemaStringFormat::Uri->value,
-            JsonSchemaStringFormat::UriReference->value,
-          ], TRUE)
+          || JsonSchemaStringFormat::tryFrom($prop_shape['format'])?->isUriEsque()
         )
         && (
           !\array_key_exists('contentMediaType', $prop_shape)

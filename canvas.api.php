@@ -51,7 +51,13 @@ function hook_canvas_storable_prop_shape_alter(CandidateStorablePropShape $stora
   // for it.
   // ⚠️ Any field widget that is used must have `canvas.transforms` defined on
   // the field widget's plugin definition. See hook_field_widget_info_alter().
-  if ($storable_prop_shape->fieldTypeProp === NULL && $storable_prop_shape->shape->schema == ['type' => 'string', 'format' => 'duration']) {
+  if (
+    $storable_prop_shape->fieldTypeProp === NULL
+    && $storable_prop_shape->shape->schema == [
+      'type' => 'string',
+      'format' => 'duration',
+    ]
+  ) {
     $storable_prop_shape->fieldTypeProp = new FieldTypePropExpression('contrib_duration_field', 'value');
     $storable_prop_shape->fieldWidget = 'fancy_duration_widget';
   }

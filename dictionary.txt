@@ -47,6 +47,7 @@ drupalsettings
 druplicon
 endapply
 entityviewdisplay
+esque
 extralight
 extensionless
 fieldtext

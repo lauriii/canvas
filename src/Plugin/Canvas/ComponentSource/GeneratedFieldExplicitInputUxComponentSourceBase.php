@@ -166,7 +166,10 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     \assert(\array_key_exists('prop_field_definitions', $this->configuration));
     \assert(\is_array($this->configuration['prop_field_definitions']));
     $dependencies = [];
-    foreach ($this->configuration['prop_field_definitions'] as $prop_name => ['field_type' => $field_type, 'field_widget' => $field_widget]) {
+    foreach ($this->configuration['prop_field_definitions'] as $prop_name => [
+      'field_type' => $field_type,
+      'field_widget' => $field_widget,
+    ]) {
       $field_widget_definition = $this->fieldWidgetPluginManager->getDefinition($field_widget);
       $dependencies['module'][] = $field_widget_definition['provider'];
       $prop_source = $this->getDefaultStaticPropSource($prop_name, FALSE);

@@ -178,7 +178,11 @@ final class CanvasTemplateRenderer implements MainContentRendererInterface {
       $dependencies_of_the_potential_conflicts = array_merge($dependencies_of_the_potential_conflicts, $dependencies);
     }
 
-    $already_loaded_libraries = array_unique([...$already_loaded_libraries, ...$potentially_conflicting_libraries_added_on_canvas_load, ...$dependencies_of_the_potential_conflicts]);
+    $already_loaded_libraries = array_unique([
+      ...$already_loaded_libraries,
+      ...$potentially_conflicting_libraries_added_on_canvas_load,
+      ...$dependencies_of_the_potential_conflicts,
+    ]);
     $assets
       ->setAlreadyLoadedLibraries($already_loaded_libraries);
 

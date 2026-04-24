@@ -260,7 +260,10 @@ final readonly class PropSourceSuggester {
     // @todo Remove this after refactoring ::suggest() in https://www.drupal.org/i/3523446 to stop returning a nested array keyed by prop source type, and instead return an array of prop source objects.
     $combined_suggestions = [];
     foreach ($suggestions as $key => $value) {
-      $combined_suggestions[$key] = [...$value[PropSource::EntityField->value], ...$value[PropSource::HostEntityUrl->value]];
+      $combined_suggestions[$key] = [
+        ...$value[PropSource::EntityField->value],
+        ...$value[PropSource::HostEntityUrl->value],
+      ];
     }
 
     return array_combine(

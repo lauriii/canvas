@@ -44,19 +44,11 @@ final class HostEntityUrlPropSourceMatcher {
       return [];
     }
 
-    $allowed_string_formats = [
-      JsonSchemaStringFormat::Uri,
-      JsonSchemaStringFormat::UriReference,
-      JsonSchemaStringFormat::Iri,
-      JsonSchemaStringFormat::IriReference,
-    ];
-
     // HostEntityUrlPropSources can only populate URI prop shapes (and its
     // supersets).
-    if (!\in_array($string_format, $allowed_string_formats, TRUE)) {
+    if (!$string_format->isUriEsque()) {
       return [];
     }
-    $supports_only_absolute_urls = \in_array($string_format, [JsonSchemaStringFormat::Uri, JsonSchemaStringFormat::Iri], TRUE);
 
     // If an `x-allowed-schemes` shape restriction is present, and it doesn't
     // allow HTTP nor HTTPS, then no viable HostEntityUrlPropSource can exist.
@@ -77,7 +69,7 @@ final class HostEntityUrlPropSourceMatcher {
 
     $matches = [];
     // @todo Offer `canonical` vs `edit-form` vs … (and check whether the given entity type actually contains such a link template).
-    $matches[] = new HostEntityUrlPropSource(absolute: $supports_only_absolute_urls);
+    $matches[] = new HostEntityUrlPropSource(absolute: $string_format->allowsOnlyAbsoluteUri());
     return $matches;
   }
 

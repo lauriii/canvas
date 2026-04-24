@@ -31,6 +31,10 @@ core.phpcs.xml.dist -> /PATH/TO/DRUPAL/ROOT/core/phpcs.xml.dist
       <include-pattern>*/tests/modules/*</include-pattern>
     </exclude>
   </rule>
+  <!-- … allow long-line array declarations where they are useful: in test expectations. -->
+  <rule ref="Drupal.Arrays.Array.LongLineDeclaration">
+    <exclude-pattern>*/tests/*</exclude-pattern>
+  </rule>
   <rule ref="Drupal.Files.EndFileNewline">
     <exclude-pattern>*/config/install/*\.yml$</exclude-pattern>
   </rule>

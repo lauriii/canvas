@@ -260,7 +260,10 @@ final class CanvasBuilder extends ControllerBase {
           if ($tool instanceof BuilderResponseFunctionCallInterface) {
             $response = array_merge($response, $tool->getStructuredOutput());
           }
-          if (\in_array($tool->getPluginId(), ['ai_agents::ai_agent::canvas_page_builder_agent', 'ai_agents::ai_agent::canvas_template_builder_agent'], TRUE)) {
+          if (\in_array($tool->getPluginId(), [
+            'ai_agents::ai_agent::canvas_page_builder_agent',
+            'ai_agents::ai_agent::canvas_template_builder_agent',
+          ], TRUE)) {
             $this->canvasAiTempStore->deleteData(CanvasAiTempStore::CURRENT_LAYOUT_KEY);
           }
         }
