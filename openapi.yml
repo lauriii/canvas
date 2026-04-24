@@ -2894,6 +2894,12 @@ components:
               type: array
               items:
                 type: string
+            entityFields:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
     ExistingCodeComponent:
       type: object
       allOf:

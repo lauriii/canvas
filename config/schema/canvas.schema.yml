@@ -172,6 +172,7 @@ canvas.js_component.*:
         label: 'Prop'
         # This MUST be one of the keys available at %parent.props. Rather than repeating that validation logic here, let
         # the JsComponentHasValidAndSupportedSdcMetadata constraint take care of that.
+        # Entity reference props cannot be required: validated by JsComponentHasValidAndSupportedSdcMetadata.
         constraints: {}
     # See core/assets/schemas/v1/metadata-full.schema.json#properties.props
     props:
@@ -230,6 +231,44 @@ canvas.js_component.*:
                 - v0.mainEntity
                 - v0.pageTitle
                 - v0.themeAssets
+        entityFields:
+          # Should be omitted when there's no entity field data dependencies.
+          requiredKey: false
+          type: sequence
+          orderby: key
+          constraints:
+            # There must be >=1 entity reference prop; otherwise the key should be omitted.
+            NotBlank:
+              message: "There must be >=1 entity reference prop; otherwise the 'entityFields' key should be omitted."
+            # Each key must be a prop name from the component's props.
+            SequenceKeysMustMatch:
+              matchType: subset
+              # @todo allow filtering to the subset that are actually "entity reference" props, rather than all props.
+              propertyPathToSequence: props
+          sequence:
+            type: sequence
+            orderby: value
+            constraints:
+              # There must be >=1 entity field expression.
+              NotBlank:
+                message: 'There must be >=1 entity field expression; otherwise the entity reference prop should be deleted.'
+              # All expressions must target the same entity type and bundle.
+              EntityFieldExpressionsSameTarget: ~
+            sequence:
+              type: string
+              label: 'Entity field prop expression'
+              constraints:
+                # 💡 Crucially, this also will ensure that every expression for every entity field for every
+                # version of this JavaScriptComponent config entity is valid against the current set of supported
+                # expressions: any exception thrown during validation will prevent saving.
+                ValidStructuredDataPropExpression:
+                  choices:
+                    - FieldPropExpression
+                    - FieldObjectPropsExpression
+                    - ReferenceFieldPropExpression
+                  message: 'The expression is valid, but not one of the allowed types: %choices.'
+                # Validate that the expression targets an existing entity type and bundle.
+                ExpressionTargetEntityBundleExists: ~
 
 canvas.page_region.*:
   type: config_entity

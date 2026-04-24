@@ -6,10 +6,16 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 
 // cspell:ignore sofie componente extraño
 
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\field\FieldStorageConfigInterface;
+use Drupal\media\Entity\MediaType;
+use Drupal\node\Entity\NodeType;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -27,17 +33,9 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
-    // Canvas's dependencies (the subset that is needed for these tests).
-    'editor',
-    'file',
-    'filter',
-    'image',
-    'media',
-    'link',
-    'options',
-    'text',
-    'user',
+    ...CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
+    'field',
+    'node',
   ];
 
   /**
@@ -61,6 +59,10 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->installEntitySchema('node');
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
+    NodeType::create(['type' => 'article', 'name' => 'Article'])->save();
     $javascript_component_base = [
       'name' => 'Test',
       'status' => TRUE,
@@ -1293,10 +1295,319 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
    *           [{"drupalSettings": ["v0.pageTitle", "v0.branding"]}, []]
    *           [{"urls": []}, {"dataDependencies.urls": "This value should not be blank."}]
    *           [{"urls": ["https://www.drupal.org/jsonapi"]}, []]
+   *           [{"drupalSettings": ["v0.pageTitle", "v0.branding"], "urls": ["https://www.drupal.org/jsonapi"], "entityFields": {"text": ["ℹ︎␜entity:user␝name␞␟value"]}}, []]
+   *           [{"drupalSettings": ["foo"], "entityFields": {"nonexistent_prop": ["ℹ︎␜entity:user␝name␞␟value"]}}, {"dataDependencies.drupalSettings.0": "The value you selected is not a valid choice.", "dataDependencies.entityFields.nonexistent_prop": "'nonexistent_prop' is not a supported key."}]
    */
   public function testDataDependencies(array $test, array $expected_errors): void {
     $this->entity->set('dataDependencies', $test);
     $this->assertValidationErrors($expected_errors);
+  }
+
+  /**
+   * Tests entityFields within dataDependencies.
+   */
+  #[DataProvider('providerEntityFieldsDataDependencies')]
+  public function testEntityFieldsDataDependencies(array $test, array $expected_errors, array $required): void {
+    $this->entity->set('dataDependencies', $test);
+    if (!empty($required)) {
+      $this->entity->set('required', $required);
+    }
+    $this->assertValidationErrors($expected_errors);
+  }
+
+  /**
+   * Data provider for testEntityFieldsDataDependencies().
+   */
+  public static function providerEntityFieldsDataDependencies(): \Generator {
+    yield 'empty entityFields' => [
+      ['entityFields' => []],
+      ['dataDependencies.entityFields' => "There must be >=1 entity reference prop; otherwise the 'entityFields' key should be omitted."],
+      [],
+    ];
+
+    yield 'entityFields key not in props' => [
+      ['entityFields' => ['nonexistent_prop' => ['ℹ︎␜entity:user␝name␞␟value']]],
+      ['dataDependencies.entityFields.nonexistent_prop' => "'nonexistent_prop' is not a supported key."],
+      [],
+    ];
+
+    yield 'entityFields valid key but empty array' => [
+      ['entityFields' => ['text' => []]],
+      ['dataDependencies.entityFields.text' => 'There must be >=1 entity field expression; otherwise the entity reference prop should be deleted.'],
+      [],
+    ];
+
+    yield 'entityFields valid key with invalid expression' => [
+      ['entityFields' => ['text' => ['not-a-valid-expression']]],
+      ['dataDependencies.entityFields.text.0' => '<em class="placeholder">not-a-valid-expression</em> is not a valid prop expression.'],
+      [],
+    ];
+
+    yield 'entityFields alongside drupalSettings' => [
+      ['drupalSettings' => ['v0.pageTitle'], 'entityFields' => ['text' => ['ℹ︎␜entity:user␝name␞␟value']]],
+      [],
+      [],
+    ];
+
+    // Valid expression types: FieldPropExpression, ReferenceFieldPropExpression, FieldObjectPropsExpression.
+    yield 'entityFields valid FieldPropExpression' => [
+      ['entityFields' => ['text' => ['ℹ︎␜entity:node:article␝title␞␟value']]],
+      [],
+      [],
+    ];
+
+    yield 'entityFields valid ReferenceFieldPropExpression' => [
+      ['entityFields' => ['text' => ['ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value']]],
+      [],
+      [],
+    ];
+
+    yield 'entityFields valid FieldObjectPropsExpression' => [
+      ['entityFields' => ['text' => ['ℹ︎␜entity:user␝user_picture␞␟{src↠url,alt↠alt}']]],
+      [],
+      [],
+    ];
+
+    // Same entity type+bundle constraint.
+    yield 'entityFields mixed entity types in same prop' => [
+      ['entityFields' => ['text' => ['ℹ︎␜entity:user␝name␞␟value', 'ℹ︎␜entity:node:article␝title␞␟value']]],
+      ['dataDependencies.entityFields.text' => 'All entity field expressions must target the same entity type and bundle, but found: entity:user, entity:node:article.'],
+      [],
+    ];
+
+    yield 'entityFields same entity type in same prop' => [
+      ['entityFields' => ['text' => ['ℹ︎␜entity:user␝name␞␟value', 'ℹ︎␜entity:user␝mail␞␟value']]],
+      [],
+      [],
+    ];
+
+    // Entity type/bundle existence validation.
+    yield 'entityFields non-existent entity type' => [
+      ['entityFields' => ['text' => ['ℹ︎␜entity:nonsense␝title␞␟value']]],
+      ['dataDependencies.entityFields.text.0' => "The entity type 'nonsense' does not exist."],
+      [],
+    ];
+
+    yield 'entityFields non-existent bundle' => [
+      ['entityFields' => ['text' => ['ℹ︎␜entity:node:nonsense␝title␞␟value']]],
+      ['dataDependencies.entityFields.text.0' => "The entity type 'node' does not have a 'nonsense' bundle."],
+      [],
+    ];
+
+    // Required prop constraint.
+    yield 'entityFields prop cannot be required' => [
+      ['entityFields' => ['text' => ['ℹ︎␜entity:user␝name␞␟value']]],
+      ['required' => 'The prop <em class="placeholder">text</em> has entity field data dependencies and therefore cannot be required: referenced entities may disappear, and this code component should not crash when they do.'],
+      ['text'],
+    ];
+  }
+
+  /**
+   * Tests x-allowed-bundle validation for bundled entity types.
+   *
+   * @todo Implement this when the entity reference prop type is added in #3573831.
+   */
+  public function testEntityFieldsMissingBundleForBundledEntityType(): void {
+    $this->markTestSkipped('Requires the entity reference prop type with x-allowed-bundle from #3573831.');
+  }
+
+  /**
+   * Tests that `entityFields` expressions contribute to calculated dependencies.
+   *
+   * Validation-only coverage of `entityFields` lives in
+   * ::testEntityFieldsDataDependencies(). This method complements it by saving
+   * the entity and asserting the full `getDependencies()` output for each
+   * allowed expression type and the regression case.
+   *
+   * @param array $data_dependencies
+   *   The dataDependencies value to save on the entity.
+   * @param array $expected_deps
+   *   The exact expected output of $entity->getDependencies() after save.
+   */
+  #[DataProvider('providerEntityFieldsCalculatedDependencies')]
+  public function testEntityFieldsCalculatedDependencies(array $data_dependencies, array $expected_deps): void {
+    // Install a configurable field on the `user` entity so that
+    // `FieldObjectPropsExpression` against `user_picture` contributes a
+    // `field.field.user.user.user_picture` config dep.
+    // @see core/profiles/standard/config/install/field.storage.user.user_picture.yml
+    FieldStorageConfig::create([
+      'entity_type' => 'user',
+      'field_name' => 'user_picture',
+      'type' => 'image',
+      'translatable' => FALSE,
+      'cardinality' => 1,
+    ])->save();
+    FieldConfig::create([
+      'label' => 'Picture',
+      'description' => '',
+      'field_name' => 'user_picture',
+      'entity_type' => 'user',
+      'bundle' => 'user',
+      'required' => FALSE,
+    ])->save();
+
+    // Create a `media:image` media type (with its image source field) and an
+    // `entity_reference` field on `node:article` targeting it — the shape
+    // produced by Canvas's media library integration.
+    // @see config/install/image.style.canvas_parametrized_width.yml
+    $this->installConfig(['canvas']);
+    $this->installEntitySchema('media');
+    $media_type = MediaType::create([
+      'id' => 'image',
+      'label' => 'Image',
+      'source' => 'image',
+    ]);
+    $media_type->save();
+    $source_field = $media_type->getSource()->createSourceField($media_type);
+    $source_field_storage = $source_field->getFieldStorageDefinition();
+    \assert($source_field_storage instanceof FieldStorageConfigInterface);
+    $source_field_storage->save();
+    $source_field->save();
+    $media_type->set('source_configuration', [
+      'source_field' => $source_field->getName(),
+    ])->save();
+    FieldStorageConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_media',
+      'type' => 'entity_reference',
+      'settings' => ['target_type' => 'media'],
+      'translatable' => FALSE,
+      'cardinality' => 1,
+    ])->save();
+    FieldConfig::create([
+      'label' => 'Media',
+      'description' => '',
+      'field_name' => 'field_media',
+      'entity_type' => 'node',
+      'bundle' => 'article',
+      'required' => FALSE,
+      'settings' => [
+        'handler' => 'default:media',
+        'handler_settings' => [
+          'target_bundles' => ['image' => 'image'],
+        ],
+      ],
+    ])->save();
+
+    // Extend the test entity with additional (non-required) props that mirror a
+    // realistic multi-entity-reference component so that keys like
+    // `suggested_by` and `highlighted_article` are valid `entityFields` keys.
+    $this->entity->set('props', $this->entity->get('props') + [
+      'suggested_by' => [
+        'type' => 'string',
+        'title' => 'Suggested by',
+        'examples' => ['Alice', 'Bob'],
+      ],
+      'highlighted_article' => [
+        'type' => 'string',
+        'title' => 'Highlighted article',
+        'examples' => ['Hello', 'World'],
+      ],
+    ]);
+
+    $this->entity->set('dataDependencies', $data_dependencies);
+    $this->entity->save();
+    $this->assertSame($expected_deps, $this->entity->getDependencies());
+  }
+
+  /**
+   * Data provider for ::testEntityFieldsCalculatedDependencies().
+   */
+  public static function providerEntityFieldsCalculatedDependencies(): \Generator {
+    $enforced = 'canvas.js_component.other';
+
+    // Note on key ordering: `getDependencies()` unsets the `enforced` key and
+    // re-merges the enforced deps into the result AFTER the non-enforced ones,
+    // so `module` (added during calculation) appears before `config` (which
+    // only contains the enforced dep), and `canvas.js_component.other` is
+    // appended to `config` after any freshly-computed config deps.
+    // @see \Drupal\Core\Config\Entity\ConfigEntityBase::getDependencies()
+
+    // Base field on a non-bundled entity type → only the entity type provider.
+    yield 'FieldPropExpression on user.name (base field, no bundle)' => [
+      ['entityFields' => ['text' => ['ℹ︎␜entity:user␝name␞␟value']]],
+      [
+        'module' => ['user'],
+        'config' => [$enforced],
+      ],
+    ];
+
+    // Base field on a bundled entity type → bundle config dep added.
+    yield 'FieldPropExpression on node:article.title (base field, bundled)' => [
+      ['entityFields' => ['text' => ['ℹ︎␜entity:node:article␝title␞␟value']]],
+      [
+        'config' => ['node.type.article', $enforced],
+        'module' => ['node'],
+      ],
+    ];
+
+    // ReferenceFieldPropExpression — deps from BOTH branches merged.
+    yield 'ReferenceFieldPropExpression node:article.uid → user.name' => [
+      ['entityFields' => ['text' => ['ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value']]],
+      [
+        'config' => ['node.type.article', $enforced],
+        'module' => ['node', 'user'],
+      ],
+    ];
+
+    // FieldObjectPropsExpression on a configurable field → field config dep.
+    // `alt` and `title` are real ImageItem properties; ImageItem's storage
+    // contributes a `file` module dep in addition to the `user` entity type.
+    yield 'FieldObjectPropsExpression on user.user_picture' => [
+      ['entityFields' => ['text' => ['ℹ︎␜entity:user␝user_picture␞␟{alt↠alt,title↠title}']]],
+      [
+        'config' => ['field.field.user.user.user_picture', $enforced],
+        'module' => ['file', 'user'],
+      ],
+    ];
+
+    // `drupalSettings` alongside `entityFields` — entityFields deps still added.
+    yield 'entityFields alongside drupalSettings' => [
+      ['drupalSettings' => ['v0.pageTitle'], 'entityFields' => ['text' => ['ℹ︎␜entity:user␝name␞␟value']]],
+      [
+        'module' => ['user'],
+        'config' => [$enforced],
+      ],
+    ];
+
+    // Multiple entity-reference props in one component, with one prop using a
+    // `FieldObjectPropsExpression` that follows an entity reference
+    // (`src↝entity…`) into the referenced `file` entity.
+    yield 'multiple entityFields props with follow-reference FieldObjectPropsExpression' => [
+      [
+        'entityFields' => [
+          'suggested_by' => [
+            "ℹ︎␜entity:user␝name␞␟value",
+          ],
+          'highlighted_article' => [
+            "ℹ︎␜entity:node:article␝title␞␟value",
+            "ℹ︎␜entity:node:article␝field_media␞␟entity␜␜entity:media:image␝field_media_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,srcset↠srcset_candidate_uri_template,width↠width}",
+          ],
+        ],
+      ],
+      [
+        'config' => [
+          'field.field.media.image.field_media_image',
+          'field.field.node.article.field_media',
+          'image.style.canvas_parametrized_width',
+          'media.type.image',
+          'node.type.article',
+          $enforced,
+        ],
+        'module' => [
+          'file',
+          'media',
+          'node',
+          'user',
+        ],
+      ],
+    ];
+
+    // Regression: no `entityFields` → nothing beyond the enforced dep.
+    yield 'no entityFields (regression)' => [
+      [],
+      ['config' => [$enforced]],
+    ];
   }
 
   protected function assertValidationErrors(array $expected_messages): void {

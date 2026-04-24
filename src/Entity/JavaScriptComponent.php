@@ -9,6 +9,7 @@ use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\Resource\CanvasResourceLink;
 use Drupal\canvas\Resource\CanvasResourceLinkCollection;
 use Drupal\Core\Access\AccessResult;
@@ -490,6 +491,27 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     //    be recalculated.
     // @see \canvas_library_info_build()
     Cache::invalidateTags(['library_info']);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies(): static {
+    parent::calculateDependencies();
+
+    // Every entity field expression declared under
+    // `dataDependencies.entityFields` references field/bundle/module config
+    // that must be tracked by Drupal's config dependency manager, so that
+    // cascading deletes, config export/import order and cache invalidation
+    // work correctly.
+    foreach ($this->dataDependencies['entityFields'] ?? [] as $expressions) {
+      foreach ($expressions as $expression_string) {
+        $expression = StructuredDataPropExpression::fromString($expression_string);
+        $this->addDependencies($expression->calculateDependencies());
+      }
+    }
+
+    return $this;
   }
 
   /**
