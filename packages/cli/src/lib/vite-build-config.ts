@@ -37,6 +37,7 @@ export function createCanvasViteBuildConfig(
   return {
     // Use project root (cwd) so Vite can resolve all paths correctly
     root: process.cwd(),
+    esbuild: { jsx: 'automatic' },
     plugins: [
       ...drupalCanvasCompat({
         // hostRoot is project root, aliasBaseDir is relative to it
