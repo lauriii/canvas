@@ -2,7 +2,7 @@ import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect } from '@playwright/test';
 
-import type { FrameLocator } from '@playwright/test';
+import type { FrameLocator, Locator } from '@playwright/test';
 import type { CanvasBase } from './CanvasBase.js';
 
 type Constructor<T = {}> = new (...args: any[]) => T;
@@ -239,6 +239,165 @@ export function CanvasComponentsMixin<
           await this.page.locator(labelLocator).click();
           break;
       }
+    }
+
+    async editMultiValueProp(
+      propName: string,
+      propValue: string,
+      propPosition: number,
+      propType = 'string',
+    ) {
+      const field = this.page
+        .locator(
+          `.field--type-${propType} [data-canvas-multiple-values="true"]`,
+        )
+        .filter({
+          has: this.page.getByRole('heading', { name: propName }),
+        });
+      await expect(field).toBeVisible();
+      const row = field.locator('tr.draggable').nth(propPosition);
+      await row.getByRole('button', { name: /^Edit/ }).click();
+      const popover = row.getByRole('dialog');
+      const displayName = propName.endsWith('*')
+        ? propName.slice(0, -1)
+        : propName;
+      await expect(
+        popover.getByText(displayName, { exact: true }),
+      ).toBeVisible();
+
+      // Set up auto-save listener.
+      const autoSavePromise = this.page.waitForResponse(
+        (response) =>
+          response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+          response.request().method() === 'PATCH',
+      );
+
+      switch (propType) {
+        case 'string':
+          await popover.getByRole('textbox').fill(propValue);
+          await popover.getByRole('textbox').press('Enter');
+          break;
+      }
+
+      await autoSavePromise;
+      await this.page.waitForLoadState('networkidle');
+
+      // Verify text in the Settings pane is updated.
+      await expect(
+        field
+          .locator('tr.draggable')
+          .nth(propPosition)
+          .locator('[data-canvas-multivalue-label="true"]'),
+      ).toHaveText(propValue);
+    }
+
+    async reorderMultiValueProp(propName: string, from: number, to: number) {
+      const field = this.page
+        .locator('[data-canvas-multiple-values="true"]')
+        .filter({
+          has: this.page.getByRole('heading', { name: propName }),
+        });
+      await expect(field).toBeVisible();
+      const dragHandle = (row: Locator) => row.locator('.canvas-drag-handle');
+      const rows = field.locator('tr.draggable');
+
+      // Set up auto-save listener.
+      const autoSavePromise = this.page.waitForResponse(
+        (response) =>
+          response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+          response.request().method() === 'PATCH',
+      );
+
+      const toHandle = dragHandle(rows.nth(to));
+      const toBox = await toHandle.boundingBox();
+      const targetY = toBox ? (from > to ? 2 : toBox.height - 2) : undefined;
+      await dragHandle(rows.nth(from)).dragTo(toHandle, {
+        targetPosition:
+          targetY !== undefined ? { x: 10, y: targetY } : undefined,
+      });
+
+      await autoSavePromise;
+      await this.page.waitForLoadState('networkidle');
+    }
+
+    async addMultiValueProp(
+      propName: string,
+      propValue: string | null = null,
+      propType: string = 'string',
+    ) {
+      const field = this.page
+        .locator(
+          `.field--type-${propType} [data-canvas-multiple-values="true"]`,
+        )
+        .filter({
+          has: this.page.getByRole('heading', { name: propName }),
+        });
+      await expect(field).toBeVisible();
+      const originalRowCount = await field.locator('tr.draggable').count();
+      await field.getByRole('button', { name: '+ Add new' }).click();
+
+      // Wait for all drag handles to be visible again.
+      const dragHandles = field.locator('.canvas-drag-handle');
+      await expect(dragHandles.last()).toBeVisible();
+
+      await expect(async () => {
+        const newRowCount = await field.locator('tr.draggable').count();
+        expect(newRowCount).toBe(originalRowCount + 1);
+      }).toPass();
+
+      await expect(
+        field
+          .locator('tr.draggable')
+          .last()
+          .locator('[data-canvas-multivalue-label="true"]'),
+      ).toHaveText('Empty');
+
+      if (propValue) {
+        await this.editMultiValueProp(
+          propName,
+          propValue,
+          originalRowCount,
+          propType,
+        );
+      }
+    }
+
+    async removeMultiValueProp(propName: string, propPosition: number) {
+      const field = this.page
+        .locator('[data-canvas-multiple-values="true"]')
+        .filter({
+          has: this.page.getByRole('heading', { name: propName }),
+        });
+      await expect(field).toBeVisible();
+
+      const row = field.locator('tr.draggable').nth(propPosition);
+      await row.getByRole('button', { name: /^Edit/ }).click();
+      const popover = row.getByRole('dialog');
+      const displayName = propName.endsWith('*')
+        ? propName.slice(0, -1)
+        : propName;
+      await expect(
+        popover.getByText(displayName, { exact: true }),
+      ).toBeVisible();
+      await expect(
+        popover.getByRole('button', { name: 'Remove' }),
+      ).toBeEnabled();
+
+      // Set up auto-save listener.
+      const autoSavePromise = this.page.waitForResponse(
+        (response) =>
+          response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+          response.request().method() === 'PATCH',
+      );
+
+      const rowCountBefore = await field.locator('tr.draggable').count();
+      await popover.getByRole('button', { name: 'Remove' }).click();
+
+      await autoSavePromise;
+      await this.page.waitForLoadState('networkidle');
+      await expect(field.locator('tr.draggable')).toHaveCount(
+        rowCountBefore - 1,
+      );
     }
 
     async hoverPreviewComponent(componentId: string) {

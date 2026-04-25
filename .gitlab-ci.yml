@@ -638,11 +638,13 @@ playwright:
 
 playwright-reports:
   stage: report
+  needs:
+    - playwright
   rules:
     - *e2e-tests-are-enabled-rule
     - *manual-rule
-  needs:
-    - playwright
+  when:
+    always
   image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
   script:
     - mkdir -p test-results
