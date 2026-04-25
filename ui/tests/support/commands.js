@@ -401,14 +401,20 @@ Cypress.Commands.add('drupalSession', () => {
 Cypress.Commands.add(
   'previewReady',
   (iframeSelector = initializedReadyPreviewIframeSelector) => {
-    // Not logging these assertions to try and keep the command log a bit tidier.
-    cy.get('[data-testid="canvas-editor-frame"]', {
-      log: false,
-    }).should('have.css', 'opacity', '1');
+    // The iframe selector encodes the real "preview is ready" contract:
+    // `data-test-canvas-content-initialized="true"` is set in Viewport.tsx
+    // after IframeSwapper's load-event-driven swap completes, and
+    // `data-canvas-swap-active="true"` means it's the currently active iframe.
+    // We then double-check `readyState === 'complete'` (independent of that
+    // bookkeeping) and that the body isn't blank, so we catch the
+    // "iframe loaded but document is empty" failure mode too.
     cy.get(iframeSelector, { log: false, timeout: 10000 }).as('iframe');
-    cy.get(iframeSelector, { log: false }).its('0.contentDocument', {
-      log: false,
-    });
+    cy.get('@iframe', { log: false })
+      .its('0.contentDocument.readyState', { log: false })
+      .should('eq', 'complete');
+    cy.get('@iframe', { log: false })
+      .its('0.contentDocument.body.childElementCount', { log: false })
+      .should('be.greaterThan', 0);
     cy.log(`Preview '${iframeSelector}' initialized and has content document.`);
     cy.debugPause('previewReady');
     return cy.get('@iframe');
