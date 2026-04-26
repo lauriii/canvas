@@ -14,6 +14,7 @@ import {
   extractComponentPreviewMetadataFromComponentYaml,
 } from '@drupal-canvas/vite-compat';
 import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
 
 import { isSupportedPreviewModulePath } from '../lib/preview-runtime';
 import { toPreviewPageSpec } from '../lib/spec-discovery';
@@ -429,6 +430,7 @@ export async function bundleInteractivePreview(options: {
         process: JSON.stringify({ env: { NODE_ENV: 'production' } }),
       },
       plugins: [
+        react(),
         tailwindcss(),
         ...drupalCanvasCompat({
           hostRoot: options.projectRoot,

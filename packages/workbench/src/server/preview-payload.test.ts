@@ -458,4 +458,43 @@ describe('preview-payload', () => {
     expect(bundled.css).toContain('data:font/woff2;base64');
     expect(bundled.js).toContain('data:image/png;base64');
   });
+
+  it('bundles jsx components without requiring an explicit React import', async () => {
+    const root = await makeTemporaryDirectory();
+
+    await writeFile(
+      path.join(root, 'src/components/hero/index.jsx'),
+      [
+        'export default function Hero({ headline }) {',
+        '  return <section><h1>{headline}</h1></section>;',
+        '}',
+      ].join('\n'),
+    );
+
+    const bundled = await bundleInteractivePreview({
+      projectRoot: root,
+      aliasBaseDir: 'src',
+      spec: {
+        root: 'canvas-workbench-preview-root',
+        elements: {
+          'canvas-workbench-preview-root': {
+            type: 'hero',
+            props: {
+              headline: 'Hello',
+            },
+          },
+        },
+      },
+      componentSources: [
+        {
+          name: 'hero',
+          jsEntryPath: path.join(root, 'src/components/hero/index.jsx'),
+        },
+      ],
+      cssEntryPaths: [],
+    });
+
+    expect(bundled.js).toContain('jsxDEV');
+    expect(bundled.js).not.toContain('React.createElement("section"');
+  });
 });
