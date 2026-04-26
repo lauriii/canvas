@@ -5,6 +5,7 @@ import tseslint from 'typescript-eslint';
 
 import componentDirNameRule from '../rules/component-dir-name.js';
 import componentExportsRule from '../rules/component-exports.js';
+import componentImageExampleUrlsRule from '../rules/component-image-example-urls.js';
 import componentImportsRule from '../rules/component-imports.js';
 import componentPropNamesRule from '../rules/component-prop-names.js';
 
@@ -33,6 +34,7 @@ const required: Config[] = defineConfig([
         rules: {
           'component-dir-name': componentDirNameRule,
           'component-exports': componentExportsRule,
+          'component-image-example-urls': componentImageExampleUrlsRule,
           'component-imports': componentImportsRule,
           'component-prop-names': componentPropNamesRule,
         },
@@ -41,6 +43,7 @@ const required: Config[] = defineConfig([
     rules: {
       'drupal-canvas/component-dir-name': 'error',
       'drupal-canvas/component-exports': 'error',
+      'drupal-canvas/component-image-example-urls': 'error',
       'drupal-canvas/component-imports': 'error',
       'drupal-canvas/component-prop-names': 'error',
     },
