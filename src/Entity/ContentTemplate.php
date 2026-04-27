@@ -70,8 +70,6 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 )]
 final class ContentTemplate extends ComponentTreeConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, EntityViewDisplayInterface, AutoSavePublishAwareInterface {
 
-  use ConfigUpdaterAwareEntityTrait;
-
   public const string ENTITY_TYPE_ID = 'content_template';
 
   public const string ADMIN_PERMISSION = 'administer content templates';
@@ -152,7 +150,6 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
   public function preSave(EntityStorageInterface $storage): void {
     $this->id = $this->id();
     parent::preSave($storage);
-    self::getConfigUpdater()->updateConfigEntityWithComponentTreeInputs($this);
     if ($this->isSyncing() && self::getConfigUpdater()->needsIntermediateDependenciesComponentUpdate($this)) {
       // We might need to update dependencies even on import.
       // @see \canvas_post_update_0002_intermediate_component_dependencies_in_content_templates()

@@ -51,6 +51,11 @@ parameters:
       count: 1
       path: src/MediaLibraryCanvasPropOpener.php
     -
+      message: '#^Method Drupal\\canvas\\Entity\\ComponentTreeConfigEntityBase\:\:preSave\(\) has no return type specified\.$#'
+      identifier: missingType.return
+      count: 1
+      path: src/Entity/ComponentTreeConfigEntityBase.php
+    -
       message: "#^Method Drupal\\\\canvas\\\\Entity\\\\Pattern\\:\\:preCreate\\(\\) has no return type specified\\.$#"
       count: 1
       path: src/Entity/Pattern.php

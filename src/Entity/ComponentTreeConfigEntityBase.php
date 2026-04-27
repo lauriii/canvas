@@ -16,6 +16,7 @@ use Drupal\Core\Entity\EntityStorageInterface;
 abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements ComponentTreeEntityInterface {
 
   use ComponentTreeItemListInstantiatorTrait;
+  use ConfigUpdaterAwareEntityTrait;
 
   /**
    * The component tree.
@@ -38,6 +39,14 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
     $duplicate = parent::createDuplicate();
     unset($duplicate->typedData);
     return $duplicate;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function preSave(EntityStorageInterface $storage) {
+    parent::preSave($storage);
+    self::getConfigUpdater()->updateConfigEntityWithComponentTreeInputs($this);
   }
 
   /**
