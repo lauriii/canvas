@@ -1387,7 +1387,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // string input, as they're thinking about what string they do want.
         // ⚠️ This won't work for components whose logic specifically checks for
         // an empty string and refuses to render then.
-        if ($is_required_prop && $evaluated === '' && $this->getExplicitInputDefinitions()['shapes'][$prop] === ['type' => 'string']) {
+        if ($is_required_prop && $evaluated === '' && PropShape::isPlainOrRichProse($this->getExplicitInputDefinitions()['shapes'][$prop])) {
           // Confirm that *if* this weren't special-cased, that this would
           // indeed enter the next branch, which would cause it to be skipped.
           // @todo Consider adding a new `GracefulDegradationPropSource` to

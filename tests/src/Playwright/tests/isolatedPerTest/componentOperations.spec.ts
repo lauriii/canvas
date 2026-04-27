@@ -210,6 +210,51 @@ test.describe('Perform CRUD operations on components', () => {
     ).toHaveAttribute('href', /drupal\.org/);
   });
 
+  test('Can handle empty required formatted body prop', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.openCanvas(await canvas.createCanvas());
+    await canvas.openLibraryPanel();
+    await canvas.addComponent({
+      id: 'sdc.canvas_test_sdc.required-formatted-body',
+    });
+
+    const contextualForm =
+      '[data-testid="canvas-contextual-panel"] [data-drupal-selector="component-instance-form"]';
+
+    const previewFrame = await canvas.getActivePreviewFrame();
+    await expect(
+      previewFrame.getByText('Example', { exact: true }),
+    ).toBeVisible();
+
+    const bodyEditable = page.locator(
+      `${contextualForm} .field--name-body .ck-editor__editable`,
+    );
+    await expect(bodyEditable).toBeVisible();
+    await bodyEditable.click();
+    await bodyEditable.fill('');
+    await page
+      .locator(`${contextualForm} .field--name-body`)
+      .locator('label.js-form-required')
+      .click();
+
+    await expect(
+      (await canvas.getActivePreviewFrame()).getByText('Example'),
+    ).toHaveCount(0);
+
+    await page.reload();
+
+    await expect(
+      page.locator(`${contextualForm} .field--name-body textarea`),
+    ).toHaveValue('');
+    await expect(
+      (await canvas.getActivePreviewFrame()).getByText('Example'),
+    ).toHaveCount(0);
+  });
+
   test('Can delete component with delete key', async ({ drupal, canvas }) => {
     await drupal.login({ username: 'editor', password: 'editor' });
     await canvas.openCanvas(await canvas.createCanvas());

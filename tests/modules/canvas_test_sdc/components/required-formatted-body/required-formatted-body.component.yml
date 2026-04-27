@@ -1,0 +1,15 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Required formatted body
+description: Single required HTML body prop for Canvas kernel coverage of empty required formatted text.
+props:
+  type: object
+  required:
+    - body
+  properties:
+    body:
+      type: string
+      title: Body
+      contentMediaType: text/html
+      x-formatting-context: block
+      examples:
+        - '<p>Example</p>'

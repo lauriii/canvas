@@ -55,15 +55,11 @@ final readonly class GeneratedFieldExplicitInputUxComponentInstanceInputsConfigS
       // - type: string, contentMediaType: text/html,
       //   x-formatting-context: block
       // @todo Consider adding alter hook to allow more shapes to be translatable in https://drupal.org/i/3584178
-      $translatable = $prop_shape['type'] === 'string'
-        && !\array_key_exists('enum', $prop_shape)
-        && (
-          !\array_key_exists('format', $prop_shape)
-          || JsonSchemaStringFormat::tryFrom($prop_shape['format'])?->isUriEsque()
-        )
-        && (
-          !\array_key_exists('contentMediaType', $prop_shape)
-          || $prop_shape['contentMediaType'] === 'text/html'
+      $translatable = PropShape::isPlainOrRichProse($prop_shape)
+        || (
+          $prop_shape['type'] === 'string'
+          && \array_key_exists('format', $prop_shape)
+          && JsonSchemaStringFormat::tryFrom($prop_shape['format'])?->isUriEsque()
         );
       if ($translatable) {
         \assert(\array_key_exists('type', $mapping_definition[$prop_name]));

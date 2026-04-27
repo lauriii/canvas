@@ -229,7 +229,9 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
       'sdc.canvas_test_sdc.one_column',
       'sdc.canvas_test_sdc.props-no-slots',
       'sdc.canvas_test_sdc.props-slots',
+      'sdc.canvas_test_sdc.required-formatted-body',
       'sdc.canvas_test_sdc.required-integer',
+      'sdc.canvas_test_sdc.required-plain-string',
       'sdc.canvas_test_sdc.select-fields',
       'sdc.canvas_test_sdc.shoe_badge',
       'sdc.canvas_test_sdc.shoe_tab',
@@ -660,6 +662,17 @@ HTML,
           ],
         ],
       ],
+      'sdc.canvas_test_sdc.required-formatted-body' => [
+        'html' => '<div><p>Example</p></div>
+',
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.canvas_test_sdc--required-formatted-body',
+            'core/components.canvas_test_sdc--required-formatted-body',
+          ],
+        ],
+      ],
       'sdc.canvas_test_sdc.required-integer' => [
         'html' => '<span>42</span>
 ',
@@ -668,6 +681,17 @@ HTML,
           'library' => [
             'core/components.canvas_test_sdc--required-integer',
             'core/components.canvas_test_sdc--required-integer',
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.required-plain-string' => [
+        'html' => '<span>Hello</span>
+',
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.canvas_test_sdc--required-plain-string',
+            'core/components.canvas_test_sdc--required-plain-string',
           ],
         ],
       ],
@@ -2783,6 +2807,28 @@ HTML
           ],
         ],
       ],
+      'sdc.canvas_test_sdc.required-formatted-body' => [
+        'prop_field_definitions' => [
+          'body' => [
+            'required' => TRUE,
+            'field_type' => 'text_long',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [
+              'allowed_formats' => [
+                'canvas_html_block',
+              ],
+            ],
+            'field_widget' => 'text_textarea',
+            'default_value' => [
+              0 => [
+                'value' => '<p>Example</p>',
+                'format' => 'canvas_html_block',
+              ],
+            ],
+            'expression' => 'ℹ︎text_long␟processed',
+          ],
+        ],
+      ],
       'sdc.canvas_test_sdc.required-integer' => [
         'prop_field_definitions' => [
           'count' => [
@@ -2797,6 +2843,23 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎integer␟value',
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.required-plain-string' => [
+        'prop_field_definitions' => [
+          'title' => [
+            'required' => TRUE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Hello',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
           ],
         ],
       ],
@@ -3409,7 +3472,22 @@ HTML
           'canvas_test_sdc',
         ],
       ],
+      'sdc.canvas_test_sdc.required-formatted-body' => [
+        'config' => [
+          'filter.format.canvas_html_block',
+        ],
+        'module' => [
+          'text',
+          'canvas_test_sdc',
+        ],
+      ],
       'sdc.canvas_test_sdc.required-integer' => [
+        'module' => [
+          'core',
+          'canvas_test_sdc',
+        ],
+      ],
+      'sdc.canvas_test_sdc.required-plain-string' => [
         'module' => [
           'core',
           'canvas_test_sdc',
@@ -5869,6 +5947,42 @@ HTML
         ],
         'transforms' => [],
       ],
+      'sdc.canvas_test_sdc.required-formatted-body' => [
+        'expected_output_selectors' => [
+          'div:contains("Example")',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'body' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'contentMediaType' => 'text/html',
+              'x-formatting-context' => 'block',
+            ],
+            'sourceType' => 'static:field_item:text_long',
+            'expression' => 'ℹ︎text_long␟processed',
+            'sourceTypeSettings' => [
+              'instance' => [
+                'allowed_formats' => [
+                  'canvas_html_block',
+                ],
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => '<p>Example</p>',
+                  'format' => 'canvas_html_block',
+                ],
+              ],
+              'resolved' => '<p>Example</p>',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
       'sdc.canvas_test_sdc.required-integer' => [
         'expected_output_selectors' => [
           'span:contains("42")',
@@ -5890,6 +6004,32 @@ HTML
                 ],
               ],
               'resolved' => 42,
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.canvas_test_sdc.required-plain-string' => [
+        'expected_output_selectors' => [
+          'span:contains("Hello")',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'title' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'Hello',
+                ],
+              ],
+              'resolved' => 'Hello',
             ],
           ],
         ],
@@ -7003,6 +7143,200 @@ HTML
     );
     $this->assertArrayHasKey('data', $input, 'A required multi-cardinality prop cleared by the user should still be stored (as []) for graceful degradation.');
     $this->assertSame([], $input['data']);
+  }
+
+  /**
+   * Tests required empty props: client model conversion and formal validation.
+   *
+   * ::clientModelToInput(): required free-form prose (plain `type: string` and
+   * HTML / text_long) stay in the returned input when evaluated as ''. Required
+   * props whose schema is URI-shaped (`format`) or enumerated must not use that
+   * path; an empty value is omitted from the returned input.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::clientModelToInput()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::validateComponentInput()
+   */
+  public function testClientModelToInputRetainsRequiredEmptyProseProps(): void {
+    $this->generateComponentConfig();
+    $this->setUpCurrentUser();
+
+    $cases = [
+      'formatted text (text_long)' => [
+        'positive' => TRUE,
+        'component_id' => 'sdc.canvas_test_sdc.required-formatted-body',
+        'client_model' => [
+          'source' => [
+            'body' => [
+              'sourceType' => 'static:field_item:text_long',
+              'expression' => 'ℹ︎text_long␟processed',
+              'value' => [
+                'value' => '',
+                'format' => 'canvas_html_block',
+              ],
+              'sourceTypeSettings' => [
+                'instance' => [
+                  'allowed_formats' => [
+                    'canvas_html_block',
+                  ],
+                ],
+              ],
+            ],
+          ],
+          'resolved' => [
+            'body' => '',
+          ],
+        ],
+        'prop' => 'body',
+        'expected' => [
+          'value' => '',
+          'format' => 'canvas_html_block',
+        ],
+      ],
+      'plain string' => [
+        'positive' => TRUE,
+        'component_id' => 'sdc.canvas_test_sdc.required-plain-string',
+        'client_model' => [
+          'source' => [
+            'title' => [
+              'sourceType' => 'static:field_item:string',
+              'expression' => 'ℹ︎string␟value',
+              'value' => '',
+            ],
+          ],
+          'resolved' => [
+            'title' => '',
+          ],
+        ],
+        'prop' => 'title',
+        'expected' => '',
+      ],
+      'required uri (format: uri), empty link omitted' => [
+        'positive' => FALSE,
+        'component_id' => 'sdc.canvas_test_sdc.my-cta',
+        'client_model' => [
+          'source' => [
+            'text' => [
+              'sourceType' => 'static:field_item:string',
+              'expression' => 'ℹ︎string␟value',
+              'value' => 'Press',
+            ],
+            'href' => [
+              'sourceType' => 'static:field_item:link',
+              'expression' => 'ℹ︎link␟url',
+              'value' => [
+                'uri' => '',
+                'options' => [],
+              ],
+              'sourceTypeSettings' => [
+                'instance' => [
+                  'title' => 0,
+                  'link_type' => LinkItemInterface::LINK_EXTERNAL,
+                ],
+              ],
+            ],
+          ],
+          'resolved' => [
+            'text' => 'Press',
+            'href' => '',
+          ],
+        ],
+        'assert_absent' => ['href'],
+        'assert_present' => [
+          'text' => 'Press',
+        ],
+      ],
+      'required uri-reference, empty link omitted' => [
+        'positive' => FALSE,
+        'component_id' => 'sdc.canvas_test_sdc.my-hero',
+        'client_model' => [
+          'source' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'expression' => 'ℹ︎string␟value',
+              'value' => 'There goes my hero',
+            ],
+            'cta1href' => [
+              'sourceType' => 'static:field_item:link',
+              'expression' => 'ℹ︎link␟url',
+              'value' => [
+                'uri' => '',
+                'options' => [],
+              ],
+              'sourceTypeSettings' => [
+                'instance' => [
+                  'title' => 0,
+                  'link_type' => LinkItemInterface::LINK_GENERIC,
+                ],
+              ],
+            ],
+          ],
+          'resolved' => [
+            'heading' => 'There goes my hero',
+            'cta1href' => '',
+          ],
+        ],
+        'assert_absent' => ['cta1href'],
+        'assert_present' => [
+          'heading' => 'There goes my hero',
+        ],
+      ],
+      'required enum (list_string), empty omitted' => [
+        'positive' => FALSE,
+        'component_id' => 'sdc.canvas_test_sdc.one_column',
+        'client_model' => [
+          'source' => [
+            'width' => [
+              'sourceType' => 'static:field_item:list_string',
+              'expression' => 'ℹ︎list_string␟value',
+              'value' => '',
+              'sourceTypeSettings' => [
+                'storage' => [
+                  'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+                ],
+              ],
+            ],
+          ],
+          'resolved' => [
+            'width' => '',
+          ],
+        ],
+        'assert_absent' => ['width'],
+        'assert_present' => [],
+      ],
+    ];
+
+    $uuid = 'a-uuid-for-validation';
+
+    foreach ($cases as $label => $case) {
+      $component = Component::load($case['component_id']);
+      $this->assertInstanceOf(Component::class, $component, $label);
+      $source = $component->getComponentSource();
+      $this->assertInstanceOf(GeneratedFieldExplicitInputUxComponentSourceBase::class, $source, $label);
+
+      $input = $source->clientModelToInput(
+        'a-uuid-for-testing',
+        $component,
+        $case['client_model'],
+        NULL,
+      );
+
+      if ($case['positive']) {
+        $this->assertArrayHasKey($case['prop'], $input, $label);
+        $this->assertSame($case['expected'], $input[$case['prop']], $label);
+      }
+      else {
+        foreach ($case['assert_absent'] as $prop) {
+          $this->assertArrayNotHasKey($prop, $input, $label);
+        }
+        foreach ($case['assert_present'] as $prop => $expected_value) {
+          $this->assertArrayHasKey($prop, $input, $label);
+          $this->assertSame($expected_value, $input[$prop], $label);
+        }
+      }
+
+      $violations = $source->validateComponentInput($input, $uuid, NULL);
+      $this->assertGreaterThan(0, $violations->count(), $label);
+    }
   }
 
   /**

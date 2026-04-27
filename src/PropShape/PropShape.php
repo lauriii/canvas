@@ -237,4 +237,29 @@ final class PropShape {
     return \Drupal::service(ComponentPluginManager::class);
   }
 
+  /**
+   * Whether the given JSON schema for a prop is considered plain or rich prose.
+   *
+   * - Plain prose: `type: string`
+   * - Rich prose: `type: string, contentMediaType: text/html` — the
+   *   `x-formatting-context` does not matter. Invalid `x-formatting-contexts`
+   *   are blocked during discovery of components from ever making it into
+   *   Canvas component trees.
+   *
+   * @param JsonSchema $prop_schema
+   *   The JSON schema for a component prop.
+   *
+   * @return bool
+   *
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint::PROSE
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint::MARKUP
+   */
+  public static function isPlainOrRichProse(array $prop_schema): bool {
+    $normalized = static::normalizePropSchema($prop_schema);
+    return $normalized === ['type' => 'string']
+      || ($normalized['type'] === 'string'
+        && \array_key_exists('contentMediaType', $normalized)
+        && $normalized['contentMediaType'] === 'text/html');
+  }
+
 }
