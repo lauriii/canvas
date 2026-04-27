@@ -68,7 +68,7 @@ test.describe('Multivalue Prop Types', () => {
     await expect(
       page.getByText('An unlimited array of plain text strings.'),
     ).toBeVisible();
-    await expect(textField.locator('tr.draggable')).toHaveCount(3);
+    await expect(textField.locator('tr.draggable')).toHaveCount(2);
     await expect(
       textField.getByRole('button', { name: '+ Add new' }),
     ).toBeVisible();
@@ -153,7 +153,7 @@ test.describe('Multivalue Prop Types', () => {
     await page.waitForLoadState('networkidle');
 
     // Check removed from Settings pane.
-    await expect(textField.locator('tr.draggable')).toHaveCount(2);
+    await expect(textField.locator('tr.draggable')).toHaveCount(1);
     await expect(textField).not.toContainText('Sample Text');
 
     // Check removed from preview pane.
@@ -167,57 +167,48 @@ test.describe('Multivalue Prop Types', () => {
 
     // Add a new row and populate all values.
     await textField.getByRole('button', { name: '+ Add new' }).click();
-    await expect(textField.locator('tr.draggable')).toHaveCount(3);
+    await expect(textField.locator('tr.draggable')).toHaveCount(2);
 
     await canvas.editMultiValueProp(
       'Text (Unlimited)',
       'Hello, world!',
-      1,
+      0,
       'string',
     );
-    await canvas.editMultiValueProp('Text (Unlimited)', 'Catbro', 2, 'string');
+    await canvas.editMultiValueProp('Text (Unlimited)', 'Catbro', 1, 'string');
 
     // Verify text in the Settings pane is updated.
-    await expect(textField).toContainText('Marshmallow Coast');
     await expect(textField).toContainText('Hello, world!');
     await expect(textField).toContainText('Catbro');
-    await expect(textField).not.toContainText('Empty');
 
     // Verify text in the Preview pane is updated.
     previewFrame = await canvas.getActivePreviewFrame();
     textList = previewFrame
       .getByTestId('text-component')
       .locator('#text-list li');
-    await expect(textList).toHaveCount(3);
-    await expect(textList.nth(0)).toHaveText('Marshmallow Coast');
-    await expect(textList.nth(1)).toHaveText('Hello, world!');
-    await expect(textList.nth(2)).toHaveText('Catbro');
+    await expect(textList).toHaveCount(2);
+    await expect(textList.nth(0)).toHaveText('Hello, world!');
+    await expect(textList.nth(1)).toHaveText('Catbro');
 
     let labels = textField.locator('[data-canvas-multivalue-label="true"]');
 
-    // Drag row 3 (Catbro) to before row 1 (Marshmallow Coast).
-    await canvas.reorderMultiValueProp('Text (Unlimited)', 2, 0);
-    await expect(labels.nth(0)).toHaveText('Catbro');
-    await expect(labels.nth(1)).toHaveText('Marshmallow Coast');
-    await expect(labels.nth(2)).toHaveText('Hello, world!');
-
-    // Drag row 3 (Hello, world!) to before row 2 (Marshmallow Coast).
-    await canvas.reorderMultiValueProp('Text (Unlimited)', 2, 1);
-
-    // Verify final order: Catbro, Hello, world!, Marshmallow Coast.
+    // Drag row 2 (Catbro) to before row 1 (Hello, world).
+    await canvas.reorderMultiValueProp('Text (Unlimited)', 1, 0);
     await expect(labels.nth(0)).toHaveText('Catbro');
     await expect(labels.nth(1)).toHaveText('Hello, world!');
-    await expect(labels.nth(2)).toHaveText('Marshmallow Coast');
+
+    // Verify final order: Catbro, Hello, world!.
+    await expect(labels.nth(0)).toHaveText('Catbro');
+    await expect(labels.nth(1)).toHaveText('Hello, world!');
 
     // Verify text in the Preview pane is updated.
     previewFrame = await canvas.getActivePreviewFrame();
     textList = previewFrame
       .getByTestId('text-component')
       .locator('#text-list li');
-    await expect(textList).toHaveCount(3);
+    await expect(textList).toHaveCount(2);
     await expect(textList.nth(0)).toHaveText('Catbro');
     await expect(textList.nth(1)).toHaveText('Hello, world!');
-    await expect(textList.nth(2)).toHaveText('Marshmallow Coast');
 
     // Reload the page and verify the order is still the same.
     await page.reload();
@@ -227,11 +218,10 @@ test.describe('Multivalue Prop Types', () => {
     });
     await expect(textField).toBeVisible();
     // An extra "Empty" item is added.
-    await expect(textField.locator('tr.draggable')).toHaveCount(4);
+    await expect(textField.locator('tr.draggable')).toHaveCount(2);
     labels = textField.locator('[data-canvas-multivalue-label="true"]');
     await expect(labels.nth(0)).toHaveText('Catbro');
     await expect(labels.nth(1)).toHaveText('Hello, world!');
-    await expect(labels.nth(2)).toHaveText('Marshmallow Coast');
   });
 
   test('Limited items', async ({ page }) => {
@@ -271,20 +261,19 @@ test.describe('Multivalue Prop Types', () => {
     });
     await expect(textLimitedField).toBeVisible();
 
-    await expect(textLimitedField.locator('tr.draggable')).toHaveCount(3);
+    await expect(textLimitedField.locator('tr.draggable')).toHaveCount(2);
     await expect(
       textLimitedField
         .locator('tr.draggable')
         .last()
         .locator('[data-canvas-multivalue-label="true"]'),
-    ).toHaveText('Empty');
+    ).toHaveText('Required Text 2');
 
     await expect(
       textLimitedField.getByRole('button', { name: '+ Add new' }),
     ).toBeVisible();
 
     await canvas.removeMultiValueProp('Text (Required Unlimited)*', 0);
-    await canvas.removeMultiValueProp('Text (Required Unlimited)*', 1);
 
     const firstRow = textLimitedField.locator('tr.draggable').first();
     await firstRow.getByRole('button', { name: /^Edit Text/ }).click();

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Drupal\canvas\PropSource;
 
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\Component\Utility\NestedArray;
@@ -24,8 +26,6 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
-use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
-use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 
 /**
  * Contains unstructured data for 1 explicit input of a component instance.
@@ -559,6 +559,17 @@ final class StaticPropSource extends PropSourceBase {
         }
         $widget_state['items'] = $items;
         $widget::setWidgetState($form['#parents'] ?? [], $field_name, $form_state, $widget_state);
+      }
+    }
+
+    // Don't add the "Empty" field automatically.
+    if ($this->getCardinality() === FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED) {
+      $parents = $form['#parents'] ?? [];
+      if (!$widget::getWidgetState($parents, $sdc_prop_name, $form_state)) {
+        $widget::setWidgetState($parents, $sdc_prop_name, $form_state, [
+          'items_count' => max(0, $field->count() - 1),
+          'array_parents' => [],
+        ]);
       }
     }
 
