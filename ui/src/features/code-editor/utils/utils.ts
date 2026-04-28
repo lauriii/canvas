@@ -190,6 +190,8 @@ export function serializeProps(props: CodeComponentProp[]) {
           allowMultiple && items?.type === 'string' && !isNumberType;
 
         // Whether this prop has a non-empty example worth serializing.
+        // For arrays: check length > 0 (string arrays also require non-empty strings)
+        // For non-arrays: check truthy value or explicit false (for booleans)
         const hasExample = Array.isArray(example)
           ? isStringArrayProp
             ? (example as string[]).some((v) => v !== '')
