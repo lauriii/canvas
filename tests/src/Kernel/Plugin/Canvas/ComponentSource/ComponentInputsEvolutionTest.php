@@ -489,13 +489,13 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     // updated settings config schema.
     // @see ::testBlockPluginUpdateConsequences()
     self::assertCount(1, Component::load('block.canvas_test_block_input_schema_change_poc')?->getVersions() ?? []);
-    $old_version = Component::load('block.canvas_test_block_input_schema_change_poc')?->getActiveVersion();
+    $old_version = Component::load('block.canvas_test_block_input_schema_change_poc')->getActiveVersion();
     \Drupal::state()->set('canvas_test_block.allow_hook_block_alter', TRUE);
     $original_service_cache_config = $this->container->get('cache.config');
     $original_service_config_factory = $this->container->get(ConfigFactoryInterface::class);
     $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_block_simulate_input_schema_change']);
-    self::assertCount(2, Component::load('block.canvas_test_block_input_schema_change_poc')?->getVersions());
-    $new_version = Component::load('block.canvas_test_block_input_schema_change_poc')?->getActiveVersion();
+    self::assertCount(2, Component::load('block.canvas_test_block_input_schema_change_poc')->getVersions());
+    $new_version = Component::load('block.canvas_test_block_input_schema_change_poc')->getActiveVersion();
 
     // MID-update: AFTER the module update, BEFORE applying an update path: the
     // component tree contains instances with explicit inputs that are now
