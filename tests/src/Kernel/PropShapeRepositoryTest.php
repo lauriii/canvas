@@ -148,10 +148,10 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
 
     $unique_prop_shapes = array_values($ephemeral_prop_shape_repository->getUniquePropShapes());
     $this->assertEquals([
-      new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image']]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'], 'maxItems' => 2]),
+      new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'], 'minItems' => 1]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer']]),
-      new PropShape(['type' => 'array', 'items' => ['type' => 'integer', 'maximum' => 100, 'minimum' => -100], 'maxItems' => 100]),
+      new PropShape(['type' => 'array', 'items' => ['type' => 'integer', 'maximum' => 100, 'minimum' => -100], 'maxItems' => 100, 'minItems' => 1]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer', 'maximum' => 100, 'minimum' => -100], 'maxItems' => 100, 'minItems' => 2]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'maxItems' => 2]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'maxItems' => 20, 'minItems' => 1]),
@@ -172,6 +172,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       new PropShape(['type' => 'array', 'items' => ['type' => 'string', 'format' => 'uri-reference']]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'string', 'format' => 'uri-reference'], 'maxItems' => 3]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'string'], 'maxItems' => 3]),
+      new PropShape(['type' => 'array', 'items' => ['type' => 'string'], 'minItems' => 1]),
       new PropShape(['type' => 'boolean']),
       new PropShape(['type' => 'integer']),
       new PropShape(['type' => 'integer', '$ref' => 'json-schema-definitions://canvas.module/column-width']),
@@ -663,8 +664,8 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         cardinality: 2,
         fieldWidget: 'image_image',
       ),
-      'type=array&items[$ref]=json-schema-definitions://canvas.module/image&items[type]=object' => new StorablePropShape(
-        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image']]),
+      'type=array&items[$ref]=json-schema-definitions://canvas.module/image&items[type]=object&minItems=1' => new StorablePropShape(
+        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'], 'minItems' => 1]),
         fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
           'src' => new FieldTypePropExpression('image', 'src_with_alternate_widths'),
           'alt' => new FieldTypePropExpression('image', 'alt'),
@@ -674,8 +675,8 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
         fieldWidget: 'image_image',
       ),
-      'type=array&items[type]=integer&items[minimum]=-100&items[maximum]=100&maxItems=100' => new StorablePropShape(
-        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'integer', 'maximum' => 100, 'minimum' => -100], 'maxItems' => 100]),
+      'type=array&items[type]=integer&items[minimum]=-100&items[maximum]=100&maxItems=100&minItems=1' => new StorablePropShape(
+        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'integer', 'maximum' => 100, 'minimum' => -100], 'maxItems' => 100, 'minItems' => 1]),
         fieldTypeProp: new FieldTypePropExpression('integer', 'value'),
         cardinality: 100,
         fieldWidget: 'number',
@@ -774,10 +775,22 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         cardinality: 3,
         fieldWidget: 'number',
       ),
+      'type=array&items[type]=integer&maxItems=20&minItems=1' => new StorablePropShape(
+        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'maxItems' => 20, 'minItems' => 1]),
+        fieldTypeProp: new FieldTypePropExpression('integer', 'value'),
+        cardinality: 20,
+        fieldWidget: 'number',
+      ),
       'type=array&items[type]=integer&maxItems=3' => new StorablePropShape(
         shape: new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'maxItems' => 3]),
         fieldTypeProp: new FieldTypePropExpression('integer', 'value'),
         cardinality: 3,
+        fieldWidget: 'number',
+      ),
+      'type=array&items[type]=integer&minItems=1' => new StorablePropShape(
+        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 1]),
+        fieldTypeProp: new FieldTypePropExpression('integer', 'value'),
+        cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
         fieldWidget: 'number',
       ),
       'type=array&items[type]=string&items[format]=date' => new StorablePropShape(
@@ -862,6 +875,12 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         cardinality: 3,
         fieldWidget: 'string_textfield',
       ),
+      'type=array&items[type]=string&minItems=1' => new StorablePropShape(
+        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'string'], 'minItems' => 1]),
+        fieldTypeProp: new FieldTypePropExpression('string', 'value'),
+        cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+        fieldWidget: 'string_textfield',
+      ),
     ];
   }
 
@@ -870,8 +889,6 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
    */
   public static function getExpectedUnstorablePropShapes(): array {
     return [
-      'type=array&items[type]=integer&maxItems=20&minItems=1' => new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'maxItems' => 20, 'minItems' => 1]),
-      'type=array&items[type]=integer&minItems=1' => new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 1]),
       'type=array&items[type]=integer&minItems=2' => new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 2]),
       'type=object&$ref=json-schema-definitions://canvas.module/date-range' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/date-range']),
       'type=object&$ref=json-schema-definitions://canvas.module/shoe-icon' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/shoe-icon']),

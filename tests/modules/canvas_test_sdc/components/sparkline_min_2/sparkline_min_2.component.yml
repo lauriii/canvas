@@ -1,5 +1,5 @@
 $schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
-name: Canvas test SDC for sparkline (100 integers between -100 and 100)
+name: Canvas test SDC for sparkline, Canvas-ineligible minItems 2 constraint
 props:
   type: object
   required:
@@ -9,6 +9,11 @@ props:
       type: array
       title: Sparkline data
       # ⚠️ Compared to the `sparkline` SDC, this requires not 1 but 2 items.
+      # This SDC is intentionally incompatible with Canvas: Drupal's Field
+      # API has no concept of minimum cardinality > 1, so no field type/widget
+      # can enforce minItems: 2. Canvas cannot generate a component config
+      # entity for this SDC. Used in tests to verify Canvas correctly
+      # identifies it as ineligible.
       minItems: 2
       maxItems: 100
       items:

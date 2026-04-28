@@ -173,6 +173,7 @@ export function serializeProps(props: CodeComponentProp[]) {
           items,
           valueMode,
           limitedCount,
+          minItems,
         } = prop;
         // Check if the base type (or items type for arrays) is numeric
         const baseType = allowMultiple && items ? items.type : type;
@@ -250,6 +251,11 @@ export function serializeProps(props: CodeComponentProp[]) {
           if (valueMode === 'limited' && limitedCount) {
             processed.maxItems = limitedCount;
           }
+          // Serialize minItems when set (only value of 1 is supported).
+          // This is auto-set when required is toggled ON for array props.
+          if (minItems === 1) {
+            processed.minItems = minItems;
+          }
         } else {
           // When not an array, metadata goes at top level
           if ($ref) processed.$ref = $ref;
@@ -292,6 +298,7 @@ export function deserializeProps(
       'x-formatting-context': xFormattingContext,
       items,
       maxItems,
+      minItems,
     } = prop;
 
     // Detect if this is an array type (allowMultiple)
@@ -395,6 +402,8 @@ export function deserializeProps(
           valueMode: 'unlimited' as const,
           limitedCount: 1,
         }),
+      // Deserialize minItems when present (only value of 1 is supported).
+      ...(allowMultiple && minItems && { minItems }),
     };
 
     // Backwards compatibility

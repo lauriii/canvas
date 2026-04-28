@@ -12,6 +12,7 @@ props:
     images:
       title: 'Images for gallery'
       type: array
+      minItems: 1
       items:
         $ref: json-schema-definitions://canvas.module/image
         # @todo `type: object` should not be necessary, it's because \Drupal\sdc\Component\ComponentValidator::getClassProps() does not yet support $ref

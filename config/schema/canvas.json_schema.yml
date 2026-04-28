@@ -271,6 +271,14 @@ canvas.json_schema.prop_shape.array:
       constraints:
         Range:
           min: 2
+    minItems:
+      requiredKey: false
+      type: integer
+      label: 'Minimum number of array items'
+      constraints:
+        Choice:
+          choices:
+            - 1
 
 canvas.json_schema.prop_examples.*.*:
   # Trigger a helpful error if a developer tries to define an example for a non-existent or unsupported JSON Schema type.

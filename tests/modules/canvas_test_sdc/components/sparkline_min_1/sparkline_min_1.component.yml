@@ -1,0 +1,18 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Canvas test SDC for sparkline, Canvas-ineligible optional + minItems 1 constraint
+props:
+  type: object
+  properties:
+    data:
+      type: array
+      title: Sparkline data
+      # ⚠️ Compared to the `sparkline` SDC, this still requires 1 item, but is optional.
+      # This SDC is intentionally incompatible with Canvas: `minItems` can only be enforced if the prop is required.
+      minItems: 1
+      maxItems: 100
+      items:
+        type: integer
+        minimum: -100
+        maximum: 100
+      examples:
+        - [0, 10, 20, 30, -40, -50, 5, 7, 9]

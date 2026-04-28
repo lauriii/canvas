@@ -1,0 +1,22 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Canvas test SDC for sparkline, Canvas-ineligible due to no `minItems` constraint
+props:
+  type: object
+  required:
+    - data
+  properties:
+    data:
+      type: array
+      title: Sparkline data
+      # Unlike the `sparkline` SDC, this explicitly does NOT require ≥1 item via minItems: 1.
+      # This SDC is intentionally incompatible with Canvas: the absence of `minItems` (implying 0 minimum items per JSON
+      # Schema) means only the key (`data`) is required, no value (no item) needs to be present. This does not
+      # with Content Author expectations for a "required" component prop. It is no coincidence that Drupal's Field API
+      # semantics force a minimum of 1 value for "required" field.
+      maxItems: 100
+      items:
+        type: integer
+        minimum: -100
+        maximum: 100
+      examples:
+        - [0, 10, 20, 30, -40, -50, 5, 7, 9]

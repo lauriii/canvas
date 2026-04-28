@@ -81,7 +81,7 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
       $storable_prop_shapes,
       array_flip([
         'type=object&$ref=json-schema-definitions://canvas.module/image',
-        'type=array&items[$ref]=json-schema-definitions://canvas.module/image&items[type]=object',
+        'type=array&items[$ref]=json-schema-definitions://canvas.module/image&items[type]=object&minItems=1',
         'type=array&items[$ref]=json-schema-definitions://canvas.module/image&items[type]=object&maxItems=2',
       ]),
     );

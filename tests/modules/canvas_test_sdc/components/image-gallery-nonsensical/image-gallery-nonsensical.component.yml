@@ -12,6 +12,7 @@ props:
     images:
       title: 'Images for an egocentric gallery'
       type: array
+      minItems: 1
       # This is the key difference between this SDC and the `image-gallery` one.
       maxItems: 1
       items:

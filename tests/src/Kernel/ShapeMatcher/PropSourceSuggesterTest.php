@@ -1432,7 +1432,24 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_array_integer_minItems' => [
           'required' => FALSE,
-          PropSource::EntityField->value => [],
+          PropSource::EntityField->value => [
+            'field_screenshots → File size' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟entity␜␜entity:file␝filesize␞␟value',
+            ],
+            'field_screenshots → Height' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟height',
+            ],
+            'field_screenshots → Width' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟width',
+            ],
+            'Tags → Taxonomy term → Weight' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
+            ],
+          ],
           PropSource::Adapter->value => [],
           PropSource::HostEntityUrl->value => [],
         ],
@@ -1463,7 +1480,20 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_array_integer_minMaxItems' => [
           'required' => FALSE,
-          PropSource::EntityField->value => [],
+          PropSource::EntityField->value => [
+            'field_before_and_after → File size' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟entity␜␜entity:file␝filesize␞␟value',
+            ],
+            'field_before_and_after → Height' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟height',
+            ],
+            'field_before_and_after → Width' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟width',
+            ],
+          ],
           PropSource::Adapter->value => [],
           PropSource::HostEntityUrl->value => [],
         ],

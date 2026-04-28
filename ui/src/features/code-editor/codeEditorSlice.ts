@@ -264,11 +264,23 @@ export const codeEditorSlice = createSlice({
 
       const propName = getPropMachineName(prop.name);
       if (state.codeComponent.required.includes(propName)) {
+        // Toggling OFF
         state.codeComponent.required = state.codeComponent.required.filter(
           (name) => name !== propName,
         );
+        // For array props, clear minItems when required is removed.
+        if (prop.allowMultiple) {
+          delete prop.minItems;
+        }
       } else {
+        // Toggling ON
         state.codeComponent.required.push(propName);
+        // For array props, auto-set minItems: 1 when required is added.
+        // JSON Schema `required: [prop]` only means "key must be present" — it
+        // does NOT enforce ≥1 items. Only `minItems: 1` enforces that.
+        if (prop.allowMultiple) {
+          prop.minItems = 1;
+        }
       }
       // Set auto-save to true when toggling required.
       state.status.needsAutoSave = true;

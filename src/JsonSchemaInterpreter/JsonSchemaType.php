@@ -245,12 +245,24 @@ enum JsonSchemaType: string {
       // configure a minimum number of values for a field. Plus, JSON schema
       // allows declaring that an array must be non-empty (`minItems: 1`) even
       // for an optional array (not listed in `required`). So, it is impossible
-      // to support `minItems`. And in fact, marking an SDC prop as required has
-      // the same effect as `minItems: 1`.
+      // to support arbitrary `minItems` values.
+      // However, `minItems: 1` is supported: it aligns exactly with Drupal's
+      // "required means >=1 value" Field API semantics, and unlike `required`
+      // alone (which in JSON Schema only means "the key must be present"), it
+      // correctly enforces that an array cannot be empty.
+      // Note: marking a prop as `required` does NOT have the same effect as
+      // `minItems: 1`. JSON Schema `required: [prop]` only means the key must
+      // be present — it does not prevent `value: []`.
       // @see https://www.drupal.org/project/unlimited_field_settings
       // @see https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.6.4.2
       // @see https://stackoverflow.com/a/49548055
-      if (!empty(array_diff(\array_keys($schema), ['type', 'items', 'maxItems']))) {
+      // @see https://www.drupal.org/project/canvas/issues/3516754
+      if (!empty(array_diff(\array_keys($schema), ['type', 'items', 'maxItems', 'minItems']))) {
+        return NULL;
+      }
+      // Only minItems: 1 is supported. Higher values cannot be enforced by
+      // Drupal's Field API, which has no concept of minimum cardinality > 1.
+      if (isset($schema['minItems']) && $schema['minItems'] !== 1) {
         return NULL;
       }
       \assert($schema['type'] === 'array');

@@ -1879,6 +1879,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
               'items' => [
                 'type' => 'string',
               ],
+              'minItems' => 1,
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',

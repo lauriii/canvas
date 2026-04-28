@@ -627,6 +627,12 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
           // @see \Drupal\canvas\PropSource\StaticPropSource::withValue(allow_empty: TRUE)
           // If a StaticPropSource's field item list is empty, consider it not
           // set at all.
+          // Note: this catch only fires when value contains items the field
+          // type considers empty (e.g. [10, NULL, 20]). A fully empty array
+          // (value: []) never reaches here — isMinimalRepresentation() passes
+          // it unchanged (before and after filterEmptyItems() both equal 0),
+          // so [] flows through to ComponentValidator and is validated against
+          // the JSON Schema directly.
           if ($source->isEmpty()) {
             unset($inputValues[$component_prop_name]);
             continue;
@@ -834,6 +840,19 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $description = $component_schema['properties'][$sdc_prop_name]['description'] ?? NULL;
       $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id, $description);
       $is_required = $static_prop_source_field_definition['required'];
+      // For array props: JSON Schema `required: [prop]` means "the key must be
+      // present" — it does NOT enforce ≥1 items. Only `minItems: 1` does that.
+      // Drupal's setRequired(TRUE) enforces ≥1 value (displaying the required
+      // asterisk and preventing the user from removing the last item in the
+      // UI). Passing $is_required=TRUE for a required array without minItems: 1
+      // would over-enforce: the user couldn't remove all items even though the
+      // JSON Schema allows an empty array. So only mark array props as
+      // Drupal-required when minItems: 1 is explicitly set.
+      // @see https://www.drupal.org/project/canvas/issues/3516754
+      $prop_schema = $component_schema['properties'][$sdc_prop_name] ?? [];
+      if ($is_required && ($prop_schema['type'] ?? NULL) === 'array' && ($prop_schema['minItems'] ?? 0) < 1) {
+        $is_required = FALSE;
+      }
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity_object_for_field_widget, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
 

@@ -406,6 +406,8 @@ props:
       items:
         type: integer
       minItems: 1
+      examples:
+        - [7,8,9]
     test_array_integer_maxItems:
       title: 'Array, integers, max 2'
       description: 'This is the description of Array, integers, max 2'
@@ -428,6 +430,8 @@ props:
         type: integer
       minItems: 1
       maxItems: 20
+      examples:
+        - [7,8,9]
     test_array_string:
       title: 'Test array, strings'
       description: 'This is the description of Array, string'

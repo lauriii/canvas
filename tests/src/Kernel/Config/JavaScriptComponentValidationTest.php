@@ -1128,6 +1128,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
               'title' => 'Tags',
               'items' => ['type' => 'string'],
               'maxItems' => 10,
+              'minItems' => 1,
               'examples' => [
                 ['Tag A', 'Tag B'],
               ],
@@ -1180,6 +1181,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
               'type' => 'array',
               'title' => 'Tags',
               'items' => ['type' => 'string'],
+              'minItems' => 1,
             ],
           ],
           'required' => ['tags'],

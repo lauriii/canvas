@@ -8,6 +8,12 @@ props:
     data:
       type: array
       title: Sparkline data
+      # Unlike the `sparkline_no_min` SDC, this explicitly requires ≥1 item via minItems: 1.
+      # This SDC is intentionally compatible with Canvas: minItems: 1 aligns
+      # perfectly with Drupal's "required means >=1 value" Field API semantics.
+      # Used in tests to verify Canvas correctly accepts minItems: 1 and enforces
+      # the constraint (value: [] produces a validation error).
+      minItems: 1
       maxItems: 100
       items:
         type: integer
