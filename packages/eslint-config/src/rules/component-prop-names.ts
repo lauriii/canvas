@@ -1,7 +1,11 @@
 import { camelCase } from 'lodash-es';
 
 import { isComponentYmlFile } from '../utils/components.js';
-import { getYAMLStringValue } from '../utils/yaml.js';
+import {
+  getYAMLMappingPair,
+  getYAMLStringValue,
+  isYAMLMapping,
+} from '../utils/yaml.js';
 
 import type { Rule as EslintRule } from 'eslint';
 import type { AST } from 'yaml-eslint-parser';
@@ -10,40 +14,28 @@ function extractProps(
   propsNode: AST.YAMLPair,
 ): Array<{ id: string; title: string | null; node: AST.YAMLPair }> {
   // Get properties mapping.
-  if (!propsNode.value || propsNode.value.type !== 'YAMLMapping') {
+  if (!isYAMLMapping(propsNode.value)) {
     return [];
   }
-  const propsMapping = propsNode.value as AST.YAMLMapping;
-  const propertiesPair = propsMapping.pairs.find(
-    (p) => getYAMLStringValue(p.key) === 'properties',
-  );
-  if (
-    !propertiesPair ||
-    !propertiesPair.value ||
-    propertiesPair.value.type !== 'YAMLMapping'
-  ) {
+  const propertiesValue = getYAMLMappingPair(
+    propsNode.value,
+    'properties',
+  )?.value;
+  if (!isYAMLMapping(propertiesValue)) {
     return [];
   }
-  const propertiesMapping = propertiesPair.value as AST.YAMLMapping;
 
   // Extract props from properties mapping.
   const props: Array<{ id: string; title: string | null; node: AST.YAMLPair }> =
     [];
-  for (const pair of propertiesMapping.pairs) {
+  for (const pair of propertiesValue.pairs) {
     const propId = getYAMLStringValue(pair.key);
     if (!propId) continue;
 
-    if (!pair.value || pair.value.type !== 'YAMLMapping') continue;
-
-    const propMapping = pair.value as AST.YAMLMapping;
-    const titlePair = propMapping.pairs.find(
-      (p) => getYAMLStringValue(p.key) === 'title',
-    );
+    if (!isYAMLMapping(pair.value)) continue;
 
     let title = null;
-    if (titlePair) {
-      title = getYAMLStringValue(titlePair.value);
-    }
+    title = getYAMLStringValue(getYAMLMappingPair(pair.value, 'title')?.value);
 
     props.push({
       id: propId,

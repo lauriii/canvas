@@ -33,12 +33,13 @@ export default defineConfig([
 The following custom rules are part of the `required` config and validate Drupal
 Canvas Code Components:
 
-| Rule                           | Description                                                                                             |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `component-dir-name`           | Validates that `machineName` matches the directory name (index-style) or filename prefix (named-style). |
-| `component-exports`            | Validates that component has a default export.                                                          |
-| `component-image-example-urls` | Validates that `canvas.module/image` prop examples use fully qualified image URLs.                      |
-| `component-prop-names`         | Validates that component prop IDs match the camelCase version of their titles.                          |
+| Rule                                           | Description                                                                                             |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `component-dir-name`                           | Validates that `machineName` matches the directory name (index-style) or filename prefix (named-style). |
+| `component-exports`                            | Validates that component has a default export.                                                          |
+| `component-prop-example-value-image-url`       | Validates that `canvas.module/image` prop examples use fully qualified image URLs.                      |
+| `component-prop-example-value-no-empty-string` | Validates that string prop examples do not contain empty string values.                                 |
+| `component-prop-names`                         | Validates that component prop IDs match the camelCase version of their titles.                          |
 
 ### Deprecated rules
 

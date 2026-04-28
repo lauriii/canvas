@@ -1,46 +1,33 @@
 import { isComponentYmlFile } from '../utils/components.js';
-import { getYAMLStringValue } from '../utils/yaml.js';
+import {
+  getYAMLMappingPair,
+  getYAMLStringValue,
+  isYAMLMapping,
+  isYAMLSequence,
+} from '../utils/yaml.js';
 
 import type { Rule as EslintRule } from 'eslint';
 import type { AST } from 'yaml-eslint-parser';
 
 const IMAGE_REF = 'json-schema-definitions://canvas.module/image';
 
-function getMappingPair(
-  mapping: AST.YAMLMapping,
-  key: string,
-): AST.YAMLPair | undefined {
-  return mapping.pairs.find((pair) => getYAMLStringValue(pair.key) === key);
-}
-
-function isYamlMapping(
-  node: AST.YAMLNode | null | undefined,
-): node is AST.YAMLMapping {
-  return node?.type === 'YAMLMapping';
-}
-
-function isYamlSequence(
-  node: AST.YAMLNode | null | undefined,
-): node is AST.YAMLSequence {
-  return node?.type === 'YAMLSequence';
-}
-
 function hasImageRef(propMapping: AST.YAMLMapping): boolean {
   const ref = getYAMLStringValue(
-    getMappingPair(propMapping, '$ref')?.value ?? null,
+    getYAMLMappingPair(propMapping, '$ref')?.value ?? null,
   );
   if (ref === IMAGE_REF) {
     return true;
   }
 
-  const itemsValue = getMappingPair(propMapping, 'items')?.value;
-  if (!isYamlMapping(itemsValue)) {
+  const itemsValue = getYAMLMappingPair(propMapping, 'items')?.value;
+  if (!isYAMLMapping(itemsValue)) {
     return false;
   }
 
   return (
-    getYAMLStringValue(getMappingPair(itemsValue, '$ref')?.value ?? null) ===
-    IMAGE_REF
+    getYAMLStringValue(
+      getYAMLMappingPair(itemsValue, '$ref')?.value ?? null,
+    ) === IMAGE_REF
   );
 }
 
@@ -56,21 +43,21 @@ function isFullyQualifiedUrl(value: string): boolean {
 function getInvalidImageExampleNodes(
   examplesValue: AST.YAMLNode | null | undefined,
 ): AST.YAMLScalar[] {
-  if (!isYamlSequence(examplesValue)) {
+  if (!isYAMLSequence(examplesValue)) {
     return [];
   }
 
   const invalidNodes: AST.YAMLScalar[] = [];
 
   for (const example of examplesValue.entries) {
-    const imageEntries = isYamlSequence(example) ? example.entries : [example];
+    const imageEntries = isYAMLSequence(example) ? example.entries : [example];
 
     for (const imageEntry of imageEntries) {
-      if (!isYamlMapping(imageEntry)) {
+      if (!isYAMLMapping(imageEntry)) {
         continue;
       }
 
-      const srcNode = getMappingPair(imageEntry, 'src')?.value;
+      const srcNode = getYAMLMappingPair(imageEntry, 'src')?.value;
       if (
         srcNode?.type === 'YAMLScalar' &&
         typeof srcNode.value === 'string' &&
@@ -100,18 +87,21 @@ const rule: EslintRule.RuleModule = {
     return {
       YAMLPair(node: AST.YAMLPair) {
         const keyName = getYAMLStringValue(node.key);
-        if (keyName !== 'props' || !isYamlMapping(node.value)) {
+        if (keyName !== 'props' || !isYAMLMapping(node.value)) {
           return;
         }
 
-        const propertiesValue = getMappingPair(node.value, 'properties')?.value;
-        if (!isYamlMapping(propertiesValue)) {
+        const propertiesValue = getYAMLMappingPair(
+          node.value,
+          'properties',
+        )?.value;
+        if (!isYAMLMapping(propertiesValue)) {
           return;
         }
 
         for (const propPair of propertiesValue.pairs) {
           const propId = getYAMLStringValue(propPair.key);
-          if (!propId || !isYamlMapping(propPair.value)) {
+          if (!propId || !isYAMLMapping(propPair.value)) {
             continue;
           }
 
@@ -119,7 +109,7 @@ const rule: EslintRule.RuleModule = {
             continue;
           }
 
-          const examplesValue = getMappingPair(
+          const examplesValue = getYAMLMappingPair(
             propPair.value,
             'examples',
           )?.value;
