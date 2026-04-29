@@ -44,19 +44,14 @@ test.describe('Optional Image Default Management', () => {
       .click();
 
     frame = await canvas.getActivePreviewFrame();
-    await expect(frame.locator('img[alt="A good dog"]')).not.toBeVisible();
+    await expect(frame.locator('img[alt="A good dog"]')).toBeHidden();
 
-    await expect(defaultImagePreview).not.toBeVisible();
+    await expect(defaultImagePreview).toBeHidden();
     await expect(
       imageFieldset.locator('.js-media-library-open-button').first(),
     ).toBeVisible();
 
-    const libraryHeading = page.getByRole('heading', { name: 'Library' });
-    if (!(await libraryHeading.isVisible())) {
-      await page.getByTestId('canvas-side-menu').getByLabel('Library').click();
-      await expect(libraryHeading).toBeVisible();
-      await page.getByTestId('canvas-library-components-tab-select').click();
-    }
+    await canvas.openLibraryPanel();
     await canvas.addComponent({
       id: 'sdc.canvas_test_sdc.card',
     });
@@ -97,7 +92,7 @@ test.describe('Optional Image Default Management', () => {
         'img[alt="A cat on top of a cat tree trying to reach a Christmas tree"]',
       ),
     ).toBeVisible();
-    await expect(frame.locator('img[alt="A good dog"]')).not.toBeVisible();
+    await expect(frame.locator('img[alt="A good dog"]')).toBeHidden();
   });
 
   test('SDC and Code Component: Required vs optional image behavior', async ({
@@ -126,12 +121,7 @@ test.describe('Optional Image Default Management', () => {
       defaultImagePreview.locator('button[aria-label="Remove default"]'),
     ).toBeVisible({ timeout: 15000 });
 
-    const libraryHeading = page.getByRole('heading', { name: 'Library' });
-    if (!(await libraryHeading.isVisible())) {
-      await page.getByTestId('canvas-side-menu').getByLabel('Library').click();
-      await expect(libraryHeading).toBeVisible();
-      await page.getByTestId('canvas-library-components-tab-select').click();
-    }
+    await canvas.openLibraryPanel();
     await canvas.addComponent({
       id: 'sdc.canvas_test_sdc.image-required-with-example',
     });
@@ -150,14 +140,9 @@ test.describe('Optional Image Default Management', () => {
 
     await expect(
       defaultImagePreview.locator('button[aria-label="Remove default"]'),
-    ).not.toBeVisible();
+    ).toBeHidden();
 
-    const libraryHeading2 = page.getByRole('heading', { name: 'Library' });
-    if (!(await libraryHeading2.isVisible())) {
-      await page.getByTestId('canvas-side-menu').getByLabel('Library').click();
-      await expect(libraryHeading2).toBeVisible();
-      await page.getByTestId('canvas-library-components-tab-select').click();
-    }
+    await canvas.openLibraryPanel();
     await canvas.addComponent({
       id: 'js.canvas_test_e2e_code_components_optional_image',
     });
@@ -254,12 +239,7 @@ test.describe('Optional Image Default Management', () => {
 
     await expect(componentLocator.locator('img')).toHaveCount(0);
 
-    const libraryHeading = page.getByRole('heading', { name: 'Library' });
-    if (!(await libraryHeading.isVisible())) {
-      await page.getByTestId('canvas-side-menu').getByLabel('Library').click();
-      await expect(libraryHeading).toBeVisible();
-      await page.getByTestId('canvas-library-components-tab-select').click();
-    }
+    await canvas.openLibraryPanel();
     await canvas.addComponent({
       id: 'sdc.canvas_test_sdc.card',
     });
@@ -330,7 +310,7 @@ test.describe('Optional Image Default Management', () => {
     ).toBeVisible();
     await expect(
       requiredPreview.locator('button[aria-label="Remove default"]'),
-    ).not.toBeVisible();
+    ).toBeHidden();
 
     // Removing the default from the PRIMARY field must not affect the
     // SECONDARY or the REQUIRED field.
@@ -339,7 +319,7 @@ test.describe('Optional Image Default Management', () => {
     frame = await canvas.getActivePreviewFrame();
     await expect(
       frame.locator('img[alt="Primary default image"]'),
-    ).not.toBeVisible();
+    ).toBeHidden();
     await expect(
       frame.locator('img[alt="Secondary default image"]'),
     ).toBeVisible();
@@ -347,7 +327,7 @@ test.describe('Optional Image Default Management', () => {
       frame.locator('img[alt="Required default image"]'),
     ).toBeVisible();
 
-    await expect(primaryPreview).not.toBeVisible();
+    await expect(primaryPreview).toBeHidden();
     await expect(secondaryPreview).toBeVisible();
     await expect(requiredPreview).toBeVisible();
 

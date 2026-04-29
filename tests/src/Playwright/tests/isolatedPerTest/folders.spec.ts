@@ -142,7 +142,7 @@ test.describe('Folder Management', () => {
       .getByRole('button', { name: 'Menu' })
       .click();
     await page.getByRole('menuitem', { name: 'Rename' }).click();
-    await expect(page.getByRole('menu')).not.toBeVisible();
+    await expect(page.getByRole('menu')).toBeHidden();
 
     const textField = page.getByTestId('canvas-folder-rename-input');
     await expect(textField).toBeVisible();
@@ -183,7 +183,6 @@ test.describe('Folder Management', () => {
     await expect(textField4).toBeVisible();
     await textField4.fill('Existing Folder');
     await textField4.press('Enter');
-    await page.waitForTimeout(1000);
     // The error message is in a span with data-accent-color="red" and contains "is not unique".
     const errorSpan = page.locator('span[data-accent-color="red"]');
     await expect(errorSpan).toBeVisible();
@@ -201,9 +200,11 @@ test.describe('Folder Management', () => {
 
     // Test that folder state (open/closed) is preserved during rename.
     await page.locator('[data-canvas-folder-name="Renamed Folder"]').click();
-    const isFolderClosed = await page
-      .locator('[data-canvas-folder-name="Renamed Folder"]')
-      .getAttribute('aria-expanded');
+    // The Collapsible.Trigger (chevron button) always carries aria-expanded.
+    const folderToggle = page.getByRole('button', {
+      name: /Renamed Folder folder/,
+    });
+    const ariaExpandedBefore = await folderToggle.getAttribute('aria-expanded');
 
     await page.locator('[data-canvas-folder-name="Renamed Folder"]').hover();
     await page
@@ -215,10 +216,10 @@ test.describe('Folder Management', () => {
     await expect(textField5).toBeVisible();
     await textField5.press('Escape');
 
-    const isFolderStillClosed = await page
-      .locator('[data-canvas-folder-name="Renamed Folder"]')
-      .getAttribute('aria-expanded');
-    expect(isFolderClosed).toBe(isFolderStillClosed);
+    await expect(folderToggle).toHaveAttribute(
+      'aria-expanded',
+      ariaExpandedBefore!,
+    );
   });
 
   test('Folder deletion', async ({ page, drupal, canvas }) => {
@@ -247,18 +248,17 @@ test.describe('Folder Management', () => {
     const folderWithComponents = page.locator(
       '[data-canvas-folder-name="Atom/Text"]',
     );
-    if ((await folderWithComponents.count()) > 0) {
-      await folderWithComponents.hover();
-      await folderWithComponents.getByRole('button', { name: 'Menu' }).click();
-      // The delete folder menu item should be present and disabled.
-      const deleteMenuItem = page.getByRole('menuitem', {
-        name: 'Delete folder',
-      });
-      await expect(deleteMenuItem).toBeVisible();
-      await expect(deleteMenuItem).toBeDisabled();
-      // Close the menu by pressing Escape.
-      await page.keyboard.press('Escape');
-    }
+    await expect(folderWithComponents).toBeAttached();
+    await folderWithComponents.hover();
+    await folderWithComponents.getByRole('button', { name: 'Menu' }).click();
+    // The delete folder menu item should be present and disabled.
+    const deleteMenuItem = page.getByRole('menuitem', {
+      name: 'Delete folder',
+    });
+    await expect(deleteMenuItem).toBeVisible();
+    await expect(deleteMenuItem).toBeDisabled();
+    // Close the menu by pressing Escape.
+    await page.keyboard.press('Escape');
   });
 
   test('Folder drag and drop reordering', async ({ page, drupal, canvas }) => {
@@ -307,12 +307,8 @@ test.describe('Folder Management', () => {
     await expect(targetFolder).toBeVisible();
 
     // Get bounding boxes for drag coordinates.
-    const sourceBox = await sourceFolder.boundingBox();
-    const targetBox = await targetFolder.boundingBox();
-
-    if (!sourceBox || !targetBox) {
-      throw new Error('Could not get bounding boxes for folders');
-    }
+    const sourceBox = (await sourceFolder.boundingBox())!;
+    const targetBox = (await targetFolder.boundingBox())!;
 
     // Calculate center positions.
     const sourceX = sourceBox.x + sourceBox.width / 2;
@@ -342,6 +338,8 @@ test.describe('Folder Management', () => {
     expect(newOrder[1]).toBe('Drag Test Folder B');
   });
 
+  // Assertions are made in the helper functions.
+  // eslint-disable-next-line playwright/expect-expect
   test('Component drag and drop between folders and uncategorized list', async ({
     drupal,
     canvas,
@@ -367,6 +365,8 @@ test.describe('Folder Management', () => {
     await canvas.moveComponentOutOfFolder('One');
   });
 
+  // Assertions are made in the helper functions.
+  // eslint-disable-next-line playwright/expect-expect
   test('moveComponentToLibraryLocation moves code component into folder', async ({
     drupal,
     canvas,

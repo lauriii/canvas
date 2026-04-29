@@ -123,7 +123,7 @@ test.describe('Templates - General', () => {
   }) => {
     await drupal.login({ username: 'editor', password: 'editor' });
     await canvas.openCanvasRoot();
-    await page.click('[aria-label="Templates"]');
+    await page.locator('[aria-label="Templates"]').click();
     await canvas.addTemplate('Article', 'Teaser');
 
     // Navigate to the teaser template

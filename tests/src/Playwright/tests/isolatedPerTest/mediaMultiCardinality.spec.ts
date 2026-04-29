@@ -68,7 +68,7 @@ test.describe('Media Multi-Cardinality', () => {
     ).toHaveCount(2);
 
     const initialOrder = await getImageOrder(page);
-    expect(initialOrder.length).toBe(2);
+    expect(initialOrder).toHaveLength(2);
     expect(initialOrder).toContain(
       'A cat on top of a cat tree trying to reach a Christmas tree',
     );
@@ -79,7 +79,7 @@ test.describe('Media Multi-Cardinality', () => {
     const previewFrame = await canvas.getActivePreviewFrame();
     await expect(previewFrame.locator('main figure img')).toHaveCount(2);
     const previewInitialOrder = await getPreviewImageOrder(previewFrame);
-    expect(previewInitialOrder.length).toBe(2);
+    expect(previewInitialOrder).toHaveLength(2);
     expect(previewInitialOrder).toEqual(initialOrder);
   });
 
@@ -146,7 +146,7 @@ test.describe('Media Multi-Cardinality', () => {
     ).toHaveCount(3);
 
     const finalOrder = await getImageOrder(page);
-    expect(finalOrder.length).toBe(3);
+    expect(finalOrder).toHaveLength(3);
     expect(finalOrder).toContain(
       'A cat on top of a cat tree trying to reach a Christmas tree',
     );

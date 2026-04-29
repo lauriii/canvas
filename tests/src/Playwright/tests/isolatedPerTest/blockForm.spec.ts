@@ -52,7 +52,7 @@ test.describe('Block form', () => {
     await expect(siteLogoCheckbox).not.toBeChecked();
     await expect(
       (await canvas.getActivePreviewFrame()).locator(imgLocator),
-    ).not.toBeVisible();
+    ).toBeHidden();
     await siteLogoCheckbox.click();
     await expect(siteLogoCheckbox).toBeChecked();
     await expect(
@@ -62,7 +62,7 @@ test.describe('Block form', () => {
     await expect(siteLogoCheckbox).not.toBeChecked();
     await expect(
       (await canvas.getActivePreviewFrame()).locator(imgLocator),
-    ).not.toBeVisible();
+    ).toBeHidden();
 
     // Add the site name.
     const siteNameLocator =
@@ -71,7 +71,7 @@ test.describe('Block form', () => {
     await expect(siteNameCheckbox).not.toBeChecked();
     await expect(
       (await canvas.getActivePreviewFrame()).locator(siteNameLocator),
-    ).not.toBeVisible();
+    ).toBeHidden();
     await siteNameCheckbox.click();
     await expect(siteNameCheckbox).toBeChecked();
     await expect(
@@ -83,7 +83,7 @@ test.describe('Block form', () => {
     await page.reload();
     await expect(
       (await canvas.getActivePreviewFrame()).locator(imgLocator),
-    ).not.toBeVisible();
+    ).toBeHidden();
     await expect(
       (await canvas.getActivePreviewFrame()).locator(siteNameLocator),
     ).toHaveText('Drupal');

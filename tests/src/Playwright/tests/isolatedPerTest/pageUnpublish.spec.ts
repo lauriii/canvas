@@ -27,7 +27,7 @@ test.describe('Test race conditions are avoided', () => {
     await page.route(
       /\/canvas\/api\/v0\/form\/component-instance\/canvas_page\/\d\?.*drupal_ajax/,
       async (route) => {
-        await expect(currentRequestCount.layout).toEqual(0);
+        expect(currentRequestCount.layout).toEqual(0);
         currentRequestCount.ajax++;
         requestCount.ajax++;
         await route.continue();
@@ -41,7 +41,7 @@ test.describe('Test race conditions are avoided', () => {
       async (route) => {
         // Artificial delay.
         await new Promise((resolve) => setTimeout(resolve, 3_000));
-        await expect(currentRequestCount.ajax).toEqual(0);
+        expect(currentRequestCount.ajax).toEqual(0);
         currentRequestCount.layout++;
         requestCount.layout++;
         await route.continue();
@@ -55,7 +55,7 @@ test.describe('Test race conditions are avoided', () => {
       async (route) => {
         // Artificial delay.
         await new Promise((resolve) => setTimeout(resolve, 3_000));
-        await expect(currentRequestCount.ajax).toEqual(0);
+        expect(currentRequestCount.ajax).toEqual(0);
         currentRequestCount.layout++;
         requestCount.layout++;
         await route.continue();
@@ -85,7 +85,7 @@ test.describe('Test race conditions are avoided', () => {
       .getByRole('button', { name: 'Click to test AJAX vs PATCH' })
       .click();
 
-    await expect(requestCount.layout).toBeGreaterThan(0);
-    await expect(requestCount.ajax).toBeGreaterThan(0);
+    expect(requestCount.layout).toBeGreaterThan(0);
+    expect(requestCount.ajax).toBeGreaterThan(0);
   });
 });

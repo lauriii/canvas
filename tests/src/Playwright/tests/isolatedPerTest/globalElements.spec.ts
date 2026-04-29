@@ -53,7 +53,7 @@ test.describe('Global elements', () => {
     await expect(
       preview.getByRole('link', { name: 'My account' }),
     ).toBeVisible();
-    expect(await preview.getByRole('listitem').all()).toHaveLength(2);
+    await expect(preview.getByRole('listitem')).toHaveCount(2);
     await expect(
       preview.getByRole('heading', { name: 'Breadcrumb' }),
     ).toBeVisible();

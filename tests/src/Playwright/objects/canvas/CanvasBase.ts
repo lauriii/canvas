@@ -41,12 +41,9 @@ export class CanvasBase {
       this.page.locator(this.initializedReadyPreviewIframeSelector),
     ).toBeAttached();
 
-    const iframeElement = await this.page.$(
-      this.initializedReadyPreviewIframeSelector,
-    );
-    const contentDocumentExists = await iframeElement?.evaluate((el) => {
-      return !!(el as HTMLIFrameElement).contentDocument;
-    });
+    const contentDocumentExists = await this.page
+      .locator(this.initializedReadyPreviewIframeSelector)
+      .evaluate((el) => !!(el as HTMLIFrameElement).contentDocument);
     expect(contentDocumentExists).toBe(true);
   }
 
@@ -66,7 +63,9 @@ export class CanvasBase {
     const dropzone = this.page.locator(dropzoneLocator);
 
     // See https://playwright.dev/docs/input#dragging-manually on why this needs
-    // to be done like this.
+    // to be done like this. force: true is required throughout because during a
+    // drag the elements are covered by drag overlays and fail actionability checks.
+    // eslint-disable-next-line playwright/no-force-option
     await component.hover({ force: true });
     await this.page.mouse.down();
 
@@ -75,6 +74,7 @@ export class CanvasBase {
     await this.page.evaluate(() => {
       document.body.offsetHeight; // Forces reflow
     });
+    // eslint-disable-next-line playwright/no-force-option
     await dropzone.hover({ force: true });
     await this.page.evaluate((locator) => {
       // Force another reflow to ensure drop zone state is updated.
@@ -84,6 +84,7 @@ export class CanvasBase {
         dropzone.offsetHeight; // Forces reflow on the drop zone
       }
     }, dropzoneLocator);
+    // eslint-disable-next-line playwright/no-force-option
     await dropzone.hover({ force: true });
     await this.page.mouse.up();
   }

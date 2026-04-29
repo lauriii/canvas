@@ -1,14 +1,15 @@
 import prettier from 'eslint-config-prettier';
+import pluginChaiFriendly from 'eslint-plugin-chai-friendly';
+import cypress from 'eslint-plugin-cypress';
+import mochaPlugin from 'eslint-plugin-mocha';
+import playwright from 'eslint-plugin-playwright';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
 import { defineConfig } from 'eslint/config';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 import js from '@eslint/js';
-import vitest from "@vitest/eslint-plugin"
-import mochaPlugin from "eslint-plugin-mocha";
-import react from 'eslint-plugin-react';
-import reactHooks from 'eslint-plugin-react-hooks';
-import pluginChaiFriendly from 'eslint-plugin-chai-friendly';
-import cypress from "eslint-plugin-cypress"
+import vitest from '@vitest/eslint-plugin';
 
 const drupalGlobals = {
   Drupal: true,
@@ -73,7 +74,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['**/*.cy.*', "ui/tests/e2e/entity-form-fields/*"],
+    files: ['**/*.cy.*', 'ui/tests/e2e/entity-form-fields/*'],
     plugins: {
       mocha: mochaPlugin,
       cypress: cypress,
@@ -87,7 +88,7 @@ export default defineConfig([
       'mocha/no-top-level-hooks': 'off',
       'mocha/max-top-level-suites': 'off',
       'mocha/no-exclusive-tests': 'error',
-    }
+    },
   },
   {
     rules: {
@@ -133,14 +134,14 @@ export default defineConfig([
         { args: 'none', caughtErrors: 'none' },
       ],
       'no-redeclare': ['error', { builtinGlobals: false }],
-    }
+    },
   },
   {
-    files: ["**/*.{mjs,cjs,js,jsx}"],
+    files: ['**/*.{mjs,cjs,js,jsx}'],
     rules: {
       '@typescript-eslint/no-unused-expressions': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
-    }
+    },
   },
   {
     languageOptions: {
@@ -171,6 +172,10 @@ export default defineConfig([
     },
   },
   {
+    files: ['tests/src/Playwright/**/*.ts'],
+    extends: [playwright.configs['flat/recommended']],
+  },
+  {
     files: ['**/tests/isolatedPerTest/**/*.spec.ts'],
     plugins: {
       'isolated-per-test': isolatedPerTestPlugin,
@@ -181,13 +186,13 @@ export default defineConfig([
   },
   {
     ignores: [
-      ".cache",
-      "**/dist",
-      "**/.astro",
-      "js/astro-bundles/*",
-      "js/assets/**/*",
-      "ui/src/local_packages",
-      ".cache/**",
-    ]
-  }
+      '.cache',
+      '**/dist',
+      '**/.astro',
+      'js/astro-bundles/*',
+      'js/assets/**/*',
+      'ui/src/local_packages',
+      '.cache/**',
+    ],
+  },
 ]);

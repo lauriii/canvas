@@ -44,10 +44,9 @@ export function CanvasNavigationMixin<TBase extends Constructor<CanvasBase>>(
 
       if (title) {
         // Fill the title input
-        await this.page.fill(
-          '[data-drupal-selector="edit-title-0-value"]',
-          title,
-        );
+        await this.page
+          .locator('[data-drupal-selector="edit-title-0-value"]')
+          .fill(title);
 
         // Check the navigation button reflects the new value
         await expect(
@@ -86,23 +85,26 @@ export function CanvasNavigationMixin<TBase extends Constructor<CanvasBase>>(
      * Main UI navigation *
      **********************/
     async openLibraryPanel() {
-      await this.page
-        .getByTestId('canvas-side-menu')
-        .getByLabel('Library')
-        .click();
+      const libraryHeading = this.page.getByRole('heading', {
+        name: 'Library',
+      });
+      if (!(await libraryHeading.isVisible())) {
+        await this.page
+          .getByTestId('canvas-side-menu')
+          .getByLabel('Library')
+          .click();
 
-      await expect(
-        this.page.getByTestId('canvas-components-library-loading'),
-      ).not.toBeVisible();
-      try {
         await expect(
-          this.page.getByRole('heading', { name: 'Library' }),
-        ).toBeVisible();
-      } catch (error) {
-        throw new Error(
-          'openLibraryPanel: Library panel did not open - was it already open?\n' +
-            (error instanceof Error ? error.message : String(error)),
-        );
+          this.page.getByTestId('canvas-components-library-loading'),
+        ).toBeHidden();
+        try {
+          await expect(libraryHeading).toBeVisible();
+        } catch (error) {
+          throw new Error(
+            'openLibraryPanel: Library panel did not open.\n' +
+              (error instanceof Error ? error.message : String(error)),
+          );
+        }
       }
 
       // Ensure we are on the Components tab.
@@ -203,7 +205,7 @@ export function CanvasNavigationMixin<TBase extends Constructor<CanvasBase>>(
         await this.page.keyboard.press('Escape');
         await expect(
           this.page.getByTestId('canvas-navigation-content'),
-        ).not.toBeVisible();
+        ).toBeHidden();
       }).toPass();
     }
 
@@ -249,7 +251,7 @@ export function CanvasNavigationMixin<TBase extends Constructor<CanvasBase>>(
           await Promise.all(
             expectedTitles.map(async (title: string) =>
               expect(
-                await this.page.getByLabel(`Select change ${title}`),
+                this.page.getByLabel(`Select change ${title}`),
               ).toBeChecked(),
             ),
           );

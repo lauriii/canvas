@@ -35,7 +35,7 @@ export function CanvasFoldersMixin<TBase extends Constructor<CanvasBase>>(
       await folderInput.fill(name);
       await folderInput.press('Enter');
       // Wait for folder creation to complete (input should disappear)
-      await expect(folderInput).not.toBeVisible();
+      await expect(folderInput).toBeHidden();
 
       // Verify the folder was created.
       await expect(
@@ -79,7 +79,8 @@ export function CanvasFoldersMixin<TBase extends Constructor<CanvasBase>>(
         `[aria-label="Expand ${name} folder"]`,
       );
       if ((await expandToggle.count()) > 0) {
-        await expandToggle.first().click({ force: true });
+        // eslint-disable-next-line playwright/no-force-option
+        await expandToggle.first().click({ force: true }); // toggle may be obscured after scroll
       }
     }
 

@@ -1,6 +1,10 @@
 # Ignore everything as a starting point.
 **/*.*
 
+# Explicitly enable Prettier for root config files.
+!eslint.config.mjs
+!playwright.config.ts
+
 # Explicitly enable Prettier for JS/JSX/TS/TSX files in the UI codebase.
 !ui/**/*.js
 !ui/**/*.jsx

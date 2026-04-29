@@ -90,11 +90,11 @@ test.describe('Video Component', () => {
       page.locator(
         '[data-drupal-selector^="edit-canvas-component-props-"][data-drupal-selector$="-video-0-remove-button"]',
       ),
-    ).not.toBeVisible();
+    ).toBeHidden();
 
     // After removal, optional video prop is NULL, so no video element renders.
     previewFrame = await canvas.getActivePreviewFrame();
-    await expect(previewFrame.locator('video')).not.toBeVisible();
+    await expect(previewFrame.locator('video')).toBeHidden();
 
     // Add a different video
     await canvas.editComponentProp(
@@ -109,13 +109,11 @@ test.describe('Video Component', () => {
     ).toBeVisible();
 
     // Check the form build id was changed.
-    expect(
-      await page
-        .locator(
-          'input[type="hidden"][data-form-id="component_instance_form"][name="form_build_id"]',
-        )
-        .getAttribute('value'),
-    ).not.toEqual(formBuildId);
+    await expect(
+      page.locator(
+        'input[type="hidden"][data-form-id="component_instance_form"][name="form_build_id"]',
+      ),
+    ).not.toHaveAttribute('value', formBuildId);
 
     previewFrame = await canvas.getActivePreviewFrame();
     await expect(previewFrame.locator('video')).not.toHaveAttribute('poster');

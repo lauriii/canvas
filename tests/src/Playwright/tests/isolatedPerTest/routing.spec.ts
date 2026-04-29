@@ -21,9 +21,10 @@ test.describe('Routing', () => {
     // get the current URL to extract the entity type/ID and component UUID
     const currentURL = page.url();
 
-    // Extract the component UUID if present
+    // Extract the component UUID
     const uuidMatch = currentURL.match(/\/component\/([a-f0-9-]+)/);
-    const uuid = uuidMatch ? uuidMatch[1] : null;
+    expect(uuidMatch).not.toBeNull();
+    const uuid = uuidMatch![1];
 
     // Visit the component router URL directly
     await page.goto(currentURL);
@@ -51,9 +52,7 @@ test.describe('Routing', () => {
     await expect(page.getByText('Exit Preview')).toBeVisible();
 
     // Access the preview iframe and verify content
-    const iframeElement = await page.$('iframe[title="Page preview"]');
-    const previewFrame = await iframeElement?.contentFrame();
-    if (!previewFrame) throw new Error('Preview iframe not found');
+    const previewFrame = page.frameLocator('iframe[title="Page preview"]');
 
     // Wait for iframe body to be populated
     await expect(previewFrame.locator('body')).not.toBeEmpty();
@@ -111,12 +110,13 @@ test.describe('Routing', () => {
     const response = await layoutResponse;
     expect(response.status()).toBe(200);
 
-    // Give it a moment to ensure no additional requests are made
-    await page.waitForTimeout(500);
+    // Wait for network idle to confirm no additional requests were made after the initial GET.
+    // eslint-disable-next-line playwright/no-networkidle
+    await page.waitForLoadState('networkidle');
 
     // Assert that only the GET layout request was sent
-    expect(getLayoutRequests.length).toBe(1);
-    expect(getPreviewRequests.length).toBe(0);
+    expect(getLayoutRequests).toHaveLength(1);
+    expect(getPreviewRequests).toHaveLength(0);
   });
 
   test('Can navigate between pages without page reloads', async ({
@@ -166,7 +166,7 @@ test.describe('Routing', () => {
     ).toHaveCount(1);
 
     // Verify undo is available (because we added the component, updated values).
-    await expect(page.getByLabel('Undo')).not.toBeDisabled();
+    await expect(page.getByLabel('Undo')).toBeEnabled();
 
     // Navigate to the second page
     await canvas.openPagesPanel();

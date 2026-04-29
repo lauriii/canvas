@@ -80,7 +80,7 @@ export function CanvasComponentsMixin<
       await componentLocator.getByLabel('Open contextual menu').click();
       await this.page.getByText('Insert').click();
 
-      expect(await this.page.locator(previewSelector).count()).toBe(
+      await expect(this.page.locator(previewSelector)).toHaveCount(
         initialCount + 1,
       );
 
@@ -280,7 +280,8 @@ export function CanvasComponentsMixin<
       }
 
       await autoSavePromise;
-      await this.page.waitForLoadState('networkidle');
+      // eslint-disable-next-line playwright/no-networkidle
+      await this.page.waitForLoadState('networkidle'); // drain any follow-on requests after the auto-save PATCH
 
       // Verify text in the Settings pane is updated.
       await expect(
@@ -317,7 +318,8 @@ export function CanvasComponentsMixin<
       });
 
       await autoSavePromise;
-      await this.page.waitForLoadState('networkidle');
+      // eslint-disable-next-line playwright/no-networkidle
+      await this.page.waitForLoadState('networkidle'); // drain any follow-on requests after the auto-save PATCH
     }
 
     async addMultiValueProp(
@@ -341,8 +343,8 @@ export function CanvasComponentsMixin<
       await expect(dragHandles.last()).toBeVisible();
 
       await expect(async () => {
-        const newRowCount = await field.locator('tr.draggable').count();
-        expect(newRowCount).toBe(originalRowCount + 1);
+        const newRowCount = field.locator('tr.draggable');
+        await expect(newRowCount).toHaveCount(originalRowCount + 1);
       }).toPass();
 
       await expect(
@@ -394,7 +396,8 @@ export function CanvasComponentsMixin<
       await popover.getByRole('button', { name: 'Remove' }).click();
 
       await autoSavePromise;
-      await this.page.waitForLoadState('networkidle');
+      // eslint-disable-next-line playwright/no-networkidle
+      await this.page.waitForLoadState('networkidle'); // drain any follow-on requests after the auto-save PATCH
       await expect(field.locator('tr.draggable')).toHaveCount(
         rowCountBefore - 1,
       );

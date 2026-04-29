@@ -71,15 +71,13 @@ test.describe('Preview Link Behavior', () => {
     await page.getByRole('button', { name: 'Close' }).click();
 
     // Insert a link into the preview iframe so that we can ensure that even links added dynamically are intercepted.
-    const iframeElement = await page.$('iframe[title="Page preview"]');
-    const previewFrame = await iframeElement.contentFrame();
-    if (!previewFrame) throw new Error('Preview iframe not found');
-    await previewFrame.evaluate(() => {
+    const previewFrame = page.frameLocator('iframe[title="Page preview"]');
+    await previewFrame.locator('body').evaluate((body) => {
       const link = document.createElement('a');
       link.href = 'https://example.com/';
       link.textContent = 'Dynamically inserted link';
       link.id = 'test-drupal-link';
-      document.body.appendChild(link);
+      body.appendChild(link);
     });
 
     // Click the newly inserted link
@@ -120,10 +118,8 @@ test.describe('Preview Link Behavior', () => {
     ).toBeVisible();
 
     // Insert a form with a text input and submit button into the preview iframe.
-    const iframeElement = await page.$('iframe[title="Page preview"]');
-    const previewFrame = await iframeElement.contentFrame();
-    if (!previewFrame) throw new Error('Preview iframe not found');
-    await previewFrame.evaluate(() => {
+    const previewFrame = page.frameLocator('iframe[title="Page preview"]');
+    await previewFrame.locator('body').evaluate((body) => {
       const form = document.createElement('form');
       form.id = 'test-drupal-form';
       form.method = 'post';
@@ -137,7 +133,7 @@ test.describe('Preview Link Behavior', () => {
       button.type = 'submit';
       button.textContent = 'Submit';
       form.appendChild(button);
-      document.body.appendChild(form);
+      body.appendChild(form);
     });
 
     // Type a value into the input and submit the form.

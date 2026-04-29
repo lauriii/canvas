@@ -48,15 +48,12 @@ export function CanvasUtilitiesMixin<TBase extends Constructor<CanvasBase>>(
     async getIframeHead(
       iframeSelector = '[data-test-canvas-content-initialized="true"][data-canvas-swap-active="true"]',
     ) {
-      const iframeHandle = await this.page.waitForSelector(iframeSelector, {
-        timeout: 10000,
-      });
-      const headHandle = await iframeHandle.evaluateHandle(
-        (iframe: HTMLIFrameElement) => {
-          return iframe.contentDocument?.head;
-        },
-      );
-      return headHandle;
+      return this.page
+        .locator(iframeSelector)
+        .evaluateHandle(
+          (iframe: HTMLIFrameElement) => iframe.contentDocument?.head,
+          { timeout: 10000 },
+        );
     }
   };
 }

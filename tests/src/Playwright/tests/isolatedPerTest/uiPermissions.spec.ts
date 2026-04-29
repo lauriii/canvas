@@ -49,9 +49,14 @@ test.describe('Canvas UI Permissions', () => {
       page.getByTestId('canvas-navigation-new-button'),
     ).toBeAttached();
 
-    // Click the dropdown button with the aria-label
+    // Hover to reveal the per-page options button, then click it
+    await page
+      .getByTestId('canvas-navigation-content')
+      .getByRole('listitem')
+      .first()
+      .hover();
     const dropdownButton = page.getByLabel(/^Page options for /);
-    await dropdownButton.click({ force: true });
+    await dropdownButton.click();
 
     const contextMenu = page.locator('[role="menu"][data-state="open"]');
     await expect(contextMenu).toBeVisible();
@@ -78,9 +83,8 @@ test.describe('Canvas UI Permissions', () => {
     ).toBeVisible();
 
     // Close the dropdown
-    await page
-      .getByTestId('canvas-page-list-new-button')
-      .click({ force: true });
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('menu', { name: 'New' })).not.toBeAttached();
 
     // Make a change to the page
     await canvas.addComponent({ name: 'Hero' });
@@ -144,9 +148,14 @@ test.describe('Canvas UI Permissions', () => {
       page.getByTestId('canvas-navigation-new-button'),
     ).not.toBeAttached();
 
-    // Click the dropdown button with the aria-label
+    // Hover to reveal the per-page options button, then click it
+    await page
+      .getByTestId('canvas-navigation-content')
+      .getByRole('listitem')
+      .first()
+      .hover();
     const dropdownButton = page.getByLabel(/^Page options for /);
-    await dropdownButton.click({ force: true });
+    await dropdownButton.click();
 
     // Verify the dropdown menu is visible
     const contextMenu = page.getByRole('menu', {

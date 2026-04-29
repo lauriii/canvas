@@ -116,7 +116,8 @@ test.describe('Multivalue Prop Types', () => {
     await expect(textbox).toHaveValue('Hello World');
     await textbox.fill('Marshmallow Coast');
     await textbox.press('Enter');
-    await page.waitForLoadState('networkidle');
+    // eslint-disable-next-line playwright/no-networkidle
+    await page.waitForLoadState('networkidle'); // wait for auto-save PATCH to settle before asserting updated values
 
     // Verify text in the Settings pane is updated.
     await expect(
@@ -150,7 +151,8 @@ test.describe('Multivalue Prop Types', () => {
       'data-state',
       'closed',
     );
-    await page.waitForLoadState('networkidle');
+    // eslint-disable-next-line playwright/no-networkidle
+    await page.waitForLoadState('networkidle'); // wait for auto-save PATCH to settle after removal
 
     // Check removed from Settings pane.
     await expect(textField.locator('tr.draggable')).toHaveCount(1);
@@ -238,7 +240,7 @@ test.describe('Multivalue Prop Types', () => {
     ).toHaveText('Empty');
     await expect(
       textLimitedField.getByRole('button', { name: '+ Add new' }),
-    ).not.toBeVisible();
+    ).toBeHidden();
 
     const firstRow = textLimitedField.locator('tr.draggable').first();
     await firstRow.getByRole('button', { name: /^Edit Text/ }).click();
@@ -444,7 +446,7 @@ test.describe('Multivalue Prop Types', () => {
       popover.getByText('Date (Limited)', { exact: true }),
     ).toBeVisible();
     await expect(popover.locator('input[type="date"]')).toBeVisible();
-    await expect(popover.locator('input[type="time"]')).not.toBeVisible();
+    await expect(popover.locator('input[type="time"]')).toBeHidden();
     await expect(popover.getByRole('textbox', { name: 'Date' })).toHaveValue(
       '',
     );

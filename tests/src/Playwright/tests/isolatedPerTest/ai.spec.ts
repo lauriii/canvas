@@ -115,7 +115,7 @@ test.describe('AI Features', () => {
       page
         .getByTestId('canvas-ai-panel')
         .locator('div.submit-button[role="button"]'),
-    ).not.toBeVisible();
+    ).toBeHidden();
 
     await page
       .getByRole('textbox', { name: 'Build me a' })
@@ -132,10 +132,10 @@ test.describe('AI Features', () => {
       .click();
     await expect(
       page.locator('#file-attachment-container img.image-attachment'),
-    ).not.toBeVisible();
+    ).toBeHidden();
     await expect(
       page.locator('#file-attachment-container .remove-file-attachment-button'),
-    ).not.toBeVisible();
+    ).toBeHidden();
   });
 
   test('Generate title', async ({ page, drupal, canvas, ai }) => {

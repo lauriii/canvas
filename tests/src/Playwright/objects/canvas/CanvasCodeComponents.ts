@@ -31,7 +31,7 @@ export function CanvasCodeComponentsMixin<
         .getByTestId('canvas-library-new-code-component-button')
         .click();
 
-      await this.page.fill('#componentName', componentName);
+      await this.page.locator('#componentName').fill(componentName);
       await this.page
         .locator('.rt-BaseDialogContent button')
         .getByText('Create')
@@ -86,17 +86,13 @@ export function CanvasCodeComponentsMixin<
         await propForm.locator('[id^="prop-required-"]').click();
       }
       if (required) {
-        expect(
-          await propForm
-            .locator('[id^="prop-required-"]')
-            .getAttribute('data-state'),
-        ).toEqual('checked');
+        await expect(
+          propForm.locator('[id^="prop-required-"]'),
+        ).toHaveAttribute('data-state', 'checked');
       } else {
-        expect(
-          await propForm
-            .locator('[id^="prop-required-"]')
-            .getAttribute('data-state'),
-        ).toEqual('unchecked');
+        await expect(
+          propForm.locator('[id^="prop-required-"]'),
+        ).toHaveAttribute('data-state', 'unchecked');
       }
       for (const { label, value, type } of example) {
         switch (type) {

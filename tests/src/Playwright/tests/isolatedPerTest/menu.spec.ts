@@ -53,7 +53,7 @@ test.describe('Menu Component', () => {
             - link "Contact":
               - /url: "/"
       `);
-      await menu.getByTestId('open-submenu').click({ force: true });
+      await menu.getByTestId('open-submenu').click();
       await expect(menu.getByTestId('submenu')).toBeVisible();
       await expect(menu.getByTestId('submenu')).toMatchAriaSnapshot(`
         - list:
@@ -68,7 +68,7 @@ test.describe('Menu Component', () => {
               - /url: ""
       `);
       // Close the menu otherwise it will cover the menu below and cause it to be not visible.
-      await menu.getByTestId('open-submenu').click({ force: true });
+      await menu.getByTestId('open-submenu').click();
     }
   });
 });

@@ -37,7 +37,8 @@ export function CanvasMediaMixin<TBase extends Constructor<CanvasBase>>(
           '.media-library-widget-modal input[data-drupal-selector^="edit-media-library-select-form"]',
         )
         .first()
-        .setChecked(true, { force: true });
+        // eslint-disable-next-line playwright/no-force-option
+        .setChecked(true, { force: true }); // Drupal media library checkboxes are visually hidden by CSS
       await this.page
         .getByRole('button', { name: 'Insert selected', exact: true })
         .click();
@@ -79,7 +80,8 @@ export function CanvasMediaMixin<TBase extends Constructor<CanvasBase>>(
           '.media-library-widget-modal input[data-drupal-selector^="edit-media-library-select-form"]',
         )
         .first()
-        .setChecked(true, { force: true });
+        // eslint-disable-next-line playwright/no-force-option
+        .setChecked(true, { force: true }); // Drupal media library checkboxes are visually hidden by CSS
       await this.page
         .getByRole('button', { name: 'Insert selected', exact: true })
         .click();

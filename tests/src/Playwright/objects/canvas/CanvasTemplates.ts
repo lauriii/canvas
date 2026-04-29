@@ -31,7 +31,7 @@ export function CanvasTemplatesMixin<TBase extends Constructor<CanvasBase>>(
         this.page
           .getByRole('dialog')
           .getByRole('button', { name: 'Add new template' }),
-      ).not.toBeDisabled();
+      ).toBeEnabled();
       await this.page
         .getByRole('dialog')
         .getByRole('button', { name: 'Add new template' })
@@ -39,7 +39,7 @@ export function CanvasTemplatesMixin<TBase extends Constructor<CanvasBase>>(
       // The dialog should close after adding a template.
       await expect(
         this.page.getByTestId('canvas-manage-library-add-template-content'),
-      ).not.toBeVisible();
+      ).toBeHidden();
     }
   };
 }
