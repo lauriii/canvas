@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
 test.use({
-  modules: ['canvas_test_sdc', 'datetime', 'datetime_range', 'canvas_dev_mode'],
+  modules: ['canvas_test_sdc', 'datetime', 'datetime_range'],
   enableTestExtensions: true,
 });
 
@@ -469,62 +469,225 @@ test.describe('Multivalue Prop Types', () => {
     );
   });
 
-  test('Datetime', async ({ page, canvas }) => {
-    // Date and time.
-    const dateTimeField = page.locator('.field--type-datetime').filter({
+  test('Datetime and Date', async ({ page, canvas }) => {
+    // ===== DATETIME (UNLIMITED) =====
+    const dateTimeUnlimitedField = page
+      .locator('.field--type-datetime')
+      .filter({
+        has: page.getByRole('heading', {
+          name: 'DateTime (Unlimited)',
+          exact: true,
+        }),
+      });
+    await expect(dateTimeUnlimitedField).toBeVisible();
+    await expect(
+      dateTimeUnlimitedField.getByRole('button', { name: '+ Add new' }),
+    ).toBeVisible();
+
+    // Edit first and second rows.
+    await canvas.editMultiValueDatetimeProp(
+      'DateTime (Unlimited)',
+      '2025-12-24',
+      '08:00:00',
+      0,
+    );
+    await canvas.testInPreviewFrame('#datetime-list li', async (items) => {
+      await expect(items.nth(0)).toContainText('2025-12-24');
+    });
+
+    await dateTimeUnlimitedField
+      .getByRole('button', { name: '+ Add new' })
+      .click();
+    await expect(dateTimeUnlimitedField.locator('tr.draggable')).toHaveCount(2);
+
+    await canvas.editMultiValueDatetimeProp(
+      'DateTime (Unlimited)',
+      '2025-12-25',
+      '14:30:00',
+      1,
+    );
+    await canvas.testInPreviewFrame('#datetime-list li', async (items) => {
+      await expect(items).toHaveCount(2);
+      await expect(items.nth(0)).toContainText('2025-12-24');
+      await expect(items.nth(1)).toContainText('2025-12-25');
+    });
+
+    // Verify popover header label.
+    let firstRow = dateTimeUnlimitedField.locator('tr.draggable').first();
+    await firstRow.getByRole('button', { name: /^Edit DateTime/ }).click();
+    let popover = firstRow.getByRole('dialog');
+    await expect(
+      popover.getByText('DateTime (Unlimited)', { exact: true }),
+    ).toBeVisible();
+    await popover.getByRole('button', { name: 'Close' }).dispatchEvent('click');
+
+    // Remove first item.
+    await canvas.removeMultiValueProp('DateTime (Unlimited)', 0);
+    await canvas.testInPreviewFrame('#datetime-list li', async (items) => {
+      await expect(items).toHaveCount(1);
+      await expect(items.nth(0)).toContainText('2025-12-25');
+    });
+
+    // Add a new item and reorder.
+    await dateTimeUnlimitedField
+      .getByRole('button', { name: '+ Add new' })
+      .click();
+    await canvas.editMultiValueDatetimeProp(
+      'DateTime (Unlimited)',
+      '2025-12-26',
+      '10:00:00',
+      1,
+    );
+
+    // Drag row 1 (2025-12-26) before row 0 (2025-12-25).
+    await canvas.reorderMultiValueProp('DateTime (Unlimited)', 1, 0);
+    await canvas.testInPreviewFrame('#datetime-list li', async (items) => {
+      await expect(items.nth(0)).toContainText('2025-12-26');
+      await expect(items.nth(1)).toContainText('2025-12-25');
+    });
+
+    // Verify no ghost rows appear when deleting from bottom to top.
+    // Add one more row to reach 3, then delete the last two in sequence.
+    await dateTimeUnlimitedField
+      .getByRole('button', { name: '+ Add new' })
+      .click();
+    // eslint-disable-next-line playwright/no-networkidle
+    await page.waitForLoadState('networkidle');
+    const dtRows = dateTimeUnlimitedField.locator('tr.draggable');
+    await expect(dtRows).toHaveCount(3);
+
+    await dtRows
+      .last()
+      .getByRole('button', { name: /^Edit DateTime/ })
+      .click();
+    let removeButton = dtRows
+      .last()
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Remove' });
+    await expect(removeButton).toBeEnabled();
+    await removeButton.click();
+    // eslint-disable-next-line playwright/no-networkidle
+    await page.waitForLoadState('networkidle');
+    await expect(dtRows).toHaveCount(2);
+
+    await dtRows
+      .last()
+      .getByRole('button', { name: /^Edit DateTime/ })
+      .click();
+    removeButton = dtRows
+      .last()
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Remove' });
+    await expect(removeButton).toBeEnabled();
+    await removeButton.click();
+    // eslint-disable-next-line playwright/no-networkidle
+    await page.waitForLoadState('networkidle');
+    await expect(dtRows).toHaveCount(1);
+
+    // ===== DATETIME (LIMITED) =====
+    const dateTimeLimitedField = page.locator('.field--type-datetime').filter({
       has: page.getByRole('heading', {
         name: 'DateTime (Limited)',
         exact: true,
       }),
     });
-
-    let firstRow = dateTimeField.locator('tr.draggable').first();
-    await firstRow.getByRole('button', { name: /^Edit DateTime/ }).click();
-    let popover = firstRow.getByRole('dialog');
+    await expect(dateTimeLimitedField).toBeVisible();
     await expect(
-      popover.getByText('DateTime (Limited)', { exact: true }),
-    ).toBeVisible();
-    await expect(popover.locator('input[type="date"]')).toBeVisible();
-    await expect(popover.locator('input[type="time"]')).toBeVisible();
-    await expect(popover.getByRole('textbox', { name: 'Date' })).toHaveValue(
-      '',
-    );
-    await expect(popover.getByRole('textbox', { name: 'Time' })).toHaveValue(
-      '',
-    );
-    await popover.locator('input[type="date"]').fill('2000-01-14');
-    await popover.locator('input[type="time"]').fill('12:42:01');
+      dateTimeLimitedField.getByRole('button', { name: '+ Add new' }),
+    ).toBeHidden();
 
-    // @todo the value isn't rendering in the preview.
-    // verify it has rendered correctly.
-    // https://www.drupal.org/project/canvas/issues/3586357
+    // Remove button is disabled.
+    firstRow = dateTimeLimitedField.locator('tr.draggable').first();
+    await firstRow.getByRole('button', { name: /^Edit DateTime/ }).click();
+    popover = firstRow.getByRole('dialog');
+    await expect(
+      popover.getByRole('button', { name: 'Remove' }),
+    ).toBeDisabled();
+    await popover.getByRole('button', { name: 'Close' }).dispatchEvent('click');
 
-    // Just date.
-    const dateField = page.locator('.field--type-datetime').filter({
-      has: page.getByRole('heading', {
-        name: 'Date (Limited)',
-        exact: true,
-      }),
+    // Can still edit values.
+    await canvas.editMultiValueDatetimeProp(
+      'DateTime (Limited)',
+      '2025-11-15',
+      '16:45:00',
+      0,
+    );
+
+    // ===== DATE (UNLIMITED) =====
+    const dateUnlimitedField = page.locator('.field--type-datetime').filter({
+      has: page.getByRole('heading', { name: 'Date (Unlimited)', exact: true }),
     });
-    firstRow = dateField.locator('tr.draggable').first();
+    await expect(dateUnlimitedField).toBeVisible();
+    await expect(
+      dateUnlimitedField.getByRole('button', { name: '+ Add new' }),
+    ).toBeVisible();
+
+    // Verify time input is NOT visible (date-only field).
+    firstRow = dateUnlimitedField.locator('tr.draggable').first();
+    await firstRow.getByRole('button', { name: /^Edit Date/ }).click();
+    popover = firstRow.getByRole('dialog');
+    await expect(popover.locator('input[type="date"]')).toBeVisible();
+    await expect(popover.locator('input[type="time"]')).toBeHidden();
+    await popover.getByRole('button', { name: 'Close' }).dispatchEvent('click');
+
+    // Edit first and second rows.
+    await canvas.editMultiValueDateProp('Date (Unlimited)', '2026-04-27', 0);
+    await dateUnlimitedField.getByRole('button', { name: '+ Add new' }).click();
+    await expect(dateUnlimitedField.locator('tr.draggable')).toHaveCount(2);
+    await canvas.editMultiValueDateProp('Date (Unlimited)', '2026-04-28', 1);
+    await canvas.testInPreviewFrame('#date-list li', async (items) => {
+      await expect(items).toHaveCount(2);
+      await expect(items.nth(0)).toContainText('2026-04-27');
+      await expect(items.nth(1)).toContainText('2026-04-28');
+    });
+
+    // Verify popover header label.
+    firstRow = dateUnlimitedField.locator('tr.draggable').first();
     await firstRow.getByRole('button', { name: /^Edit Date/ }).click();
     popover = firstRow.getByRole('dialog');
     await expect(
-      popover.getByText('Date (Limited)', { exact: true }),
+      popover.getByText('Date (Unlimited)', { exact: true }),
     ).toBeVisible();
-    await expect(popover.locator('input[type="date"]')).toBeVisible();
-    await expect(popover.locator('input[type="time"]')).toBeHidden();
-    await expect(popover.getByRole('textbox', { name: 'Date' })).toHaveValue(
-      '',
-    );
+    await popover.getByRole('button', { name: 'Close' }).dispatchEvent('click');
 
-    // @todo the value isn't rendering in the preview.
-    // verify it has rendered correctly.
-    // https://www.drupal.org/project/canvas/issues/3586357
+    // Remove first item.
+    await canvas.removeMultiValueProp('Date (Unlimited)', 0);
+    await canvas.testInPreviewFrame('#date-list li', async (items) => {
+      await expect(items).toHaveCount(1);
+      await expect(items.nth(0)).toContainText('2026-04-28');
+    });
 
-    // @todo we should be able to remove/clear a datetime value in the limited
-    // context, but the removal button is currently greyed out.
-    // https://www.drupal.org/project/canvas/issues/3586358
+    // Add a new item and reorder.
+    await dateUnlimitedField.getByRole('button', { name: '+ Add new' }).click();
+    await canvas.editMultiValueDateProp('Date (Unlimited)', '2026-05-01', 1);
+
+    // Drag row 1 (2026-05-01) before row 0 (2026-04-28).
+    await canvas.reorderMultiValueProp('Date (Unlimited)', 1, 0);
+    await canvas.testInPreviewFrame('#date-list li', async (items) => {
+      await expect(items.nth(0)).toContainText('2026-05-01');
+      await expect(items.nth(1)).toContainText('2026-04-28');
+    });
+
+    // ===== DATE (LIMITED) =====
+    const dateLimitedField = page.locator('.field--type-datetime').filter({
+      has: page.getByRole('heading', { name: 'Date (Limited)', exact: true }),
+    });
+    await expect(dateLimitedField).toBeVisible();
+    await expect(
+      dateLimitedField.getByRole('button', { name: '+ Add new' }),
+    ).toBeHidden();
+
+    // Remove button is disabled.
+    firstRow = dateLimitedField.locator('tr.draggable').first();
+    await firstRow.getByRole('button', { name: /^Edit Date/ }).click();
+    popover = firstRow.getByRole('dialog');
+    await expect(
+      popover.getByRole('button', { name: 'Remove' }),
+    ).toBeDisabled();
+    await popover.getByRole('button', { name: 'Close' }).dispatchEvent('click');
+
+    // Can still edit values.
+    await canvas.editMultiValueDateProp('Date (Limited)', '2026-06-15', 0);
   });
 
   test('List text', async ({ page, canvas }) => {

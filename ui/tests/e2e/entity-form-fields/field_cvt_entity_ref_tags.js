@@ -11,7 +11,11 @@ export const edit = (cy) => {
     'Black Swan Network',
   );
   cy.clock();
-  cy.get('ul.ui-autocomplete:visible li').click();
+  // Force click to avoid Cypress thinking the suggestion is un-clickable due to
+  // the suggestion appearing over a multivalue widget that has elements with
+  // z-indexes that appear to conflict (but if they truly did even this wouldn't
+  // work).
+  cy.get('ul.ui-autocomplete:visible li').click({ force: true });
   cy.get('@tags').should(
     'have.value',
     'Air-Sea Dolphin (1), The Apples in Stereo (2), Black Swan Network (4)',

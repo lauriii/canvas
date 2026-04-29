@@ -22,7 +22,9 @@ describe('Component data / props in code editor', () => {
   let store;
 
   beforeEach(() => {
-    cy.viewport(500, 800);
+    // Increased viewport height to 1000 to accommodate the extra UI elements
+    // (like the multiple values checkbox) during drag and drop testing.
+    cy.viewport(500, 1000);
     store = makeStore({});
     cy.mount(
       <Provider store={store}>

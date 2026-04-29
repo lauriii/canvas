@@ -9,14 +9,9 @@
  * - Custom drag handles and remove buttons via DrupalInputMultivalueForm component.
  */
 
-describe('Multivalue Form Design (canvas_dev_mode)', () => {
+describe('Multivalue Form Design', () => {
   before(() => {
-    cy.drupalCanvasInstall([
-      'canvas_test_article_fields',
-      // @todo remove once https://drupal.org/i/3577946 is fixed.
-      // Required for new multivalue form UI.
-      'canvas_dev_mode',
-    ]);
+    cy.drupalCanvasInstall(['canvas_test_article_fields']);
   });
 
   beforeEach(() => {
@@ -299,6 +294,40 @@ describe('Multivalue Form Design (canvas_dev_mode)', () => {
       'Marshmallow Coast',
       'The Olivia Tremor Control',
       'Neutral Milk Hotel',
+      '',
+    ]);
+
+    cy.log('Drag and drop continues to work after page reload.');
+    cy.get('@unlimited-text').find('tbody tr').eq(0).scrollIntoView();
+
+    cy.intercept('POST', '**/canvas/api/v0/layout/node/2').as(
+      'previewUpdateAfterReload',
+    );
+
+    cy.get(
+      '[data-drupal-selector="edit-field-cvt-unlimited-text"] tr.draggable:nth-child(3) [title="Change order"]',
+    ).realDnd(
+      '[data-drupal-selector="edit-field-cvt-unlimited-text"] tr.draggable:nth-child(2) [title="Change order"]',
+      dndDefaults,
+    );
+
+    cy.assertMultivalueReorder({
+      alias: 'previewUpdateAfterReload',
+      fieldName: 'field_cvt_unlimited_text',
+      expectedOrder: [
+        'Marshmallow Coast',
+        'Neutral Milk Hotel',
+        'The Olivia Tremor Control',
+        '',
+      ],
+    });
+    cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
+    cy.waitForAjax();
+
+    confirmTextInputs('@unlimited-text', [
+      'Marshmallow Coast',
+      'Neutral Milk Hotel',
+      'The Olivia Tremor Control',
       '',
     ]);
   });

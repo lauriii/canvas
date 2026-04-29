@@ -6,9 +6,7 @@ const mockDrupalSettings = {
   path: {
     baseUrl: '/',
   },
-  canvas: {
-    devMode: true,
-  },
+  canvas: {},
 };
 
 vi.stubGlobal('URL', {

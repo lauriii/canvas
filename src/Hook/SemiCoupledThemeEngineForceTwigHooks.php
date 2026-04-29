@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
-use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Render\Element;
@@ -20,11 +19,6 @@ use Drupal\Core\Render\Element;
  * @see https://git.drupalcode.org/project/canvas/-/commit/c5b5d93d79cb7260ec5160fa22014a1f755b40cf
  */
 class SemiCoupledThemeEngineForceTwigHooks {
-
-  public function __construct(
-    private readonly ModuleHandlerInterface $moduleHandler,
-  ) {
-  }
 
   /**
    * Implements hook_form_alter().
@@ -120,10 +114,7 @@ class SemiCoupledThemeEngineForceTwigHooks {
     if ($ml_ajax || $ml_form) {
       $suggestions[] = 'input__media_library';
     }
-    // Only apply multivalue form input suggestion if canvas_dev_mode is
-    // enabled.
-    if ($this->moduleHandler->moduleExists('canvas_dev_mode') &&
-        isset($variables['element']['#is_multivalue_form']) &&
+    if (isset($variables['element']['#is_multivalue_form']) &&
         $variables['element']['#is_multivalue_form']) {
       $suggestions[] = 'input__multivalue_form';
     }

@@ -13,9 +13,6 @@ describe('Multivalue Form Design – Link Field', () => {
   before(() => {
     cy.drupalCanvasInstall([
       'canvas_test_article_fields',
-      // @todo remove once https://drupal.org/i/3577946 is fixed.
-      // Required for new multi-value form UI.
-      'canvas_dev_mode',
       'canvas_test_e2e_code_components',
     ]);
   });

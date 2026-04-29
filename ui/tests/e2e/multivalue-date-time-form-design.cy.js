@@ -9,13 +9,9 @@
  * - Custom drag handles and remove buttons via DrupalDatetimeMultivalueForm component.
  */
 
-describe('Multivalue DateTime Form Design (canvas_dev_mode)', () => {
+describe('Multivalue DateTime Form Design', () => {
   before(() => {
-    cy.drupalCanvasInstall([
-      'canvas_test_article_fields',
-      // @todo remove once https://drupal.org/i/3577946 is fixed.
-      'canvas_dev_mode',
-    ]);
+    cy.drupalCanvasInstall(['canvas_test_article_fields']);
   });
 
   beforeEach(() => {

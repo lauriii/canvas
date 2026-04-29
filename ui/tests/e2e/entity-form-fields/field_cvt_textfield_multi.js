@@ -4,23 +4,54 @@ const items = [
   'of Montreal',
   'The Olivia Tremor Control',
 ];
+
+// Helper function to open popover for a specific row and type text.
+const typeInRow = (cy, rowIndex, text) => {
+  cy.get('@textfield_multi')
+    .find('tbody tr')
+    .eq(rowIndex)
+    .find('[class*="_listItem_"]')
+    .click();
+  // Type in the input field that appears in the popover.
+  cy.get('[role="dialog"][data-state="open"]')
+    .find('input[type="text"]')
+    .clear();
+  cy.get('[role="dialog"][data-state="open"]')
+    .find('input[type="text"]')
+    .type(text);
+  // Press Enter to close the dialog.
+  cy.get('[role="dialog"][data-state="open"]')
+    .find('input[type="text"]')
+    .type('{enter}');
+  // Wait for popover to close after Enter.
+  cy.get('[role="dialog"][data-state="open"]').should('not.exist');
+};
+
+// Helper function to verify text content in a row.
+const verifyRowText = (cy, rowIndex, expectedText) => {
+  cy.get('@textfield_multi')
+    .find('tbody tr')
+    .eq(rowIndex)
+    .find('[class*="_itemText_"]')
+    .should('have.text', expectedText);
+};
 export const edit = (cy) => {
   cy.findByRole('heading', { name: 'Canvas Unlimited Text' })
     .parents('.js-form-wrapper')
     .as('textfield_multi');
   cy.get('@textfield_multi')
-    .findByRole('button', { name: 'Add another item' })
+    .findByRole('button', { name: '+ Add new' })
     .as('add-another-text');
   cy.findByLabelText('Canvas Unlimited Text (value 1)').should(
     'have.value',
     'Marshmallow Coast',
   );
   items.forEach((item, ix) => {
-    cy.findByLabelText(`Canvas Unlimited Text (value ${ix + 2})`).type(item);
-    cy.findByLabelText(`Canvas Unlimited Text (value ${ix + 2})`).should(
-      'have.value',
-      item,
-    );
+    // Type into the row (ix + 1 because index 0 is the first item with default value).
+    typeInRow(cy, ix + 1, item);
+
+    // Verify the value was set.
+    verifyRowText(cy, ix + 1, item);
     // Wait for the preview to finish loading.
     cy.wait('@updatePreview');
     // Queue another intercept for the wait in the main test and/or the next

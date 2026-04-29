@@ -5,6 +5,56 @@ import { expect } from '@playwright/test';
 import type { FrameLocator, Locator } from '@playwright/test';
 import type { CanvasBase } from './CanvasBase.js';
 
+/**
+ * Format a date string for display using Intl.DateTimeFormat.
+ * Replicates the logic in DrupalDatetimeMultivalueForm.tsx.
+ */
+function formatDateForDisplay(value: string): string {
+  if (!value) return 'Empty';
+  try {
+    const date = new Date(value + 'T00:00:00');
+    return new Intl.DateTimeFormat().format(date);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Format time for display using Intl.DateTimeFormat.
+ * Replicates the logic in DrupalDatetimeMultivalueForm.tsx.
+ */
+function formatTimeForDisplay(value: string): string {
+  if (!value) return '';
+  try {
+    const date = new Date(`2000-01-01T${value}`);
+    const parts = value.split(':');
+    const hasNonZeroSeconds =
+      parts.length === 3 && parts[2] !== '00' && parts[2] !== '00.000';
+    return new Intl.DateTimeFormat(undefined, {
+      hour: 'numeric',
+      minute: 'numeric',
+      second: hasNonZeroSeconds ? 'numeric' : undefined,
+      hour12: true,
+    }).format(date);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Format datetime for display (date + time combined).
+ * Replicates the logic in DrupalDatetimeMultivalueForm.tsx.
+ */
+function formatDatetimeForDisplay(date: string, time: string): string {
+  if (!date && !time) return 'Empty';
+  const formattedDate = date ? formatDateForDisplay(date) : '';
+  const formattedTime = time ? formatTimeForDisplay(time) : '';
+  if (date && time) {
+    return `${formattedDate}, ${formattedTime}`;
+  }
+  return formattedDate || formattedTime || 'Empty';
+}
+
 type Constructor<T = {}> = new (...args: any[]) => T;
 
 interface HasUtilities {
@@ -290,6 +340,92 @@ export function CanvasComponentsMixin<
           .nth(propPosition)
           .locator('[data-canvas-multivalue-label="true"]'),
       ).toHaveText(propValue);
+    }
+
+    async editMultiValueDatetimeProp(
+      propName: string,
+      dateValue: string,
+      timeValue: string,
+      propPosition: number,
+    ) {
+      const field = this.page
+        .locator(`.field--type-datetime [data-canvas-multiple-values="true"]`)
+        .filter({
+          has: this.page.getByRole('heading', { name: propName }),
+        });
+      await expect(field).toBeVisible();
+      const row = field.locator('tr.draggable').nth(propPosition);
+      await row.getByRole('button', { name: /^Edit/ }).click();
+      const popover = row.getByRole('dialog');
+      const displayName = propName.endsWith('*')
+        ? propName.slice(0, -1)
+        : propName;
+      await expect(
+        popover.getByText(displayName, { exact: true }),
+      ).toBeVisible();
+
+      // Set up auto-save listener.
+      const autoSavePromise = this.page.waitForResponse(
+        (response) =>
+          response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+          response.request().method() === 'PATCH',
+      );
+
+      await popover.locator('input[type="date"]').fill(dateValue);
+      await popover.locator('input[type="time"]').fill(timeValue);
+      await popover.locator('input[type="time"]').press('Enter');
+
+      await autoSavePromise;
+      // eslint-disable-next-line playwright/no-networkidle
+      await this.page.waitForLoadState('networkidle');
+
+      // Verify text in the Settings pane is updated.
+      const expectedLabel = formatDatetimeForDisplay(dateValue, timeValue);
+      await expect(
+        row.locator('[data-canvas-multivalue-label="true"]'),
+      ).toHaveText(expectedLabel);
+    }
+
+    async editMultiValueDateProp(
+      propName: string,
+      dateValue: string,
+      propPosition: number,
+    ) {
+      const field = this.page
+        .locator(`.field--type-datetime [data-canvas-multiple-values="true"]`)
+        .filter({
+          has: this.page.getByRole('heading', { name: propName }),
+        });
+      await expect(field).toBeVisible();
+      const row = field.locator('tr.draggable').nth(propPosition);
+      await row.getByRole('button', { name: /^Edit/ }).click();
+      const popover = row.getByRole('dialog');
+      const displayName = propName.endsWith('*')
+        ? propName.slice(0, -1)
+        : propName;
+      await expect(
+        popover.getByText(displayName, { exact: true }),
+      ).toBeVisible();
+
+      // Set up auto-save listener.
+      const autoSavePromise = this.page.waitForResponse(
+        (response) =>
+          response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+          response.request().method() === 'PATCH',
+      );
+
+      await popover.locator('input[type="date"]').fill(dateValue);
+      await popover.locator('input[type="date"]').press('Enter');
+
+      await autoSavePromise;
+      // eslint-disable-next-line playwright/no-networkidle
+      await this.page.waitForLoadState('networkidle');
+
+      // Verify text in the Settings pane is updated.
+      const expectedLabel = formatDateForDisplay(dateValue);
+      await expect(
+        row.locator('[data-canvas-multivalue-label="true"]'),
+      ).toHaveText(expectedLabel);
     }
 
     async reorderMultiValueProp(propName: string, from: number, to: number) {

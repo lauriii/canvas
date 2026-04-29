@@ -235,24 +235,18 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
       }
     }
 
-    $field_storage_type = $context['items']->getFieldDefinition()->getFieldStorageDefinition()->getType();
-    if ($this->moduleHandler->moduleExists('canvas_dev_mode') || \in_array($field_storage_type, [
-      'list_string',
-      'list_integer',
-    ], TRUE)) {
-      // Check if this is a multivalue field.
-      $field_definition = $context['items']->getFieldDefinition();
-      $is_multiple = $field_definition->getFieldStorageDefinition()->isMultiple();
+    // Check if this is a multivalue field.
+    $field_definition = $context['items']->getFieldDefinition();
+    $is_multiple = $field_definition->getFieldStorageDefinition()->isMultiple();
 
-      if ($is_multiple && $this->themeManager->getActiveTheme()->getName() === 'canvas_stark') {
-        // Get the field label to add to all input elements.
-        $field_label = $field_definition->getLabel();
-        // Get the field cardinality for limiting selections.
-        $cardinality = $field_definition->getFieldStorageDefinition()->getCardinality();
-        // Mark all input elements within multivalue widgets and add field
-        // title.
-        $this->markMultivalueFormElements($widget, $field_label, $cardinality);
-      }
+    if ($is_multiple && $this->themeManager->getActiveTheme()->getName() === 'canvas_stark') {
+      // Get the field label to add to all input elements.
+      $field_label = $field_definition->getLabel();
+      // Get the field cardinality for limiting selections.
+      $cardinality = $field_definition->getFieldStorageDefinition()->getCardinality();
+      // Mark all input elements within multivalue widgets and add field
+      // title.
+      $this->markMultivalueFormElements($widget, $field_label, $cardinality);
     }
   }
 

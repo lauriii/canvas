@@ -123,12 +123,7 @@ configs.forEach((config) => {
     // in some strict configs. To be safe, we access via config.* or destructure inside hooks.
 
     before(() => {
-      cy.drupalCanvasInstall([
-        'canvas_test_article_fields',
-        // @todo remove once https://drupal.org/i/3577946 is fixed.
-        // Required for multi-value form UI.
-        'canvas_dev_mode',
-      ]);
+      cy.drupalCanvasInstall(['canvas_test_article_fields']);
     });
 
     beforeEach(() => {
