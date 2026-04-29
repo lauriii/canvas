@@ -1,5 +1,3 @@
-Closes #%{issue_iid}
-
 [Description of changes]
 
 <!-- AI Disclosure: did you use AI to create a significant portion of this?
