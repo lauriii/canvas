@@ -8,6 +8,8 @@ import * as field_cvt_entity_autocomplete from './field_cvt_entity_autocomplete.
 import * as field_cvt_entity_ref_tags from './field_cvt_entity_ref_tags.js';
 import * as field_cvt_int from './field_cvt_integer.js';
 import * as field_cvt_language from './field_cvt_language.js';
+import * as field_cvt_limited_list_integer from './field_cvt_limited_list_integer.js';
+import * as field_cvt_limited_list_string from './field_cvt_limited_list_string.js';
 import * as field_cvt_moderation_state from './field_cvt_moderation_state.js';
 import * as field_cvt_options_buttons from './field_cvt_options_buttons.js';
 import * as field_cvt_telephone from './field_cvt_telephone.js';
@@ -15,6 +17,8 @@ import * as field_cvt_textarea_summary from './field_cvt_textarea_summary.js';
 import * as field_cvt_textarea from './field_cvt_textarea.js';
 import * as field_cvt_textfield_multi from './field_cvt_textfield_multi.js';
 import * as field_cvt_textfield from './field_cvt_textfield.js';
+import * as field_cvt_unlimited_list_integer from './field_cvt_unlimited_list_integer.js';
+import * as field_cvt_unlimited_list_string from './field_cvt_unlimited_list_string.js';
 import * as field_cvt_uri from './field_cvt_uri.js';
 
 // Expand this to add additional coverage.
@@ -47,4 +51,8 @@ export default {
   field_cvt_boolean_checkbox,
   field_cvt_textfield_multi,
   field_cvt_int,
+  field_cvt_limited_list_integer,
+  field_cvt_limited_list_string,
+  field_cvt_unlimited_list_integer,
+  field_cvt_unlimited_list_string,
 };

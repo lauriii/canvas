@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * Canvas Stark override for a select element within a multivalue widget.
+ *
+ * This template is used to render a React Select component that supports
+ * multi-select with chip/tag display.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the <select> tag.
+ * - options: The <option> element children.
+ *
+ * @see template_preprocess_select()
+ * @see ui/src/components/form/components/drupal/DrupalSelectMultivalueForm.tsx
+ *
+ * @ingroup themeable
+ */
+#}
+<drupal-canvas-select--multivalue-form
+  attributes="{{ attributes }}"
+  options="{{ options }}"
+>
+</drupal-canvas-select--multivalue-form>
+

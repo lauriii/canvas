@@ -555,6 +555,96 @@ function canvas_test_article_fields_install(): void {
         ['value' => 42],
       ],
     ],
+    'field_cvt_unlimited_list_string' => [
+      'type' => 'list_string',
+      'label' => 'Canvas Unlimited List (Text)',
+      'settings' => [
+        'allowed_values' => [
+          'one' => 'One',
+          'two' => 'Two',
+          'three' => 'Three',
+          'four' => 'Four',
+          'five' => 'Five',
+        ],
+      ],
+      'cardinality' => -1,
+      'widget' => [
+        'type' => 'options_select',
+        'weight' => -989,
+        'settings' => [],
+      ],
+      'default_value' => [
+        ['value' => 'one'],
+      ],
+    ],
+    'field_cvt_limited_list_string' => [
+      'type' => 'list_string',
+      'label' => 'Canvas Limited List (Text)',
+      'settings' => [
+        'allowed_values' => [
+          'one' => 'One',
+          'two' => 'Two',
+          'three' => 'Three',
+          'four' => 'Four',
+          'five' => 'Five',
+        ],
+      ],
+      'cardinality' => 3,
+      'widget' => [
+        'type' => 'options_select',
+        'weight' => -988,
+        'settings' => [],
+      ],
+      'default_value' => [
+        ['value' => 'one'],
+        ['value' => 'two'],
+      ],
+    ],
+    'field_cvt_unlimited_list_integer' => [
+      'type' => 'list_integer',
+      'label' => 'Canvas Unlimited List (Integer)',
+      'settings' => [
+        'allowed_values' => [
+          1 => '1',
+          2 => '2',
+          3 => '3',
+          4 => '4',
+          5 => '5',
+        ],
+      ],
+      'cardinality' => -1,
+      'widget' => [
+        'type' => 'options_select',
+        'weight' => -987,
+        'settings' => [],
+      ],
+      'default_value' => [
+        ['value' => 1],
+      ],
+    ],
+    'field_cvt_limited_list_integer' => [
+      'type' => 'list_integer',
+      'label' => 'Canvas Limited List (Integer)',
+      'settings' => [
+        'allowed_values' => [
+          1 => '1',
+          2 => '2',
+          3 => '3',
+          4 => '4',
+          5 => '5',
+        ],
+      ],
+      'cardinality' => 3,
+      'widget' => [
+        'type' => 'options_select',
+        'weight' => -986,
+        'settings' => [],
+      ],
+      'default_value' => [
+        ['value' => 1],
+        ['value' => 2],
+      ],
+    ],
     'field_cvt_boolean_checkbox' => [
       'type' => 'boolean',
       'label' => 'Canvas Boolean Checkbox (default true)',

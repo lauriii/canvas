@@ -1,0 +1,152 @@
+.container {
+  width: 100%;
+}
+
+.visuallyHiddenInput {
+  display: none;
+}
+
+/* React Select Control (Main input container) */
+.container [class*="canvas-select__control"] {
+  flex-wrap: wrap;
+  min-height: 40px;
+  padding: 1px 1px;
+  cursor: pointer;
+  border: 1px solid var(--slate-7);
+  border-radius: 4px;
+  background-color: white;
+}
+
+.container [class*="canvas-select__control"]:hover {
+  border-color: var(--blue-9);
+}
+
+.container [class*="canvas-select__control--is-focused"] {
+  border-color: var(--blue-9);
+  box-shadow: 0 0 0 1px var(--blue-9);
+}
+
+/* Value Container */
+.container [class*="canvas-select__value-container"] {
+  padding: 1px 2px;
+}
+
+/* Multi Value (Selected chips/tags) */
+.container [class*="canvas-select__multi-value"] {
+  margin: 2px;
+  border-radius: 4px;
+  background-color: var(--blue-3);
+}
+
+.container [class*="canvas-select__multi-value__label"] {
+  overflow: hidden;
+  max-width: 100px;
+  padding: 2px 4px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--blue-9);
+  font-size: 12px;
+}
+
+.container [class*="canvas-select__multi-value__remove"] {
+  padding: 0 4px;
+  cursor: pointer;
+  color: var(--blue-9);
+  background-color: transparent;
+}
+
+.container [class*="canvas-select__multi-value__remove"]:hover {
+  color: var(--red-9);
+  background-color: transparent;
+}
+
+/* Dropdown Menu */
+.container [class*="canvas-select__menu"] {
+  z-index: 9999;
+  padding: 4px 0;
+  border-radius: 4px;
+}
+
+.container [class*="canvas-select__menu-list"] {
+  padding: 1px 2px;
+}
+
+/* Dropdown Options */
+.container [class*="canvas-select__option"] {
+  width: calc(100% - 4px);
+  margin: 1px 2px;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  color: var(--slate-12);
+  border-radius: 6px;
+  background-color: transparent;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.container [class*="canvas-select__option"]:active {
+  background-color: var(--blue-3);
+}
+
+.container [class*="canvas-select__option--is-focused"] {
+  background-color: var(--slate-a3);
+}
+
+.container [class*="canvas-select__option--is-selected"] {
+  color: var(--blue-9);
+  background-color: var(--blue-3);
+  font-weight: 500;
+}
+
+/* Disabled Options (when cardinality limit reached) */
+.container [class*="canvas-select__option--is-disabled"] {
+  cursor: not-allowed;
+  color: var(--slate-a8);
+  background-color: transparent;
+  font-weight: 400;
+}
+
+.container [class*="canvas-select__option--is-disabled"]:hover {
+  color: var(--slate-a8);
+  background-color: transparent;
+}
+
+/* Placeholder */
+.container [class*="canvas-select__placeholder"] {
+  color: var(--slate-a9);
+  font-size: 14px;
+}
+
+/* Input */
+.container [class*="canvas-select__input-container"] {
+  color: var(--slate-12);
+  font-size: 14px;
+}
+
+/* Dropdown Indicator */
+.container [class*="canvas-select__dropdown-indicator"] {
+  padding: var(--space-2);
+  color: #6E7B8B;
+}
+
+.container [class*="canvas-select__dropdown-indicator"]:hover {
+  color: var(--slate-12);
+}
+
+/* Clear Indicator */
+.container [class*="canvas-select__clear-indicator"] {
+  padding: 2px;
+  cursor: pointer;
+  color: #6E7B8B;
+}
+
+.container [class*="canvas-select__clear-indicator"]:hover {
+  color: var(--red-9);
+}
+
+/* No Options Message */
+.container [class*="canvas-select__menu-notice--no-options"] {
+  color: var(--slate-a8);
+  font-size: 14px;
+}
+

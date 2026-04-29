@@ -406,7 +406,13 @@ export const formStateToObject = (
       normalizedKey.indexOf(']', prefix.length) === normalizedKey.length - 1;
     if (isDirectArrayProp) {
       arrayPropNames.push(toPropName(normalizedKey, componentId));
-      (value as any[]).forEach((item) => params.append(key, item));
+      if ((value as any[]).length) {
+        (value as any[]).forEach((item) => params.append(key, item));
+      } else {
+        // Represent an empty array with an empty string to convey an
+        // empty value in the query string.
+        params.append(key, '');
+      }
     } else {
       params.append(key, value as any);
     }
@@ -421,6 +427,16 @@ export const formStateToObject = (
   const result = parsed.canvas_component_props[componentId] as PropsValues;
   arrayPropNames.forEach((propName) => {
     if (!(propName in result)) {
+      result[propName] = [];
+    } else if (
+      result[propName] === '' ||
+      // When the key has a `[]` suffix, qs.parse wraps the sentinel empty
+      // string into a single-element array [''] — treat that as empty too.
+      (Array.isArray(result[propName]) &&
+        (result[propName] as any[]).length === 1 &&
+        (result[propName] as any[])[0] === '')
+    ) {
+      // An empty string (or ['']) is our sentinel for an empty array.
       result[propName] = [];
     } else if (!Array.isArray(result[propName])) {
       result[propName] = [result[propName]];

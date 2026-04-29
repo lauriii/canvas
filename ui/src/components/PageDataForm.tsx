@@ -102,7 +102,34 @@ const PageDataFormRenderer = () => {
 
         // Flag that we need to update the preview.
         dispatch(setUpdatePreview(true));
-        dispatch(setPageData({ ...formState, ...updates }));
+        const normalizedFormState = Object.entries({
+          ...formState,
+          ...updates,
+        }).reduce((acc: Record<string, any>, [key, value]) => {
+          // Before merging formState into pageData, convert the multi-select
+          // entries (where the value is an array) to indexed keys,
+          // e.g. `field_name[] = ['a','b']` → `field_name[0]='a', field_name[1]='b'`.
+          // Without this conversion, http_build_query() in PHP's
+          // ClientDataToEntityConverter::setEntityFields() produces nested arrays
+          // that break Select::valueCallback() with "Array to string conversion".
+          // @see \Drupal\canvas\ClientDataToEntityConverter::setEntityFields()
+          // @see ui/src/components/form/InputBehaviorsEntityForm.tsx formStateToStore
+          if (
+            Array.isArray(value) &&
+            // @todo replace this with a better solution in https://www.drupal.org/i/3587609.
+            document.querySelector(
+              `select[data-is-multiselect="true"][name="${key}"]`,
+            )
+          ) {
+            const baseKey = key.slice(0, -2);
+            (value as any[]).forEach((item, index) => {
+              acc[`${baseKey}[${index}]`] = item;
+            });
+            return acc;
+          }
+          return { ...acc, [key]: value };
+        }, {});
+        dispatch(setPageData(normalizedFormState));
       }
     };
     document.addEventListener(

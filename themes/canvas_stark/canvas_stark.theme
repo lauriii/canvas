@@ -78,6 +78,10 @@ function canvas_stark_theme_suggestions_select_alter(array &$suggestions, array 
   if ($ml_view || $ml_form) {
     $suggestions[] = 'select__media_library';
   }
+  if (isset($variables['element']['#is_multivalue_form']) &&
+    $variables['element']['#is_multivalue_form']) {
+    $suggestions[] = 'select__multivalue_form';
+  }
 }
 
 /**

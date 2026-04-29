@@ -19,6 +19,7 @@ import DrupalMultivalueSubmit from '@/components/form/components/drupal/DrupalMu
 import DrupalPathWidget from '@/components/form/components/drupal/DrupalPathWidget';
 import { DrupalRadioGroup } from '@/components/form/components/drupal/DrupalRadio';
 import DrupalSelect from '@/components/form/components/drupal/DrupalSelect';
+import DrupalSelectMultivalueForm from '@/components/form/components/drupal/DrupalSelectMultivalueForm';
 import DrupalTextArea from '@/components/form/components/drupal/DrupalTextArea';
 import DrupalToggle from '@/components/form/components/drupal/DrupalToggle';
 import DrupalVerticalTabs from '@/components/form/components/drupal/DrupalVerticalTabs';
@@ -45,6 +46,7 @@ const twigToJSXComponentMap = {
   'drupal-canvas-input--multivalue-form': DrupalInputMultivalueForm,
   'drupal-canvas-datetime-wrapper--multivalue-form':
     DrupalDatetimeMultivalueForm,
+  'drupal-canvas-select--multivalue-form': DrupalSelectMultivalueForm,
   'drupal-canvas-radios': DrupalRadioGroup,
   'drupal-canvas-select': DrupalSelect,
   'drupal-canvas-textarea': DrupalTextArea,

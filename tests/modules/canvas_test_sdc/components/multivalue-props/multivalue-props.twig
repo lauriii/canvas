@@ -149,5 +149,45 @@
       </ul>
     </div>
   {% endif %}
+  <h2>List Text</h2>
+  {% if list_text is not empty %}
+    <div data-testid="list-text-component">
+      <ul id="list-text-list">
+        {% for item in list_text %}
+          <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+  <h2>List Text Limited</h2>
+  {% if list_text_limited is not empty %}
+    <div data-testid="list-text-limited-component">
+      <ul id="list-text-limited-list">
+        {% for item in list_text_limited %}
+          <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+  <h2>List Integer</h2>
+  {% if list_int is not empty %}
+    <div data-testid="list-int-component">
+      <ul id="list-int-list">
+        {% for item in list_int %}
+          <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+  <h2>List Integer Limited</h2>
+  {% if list_int_limited is not empty %}
+    <div data-testid="list-int-limited-component">
+      <ul id="list-int-limited-list">
+        {% for item in list_int_limited %}
+          <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
 
 </div>

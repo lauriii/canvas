@@ -1196,6 +1196,34 @@ HTML
     <h2>Datetime Limited</h2>
     <h2>Date</h2>
     <h2>Date Limited</h2>
+    <h2>List Text</h2>
+      <div data-testid="list-text-component">
+      <ul id="list-text-list">
+                  <li>option_one</li>
+                  <li>option_two</li>
+              </ul>
+    </div>
+    <h2>List Text Limited</h2>
+      <div data-testid="list-text-limited-component">
+      <ul id="list-text-limited-list">
+                  <li>option_one</li>
+                  <li>option_two</li>
+              </ul>
+    </div>
+    <h2>List Integer</h2>
+      <div data-testid="list-int-component">
+      <ul id="list-int-list">
+                  <li>10</li>
+                  <li>20</li>
+              </ul>
+    </div>
+    <h2>List Integer Limited</h2>
+      <div data-testid="list-int-limited-component">
+      <ul id="list-int-limited-list">
+                  <li>10</li>
+                  <li>20</li>
+              </ul>
+    </div>
 
 </div>
 ',
@@ -2631,6 +2659,66 @@ HTML
             'default_value' => NULL,
             'expression' => 'ℹ︎datetime␟value',
           ],
+          'list_text' => [
+            'required' => FALSE,
+            'field_type' => 'list_string',
+            'cardinality' => -1,
+            'field_storage_settings' => [
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              0 => ['value' => 'option_one'],
+              1 => ['value' => 'option_two'],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+          'list_text_limited' => [
+            'required' => FALSE,
+            'field_type' => 'list_string',
+            'cardinality' => 3,
+            'field_storage_settings' => [
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              0 => ['value' => 'option_one'],
+              1 => ['value' => 'option_two'],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+          'list_int' => [
+            'required' => FALSE,
+            'field_type' => 'list_integer',
+            'cardinality' => -1,
+            'field_storage_settings' => [
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              0 => ['value' => 10],
+              1 => ['value' => 20],
+            ],
+            'expression' => 'ℹ︎list_integer␟value',
+          ],
+          'list_int_limited' => [
+            'required' => FALSE,
+            'field_type' => 'list_integer',
+            'cardinality' => 3,
+            'field_storage_settings' => [
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              0 => ['value' => 10],
+              1 => ['value' => 20],
+            ],
+            'expression' => 'ℹ︎list_integer␟value',
+          ],
         ],
       ],
       'sdc.canvas_test_sdc.my-cta' => [
@@ -3435,6 +3523,7 @@ HTML
           'core',
           'datetime',
           'link',
+          'options',
           'canvas_test_sdc',
         ],
       ],
@@ -5628,6 +5717,118 @@ HTML
                 'datetime_type' => 'date',
               ],
               'cardinality' => 3,
+            ],
+          ],
+          'list_text' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'array',
+              'items' => [
+                'type' => 'string',
+                'enum' => [
+                  'option_one',
+                  'option_two',
+                  'option_three',
+                  'option_four',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+              ],
+              'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+            ],
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 'option_one'],
+                1 => ['value' => 'option_two'],
+              ],
+              'resolved' => ['option_one', 'option_two'],
+            ],
+          ],
+          'list_text_limited' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'array',
+              'items' => [
+                'type' => 'string',
+                'enum' => [
+                  'option_one',
+                  'option_two',
+                  'option_three',
+                  'option_four',
+                ],
+              ],
+              'maxItems' => 3,
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+              ],
+              'cardinality' => 3,
+            ],
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 'option_one'],
+                1 => ['value' => 'option_two'],
+              ],
+              'resolved' => ['option_one', 'option_two'],
+            ],
+          ],
+          'list_int' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'array',
+              'items' => [
+                'type' => 'integer',
+                'enum' => [10, 20, 30, 40],
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_integer',
+            'expression' => 'ℹ︎list_integer␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+              ],
+              'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+            ],
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 10],
+                1 => ['value' => 20],
+              ],
+              'resolved' => [10, 20],
+            ],
+          ],
+          'list_int_limited' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'array',
+              'items' => [
+                'type' => 'integer',
+                'enum' => [10, 20, 30, 40],
+              ],
+              'maxItems' => 3,
+            ],
+            'sourceType' => 'static:field_item:list_integer',
+            'expression' => 'ℹ︎list_integer␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+              ],
+              'cardinality' => 3,
+            ],
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 10],
+                1 => ['value' => 20],
+              ],
+              'resolved' => [10, 20],
             ],
           ],
         ],

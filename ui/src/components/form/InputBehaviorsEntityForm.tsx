@@ -65,7 +65,21 @@ export const InputBehaviorsEntityForm = (
         if (
           !['changed', 'formId', 'formType', 'externalUpdates'].includes(key)
         ) {
-          return { ...acc, [key]: newFormState[key] };
+          const value = newFormState[key];
+          if (
+            Array.isArray(value) &&
+            // @todo replace this with a better solution in https://www.drupal.org/i/3587609.
+            document.querySelector(
+              `select[data-is-multiselect="true"][name="${key}"]`,
+            )
+          ) {
+            const baseKey = key.slice(0, -2);
+            (value as any[]).forEach((item, index) => {
+              acc[`${baseKey}[${index}]`] = item;
+            });
+            return acc;
+          }
+          return { ...acc, [key]: value };
         }
         return acc;
       },
@@ -87,7 +101,12 @@ export const InputBehaviorsEntityForm = (
   }, [debounceFormStateToStore]);
 
   const parseNewValue = (e: React.ChangeEvent) => {
-    const target = e.target as HTMLInputElement;
+    const target = e.target as HTMLInputElement | HTMLSelectElement;
+    // A <select multiple> element's .value is only the last-clicked option.
+    // For multivalue fields rendered as multi-selects, collect every selected option.
+    if (target instanceof HTMLSelectElement && target.multiple) {
+      return Array.from(target.selectedOptions).map((opt) => opt.value);
+    }
     // If the target is an input element, return its value
     if (target.value !== undefined) {
       // We have a special case for `_none`, which represents an empty value in a

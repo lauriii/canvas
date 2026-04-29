@@ -152,3 +152,81 @@ props:
         type: string
         format: date
       examples: []
+    list_text:
+      title: 'List Text (Unlimited)'
+      description: 'An unlimited array of text list items.'
+      type: array
+      items:
+        type: string
+        enum:
+          - option_one
+          - option_two
+          - option_three
+          - option_four
+        meta:enum:
+          option_one: 'Option One'
+          option_two: 'Option Two'
+          option_three: 'Option Three'
+          option_four: 'Option Four'
+      examples:
+        - - option_one
+          - option_two
+    list_text_limited:
+      title: 'List Text (Limited)'
+      description: 'A limited array of text list items (max 3 items).'
+      type: array
+      maxItems: 3
+      items:
+        type: string
+        enum:
+          - option_one
+          - option_two
+          - option_three
+          - option_four
+        meta:enum:
+          option_one: 'Option One'
+          option_two: 'Option Two'
+          option_three: 'Option Three'
+          option_four: 'Option Four'
+      examples:
+        - - option_one
+          - option_two
+    list_int:
+      title: 'List Integer (Unlimited)'
+      description: 'An unlimited array of integer list items.'
+      type: array
+      items:
+        type: integer
+        enum:
+          - 10
+          - 20
+          - 30
+          - 40
+        meta:enum:
+          10: Ten
+          20: Twenty
+          30: Thirty
+          40: Forty
+      examples:
+        - - 10
+          - 20
+    list_int_limited:
+      title: 'List Integer (Limited)'
+      description: 'A limited array of integer list items (max 3 items).'
+      type: array
+      maxItems: 3
+      items:
+        type: integer
+        enum:
+          - 10
+          - 20
+          - 30
+          - 40
+        meta:enum:
+          10: Ten
+          20: Twenty
+          30: Thirty
+          40: Forty
+      examples:
+        - - 10
+          - 20

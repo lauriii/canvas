@@ -459,4 +459,175 @@ test.describe('Multivalue Prop Types', () => {
     // context, but the removal button is currently greyed out.
     // https://www.drupal.org/project/canvas/issues/3586358
   });
+
+  test('List text', async ({ page, canvas }) => {
+    // Test unlimited text list - basic rendering and operations.
+    const textField = page.locator('.form-item').filter({
+      has: page.locator('label', { hasText: 'List Text (Unlimited)' }),
+    });
+    await expect(textField).toBeVisible();
+    const textSelectControl = textField.locator(
+      '[class*="canvas-select__control"]',
+    );
+    await expect(textSelectControl).toBeVisible();
+
+    // Verify initial values.
+    const textChips = textField.locator('[class*="multiValue"]');
+    await expect(textChips).toHaveCount(2);
+    await expect(textChips.nth(0)).toContainText('Option One');
+    await expect(textChips.nth(1)).toContainText('Option Two');
+
+    // Add a value.
+    await textSelectControl.click();
+    await page
+      .locator('[class*="canvas-select__option"]', { hasText: 'Option Three' })
+      .click();
+    await expect(textChips).toHaveCount(3);
+    // eslint-disable-next-line playwright/no-networkidle
+    await page.waitForLoadState('networkidle');
+
+    // Verify in preview.
+    await canvas.testInPreviewFrame(
+      '#list-text-list li',
+      async (textListItems) => {
+        await expect(textListItems).toHaveCount(3);
+        await expect(textListItems.nth(2)).toContainText('option_three');
+      },
+    );
+
+    // Remove a value.
+    await textField
+      .locator('[class*="multiValue"]')
+      .first()
+      .locator('[class*="multi-value__remove"]')
+      .click();
+    await expect(textChips).toHaveCount(2);
+    // eslint-disable-next-line playwright/no-networkidle
+    await page.waitForLoadState('networkidle');
+
+    // Clear all values.
+    await textField
+      .locator('[class*="canvas-select__clear-indicator"]')
+      .click();
+    await expect(textChips).toHaveCount(0);
+    // eslint-disable-next-line playwright/no-networkidle
+    await page.waitForLoadState('networkidle');
+    await canvas.testInPreviewFrame(
+      '#list-text-list',
+      async (listContainer) => {
+        await expect(listContainer).toBeHidden();
+      },
+    );
+
+    // Close the dropdown by pressing Escape.
+    await page.keyboard.press('Escape');
+
+    // Test limited text list - cardinality enforcement.
+    const limitedTextField = page.locator('.form-item').filter({
+      has: page.locator('label', { hasText: 'List Text (Limited)' }),
+    });
+    await expect(limitedTextField).toBeVisible();
+    const limitedTextChips = limitedTextField.locator('[class*="multiValue"]');
+    await expect(limitedTextChips).toHaveCount(2);
+
+    // Reach cardinality limit and verify remaining options are disabled.
+    const limitedTextControl = limitedTextField.locator(
+      '[class*="canvas-select__control"]',
+    );
+    await limitedTextControl.click();
+    await page
+      .locator('[class*="canvas-select__option"]', { hasText: 'Option Three' })
+      .click();
+    const optionFour = page.locator('[class*="canvas-select__option"]', {
+      hasText: 'Option Four',
+    });
+    await expect(optionFour).toHaveClass(/option--is-disabled/);
+  });
+
+  test('List integer', async ({ page, canvas }) => {
+    // Test unlimited integer list - basic rendering.
+    const intField = page.locator('.form-item').filter({
+      has: page.locator('label', { hasText: 'List Integer (Unlimited)' }),
+    });
+    await expect(intField).toBeVisible();
+    const intSelectControl = intField.locator(
+      '[class*="canvas-select__control"]',
+    );
+    await expect(intSelectControl).toBeVisible();
+
+    // Verify initial values.
+    const intChips = intField.locator('[class*="multiValue"]');
+    await expect(intChips).toHaveCount(2);
+    await expect(intChips.nth(0)).toContainText('Ten');
+    await expect(intChips.nth(1)).toContainText('Twenty');
+
+    // Add a value.
+    await intSelectControl.click();
+    await page
+      .locator('[class*="canvas-select__option"]', { hasText: 'Thirty' })
+      .click();
+    await expect(intChips).toHaveCount(3);
+    // eslint-disable-next-line playwright/no-networkidle
+    await page.waitForLoadState('networkidle');
+
+    // Verify in preview.
+    await canvas.testInPreviewFrame(
+      '#list-int-list li',
+      async (intListItems) => {
+        await expect(intListItems).toHaveCount(3);
+        await expect(intListItems.nth(2)).toContainText('30');
+      },
+    );
+
+    // Remove a value.
+    await intField
+      .locator('[class*="multiValue"]')
+      .first()
+      .locator('[class*="multi-value__remove"]')
+      .click();
+    // eslint-disable-next-line playwright/no-networkidle
+    await page.waitForLoadState('networkidle');
+    await expect(intChips).toHaveCount(2);
+
+    // Close the dropdown by pressing Escape.
+    await page.keyboard.press('Escape');
+
+    // Test limited integer list - cardinality enforcement.
+    const limitedIntField = page.locator('.form-item').filter({
+      has: page.locator('label', { hasText: 'List Integer (Limited)' }),
+    });
+    await expect(limitedIntField).toBeVisible();
+    const limitedIntChips = limitedIntField.locator('[class*="multiValue"]');
+    await expect(limitedIntChips).toHaveCount(2);
+
+    // Reach cardinality limit and verify remaining options are disabled.
+    const limitedIntControl = limitedIntField.locator(
+      '[class*="canvas-select__control"]',
+    );
+    await limitedIntControl.click();
+    await page
+      .locator('[class*="canvas-select__option"]', { hasText: 'Thirty' })
+      .click();
+    const optionForty = page.locator('[class*="canvas-select__option"]', {
+      hasText: 'Forty',
+    });
+    await expect(optionForty).toHaveClass(/option--is-disabled/);
+
+    // Test persistence after page reload.
+    await page.reload();
+    await canvas.waitForEditorUi();
+    const intFieldAfterReload = page.locator('.form-item').filter({
+      has: page.locator('label', { hasText: 'List Integer (Unlimited)' }),
+    });
+    const intChipsAfterReload = intFieldAfterReload.locator(
+      '[class*="multiValue"]',
+    );
+    await expect(intChipsAfterReload).toHaveCount(2);
+    await canvas.testInPreviewFrame(
+      '#list-int-list li',
+      async (intListAfterReload) => {
+        await expect(intListAfterReload).toHaveCount(2);
+      },
+    );
+  });
 });
