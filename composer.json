@@ -19,11 +19,12 @@
         "drupal/search_api": "^1",
         "drupal/simple_oauth": "^6",
         "drush/drush": "^13",
-        "jangregor/phpstan-prophecy": "~1|~2",
+        "jangregor/phpstan-prophecy": "2.3.0",
         "league/openapi-psr7-validator": "^0.22.0",
-        "mglaman/phpstan-drupal": "^2.0.12",
-        "phpat/phpat": "^0.12",
-        "phpstan/phpstan-strict-rules": "^2"
+        "mglaman/phpstan-drupal": "2.0.15",
+        "phpat/phpat": "0.12.4",
+        "phpstan/phpstan": "2.1.53",
+        "phpstan/phpstan-strict-rules": "2.0.10"
     },
     "scripts": {
         "composer-root": "d=.; i=0; while [ $i -lt 10 ]; do if [ -f \"$d/composer.json\" ] && cat \"$d/composer.json\" | grep -q '\"type\"' && cat \"$d/composer.json\" | grep -q '\"project\"'; then readlink -f \"$d\"; break; fi; d=\"../$d\"; i=$((i+1)); done",

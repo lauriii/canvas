@@ -289,8 +289,76 @@ stylelint:
   rules:
     - when: never
 
+phpstan-is-up-to-date:
+  stage: development
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - *manual-rule
+  script:
+    - |
+      # PHPStan packages in composer.json to check for updates.
+      PACKAGES="phpstan/phpstan jangregor/phpstan-prophecy mglaman/phpstan-drupal phpat/phpat phpstan/phpstan-strict-rules"
+      UPDATED=0
+      cp composer.json composer.json.orig
+
+      for PKG in $PACKAGES; do
+        # Get the current pinned version from composer.json.
+        CURRENT=$(jq -r --arg pkg "$PKG" '(.require[$pkg] // .["require-dev"][$pkg]) // empty' composer.json)
+        if [ -z "$CURRENT" ]; then
+          echo "⏭️  $PKG not found in composer.json, skipping."
+          continue
+        fi
+
+        # Query Packagist for the latest stable version.
+        LATEST=$(curl -s "https://repo.packagist.org/p2/$PKG.json" | jq -r --arg pkg "$PKG" '.packages[$pkg] | map(select(.version_normalized | test("^[0-9]") and (test("(alpha|beta|rc|dev)"; "i") | not))) | sort_by(.version_normalized | split(".") | map(tonumber)) | last | .version')
+
+        if [ -z "$LATEST" ] || [ "$LATEST" = "null" ]; then
+          echo "⚠️  Could not determine latest version for $PKG, skipping."
+          continue
+        fi
+
+        echo "📦 $PKG: pinned=$CURRENT, latest=$LATEST"
+
+        if [ "$CURRENT" != "$LATEST" ]; then
+          echo "  ⬆️  Update available: $CURRENT → $LATEST"
+          jq --indent 4 --arg pkg "$PKG" --arg ver "$LATEST" '
+            if .require[$pkg] then .require[$pkg] = $ver
+            elif .["require-dev"][$pkg] then .["require-dev"][$pkg] = $ver
+            else . end
+          ' composer.json > composer.json.tmp && mv composer.json.tmp composer.json
+          UPDATED=1
+        else
+          echo "  ✅ Up to date."
+        fi
+      done
+
+      if [ "$UPDATED" -eq 1 ]; then
+        echo ""
+        echo "🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥"
+        echo "PHPStan dependencies are outdated. Diff:"
+        echo ""
+        diff -u composer.json.orig composer.json || true
+        echo ""
+        echo "Updated composer.json is available in the artifacts."
+        exit 1
+      else
+        echo ""
+        echo "👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍"
+        echo "All PHPStan dependencies are up to date."
+      fi
+  artifacts:
+    when: on_failure
+    expire_in: 6 mos
+    paths:
+      - composer.json
+  # Allow this to fail, to avoid disrupting Canvas's CI when upstream changes.
+  allow_failure: true
+
 phpcs-rules-match-drupal-11:
   stage: development
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - *manual-rule
   script:
     - |
       # Download the file from the Drupal repository
