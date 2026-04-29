@@ -1,7 +1,5 @@
 import { a2p } from '@/local_packages/utils';
 
-import { normalizeRowWeights } from './multivalueFormUtils';
-
 import type { Attributes } from '@/types/DrupalAttribute';
 
 const DrupalMultivalueSubmit = ({ attributes }: { attributes: Attributes }) => {
@@ -25,11 +23,6 @@ const DrupalMultivalueSubmit = ({ attributes }: { attributes: Attributes }) => {
             const tbody =
               outerWrapper &&
               outerWrapper.querySelector('table.field-multiple-table tbody');
-
-            // Normalize weight selects to sequential DOM order before the AJAX
-            // POST is serialized, preventing stale/drifted weight values from
-            // causing PHP to render rows in the wrong order after the rebuild.
-            normalizeRowWeights(node);
             if (tbody && attributes.name) {
               // Clone the last real row so the skeleton matches the exact column
               // widths, classes, and padding already in the table.

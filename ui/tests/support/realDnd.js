@@ -14,6 +14,10 @@ export async function realDnd(subject, destination, options = {}) {
     );
   }
 
+  await new Promise((resolve) =>
+    setTimeout(resolve, options?.initialWait ?? 1000),
+  );
+
   const startCoords = getCypressElementCoordinates(
     subject,
     options.position,
@@ -26,6 +30,31 @@ export async function realDnd(subject, destination, options = {}) {
         options.scrollBehavior,
       )
     : destination;
+
+  await new Cypress.Promise((resolve, reject) => {
+    const timeout = Cypress.config('defaultCommandTimeout');
+    const interval = 50;
+    const start = Date.now();
+
+    const check = () => {
+      const pointerEvents = window.getComputedStyle(
+        subject.get(0),
+      ).pointerEvents;
+      if (pointerEvents !== 'none') {
+        resolve();
+      } else if (Date.now() - start >= timeout) {
+        reject(
+          new Error(
+            'realDnd: timed out waiting for subject to not have pointer-events: none',
+          ),
+        );
+      } else {
+        setTimeout(check, interval);
+      }
+    };
+
+    check();
+  });
 
   const log = Cypress.log({
     $el: subject,

@@ -299,8 +299,19 @@ export function CanvasComponentsMixin<
           has: this.page.getByRole('heading', { name: propName }),
         });
       await expect(field).toBeVisible();
-      const dragHandle = (row: Locator) => row.locator('.canvas-drag-handle');
+      await field.scrollIntoViewIfNeeded();
+      const dragHandle = (row: Locator) =>
+        row.locator('.canvas-drag-handle a.tabledrag-handle');
+
       const rows = field.locator('tr.draggable');
+
+      const fromHandle = dragHandle(rows.nth(from));
+      await expect(async () => {
+        const pointerEvents = await fromHandle.evaluate(
+          (el) => window.getComputedStyle(el).pointerEvents,
+        );
+        expect(pointerEvents).not.toBe('none');
+      }).toPass();
 
       // Set up auto-save listener.
       const autoSavePromise = this.page.waitForResponse(
@@ -310,13 +321,7 @@ export function CanvasComponentsMixin<
       );
 
       const toHandle = dragHandle(rows.nth(to));
-      const toBox = await toHandle.boundingBox();
-      const targetY = toBox ? (from > to ? 2 : toBox.height - 2) : undefined;
-      await dragHandle(rows.nth(from)).dragTo(toHandle, {
-        targetPosition:
-          targetY !== undefined ? { x: 10, y: targetY } : undefined,
-      });
-
+      await fromHandle.dragTo(toHandle);
       await autoSavePromise;
       // eslint-disable-next-line playwright/no-networkidle
       await this.page.waitForLoadState('networkidle'); // drain any follow-on requests after the auto-save PATCH

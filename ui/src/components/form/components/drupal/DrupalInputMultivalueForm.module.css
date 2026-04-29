@@ -124,10 +124,23 @@
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>');
 }
 
+:global([data-canvas-ajax-behaviors="true"] [data-once="drupal-ajax"]),
+:global([data-canvas-ajax-behaviors="true"] .use-ajax),
+:global([data-canvas-ajax-behaviors="true"] .use-ajax-submit),
 :global([data-canvas-ajax-behaviors="true"] [data-multivalue-add-new]),
 :global([data-canvas-ajax-behaviors="true"] [data-multivalue-remove-item]),
+:global([data-canvas-layout-request-in-progress] [data-once="drupal-ajax"]),
+:global([data-canvas-layout-request-in-progress] .use-ajax),
+:global([data-canvas-layout-request-in-progress] .use-ajax-submit),
 :global([data-canvas-layout-request-in-progress] [data-multivalue-add-new]),
 :global([data-canvas-layout-request-in-progress] [data-multivalue-remove-item]) {
   pointer-events: none;
   opacity: .3;
+}
+
+:global([data-canvas-ajax-behaviors="true"]  .multivalue-container .canvas-drag-handle a.tabledrag-handle),
+:global([data-canvas-layout-request-in-progress]  .multivalue-container .canvas-drag-handle a.tabledrag-handle),
+:global([data-canvas-ajax-behaviors="true"] [data-multivalue-popover-trigger]),
+:global([data-canvas-layout-request-in-progress] [data-multivalue-popover-trigger]){
+  pointer-events: none;
 }

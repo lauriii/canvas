@@ -142,6 +142,9 @@ export const triggerDrupalRemoveButton = (
   // Effectively hide the row, but maintain a pixel of height so the popover
   // can still anchor to its position.
   tableRow.style.height = '1px';
+  tableRow.style.overflow = 'hidden';
+  tableRow.style.visibility = 'collapse';
+
   normalizeRowWeights(triggerElement);
 
   // Find the original Drupal remove button directly (the hidden input/button
@@ -171,61 +174,6 @@ export const triggerDrupalRemoveButton = (
   }
 
   return null;
-};
-
-/**
- * Programmatically set an input value and trigger React's onChange pipeline.
- *
- * Uses the native HTMLInputElement prototype setter to set the value, then
- * calls onChange (and optionally onBlur) directly via the React fiber props
- * attached to the DOM node. This bypasses React's internal value tracker which
- * would otherwise suppress the change event.
- */
-export const dispatchSyntheticChange = (
-  input: HTMLInputElement,
-  value: string,
-  blur: boolean = true,
-): void => {
-  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-    window.HTMLInputElement.prototype,
-    'value',
-  )?.set;
-
-  nativeInputValueSetter?.call(input, value);
-
-  const propsKey = Object.keys(input).find((k) => k.startsWith('__reactProps'));
-  const reactProps = propsKey ? (input as any)[propsKey] : null;
-
-  if (reactProps?.onChange) {
-    const event = new Event('change');
-    Object.defineProperty(event, 'target', { writable: false, value: input });
-    reactProps.onChange(event);
-  } else {
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-  }
-  if (blur) {
-    if (reactProps?.onBlur) {
-      const event = new Event('blur');
-      Object.defineProperty(event, 'target', { writable: false, value: input });
-      reactProps.onBlur(event);
-    } else {
-      input.dispatchEvent(new Event('blur', { bubbles: true }));
-    }
-  }
-};
-
-/**
- * Returns true when jQuery UI autocomplete menu is currently visible.
- */
-export const isAutocompleteMenuOpen = (input: HTMLInputElement): boolean => {
-  const $jq =
-    typeof window !== 'undefined' && (window as any).jQuery
-      ? (window as any).jQuery
-      : null;
-  return !!(
-    $jq && $jq(input).data('ui-autocomplete')?.menu?.element?.is?.(':visible')
-  );
 };
 
 /**

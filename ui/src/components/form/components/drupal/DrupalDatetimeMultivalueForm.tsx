@@ -14,7 +14,6 @@ import { useUpdateComponentMutation } from '@/services/preview';
 
 import {
   buildModelWithItemRemoved,
-  dispatchSyntheticChange,
   extractPositionFromFieldName,
   isRemoveButtonEnabled,
   triggerDrupalRemoveButton,
@@ -96,7 +95,6 @@ const DrupalDatetimeMultivalueForm = ({
     date: '',
     time: '',
   });
-  const shouldRevertOnCloseRef = useRef(true);
   // Tracks whether a time input exists — derived from the real DOM via
   // useEffect  rather than queried at render time, so it is stable across
   // renders and correct before the popover container is first populated.
@@ -108,6 +106,10 @@ const DrupalDatetimeMultivalueForm = ({
   // available.
   const [popoverContainer, setPopoverContainer] =
     useState<HTMLDivElement | null>(null);
+
+  const hasError = () =>
+    popoverContainer &&
+    !!popoverContainer.querySelector('[data-has-field-error="true"]');
 
   // Returns the date input from the popover container, or null.
   const getDateInput = (): HTMLInputElement | null =>
@@ -124,16 +126,6 @@ const DrupalDatetimeMultivalueForm = ({
     }
   };
 
-  const pausePreviewUpdates = () => {
-    getDateInput()?.setAttribute('data-canvas-stage-changes', 'true');
-    getTimeInput()?.setAttribute('data-canvas-stage-changes', 'true');
-  };
-
-  const resumePreviewUpdates = () => {
-    getDateInput()?.removeAttribute('data-canvas-stage-changes');
-    getTimeInput()?.removeAttribute('data-canvas-stage-changes');
-  };
-
   // Read initial values from the inputs once the popover container is in the DOM.
   useEffect(() => {
     if (!popoverContainer) return;
@@ -148,44 +140,48 @@ const DrupalDatetimeMultivalueForm = ({
     setDisplayDate(dateInput?.value || dateInput?.defaultValue || '');
     setDisplayTime(timeInput?.value || timeInput?.defaultValue || '');
     setHasTime(!!timeInput);
-  }, [popoverContainer]);
-  // Handle Enter and Escape key presses in popover inputs.
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-    // Handle Escape key to close popover without committing changes
-    if (e.key === 'Escape') {
-      shouldRevertOnCloseRef.current = true;
-      handlePopoverOpenChange(false);
-      return;
-    }
-
-    if (e.key !== 'Enter') return;
-
-    e.preventDefault();
-
-    if (popoverContainer?.querySelector('[data-has-field-error="true"]')) {
-      return;
-    }
-
-    const dateInput = getDateInput();
-    const timeInput = getTimeInput();
-    setDisplayDate(dateInput?.value ?? '');
-    setDisplayTime(timeInput?.value ?? '');
-    shouldRevertOnCloseRef.current = false;
-
-    resumePreviewUpdates();
-
-    // Dispatch synthetic change events so the preview handler sees the new values.
-    setTimeout(() => {
-      if (dateInput) dispatchSyntheticChange(dateInput, dateInput.value);
-      if (timeInput) dispatchSyntheticChange(timeInput, timeInput.value);
-      handlePopoverOpenChange(false);
+    // Since datetime is two inputs but one field, we can't listen for changes
+    // as elegantly as we do in <DrupalInputMultivalueForm>, where we can just
+    // add an `onInput` prop. Instead, we need to add dedicated input listeners
+    // on both inputs.
+    [dateInput, timeInput].forEach((input) => {
+      // Using the __listenersAdded approach to preventing duplicate listeners,
+      // instead of the more common useEffect cleanup, as popoverContainer is
+      // the most reliable useEffect dependency. However, it can retrigger more
+      // often than the need addEventListener, and can lead to gaps in
+      // callback availability.
+      if (input && !(input as any).__listenersAdded) {
+        (input as any).__listenersAdded = true;
+        input.addEventListener('input', (e) => {
+          const target = e.target as HTMLInputElement;
+          const { value, type } = target;
+          if (type === 'date') {
+            // A date input value is either '' or a valid ISO date (YYYY-MM-DD).
+            // An empty string means the field was cleared; a non-empty value
+            // from a date input is always structurally valid.
+            setDisplayDate(value);
+          } else if (type === 'time') {
+            // A time input value is either '' or a valid time string (HH:MM or
+            // HH:MM:SS). Validate by parsing; an invalid time produces NaN.
+            if (!value || !isNaN(new Date(`2000-01-01T${value}`).getTime())) {
+              setDisplayTime(value);
+            }
+          }
+        });
+      }
     });
+  }, [popoverContainer]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape' || e.key === 'Enter') {
+      handlePopoverOpenChange(false);
+      e.preventDefault();
+      return;
+    }
   };
 
   const handlePopoverOpenChange = (open: boolean) => {
     if (open) {
-      pausePreviewUpdates();
-      shouldRevertOnCloseRef.current = true;
       const dateInput = getDateInput();
       const timeInput = getTimeInput();
       valueAtOpenRef.current = {
@@ -196,19 +192,9 @@ const DrupalDatetimeMultivalueForm = ({
         const firstInput = dateInput || timeInput;
         firstInput?.focus();
       }, 0);
-    } else if (shouldRevertOnCloseRef.current) {
-      // Cancel any in-progress edit: reset inputs back to the values at open.
-      const dateInput = getDateInput();
-      const timeInput = getTimeInput();
-      if (dateInput)
-        dispatchSyntheticChange(dateInput, valueAtOpenRef.current.date);
-      if (timeInput)
-        dispatchSyntheticChange(timeInput, valueAtOpenRef.current.time);
     }
-    setPopoverOpenAndRefocus(open);
-    if (!open) {
-      resumePreviewUpdates();
-      shouldRevertOnCloseRef.current = true;
+    if (!hasError()) {
+      setPopoverOpenAndRefocus(open);
     }
   };
 
@@ -217,7 +203,6 @@ const DrupalDatetimeMultivalueForm = ({
     const triggerElement = triggerRowRef.current;
     if (!triggerElement) return;
     setPopoverOpenAndRefocus(false);
-    resumePreviewUpdates();
     setTimeout(() => {
       const dateInput = getDateInput();
       const { name } = dateInput || {};

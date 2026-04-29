@@ -55,7 +55,9 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
     }
     cy.get('@entityForm')
       .findByRole('button', { name: 'Add media', timeout: 10000 })
-      .should('not.be.disabled')
+      .should('not.be.disabled');
+    cy.get('@entityForm')
+      .findByRole('button', { name: 'Add media', timeout: 10000 })
       .click();
     // The first time the media dialog opens there are a lot of CSS files to
     // load, and it can take more than the default timeout of 4s.
@@ -63,11 +65,10 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
     cy.selectorShouldHaveUpdatedFormBuildId(entityFormSelector);
     cy.get('@dialog').findByLabelText(step.selectNewText).check();
     cy.intercept('POST', '**/canvas/api/v0/layout/**').as('updatePreview');
-    cy.get('@dialog')
-      .findByRole('button', {
-        name: 'Insert selected',
-      })
-      .click();
+    cy.get(
+      'button[data-once="drupal-ajax"]:contains("Insert selected")',
+    ).click();
+
     cy.findByRole('dialog').should('not.exist');
     // Wait for the preview to finish loading.
     cy.wait('@updatePreview', { timeout: 10000 });

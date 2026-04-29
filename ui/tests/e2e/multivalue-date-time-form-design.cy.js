@@ -51,7 +51,7 @@ describe('Multivalue DateTime Form Design (canvas_dev_mode)', () => {
       .as('datetimePopover');
   };
 
-  const commitPopoverWithEnter = (inputSelector) => {
+  const closePopoverWithEnter = (inputSelector) => {
     cy.get('@datetimePopover').find(inputSelector).first().trigger('keydown', {
       key: 'Enter',
       code: 'Enter',
@@ -88,14 +88,14 @@ describe('Multivalue DateTime Form Design (canvas_dev_mode)', () => {
             cy.wrap($timeInput).clear({ force: true });
             cy.wrap($timeInput).type(time, { force: true });
             cy.wrap($timeInput).should('have.value', time);
-            commitPopoverWithEnter('input[type="time"]');
+            closePopoverWithEnter('input[type="time"]');
             return;
           }
 
-          commitPopoverWithEnter('input[type="date"]');
+          closePopoverWithEnter('input[type="date"]');
         });
     } else {
-      commitPopoverWithEnter('input[type="date"]');
+      closePopoverWithEnter('input[type="date"]');
     }
 
     // Wait for popover to close after Enter.
@@ -575,14 +575,10 @@ describe('Multivalue DateTime Form Design (canvas_dev_mode)', () => {
       .should('exist');
 
     // Close the popover.
-    cy.get('[role="dialog"][data-state="open"]').find('[aria-label="Close"]');
-    cy.get('[role="dialog"][data-state="open"]')
-      .find('[aria-label="Close"]')
-      .click();
-    cy.get('[role="dialog"][data-state="open"]').should('not.exist');
+    cy.closeMultivaluePopover();
   });
 
-  it('popover discards uncommitted datetime changes when closed without Enter', () => {
+  it('popover propagates datetime changes live as user types', () => {
     cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
     cy.findByTestId('canvas-page-data-form').as('entityForm');
 
@@ -601,9 +597,7 @@ describe('Multivalue DateTime Form Design (canvas_dev_mode)', () => {
     cy.wait('@updatePreview');
     cy.findByLabelText('Loading Preview').should('not.exist');
 
-    const originalDisplay = `${formatDateForDisplay('2024-05-10')}, ${formatTimeForDisplay('15:30')}`;
-
-    // Open popover and change values without committing.
+    // Reopen and change the date — row label should update immediately.
     openEditableRowPopover('@unlimited-datetime', 0);
 
     cy.get('[role="dialog"][data-state="open"]')
@@ -612,6 +606,11 @@ describe('Multivalue DateTime Form Design (canvas_dev_mode)', () => {
     cy.get('[role="dialog"][data-state="open"]')
       .find('input[type="date"]')
       .type('2024-12-25');
+
+    const expectedAfterDate = `${formatDateForDisplay('2024-12-25')}, ${formatTimeForDisplay('15:30')}`;
+    verifyRowDateTime('@unlimited-datetime', 0, expectedAfterDate);
+
+    // Now change the time — row label should update again.
     cy.get('[role="dialog"][data-state="open"]')
       .find('input[type="time"]')
       .clear();
@@ -619,16 +618,16 @@ describe('Multivalue DateTime Form Design (canvas_dev_mode)', () => {
       .find('input[type="time"]')
       .type('23:59');
 
-    // Close without pressing Enter.
-    cy.get('[role="dialog"][data-state="open"]').find('[aria-label="Close"]');
+    const expectedAfterTime = `${formatDateForDisplay('2024-12-25')}, ${formatTimeForDisplay('23:59')}`;
+    verifyRowDateTime('@unlimited-datetime', 0, expectedAfterTime);
+
+    // Close via the × button — value should not be reverted.
     cy.get('[role="dialog"][data-state="open"]')
       .find('[aria-label="Close"]')
       .click();
-
     cy.get('[role="dialog"][data-state="open"]').should('not.exist');
 
-    // Verify original value is retained.
-    verifyRowDateTime('@unlimited-datetime', 0, originalDisplay);
+    verifyRowDateTime('@unlimited-datetime', 0, expectedAfterTime);
   });
 
   it('maintains form state across datetime popover interactions', () => {
@@ -693,11 +692,7 @@ describe('Multivalue DateTime Form Design (canvas_dev_mode)', () => {
       .should('not.exist');
 
     // Close the popover.
-    cy.get('[role="dialog"][data-state="open"]').find('[aria-label="Close"]');
-    cy.get('[role="dialog"][data-state="open"]')
-      .find('[aria-label="Close"]')
-      .click();
-    cy.get('[role="dialog"][data-state="open"]').should('not.exist');
+    cy.closeMultivaluePopover();
   });
 
   // Skipping due to intermittent failures.

@@ -191,8 +191,11 @@ export function coerceValueForSchema(
     typeof value !== 'string' ||
     value === ''
   ) {
-    return value;
+    return propType === 'string' && typeof value === 'number'
+      ? `${value}`
+      : value;
   }
+
   const coerced = transforms.cast(
     value,
     { to: propType as 'integer' | 'number' | 'boolean' },

@@ -18,46 +18,36 @@ test.describe('Multivalue Prop Types', () => {
   test('Helper functions', async ({ canvas }) => {
     await canvas.editMultiValueProp('Text (Unlimited)', 'Catbro', 0, 'string');
 
-    let previewFrame = await canvas.getActivePreviewFrame();
-    let textList = previewFrame
-      .getByTestId('text-component')
-      .locator('#text-list li');
-    await expect(textList).toHaveCount(2);
-    await expect(textList.nth(0)).toHaveText('Catbro');
-    await expect(textList.nth(1)).toHaveText('Sample Text');
+    await canvas.testInPreviewFrame('#text-list li', async (textList) => {
+      await expect(textList).toHaveCount(2);
+      await expect(textList.nth(0)).toHaveText('Catbro');
+      await expect(textList.nth(1)).toHaveText('Sample Text');
+    });
 
     await canvas.reorderMultiValueProp('Text (Unlimited)', 1, 0);
 
-    previewFrame = await canvas.getActivePreviewFrame();
-    textList = previewFrame
-      .getByTestId('text-component')
-      .locator('#text-list li');
-    await expect(textList).toHaveCount(2);
-    await expect(textList.nth(0)).toHaveText('Sample Text');
-    await expect(textList.nth(1)).toHaveText('Catbro');
+    await canvas.testInPreviewFrame('#text-list li', async (textList) => {
+      await expect(textList).toHaveCount(2);
+      await expect(textList.nth(0)).toHaveText('Sample Text');
+      await expect(textList.nth(1)).toHaveText('Catbro');
+    });
 
     await canvas.addMultiValueProp('Text (Unlimited)', 'Minibro', 'string');
 
-    // @todo This will fail because of race conditions.
-    // https://www.drupal.org/project/canvas/issues/3586848
-    //previewFrame = await canvas.getActivePreviewFrame();
-    //textList = previewFrame
-    //  .getByTestId('text-component')
-    //  .locator('#text-list li');
-    //await expect(textList).toHaveCount(3);
-    //await expect(textList.nth(0)).toHaveText('Sample Text');
-    //await expect(textList.nth(1)).toHaveText('Catbro');
-    //await expect(textList.nth(2)).toHaveText('Minibro');
+    await canvas.testInPreviewFrame('#text-list li', async (textList) => {
+      await expect(textList).toHaveCount(3);
+      await expect(textList.nth(0)).toHaveText('Sample Text');
+      await expect(textList.nth(1)).toHaveText('Catbro');
+      await expect(textList.nth(2)).toHaveText('Minibro');
+    });
 
-    //await canvas.removeMultiValueProp('Text (Unlimited)', 1);
+    await canvas.removeMultiValueProp('Text (Unlimited)', 1);
 
-    //previewFrame = await canvas.getActivePreviewFrame();
-    //textList = previewFrame
-    //  .getByTestId('text-component')
-    //  .locator('#text-list li');
-    //await expect(textList).toHaveCount(2);
-    //await expect(textList.nth(0)).toHaveText('Sample Text');
-    //await expect(textList.nth(1)).toHaveText('Minibro');
+    await canvas.testInPreviewFrame('#text-list li', async (textList) => {
+      await expect(textList).toHaveCount(2);
+      await expect(textList.nth(0)).toHaveText('Sample Text');
+      await expect(textList.nth(1)).toHaveText('Minibro');
+    });
   });
 
   test('Edit, remove, add, and re-order', async ({ page, canvas }) => {
@@ -81,9 +71,19 @@ test.describe('Multivalue Prop Types', () => {
       popover.getByText('Text (Unlimited)', { exact: true }),
     ).toBeVisible();
 
-    // Make a change to the text that will be discarded.
+    // Make a change to the text — changes propagate live.
     let textbox = popover.getByRole('textbox');
     await textbox.fill('Minibro');
+
+    // Row label should update while the popover is still open.
+    await expect(
+      firstRow.locator('[data-canvas-multivalue-label="true"]'),
+    ).toHaveText('Minibro');
+
+    // Preview should also update while the popover is still open.
+    await canvas.testInPreviewFrame('#text-list li', async (textList) => {
+      await expect(textList.nth(0)).toHaveText('Minibro');
+    });
 
     // Close popover with close button.
     // The allotment sash (panel resize divider) sits on top of the Close button
@@ -95,13 +95,20 @@ test.describe('Multivalue Prop Types', () => {
       'data-state',
       'closed',
     );
-    await expect(textField).not.toContainText('Minibro');
+
+    // Value should persist after close — not be discarded.
+    await expect(textField).toContainText('Minibro');
+
+    // Preview should still reflect the value after close.
+    await canvas.testInPreviewFrame('#text-list li', async (textList) => {
+      await expect(textList.nth(0)).toHaveText('Minibro');
+    });
 
     // Close popover with keyboard shortcut.
     // This only works if the edit field has focus.
     await firstRow.getByRole('button', { name: /^Edit Text/ }).click();
     const popoverTextbox = popover.getByRole('textbox');
-    await expect(popoverTextbox).not.toContainText('Minibro');
+    await expect(popoverTextbox).toHaveValue('Minibro');
     await popoverTextbox.click();
     await expect(popoverTextbox).toBeFocused();
     await popoverTextbox.press('Escape');
@@ -113,7 +120,7 @@ test.describe('Multivalue Prop Types', () => {
     // Edit text.
     await firstRow.getByRole('button', { name: /^Edit Text/ }).click();
     textbox = popover.getByRole('textbox');
-    await expect(textbox).toHaveValue('Hello World');
+    await expect(textbox).toHaveValue('Minibro');
     await textbox.fill('Marshmallow Coast');
     await textbox.press('Enter');
     // eslint-disable-next-line playwright/no-networkidle
@@ -128,13 +135,11 @@ test.describe('Multivalue Prop Types', () => {
     ).toHaveText('Marshmallow Coast');
 
     // Verify text in the Preview pane is updated.
-    let previewFrame = await canvas.getActivePreviewFrame();
-    let textList = previewFrame
-      .getByTestId('text-component')
-      .locator('#text-list li');
-    await expect(textList).toHaveCount(2);
-    await expect(textList.nth(0)).toHaveText('Marshmallow Coast');
-    await expect(textList.nth(1)).toHaveText('Sample Text');
+    await canvas.testInPreviewFrame('#text-list li', async (textList) => {
+      await expect(textList).toHaveCount(2);
+      await expect(textList.nth(0)).toHaveText('Marshmallow Coast');
+      await expect(textList.nth(1)).toHaveText('Sample Text');
+    });
 
     // Remove an item.
     await textField
@@ -147,12 +152,11 @@ test.describe('Multivalue Prop Types', () => {
     const removeButton = popover.getByRole('button', { name: 'Remove' });
     await expect(removeButton).toBeVisible();
     await removeButton.click();
-    await expect(secondRow.getByRole('dialog')).toHaveAttribute(
-      'data-state',
-      'closed',
-    );
+    await expect(
+      page.locator('[role="dialog"][data-state="open"]'),
+    ).toHaveCount(0);
     // eslint-disable-next-line playwright/no-networkidle
-    await page.waitForLoadState('networkidle'); // wait for auto-save PATCH to settle after removal
+    await page.waitForLoadState('networkidle');
 
     // Check removed from Settings pane.
     await expect(textField.locator('tr.draggable')).toHaveCount(1);
@@ -160,59 +164,82 @@ test.describe('Multivalue Prop Types', () => {
 
     // Check removed from preview pane.
     // Uncomment when https://www.drupal.org/project/canvas/issues/3586289 is fixed.
-    //previewFrame = await canvas.getActivePreviewFrame();
-    //textList = previewFrame
-    //    .getByTestId('text-component')
-    //    .locator('#text-list li');
-    //await expect(textList).toHaveCount(1);
-    //await expect(textList).not.toHaveText('Sample Text');
+    await canvas.testInPreviewFrame('#text-list li', async (textList) => {
+      await expect(textList).toHaveCount(1);
+      await expect(textList).not.toHaveText('Sample Text');
+    });
 
-    // Add a new row and populate all values.
+    await expect(textField.locator('tr.draggable')).toHaveCount(1);
+
+    // Add a new rows and populate their values.
+    // @todo we should actually be using canvas.addMultiValueProp, but it will
+    // fail due to a legitimate bug: https://drupal.org/i/3587472
     await textField.getByRole('button', { name: '+ Add new' }).click();
     await expect(textField.locator('tr.draggable')).toHaveCount(2);
-
     await canvas.editMultiValueProp(
       'Text (Unlimited)',
       'Hello, world!',
-      0,
+      1,
       'string',
     );
-    await canvas.editMultiValueProp('Text (Unlimited)', 'Catbro', 1, 'string');
+
+    await textField.getByRole('button', { name: '+ Add new' }).click();
+    await expect(textField.locator('tr.draggable')).toHaveCount(3);
+    await canvas.editMultiValueProp('Text (Unlimited)', 'Catbro', 2, 'string');
 
     // Verify text in the Settings pane is updated.
+    await expect(textField).toContainText('Marshmallow Coast');
     await expect(textField).toContainText('Hello, world!');
     await expect(textField).toContainText('Catbro');
+    await expect(textField).not.toContainText('Empty');
 
     // Verify text in the Preview pane is updated.
-    previewFrame = await canvas.getActivePreviewFrame();
-    textList = previewFrame
-      .getByTestId('text-component')
-      .locator('#text-list li');
-    await expect(textList).toHaveCount(2);
-    await expect(textList.nth(0)).toHaveText('Hello, world!');
-    await expect(textList.nth(1)).toHaveText('Catbro');
+    await canvas.testInPreviewFrame('#text-list li', async (textList) => {
+      await expect(textList).toHaveCount(3);
+      await expect(textList.nth(0)).toHaveText('Marshmallow Coast');
+      await expect(textList.nth(1)).toHaveText('Hello, world!');
+      await expect(textList.nth(2)).toHaveText('Catbro');
+    });
 
     let labels = textField.locator('[data-canvas-multivalue-label="true"]');
 
-    // Drag row 2 (Catbro) to before row 1 (Hello, world).
-    await canvas.reorderMultiValueProp('Text (Unlimited)', 1, 0);
+    // Drag row 3 (Catbro) to before row 1 (Marshmallow Coast).
+    await canvas.reorderMultiValueProp('Text (Unlimited)', 2, 0);
     await expect(labels.nth(0)).toHaveText('Catbro');
-    await expect(labels.nth(1)).toHaveText('Hello, world!');
+    await expect(labels.nth(1)).toHaveText('Marshmallow Coast');
+    await expect(labels.nth(2)).toHaveText('Hello, world!');
 
-    // Verify final order: Catbro, Hello, world!.
+    await canvas.testInPreviewFrame('#text-list li', async (textList) => {
+      await expect(textList).toHaveCount(3);
+      await expect(textList.nth(0)).toHaveText('Catbro');
+      await expect(textList.nth(1)).toHaveText('Marshmallow Coast');
+      await expect(textList.nth(2)).toHaveText('Hello, world!');
+    });
+
+    // Drag row 3 (Hello, world!) to before row 2 (Marshmallow Coast).
+    await canvas.reorderMultiValueProp('Text (Unlimited)', 2, 1);
+
+    // Verify final order: Catbro, Hello, world!, Marshmallow Coast.
     await expect(labels.nth(0)).toHaveText('Catbro');
     await expect(labels.nth(1)).toHaveText('Hello, world!');
+    await expect(labels.nth(2)).toHaveText('Marshmallow Coast');
 
     // Verify text in the Preview pane is updated.
-    previewFrame = await canvas.getActivePreviewFrame();
-    textList = previewFrame
-      .getByTestId('text-component')
-      .locator('#text-list li');
-    await expect(textList).toHaveCount(2);
-    await expect(textList.nth(0)).toHaveText('Catbro');
-    await expect(textList.nth(1)).toHaveText('Hello, world!');
+    await canvas.testInPreviewFrame('#text-list li', async (textList) => {
+      await expect(textList).toHaveCount(3);
+      await expect(textList.nth(0)).toHaveText('Catbro');
+      await expect(textList.nth(1)).toHaveText('Hello, world!');
+      await expect(textList.nth(2)).toHaveText('Marshmallow Coast');
+    });
 
     // Reload the page and verify the order is still the same.
+
+    // Provide a fixed wait to ensure changes are saved.
+    // It's highly preferable to use something non-arbitrary that confirms a
+    // save has occurred. This should be considered a temporary hack to ensure
+    // the tests run reliably.
+    // eslint-disable-next-line playwright/no-wait-for-timeout
+    await page.waitForTimeout(10000);
     await page.reload();
     await canvas.waitForEditorUi();
     textField = page.locator('.field--type-string').filter({
@@ -220,10 +247,11 @@ test.describe('Multivalue Prop Types', () => {
     });
     await expect(textField).toBeVisible();
     // An extra "Empty" item is added.
-    await expect(textField.locator('tr.draggable')).toHaveCount(2);
+    await expect(textField.locator('tr.draggable')).toHaveCount(3);
     labels = textField.locator('[data-canvas-multivalue-label="true"]');
     await expect(labels.nth(0)).toHaveText('Catbro');
     await expect(labels.nth(1)).toHaveText('Hello, world!');
+    await expect(labels.nth(2)).toHaveText('Marshmallow Coast');
   });
 
   test('Limited items', async ({ page }) => {
@@ -298,17 +326,18 @@ test.describe('Multivalue Prop Types', () => {
 
   test('Link items', async ({ page, canvas }) => {
     // Absolute links.
-    const previewFrame = await canvas.getActivePreviewFrame();
-    const absoluteLinkList = previewFrame
-      .getByTestId('link-component')
-      .locator('#link-list li');
-    await expect(absoluteLinkList).toHaveCount(2);
-    await expect(
-      absoluteLinkList.locator('a[href="https://drupal.org"]'),
-    ).toBeVisible();
-    await expect(
-      absoluteLinkList.locator('a[href="https://example.com"]'),
-    ).toBeVisible();
+    await canvas.testInPreviewFrame(
+      '#link-list li',
+      async (absoluteLinkList) => {
+        await expect(absoluteLinkList).toHaveCount(2);
+        await expect(
+          absoluteLinkList.locator('a[href="https://drupal.org"]'),
+        ).toBeVisible();
+        await expect(
+          absoluteLinkList.locator('a[href="https://example.com"]'),
+        ).toBeVisible();
+      },
+    );
 
     const absoluteLinkField = page.locator('.field--type-link').filter({
       has: page.getByRole('heading', {
@@ -325,19 +354,46 @@ test.describe('Multivalue Prop Types', () => {
     await expect(popover.locator('[data-prop-message="true"]')).toHaveText(
       '❌ data/0 must match format "uri"',
     );
+
+    // Popover should refuse to close while the value is invalid.
+    await popover.getByRole('button', { name: 'Close' }).dispatchEvent('click');
+    await expect(firstRow.getByRole('dialog')).toHaveAttribute(
+      'data-state',
+      'open',
+    );
+
+    // Fix the value — popover should now be permitted to close.
+    await popover.getByRole('textbox').fill('https://drupal.org');
+    await expect(popover.locator('[data-prop-message="true"]')).toHaveCount(0);
     await popover.getByRole('button', { name: 'Close' }).dispatchEvent('click');
     await expect(firstRow.getByRole('dialog')).toHaveAttribute(
       'data-state',
       'closed',
     );
 
-    // Relative links.
-    const relativeLinkList = previewFrame
-      .getByTestId('relative_link-component')
-      .locator('#relative-link-list li');
-    await expect(relativeLinkList).toHaveCount(2);
-    await expect(relativeLinkList.locator('a[href="/about"]')).toBeVisible();
-    await expect(relativeLinkList.locator('a[href="/contact"]')).toBeVisible();
+    await canvas.testInPreviewFrame('#link-list li', async (linkList) => {
+      await expect(linkList).toHaveCount(2);
+      await expect(
+        linkList.locator('a[href="https://drupal.org"]'),
+      ).toBeVisible();
+      await expect(
+        linkList.locator('a[href="https://example.com"]'),
+      ).toBeVisible();
+    });
+
+    // Relative links
+    await canvas.testInPreviewFrame(
+      '#relative-link-list li',
+      async (relativeLinkList) => {
+        await expect(relativeLinkList).toHaveCount(2);
+        await expect(
+          relativeLinkList.locator('a[href="/about"]'),
+        ).toBeVisible();
+        await expect(
+          relativeLinkList.locator('a[href="/contact"]'),
+        ).toBeVisible();
+      },
+    );
   });
 
   test('Numbers', async ({ page, canvas }) => {
@@ -372,14 +428,11 @@ test.describe('Multivalue Prop Types', () => {
       'closed',
     );
 
-    const previewFrame = await canvas.getActivePreviewFrame();
-    const numberList = previewFrame
-      .getByTestId('number-component')
-      .locator('#number-list li');
-
-    await expect(numberList).toHaveCount(2);
-    await expect(numberList.nth(0)).toHaveText('42.5');
-    await expect(numberList.nth(1)).toHaveText('100');
+    await canvas.testInPreviewFrame('#number-list li', async (numberList) => {
+      await expect(numberList).toHaveCount(2);
+      await expect(numberList.nth(0)).toHaveText('42.5');
+      await expect(numberList.nth(1)).toHaveText('100');
+    });
 
     // Integer type rejects decimal values.
     const integerField = page.locator('.field--type-integer').filter({
@@ -399,6 +452,20 @@ test.describe('Multivalue Prop Types', () => {
     await textbox.fill('42.5');
     await expect(popover.locator('[data-prop-message="true"]')).toHaveText(
       '❌ data/0 must be integer',
+    );
+
+    // Change it to a valid value, and it should again propagate.
+    await textbox.fill('222');
+    await expect(popover.locator('[data-prop-message="true"]')).toHaveCount(0);
+    await expect(
+      firstRow.locator('[data-canvas-multivalue-label="true"]'),
+    ).toHaveText('222');
+    await textbox.press('Enter');
+
+    // Now the popover is permitted to close.
+    await expect(firstRow.getByRole('dialog')).toHaveAttribute(
+      'data-state',
+      'closed',
     );
   });
 

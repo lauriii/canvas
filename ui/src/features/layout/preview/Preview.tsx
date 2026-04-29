@@ -24,7 +24,7 @@ import useSyncTitle from '@/hooks/useSyncTitle';
 import { usePostTemplateLayoutMutation } from '@/services/componentAndLayout';
 import {
   selectUpdateComponentLoadingState,
-  usePostPreviewMutation,
+  useQueuedPostPreviewMutation,
 } from '@/services/preview';
 import { isAjaxing } from '@/utils/isAjaxing';
 
@@ -48,9 +48,12 @@ const Preview: React.FC = () => {
   );
 
   // --- API Mutations ---
-  const [postPreview, { isLoading: isFetching }] = usePostPreviewMutation({
-    fixedCacheKey: 'editorFramePreview',
-  });
+  const [postPreview, { isLoading: isFetching }] = useQueuedPostPreviewMutation(
+    {
+      fixedCacheKey: 'editorFramePreview',
+    },
+  );
+
   const [postTemplatePreview, { isLoading: isTemplateFetching }] =
     usePostTemplateLayoutMutation({
       fixedCacheKey: 'editorFrameTemplatePreview',
@@ -70,7 +73,7 @@ const Preview: React.FC = () => {
             entity_form_fields,
             entityId,
             entityType,
-          }).unwrap();
+          });
         } else if (context === 'template') {
           await postTemplatePreview({
             layout,

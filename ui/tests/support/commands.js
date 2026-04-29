@@ -1400,6 +1400,42 @@ Cypress.Commands.add('waitForAjax', () => {
   );
 });
 
+/**
+ * Opens the popover for a specific row in a multivalue field list.
+ *
+ * @param {string} fieldAlias - The Cypress alias for the field container (e.g. '@unlimited-link').
+ * @param {number} rowIndex - The zero-based row index.
+ */
+/**
+ * Closes the currently open multivalue popover dialog.
+ *
+ * @param {boolean} [preventClose=false] - When true, confirms the dialog
+ *   remains open after attempting to close (for validation errors). When false,
+ *   confirms the dialog closes successfully.
+ */
+Cypress.Commands.add('closeMultivaluePopover', (preventClose = false) => {
+  cy.get('[role="dialog"][data-state="open"]')
+    .find('[aria-label="Close"]')
+    .click({ force: true });
+
+  if (preventClose) {
+    // Wait 1000ms to confirm popover remains open on invalid value.
+    cy.wait(1000);
+    cy.get('[role="dialog"][data-state="open"]').should('exist');
+  } else {
+    cy.get('[role="dialog"][data-state="open"]').should('not.exist');
+  }
+});
+
+Cypress.Commands.add('openMultivaluePopover', (fieldAlias, rowIndex) => {
+  cy.get(fieldAlias)
+    .find('tbody tr')
+    .eq(rowIndex)
+    .find('[class*="_listItem_"]')
+    .eq(0)
+    .click();
+});
+
 Cypress.Commands.add('insertComponent', (identifier, options = {}) => {
   const { id, name } = identifier;
   const { hasInputs = true } = options;

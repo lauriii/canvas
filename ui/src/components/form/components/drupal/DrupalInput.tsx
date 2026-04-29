@@ -33,6 +33,12 @@ const DrupalInput = ({
           attributes={{
             ...a2p(attributes, {}, { skipAttributes: ['value'] }),
             value: attributes.value,
+            onKeyPress: (e: any) => {
+              const { key } = e;
+              if (!Number(key) && key !== '.' && key !== '0') {
+                e.preventDefault();
+              }
+            },
           }}
         />
       );

@@ -235,6 +235,19 @@ if (container) {
     let formId: string | null = null;
     const updates = updatedInputs
       .map((el) => {
+        // An element with options might not have a value attribute.
+        // Here we add 'value' based on the selected option, before passing to
+        // reduce().
+        if (el.getAttribute('options')) {
+          const options = JSON.parse(el.getAttribute('options') || '{}');
+          const attributes = JSON.parse(el.getAttribute('attributes') || '{}');
+          if (!attributes.value) {
+            const value = options
+              .filter((opt: any) => opt.selected)
+              .map((opt: any) => opt.value)?.[0];
+            return { ...attributes, value };
+          }
+        }
         // For each element, parse out its attributes. These are JSON sent by
         // the canvas_stark.theme.
         return JSON.parse(el.getAttribute('attributes') || '{}');

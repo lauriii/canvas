@@ -1,3 +1,4 @@
+// cspell:ignore backgrounding
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -55,16 +56,37 @@ export default defineConfig({
     setupNodeEvents(on, config) {
       installLogsPrinter(on);
       on('before:browser:launch', (browser, launchOptions) => {
-        if (browser.family === 'chromium' && browser.isHeadless) {
+        if (
+          browser.family === 'chromium' &&
+          browser.isHeadless &&
+          browser.name !== 'electron'
+        ) {
           launchOptions.args.push(
             `--window-size=${viewportWidth},${viewportHeight}`,
           );
           launchOptions.args.push('--force-device-scale-factor=1');
+          launchOptions.args.push('--max_old-space-size=4096');
+          launchOptions.args.push('--disable-dev-shm-usage');
+          launchOptions.args.push('--disable-background-timer-throttling');
+          launchOptions.args.push('--disable-renderer-backgrounding');
+          launchOptions.args.push('--disable-backgrounding-occluded-windows');
         }
 
         if (browser.name === 'electron' && browser.isHeadless) {
           launchOptions.preferences.width = viewportWidth;
           launchOptions.preferences.height = viewportHeight;
+          // Electron equivalents of chromium memory/performance args
+          launchOptions.preferences.webPreferences = {
+            ...launchOptions.preferences.webPreferences,
+            backgroundThrottling: false, // Equivalent to --disable-background-timer-throttling
+          };
+          // Memory limit (equivalent to --max_old-space-size=4096)
+          if (!launchOptions.preferences.additionalArgs) {
+            launchOptions.preferences.additionalArgs = [];
+          }
+          launchOptions.preferences.additionalArgs.push(
+            '--js-flags=--max-old-space-size=4096',
+          );
         }
 
         if (browser.family === 'firefox' && browser.isHeadless) {

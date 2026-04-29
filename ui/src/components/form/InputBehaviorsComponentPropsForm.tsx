@@ -219,7 +219,10 @@ export const InputBehaviorsComponentPropsForm = (
       const schemas = getPropSchemas(inputAndUiData);
       const schema = schemas?.[toPropName(fieldName, selectedComponent)];
 
-      let valueToValidate = coerceValueForSchema(newValue, schema);
+      let valueToValidate = coerceValueForSchema(
+        newValue,
+        schema?.type === 'array' ? schema.items : schema,
+      );
 
       if ([schema?.format, schema?.items?.format].includes('date-time')) {
         valueToValidate = toDateTime(valueToValidate);
