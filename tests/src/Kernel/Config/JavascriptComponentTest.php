@@ -21,6 +21,60 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 class JavascriptComponentTest extends CanvasKernelTestBase {
 
   /**
+   * Tests minItems enforcement in updateFromClientSide.
+   *
+   * @legacy-covers ::createFromClientSide
+   * @legacy-covers ::updateFromClientSide
+   */
+  public function testUpdateFromClientSideMinItemsEnforcement(): void {
+    $client_data = [
+      'machineName' => 'test_min_items',
+      'name' => 'Test minItems Component',
+      'status' => FALSE,
+      'required' => ['required_array_prop', 'required_string_prop'],
+      'props' => [
+        'required_array_prop' => [
+          'type' => 'array',
+          'title' => 'Required Array Prop',
+          'items' => ['type' => 'string'],
+        ],
+        'optional_array_prop' => [
+          'type' => 'array',
+          'title' => 'Optional Array Prop',
+          'items' => ['type' => 'string'],
+        ],
+        'required_string_prop' => [
+          'type' => 'string',
+          'title' => 'Required String Prop',
+        ],
+      ],
+      'slots' => [],
+      'sourceCodeJs' => '',
+      'sourceCodeCss' => '',
+      'compiledJs' => '',
+      'compiledCss' => '',
+      'importedJsComponents' => [],
+      'dataDependencies' => [],
+    ];
+
+    $component = JavaScriptComponent::createFromClientSide($client_data);
+    $props = $component->get('props');
+
+    // Required array prop gets minItems: 1 even when client does not send it.
+    $this->assertSame(1, $props['required_array_prop']['minItems']);
+    // Optional array prop does not get minItems.
+    $this->assertArrayNotHasKey('minItems', $props['optional_array_prop']);
+    // Required non-array prop does not get minItems.
+    $this->assertArrayNotHasKey('minItems', $props['required_string_prop']);
+
+    // minItems sent by client on optional array prop is removed by server.
+    $client_data['props']['optional_array_prop']['minItems'] = 1;
+    $component->updateFromClientSide($client_data);
+    $props = $component->get('props');
+    $this->assertArrayNotHasKey('minItems', $props['optional_array_prop']);
+  }
+
+  /**
    * Tests adding imported component dependencies.
    *
    * @legacy-covers ::createFromClientSide

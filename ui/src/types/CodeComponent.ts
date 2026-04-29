@@ -79,8 +79,6 @@ export interface CodeComponentProp {
   allowMultiple?: boolean;
   valueMode?: ValueMode;
   limitedCount?: number;
-  /** Only value of 1 is supported. Auto-set when required is toggled ON for array props. */
-  minItems?: number;
   items?: {
     type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
     format?: string;
@@ -126,8 +124,6 @@ export interface CodeComponentPropSerialized {
   contentMediaType?: string;
   'x-formatting-context'?: string;
   maxItems?: number;
-  /** Only value of 1 is supported. Set when a required array prop is serialized. */
-  minItems?: number;
   items?: {
     type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
     format?: string;

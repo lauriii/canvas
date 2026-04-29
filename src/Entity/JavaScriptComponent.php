@@ -319,6 +319,21 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     ])) as $key => $value) {
       $this->set($key, $value);
     }
+    // Enforce minItems
+    if (\is_array($this->props)) {
+      $required_prop_names = $this->required ?? [];
+      foreach (\array_keys($this->props) as $prop_name) {
+        if (\in_array($prop_name, $required_prop_names, TRUE) && $this->props[$prop_name]['type'] === 'array') {
+          // Only required array props can have `minItems` set to 1. Other
+          // values are unsupported.
+          // @see \Drupal\canvas\ComponentMetadataRequirementsChecker::check()
+          $this->props[$prop_name]['minItems'] = 1;
+        }
+        else {
+          unset($this->props[$prop_name]['minItems']);
+        }
+      }
+    }
 
     if (\array_key_exists('sourceCodeCss', $data) || \array_key_exists('compiledCss', $data)) {
       $this->set('css', [
