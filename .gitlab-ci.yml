@@ -115,7 +115,6 @@ variables:
   # (Useful when early in an MR and/or developing low-level functionality that is unlikely to affect E2E tests.)
   _CANVAS_E2E_TESTS: true
 
-# @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
 .is-push-rule: &is-push-rule
   if: $CI_PIPELINE_SOURCE == "push" && $CI_PROJECT_ROOT_NAMESPACE == "project"
 
@@ -123,45 +122,52 @@ variables:
   - when: manual
     allow_failure: true
 
-# @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
-.php-files-change-rule: &php-files-change-rule
+.backend-files-change-rule: &backend-files-change-rule
   - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
     changes:
-      - "**/*.{php,module,inc,install,theme,profile}"
-    when: on_success
-
-# @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
-.css-files-change-rule: &css-files-change-rule
-  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
-    changes:
-      - "**/*.css"
-      - package.json
-      - ui/package.json
-      - .prettierrc.json
-    when: on_success
-
-# @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
-.module-metadata-files-change-rule: &module-metadata-files-change-rule
-  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
-    changes:
-      - "**/*.yml"
-    when: on_success
-
-# @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
-.module-config-files-change-rule: &module-config-files-change-rule
-  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
-    changes:
-      # config schema and/or default config
-      - config
-    when: on_success
-
-# @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
-.SDC-files-change-rule: &SDC-files-change-rule
-  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
-    changes:
-      - components
+      # The files and directories most Drupal modules contain.
+      - canvas.*.yml
+      - canvas.module
+      - canvas.post_update.php
+      - composer.*
+      - config/**/*
+      - src/**/*
+      - templates/**/*
+      - themes/**/*
+      # JSON Schema definitions used by SDCs to define props.
       - schema.json
-      - "**/*.twig"
+      # SDCs provided by Canvas for other SDCs to reuse.
+      - components/**/*
+      # Submodules.
+      - modules/**/*
+      # Any test using Canvas' Internal HTTP API has its requests and responses validated against the OpenAPI spec.
+      - openapi.yml
+    when: on_success
+
+# This is a subset of .backend-files-change-rule.
+.data-integrity-files-change-rule: &data-integrity-files-change-rule
+  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
+    changes:
+      # Configuration schema, which references many validation constraints.
+      - config/schema/**/*
+      # Validation logic for either content or config.
+      - "**/*Constraint.php"
+      - "**/*Validator.php"
+      # ⚠️Imperfect, because validation constraints can be added to entity type classes, altered in, etc. However, it
+      # is very unlikely that an MR would add or change validation constraints without also changing one of these files.
+
+.UI-files-change-rule: &UI-files-change-rule
+  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
+    changes:
+      # Customizations to Drupal's JS.
+      - js/**/*
+      # The Canvas UI.
+      - package.json
+      - package-lock.json
+      - ui/**/*
+      # Dependencies of the Canvas UI.
+      - packages/astro-hydration
+      - packages/types
     when: on_success
 
 .ui-fixture-files-change-rule: &UI-fixtures-files-change-rule
@@ -170,8 +176,17 @@ variables:
       - ui/tests/fixtures/**/*
     when: on_success
 
-.e2e-tests-are-enabled-rule: &e2e-tests-are-enabled-rule
-  - if: $_CANVAS_E2E_TESTS == "true"
+.e2e-tests-must-not-be-disabled-rule: &e2e-tests-must-not-be-disabled-rule
+  - if: $_CANVAS_E2E_TESTS == "false"
+    when: never
+
+# The rules to be used by all E2E CI jobs, to ensure they are triggered consistently.
+.e2e-ci-job-rules: &e2e-ci-job-rules
+  - *e2e-tests-must-not-be-disabled-rule
+  - *is-push-rule
+  - *backend-files-change-rule
+  - *UI-files-change-rule
+  - *manual-rule
 
 default:
   cache:
@@ -373,13 +388,9 @@ phpunit:
   # @see https://git.drupalcode.org/issue/gitlab_templates-3447792/-/compare/main...3447792-raise-sqlite-version?from_project_id=96292, when 984abb7b4781559a13078d58bb65f6959fe42179 was the last commit.
   image:
     name: $_CONFIG_DOCKERHUB_ROOT/php-$PHP_VERSION-ubuntu-apache:$_TARGET_PHP_IMAGE_TAG
-  # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
     - *is-push-rule
-    - *php-files-change-rule
-    - *module-metadata-files-change-rule
-    - *module-config-files-change-rule
-    - *SDC-files-change-rule
+    - *backend-files-change-rule
     - *UI-fixtures-files-change-rule
     - *manual-rule
   artifacts:
@@ -439,9 +450,6 @@ vitest:
 
 .cypress-base:
   stage: test
-  rules:
-    - *e2e-tests-are-enabled-rule
-    - *manual-rule
   extends:
     - .test-variables
   before_script:
@@ -505,6 +513,7 @@ vitest:
 
 cypress E2E:
   extends: .cypress-base
+  rules: *e2e-ci-job-rules
   parallel: 4
   script:
     - npx cypress run --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml" --spec=`node ./tests/support/parallel.js` 2>&1 | tee cypress.log || EXIT_CODE=$?
@@ -588,9 +597,7 @@ playwright:
     matrix:
       - SHARD: [ "1/6", "2/6", "3/6", "4/6", "5/6", "6/6" ]
         #PROJECT: [ "chromium", "firefox", "webkit" ]
-  rules:
-    - *e2e-tests-are-enabled-rule
-    - *manual-rule
+  rules: *e2e-ci-job-rules
   interruptible: true
   image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
   extends:
@@ -638,11 +645,9 @@ playwright:
 
 playwright-reports:
   stage: report
+  rules: *e2e-ci-job-rules
   needs:
     - playwright
-  rules:
-    - *e2e-tests-are-enabled-rule
-    - *manual-rule
   when:
     always
   image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
@@ -680,19 +685,20 @@ CLI Test:
   image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
   needs: []
   rules:
+    - *e2e-tests-must-not-be-disabled-rule
     - changes:
         - "packages/cli/**/*"
         - package.json
         - package-lock.json
         - openapi.yml
+        # Everything below is a subset of .backend-files-change-rule.
         - src/Entity/**/*
         - src/Controller/**/*
         # CLI Test checks these components so changes may affect test results.
         - tests/modules/canvas_test_code_components/**/*
     - if: '$CI_COMMIT_TAG =~ /^cli-\d+\.\d+\.\d+(-\w+\d*)?$/'
-    - *module-config-files-change-rule
+    - *data-integrity-files-change-rule
     - *manual-rule
-    - *e2e-tests-are-enabled-rule
   variables:
     GIT_DEPTH: 1
     _TARGET_DB_TYPE: sqlite
