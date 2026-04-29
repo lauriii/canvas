@@ -28,32 +28,6 @@ type BaseTransformOptions = {
   multiple?: boolean;
 };
 
-/**
- * Maps empty strings to null and removes leading and trailing null entries.
- *
- * Empty strings become null to preserve positional placeholders so the backend
- * can render filled rows at the correct positions. Leading and trailing nulls
- * are removed because rows empty at the start or end have no positional
- * significance.
- */
-const trimNulls = <T>(values: Array<T | null | string>): Array<T | null> => {
-  const normalized = values.map((v) =>
-    v === '' ? null : v,
-  ) as Array<T | null>;
-
-  let start = 0;
-  while (start < normalized.length && normalized[start] === null) {
-    start++;
-  }
-
-  let end = normalized.length;
-  while (end > start && normalized[end - 1] === null) {
-    end--;
-  }
-
-  return normalized.slice(start, end);
-};
-
 const normalizeMultipleRecords = (
   value: PropsValuesOrArrayOfPropsValues,
 ): Array<PropsValues | null> => {
@@ -209,7 +183,7 @@ const link: Transformer<
       : (record as PropsValues);
   });
   if (options.multiple) {
-    return trimNulls(returnValue);
+    return returnValue.filter(Boolean);
   }
   return returnValue[0] ?? null;
 };
@@ -306,7 +280,7 @@ const dateTime: Transformer<
     return new Date(`${dateString} ${timeString}+0000`).toISOString();
   });
   if (options.multiple) {
-    return trimNulls(returnValue);
+    return returnValue.filter(Boolean);
   }
   const singleValue = returnValue.shift();
   if (singleValue === undefined) {

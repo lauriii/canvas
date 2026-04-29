@@ -148,7 +148,7 @@ describe('Transforms - link', () => {
     ]);
   });
 
-  it('Should trim trailing and leading nulls', () => {
+  it('Should strip empty rows surrounding a filled row', () => {
     fieldData.sourceTypeSettings.instance.title = 0;
     expect(
       transforms.link(
@@ -163,8 +163,7 @@ describe('Transforms - link', () => {
     ).toEqual(['https://example.com']);
   });
 
-  it('Should trim leading nulls', () => {
-    // Rows 0 and 1 are empty, row 2 has a value.
+  it('Should strip leading empty rows', () => {
     fieldData.sourceTypeSettings.instance.title = 0;
     expect(
       transforms.link(
@@ -193,7 +192,7 @@ describe('Transforms - link', () => {
     ).toEqual([]);
   });
 
-  it('Should trim trailing empty rows when the first row is filled', () => {
+  it('Should strip trailing empty rows when the first row is filled', () => {
     fieldData.sourceTypeSettings.instance.title = 0;
     expect(
       transforms.link(
@@ -206,6 +205,21 @@ describe('Transforms - link', () => {
         fieldData,
       ),
     ).toEqual(['https://example.com/first']);
+  });
+
+  it('Should strip empty rows between filled rows', () => {
+    fieldData.sourceTypeSettings.instance.title = 0;
+    expect(
+      transforms.link(
+        {
+          0: { uri: 'https://example.com/first', _weight: '0' },
+          1: { uri: '', _weight: '1' },
+          2: { uri: 'https://example.com/third', _weight: '2' },
+        },
+        { multiple: true },
+        fieldData,
+      ),
+    ).toEqual(['https://example.com/first', 'https://example.com/third']);
   });
 });
 
@@ -455,7 +469,7 @@ describe('Transforms - dateTime', () => {
     expect(transforms.dateTime({ date: '' }, {}, undefined)).to.equal(null);
   });
 
-  it('should trim trailing and leading', () => {
+  it('should strip empty rows surrounding a filled row', () => {
     expect(
       transforms.dateTime(
         [
@@ -469,8 +483,7 @@ describe('Transforms - dateTime', () => {
     ).toEqual(['2024-06-01']);
   });
 
-  it('should trim trailing and leading nulls but keep middle nulls', () => {
-    // Rows 0 and 1 are empty, row 2 has a value.
+  it('should strip all empty rows including leading ones', () => {
     expect(
       transforms.dateTime(
         [
@@ -497,7 +510,7 @@ describe('Transforms - dateTime', () => {
     ).toEqual([]);
   });
 
-  it('should trim trailing empty rows when the first row is filled', () => {
+  it('should strip trailing empty rows when the first row is filled', () => {
     expect(
       transforms.dateTime(
         [
@@ -509,6 +522,20 @@ describe('Transforms - dateTime', () => {
         datePropSource,
       ),
     ).toEqual(['2024-01-01']);
+  });
+
+  it('should strip empty rows between filled rows', () => {
+    expect(
+      transforms.dateTime(
+        [
+          { date: '2024-01-01', time: '' },
+          { date: '', time: '' },
+          { date: '2024-06-01', time: '' },
+        ],
+        { type: 'date', multiple: true },
+        datePropSource,
+      ),
+    ).toEqual(['2024-01-01', '2024-06-01']);
   });
 });
 
