@@ -28,6 +28,8 @@
       "@tests/*": ["./ui/tests/*"],
       "@experimental/*": ["./experimental/*"]
     },
+    "incremental": true,
+    "tsBuildInfoFile": ".cache/tsc/.tsbuildinfo"
   },
   "exclude": ["dist", "node_modules"],
 }

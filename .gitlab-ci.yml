@@ -198,6 +198,8 @@ default:
     paths:
       - .cache/composer
       - .cache/npm
+      - .cache/astro
+      - .cache/tsc
     policy: pull
     fallback_keys:
       - ${CI_PARENT_PROJECT_NAME}
@@ -217,9 +219,18 @@ cache dependencies:
       paths:
         - .cache/composer
         - .cache/npm
+        - .cache/astro
+        - .cache/tsc
       policy: pull-push
       fallback_keys:
         - ${CI_PARENT_PROJECT_NAME}
+    - key: ${CI_PARENT_PROJECT_NAME}
+      paths:
+        - .cache/composer
+        - .cache/npm
+        - .cache/astro
+        - .cache/tsc
+      policy: push
     - key:
         files:
           - package-lock.json
@@ -227,9 +238,12 @@ cache dependencies:
       paths:
         - .cache/ms-playwright
       policy: pull-push
+    - key: ${CI_PARENT_PROJECT_NAME}-playwright-latest
+      paths:
+        - .cache/ms-playwright
+      policy: push
   before_script:
-    - !reference [ .drupal ]
-    - composer run install-dev-deps
+    - !reference [ .drupal-with-dev-dependencies ]
   script:
     - npm ci
     - npx playwright install
@@ -339,10 +353,9 @@ phpunit:
     # _PHPUNIT_TESTGROUPS: canvas_component_sources
 
   before_script:
-    - !reference [ .drupal ]
-    - !reference [.drupal-enable-test-modules]
+    - !reference [ .drupal-with-dev-dependencies ]
+    - !reference [ .drupal-enable-test-modules ]
     - !reference [ .canvas-ui ]
-    - composer run install-dev-deps
     # Forward-port upstream fix for https://www.drupal.org/project/drupal/issues/3582249
     # (PHPUnit SourceMapper races with concurrent test cleanup under sites/simpletest,
     # causing "RecursiveDirectoryIterator: Failed to open directory" random failures).
@@ -466,10 +479,9 @@ vitest:
     # Copied from `.nightwatch-base`, but converted to use GitLab CI references.
     # 👇
     #
-    - !reference [ .drupal ]
-    - !reference [.drupal-enable-test-modules]
+    - !reference [ .drupal-with-dev-dependencies ]
+    - !reference [ .drupal-enable-test-modules ]
     - !reference [ .canvas-ui ]
-    - composer run install-dev-deps
     #
     # 👆
     #
@@ -551,8 +563,7 @@ lint (php):
     GIT_DEPTH: 1
     COMPOSER_ROOT_VERSION: 0.0.0
   before_script:
-    - !reference [ .drupal-files ]
-    - composer run install-dev-deps
+    - !reference [ .drupal-files-with-dev-dependencies ]
     - mkdir -p test-results
   script:
     # PHPStan doesn't allow multiple outputs, but it will cache the result so
@@ -611,6 +622,8 @@ playwright:
       paths:
         - .cache/composer
         - .cache/npm
+        - .cache/astro
+        - .cache/tsc
       policy: pull
       fallback_keys:
         - ${CI_PARENT_PROJECT_NAME}
@@ -621,6 +634,8 @@ playwright:
       paths:
         - .cache/ms-playwright
       policy: pull
+      fallback_keys:
+        - ${CI_PARENT_PROJECT_NAME}-playwright-latest
   variables:
     GIT_DEPTH: 1
     _TARGET_DB_TYPE: sqlite
@@ -629,12 +644,11 @@ playwright:
     DRUPAL_TEST_PLAYWRIGHT_SKIP_TEARDOWN: true
     COMPOSER_IGNORE_PLATFORM_REQS:
   before_script:
-    - !reference [ .drupal ]
+    - !reference [ .drupal-with-dev-dependencies ]
     - !reference [ .canvas-ui ]
-    - composer run install-dev-deps
   script:
     - npm ci
-    - npm run test:playwright -- --shard=$SHARD --reporter=blob
+    - npm run test:playwright -- --shard=$SHARD
   after_script:
     - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/blob-report $CI_PROJECT_DIR/blob-report
   artifacts:
@@ -707,9 +721,8 @@ CLI Test:
     DRUPAL_TEST_WEBSERVER_USER: www-data
     DRUPAL_TEST_BASE_URL: http://localhost
   before_script:
-    - !reference [ .drupal ]
+    - !reference [ .drupal-with-dev-dependencies ]
     - !reference [ .canvas-ui ]
-    - composer run install-dev-deps
     - mkdir -p test-results
   # This job must pass, but must also not disrupt Canvas's CI if dependencies have a security vulnerability.
   allow_failure:

@@ -181,6 +181,7 @@ export default defineConfig([
   },
   {
     ignores: [
+      ".cache",
       "**/dist",
       "**/.astro",
       "js/astro-bundles/*",

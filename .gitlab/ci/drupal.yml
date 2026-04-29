@@ -8,22 +8,25 @@
 # individually symlinks all the project files into module directory.
 # This causes some very strange behavior and node.js scripts will refuse to
 # run in a lot of cases, so this is an alternative job.
-.drupal-files: &drupal-files # Move everything into a subdirectory
+
+.drupal-setup-composer-install: &drupal-setup-composer-install # Move everything into a subdirectory
   - mkdir tmp
   - find . -maxdepth 1 -type f -not -path "./tmp*" -exec mv {} tmp/ \;
   - find . -maxdepth 1 -type d -not -path "." -not -path "./tmp" -not -path "./.cache" -exec mv {}
     tmp/ \;
   - mv tmp $CI_PROJECT_NAME
   - mv $CI_PROJECT_NAME/.git $CI_PROJECT_NAME/git
-  # Get Drupal
-  - composer create-project drupal/recommended-project:$DRUPAL_CORE _drupal
+  # Get Drupal, but don't install it yet. We'll do that when we do composer require.
+  - composer create-project drupal/recommended-project:$DRUPAL_CORE _drupal --no-install
   - cd _drupal
   # Add core-dev and this module.
   - composer config minimum-stability dev
   - composer config prefer-stable true
   - |
     composer config repositories.$CI_PARENT_PROJECT_NAME --json '{"type": "path", "url": "../'$CI_PROJECT_NAME'", "options": { "symlink": false } }'
-  - composer require drupal/core-dev "drupal/$CI_PARENT_PROJECT_NAME @dev" --with-all-dependencies
+  - composer require drupal/core-dev "drupal/$CI_PARENT_PROJECT_NAME @dev" --with-all-dependencies --no-install
+
+.drupal-restore-git: &drupal-restore-git
   # Restore the .git directory, this is removed by composer when bringing in the module.
   - mv web/modules/contrib/$CI_PARENT_PROJECT_NAME/git
     web/modules/contrib/$CI_PARENT_PROJECT_NAME/.git
@@ -70,6 +73,22 @@
   # Change to the project directory
   - cd $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME
 
+.drupal-files: &drupal-files
+  - !reference [ .drupal-setup-composer-install ]
+  - composer install
+  - !reference [ .drupal-restore-git ]
+
+.drupal-files-with-dev-dependencies: &drupal-files
+  - !reference [ .drupal-setup-composer-install ]
+  - |
+    PACKAGES=$(cat ../$CI_PROJECT_NAME/composer.json | jq -r '.["require-dev"] // {} | to_entries[] | "\(.key):\(.value)"' | tr '\n' ' ')
+    composer require ${PACKAGES} --dev -W
+  - !reference [ .drupal-restore-git ]
+
 .drupal: &drupal
-  - !reference [.drupal-files]
-  - !reference [.drupal-webserver]
+  - !reference [ .drupal-files ]
+  - !reference [ .drupal-webserver ]
+
+.drupal-with-dev-dependencies: &drupal-with-dev-dependencies
+  - !reference [ .drupal-files-with-dev-dependencies ]
+  - !reference [ .drupal-webserver ]

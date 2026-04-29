@@ -11,8 +11,9 @@
   "scripts": {
     "drupaldev": "VITE_DRUPAL=true vite",
     "start": "vite",
-    "build": "npm run type-check && vite build && npm run build:astro",
+    "build": "run-p --aggregate-output vite:build build:astro",
     "build:astro": "npm run build --workspace=@drupal-canvas/astro-hydration",
+    "vite:build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest watch",

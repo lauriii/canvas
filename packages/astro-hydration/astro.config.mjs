@@ -11,6 +11,8 @@ const pkg = require('./package.json');
 
 // https://astro.build/config
 export default defineConfig({
+  cacheDir: '../../.cache/astro',
+
   // Enable Preact to support Preact JSX components.
   integrations: [preact()],
   vite: {

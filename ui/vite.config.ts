@@ -49,6 +49,7 @@ export default defineConfig(({ command, mode }) => {
       },
     },
     build: {
+      reportCompressedSize: false,
       rollupOptions: {
         // external: ['react', 'react-dom', "redux", "@reduxjs/toolkit"],
         output: {
