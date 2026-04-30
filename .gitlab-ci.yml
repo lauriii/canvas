@@ -113,7 +113,7 @@ variables:
 
   # Enable Canvas contributors to change this from `true` to `false` to disable E2E (end-to-end) tests.
   # (Useful when early in an MR and/or developing low-level functionality that is unlikely to affect E2E tests.)
-  _CANVAS_E2E_TESTS: false
+  _CANVAS_E2E_TESTS: true
 
 .is-push-rule: &is-push-rule
   if: $CI_PIPELINE_SOURCE == "push" && $CI_PROJECT_ROOT_NAMESPACE == "project"
