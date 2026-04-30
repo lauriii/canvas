@@ -11,9 +11,14 @@ composer require "drupal/canvas @dev" --with-all-dependencies
 ```
 
 Then, from the module directory, add the module's dev dependencies:
-```
+```shell
 cd modules/custom/canvas
 composer run install-dev-deps
+```
+
+or with DDEV:
+```shell
+ddev exec -d /var/www/html/modules/contrib/canvas composer install-dev-deps
 ```
 
 If you are using a composer scaffolded copy of Drupal (i.e. not the core git

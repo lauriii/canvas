@@ -951,7 +951,7 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
    */
   #[IgnoreDeprecations]
   public function testDynamicPrefixIsTransformedOnLoad(): void {
-    $this->expectDeprecation('The "dynamic" prop source was renamed to "entity field" is deprecated in canvas:1.2.0 and will be removed from canvas:2.0.0. Re-save (and re-export) all Canvas content templates. See https://www.drupal.org/node/3566701');
+    $this->expectDeprecation('The "dynamic" prop source was renamed to "entity field" and is deprecated in canvas:1.2.0 and will be removed from canvas:2.0.0. Re-save (and re-export) all Canvas content templates. See https://www.drupal.org/node/3566701');
     $prop_source = PropSource::parse([
       'sourceType' => PropSource::Dynamic->value,
       'expression' => "ℹ︎␜entity:user␝name␞␟value",

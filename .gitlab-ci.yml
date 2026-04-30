@@ -106,14 +106,14 @@ variables:
   OPT_IN_TEST_NEXT_MINOR: '1'
   # Target a specific 11.3 release, not 11.3.x-dev, to avoid breaking on evolving test expectations unnecessarily.
   # It should match the latest security release on the branch.
-  CORE_NEXT_MINOR: 11.3.7
+  CORE_NEXT_MINOR: 11.3.8
   # Target a specific 11.2 release, not 11.2.x-dev, to avoid breaking on evolving test expectations unnecessarily.
   # It should match the latest security release on the branch.
   DRUPAL_CORE: 11.2.11
 
   # Enable Canvas contributors to change this from `true` to `false` to disable E2E (end-to-end) tests.
   # (Useful when early in an MR and/or developing low-level functionality that is unlikely to affect E2E tests.)
-  _CANVAS_E2E_TESTS: true
+  _CANVAS_E2E_TESTS: false
 
 .is-push-rule: &is-push-rule
   if: $CI_PIPELINE_SOURCE == "push" && $CI_PROJECT_ROOT_NAMESPACE == "project"
@@ -205,7 +205,7 @@ default:
       - ${CI_PARENT_PROJECT_NAME}
 
 cache dependencies:
-  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
   stage: cache
   needs: []
   rules:
@@ -269,6 +269,14 @@ phpstan:
   rules:
     - when: never
 
+phpunit:
+  rules:
+    - when: never
+
+phpunit (next minor):
+  rules:
+    - when: never
+
 cspell:
   rules:
     - when: never
@@ -281,11 +289,11 @@ phpstan (next minor):
   rules:
     - when: never
 
-phpunit (next minor):
+stylelint:
   rules:
     - when: never
 
-stylelint:
+test-only changes:
   rules:
     - when: never
 
@@ -376,106 +384,147 @@ phpcs-rules-match-drupal-11:
   # Allow this to fail, to avoid disrupting Canvas's CI when upstream changes.
   allow_failure: true
 
-# Tests the minimum Drupal core version Canvas supports: 11.2.
-phpunit:
-  needs: []
-  variables:
-    # Upstream's .test-variables sets this to $CI_PROJECT_DIR/$_WEB_ROOT/sites/simpletest/browser_output,
-    # which resolves to web/... because $_WEB_ROOT defaults to "web". Canvas puts Drupal under
-    # _drupal/, so override to the actual path where browser output is written.
-    BROWSERTEST_OUTPUT_DIRECTORY: $CI_PROJECT_DIR/_drupal/web/sites/simpletest/browser_output
-    DRUPAL_TEST_WEBSERVER_USER: www-data
-    DRUPAL_TEST_WEBDRIVER_AUTOSTART: true
-    DRUPAL_TEST_WEBDRIVER_BINARY: "chromedriver"
-    DRUPAL_TEST_WEBDRIVER_BINARY_FLAGS: "--port=9515"
-    DRUPAL_TEST_BASE_URL: http://localhost
-    DRUPAL_TEST_DB_URL: sqlite://localhost/sites/default/files/.ht.sqlite
-    MINK_DRIVER_ARGSP: '["chrome", {"browserName":"chrome", "goog:chromeOptions":{"w3c": true, "args":["--no-sandbox","--ignore-certificate-errors", "--allow-insecure-localhost", "--headless", "--disable-dev-shm-usage", "--disable-gpu"]}}, "http://localhost:9515"]'
-    MINK_DRIVER_ARGS_WEBDRIVER: '["chrome", {"browserName":"chrome", "goog:chromeOptions":{"w3c": true, "args":["--no-sandbox","--ignore-certificate-errors", "--allow-insecure-localhost", "--headless", "--disable-dev-shm-usage", "--disable-gpu"]}}, "http://localhost:9515"]'
-    SIMPLETEST_BASE_URL: http://localhost
-    SIMPLETEST_DB: sqlite://localhost/sites/default/files/.ht.sqlite
-
-    # Note: Canvas uses `#[Group('#slow')]` to start slow tests early. The threshold is (at the time of writing) ~60 seconds.
-    _PHPUNIT_CONCURRENT: 1
-    # 💡To run a single PHPUnit test, e.g. PropSourceTest, comment the above and uncomment the below.
-    # _PHPUNIT_CONCURRENT: 0
-    # _PHPUNIT_EXTRA: '--filter PropSourceTest'
-    # 💡To run only tests in a specific group, e.g. `canvas_component_sources` or `canvas_data_model__prop_expressions`.
-    # _PHPUNIT_TESTGROUPS: canvas_component_sources
-
-  before_script:
-    - !reference [ .drupal-with-dev-dependencies ]
-    - !reference [ .drupal-enable-test-modules ]
-    - !reference [ .canvas-ui ]
-    # Forward-port upstream fix for https://www.drupal.org/project/drupal/issues/3582249
-    # (PHPUnit SourceMapper races with concurrent test cleanup under sites/simpletest,
-    # causing "RecursiveDirectoryIterator: Failed to open directory" random failures).
-    # Fixed on Drupal 11.x (commit 3753f904, 2026-03-30); not yet in 11.2.x. Idempotent —
-    # becomes a no-op once the minimum supported core version ships the fix.
-    - sed -i '\|<directory>\.\./sites</directory>|d' $CI_PROJECT_DIR/_drupal/web/core/phpunit.xml.dist
-  script:
-    # Remove all spaces from _PHPUNIT_TESTGROUPS for reliable checking and to
-    # ensure only one string is passed to bin/phpunit or run-tests.sh
-    - _PHPUNIT_TESTGROUPS=$(echo $_PHPUNIT_TESTGROUPS | sed -e 's/ //g')
-    # Execute tests.
-    - |
-      cd $CI_PROJECT_DIR/_drupal
-      # if _PHPUNIT_TESTGROUPS is blank then do not add anything, because the test group will be handled by the matrix.
-      # if _PHPUNIT_TESTGROUPS is --all then add --directory $DRUPAL_PROJECT_FOLDER
-      # Otherwise add $_PHPUNIT_TESTGROUPS (without the --group)
-      WHAT_TO_RUN=$([[ "$_PHPUNIT_TESTGROUPS" == "" ]] && echo "" || ([[ "$_PHPUNIT_TESTGROUPS" == "--all" ]] && echo "--directory $DRUPAL_PROJECT_FOLDER" || echo "$_PHPUNIT_TESTGROUPS"))
-      echo "_PHPUNIT_CONCURRENT=$_PHPUNIT_CONCURRENT, _PHPUNIT_TESTGROUPS=$_PHPUNIT_TESTGROUPS, _PHPUNIT_EXTRA=$_PHPUNIT_EXTRA, WHAT_TO_RUN=$WHAT_TO_RUN"
-      # Create an empty junit.xml because run-tests.sh does not write to this file but the artifact needs to exist.
-      echo "executing: sudo -u www-data -H -E php $CI_PROJECT_DIR/_drupal/web/core/scripts/run-tests.sh --php '$(which php)' --color --keep-results --concurrency $_CONCURRENCY_THREADS --repeat '1' --sqlite 'sites/default/files/.sqlite' --dburl $SIMPLETEST_DB --url $SIMPLETEST_BASE_URL --xml $CI_PROJECT_DIR/_drupal/web/sites/default/files/simpletest --verbose --non-html $WHAT_TO_RUN $_PHPUNIT_EXTRA"
-      ./vendor/bin/phpunit --version
-      sudo -u www-data -H -E  php $CI_PROJECT_DIR/_drupal/web/core/scripts/run-tests.sh --php "$(which php)" --color --keep-results --concurrency $_CONCURRENCY_THREADS --repeat "1" --sqlite "sites/default/files/.sqlite" --dburl $SIMPLETEST_DB --url $SIMPLETEST_BASE_URL --xml $CI_PROJECT_DIR/_drupal/web/sites/default/files/simpletest --verbose --non-html $WHAT_TO_RUN $_PHPUNIT_EXTRA || EXIT_CODE=$?
-    - exit $EXIT_CODE
-  parallel:
-    # @see https://www.drupal.org/node/3444548
-    matrix:
-      - _TARGET_DB_TYPE: sqlite
-        _TARGET_DB_VERSION: '3'
-        # @see https://git.drupalcode.org/project/drupal/-/commit/10466dba9d7322ed55165dd9224edb2153c9b27a
-        _TARGET_PHP: '8.3-ubuntu'
-        _FOR_EVERY_MR_COMMIT: 'true'
-      - _TARGET_DB_TYPE: 'mariadb'
-        _TARGET_DB_VERSION: '10.6'
-        _FOR_EVERY_MR_COMMIT: 'false'
-      - _TARGET_DB_TYPE: 'mysql'
-        # @todo Delete this when https://www.drupal.org/project/gitlab_templates/issues/3447105 lands.
-        _TARGET_DB_VERSION: '8'
-        _FOR_EVERY_MR_COMMIT: 'false'
-      - _TARGET_DB_TYPE: 'pgsql'
-        _TARGET_DB_VERSION: '16'
-        _FOR_EVERY_MR_COMMIT: 'false'
-  # @todo Delete this after https://www.drupal.org/project/gitlab_templates/issues/3447792 lands.
-  # @see https://git.drupalcode.org/issue/gitlab_templates-3447792/-/compare/main...3447792-raise-sqlite-version?from_project_id=96292, when 984abb7b4781559a13078d58bb65f6959fe42179 was the last commit.
-  image:
-    name: $_CONFIG_DOCKERHUB_ROOT/php-$PHP_VERSION-ubuntu-apache:$_TARGET_PHP_IMAGE_TAG
+phpunit (11.2, sqlite):
   rules:
     - *is-push-rule
     - *backend-files-change-rule
-    - *UI-fixtures-files-change-rule
+    # Changes to the infra for running PHPUnit itself also need to trigger CI.
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && ($_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null)
+      changes:
+        - .env.defaults
+        - phpunit.xml.dist
+        - tests/scripts/phpunit.sh
     - *manual-rule
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
+  needs: []
+  parallel:
+    matrix:
+      # The KUBERNETES_CPU_REQUEST and DRUPAL_TEST_CONCURRENCY values match core.
+      - PHPUNIT_TESTSUITE: 'PHPUnit-Unit'
+        KUBERNETES_CPU_REQUEST: "4"
+        DRUPAL_TEST_CONCURRENCY: '24'
+      - PHPUNIT_TESTSUITE: 'PHPUnit-Kernel'
+        CI_PARALLEL_NODE_INDEX: ['1', '2', '3']
+        CI_PARALLEL_NODE_TOTAL: '3'
+        KUBERNETES_CPU_REQUEST: "10"
+        DRUPAL_TEST_CONCURRENCY: '20'
+      - PHPUNIT_TESTSUITE: 'PHPUnit-Functional'
+        KUBERNETES_CPU_REQUEST: "20"
+        DRUPAL_TEST_CONCURRENCY: '14'
+  variables:
+    DRUPAL_TEST_WEBSERVER_USER: www-data
+  before_script:
+    - !reference [ .drupal ]
+    - !reference [ .canvas-ui ]
+    - composer run install-dev-deps
+  script:
+    - !reference [ .test_runner ]
+    - run_test "phpunit" "composer run phpunit -- --types $PHPUNIT_TESTSUITE --ci-parallel-node-index $CI_PARALLEL_NODE_INDEX --ci-parallel-node-total $CI_PARALLEL_NODE_TOTAL"
+    - !reference [ .test_summary ]
+  after_script:
+    - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/test-results $CI_PROJECT_DIR/test-results
+    - cp -R _drupal/web/sites/simpletest/browser_output $CI_PROJECT_DIR/test-results || true
+    - |
+      cat > $CI_PROJECT_DIR/test-results/links.json << EOF
+      {
+        "PHPUnit test report": [
+          {
+            "external_link": {
+              "label": "PHPUnit browser output ($PHPUNIT_TESTSUITE)",
+              "url": "${CI_SERVER_URL}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/browse/test-results/browser_output"
+            }
+          }
+        ]
+      }
+      EOF
   artifacts:
-    expire_in: 6 mos
-    expose_as: 'junit-browser_output-apache_log'
+    expose_as: 'PHPUnit tests'
     when: always
+    expire_in: 6 mos
+    paths:
+      - test-results/
     reports:
       junit:
-        - $CI_PROJECT_DIR/_drupal/web/sites/default/files/simpletest/phpunit-*.xml
-    name: artifacts-$CI_PIPELINE_ID-$CI_JOB_NAME_SLUG
-    paths:
-      - $CI_PROJECT_DIR/_drupal/web/sites/default/files/simpletest
-      - $BROWSERTEST_OUTPUT_DIRECTORY
+        - test-results/*.xml
+      annotations: test-results/links.json
 
+phpunit (11.2, mariadb 10.6):
+  extends: phpunit (11.2, sqlite)
+  services:
+    - mariadb:10.6
+  variables:
+    _FOR_EVERY_MR_COMMIT: false
+    SIMPLETEST_DB: mysql://drupal:drupal@127.0.0.1/drupal
+    MYSQL_DATABASE: drupal
+    MYSQL_USER: drupal
+    MYSQL_PASSWORD: drupal
+    MYSQL_ROOT_PASSWORD: root
 
-phpunit (11.3):
-  extends: phpunit
+phpunit (11.2, pgsql 16):
+  extends: phpunit (11.2, sqlite)
+  services:
+    - postgres:16
+  variables:
+    _FOR_EVERY_MR_COMMIT: false
+    SIMPLETEST_DB: pgsql://drupal:drupal@127.0.0.1/drupal
+    POSTGRES_DB: drupal
+    POSTGRES_USER: drupal
+    POSTGRES_PASSWORD: drupal
+
+phpunit (11.2, mysql 8):
+  extends: phpunit (11.2, sqlite)
+  services:
+    - mysql:8.0
+  variables:
+    _FOR_EVERY_MR_COMMIT: false
+    SIMPLETEST_DB: mysql://drupal:drupal@127.0.0.1/drupal
+    MYSQL_DATABASE: drupal
+    MYSQL_USER: drupal
+    MYSQL_PASSWORD: drupal
+    MYSQL_ROOT_PASSWORD: root
+
+phpunit (11.3, sqlite):
+  extends: phpunit (11.2, sqlite)
   variables:
     DRUPAL_CORE: $CORE_NEXT_MINOR
-    IGNORE_PROJECT_DRUPAL_CORE_VERSION: 1
-    MINIMUM_STABILITY_OVERRIDE: 'dev'
+
+phpunit (11.3, mariadb 10.6):
+  extends: phpunit (11.2, sqlite)
+  services:
+    - mariadb:10.6
+  variables:
+    _FOR_EVERY_MR_COMMIT: false
+    DRUPAL_CORE: $CORE_NEXT_MINOR
+    SIMPLETEST_DB: mysql://drupal:drupal@127.0.0.1/drupal
+    MYSQL_DATABASE: drupal
+    MYSQL_USER: drupal
+    MYSQL_PASSWORD: drupal
+    MYSQL_ROOT_PASSWORD: root
+
+phpunit (11.3, pgsql 16):
+  extends: phpunit (11.2, sqlite)
+  services:
+    - postgres:16
+  variables:
+    _FOR_EVERY_MR_COMMIT: false
+    DRUPAL_CORE: $CORE_NEXT_MINOR
+    SIMPLETEST_DB: pgsql://drupal:drupal@127.0.0.1/drupal
+    POSTGRES_DB: drupal
+    POSTGRES_USER: drupal
+    POSTGRES_PASSWORD: drupal
+
+phpunit (11.3, mysql 8):
+  extends: phpunit (11.2, sqlite)
+  services:
+    - mysql:8.0
+  variables:
+    _FOR_EVERY_MR_COMMIT: false
+    DRUPAL_CORE: $CORE_NEXT_MINOR
+    SIMPLETEST_DB: mysql://drupal:drupal@127.0.0.1/drupal
+    MYSQL_DATABASE: drupal
+    MYSQL_USER: drupal
+    MYSQL_PASSWORD: drupal
+    MYSQL_ROOT_PASSWORD: root
 
 vitest:
   stage: test
@@ -609,7 +658,7 @@ cypress unit:
 lint (php):
   stage: validate
   needs: []
-  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
   variables:
     GIT_DEPTH: 1
     COMPOSER_ROOT_VERSION: 0.0.0
@@ -646,7 +695,7 @@ lint (php):
 lint (node):
   stage: validate
   needs: []
-  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
   script:
     - npm ci
     - npm run build --workspace=drupal-canvas
@@ -661,7 +710,7 @@ playwright:
         #PROJECT: [ "chromium", "firefox", "webkit" ]
   rules: *e2e-ci-job-rules
   interruptible: true
-  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
   extends:
     - .test-variables
   cache:
@@ -715,7 +764,7 @@ playwright-reports:
     - playwright
   when:
     always
-  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
   script:
     - mkdir -p test-results
     - npx playwright merge-reports --reporter=html ./blob-report
@@ -747,7 +796,7 @@ playwright-reports:
 
 CLI Test:
   stage: test
-  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
   needs: []
   rules:
     - *e2e-tests-must-not-be-disabled-rule
@@ -872,7 +921,7 @@ pages-publish:
 release:
   # For release flow details, see docs/release-process.md.
   stage: publish
-  image: ghcr.io/drupal-canvas/drupal-testing:2.0.0
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
   needs: []
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
