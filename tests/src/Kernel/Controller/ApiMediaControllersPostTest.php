@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Controller;
 
-// cspell:ignore Bwidth Fitok DNSF
+// cspell:ignore Bwidth Fitok DNSF ITOK
 
 use Drupal\canvas\Controller\ApiMediaControllers;
 use Drupal\canvas\Entity\Page;
@@ -123,6 +123,9 @@ class ApiMediaControllersPostTest extends CanvasKernelTestBase {
     \array_walk_recursive($data, function (mixed &$value) use ($vfs_site_base_url, $media_path) {
       if (\is_string($value)) {
         $value = \str_replace([$vfs_site_base_url, $media_path], ['::SITE_DIR_BASE_URL::', '::MEDIA_FOLDER::'], $value);
+        // The itok is derived from the URI (which includes the date-based media
+        // folder) so it changes monthly. Normalize it to a stable placeholder.
+        $value = \preg_replace('/%3Fitok%3D[A-Za-z0-9_-]+/', '%3Fitok%3D::ITOK::', $value);
       }
     });
 
@@ -189,7 +192,7 @@ class ApiMediaControllersPostTest extends CanvasKernelTestBase {
       [
         'id' => 1,
         'inputs_resolved' => [
-          'src' => '::SITE_DIR_BASE_URL::/files/::MEDIA_FOLDER::/gracie-big.jpg?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/::MEDIA_FOLDER::/gracie-big.jpg.avif%3Fitok%3Dh5xv7Qhl',
+          'src' => '::SITE_DIR_BASE_URL::/files/::MEDIA_FOLDER::/gracie-big.jpg?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/::MEDIA_FOLDER::/gracie-big.jpg.avif%3Fitok%3D::ITOK::',
           'alt' => 'Gracie Dog in its most happy state',
           'width' => 3000,
           'height' => 2595,
@@ -204,7 +207,7 @@ class ApiMediaControllersPostTest extends CanvasKernelTestBase {
       [
         'id' => 1,
         'inputs_resolved' => [
-          'src' => '::SITE_DIR_BASE_URL::/files/::MEDIA_FOLDER::/gracie-big.jpg?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/::MEDIA_FOLDER::/gracie-big.jpg.avif%3Fitok%3Dh5xv7Qhl',
+          'src' => '::SITE_DIR_BASE_URL::/files/::MEDIA_FOLDER::/gracie-big.jpg?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/::MEDIA_FOLDER::/gracie-big.jpg.avif%3Fitok%3D::ITOK::',
           'alt' => '',
           'width' => 3000,
           'height' => 2595,

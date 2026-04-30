@@ -145,6 +145,9 @@ variables:
       - modules/**/*
       # Any test using Canvas' Internal HTTP API has its requests and responses validated against the OpenAPI spec.
       - openapi.yml
+      # Tests
+      - "tests/**/*"
+      - "!tests/src/Playwright/**/*"
     when: on_success
 
 # This is a subset of .backend-files-change-rule.
@@ -366,7 +369,6 @@ phpunit (11.2, sqlite):
       changes:
         - .env.defaults
         - phpunit.xml.dist
-        - tests/scripts/phpunit.sh
     - *manual-rule
   image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
   needs: []
