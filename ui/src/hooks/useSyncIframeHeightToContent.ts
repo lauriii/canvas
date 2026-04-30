@@ -74,6 +74,9 @@ function useSyncIframeHeightToContent(
           multipliers.forEach((multi) => {
             iframe.style.height = height * multi + 'px';
             iframe.style.overflow = 'visible';
+            // Force a synchronous parent-frame layout flush so the iframe's
+            // viewport height propagates before reading cross-frame clientHeight.
+            void iframe.offsetHeight;
             elements.forEach((element) => {
               const ratios: number[] = heightRatios.get(element) || [];
               if (element.clientHeight > 10) {
@@ -93,15 +96,25 @@ function useSyncIframeHeightToContent(
 
               // If the element height consistently changed at the same ratio
               // as the container iframe (all 3 numbers in ratios are the same),
-              // we can use the value in the ratios map to set a max height and
-              // avoid infinitely growing vh elements.
+              // we can use the value in the ratios map to set min and max height
+              // and avoid infinitely growing vh elements. Min-height must be
+              // overridden too: `min-height: 100vh` (e.g. min-h-screen) would
+              // otherwise win over max-height when the viewport grows, per CSS
+              // used height rules.
               if (
                 !['HTML', 'BODY'].includes(element.tagName) &&
                 ratios.length === multipliers.length &&
                 ratios.every((ratio) => ratio === ratios[0])
               ) {
                 const maxHeight = ratios[0];
-                element.style.maxHeight = maxHeight ? `${maxHeight}px` : '';
+                if (maxHeight) {
+                  const pixelHeight = `${maxHeight}px`;
+                  element.style.maxHeight = pixelHeight;
+                  element.style.minHeight = pixelHeight;
+                } else {
+                  element.style.maxHeight = '';
+                  element.style.minHeight = '';
+                }
                 element.setAttribute(
                   'data-canvas-preview-max-height',
                   `${maxHeight}`,
