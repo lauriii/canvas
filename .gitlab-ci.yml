@@ -115,6 +115,9 @@ variables:
   # (Useful when early in an MR and/or developing low-level functionality that is unlikely to affect E2E tests.)
   _CANVAS_E2E_TESTS: true
 
+.is-nightly-scheduled-rule: &is-nightly-scheduled-rule
+  if: $CI_PIPELINE_SOURCE == "schedule"
+
 .is-push-rule: &is-push-rule
   if: $CI_PIPELINE_SOURCE == "push" && $CI_PROJECT_ROOT_NAMESPACE == "project"
 
@@ -356,7 +359,7 @@ phpcs-rules-match-drupal-11:
 
 phpunit (11.2, sqlite):
   rules:
-    - *is-push-rule
+    - *is-nightly-scheduled-rule
     - *backend-files-change-rule
     # Changes to the infra for running PHPUnit itself also need to trigger CI.
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && ($_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null)
@@ -420,10 +423,13 @@ phpunit (11.2, sqlite):
 
 phpunit (11.2, mariadb 10.6):
   extends: phpunit (11.2, sqlite)
+  # Only run on nightly, not on push to 1.x — the PHPUnit 11.3 CI jobs already test all DBs, do not repeat for 11.2.
+  rules:
+    - *is-nightly-scheduled-rule
+    - *manual-rule
   services:
     - mariadb:10.6
   variables:
-    _FOR_EVERY_MR_COMMIT: false
     SIMPLETEST_DB: mysql://drupal:drupal@127.0.0.1/drupal
     MYSQL_DATABASE: drupal
     MYSQL_USER: drupal
@@ -432,10 +438,13 @@ phpunit (11.2, mariadb 10.6):
 
 phpunit (11.2, pgsql 16):
   extends: phpunit (11.2, sqlite)
+  # Only run on nightly, not on push to 1.x — the PHPUnit 11.3 CI jobs already test all DBs, do not repeat for 11.2.
+  rules:
+    - *is-nightly-scheduled-rule
+    - *manual-rule
   services:
     - postgres:16
   variables:
-    _FOR_EVERY_MR_COMMIT: false
     SIMPLETEST_DB: pgsql://drupal:drupal@127.0.0.1/drupal
     POSTGRES_DB: drupal
     POSTGRES_USER: drupal
@@ -443,10 +452,13 @@ phpunit (11.2, pgsql 16):
 
 phpunit (11.2, mysql 8):
   extends: phpunit (11.2, sqlite)
+  # Only run on nightly, not on push to 1.x — the PHPUnit 11.3 CI jobs already test all DBs, do not repeat for 11.2.
+  rules:
+    - *is-nightly-scheduled-rule
+    - *manual-rule
   services:
     - mysql:8.0
   variables:
-    _FOR_EVERY_MR_COMMIT: false
     SIMPLETEST_DB: mysql://drupal:drupal@127.0.0.1/drupal
     MYSQL_DATABASE: drupal
     MYSQL_USER: drupal
