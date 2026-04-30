@@ -190,62 +190,32 @@ variables:
 
 default:
   cache:
-    key:
-      files:
-        - composer.lock
-        - package-lock.json
-      prefix: ${CI_PARENT_PROJECT_NAME}
-    paths:
-      - .cache/composer
-      - .cache/npm
-      - .cache/astro
-      - .cache/tsc
-    policy: pull
+    key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
     fallback_keys:
-      - ${CI_PARENT_PROJECT_NAME}
+      - ${CI_PARENT_PROJECT_NAME}-default-${CI_DEFAULT_BRANCH}
 
 cache dependencies:
   image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
   stage: cache
   needs: []
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_PATH !~ /^issue\//
   cache:
-    - key:
-        files:
-          - composer.lock
-          - package-lock.json
-        prefix: ${CI_PARENT_PROJECT_NAME}
+    - key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
       paths:
         - .cache/composer
         - .cache/npm
         - .cache/astro
         - .cache/tsc
-      policy: pull-push
-      fallback_keys:
-        - ${CI_PARENT_PROJECT_NAME}
-    - key: ${CI_PARENT_PROJECT_NAME}
+    - key: ${CI_PARENT_PROJECT_NAME}-phplint-${CI_COMMIT_REF_NAME}
       paths:
-        - .cache/composer
-        - .cache/npm
-        - .cache/astro
-        - .cache/tsc
-      policy: push
-    - key:
-        files:
-          - package-lock.json
-        prefix: ${CI_PARENT_PROJECT_NAME}-playwright
+        - .cache/phpcs
+        - .cache/phpstan
+    - key: ${CI_PARENT_PROJECT_NAME}-playwright-${CI_COMMIT_REF_NAME}
       paths:
         - .cache/ms-playwright
-      policy: pull-push
-    - key: ${CI_PARENT_PROJECT_NAME}-playwright-latest
-      paths:
-        - .cache/ms-playwright
-      policy: push
   before_script:
     - !reference [ .drupal-with-dev-dependencies ]
+    - !reference [ .canvas-ui ]
   script:
-    - npm ci
     - npx playwright install
 
 # Disable jobs from the upstream template.
@@ -662,6 +632,13 @@ lint (php):
   variables:
     GIT_DEPTH: 1
     COMPOSER_ROOT_VERSION: 0.0.0
+  cache:
+    - key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
+      fallback_keys:
+        - ${CI_PARENT_PROJECT_NAME}-default-${CI_DEFAULT_BRANCH}
+    - key: ${CI_PARENT_PROJECT_NAME}-phplint-${CI_COMMIT_REF_NAME}
+      fallback_keys:
+        - ${CI_PARENT_PROJECT_NAME}-phplint-${CI_DEFAULT_BRANCH}
   before_script:
     - !reference [ .drupal-files-with-dev-dependencies ]
     - mkdir -p test-results
@@ -714,28 +691,12 @@ playwright:
   extends:
     - .test-variables
   cache:
-    - key:
-        files:
-          - composer.lock
-          - package-lock.json
-        prefix: ${CI_PARENT_PROJECT_NAME}
-      paths:
-        - .cache/composer
-        - .cache/npm
-        - .cache/astro
-        - .cache/tsc
-      policy: pull
+    - key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
       fallback_keys:
-        - ${CI_PARENT_PROJECT_NAME}
-    - key:
-        files:
-          - package-lock.json
-        prefix: ${CI_PARENT_PROJECT_NAME}-playwright
-      paths:
-        - .cache/ms-playwright
-      policy: pull
+        - ${CI_PARENT_PROJECT_NAME}-default-${CI_DEFAULT_BRANCH}
+    - key: ${CI_PARENT_PROJECT_NAME}-playwright-${CI_COMMIT_REF_NAME}
       fallback_keys:
-        - ${CI_PARENT_PROJECT_NAME}-playwright-latest
+        - ${CI_PARENT_PROJECT_NAME}-playwright-${CI_DEFAULT_BRANCH}
   variables:
     GIT_DEPTH: 1
     _TARGET_DB_TYPE: sqlite

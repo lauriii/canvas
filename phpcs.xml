@@ -5,6 +5,8 @@ $ ln -sv /PATH/TO/DRUPAL/ROOT/core/core/phpcs.xml.dist core.phpcs.xml.dist
 core.phpcs.xml.dist -> /PATH/TO/DRUPAL/ROOT/core/phpcs.xml.dist
 -->
 <ruleset name="canvas">
+  <arg name="cache" value=".cache/phpcs/.phpcs.cache" />
+  <exclude-pattern>.cache/*</exclude-pattern>
   <exclude-pattern>*/modules/canvas_vite/*</exclude-pattern>
   <!-- Drupal (core) uses stylelint: https://www.drupal.org/list-changes/drupal/published?keywords_description=stylelint-->
   <exclude-pattern>*.css$</exclude-pattern>
