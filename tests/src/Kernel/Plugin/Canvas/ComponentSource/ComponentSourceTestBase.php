@@ -909,6 +909,9 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
    *
    * @see \Drupal\canvas\ComponentSource\ComponentInstanceInputsConfigSchemaGeneratorInterface
    * @legacy-covers \Drupal\canvas\Plugin\DataType\ComponentInputs::getTranslatableInputKeys()
+   *
+   * @see \Drupal\Tests\canvas\Kernel\Config\ContentTemplateTest::testTranslationLifeCycleInDepth()
+   * @see \Drupal\Tests\canvas\Functional\TranslationTest::testContentTemplateConfigTranslationUi()
    */
   #[DataProvider('providerGetTranslatableInputKeys')]
   public function testGetTranslatableInputKeys(string $host_entity_type_id, array $host_entity_values, string $component_id, array $inputs, array $expected_translatable_inputs): void {

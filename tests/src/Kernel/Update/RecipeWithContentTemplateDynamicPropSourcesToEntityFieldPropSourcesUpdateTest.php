@@ -56,7 +56,7 @@ final class RecipeWithContentTemplateDynamicPropSourcesToEntityFieldPropSourcesU
       ?->getComponentTree()
       // phpcs:ignore Drupal.WhiteSpace.ObjectOperatorIndent.Indent
       ->get(0)
-      ?->getValue()['inputs'];
+      ?->getInput();
 
     // Note that the content template was imported with the "dynamic" prop
     // source, but that it was updated to use the "entity-field" prop source,
@@ -64,6 +64,7 @@ final class RecipeWithContentTemplateDynamicPropSourcesToEntityFieldPropSourcesU
     // This is because the creation a new ContentTemplate config entity ends up
     // triggering the just-in-time update path in PropSource::parse().
     // @see \Drupal\canvas\PropSource\PropSource::parse()
+    self::assertIsString($raw_inputs_for_first_component_instance);
     self::assertStringNotContainsString('"sourceType":"dynamic"', $raw_inputs_for_first_component_instance);
     self::assertStringContainsString('"sourceType":"entity-field"', $raw_inputs_for_first_component_instance);
   }

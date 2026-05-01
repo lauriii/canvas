@@ -6,6 +6,7 @@ namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
 use Drupal\canvas\ComponentSource\ComponentInstanceInputsConfigSchemaGeneratorInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
+use Drupal\canvas\ConfigTranslation\CanvasStaticPropSourceFieldWidget;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\canvas\PropShape\PropShape;
@@ -65,6 +66,12 @@ final readonly class GeneratedFieldExplicitInputUxComponentInstanceInputsConfigS
         \assert(\array_key_exists('type', $mapping_definition[$prop_name]));
         $mapping_definition[$prop_name]['translatable'] = TRUE;
         $mapping_definition[$prop_name]['label'] = $component_source->getMetadata()->schema['properties'][$prop_name]['title'] ?? $prop_name;
+        // Reuse Canvas field widgets rather than core's config_translation
+        // Textfield/TextFormat form element classes. This single class handles
+        // all field types — both single-property (StringItem) and
+        // multi-property (TextLongItem, LinkItem) — by conjuring the same
+        // field widget that the Canvas UI uses.
+        $mapping_definition[$prop_name]['form_element_class'] = CanvasStaticPropSourceFieldWidget::class;
       }
     }
 
@@ -82,6 +89,23 @@ final readonly class GeneratedFieldExplicitInputUxComponentInstanceInputsConfigS
         // TRICKY: `translatable: false` is not respected by TMGMT!
         // @see \Drupal\tmgmt_config\DefaultConfigProcessor::extractTranslatables()
         unset($mapping[$key]['translatable']);
+        unset($mapping[$key]['form_element_class']);
+      }
+    }
+
+    // Inject component context into translatable prop definitions so that
+    // \Drupal\canvas\ConfigTranslation\CanvasStaticPropSourceFieldWidget can
+    // conjure the correct field widget at config translation time.
+    // TRICKY: the component source plugin does not have access to its
+    // corresponding Component config entity ID/version. Those are not
+    // present in the instantiated source plugin's configuration array.
+    foreach (\array_keys($mapping) as $key) {
+      if (\array_key_exists('form_element_class', $mapping[$key])) {
+        $mapping[$key]['_canvas_config_translation_form_element_context'] = [
+          'component_id' => $component_id,
+          'component_version' => $component_version,
+          'prop_name' => $key,
+        ];
       }
     }
 

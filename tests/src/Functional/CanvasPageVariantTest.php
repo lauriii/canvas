@@ -173,10 +173,10 @@ class CanvasPageVariantTest extends FunctionalTestBase {
           'uuid' => self::UUID_INACCESSIBLE,
           'component_id' => 'block.user_login_block',
           'component_version' => Component::load('block.user_login_block')?->getActiveVersion(),
-          // Note how there is no input for the user login block, the main
-          // content block, but there is for all others.
-          // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent::getExplicitInput()
-          'inputs' => [],
+          'inputs' => [
+            'label' => '',
+            'label_display' => '0',
+          ],
         ],
         [
           'uuid' => self::UUID_TITLE,

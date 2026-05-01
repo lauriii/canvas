@@ -327,3 +327,47 @@ function canvas_post_update_0015_remove_wrong_image_style_dependency_in_field_co
       return \in_array('image.style.canvas_parametrized_width', $dependencies['config'] ?? [], TRUE);
     });
 }
+
+/**
+ * Pattern config entities' component trees' inputs must be arrays.
+ */
+function canvas_post_update_0016_pattern_component_inputs_must_be_arrays(array &$sandbox): void {
+  $canvasConfigUpdater = \Drupal::service(CanvasConfigUpdater::class);
+  \assert($canvasConfigUpdater instanceof CanvasConfigUpdater);
+  $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
+  \Drupal::classResolver(ConfigEntityUpdater::class)
+    ->update($sandbox, Pattern::ENTITY_TYPE_ID, static fn(Pattern $pattern): bool => $canvasConfigUpdater->needsConfigEntityWithComponentTreeInputsAsArrays($pattern));
+}
+
+/**
+ * Page Region config entities' component trees' inputs must be arrays.
+ */
+function canvas_post_update_0016_page_region_component_inputs_must_be_arrays(array &$sandbox): void {
+  $canvasConfigUpdater = \Drupal::service(CanvasConfigUpdater::class);
+  \assert($canvasConfigUpdater instanceof CanvasConfigUpdater);
+  $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
+  \Drupal::classResolver(ConfigEntityUpdater::class)
+    ->update($sandbox, PageRegion::ENTITY_TYPE_ID, static fn(PageRegion $region): bool => $canvasConfigUpdater->needsConfigEntityWithComponentTreeInputsAsArrays($region));
+}
+
+/**
+ * Content Template config entities' component trees' inputs must be arrays.
+ */
+function canvas_post_update_0016_content_template_component_inputs_must_be_arrays(array &$sandbox): void {
+  $canvasConfigUpdater = \Drupal::service(CanvasConfigUpdater::class);
+  \assert($canvasConfigUpdater instanceof CanvasConfigUpdater);
+  $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
+  \Drupal::classResolver(ConfigEntityUpdater::class)
+    ->update($sandbox, ContentTemplate::ENTITY_TYPE_ID, static fn(ContentTemplate $template): bool => $canvasConfigUpdater->needsConfigEntityWithComponentTreeInputsAsArrays($template));
+}
+
+/**
+ * Component tree fields' default values' inputs must be arrays.
+ */
+function canvas_post_update_0016_component_tree_field_default_value_inputs(array &$sandbox): void {
+  $canvasConfigUpdater = \Drupal::service(CanvasConfigUpdater::class);
+  \assert($canvasConfigUpdater instanceof CanvasConfigUpdater);
+  $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
+  \Drupal::classResolver(ConfigEntityUpdater::class)
+    ->update($sandbox, 'field_config', static fn(FieldConfig $field): bool => $canvasConfigUpdater->needsConfigEntityWithComponentTreeInputsAsArrays($field));
+}

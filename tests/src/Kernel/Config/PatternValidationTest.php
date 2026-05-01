@@ -320,6 +320,12 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         'component_tree' => 'The \'Drupal\Core\Block\TitleBlockPluginInterface\' component interface must be absent.',
         'component_tree.2.uuid' => 'This is not a valid UUID.',
         'component_tree.2.inputs' => [
+          // Origin: \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent::validateComponentInput()
+          "'label' is a required key.",
+          "'label_display' is a required key.",
+          // Origin: pure config schema validation thanks to the dynamically
+          // computed mapping for each `type: canvas.component_tree_node`.
+          // @see \Drupal\canvas\Config\Schema\ComponentInputsMapping
           "'label' is a required key.",
           "'label_display' is a required key.",
         ],

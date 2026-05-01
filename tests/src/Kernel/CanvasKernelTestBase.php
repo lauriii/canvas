@@ -4,10 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
+use Drupal\config_translation\Form\ConfigTranslationFormBase;
+use Drupal\config_translation\FormElement\ElementInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 
 /**
@@ -130,6 +137,63 @@ abstract class CanvasKernelTestBase extends KernelTestBase {
       default => $entity->validate(),
     };
     self::assertSame([], self::violationsToArray($violations), $entity->getConfigTarget());
+  }
+
+  /**
+   * Saves a config entity translation.
+   *
+   * Respects the architecture of:
+   * - Drupal core's config override system (LanguageConfigFactoryOverride)
+   * - Drupal core's `language`-provided config storage (LanguageConfigOverride)
+   * - Drupal core's `config_translation`-powered "store only relevant subset"
+   *
+   * @see \Drupal\config_translation\Form\ConfigTranslationFormBase::submitForm()
+   * @see \Drupal\config_translation\FormElement\FormElementBase::setConfig()
+   * @see \Drupal\language\Config\LanguageConfigFactoryOverride::onConfigSave()
+   * @see \Drupal\Core\Config\ConfigFactoryOverrideBase::filterOverride()
+   * @see https://git.drupalcode.org/project/tmgmt/-/blob/8.x-1.x/sources/tmgmt_config/src/Plugin/tmgmt/Source/ConfigSource.php?ref_type=heads#L292
+   * @see https://www.drupal.org/project/canvas/issues/3582464#comment-16536158
+   * @see https://www.drupal.org/project/canvas/issues/3582464#comment-16536240
+   */
+  protected function saveConfigEntityTranslation(ComponentTreeConfigEntityBase $canvas_config_entity, string $langcode, array $translation_values): void {
+    // TRICKY: Config entities always have langcode `en`; this is immutable!
+    // @see \Drupal\Core\Config\Entity\ConfigEntityBase::$langcode
+    self::assertSame('en', $canvas_config_entity->language()->getId());
+
+    $typed_config = $this->container->get(TypedConfigManagerInterface::class);
+    \assert($typed_config instanceof TypedConfigManagerInterface);
+    $config_factory = $this->container->get(ConfigFactoryInterface::class);
+    \assert($config_factory instanceof ConfigFactoryInterface);
+    $language_manager = $this->container->get(LanguageManagerInterface::class);
+    \assert($language_manager instanceof ConfigurableLanguageManagerInterface);
+
+    $name = $canvas_config_entity->getConfigDependencyName();
+    $schema = $typed_config->get($name);
+
+    // Set configuration values based on translation and original (English)
+    // values: save only the actually changed values.
+    // @see \Drupal\locale\LocaleConfigManager::filterOverride()
+    // @see \Drupal\Core\Config\ConfigFactoryOverrideBase::filterOverride()
+    $base_config = $config_factory->getEditable($name);
+    $config_translation = $language_manager->getLanguageConfigOverride($langcode, $name);
+
+    $element = ConfigTranslationFormBase::createFormElement($schema);
+    \assert($element instanceof ElementInterface);
+    // TRICKY: this matches the behavior of \Drupal\Core\Config\ConfigFactoryOverrideBase::filterOverride().
+    $element->setConfig($base_config, $config_translation, $translation_values);
+
+    $saved_config = $config_translation->get();
+    if (empty($saved_config)) {
+      // Nothing to delete if this was auto-generated.
+      if ($config_translation->isNew()) {
+        return;
+      }
+      // If zero config entity values are translated, delete the translation.
+      $config_translation->delete();
+    }
+    else {
+      $config_translation->save();
+    }
   }
 
 }

@@ -20,6 +20,7 @@ final class UpdateHooks {
   #[Hook('field_config_presave')]
   public function fieldConfigPreSave(FieldConfig $field): void {
     $this->configUpdater->updateConfigEntityWithComponentTreeInputs($field);
+    $this->configUpdater->updateConfigEntityWithComponentTreeInputsAsArrays($field);
     // We might need to update dependencies even on import.
     // @see \canvas_post_update_0002_intermediate_component_dependencies_in_field_config_component_trees
     if ($this->configInstaller->isSyncing()) {

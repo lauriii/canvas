@@ -196,8 +196,10 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    *
    * @return \Drupal\canvas\PropSource\StaticPropSource
    *   The prop source object.
+   *
+   * @internal
    */
-  private function getDefaultStaticPropSource(string $prop_name, bool $validate_prop_name): StaticPropSource {
+  public function getDefaultStaticPropSource(string $prop_name, bool $validate_prop_name): StaticPropSource {
     if ($validate_prop_name && !\array_key_exists($prop_name, $this->getMetadata()->schema['properties'] ?? [])) {
       throw new \OutOfRangeException(\sprintf("'%s' is not a prop on the code powering the component '%s'.", $prop_name, $this->getComponentDescription()));
     }

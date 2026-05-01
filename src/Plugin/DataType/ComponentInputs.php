@@ -264,7 +264,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
    * Resolves the config schema mapping for a component instance.
    *
    * This is the single source of truth for determining which inputs are
-   * translatable. Both config entity translation (ComponentSpecificInputs)
+   * translatable. Both config entity translation (ComponentInputsMapping)
    * and content entity translation (getTranslatableInputKeys()) use this logic.
    *
    * @param string $component_id
@@ -277,7 +277,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
    * @return array
    *   The config schema mapping with translatable markers.
    *
-   * @see \Drupal\canvas\Config\Schema\ComponentSpecificInputs
+   * @see \Drupal\canvas\Config\Schema\ComponentInputsMapping
    * @see https://www.drupal.org/project/canvas/issues/3583684
    */
   public static function resolveConfigSchemaMapping(string $component_id, string $component_version, array $actual_inputs): array {
@@ -308,7 +308,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
     $generator_class = $component_source->getPluginDefinition()['inputs_config_schema_generator'] ?? NULL;
     \assert(\is_string($generator_class));
     // TRICKY: this cannot use constructor injection because both callers
-    // (ComponentSpecificInputs — a config schema class, and ComponentTreeItem —
+    // (ComponentInputsMapping — a config schema class, and ComponentTreeItem —
     // a field item) cannot use constructor injection. Using
     // \Drupal::service() is pragmatic and consistent with this class already
     // using static lookups such as Component::load().
@@ -326,7 +326,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
    * Determines which input keys are translatable for this component instance.
    *
    * Uses the same ComponentInstanceInputsConfigSchemaGeneratorInterface
-   * strategy that ComponentSpecificInputs uses for config entity translation.
+   * strategy that ComponentInputsMapping uses for config entity translation.
    * This provides a single source of truth for both config translation and
    * content translation.
    *
@@ -334,7 +334,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
    *   The input keys that are translatable for this component instance.
    *
    * @see ::resolveConfigSchemaMapping()
-   * @see \Drupal\canvas\Config\Schema\ComponentSpecificInputs
+   * @see \Drupal\canvas\Config\Schema\ComponentInputsMapping
    * @see https://www.drupal.org/project/canvas/issues/3583684
    */
   public function getTranslatableInputKeys(): array {

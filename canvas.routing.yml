@@ -757,3 +757,29 @@ entity.component.enable:
     _canvas_authentication_required: TRUE
     _entity_access: 'component.enable'
     _csrf_token: 'TRUE'
+# @todo Remove this once linking to the Canvas Content Template editor UI is possible in https://www.drupal.org/i/3551708
+entity.content_template.edit_form:
+  path: '/admin/structure/content-template/{content_template}'
+  defaults:
+    _controller: '\Drupal\canvas\Controller\NoUiConfigController::placeholder'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::editTitle'
+  requirements:
+    _permission: 'administer content templates'
+  options:
+    parameters:
+      content_template:
+        type: entity:content_template
+    _admin_route: TRUE
+# @todo Remove this once linking to the Canvas Page Region "focus" editor UI is possible in https://www.drupal.org/i/3502765
+entity.page_region.edit_form:
+  path: '/admin/appearance/page-region/{page_region}'
+  defaults:
+    _controller: '\Drupal\canvas\Controller\NoUiConfigController::placeholder'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::editTitle'
+  requirements:
+    _permission: 'administer page template'
+  options:
+    parameters:
+      page_region:
+        type: entity:page_region
+    _admin_route: TRUE

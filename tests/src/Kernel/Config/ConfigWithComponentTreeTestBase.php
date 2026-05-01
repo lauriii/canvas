@@ -124,11 +124,11 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
         'slot' => 'the_body',
         'inputs' => [
+          'label' => '',
+          'label_display' => '0',
           'use_site_logo' => TRUE,
           'use_site_name' => TRUE,
           'use_site_slogan' => TRUE,
-          'label' => '',
-          'label_display' => '0',
         ],
       ],
     ],
@@ -168,11 +168,11 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
         'slot' => 'the_body',
         'inputs' => [
+          'label' => '',
+          'label_display' => '0',
           'use_site_logo' => TRUE,
           'use_site_name' => TRUE,
           'use_site_slogan' => TRUE,
-          'label' => '',
-          'label_display' => '0',
         ],
       ],
       '0:the_footer:0' => [

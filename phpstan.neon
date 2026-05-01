@@ -48,9 +48,19 @@ parameters:
     # PHPStan finds many false positives for this, specifically when using the DIC or Typed Data.
     - identifier: varTag.type
     -
+      message: '#^Method Drupal\\canvas\\Plugin\\Field\\FieldType\\ComponentTreeItemList\:\:get\(\) has parameter \$index with no type specified\.$#'
+      identifier: missingType.parameter
+      count: 1
+      path: src/Plugin/Field/FieldType/ComponentTreeItemList.php
+    -
       message: "#^Class .* extends @internal class#"
       count: 1
       path: src/MediaLibraryCanvasPropOpener.php
+    -
+      message: "#^Method Drupal\\\\canvas\\\\Entity\\\\ComponentTreeConfigEntityBase\\:\\:preCreate\\(\\) has no return type specified\\.$#"
+      identifier: missingType.return
+      count: 1
+      path: src/Entity/ComponentTreeConfigEntityBase.php
     -
       message: '#^Method Drupal\\canvas\\Entity\\ComponentTreeConfigEntityBase\:\:preSave\(\) has no return type specified\.$#'
       identifier: missingType.return
@@ -60,6 +70,11 @@ parameters:
       message: "#^Method Drupal\\\\canvas\\\\Entity\\\\Pattern\\:\\:preCreate\\(\\) has no return type specified\\.$#"
       count: 1
       path: src/Entity/Pattern.php
+    -
+      message: '#^Method Drupal\\canvas\\ConfigTranslation\\CanvasComponentTreeItemInputsMappingFormElement\:\:setConfig\(\) has no return type specified\.$#'
+      identifier: missingType.return
+      count: 1
+      path: src/ConfigTranslation/CanvasComponentTreeItemInputsMappingFormElement.php
 # Canvas' custom PHPStan rules.
 rules:
   - Canvas\PHPStan\Rules\DisallowDrupalFlushAllCachesRule

@@ -130,6 +130,10 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:alpha␝title␞␟value',
             ],
+            'href' => [
+              'sourceType' => PropSource::HostEntityUrl->value,
+              'absolute' => TRUE,
+            ],
           ],
         ],
         // An SDC populated by a normal entity field.

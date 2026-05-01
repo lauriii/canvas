@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\Plugin\DataType\ComponentInputs;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
@@ -727,6 +728,60 @@ class CanvasConfigUpdater {
     }
 
     return $active_version_updated || $past_version_updated;
+  }
+
+  /**
+   * Checks if a code-defined component tree contains >=1 JSON blob `inputs`.
+   *
+   * @return bool
+   */
+  public function needsConfigEntityWithComponentTreeInputsAsArrays(ComponentTreeEntityInterface|FieldConfig $entity): bool {
+    if (!$entity instanceof ConfigEntityInterface) {
+      throw new \LogicException('This update path applies only to config-defined component trees.');
+    }
+    if ($entity instanceof FieldConfig && $entity->getType() !== ComponentTreeItem::PLUGIN_ID) {
+      return FALSE;
+    }
+    $config_defined_component_tree = match (TRUE) {
+      $entity instanceof ComponentTreeEntityInterface => $entity->get('component_tree') ?? [],
+      $entity instanceof FieldConfig => $entity->get('default_value') ?? [],
+    };
+
+    // If >=1 component instance in this config-defined component tree has a
+    // JSON blob `inputs`, it needs updating.
+    $has_inputs_json_blob = \array_reduce(
+      $config_defined_component_tree,
+      fn (bool $carry, array $component_instance) => $carry || (\array_key_exists('inputs', $component_instance) && \is_string($component_instance['inputs'])),
+      FALSE,
+    );
+    if (!$has_inputs_json_blob) {
+      return FALSE;
+    }
+    $deprecations_triggered = &$this->triggeredDeprecations['3582478'][\sprintf('%s:%s', $entity->getEntityTypeId(), $entity->id())];
+    if ($this->deprecationsEnabled && !$deprecations_triggered) {
+      $deprecations_triggered = TRUE;
+      // phpcs:ignore
+      @trigger_error(\sprintf('%s with ID %s has a config-defined component tree with JSON-encoded input values - this is deprecated in canvas:1.4.0 and will be removed in canvas:2.0.0. See https://www.drupal.org/node/3586291', $entity->getEntityType()->getLabel(), $entity->id()), E_USER_DEPRECATED);
+    }
+    return $has_inputs_json_blob;
+  }
+
+  public function updateConfigEntityWithComponentTreeInputsAsArrays(ComponentTreeEntityInterface|FieldConfig $entity): bool {
+    if (!$entity instanceof ConfigEntityInterface) {
+      throw new \LogicException('This update path applies only to config-defined component trees.');
+    }
+    if (!$this->needsConfigEntityWithComponentTreeInputsAsArrays($entity)) {
+      return FALSE;
+    }
+    if ($entity instanceof ComponentTreeEntityInterface) {
+      // ::setComponentTree() automatically calls
+      // ::componentTreeInstancesInputsMustBeArrays().
+      $entity->setComponentTree($entity->get('component_tree'));
+      return TRUE;
+    }
+    // For FieldConfig entities, explicitly convert.
+    $entity->set('default_value', ComponentTreeConfigEntityBase::componentTreeInstancesInputsMustBeArrays($entity->get('default_value')));
+    return TRUE;
   }
 
 }

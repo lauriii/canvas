@@ -349,6 +349,8 @@ canvas.component_tree:
   sequence:
     # @todo Ensure the component instances appear in a predictable order in the exported YAML in https://www.drupal.org/i/3526127
     type: canvas.component_tree_node
+  # Ensure a decent config translation UX: only 'inputs' is translatable, so simplify the form.
+  form_element_class: '\Drupal\canvas\ConfigTranslation\CanvasComponentTreeItemListFormElement'
 
 # The config equivalent of a ComponentTreeItem, validated by the same constraint.
 canvas.component_tree_node:
@@ -400,8 +402,11 @@ canvas.component_tree_node:
       constraints: { }
     # @see \Drupal\canvas\Plugin\DataType\ComponentInputs
     inputs:
-      type: ignore
+      type: mapping
+      class: '\Drupal\canvas\Config\Schema\ComponentInputsMapping'
       label: 'Input values for each component in the component tree'
+      # Omitted optional inputs must also be translatable. Config Translation's default UI prevents this.
+      form_element_class: '\Drupal\canvas\ConfigTranslation\CanvasComponentTreeItemInputsMappingFormElement'
     label:
       # This is entirely optional; provides more context for content authors.
       requiredKey: false
