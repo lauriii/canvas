@@ -199,9 +199,15 @@ default:
     key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
     fallback_keys:
       - ${CI_PARENT_PROJECT_NAME}-default-${CI_DEFAULT_BRANCH}
+    paths:
+      - .cache/composer
+      - .cache/npm
+      - .cache/astro
+      - .cache/tsc
+    policy: pull
 
 cache dependencies:
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   stage: cache
   needs: []
   cache:
@@ -370,7 +376,7 @@ phpunit (11.2, sqlite):
         - .env.defaults
         - phpunit.xml.dist
     - *manual-rule
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   needs: []
   parallel:
     matrix:
@@ -389,9 +395,15 @@ phpunit (11.2, sqlite):
   variables:
     DRUPAL_TEST_WEBSERVER_USER: www-data
   before_script:
-    - !reference [ .drupal ]
+    - !reference [ .drupal-with-dev-dependencies ]
     - !reference [ .canvas-ui ]
-    - composer run install-dev-deps
+    # Forward-port upstream fix for https://www.drupal.org/project/drupal/issues/3582249
+    # (PHPUnit SourceMapper races with concurrent test cleanup under sites/simpletest,
+    # causing "RecursiveDirectoryIterator: Failed to open directory" random failures).
+    # Fixed on Drupal 11.x (commit 3753f904, 2026-03-30); not yet in 11.2.x. Idempotent —
+    # becomes a no-op once the minimum supported core version ships the fix.
+    - sed -i '\|<directory>\.\./sites</directory>|d' $CI_PROJECT_DIR/_drupal/web/core/phpunit.xml.dist
+
   script:
     - !reference [ .test_runner ]
     - run_test "phpunit" "composer run phpunit -- --types $PHPUNIT_TESTSUITE --ci-parallel-node-index $CI_PARALLEL_NODE_INDEX --ci-parallel-node-total $CI_PARALLEL_NODE_TOTAL"
@@ -642,7 +654,7 @@ cypress unit:
 lint (php):
   stage: validate
   needs: []
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   variables:
     GIT_DEPTH: 1
     COMPOSER_ROOT_VERSION: 0.0.0
@@ -650,9 +662,19 @@ lint (php):
     - key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
       fallback_keys:
         - ${CI_PARENT_PROJECT_NAME}-default-${CI_DEFAULT_BRANCH}
+      paths:
+        - .cache/composer
+        - .cache/npm
+        - .cache/astro
+        - .cache/tsc
+      policy: pull
     - key: ${CI_PARENT_PROJECT_NAME}-phplint-${CI_COMMIT_REF_NAME}
       fallback_keys:
         - ${CI_PARENT_PROJECT_NAME}-phplint-${CI_DEFAULT_BRANCH}
+      paths:
+        - .cache/phpcs
+        - .cache/phpstan
+      policy: pull
   before_script:
     - !reference [ .drupal-files-with-dev-dependencies ]
     - mkdir -p test-results
@@ -686,7 +708,7 @@ lint (php):
 lint (node):
   stage: validate
   needs: []
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   script:
     - npm ci
     - npm run build --workspace=drupal-canvas
@@ -701,16 +723,25 @@ playwright:
         #PROJECT: [ "chromium", "firefox", "webkit" ]
   rules: *e2e-ci-job-rules
   interruptible: true
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   extends:
     - .test-variables
   cache:
     - key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
       fallback_keys:
         - ${CI_PARENT_PROJECT_NAME}-default-${CI_DEFAULT_BRANCH}
+      paths:
+        - .cache/composer
+        - .cache/npm
+        - .cache/astro
+        - .cache/tsc
+      policy: pull
     - key: ${CI_PARENT_PROJECT_NAME}-playwright-${CI_COMMIT_REF_NAME}
       fallback_keys:
         - ${CI_PARENT_PROJECT_NAME}-playwright-${CI_DEFAULT_BRANCH}
+      paths:
+        - .cache/ms-playwright
+      policy: pull
   variables:
     GIT_DEPTH: 1
     _TARGET_DB_TYPE: sqlite
@@ -739,7 +770,7 @@ playwright-reports:
     - playwright
   when:
     always
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   script:
     - mkdir -p test-results
     - npx playwright merge-reports --reporter=html ./blob-report
@@ -771,7 +802,7 @@ playwright-reports:
 
 CLI Test:
   stage: test
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   needs: []
   rules:
     - *e2e-tests-must-not-be-disabled-rule
@@ -896,7 +927,7 @@ pages-publish:
 release:
   # For release flow details, see docs/release-process.md.
   stage: publish
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.0
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   needs: []
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/

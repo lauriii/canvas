@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eo pipefail
 
-# cspell:ignore getconf NPROCESSORS ONLN
+# cspell:ignore getconf NPROCESSORS ONLN PSQL PGPASSWORD
 
 # Function to set variable only if not already set
 set_if_unset() {
@@ -135,6 +135,33 @@ RUN_TESTS_ARGS=(
 # isn't an option until 11.3.
 if [[ "$DRUPAL_MINOR" != "11.2" ]]; then
   RUN_TESTS_ARGS+=(--phpunit-configuration "$(pwd)")
+fi
+
+# If the database is PostgreSQL pre-create the pg_trgm extension in template1
+# so that all test databases cloned from it inherit it automatically. Without
+# this, each parallel test worker calls CREATE EXTENSION IF NOT EXISTS pg_trgm
+# during Drupal's kernel test installer setup. The IF NOT EXISTS guard is not
+# atomic in PostgreSQL, so two workers can both pass the existence check before
+# either has committed, causing a unique constraint violation on
+# pg_extension_name_index and a random test failure unrelated to the code
+# under test.
+if [[ "$SIMPLETEST_DB" == pgsql://* ]]; then
+  DB_USER=$(echo "$SIMPLETEST_DB" | sed -n 's|pgsql://\([^:@]*\).*|\1|p')
+  DB_PASS=$(echo "$SIMPLETEST_DB" | sed -n 's|pgsql://[^:@]*:\([^@]*\)@.*|\1|p')
+  DB_HOST=$(echo "$SIMPLETEST_DB" | sed -n 's|pgsql://[^@]*@\([^:/]*\).*|\1|p')
+  DB_PORT=$(echo "$SIMPLETEST_DB" | sed -n 's|pgsql://[^@]*@[^:]*:\([0-9]*\)/.*|\1|p')
+  DB_NAME=$(echo "$SIMPLETEST_DB" | sed -n 's|pgsql://[^@]*@[^/]*/\([^?]*\).*|\1|p')
+
+  PSQL_ARGS=(-U "$DB_USER" -h "${DB_HOST:-localhost}")
+  [[ -n "$DB_PORT" ]] && PSQL_ARGS+=(-p "$DB_PORT")
+
+  # Create in template1 so future databases inherit it, and also in the actual
+  # test database since Drupal kernel tests share an existing database with table
+  # prefixes rather than creating new databases. Without the latter, all parallel
+  # workers race to run CREATE EXTENSION IF NOT EXISTS pg_trgm in the same
+  # database simultaneously, hitting a PostgreSQL unique constraint violation.
+  PGPASSWORD="$DB_PASS" psql "${PSQL_ARGS[@]}" -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;" template1
+  PGPASSWORD="$DB_PASS" psql "${PSQL_ARGS[@]}" -d "$DB_NAME" -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
 fi
 
 echo "Running with ${DRUPAL_TEST_CONCURRENCY:-$(getconf _NPROCESSORS_ONLN)} parallel workers"
