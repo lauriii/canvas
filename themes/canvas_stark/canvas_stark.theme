@@ -210,6 +210,11 @@ function canvas_stark_preprocess_field_multiple_value_form(array &$variables): v
       ],
     ];
   }
+
+  if (isset($variables['table']['#header'][0]['data'])) {
+    $variables['multivalue_label'] = $variables['table']['#header'][0]['data'];
+  }
+
   $variables['description_attributes'] = $variables['description']['attributes'] ?? [];
 
   // Add classes to table columns to enable Canvas-specific styling.

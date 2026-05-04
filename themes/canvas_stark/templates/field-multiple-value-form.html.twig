@@ -29,6 +29,9 @@
     ]
   %}
   <div{{ attributes.addClass(classes) }}>
+    {% if multivalue_label %}
+      <div class="multivalue-label">{{ multivalue_label }}</div>
+    {% endif %}
     <div class="multivalue-container">
       {{ table }}
       {% if button %}
