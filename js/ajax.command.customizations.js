@@ -5,6 +5,45 @@
 
 /* global csstree */
 (function (Drupal, csstree, drupalSettings, $) {
+  /**
+   * Remove stale multivalue-field rows from a DOM subtree.
+   *
+   * Targets only rows explicitly tagged during add/remove AJAX operations:
+   * - `.canvas-optimistic-row` / `[data-canvas-optimistic]` — skeleton rows
+   *   injected by DrupalMultivalueSubmit for perceived performance.
+   * - `.canvas-pending-remove` — rows hidden immediately on remove that may
+   *   linger until the AJAX response completes.
+   *
+   * Also removes any draggable row that lacks form controls (no named
+   * input/select/textarea), which catches residual empty `<tr>` elements.
+   *
+   * @param {Element} container
+   *   A `[data-canvas-multiple-values]` wrapper element to clean.
+   */
+  const cleanupStaleMultivalueRows = (container) => {
+    if (!container) return;
+
+    // Remove explicitly tagged rows.
+    container
+      .querySelectorAll(
+        'tr.canvas-optimistic-row, tr[data-canvas-optimistic], tr.canvas-pending-remove',
+      )
+      .forEach((row) => row.remove());
+
+    // Remove draggable rows with no form controls — these are empty shells.
+    container
+      .querySelectorAll('table.field-multiple-table tbody tr.draggable')
+      .forEach((row) => {
+        if (
+          !row.querySelector(
+            'input[name], select[name], textarea[name], button[name]',
+          )
+        ) {
+          row.remove();
+        }
+      });
+  };
+
   // Keeps track of shorthand properties and their corresponding longhand
   // properties.
   const shorthands = {
@@ -628,53 +667,72 @@
     $newContent.each((index, el) => {
       if (el.nodeType === Node.ELEMENT_NODE) {
         Drupal.attachBehaviors(el, settings);
-      }
-    });
+       }
+     });
 
-    // Snapshot the elements so we can poll their outerHTML for hydration completion.
-    const snapshots = [];
-    $newContent.each((i, el) => {
-      if (el.nodeType === Node.ELEMENT_NODE) {
-        snapshots.push(el);
-      }
-    });
+     // Snapshot the elements so we can poll their outerHTML for hydration completion.
+     const snapshots = [];
+     $newContent.each((i, el) => {
+       if (el.nodeType === Node.ELEMENT_NODE) {
+         snapshots.push(el);
+       }
+     });
 
-    const reveal = () => {
-      // Now that React has hydrated, detach behaviors from the outgoing
-      // element, remove it, and show the new content in its place.
-      Drupal.detachBehaviors($wrapper.get(0), settings);
-      $wrapper.remove();
+     const reveal = () => {
+       // Now that React has hydrated, detach behaviors from the outgoing
+       // element, remove it, and show the new content in its place.
+       Drupal.detachBehaviors($wrapper.get(0), settings);
+       $wrapper.remove();
 
-      $newContent.each((i, el) => {
-        if (el.nodeType === Node.ELEMENT_NODE) {
-          el.style.display = '';
-        }
-      });
+       $newContent.each((i, el) => {
+         if (el.nodeType === Node.ELEMENT_NODE) {
+           el.style.display = '';
+         }
+       });
 
-      // Handle show effects.
-      if (effect.showEffect !== 'show') {
-        $newContent.hide();
-      }
-      const $ajaxNewContent = $newContent.find('.ajax-new-content');
-      if ($ajaxNewContent.length) {
-        $ajaxNewContent.hide();
-        $newContent.show();
-        $ajaxNewContent[effect.showEffect](0);
-      } else if (effect.showEffect !== 'show') {
-        $newContent.show();
-      }
-    };
+       // Clean up stale multivalue rows (optimistic skeletons, pending
+       // removes, empty shells) so ghost rows don't persist after deletion.
+       $newContent.each((i, el) => {
+         if (el.nodeType !== Node.ELEMENT_NODE) return;
+         const wrappers = el.matches && el.matches('[data-canvas-multiple-values]')
+           ? [el]
+           : [...el.querySelectorAll('[data-canvas-multiple-values]')];
+         wrappers.forEach(cleanupStaleMultivalueRows);
+       });
 
-    const intervalMs = 10;
+       // Handle show effects.
+       if (effect.showEffect !== 'show') {
+         $newContent.hide();
+       }
+       const $ajaxNewContent = $newContent.find('.ajax-new-content');
+       if ($ajaxNewContent.length) {
+         $ajaxNewContent.hide();
+         $newContent.show();
+         $ajaxNewContent[effect.showEffect](0);
+       } else if (effect.showEffect !== 'show') {
+         $newContent.show();
+       }
+     };
+
+     // Check if element tree contains un-hydrated React placeholders by looking
+     // for custom elements with tagName starting with 'drupal-canvas-'.
+     const hasUnhydratedCustomEls = (el) => {
+       if (!el || !el.querySelectorAll) return false;
+       return [...el.querySelectorAll('*')].some(
+         (n) => n.tagName && n.tagName.toLowerCase().startsWith('drupal-canvas-'),
+       );
+     };
+
+    const intervalMs = 16;
     let elapsed = 0;
     const pollInterval = setInterval(() => {
       elapsed += intervalMs;
-      // React hydration is complete when no drupal-canvas custom elements
-      // remain in the markup — they are replaced by fully rendered React output.
-      const hydrated = snapshots.every((el) => !el.outerHTML.includes('</drupal-canvas'));
+      const hydrated = snapshots.every(
+        (el) => !hasUnhydratedCustomEls(el),
+      );
       if (hydrated) {
         clearInterval(pollInterval);
-        setTimeout(reveal)
+        setTimeout(reveal);
       } else if (elapsed >= hydrationDelayMs) {
         clearInterval(pollInterval);
         reveal();

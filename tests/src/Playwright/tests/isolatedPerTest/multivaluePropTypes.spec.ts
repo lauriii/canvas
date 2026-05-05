@@ -860,4 +860,122 @@ test.describe('Multivalue Prop Types', () => {
       },
     );
   });
+
+  test.describe('Datetime (Unlimited)', () => {
+    test('no ghost row appears when deleting from bottom to top', async ({
+      page,
+      canvas,
+    }) => {
+      // Find the DateTime (Unlimited) field - only appears with unlimited cardinality.
+      const dateTimeUnlimitedField = page
+        .locator('.field--type-datetime')
+        .filter({
+          has: page.getByRole('heading', {
+            name: 'DateTime (Unlimited)',
+            exact: true,
+          }),
+        });
+
+      // Rows locator is defined once — Playwright Locators are lazy and always
+      // reflect the current DOM, so there is no need to reassign it.
+      const rows = dateTimeUnlimitedField.locator('tr.draggable');
+
+      // Ensure we have at least 3 rows so we can delete 2 and verify no ghost
+      // rows remain.
+      while ((await rows.count()) < 3) {
+        await dateTimeUnlimitedField
+          .getByRole('button', { name: '+ Add new' })
+          .click();
+        // eslint-disable-next-line playwright/no-networkidle
+        await page.waitForLoadState('networkidle');
+      }
+
+      const initialRowCount = await rows.count();
+      await canvas.editMultiValueDatetimeProp(
+        'DateTime (Unlimited)',
+        '2025-12-24',
+        '08:00:00',
+        0,
+      );
+      await canvas.editMultiValueDatetimeProp(
+        'DateTime (Unlimited)',
+        '2025-12-25',
+        '08:30:00',
+        1,
+      );
+      await canvas.editMultiValueDatetimeProp(
+        'DateTime (Unlimited)',
+        '2025-12-26',
+        '10:00:00',
+        2,
+      );
+      // Review the changes and publish them before deleting the row.
+      await page.getByTestId('canvas-publish-review').click();
+      await expect(
+        page
+          .getByTestId('canvas-publish-reviews-content')
+          .filter({ hasText: 'Unpublished changes' }),
+      ).toBeVisible();
+      await page.getByTestId('canvas-publish-review-select-all').click();
+      await page.getByRole('button', { name: 'Publish 1 selected' }).click();
+      await page.reload();
+
+      // Review changes: verify all values appear in preview frame.
+      await canvas.testInPreviewFrame('#datetime-list li', async (items) => {
+        await expect(items).toHaveCount(initialRowCount);
+        await expect(items.nth(0)).toContainText('2025-12-24');
+        await expect(items.nth(1)).toContainText('2025-12-25');
+        await expect(items.nth(2)).toContainText('2025-12-26');
+      });
+
+      // Now proceed with deletion: Remove the last row (delete from bottom to top).
+      await rows
+        .last()
+        .getByRole('button', { name: /^Edit DateTime/ })
+        .click();
+      let popover = rows.last().getByRole('dialog');
+      const firstRemoveButton = popover.getByRole('button', { name: 'Remove' });
+      await expect(firstRemoveButton).toBeEnabled();
+      await firstRemoveButton.click();
+      // eslint-disable-next-line playwright/no-networkidle
+      await page.waitForLoadState('networkidle');
+
+      // After the first deletion the count must drop by exactly 1.
+      // If a ghost row appeared instead, the count would remain at initialRowCount
+      // and this assertion would fail — catching the bug.
+      await expect(rows).toHaveCount(initialRowCount - 1);
+
+      // Verify the deleted row is no longer in preview
+      await canvas.testInPreviewFrame('#datetime-list li', async (items) => {
+        await expect(items).toHaveCount(initialRowCount - 1);
+        await expect(items.nth(0)).toContainText('2025-12-24');
+        await expect(items.nth(1)).toContainText('2025-12-25');
+      });
+
+      // Remove the new last row (continuing bottom-to-top).
+      await rows
+        .last()
+        .getByRole('button', { name: /^Edit DateTime/ })
+        .click();
+      popover = rows.last().getByRole('dialog');
+      const secondRemoveButton = popover.getByRole('button', {
+        name: 'Remove',
+      });
+      await expect(secondRemoveButton).toBeEnabled();
+      await secondRemoveButton.click();
+      // eslint-disable-next-line playwright/no-networkidle
+      await page.waitForLoadState('networkidle');
+
+      // After the second deletion the count must drop by exactly 2 from the
+      // original. A ghost row bug would leave the count at initialRowCount - 1
+      // or higher, failing this assertion.
+      await expect(rows).toHaveCount(initialRowCount - 2);
+
+      // Verify final state in preview
+      await canvas.testInPreviewFrame('#datetime-list li', async (items) => {
+        await expect(items).toHaveCount(initialRowCount - 2);
+        await expect(items.nth(0)).toContainText('2025-12-24');
+      });
+    });
+  });
 });
