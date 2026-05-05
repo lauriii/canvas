@@ -48,9 +48,16 @@ export const componentInstanceFormApi = createApi({
       async onQueryStarted(queryString, { queryFulfilled }): Promise<void> {
         // Force any ajax calls to wait.
         pushCanvasLayoutRequest();
-        await queryFulfilled;
-        // Tell ajax calls they're good to go.
-        popCanvasLayoutRequest();
+        try {
+          await queryFulfilled;
+        } catch {
+          // If the request fails, we must still release the lock so that
+          // subsequent Drupal AJAX calls are not permanently blocked.
+          // @see https://www.drupal.org/project/canvas/issues/3579026
+        } finally {
+          // Tell ajax calls they're good to go regardless of success/failure.
+          popCanvasLayoutRequest();
+        }
       },
       forceRefetch: ({ currentArg, previousArg, endpointState }) => {
         // When true, this will fetch new data on the request, but will use

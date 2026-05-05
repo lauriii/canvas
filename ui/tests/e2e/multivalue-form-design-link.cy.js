@@ -777,6 +777,59 @@ describe('Multivalue Form Design – Link Field', () => {
     cy.closeMultivaluePopover();
   });
 
+  it('panel remains interactive after a server-side validation error on a link field', () => {
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
+
+    cy.openLibraryPanel();
+    cy.get('.primaryPanelContent').should('contain.text', 'Components');
+    cy.insertComponent({ name: 'Four Multiple Links' });
+
+    cy.get('form[data-form-id="component_instance_form"]')
+      .findByRole('heading', { name: 'Absolute' })
+      .parents('.js-form-wrapper')
+      .as('absolute-field');
+    cy.get('@absolute-field').scrollIntoView();
+
+    // Intercept the layout PATCH and stub it with the error response that
+    // Drupal returns for an invalid URI scheme.
+    cy.intercept('PATCH', '**/canvas/api/v0/layout/**', {
+      statusCode: 422,
+      body: {
+        message:
+          "The URI 'ttp://www.google.com' is invalid. You must use a valid URI scheme.",
+      },
+    }).as('failedLayoutPatch');
+
+    // Open the first row's URL popover and type a URL with an invalid scheme.
+    cy.openMultivaluePopover('@absolute-field', 0);
+    cy.get('[role="dialog"][data-state="open"]')
+      .find('input')
+      .first()
+      .type('{selectall}ttp://google.com');
+    cy.get('[role="dialog"][data-state="open"]').find('input').first().blur();
+
+    // Wait for the (stubbed) failing PATCH to be made.
+    cy.wait('@failedLayoutPatch');
+
+    // The canvasLayoutRequestInProgress lock must have been released even
+    // though the request failed. Verify by confirming that the body attribute
+    // set during the request is removed.
+    cy.get('body').should(
+      'not.have.attr',
+      'data-canvas-layout-request-in-progress',
+    );
+
+    // The panel must still be interactive: clicking "+ Add new" must work
+    // and trigger the normal Drupal AJAX add-more flow.
+    cy.get('@absolute-field')
+      .findByRole('button', { name: '+ Add new' })
+      .should('be.visible')
+      .click();
+
+    // Verify the table gained a new row, proving AJAX is no longer blocked.
+    cy.get('@absolute-field').find('tbody tr').should('have.length', 2);
+  });
+
   it('can use relative URLs in field_cvt_uri_relative (Canvas URI Relative)', () => {
     cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
     cy.findByTestId('canvas-page-data-form').as('entityForm');

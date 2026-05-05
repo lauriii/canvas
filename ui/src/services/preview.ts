@@ -109,9 +109,20 @@ export const previewApi = createApi({
       async onQueryStarted(body, { dispatch, queryFulfilled }) {
         // Force any ajax calls to wait.
         pushCanvasLayoutRequest();
-        const { data, meta } = await queryFulfilled;
-        // Tell ajax calls they're good to go.
-        popCanvasLayoutRequest();
+        let data: any;
+        let meta: any;
+        try {
+          ({ data, meta } = await queryFulfilled);
+        } catch {
+          // If the request fails (e.g. the server rejects an invalid field
+          // value), we must still release the lock so that subsequent Drupal
+          // AJAX calls are not permanently blocked.
+          // @see https://www.drupal.org/project/canvas/issues/3579026
+          return;
+        } finally {
+          // Tell ajax calls they're good to go regardless of success/failure.
+          popCanvasLayoutRequest();
+        }
         const { html, layout, model, autoSaves } = data;
         dispatch(
           pendingChangesApi.util.invalidateTags([
