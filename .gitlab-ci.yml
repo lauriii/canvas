@@ -131,6 +131,7 @@ variables:
       # The files and directories most Drupal modules contain.
       - canvas.*.yml
       - canvas.module
+      - canvas.install
       - canvas.post_update.php
       - composer.*
       - config/**/*
