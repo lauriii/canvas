@@ -18,7 +18,7 @@
     "dev": "NODE_ENV=development tsup --watch",
     "test:vitest": "vitest run",
     "watch:test": "vitest watch",
-    "test": "npx npm-run-all --parallel --continue-on-error test:*",
+    "test": "npx concurrently --group npm:test:*",
     "type-check": "tsc --noEmit --pretty"
   },
   "files": [

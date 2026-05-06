@@ -11,7 +11,7 @@
   "scripts": {
     "drupaldev": "VITE_DRUPAL=true vite",
     "start": "vite",
-    "build": "run-p --aggregate-output vite:build build:astro",
+    "build": "npx concurrently --group npm:vite:build npm:build:astro",
     "build:astro": "npm run build --workspace=@drupal-canvas/astro-hydration",
     "vite:build": "vite build",
     "preview": "vite preview",
