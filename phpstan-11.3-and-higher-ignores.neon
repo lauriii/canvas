@@ -1,12 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Attribute class Drupal\\Core\\Hook\\Attribute\\LegacyRequirementsHook does not exist\.$#'
-			identifier: attribute.notFound
-			count: 1
-			path: canvas.install
-
-		-
 			message: '#^Access to property \$data on an unknown class Drupal\\Core\\DefaultContent\\PreEntityImportEvent\.$#'
 			identifier: class.notFound
 			count: 1
