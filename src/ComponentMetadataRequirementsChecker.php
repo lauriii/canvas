@@ -145,17 +145,35 @@ final class ComponentMetadataRequirementsChecker {
       throw new ComponentDoesNotMeetRequirementsException($messages);
     }
 
-    // Every prop must have a StorablePropShape.
+    // Every prop must have a StorablePropShape. If an example is provided, it
+    // must be considered non-empty by the field type that will power it.
     $props_for_metadata = GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component_id, $metadata);
     /** @var \Drupal\canvas\PropShape\PropShapeRepositoryInterface $prop_shape_repository */
     $prop_shape_repository = \Drupal::service(EphemeralPropShapeRepository::class);
     foreach ($props_for_metadata as $cpe => $prop_shape) {
+      $prop_name = ComponentPropExpression::fromString($cpe)->propName;
       $storable_prop_shape = $prop_shape_repository->getStorablePropShape($prop_shape);
-      if ($storable_prop_shape instanceof StorablePropShape) {
+      if (!$storable_prop_shape instanceof StorablePropShape) {
+        $messages[] = \sprintf('Drupal Canvas does not know of a field type/widget to allow populating the <code>%s</code> prop, with the shape <code>%s</code>.', $prop_name, json_encode($prop_shape->schema, JSON_UNESCAPED_SLASHES));
         continue;
       }
-      $messages[] = \sprintf('Drupal Canvas does not know of a field type/widget to allow populating the <code>%s</code> prop, with the shape <code>%s</code>.', ComponentPropExpression::fromString($cpe)->propName, json_encode($prop_shape->schema, JSON_UNESCAPED_SLASHES));
+      // Entity-referencing props skip the StaticPropSource pipeline at runtime,
+      // so don't trial them here either.
+      if (GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity($storable_prop_shape)) {
+        continue;
+      }
+      $example = $metadata->schema['properties'][$prop_name]['examples'][0] ?? NULL;
+      if ($example === NULL) {
+        continue;
+      }
+      try {
+        $storable_prop_shape->toStaticPropSource()->withValue($example);
+      }
+      catch (\LogicException) {
+        $messages[] = \sprintf('Prop "%s" example value `%s` cannot be used as a default.', $prop_name, \json_encode($example));
+      }
     }
+
     if (!empty($messages)) {
       throw new ComponentDoesNotMeetRequirementsException($messages);
     }

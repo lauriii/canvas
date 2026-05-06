@@ -695,6 +695,24 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
   }
 
   /**
+   * Tests that an empty-string example for a string prop is rejected.
+   *
+   * @see https://www.drupal.org/i/3587211
+   */
+  public function testEmptyStringExampleRejected(): void {
+    $this->entity->set('props', [
+      'delta' => [
+        'type' => 'string',
+        'title' => 'Delta',
+        'examples' => [''],
+      ],
+    ]);
+    $this->assertValidationErrors([
+      '' => 'Prop "delta" example value `""` cannot be used as a default.',
+    ]);
+  }
+
+  /**
    * Tests different permutations of entity values.
    *
    * @param array $shape
