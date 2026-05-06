@@ -15,6 +15,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[RunTestsInSeparateProcesses]
 #[CoversClass(Pattern::class)]
 #[Group('canvas')]
+#[Group('canvas_config_management')]
 final class PatternComponentTreeTest extends ConfigWithComponentTreeTestBase {
 
   /**

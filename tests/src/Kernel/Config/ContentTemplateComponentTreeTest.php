@@ -20,6 +20,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[RunTestsInSeparateProcesses]
 #[CoversClass(PageRegion::class)]
 #[Group('canvas')]
+#[Group('canvas_config_management')]
 final class ContentTemplateComponentTreeTest extends ConfigWithComponentTreeTestBase {
 
   use ContentTypeCreationTrait;
@@ -31,11 +32,6 @@ final class ContentTemplateComponentTreeTest extends ConfigWithComponentTreeTest
     'field',
     'node',
   ];
-
-  /**
-   * {@inheritdoc}
-   */
-  protected static $expectedViolations = [];
 
   /**
    * {@inheritdoc}

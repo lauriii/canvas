@@ -93,6 +93,7 @@ class TranslationTest extends FunctionalTestBase {
             'href' => 'https://drupal.org/project/canvas',
           ],
         ],
+        // A component populated by an entity base field.
         [
           'uuid' => self::UUID_DYNAMIC_CTA,
           'component_id' => 'sdc.canvas_test_sdc.my-cta',
@@ -124,7 +125,7 @@ class TranslationTest extends FunctionalTestBase {
     self::assertSame([], $override->getRawData());
     $override->setData([
       'component_tree' => [
-        0 => [
+        self::UUID_STATIC_CTA => [
           'inputs' => [
             'text' => 'Propulsé par Drupal Canvas',
           ],
@@ -232,20 +233,12 @@ class TranslationTest extends FunctionalTestBase {
     $this->drupalGet($translated_node->toUrl());
     $html = $this->getSession()->getPage()->getHtml();
     // Assert order of component instances.
-    // @todo Fix this in https://www.drupal.org/project/canvas/issues/3582464:
-    // due to the sequence keys being unstable, the language override is now
-    // overriding the UUID_DYNAMIC_CTA instance instead of the UUID_STATIC_CTA
-    // instance! Which means that NEITHER of the expected component instances is
-    // rendered as it should! Remove the two `assertFalse()` and uncomment the
-    // `assertTrue()`.
-    self::assertFalse(str_contains($html, $translated_node_link_html));
-    self::assertFalse(str_contains($html, $translated_canvas_link_html));
-    // self::assertTrue(strpos($html, $translated_canvas_link_html) > strpos($html, $translated_node_link_html));
+    self::assertTrue(strpos($html, $translated_canvas_link_html) > strpos($html, $translated_node_link_html));
 
-    // $language_manager = $this->container->get(LanguageManagerInterface::class);
-    // self::assertInstanceOf(ConfigurableLanguageManagerInterface::class, $language_manager);
-    // $override = $language_manager->getLanguageConfigOverride('fr', $template->getConfigDependencyName());
-    // self::assertSame([self::UUID_STATIC_CTA], array_keys($override->getRawData()['component_tree']));
+    $language_manager = $this->container->get(LanguageManagerInterface::class);
+    self::assertInstanceOf(ConfigurableLanguageManagerInterface::class, $language_manager);
+    $override = $language_manager->getLanguageConfigOverride('fr', $template->getConfigDependencyName());
+    self::assertSame([self::UUID_STATIC_CTA], \array_keys($override->getRawData()['component_tree']));
   }
 
   /**
@@ -364,43 +357,43 @@ class TranslationTest extends FunctionalTestBase {
     $assert_session->statusCodeEquals(200);
 
     // 4. ASSERTIONS: verify rendered translatable/non-translatable fields.
-    $assert_session->fieldExists($field('[0][inputs][heading][0][value]'));
-    $assert_session->fieldExists($field('[0][inputs][text][0][value]'));
+    $assert_session->fieldExists($field('[aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1][inputs][heading][0][value]'));
+    $assert_session->fieldExists($field('[aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1][inputs][text][0][value]'));
     $assert_session->elementExists(
       'css',
-      'input[type="hidden"][name="' . $field('[0][inputs][text][0][format]') . '"][value="canvas_html_block"]',
+      'input[type="hidden"][name="' . $field('[aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1][inputs][text][0][format]') . '"][value="canvas_html_block"]',
     );
 
     // My-hero: static props should exist
-    $assert_session->fieldExists($field('[1][inputs][heading][0][value]'));
-    $assert_session->fieldExists($field('[1][inputs][cta2][0][value]'));
+    $assert_session->fieldExists($field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][heading][0][value]'));
+    $assert_session->fieldExists($field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][cta2][0][value]'));
 
     // My-hero: non-static source props should NOT exist
-    $assert_session->fieldNotExists($field('[1][inputs][cta1]'));
-    $assert_session->fieldNotExists($field('[1][inputs][cta1][0][value]'));
-    $assert_session->fieldNotExists($field('[1][inputs][cta1href]'));
-    $assert_session->fieldNotExists($field('[1][inputs][cta1href][0][uri]'));
+    $assert_session->fieldNotExists($field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][cta1]'));
+    $assert_session->fieldNotExists($field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][cta1][0][value]'));
+    $assert_session->fieldNotExists($field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][cta1href]'));
+    $assert_session->fieldNotExists($field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][cta1href][0][uri]'));
 
     // My-hero: optional prop NOT in default SHOULD render: the translation of
     // the component instance may opt to use it.
     // @see \Drupal\canvas\ConfigTranslation\CanvasComponentTreeItemInputsMappingFormElement
-    $assert_session->fieldExists($field('[1][inputs][subheading][0][value]'));
+    $assert_session->fieldExists($field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][subheading][0][value]'));
 
-    $assert_session->fieldExists($field('[2][inputs][label]'));
+    $assert_session->fieldExists($field('[cccccccc-cccc-4ccc-8ccc-ccccccccccc3][inputs][label]'));
 
-    $assert_session->fieldNotExists($field('[2][inputs][label_display]'));
-    $assert_session->fieldNotExists($field('[2][inputs][use_site_logo]'));
-    $assert_session->fieldNotExists($field('[2][inputs][use_site_name]'));
-    $assert_session->fieldNotExists($field('[2][inputs][use_site_slogan]'));
+    $assert_session->fieldNotExists($field('[cccccccc-cccc-4ccc-8ccc-ccccccccccc3][inputs][label_display]'));
+    $assert_session->fieldNotExists($field('[cccccccc-cccc-4ccc-8ccc-ccccccccccc3][inputs][use_site_logo]'));
+    $assert_session->fieldNotExists($field('[cccccccc-cccc-4ccc-8ccc-ccccccccccc3][inputs][use_site_name]'));
+    $assert_session->fieldNotExists($field('[cccccccc-cccc-4ccc-8ccc-ccccccccccc3][inputs][use_site_slogan]'));
 
     // 5. SUBMIT: provide French translations in a single form submission.
     $edit = [
-      $field('[0][inputs][heading][0][value]') => 'Welcome',
-      $field('[0][inputs][text][0][value]') => '<p>Bonjour</p>',
-      $field('[1][inputs][heading][0][value]') => 'Bienvenue à Canvas',
-      $field('[1][inputs][cta2][0][value]') => 'En savoir plus',
-      $field('[1][inputs][subheading][0][value]') => 'Découvrez Canvas',
-      $field('[2][inputs][label]') => 'Identité visuelle',
+      $field('[aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1][inputs][heading][0][value]') => 'Welcome',
+      $field('[aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1][inputs][text][0][value]') => '<p>Bonjour</p>',
+      $field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][heading][0][value]') => 'Bienvenue à Canvas',
+      $field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][cta2][0][value]') => 'En savoir plus',
+      $field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][subheading][0][value]') => 'Découvrez Canvas',
+      $field('[cccccccc-cccc-4ccc-8ccc-ccccccccccc3][inputs][label]') => 'Identité visuelle',
     ];
     $this->submitForm($edit, 'Save translation');
     $assert_session->pageTextContains('Successfully saved French translation');
@@ -412,21 +405,21 @@ class TranslationTest extends FunctionalTestBase {
     self::assertFalse($override->isNew());
     self::assertSame([
       'component_tree' => [
-        0 => [
+        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1' => [
           'inputs' => [
             'text' => [
               'value' => '<p>Bonjour</p>',
             ],
           ],
         ],
-        1 => [
+        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2' => [
           'inputs' => [
             'heading' => 'Bienvenue à Canvas',
             'subheading' => 'Découvrez Canvas',
             'cta2' => 'En savoir plus',
           ],
         ],
-        2 => [
+        'cccccccc-cccc-4ccc-8ccc-ccccccccccc3' => [
           'inputs' => [
             'label' => 'Identité visuelle',
           ],
@@ -434,16 +427,16 @@ class TranslationTest extends FunctionalTestBase {
       ],
     ], $override->getRawData());
 
-    self::assertArrayNotHasKey('heading', $override->getRawData()['component_tree'][0]['inputs']);
+    self::assertArrayNotHasKey('heading', $override->getRawData()['component_tree']['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1']['inputs']);
     self::assertArrayNotHasKey(3, $override->getRawData()['component_tree']);
   }
 
   /**
-   * Data provider for testTranslation().
+   * Data provider for testCanvasFieldTranslation().
    *
    * @return array<array{0: array, 1: bool}>
    */
-  public static function translationDataProvider(): array {
+  public static function canvasFieldTranslationDataProvider(): array {
     return [
       // In the symmetric case, the 'tree' property is not translatable. This
       // means every translation has the same components but can have different
@@ -472,8 +465,8 @@ class TranslationTest extends FunctionalTestBase {
    *   translation. The component is always removed from the default
    *   translation.
    */
-  #[DataProvider('translationDataProvider')]
-  public function testTranslation(array $translatable_properties, bool $expect_component_removed_on_translation): void {
+  #[DataProvider('canvasFieldTranslationDataProvider')]
+  public function testCanvasFieldTranslation(array $translatable_properties, bool $expect_component_removed_on_translation): void {
     $page = $this->getSession()->getPage();
     $assert_session = $this->assertSession();
     $language_manager = $this->container->get(LanguageManagerInterface::class);

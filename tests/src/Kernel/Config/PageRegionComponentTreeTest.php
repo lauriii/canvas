@@ -16,6 +16,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[RunTestsInSeparateProcesses]
 #[CoversClass(PageRegion::class)]
 #[Group('canvas')]
+#[Group('canvas_config_management')]
 final class PageRegionComponentTreeTest extends ConfigWithComponentTreeTestBase {
 
   /**

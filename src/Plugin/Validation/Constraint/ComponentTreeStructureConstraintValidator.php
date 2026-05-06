@@ -66,10 +66,6 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       $base_property_path = $this->context->getPropertyPath();
     }
     $object = $this->context->getObject();
-    if ($object instanceof Sequence) {
-      // Remove keys from config-based component trees.
-      $value = \array_values($value);
-    }
     if (\is_array($value) && $object instanceof TypedDataInterface && !($object instanceof Sequence)) {
       $type = $object->getDataDefinition()->getDataType();
       if ($type === 'field.value.component_tree' && ($parent = $object->getParent()) !== NULL) {

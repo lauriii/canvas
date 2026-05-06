@@ -321,11 +321,15 @@ canvas.page_region.*:
 
 # The config equivalent of a ComponentTreeItemList, validated by the same constraints.
 # This is a list of component items in a tree, one item per component instance.
+# @see `ComponentTreeItemKeyedSequence` in ComponentTreeConfigEntityBase
 canvas.component_tree:
   type: sequence
   label: 'Config-Defined Component Tree'
-  # @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait::generateComponentTreeKeys()
-  orderby: key
+  # Sequence keys are component instance UUIDs. Necessary for reliable translations. Note these are transformed at
+  # export time to improve DX (and the reverse is done at import time).
+  # @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::asDeterministicallyAndTranslatableKeyedComponentTreeSequence
+  # @see \Drupal\canvas\EventSubscriber\ComponentTreeConfigEntityTransformer
+  orderby: ~
   constraints:
     ComponentTreeStructure: []
     ComponentTreeMeetRequirements:

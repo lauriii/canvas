@@ -242,21 +242,21 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   /**
  * Tests invalid component tree.
  */
-  #[DataProvider('providerInvalidComponentTree')]
-  public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
+  #[DataProvider('providerComponentTree')]
+  public function testComponentTree(array $component_tree, array $expected_messages): void {
     $component_tree = self::populateActiveComponentVersionPlaceholders($component_tree);
     \assert($this->entity instanceof ContentTemplate);
     $this->entity->setComponentTree($component_tree);
     $this->assertValidationErrors($expected_messages);
   }
 
-  public static function providerInvalidComponentTree(): \Generator {
-    yield "missing `component_tree` property" => [
+  public static function providerComponentTree(): \Generator {
+    yield "VALID: missing `component_tree` property" => [
       'component_tree' => [],
       'expected_messages' => [],
     ];
 
-    yield "no EntityFieldPropSource, so no structured data from the content entity" => [
+    yield "VALID: no EntityFieldPropSource, so no structured data from the content entity" => [
       'component_tree' => [
         [
           'uuid' => '19ff9a18-54a2-422a-bf68-49d65a5d53ac',
@@ -268,7 +268,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       'expected_messages' => [],
     ];
 
-    yield "using disallowed Block-sourced Components" => [
+    yield "INVALID: using disallowed Block-sourced Components" => [
       'component_tree' => [
         [
           'uuid' => '19ff9a18-54a2-422a-bf68-49d65a5d53ac',
@@ -320,7 +320,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       ],
     ];
 
-    yield "using AdaptedPropSource" => [
+    yield "INVALID: using AdaptedPropSource" => [
       'component_tree' => [
         [
           'uuid' => '90804335-d16d-4799-9e80-ddb11692530a',
@@ -360,7 +360,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       ],
     ];
 
-    yield "not a uuid" => [
+    yield "INVALID: not a uuid" => [
       'component_tree' => [
         [
           'uuid' => 'garry-sensible-jeans',
@@ -390,7 +390,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       ],
     ];
 
-    yield "invalid parent" => [
+    yield "INVALID: invalid parent" => [
       'component_tree' => [
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
@@ -422,7 +422,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       ],
     ];
 
-    yield "invalid slot" => [
+    yield "INVALID: invalid slot (integer sequence keys as the client might send — prove the specified keys are respected)" => [
       'component_tree' => [
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
@@ -454,7 +454,39 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       ],
     ];
 
-    yield "invalid label" => [
+    yield "INVALID: invalid slot (deterministic sequence keys as the server generates — prove the specified keys are respected)" => [
+      'component_tree' => [
+        'fa9ff0a8-e23a-492a-ab14-5460611fa2c1' => [
+          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '85a5c0c7dd53e0bb',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+        'e303dd88-9409-4dc7-8a8b-a31602884a94' => [
+          'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
+          'slot' => 'banana',
+          'parent_uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '85a5c0c7dd53e0bb',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree.e303dd88-9409-4dc7-8a8b-a31602884a94.slot' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.canvas_test_sdc.props-slots</em>: <em class="placeholder">banana</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
+      ],
+    ];
+
+    yield "INVALID: invalid label" => [
       'component_tree' => [
         [
           'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
@@ -474,7 +506,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       ],
     ];
 
-    yield "invalid version" => [
+    yield "INVALID: invalid version" => [
       'component_tree' => [
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',

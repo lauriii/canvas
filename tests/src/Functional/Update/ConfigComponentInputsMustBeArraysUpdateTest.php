@@ -107,22 +107,25 @@ final class ConfigComponentInputsMustBeArraysUpdateTest extends CanvasUpdatePath
     $pattern_after = Pattern::load('test_pattern');
     \assert($pattern_after instanceof Pattern);
     self::assertEntityIsValid($pattern_after);
-    self::assertIsArray($pattern_after->get('component_tree')[0]['inputs'], '`inputs` not encoded as a JSON blob.');
+    // Component tree sequence keys are component instance UUIDs, not integers.
+    self::assertIsArray(\array_values($pattern_after->get('component_tree'))[0]['inputs'], '`inputs` not encoded as a JSON blob.');
 
     $template_after = ContentTemplate::load(\implode('.', ['node', 'article', 'reverse']));
     \assert($template_after instanceof ContentTemplate);
     self::assertEntityIsValid($template_after);
-    self::assertIsArray($template_after->get('component_tree')[0]['inputs'], '`inputs` not encoded as a JSON blob.');
+    self::assertIsArray(\array_values($template_after->get('component_tree'))[0]['inputs'], '`inputs` not encoded as a JSON blob.');
 
     $field_after = FieldConfig::load('node.article.field_canvas_demo');
     \assert($field_after instanceof FieldConfigInterface);
     self::assertEntityIsValid($field_after);
+    // FieldConfig::$default_value is not a ComponentTreeConfigEntityBase property
+    // and is not subject to the UUID sequence key migration, so [0] is correct.
     self::assertIsArray($field_after->get('default_value')[0]['inputs'], '`inputs` not encoded as a JSON blob.');
 
     $region_after = PageRegion::load('stark.sidebar_first');
     \assert($region_after instanceof PageRegion);
     self::assertEntityIsValid($region_after);
-    self::assertIsArray($region_after->get('component_tree')[0]['inputs'], '`inputs` not encoded as a JSON blob.');
+    self::assertIsArray(\array_values($region_after->get('component_tree'))[0]['inputs'], '`inputs` not encoded as a JSON blob.');
   }
 
 }

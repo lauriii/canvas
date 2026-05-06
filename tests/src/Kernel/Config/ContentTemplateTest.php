@@ -104,153 +104,6 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
     $this->assertFalse($definition->hasHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY));
   }
 
-  public function testTreeKeyOrdering(): void {
-    $this->installConfig('node');
-    $this->createContentType(['type' => 'alpha']);
-    $this->generateComponentConfig();
-    $template = ContentTemplate::create([
-      'content_entity_type_id' => 'node',
-      'content_entity_type_bundle' => 'alpha',
-      'content_entity_type_view_mode' => 'full',
-    ]);
-    $template->setComponentTree([
-      [
-        'uuid' => 'b7e2cf39-d62f-4ee8-99b2-27a89f1ac196',
-        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
-        'parent_uuid' => '3a76bf4f-9306-43e6-ba8f-cb4b5b6459df',
-        'slot' => 'the_body',
-        'inputs' => [
-          'heading' => 'Two layers deep.',
-        ],
-      ],
-      [
-        'uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
-        'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
-        'inputs' => [
-          'heading' => 'Hello, world!',
-        ],
-      ],
-      [
-        'uuid' => '5f1c5361-5658-467e-9c53-b0015d57945d',
-        'component_id' => 'block.system_powered_by_block',
-        'component_version' => Component::load('block.system_powered_by_block')?->getActiveVersion(),
-        'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
-        'slot' => 'the_footer',
-        'inputs' => [
-          'label' => '',
-          'label_display' => '0',
-        ],
-      ],
-      [
-        'uuid' => '3a76bf4f-9306-43e6-ba8f-cb4b5b6459df',
-        'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
-        'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
-        'slot' => 'the_body',
-        'inputs' => [
-          'heading' => 'Hello from the top of the body',
-        ],
-      ],
-      [
-        'uuid' => '5f71027b-d9d3-4f3d-8990-a6502c0ba676',
-        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
-        'inputs' => [
-          'heading' => [
-            'sourceType' => PropSource::EntityField->value,
-            'expression' => 'ℹ︎␜entity:node:alpha␝title␞␟value',
-          ],
-        ],
-      ],
-      [
-        'uuid' => '93af433a-8ab0-4dd9-912a-73a99c882347',
-        'component_id' => 'block.system_branding_block',
-        'component_version' => Component::load('block.system_branding_block')?->getActiveVersion(),
-        'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
-        'slot' => 'the_body',
-        'inputs' => [
-          'use_site_logo' => TRUE,
-          'use_site_name' => TRUE,
-          'use_site_slogan' => TRUE,
-          'label' => '',
-          'label_display' => '0',
-        ],
-      ],
-    ]);
-    self::assertSame(
-      [
-        '0' => [
-          'uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
-          'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '85a5c0c7dd53e0bb',
-          'inputs' => [
-            'heading' => 'Hello, world!',
-          ],
-        ],
-        '0:the_body:0' => [
-          'uuid' => '3a76bf4f-9306-43e6-ba8f-cb4b5b6459df',
-          'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '85a5c0c7dd53e0bb',
-          'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
-          'slot' => 'the_body',
-          'inputs' => [
-            'heading' => 'Hello from the top of the body',
-          ],
-        ],
-        '0:the_body:0:the_body:0' => [
-          'uuid' => 'b7e2cf39-d62f-4ee8-99b2-27a89f1ac196',
-          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-          'component_version' => 'b1e991f726a2a266',
-          'parent_uuid' => '3a76bf4f-9306-43e6-ba8f-cb4b5b6459df',
-          'slot' => 'the_body',
-          'inputs' => [
-            'heading' => 'Two layers deep.',
-          ],
-        ],
-        '0:the_body:1' => [
-          'uuid' => '93af433a-8ab0-4dd9-912a-73a99c882347',
-          'component_id' => 'block.system_branding_block',
-          'component_version' => Component::load('block.system_branding_block')?->getActiveVersion(),
-          'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
-          'slot' => 'the_body',
-          'inputs' => [
-            'use_site_logo' => TRUE,
-            'use_site_name' => TRUE,
-            'use_site_slogan' => TRUE,
-            'label' => '',
-            'label_display' => '0',
-          ],
-        ],
-        '0:the_footer:0' => [
-          'uuid' => '5f1c5361-5658-467e-9c53-b0015d57945d',
-          'component_id' => 'block.system_powered_by_block',
-          'component_version' => Component::load('block.system_powered_by_block')?->getActiveVersion(),
-          'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
-          'slot' => 'the_footer',
-          'inputs' => [
-            'label' => '',
-            'label_display' => '0',
-          ],
-        ],
-        '1' => [
-          'uuid' => '5f71027b-d9d3-4f3d-8990-a6502c0ba676',
-          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-          'component_version' => 'b1e991f726a2a266',
-          'inputs' => [
-            'heading' => [
-              'sourceType' => PropSource::EntityField->value,
-              'expression' => 'ℹ︎␜entity:node:alpha␝title␞␟value',
-            ],
-          ],
-        ],
-      ], $template->get('component_tree'),
-    );
-    // Sanity-check that the test template is valid.
-    self::assertEntityIsValid($template);
-  }
-
   /**
    * Tests config-defined component tree translation life cycle in-depth.
    *
@@ -361,22 +214,22 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
     // @see \Drupal\canvas\ConfigTranslation\CanvasStaticPropSourceFieldWidget::setConfig()
     // @see \Drupal\Tests\canvas\Functional\TranslationTest::testContentTemplateConfigTranslationUi()
     $en_stored_values = $template->toArray();
-    self::assertSame('Powered by Drupal Canvas', NestedArray::getValue($en_stored_values, ['component_tree', 0, 'inputs', 'text']));
+    self::assertSame('Powered by Drupal Canvas', NestedArray::getValue($en_stored_values, ['component_tree', self::UUID_SDC_UNSTRUCTURED_DATA, 'inputs', 'text']));
     $nl_form_values = $en_stored_values = $template->toArray();
     // The sole value that CAN be translated: a `type: string` prop populated by
     // a StaticPropSource in the default translation.
-    NestedArray::setValue($nl_form_values, ['component_tree', 0, 'inputs', 'text'], [0 => ['value' => 'Aangedreven door Drupal Canvas']]);
+    NestedArray::setValue($nl_form_values, ['component_tree', self::UUID_SDC_UNSTRUCTURED_DATA, 'inputs', 'text'], [0 => ['value' => 'Aangedreven door Drupal Canvas']]);
     // The user chose to not translate the `href`, but it gets submitted via a
     // field widget.
     // @see \Drupal\link\Plugin\Field\FieldWidget\LinkWidget::formElement()
-    NestedArray::setValue($nl_form_values, ['component_tree', 0, 'inputs', 'href'], [0 => ['uri' => NestedArray::getValue($nl_form_values, ['component_tree', 0, 'inputs', 'href', 'uri'])]]);
-    NestedArray::setValue($nl_form_values, ['component_tree', 1, 'inputs', 'label'], 'Holle slogans, daar staan we voor.');
-    NestedArray::setValue($nl_form_values, ['component_tree', 1, 'inputs', 'label_display'], 'This should be filtered away because config schema `type: string` with a Choice constraint is not translatable.');
-    NestedArray::setValue($nl_form_values, ['component_tree', 1, 'inputs', 'use_site_logo'], 'This should be filtered away because config schema  `type: boolean` is not translatable.');
-    NestedArray::setValue($nl_form_values, ['component_tree', 1, 'inputs', 'use_site_name'], 'This should be filtered away because config schema  `type: boolean` is not translatable.');
-    NestedArray::setValue($nl_form_values, ['component_tree', 1, 'inputs', 'use_site_logo'], 'This should be filtered away because config schema  `type: boolean` is not translatable.');
-    NestedArray::setValue($nl_form_values, ['component_tree', 2, 'inputs', 'text'], [0 => ['value' => 'This should be filtered away because it is populated by an EntityFieldPropSource in the default translation.']]);
-    NestedArray::setValue($nl_form_values, ['component_tree', 2, 'inputs', 'href'], [0 => ['uri' => 'This should be filtered away because A) `type: string, format: uri` is not translatable, B) it is populated by a HostEntityUrlPropSource in the default translation.']]);
+    NestedArray::setValue($nl_form_values, ['component_tree', self::UUID_SDC_UNSTRUCTURED_DATA, 'inputs', 'href'], [0 => ['uri' => NestedArray::getValue($nl_form_values, ['component_tree', self::UUID_SDC_UNSTRUCTURED_DATA, 'inputs', 'href', 'uri'])]]);
+    NestedArray::setValue($nl_form_values, ['component_tree', self::UUID_BLOCK, 'inputs', 'label'], 'Holle slogans, daar staan we voor.');
+    NestedArray::setValue($nl_form_values, ['component_tree', self::UUID_BLOCK, 'inputs', 'label_display'], 'This should be filtered away because config schema `type: string` with a Choice constraint is not translatable.');
+    NestedArray::setValue($nl_form_values, ['component_tree', self::UUID_BLOCK, 'inputs', 'use_site_logo'], 'This should be filtered away because config schema  `type: boolean` is not translatable.');
+    NestedArray::setValue($nl_form_values, ['component_tree', self::UUID_BLOCK, 'inputs', 'use_site_name'], 'This should be filtered away because config schema  `type: boolean` is not translatable.');
+    NestedArray::setValue($nl_form_values, ['component_tree', self::UUID_BLOCK, 'inputs', 'use_site_logo'], 'This should be filtered away because config schema  `type: boolean` is not translatable.');
+    NestedArray::setValue($nl_form_values, ['component_tree', self::UUID_SDC_STRUCTURED_DATA, 'inputs', 'text'], [0 => ['value' => 'This should be filtered away because it is populated by an EntityFieldPropSource in the default translation.']]);
+    NestedArray::setValue($nl_form_values, ['component_tree', self::UUID_SDC_STRUCTURED_DATA, 'inputs', 'href'], [0 => ['uri' => 'This should be filtered away because A) `type: string, format: uri` is not translatable, B) it is populated by a HostEntityUrlPropSource in the default translation.']]);
     // Note: $nl_values is the complete raw data of the config entity, with only
     // a single (deeply nested!) key-value pair changed (translated). The config
     // translation system ensures only the actually translated values are saved.
@@ -390,12 +243,12 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
     self::assertFalse($override->isNew());
     self::assertSame([
       'component_tree' => [
-        0 => [
+        self::UUID_SDC_UNSTRUCTURED_DATA => [
           'inputs' => [
             'text' => 'Aangedreven door Drupal Canvas',
           ],
         ],
-        1 => [
+        self::UUID_BLOCK => [
           'inputs' => [
             'label' => 'Holle slogans, daar staan we voor.',
           ],
@@ -412,14 +265,34 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
     self::assertSame(['language.nl'], $export_storage->getAllCollectionNames());
     $exported_template = $export_storage->read($template->getConfigDependencyName());
     \assert(\is_array($exported_template));
-    self::assertSame([0, 1, 2], \array_keys($exported_template['component_tree']));
+    // Default collection: export transform applied.
+    self::assertSame(
+      [
+        // Note the position information that was encoded in the sequence keys.
+        // @see \Drupal\canvas\EventSubscriber\ComponentTreeConfigEntityTransformer::export()
+        '0:' . self::UUID_SDC_UNSTRUCTURED_DATA,
+        '1:' . self::UUID_BLOCK,
+        '2:' . self::UUID_SDC_STRUCTURED_DATA,
+      ],
+      \array_keys($exported_template['component_tree']),
+    );
+    // Translation collection: NO export transform applied.
+    self::assertSame(
+      // Sequence keys untransformed (still UUIDs).
+      [
+        self::UUID_SDC_UNSTRUCTURED_DATA,
+        self::UUID_BLOCK,
+      ],
+      // @phpstan-ignore-next-line offsetAccess.nonOffsetAccessible
+      \array_keys($export_storage->createCollection('language.nl')->read($template->getConfigDependencyName())['component_tree'])
+    );
 
     // Verify the original (English) template is unchanged.
     $template = ContentTemplate::load($template->id());
     self::assertNotNull($template);
     $original_tree = $template->get('component_tree');
-    self::assertSame('Powered by Drupal Canvas', $original_tree[0]['inputs']['text']);
-    self::assertSame('Branding is important, right?', $original_tree[1]['inputs']['label']);
+    self::assertSame('Powered by Drupal Canvas', $original_tree[self::UUID_SDC_UNSTRUCTURED_DATA]['inputs']['text']);
+    self::assertSame('Branding is important, right?', $original_tree[self::UUID_BLOCK]['inputs']['label']);
 
     // Reorder the component instances to test the effect on the loading of
     // translations.
@@ -439,15 +312,14 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
       self::UUID_SDC_UNSTRUCTURED_DATA,
     ], \array_column($template->get('component_tree'), 'uuid'));
 
-    // LanguageConfigOverride is unchanged. The translation is applied based on
-    // the sequence key, and both before and after the repositioning, `0` and
-    // `1`is are sequence keys in the component tree, although they do now refer
-    // to different component instances.
-    // @todo Fix this in https://www.drupal.org/project/canvas/issues/3582464
+    // LanguageConfigOverride is unchanged. The translation is still correctly
+    // applied based on the component instance UUID, not its position in the
+    // tree.
     $override = $language_manager->getLanguageConfigOverride('nl', $template->getConfigDependencyName());
     $override_hash_after_reposition = \hash('xxh64', \json_encode($override->getRawData(), JSON_THROW_ON_ERROR));
     self::assertSame($override_hash_original, $override_hash_after_reposition);
 
+    // Delete the two component instances that have translations.
     $template->setComponentTree([$component_instances[2]])->save();
     self::assertEntityIsValid($template);
     self::assertSame([
@@ -456,20 +328,8 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
     $override = $language_manager->getLanguageConfigOverride('nl', $template->getConfigDependencyName());
     $override_hash_after_deletion = \hash('xxh64', \json_encode($override->getRawData(), JSON_THROW_ON_ERROR));
     self::assertNotSame($override_hash_original, $override_hash_after_deletion);
-    // @todo Fix this in https://www.drupal.org/project/canvas/issues/3582464:
-    // the override should be empty after the deletion of all translated
-    // component instances, but they're not, because sequence key `0` remains in
-    // use.
-    self::assertFalse($override->isNew());
-    self::assertSame([
-      'component_tree' => [
-        0 => [
-          'inputs' => [
-            'text' => 'Aangedreven door Drupal Canvas',
-          ],
-        ],
-      ],
-    ], $override->getRawData());
+    self::assertTrue($override->isNew());
+    self::assertSame([], $override->getRawData());
 
     // See also the integration tests that prove the translation can be created
     // via the UI and appears for end users.

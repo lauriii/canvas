@@ -414,17 +414,6 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
   /**
    * {@inheritdoc}
    */
-  public function set($property_name, $value): self {
-    if ($property_name === 'component_tree') {
-      // Ensure predictable order of tree items.
-      $value = self::generateComponentTreeKeys($value);
-    }
-    return parent::set($property_name, $value);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function autoSavePublish(): self {
     $this->setStatus(TRUE);
     return $this;

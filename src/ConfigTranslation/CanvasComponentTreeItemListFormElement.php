@@ -27,7 +27,7 @@ final class CanvasComponentTreeItemListFormElement extends ListElement {
   public function getTranslationBuild(LanguageInterface $source_language, LanguageInterface $translation_language, $source_config, $translation_config, array $parents, $base_key = NULL) {
     $build = parent::getTranslationBuild($source_language, $translation_language, $source_config, $translation_config, $parents, $base_key);
     $raw_component_tree = $this->element->getValue();
-    foreach (Element::children($build) as $sequence_key) {
+    foreach (Element::children($build) as $position => $sequence_key) {
       \assert(\array_key_exists($sequence_key, $raw_component_tree));
       $raw_component_instance = $raw_component_tree[$sequence_key];
 
@@ -40,6 +40,7 @@ final class CanvasComponentTreeItemListFormElement extends ListElement {
       // And generate a dynamic title that provides the user with useful context
       // about the component instance being translated, instead of a static
       // label that is repeated for every component instance.
+      // @todo Consider making the position information more precise; look at \Drupal\canvas\EventSubscriber\ComponentTreeConfigEntityTransformer::computeExportSequenceKeys() for inspiration.
       \assert(\array_key_exists('#title', $build[$sequence_key]) && $build[$sequence_key]['#title'] === 'Config-Defined Component Tree Item');
       $build[$sequence_key]['#title'] = \sprintf(<<<HTML
 Component at position %s
@@ -50,8 +51,7 @@ Component at position %s
 <li>%d translatable inputs</li>
 </ul></small>
 HTML,
-        // @todo Update in https://www.drupal.org/project/canvas/issues/3582464
-        $sequence_key,
+        $position,
         $raw_component_instance['component_id'],
         $raw_component_instance['uuid'],
         count(Element::children($build[$sequence_key]['inputs'])),

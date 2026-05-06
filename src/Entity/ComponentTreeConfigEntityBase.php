@@ -12,7 +12,11 @@ use Drupal\Core\Entity\EntityStorageInterface;
 /**
  * @internal
  *
+ * @see \Drupal\canvas\EventSubscriber\ComponentTreeConfigEntityTransformer
+ *
  * @phpstan-import-type ComponentTreeItemArray from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
+ * @phpstan-import-type ComponentTreeItemListArray from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
+ * @phpstan-type ComponentTreeItemKeyedSequence array<string, ComponentTreeItemArray>
  */
 abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements ComponentTreeEntityInterface {
 
@@ -94,6 +98,27 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
     return parent::set($property_name, $value);
   }
 
+  /**
+   * Transforms a component tree sequence to have translation-targetable keys.
+   *
+   * @param ComponentTreeItemKeyedSequence|ComponentTreeItemListArray $component_tree_sequence
+   *   The raw component tree sequence, which may have string keys (typically if
+   *   importing an exported config entity or loading a saved config entity), or
+   *   integer keys (if constructing a config-defined component tree initially).
+   *
+   * @return ComponentTreeItemKeyedSequence
+   *   The same sequence (the same values in the same order), but now
+   *   deterministic keys that uniquely identify the component instance using
+   *   its instance UUID (to allow symmetrical config translations to target a
+   *   given component instance even when that instance is moved).
+   */
+  private static function asDeterministicallyAndTranslatableKeyedComponentTreeSequence(array $component_tree_sequence): array {
+    return \array_combine(
+      \array_column($component_tree_sequence, 'uuid'),
+      \array_values($component_tree_sequence),
+    );
+  }
+
   public function setComponentTree(array $values): static {
     $this->set('component_tree', $values);
     return $this;
@@ -117,6 +142,12 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
     parent::preSave($storage);
     self::getConfigUpdater()->updateConfigEntityWithComponentTreeInputs($this);
     self::getConfigUpdater()->updateConfigEntityWithComponentTreeInputsAsArrays($this);
+    // TRICKY: do not use ::setComponentTree() here because it expects integer
+    // keys ("deltas") for component instances. Config-defined component trees
+    // do not have deltas but sequence keys. Manipulate the config entity
+    // property directly.
+    // @see \Drupal\canvas\CanvasConfigUpdater::needsConfigEntityWithComponentTreeSequenceKeysUpdate()
+    $this->set('component_tree', self::asDeterministicallyAndTranslatableKeyedComponentTreeSequence(\array_values($this->get('component_tree'))));
   }
 
   /**

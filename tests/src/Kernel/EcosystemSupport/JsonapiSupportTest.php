@@ -304,7 +304,7 @@ final class JsonapiSupportTest extends CanvasKernelTestBase {
     $value = $this->container->get('jsonapi.serializer')->normalize($this->contentTemplate->component_tree, 'api_json', $context);
     // This is not a CacheableNormalization, but an array.
     $this->assertSame([
-      [
+      '435d1d20-a697-4d36-9892-9d61c825c99c' => [
         'uuid' => '435d1d20-a697-4d36-9892-9d61c825c99c',
         'component_id' => 'sdc.canvas_test_sdc.my-cta',
         'component_version' => $components['sdc.canvas_test_sdc.my-cta']->getActiveVersion(),
@@ -313,7 +313,7 @@ final class JsonapiSupportTest extends CanvasKernelTestBase {
           'href' => 'https://drupal.org',
         ],
       ],
-      [
+      '2d06782a-0f24-43ae-963c-b5aff807dd95' => [
         'uuid' => '2d06782a-0f24-43ae-963c-b5aff807dd95',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
         'component_version' => $components['sdc.canvas_test_sdc.props-no-slots']->getActiveVersion(),
@@ -356,7 +356,7 @@ final class JsonapiSupportTest extends CanvasKernelTestBase {
     $value = $this->container->get('jsonapi.serializer')->normalize($this->pageRegion->component_tree, 'api_json', $context);
     // This is not a CacheableNormalization, but an array.
     $this->assertSame([
-      [
+      'cd44b595-9f3f-47d2-ae7d-621dcec7f621' => [
         'uuid' => 'cd44b595-9f3f-47d2-ae7d-621dcec7f621',
         'component_id' => 'sdc.canvas_test_sdc.my-cta',
         'component_version' => $components['sdc.canvas_test_sdc.my-cta']->getActiveVersion(),
@@ -365,7 +365,7 @@ final class JsonapiSupportTest extends CanvasKernelTestBase {
           'href' => 'https://drupal.org',
         ],
       ],
-      [
+      'ff376f2e-4eb8-4a69-8e1e-7d5fbe64e518' => [
         'uuid' => 'ff376f2e-4eb8-4a69-8e1e-7d5fbe64e518',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
         'component_version' => $components['sdc.canvas_test_sdc.props-no-slots']->getActiveVersion(),

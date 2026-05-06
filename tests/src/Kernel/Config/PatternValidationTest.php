@@ -318,7 +318,6 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       ],
       'expected_messages' => [
         'component_tree' => 'The \'Drupal\Core\Block\TitleBlockPluginInterface\' component interface must be absent.',
-        'component_tree.2.uuid' => 'This is not a valid UUID.',
         'component_tree.2.inputs' => [
           // Origin: \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent::validateComponentInput()
           "'label' is a required key.",
@@ -329,6 +328,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           "'label' is a required key.",
           "'label_display' is a required key.",
         ],
+        'component_tree.2.uuid' => 'This is not a valid UUID.',
       ],
     ];
 
@@ -358,7 +358,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       ],
     ];
 
-    yield "invalid slot" => [
+    yield "invalid slot (integer sequence keys as the client might send — prove the specified keys are respected)" => [
       'component_tree' => [
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
@@ -384,6 +384,32 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       ],
     ];
 
+    yield "invalid slot (deterministic sequence keys as the server generates — prove the specified keys are respected)" => [
+      'component_tree' => [
+        'fa9ff0a8-e23a-492a-ab14-5460611fa2c1' => [
+          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '85a5c0c7dd53e0bb',
+          'inputs' => [
+            'heading' => 'And we laugh like soft, mad children',
+          ],
+        ],
+        'e303dd88-9409-4dc7-8a8b-a31602884a94' => [
+          'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
+          'slot' => 'banana',
+          'parent_uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '85a5c0c7dd53e0bb',
+          'inputs' => [
+            'heading' => ' Smug in the wooly cotton brains of infancy',
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree.e303dd88-9409-4dc7-8a8b-a31602884a94.slot' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.canvas_test_sdc.props-slots</em>: <em class="placeholder">banana</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
+      ],
+    ];
+
     yield "invalid label" => [
       'component_tree' => [
         [
@@ -398,22 +424,6 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       ],
       'expected_messages' => [
         'component_tree.0.label' => 'This value is too long. It should have <em class="placeholder">255</em> characters or less.',
-      ],
-    ];
-
-    yield "invalid version" => [
-      'component_tree' => [
-        [
-          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
-          'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => 'abc',
-          'inputs' => [
-            'heading' => 'And we laugh like soft, mad children',
-          ],
-        ],
-      ],
-      'expected_messages' => [
-        'component_tree.0.component_version' => "'abc' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-slots'. Available versions: '85a5c0c7dd53e0bb'.",
       ],
     ];
 
@@ -434,6 +444,22 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       ],
       'expected_messages' => [
         'component_tree.0.inputs.e303dd88-9409-4dc7-8a8b-a31602884a94' => 'When using the default static prop source for a component input, you must use the collapsed input syntax.',
+      ],
+    ];
+
+    yield "invalid version" => [
+      'component_tree' => [
+        [
+          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => 'abc',
+          'inputs' => [
+            'heading' => 'And we laugh like soft, mad children',
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree.0.component_version' => "'abc' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-slots'. Available versions: '85a5c0c7dd53e0bb'.",
       ],
     ];
   }

@@ -286,15 +286,4 @@ final class PageRegion extends ComponentTreeConfigEntityBase {
     return $region_instances;
   }
 
-  /**
-   * {@inheritdoc}
-   */
-  public function set($property_name, $value): self {
-    if ($property_name === 'component_tree') {
-      // Ensure predictable order of tree items.
-      $value = self::generateComponentTreeKeys($value);
-    }
-    return parent::set($property_name, $value);
-  }
-
 }
