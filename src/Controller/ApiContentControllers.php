@@ -6,7 +6,6 @@ namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Utility\HomePageHelper;
-use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\CacheableJsonResponse;
@@ -93,12 +92,13 @@ final class ApiContentControllers extends ApiControllerBase {
     // If there's any auto-saved data, we throw a conflict error.
     $autoSaved = $this->autoSaveManager->getAutoSaveEntity($canvas_page);
     if (!$autoSaved->isEmpty()) {
-      throw new ConflictHttpException(Json::encode([
-        'error' => \sprintf('%s with ID %s has existing auto-saved data. Please use the UI to publish it or discard it.',
+      throw new ConflictHttpException(
+        \sprintf(
+          '%s with ID %s has existing auto-saved data. Please use the Canvas UI to publish or discard it before pushing.',
           (string) $canvas_page->getEntityType()->getLabel(),
           $canvas_page->id(),
-        ),
-      ]));
+        )
+      );
     }
 
     // Get the request body content
