@@ -590,6 +590,33 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         'props.array_prop_name.examples.0.0.url' => "'url' is not a supported key.",
       ],
     ];
+
+    yield 'Invalid: object array with a relative image src example' => [
+      [
+        'type' => 'array',
+        'title' => 'Images',
+        'items' => [
+          'type' => 'object',
+          '$ref' => 'json-schema-definitions://canvas.module/image',
+        ],
+        'examples' => [
+          [
+            [
+              'src' => 'https://example.com/cat.jpg',
+              'alt' => 'A valid example.',
+            ],
+            [
+              'src' => './hero.jpg',
+              'alt' => 'A relative path that JsComponent cannot resolve.',
+            ],
+          ],
+        ],
+      ],
+      [
+        '' => 'Image prop "array_prop_name" example src "./hero.jpg" must be a fully-qualified URL with both scheme and host. Use a placeholder URL such as https://placehold.co/600x400.',
+      ],
+    ];
+
     // `type: object` without `$ref` fails at the config schema level because
     // $ref is required in canvas.json_schema.item.object, matching the same
     // requirement as canvas.json_schema.prop_shape.object.
@@ -641,11 +668,11 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
             'width' => 1200,
           ],
           [
-            // Valid (although basically nonsensical) relative path.
+            // Relative path: rejected because JsComponent cannot resolve them.
             'src' => 'path/to/image.png',
           ],
           [
-            // Valid root-relative URL.
+            // Root-relative URL: rejected because it has no scheme/host.
             'src' => '/root/relative/path/to/image.png',
           ],
           [
@@ -656,7 +683,12 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       ],
     ]);
     $this->assertValidationErrors([
-      '' => 'Prop "some_object" has invalid example value: [src] The property src is required',
+      '' => [
+        'Prop "some_object" has invalid example value: [src] The property src is required',
+        'Image prop "some_object" example src "hi mum, this is not a url" must be a fully-qualified URL with both scheme and host. Use a placeholder URL such as https://placehold.co/600x400.',
+        'Image prop "some_object" example src "path/to/image.png" must be a fully-qualified URL with both scheme and host. Use a placeholder URL such as https://placehold.co/600x400.',
+        'Image prop "some_object" example src "/root/relative/path/to/image.png" must be a fully-qualified URL with both scheme and host. Use a placeholder URL such as https://placehold.co/600x400.',
+      ],
       'props.some_object.enum.0' => 'This value should not be null.',
       'props.some_object.examples.0' => [
         "'src' is a required key.",

@@ -6,12 +6,15 @@ namespace Drupal\canvas\Entity;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
+use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
+use Drupal\canvas\ComponentMetadataRequirementsChecker;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\Resource\CanvasResourceLink;
 use Drupal\canvas\Resource\CanvasResourceLinkCollection;
+use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
@@ -442,6 +445,115 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
       $definition['props']['required'] = $this->required;
     }
     return $definition;
+  }
+
+  /**
+   * Checks this code component meets Canvas's metadata requirements.
+   *
+   * Combines the shape/schema requirements that apply to all component sources,
+   * via `ComponentMetadataRequirementsChecker::check()` and JS-specific
+   * contracts (e.g. relative URLs cannot be resolved).
+   *
+   * @throws \Drupal\canvas\ComponentDoesNotMeetRequirementsException
+   *   When this component does not meet requirements.
+   */
+  public function checkRequirements(): void {
+    $definition = $this->toSdcDefinition();
+    $metadata = new ComponentMetadata($definition, app_root: '', enforce_schemas: TRUE);
+    $messages = [];
+    try {
+      ComponentMetadataRequirementsChecker::check(
+        $definition['id'],
+        $metadata,
+        $definition['props']['required'] ?? [],
+      );
+    }
+    catch (ComponentDoesNotMeetRequirementsException $e) {
+      $messages = $e->getMessages();
+    }
+
+    // Per-prop checks specific to code components.
+    foreach ($metadata->schema['properties'] ?? [] as $prop_name => $prop) {
+      // Code component metadata is persisted as a Drupal config entity, so
+      // `meta:enum` keys cannot contain dots.
+      // @see \Drupal\Core\Config\ConfigBase::validateKeys()
+      array_push($messages, ...self::checkPropMetaEnumKeys($prop_name, $prop));
+
+      // Image src in any example must satisfy JsComponent's runtime URL
+      // contract, which does not resolve relative paths.
+      foreach (self::imagesInExamples($prop) as $src) {
+        try {
+          JsComponent::validateExampleUrl($src);
+        }
+        catch (\InvalidArgumentException) {
+          $messages[] = \sprintf('Image prop "%s" example src "%s" must be a fully-qualified URL with both scheme and host. Use a placeholder URL such as https://placehold.co/600x400.', $prop_name, $src);
+        }
+      }
+    }
+
+    if (!empty($messages)) {
+      throw new ComponentDoesNotMeetRequirementsException($messages);
+    }
+  }
+
+  /**
+   * Validates `meta:enum` keys for a prop against config storage constraints.
+   *
+   * @param string $prop_name
+   *   Prop name (for error messages).
+   * @param array<string, mixed> $prop
+   *   The prop's JSON Schema.
+   *
+   * @return list<string>
+   *   Error messages, or an empty list if no issues found.
+   */
+  private static function checkPropMetaEnumKeys(string $prop_name, array $prop): array {
+    $enum_container = \in_array('array', (array) ($prop['type'] ?? []), TRUE)
+      ? $prop['items'] ?? []
+      : $prop;
+    if (!isset($enum_container['enum'], $enum_container['meta:enum'])) {
+      return [];
+    }
+    $messages = [];
+    foreach (\array_keys($enum_container['meta:enum']) as $meta_key) {
+      if (\str_contains((string) $meta_key, '.')) {
+        $messages[] = \sprintf('The "meta:enum" keys for the "%s" prop enum cannot contain a dot. Offending key: "%s"', $prop_name, $meta_key);
+      }
+    }
+    $expected_keys = \array_map(
+      static fn($value): string => \str_replace('.', '_', (string) $value),
+      $enum_container['enum'],
+    );
+    $missing_keys = \array_diff($expected_keys, \array_keys($enum_container['meta:enum']));
+    if (!empty($missing_keys)) {
+      $messages[] = \sprintf('The values for the "%s" prop enum must be defined in "meta:enum". Missing keys: "%s"', $prop_name, \implode(', ', $missing_keys));
+    }
+    return $messages;
+  }
+
+  /**
+   * Yields image src values for each `examples` entry matching $schema.
+   *
+   * @param array<string, mixed> $schema
+   *   The (sub-)schema (still containing `$ref` references).
+   *
+   * @return \Generator<int, string>
+   */
+  private static function imagesInExamples(array $schema): \Generator {
+    $is_image = ($schema['$ref'] ?? NULL) === 'json-schema-definitions://canvas.module/image';
+    foreach ($schema['examples'] ?? [] as $value) {
+      if (!\is_array($value)) {
+        continue;
+      }
+      if ($is_image) {
+        if (isset($value['src']) && \is_string($value['src'])) {
+          yield $value['src'];
+        }
+      }
+      elseif (isset($schema['items']) && \is_array($schema['items'])) {
+        yield from self::imagesInExamples($schema['items'] + ['examples' => $value]);
+      }
+    }
   }
 
   /**

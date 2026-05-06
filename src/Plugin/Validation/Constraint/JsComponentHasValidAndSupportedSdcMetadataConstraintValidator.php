@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
-use Drupal\canvas\ComponentMetadataRequirementsChecker;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
-use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -65,14 +63,7 @@ final class JsComponentHasValidAndSupportedSdcMetadataConstraintValidator extend
     // The JavaScriptComponent has *valid* SDC metadata, but does it also meet
     // Canvas's additional requirements? Only then is it supported by Canvas.
     try {
-      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery::checkRequirements()
-      ComponentMetadataRequirementsChecker::check(
-        $equivalent_sdc_definition['id'],
-        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery::buildEphemeralSdcPluginInstance()
-        new ComponentMetadata($equivalent_sdc_definition, app_root: '', enforce_schemas: TRUE),
-        $equivalent_sdc_definition['props']['required'] ?? [],
-        forbidden_key_characters: ['.' => '_'],
-      );
+      $data->checkRequirements();
     }
     catch (ComponentDoesNotMeetRequirementsException $e) {
       foreach ($e->getMessages() as $message) {

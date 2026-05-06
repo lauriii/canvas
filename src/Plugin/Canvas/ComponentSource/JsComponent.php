@@ -350,6 +350,8 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
    * {@inheritdoc}
    */
   public function rewriteExampleUrl(string $url): GeneratedUrl {
+    self::validateExampleUrl($url);
+
     // Allow any fully qualified URL.
     $parsed_url = parse_url($url);
     \assert(\is_array($parsed_url));
@@ -359,16 +361,28 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
 
     // Allow the example URL to be one of the hardcoded relative URLs, and
     // rewrite them to operational root-relative URLs.
-    // Only allow precise matches for both DX and security reasons.
-    $example_videos = [
-      self::EXAMPLE_VIDEO_HORIZONTAL,
-      self::EXAMPLE_VIDEO_VERTICAL,
-    ];
-    if (\in_array($url, $example_videos, TRUE)) {
-      $file_path = $this->extensionPathResolver->getPath('module', 'canvas') . $url;
-      return Url::fromUri('base:/' . $file_path)->toString(TRUE);
-    }
+    $file_path = $this->extensionPathResolver->getPath('module', 'canvas') . $url;
+    return Url::fromUri('base:/' . $file_path)->toString(TRUE);
+  }
 
+  /**
+   * Validates an example URL value against this component source's contract.
+   *
+   * @param string $url
+   *   The example URL to validate.
+   *
+   * @throws \InvalidArgumentException
+   *   When the URL cannot be used as an example value at runtime.
+   */
+  public static function validateExampleUrl(string $url): void {
+    $parsed_url = parse_url($url);
+    if (\is_array($parsed_url) && \array_intersect_key($parsed_url, array_flip(['scheme', 'host']))) {
+      return;
+    }
+    // Only allow precise matches for both DX and security reasons.
+    if ($url === self::EXAMPLE_VIDEO_HORIZONTAL || $url === self::EXAMPLE_VIDEO_VERTICAL) {
+      return;
+    }
     throw new \InvalidArgumentException('Default images for Javascript Components must be a fully-qualified URL with both scheme and host.');
   }
 

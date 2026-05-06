@@ -28,15 +28,11 @@ final class ComponentMetadataRequirementsChecker {
    *   Component metadata.
    * @param string[] $required_props
    *   Array of required prop names.
-   * @param array<string, string> $forbidden_key_characters
-   *   Array of forbidden key characters as keys and replacements as values.
-   *   For example, component metadata stored as Configuration entities does not
-   *   allow dots.
    *
    * @throws \Drupal\canvas\ComponentDoesNotMeetRequirementsException
    *   When the component does not meet requirements.
    */
-  public static function check(string $component_id, ComponentMetadata $metadata, array $required_props, array $forbidden_key_characters): void {
+  public static function check(string $component_id, ComponentMetadata $metadata, array $required_props): void {
     $messages = [];
 
     if ($metadata->group == 'Elements') {
@@ -140,33 +136,6 @@ final class ComponentMetadataRequirementsChecker {
       // Every prop must have a title.
       if (!isset($prop['title'])) {
         $messages[] = \sprintf('Prop "%s" must have title', $prop_name);
-      }
-
-      $enum_container = \in_array('array', $prop['type'], TRUE) ?
-        $prop['items'] ?? [] :
-        $prop;
-      if (isset($enum_container['enum'], $enum_container['meta:enum']) && !empty($forbidden_key_characters)) {
-        foreach ($enum_container['meta:enum'] as $meta_key => $meta_value) {
-          $meta_key_with_replacements = str_replace(
-            \array_keys($forbidden_key_characters),
-            array_values($forbidden_key_characters),
-            (string) $meta_key,
-          );
-          if ((string) $meta_key !== $meta_key_with_replacements) {
-            $messages[] = \sprintf('The "meta:enum" keys for the "%s" prop enum cannot contain a dot. Offending key: "%s"', $prop_name, $meta_key);
-          }
-        }
-
-        // Ensure we replace dots with underscores when checking meta:enums.
-        $meta_enum_valid_keys = \array_map(fn($key) => str_replace(
-          \array_keys($forbidden_key_characters),
-          array_values($forbidden_key_characters),
-          (string) $key,
-        ), $enum_container['enum']);
-        $enum_keys_diff = \array_diff($meta_enum_valid_keys, \array_keys($enum_container['meta:enum']));
-        if (!empty($enum_keys_diff)) {
-          $messages[] = \sprintf('The values for the "%s" prop enum must be defined in "meta:enum". Missing keys: "%s"', $prop_name, \implode(', ', $enum_keys_diff));
-        }
       }
     }
 
