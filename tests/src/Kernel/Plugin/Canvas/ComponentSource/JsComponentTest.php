@@ -14,6 +14,7 @@ use PHPUnit\Framework\Attributes\TestWith;
 use Drupal\canvas\ComponentSource\ComponentSourceBase;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Component\Serialization\Json;
@@ -1632,7 +1633,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
                   'id' => 'json-schema-definitions://canvas.module/image-uri',
                 ],
               ],
-              'id' => 'json-schema-definitions://canvas.module/video',
+              'id' => JsonSchemaObjectRef::Video->value,
             ],
             'sourceType' => 'static:field_item:entity_reference',
             // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
@@ -1805,7 +1806,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
                   'type' => 'integer',
                 ],
               ],
-              'id' => 'json-schema-definitions://canvas.module/image',
+              'id' => JsonSchemaObjectRef::Image->value,
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -1978,7 +1979,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
                     'type' => 'integer',
                   ],
                 ],
-                'id' => 'json-schema-definitions://canvas.module/image',
+                'id' => JsonSchemaObjectRef::Image->value,
               ],
             ],
             'sourceType' => 'static:field_item:image',

@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel;
 
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Depends;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
@@ -67,7 +68,7 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
   public static function getExpectedUnstorablePropShapes(): array {
     $unstorable_prop_shapes = parent::getExpectedUnstorablePropShapes();
     unset(
-      $unstorable_prop_shapes['type=object&$ref=json-schema-definitions://canvas.module/video'],
+      $unstorable_prop_shapes['type=object&$ref=' . JsonSchemaObjectRef::Video->value],
     );
     return $unstorable_prop_shapes;
   }
@@ -80,9 +81,9 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
     $image_shapes = array_intersect_key(
       $storable_prop_shapes,
       array_flip([
-        'type=object&$ref=json-schema-definitions://canvas.module/image',
-        'type=array&items[$ref]=json-schema-definitions://canvas.module/image&items[type]=object&minItems=1',
-        'type=array&items[$ref]=json-schema-definitions://canvas.module/image&items[type]=object&maxItems=2',
+        'type=object&$ref=' . JsonSchemaObjectRef::Image->value,
+        'type=array&items[$ref]=' . JsonSchemaObjectRef::Image->value . '&items[type]=object&minItems=1',
+        'type=array&items[$ref]=' . JsonSchemaObjectRef::Image->value . '&items[type]=object&maxItems=2',
       ]),
     );
     foreach ($image_shapes as $k => $image_shape) {
@@ -107,8 +108,8 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
       );
     }
 
-    $storable_prop_shapes['type=object&$ref=json-schema-definitions://canvas.module/video'] = new StorablePropShape(
-      shape: new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/video']),
+    $storable_prop_shapes['type=object&$ref=' . JsonSchemaObjectRef::Video->value] = new StorablePropShape(
+      shape: JsonSchemaObjectRef::Video->asPropShape(),
       // @phpstan-ignore-next-line
       fieldTypeProp: StructuredDataPropExpression::fromString('ℹ︎entity_reference␟entity␜[␜entity:media:baby_videos␝field_media_video_file␞␟{src↝entity␜␜entity:file␝uri␞␟url}][␜entity:media:vacation_videos␝field_media_video_file_1␞␟{src↝entity␜␜entity:file␝uri␞␟url}]'),
       fieldWidget: 'media_library_widget',

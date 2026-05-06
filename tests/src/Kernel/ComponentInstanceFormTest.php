@@ -10,11 +10,11 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Form\ComponentInstanceForm;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
-use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\canvas\Entity\Component;
@@ -636,7 +636,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
    */
   public function testMediaLibraryWidgetSetsComponentPropName(): void {
     $prop_shape_repository = $this->container->get(PropShapeRepositoryInterface::class);
-    $image_prop_shape = new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image']);
+    $image_prop_shape = JsonSchemaObjectRef::Image->asPropShape();
     $storable_prop_shape = $prop_shape_repository->getStorablePropShape($image_prop_shape);
     $this->assertNotNull($storable_prop_shape, 'Expected a storable prop shape for the image prop shape.');
     $this->assertSame('media_library_widget', $storable_prop_shape->fieldWidget);

@@ -15,6 +15,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -542,10 +543,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       [
         'type' => 'array',
         'title' => 'Images',
-        'items' => [
-          'type' => 'object',
-          '$ref' => 'json-schema-definitions://canvas.module/image',
-        ],
+        'items' => JsonSchemaObjectRef::Image->asPropShapeArray(),
         'examples' => [
           [
             [
@@ -570,10 +568,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       [
         'type' => 'array',
         'title' => 'Images',
-        'items' => [
-          'type' => 'object',
-          '$ref' => 'json-schema-definitions://canvas.module/image',
-        ],
+        'items' => JsonSchemaObjectRef::Image->asPropShapeArray(),
         'examples' => [
           [
             [
@@ -640,9 +635,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
    */
   public function testObjectPropDefinition(): void {
     $this->entity->set('props', [
-      'some_object' => [
-        'type' => 'object',
-        '$ref' => 'json-schema-definitions://canvas.module/image',
+      'some_object' => JsonSchemaObjectRef::Image->asPropShapeArray() + [
         'title' => $this->randomString(),
         'enum' => [NULL],
         'meta:enum' => [NULL => 'Test'],
@@ -988,10 +981,8 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
           'machineName' => 'image-prop-no-slots',
           'name' => 'Test',
           'props' => [
-            'image' => [
+            'image' => JsonSchemaObjectRef::Image->asPropShapeArray() + [
               'title' => 'Image title',
-              'type' => 'object',
-              '$ref' => "json-schema-definitions://canvas.module/image",
               'examples' => [
                 [
                   'src' => 'https://example.com/image.png',
@@ -1023,10 +1014,8 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
             'image',
           ],
           'props' => [
-            'image' => [
+            'image' => JsonSchemaObjectRef::Image->asPropShapeArray() + [
               'title' => 'Image title',
-              'type' => 'object',
-              '$ref' => "json-schema-definitions://canvas.module/image",
             ],
           ],
           'slots' => [],
@@ -1049,10 +1038,8 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
           'machineName' => 'image-prop-no-slots-no-examples',
           'name' => 'Test',
           'props' => [
-            'image' => [
+            'image' => JsonSchemaObjectRef::Image->asPropShapeArray() + [
               'title' => 'Image title',
-              'type' => 'object',
-              '$ref' => "json-schema-definitions://canvas.module/image",
             ],
           ],
           'slots' => [],

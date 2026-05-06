@@ -22,6 +22,7 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormState;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
@@ -148,8 +149,8 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
 
     $unique_prop_shapes = array_values($ephemeral_prop_shape_repository->getUniquePropShapes());
     $this->assertEquals([
-      new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'], 'maxItems' => 2]),
-      new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'], 'minItems' => 1]),
+      new PropShape(['type' => 'array', 'items' => JsonSchemaObjectRef::Image->asPropShapeArray(), 'maxItems' => 2]),
+      new PropShape(['type' => 'array', 'items' => JsonSchemaObjectRef::Image->asPropShapeArray(), 'minItems' => 1]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer']]),
       PropShape::normalize(['type' => 'array', 'items' => ['type' => 'integer', 'enum' => [10, 20, 30, 40], 'meta:enum' => [10 => 'Ten', 20 => 'Twenty', 30 => 'Thirty', 40 => 'Forty']]]),
       PropShape::normalize(['type' => 'array', 'items' => ['type' => 'integer', 'enum' => [10, 20, 30, 40], 'meta:enum' => [10 => 'Ten', 20 => 'Twenty', 30 => 'Thirty', 40 => 'Forty']], 'maxItems' => 3]),
@@ -191,9 +192,9 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       new PropShape(['type' => 'number']),
       new PropShape(['type' => 'object']),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/date-range']),
-      new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image']),
+      JsonSchemaObjectRef::Image->asPropShape(),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/shoe-icon']),
-      new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/video']),
+      JsonSchemaObjectRef::Video->asPropShape(),
       new PropShape(['type' => 'string']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/heading-element']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/image-uri']),
@@ -350,8 +351,8 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         ],
         fieldWidget: 'options_select',
       ),
-      'type=object&$ref=json-schema-definitions://canvas.module/image' => new StorablePropShape(
-        shape: new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image']),
+      'type=object&$ref=' . JsonSchemaObjectRef::Image->value => new StorablePropShape(
+        shape: JsonSchemaObjectRef::Image->asPropShape(),
         fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
           'src' => new FieldTypePropExpression('image', 'src_with_alternate_widths'),
           'alt' => new FieldTypePropExpression('image', 'alt'),
@@ -360,8 +361,8 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         ]),
         fieldWidget: 'image_image',
       ),
-      'type=object&$ref=json-schema-definitions://canvas.module/video' => new StorablePropShape(
-        new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/video']),
+      'type=object&$ref=' . JsonSchemaObjectRef::Video->value => new StorablePropShape(
+        shape: JsonSchemaObjectRef::Video->asPropShape(),
         fieldTypeProp: new FieldTypeObjectPropsExpression('file', [
           'src' => new ReferenceFieldTypePropExpression(
             new FieldTypePropExpression('file', 'entity'),
@@ -677,8 +678,8 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         cardinality: 2,
         fieldWidget: 'number',
       ),
-      'type=array&items[$ref]=json-schema-definitions://canvas.module/image&items[type]=object&maxItems=2' => new StorablePropShape(
-        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'], 'maxItems' => 2]),
+      'type=array&items[$ref]=' . JsonSchemaObjectRef::Image->value . '&items[type]=object&maxItems=2' => new StorablePropShape(
+        shape: new PropShape(['type' => 'array', 'items' => JsonSchemaObjectRef::Image->asPropShapeArray(), 'maxItems' => 2]),
         fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
           'src' => new FieldTypePropExpression('image', 'src_with_alternate_widths'),
           'alt' => new FieldTypePropExpression('image', 'alt'),
@@ -688,8 +689,8 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         cardinality: 2,
         fieldWidget: 'image_image',
       ),
-      'type=array&items[$ref]=json-schema-definitions://canvas.module/image&items[type]=object&minItems=1' => new StorablePropShape(
-        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'], 'minItems' => 1]),
+      'type=array&items[$ref]=' . JsonSchemaObjectRef::Image->value . '&items[type]=object&minItems=1' => new StorablePropShape(
+        shape: new PropShape(['type' => 'array', 'items' => JsonSchemaObjectRef::Image->asPropShapeArray(), 'minItems' => 1]),
         fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
           'src' => new FieldTypePropExpression('image', 'src_with_alternate_widths'),
           'alt' => new FieldTypePropExpression('image', 'alt'),

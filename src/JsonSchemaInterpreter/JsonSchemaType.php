@@ -397,11 +397,11 @@ enum JsonSchemaType: string {
       JsonSchemaType::Object => match (TRUE) {
         // For object shapes, it's far simpler to match on the `$ref` than on
         // minutiae.
-        \array_key_exists('$ref', $schema) => match ($schema['$ref']) {
+        \array_key_exists('$ref', $schema) => match (JsonSchemaObjectRef::tryFrom($schema['$ref'])) {
           // @see \Drupal\image\Plugin\Field\FieldType\ImageItem
           // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
           // @todo Try decorating with adapter in https://www.drupal.org/project/canvas/issues/3536115.
-          'json-schema-definitions://canvas.module/image' => new StorablePropShape(shape: $shape, fieldWidget: 'image_image', fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
+          JsonSchemaObjectRef::Image => new StorablePropShape(shape: $shape, fieldWidget: 'image_image', fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
             // TRICKY: Additional computed property on image fields added by
             // Drupal Canvas.
             // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride
@@ -421,7 +421,7 @@ enum JsonSchemaType: string {
           ])),
           // @see \Drupal\file\Plugin\Field\FieldType\FileItem
           // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
-          'json-schema-definitions://canvas.module/video' => new StorablePropShape(
+          JsonSchemaObjectRef::Video => new StorablePropShape(
             shape: $shape,
             fieldWidget: 'file_generic',
             fieldTypeProp: new FieldTypeObjectPropsExpression('file', [

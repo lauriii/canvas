@@ -11,6 +11,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentInstanceUpdater;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -75,9 +76,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
         'title' => 'Optional Text',
         'examples' => ['Press', 'Submit now'],
       ],
-      'background' => [
-        'type' => 'object',
-        '$ref' => 'json-schema-definitions://canvas.module/image',
+      'background' => JsonSchemaObjectRef::Image->asPropShapeArray() + [
         'title' => 'Background image',
         'examples' => [
           [

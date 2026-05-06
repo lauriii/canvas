@@ -5,6 +5,7 @@
  * Documentation related to Drupal Canvas.
  */
 
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
@@ -63,10 +64,11 @@ function hook_canvas_storable_prop_shape_alter(CandidateStorablePropShape $stora
   }
 
   // The `type: object, $ref: json-schema-definitions://canvas.module/image`
-  // shape allows picking any media of a media type powered by the "image" media
-  // source by default.
+  // shape allows picking any media of a media type powered by the "image"
+  // media source by default.
   // Some sites may want to exclude certain media types, and/or add other media
   // types that use a different media source (with a different expression).
+  // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::Image
   // @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::hasBranch()
   // @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::withoutBranch()
   // @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::withAdditionalBranch()
@@ -74,7 +76,7 @@ function hook_canvas_storable_prop_shape_alter(CandidateStorablePropShape $stora
     // "image" object shape?
     $storable_prop_shape->shape->schema['type'] === 'object'
     && isset($storable_prop_shape->shape->schema['$ref'])
-    && $storable_prop_shape->shape->schema['$ref'] === 'json-schema-definitions://canvas.module/image'
+    && $storable_prop_shape->shape->schema['$ref'] === JsonSchemaObjectRef::Image->value
     // Currently using media types?
     // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
     && $storable_prop_shape->fieldTypeProp instanceof ReferenceFieldTypePropExpression

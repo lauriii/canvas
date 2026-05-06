@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\ShapeMatcher;
 
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\canvas\Plugin\Adapter\DayCountAdapter;
 use Drupal\canvas\Plugin\Adapter\ImageAdapter;
@@ -33,7 +34,7 @@ class AdaptedPropSourceMatcherTest extends PropSourceMatcherTestBase {
    */
   protected array $expectedMatches = [
     'type=integer' => DayCountAdapter::PLUGIN_ID,
-    'type=object&$ref=json-schema-definitions://canvas.module/image' => [
+    'type=object&$ref=' . JsonSchemaObjectRef::Image->value => [
       ImageAndStyleAdapter::PLUGIN_ID,
       ImageAdapter::PLUGIN_ID,
     ],

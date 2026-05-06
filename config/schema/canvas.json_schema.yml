@@ -232,6 +232,11 @@ canvas.json_schema.prop_shape.object:
       type: string
       constraints:
         # @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
+        # @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef
+        # The literal URIs below MUST be kept in sync with the cases of the
+        # JsonSchemaObjectRef enum. PHP enum constants cannot yet be referenced
+        # from config schema YAML; once https://www.drupal.org/i/2951046 lands,
+        # these can be replaced with enum constant references.
         Choice:
           choices:
             - 'json-schema-definitions://canvas.module/image'

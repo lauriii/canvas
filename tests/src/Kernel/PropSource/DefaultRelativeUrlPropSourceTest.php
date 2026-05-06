@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\PropSource;
 
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\canvas\PropSource\PropSource;
@@ -88,7 +89,7 @@ class DefaultRelativeUrlPropSourceTest extends PropSourceTestBase {
         'height' => 402,
       ],
       jsonSchema: [
-        '$ref' => 'json-schema-definitions://canvas.module/image',
+        '$ref' => JsonSchemaObjectRef::Image->value,
       ],
       componentId: 'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop',
     );

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\canvas\Plugin\Field\FieldTypeOverride\ListStringItemOverride;
@@ -58,9 +59,9 @@ class ShapeMatchingHooks {
 
   const SCHEMA_TO_MEDIA_SOURCE = [
     // @see \Drupal\media\Plugin\media\Source\Image
-    'json-schema-definitions://canvas.module/image' => Image::class,
+    JsonSchemaObjectRef::Image->value => Image::class,
     // @see \Drupal\media\Plugin\media\Source\VideoFile
-    'json-schema-definitions://canvas.module/video' => VideoFile::class,
+    JsonSchemaObjectRef::Video->value => VideoFile::class,
   ];
 
   /**

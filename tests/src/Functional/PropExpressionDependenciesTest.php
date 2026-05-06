@@ -9,6 +9,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\PropShape\PersistentPropShapeRepository;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
@@ -98,7 +99,7 @@ class PropExpressionDependenciesTest extends FunctionalTestBase {
                 'alt' => 'Example image placeholder',
               ],
             ],
-            '$ref' => 'json-schema-definitions://canvas.module/image',
+            '$ref' => JsonSchemaObjectRef::Image->value,
           ],
         ],
         'required' => ['image'],

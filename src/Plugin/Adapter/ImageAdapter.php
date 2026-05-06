@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Adapter;
 
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -13,10 +14,10 @@ use Drupal\file\FileInterface;
   id: self::PLUGIN_ID,
   label: new TranslatableMarkup('Make relative image URL absolute'),
   inputs: [
-    'image' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'],
+    'image' => ['type' => 'object', '$ref' => JsonSchemaObjectRef::Image->value],
   ],
   requiredInputs: ['image'],
-  output: ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'],
+  output: ['type' => 'object', '$ref' => JsonSchemaObjectRef::Image->value],
 )]
 final class ImageAdapter extends AdapterBase implements ContainerFactoryPluginInterface {
 
