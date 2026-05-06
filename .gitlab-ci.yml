@@ -782,7 +782,7 @@ playwright-reports:
           {
             "external_link": {
               "label": "Playwright test report",
-              "url": "https://${CI_PROJECT_NAMESPACE}.${CI_PAGES_DOMAIN}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/playwright-report/index.html"
+              "url": "https://${CI_PROJECT_NAMESPACE}.${CI_PAGES_DOMAIN:-pages.drupalcode.org}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/playwright-report/index.html"
             }
           }
         ]
@@ -875,8 +875,8 @@ pages-mr:
       changes:
         - "docs/user/**/*"
   variables:
-    ASTRO_SITE: https://$CI_PAGES_HOSTNAME
-    ASTRO_BASE: /$CI_PROJECT_NAME/mr-$CI_MERGE_REQUEST_IID/
+    ASTRO_SITE: https://project.pages.drupalcode.org
+    ASTRO_BASE: /$CI_PARENT_PROJECT_NAME/mr-$CI_MERGE_REQUEST_IID/
   script:
     - npm ci
     - npm run build --workspace=docs
