@@ -74,6 +74,7 @@ export const pendingChangesApi = createApi({
   endpoints: (builder) => ({
     getAllPendingChanges: builder.query<PendingChanges, void>({
       query: () => `/canvas/api/v0/auto-saves/pending`,
+      transformResponse: (response: { data: PendingChanges }) => response.data,
       providesTags: () => [{ type: 'PendingChanges', id: 'LIST' }],
     }),
     publishAllPendingChanges: builder.mutation<

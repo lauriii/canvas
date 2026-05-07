@@ -236,8 +236,10 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
       /** @var \Drupal\canvas\Controller\ApiAutoSaveController $auto_save_controller */
       $auto_save_controller = $this->container->get(ApiAutoSaveController::class);
       $data = $auto_save_controller->get();
-      $content = $data->getContent();
-      \assert(\is_string($content));
+      self::assertEquals(Response::HTTP_OK, $data->getStatusCode());
+      $response_body = \json_decode($data->getContent() ?: '{}', TRUE);
+      $this->assertArrayHasKey('data', $response_body);
+      $content = \json_encode($response_body['data'], JSON_THROW_ON_ERROR);
       $request = Request::create(
         Url::fromRoute('canvas.api.auto-save.post')->toString(),
         content: $content

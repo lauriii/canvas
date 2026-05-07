@@ -77,7 +77,9 @@ final class ApiAutoSaveControllerCacheabilityTest extends FunctionalTestBase {
     $url = Url::fromRoute('canvas.api.auto-save.get');
     $this->drupalGet($url);
     $this->assertSession()->responseHeaderEquals(DynamicPageCacheSubscriber::HEADER, 'MISS');
-    $content = \json_decode($this->getSession()->getPage()->getContent() ?: '{}', TRUE);
+    $response_body = \json_decode($this->getSession()->getPage()->getContent() ?: '{}', TRUE);
+    $this->assertArrayHasKey('data', $response_body);
+    $content = $response_body['data'];
     self::assertEquals([
       'node:1:en',
     ], \array_keys($content));
@@ -108,7 +110,9 @@ final class ApiAutoSaveControllerCacheabilityTest extends FunctionalTestBase {
     // Now the cache should be invalidated and we should get a MISS.
     $this->drupalGet($url);
     $this->assertSession()->responseHeaderEquals(DynamicPageCacheSubscriber::HEADER, 'MISS');
-    $content = \json_decode($this->getSession()->getPage()->getContent() ?: '{}', TRUE);
+    $response_body = \json_decode($this->getSession()->getPage()->getContent() ?: '{}', TRUE);
+    $this->assertArrayHasKey('data', $response_body);
+    $content = $response_body['data'];
     self::assertEquals([
       'node:1:en',
       'node:2:en',

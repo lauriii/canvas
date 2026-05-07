@@ -215,7 +215,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertCount(0, \array_diff($account1->getCacheTags(), $response->getCacheableMetadata()->getCacheTags()));
     self::assertCount(0, \array_diff($account1->getCacheContexts(), $response->getCacheableMetadata()->getCacheContexts()));
     self::assertContains('config:user.settings', $response->getCacheableMetadata()->getCacheTags());
-    $content = \json_decode($response->getContent() ?: '{}', TRUE);
+    $response_body = \json_decode($response->getContent() ?: '{}', TRUE);
+    $this->assertArrayHasKey('data', $response_body);
+    $content = $response_body['data'];
     $anonContentIdentifier = \sprintf('node:%d:en', $anonAccountContent->id());
     self::assertEquals([
       'asset_library:global',
@@ -455,7 +457,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
     self::assertSame(['user.permissions'], $response->getCacheableMetadata()->getCacheContexts());
-    $content = \json_decode($response->getContent() ?: '{}', TRUE);
+    $response_body = \json_decode($response->getContent() ?: '{}', TRUE);
+    $this->assertArrayHasKey('data', $response_body);
+    $content = $response_body['data'];
     $anonContentIdentifier = \sprintf('node:%d:en', $article->id());
     // Assert we get the keys of auto-save data that we can view (even if maybe
     // we aren't allowed to update).

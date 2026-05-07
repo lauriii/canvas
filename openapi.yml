@@ -152,7 +152,7 @@ paths:
             text/javascript:
               example: 'console.log("hey");'
   /canvas/api/v0/auto-saves/pending:
-    description: TODO
+    description: Current auto-save entries
     get:
       summary: All current auto-save entries
       responses:
@@ -163,57 +163,60 @@ paths:
               examples:
                 multipleEntries:
                   value:
-                    node:1:en:
-                      owner:
-                        name: Garrett Bobby Ferguson, Jr
-                        avatar: /sites/default/files/user-pictures/garrett.jpg
-                        uri: /user/12
-                        id: 12
-                      updated: 1732763679
-                      entity_type: node
-                      langcode: en
-                      data_hash: 4711efecf75d2d1a
-                      entity_id: 1
-                      label: Home page
-                    asset_library:global:
-                      owner:
-                        name: Gracie Dog
-                        avatar: /sites/default/files/user-pictures/good-dog.jpg
-                        uri: /user/13
-                        id: 13
-                      updated: 1732763680
-                      entity_type: asset_library
-                      langcode: NULL
-                      data_hash: 4711efecf75d2d1b
-                      entity_id: global
-                      label: Global asset library
-                    js_component:hero:
-                      owner:
-                        name: Mark Scout
-                        avatar: /sites/default/files/user-pictures/severed.jpg
-                        uri: /user/16
-                        id: 16
-                      updated: 1732763680
-                      entity_type: js_component
-                      langcode: NULL
-                      data_hash: 4711efecf75d2d1b
-                      entity_id: hero
-                      label: Hero component
-                    segment:test_segment:
-                      owner:
-                        name: Mark Scout
-                        avatar: /sites/default/files/user-pictures/severed.jpg
-                        uri: /user/16
-                        id: 16
-                      updated: 1732763680
-                      entity_type: test_segment
-                      langcode: NULL
-                      data_hash: a95cf01fd2e9c59e
-                      entity_id: test_segment
-                      label: Test segment
-
+                    data:
+                      node:1:en:
+                        owner:
+                          name: Garrett Bobby Ferguson, Jr
+                          avatar: /sites/default/files/user-pictures/garrett.jpg
+                          uri: /user/12
+                          id: 12
+                        updated: 1732763679
+                        entity_type: node
+                        langcode: en
+                        data_hash: 4711efecf75d2d1a
+                        entity_id: 1
+                        label: Home page
+                      asset_library:global:
+                        owner:
+                          name: Gracie Dog
+                          avatar: /sites/default/files/user-pictures/good-dog.jpg
+                          uri: /user/13
+                          id: 13
+                        updated: 1732763680
+                        entity_type: asset_library
+                        langcode: NULL
+                        data_hash: 4711efecf75d2d1b
+                        entity_id: global
+                        label: Global asset library
+                      js_component:hero:
+                        owner:
+                          name: Mark Scout
+                          avatar: /sites/default/files/user-pictures/severed.jpg
+                          uri: /user/16
+                          id: 16
+                        updated: 1732763680
+                        entity_type: js_component
+                        langcode: NULL
+                        data_hash: 4711efecf75d2d1b
+                        entity_id: hero
+                        label: Hero component
+                      segment:test_segment:
+                        owner:
+                          name: Mark Scout
+                          avatar: /sites/default/files/user-pictures/severed.jpg
+                          uri: /user/16
+                          id: 16
+                        updated: 1732763680
+                        entity_type: test_segment
+                        langcode: NULL
+                        data_hash: a95cf01fd2e9c59e
+                        entity_id: test_segment
+                        label: Test segment
               schema:
-                $ref: '#/components/schemas/AutoSaveCollection'
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AutoSaveCollection'
   /canvas/api/v0/auto-saves/publish:
     description: TODO
     post:

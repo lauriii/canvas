@@ -19,8 +19,9 @@ trait AutoSaveRequestTestTrait {
     \assert($response instanceof JsonResponse);
     $content = $response->getContent();
     \assert(\is_string($content));
-    $auto_saves = json_decode($content, TRUE);
-    return $auto_saves;
+    $response_body = json_decode($content, TRUE);
+    \assert(\array_key_exists('data', $response_body));
+    return $response_body['data'];
   }
 
   protected function assertNoAutoSaveData(): void {

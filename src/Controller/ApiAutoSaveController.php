@@ -192,7 +192,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
         'id' => $item['owner'],
       ],
     ] + $item, $filtered);
-    return (new CacheableJsonResponse($withUserDetails))->addCacheableDependency($cache->addCacheTags([AutoSaveManager::CACHE_TAG]));
+    return (new CacheableJsonResponse(['data' => $withUserDetails]))->addCacheableDependency($cache->addCacheTags([AutoSaveManager::CACHE_TAG]));
   }
 
   /**

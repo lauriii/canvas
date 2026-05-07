@@ -136,7 +136,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertCount(0, \array_diff($account->getCacheTags(), $response->getCacheableMetadata()->getCacheTags()));
     self::assertCount(0, \array_diff($account->getCacheContexts(), $response->getCacheableMetadata()->getCacheContexts()));
     self::assertContains('config:user.settings', $response->getCacheableMetadata()->getCacheTags());
-    $content = \json_decode($response->getContent() ?: '{}', TRUE);
+    $response_body = \json_decode($response->getContent() ?: '{}', TRUE);
+    \assert(\array_key_exists('data', $response_body));
+    $content = $response_body['data'];
     $segmentIdentifier = \sprintf('segment:%s', $segment->id());
     self::assertEquals([
       $segmentIdentifier,

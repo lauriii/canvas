@@ -230,11 +230,12 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
     $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/canvas/api/v0/auto-saves/pending"), $request_options, 200, ['user.permissions'], [...$entity->getCacheTags(), 'config:user.settings', AutoSaveManager::CACHE_TAG, 'http_response', "user:{$user->id()}"], 'UNCACHEABLE (request policy)', 'MISS');
     $id = \array_keys($expected_list)[0];
     \assert(\is_array($body));
-    self::assertArrayHasKey($id, $body);
-    self::assertArrayHasKey('data_hash', $body[$id]);
-    self::assertArrayHasKey('updated', $body[$id]);
-    unset($body[$id]['updated'], $body[$id]['data_hash']);
-    $this->assertSame($expected_list, $body);
+    self::assertArrayHasKey('data', $body);
+    self::assertArrayHasKey($id, $body['data']);
+    self::assertArrayHasKey('data_hash', $body['data'][$id]);
+    self::assertArrayHasKey('updated', $body['data'][$id]);
+    unset($body['data'][$id]['updated'], $body['data'][$id]['data_hash']);
+    $this->assertSame($expected_list, $body['data']);
   }
 
   /**
