@@ -334,7 +334,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     [
       // Remove the unique session key for anonymous users.
       'owner' => \is_numeric($entry['owner']) ? (int) $entry['owner'] : 0,
-      'entity' => $with_entities ? $this->entityTypeManager->getStorage($entry['entity_type'])->create($entry['data']) : NULL,
+      'entity' => $with_entities ? $this->entityTypeManager->getStorage($entry['entity_type'])->create($entry['data'])->enforceIsNew(FALSE) : NULL,
     ], $entries);
     return $result;
   }

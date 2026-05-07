@@ -448,7 +448,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     self::assertSame([
+      'canvas_page:2',
       'config:canvas.js_component.test_code',
+      'node:4',
       'config:canvas.page_region.stark.highlighted',
       'config:system.site',
       'user:0',
