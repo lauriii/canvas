@@ -23,7 +23,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   label: new TranslatableMarkup('YAML Path Equals'),
   description: new TranslatableMarkup('Checks if a YAML path equals the expected value.'),
 )]
-final class YamlPathEqualsTest extends AgentsParameterTestPluginBase implements ContainerFactoryPluginInterface {
+final class YamlPathEquals extends AgentsParameterTestPluginBase implements ContainerFactoryPluginInterface {
 
   /**
    * The YAML path helper service.

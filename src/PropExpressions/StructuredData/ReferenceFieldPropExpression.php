@@ -34,12 +34,22 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
       // to the specified bundle-specific branches. However:
       // 1. the `target_bundles` settings can change over time!
       // 2. the entity type manager is not available in all circumstances
+      // 3. the host entity type may not be registered yet (e.g. during PHPUnit
+      //    test discovery, when this expression is constructed inside a data
+      //    provider before any kernel bootstrap has registered modules)
       // Hence trigger a deprecation error if we can perform the validation, but
       // do not throw an exception.
       // @see \Drupal\Tests\canvas\Kernel\PropExpressionKernelTest::testInvalidReferenceFieldTypePropExpressionDueToMismatchedLeafExpressionCardinality
-      // @phpstan-ignore globalDrupalDependencyInjection.useDependencyInjection
-      if (\Drupal::getContainer()->has('entity_type.manager')) {
-        $reference_field_definition = $referencer->getHostEntityDataDefinition()
+      $host_entity_data_definition = $referencer->getHostEntityDataDefinition();
+      $host_entity_type_id = $host_entity_data_definition->getEntityTypeId();
+      if (
+        $host_entity_type_id !== NULL
+        // @phpstan-ignore globalDrupalDependencyInjection.useDependencyInjection
+        && \Drupal::getContainer()->has('entity_type.manager')
+        // @phpstan-ignore globalDrupalDependencyInjection.useDependencyInjection
+        && \Drupal::entityTypeManager()->hasDefinition($host_entity_type_id)
+      ) {
+        $reference_field_definition = $host_entity_data_definition
           ->getPropertyDefinition($referencer->getFieldName());
         \assert($reference_field_definition instanceof FieldDefinitionInterface);
         $target_entity_type_id = $reference_field_definition->getSettings()['target_type'];
@@ -57,7 +67,7 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
             (string) $this,
             implode(', ', $actual_branches),
             $referencer->getFieldName(),
-            $referencer->getHostEntityDataDefinition()->getEntityTypeId(),
+            $host_entity_type_id,
             implode(', ', $expected_branches),
           ), E_USER_DEPRECATED);
         }

@@ -23,7 +23,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   label: new TranslatableMarkup('YAML Path Exists'),
   description: new TranslatableMarkup('Checks if a YAML path exists in the component structure.'),
 )]
-final class YamlPathExistsTest extends AgentsParameterTestPluginBase implements ContainerFactoryPluginInterface {
+final class YamlPathExists extends AgentsParameterTestPluginBase implements ContainerFactoryPluginInterface {
 
   /**
    * The YAML path helper service.

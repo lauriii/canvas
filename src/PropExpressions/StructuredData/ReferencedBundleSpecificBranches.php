@@ -130,11 +130,21 @@ final class ReferencedBundleSpecificBranches {
       $leaf_expression_classes[] = $leaf::class;
       $leaf_expression_has_deltas[] = $leaf->getDelta() !== NULL;
       // Do not validate cardinalities unless the entity type manager is
-      // available.
+      // available AND the leaf's host entity type is actually registered (it
+      // may not be during PHPUnit test discovery, when this expression is
+      // constructed inside a data provider before any kernel bootstrap has
+      // registered modules).
       // @see \Drupal\Tests\canvas\Kernel\PropExpressionKernelTest::testInvalidReferenceFieldTypePropExpressionDueToMismatchedLeafExpressionCardinality
-      // @phpstan-ignore globalDrupalDependencyInjection.useDependencyInjection
-      if (\Drupal::getContainer()->has('entity_type.manager')) {
-        $leaf_field_definition = $leaf->getHostEntityDataDefinition()
+      $leaf_host_entity_data_definition = $leaf->getHostEntityDataDefinition();
+      $leaf_entity_type_id = $leaf_host_entity_data_definition->getEntityTypeId();
+      if (
+        $leaf_entity_type_id !== NULL
+        // @phpstan-ignore globalDrupalDependencyInjection.useDependencyInjection
+        && \Drupal::getContainer()->has('entity_type.manager')
+        // @phpstan-ignore globalDrupalDependencyInjection.useDependencyInjection
+        && \Drupal::entityTypeManager()->hasDefinition($leaf_entity_type_id)
+      ) {
+        $leaf_field_definition = $leaf_host_entity_data_definition
           ->getPropertyDefinition($leaf->getFieldName());
         \assert($leaf_field_definition instanceof FieldDefinitionInterface);
         $leaf_field_storage_definition = $leaf_field_definition->getFieldStorageDefinition();
