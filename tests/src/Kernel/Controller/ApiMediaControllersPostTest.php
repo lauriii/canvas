@@ -10,9 +10,6 @@ use Drupal\canvas\Controller\ApiMediaControllers;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\Cache\CacheableJsonResponse;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\file\Upload\FileUploadLocationTrait;
-use Drupal\media\MediaTypeInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
@@ -41,7 +38,6 @@ class ApiMediaControllersPostTest extends CanvasKernelTestBase {
   use MockFileUploadTrait;
   use RequestTrait;
   use VfsPublicStreamUrlTrait;
-  use FileUploadLocationTrait;
   use PredictableImageStyleItokTestTrait;
 
   /**
@@ -55,8 +51,6 @@ class ApiMediaControllersPostTest extends CanvasKernelTestBase {
   private const string URL = '/canvas/api/v0/media/%s/upload';
 
   private string $testImagePath;
-
-  private MediaTypeInterface $imageMediaType;
 
   /**
    * {@inheritdoc}
@@ -74,7 +68,7 @@ class ApiMediaControllersPostTest extends CanvasKernelTestBase {
 
     $this->setupPredictableItok();
 
-    $this->imageMediaType = $this->createMediaType('image', [
+    $this->createMediaType('image', [
       'id' => 'image',
       'label' => 'Image',
     ]);
@@ -119,13 +113,9 @@ class ApiMediaControllersPostTest extends CanvasKernelTestBase {
     $data = $this->decodeResponse($response);
 
     $vfs_site_base_url = base_path() . $this->siteDirectory;
-    $media_path = $this->getMediaPath();
-    \array_walk_recursive($data, function (mixed &$value) use ($vfs_site_base_url, $media_path) {
+    \array_walk_recursive($data, function (mixed &$value) use ($vfs_site_base_url) {
       if (\is_string($value)) {
-        $value = \str_replace([$vfs_site_base_url, $media_path], ['::SITE_DIR_BASE_URL::', '::MEDIA_FOLDER::'], $value);
-        // The itok is derived from the URI (which includes the date-based media
-        // folder) so it changes monthly. Normalize it to a stable placeholder.
-        $value = \preg_replace('/%3Fitok%3D[A-Za-z0-9_-]+/', '%3Fitok%3D::ITOK::', $value);
+        $value = \str_replace($vfs_site_base_url, '::SITE_DIR_BASE_URL::', $value);
       }
     });
 
@@ -192,7 +182,7 @@ class ApiMediaControllersPostTest extends CanvasKernelTestBase {
       [
         'id' => 1,
         'inputs_resolved' => [
-          'src' => '::SITE_DIR_BASE_URL::/files/::MEDIA_FOLDER::/gracie-big.jpg?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/::MEDIA_FOLDER::/gracie-big.jpg.avif%3Fitok%3D::ITOK::',
+          'src' => '::SITE_DIR_BASE_URL::/files/2026-04/gracie-big.jpg?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/2026-04/gracie-big.jpg.avif%3Fitok%3Dh5xv7Qhl',
           'alt' => 'Gracie Dog in its most happy state',
           'width' => 3000,
           'height' => 2595,
@@ -207,7 +197,7 @@ class ApiMediaControllersPostTest extends CanvasKernelTestBase {
       [
         'id' => 1,
         'inputs_resolved' => [
-          'src' => '::SITE_DIR_BASE_URL::/files/::MEDIA_FOLDER::/gracie-big.jpg?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/::MEDIA_FOLDER::/gracie-big.jpg.avif%3Fitok%3D::ITOK::',
+          'src' => '::SITE_DIR_BASE_URL::/files/2026-04/gracie-big.jpg?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/2026-04/gracie-big.jpg.avif%3Fitok%3Dh5xv7Qhl',
           'alt' => '',
           'width' => 3000,
           'height' => 2595,
@@ -233,14 +223,6 @@ class ApiMediaControllersPostTest extends CanvasKernelTestBase {
       Response::HTTP_UNPROCESSABLE_ENTITY,
       'Only files with the following extensions are allowed: <em class="placeholder">png gif jpg jpeg webp avif</em>.',
     ];
-  }
-
-  private function getMediaPath(): string {
-    $source_field_definition = $this->imageMediaType->getSource()->getSourceFieldDefinition($this->imageMediaType);
-    \assert($source_field_definition instanceof FieldDefinitionInterface);
-    $location = $this->getUploadLocation($source_field_definition);
-    // Location will be on the form of 'public://2026-03'
-    return str_replace('public://', '', $location);
   }
 
 }
