@@ -621,8 +621,10 @@ export function pushCommand(program: Command): void {
             `Validating ${discoveredPages.length} ${pluralize(discoveredPages.length, 'page')}`,
           );
 
-          const { results: pageValidationResults } =
-            await validatePages(discoveryResult);
+          const { results: pageValidationResults } = await validatePages(
+            discoveryResult,
+            { remotePageByUuid },
+          );
 
           validationSpinner.stop(
             chalk.green(

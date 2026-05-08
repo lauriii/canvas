@@ -9,6 +9,10 @@ import {
 import { loadComponentsMetadata } from '@drupal-canvas/discovery';
 
 import pageSpecSchema from '../../../workbench/src/lib/schemas/page-spec.schema.json';
+import {
+  formatPagePathAliasChangeError,
+  getPathAliasChange,
+} from './page-path-alias-validation';
 import { authoredSpecToComponentTree } from './pages';
 
 import type {
@@ -16,12 +20,17 @@ import type {
   DiscoveryResult,
 } from '@drupal-canvas/discovery';
 import type { AuthoredSpecElementMap } from 'drupal-canvas/json-render-utils';
+import type { PageListItem } from '../types/Page';
 import type { Result } from '../types/Result';
 
 export interface ElementsValidationContext {
   catalog: ReturnType<typeof defineComponentCatalog>;
   allComponentIds: Set<string>;
   enabledComponentIds: Set<string>;
+}
+
+export interface PageValidationOptions {
+  remotePageByUuid?: Map<string, PageListItem>;
 }
 
 export function buildElementsValidationContext(
@@ -111,6 +120,7 @@ export function validateElements(
  */
 export async function validatePages(
   discoveryResult: DiscoveryResult,
+  options: PageValidationOptions = {},
 ): Promise<{ results: Result[] }> {
   const ajv = new Ajv();
   addFormats(ajv);
@@ -149,6 +159,28 @@ export async function validatePages(
       const elementsResult = validateElements(elements, context);
       if (!elementsResult.success && elementsResult.details) {
         details.push(...elementsResult.details);
+      }
+
+      // Prefer the UUID from the parsed spec, but fall back to discovery so
+      // remote-aware validation can still run if discovery already found one.
+      let uuid: string | null = null;
+      if (typeof spec.uuid === 'string') {
+        uuid = spec.uuid;
+      } else if (typeof page.uuid === 'string') {
+        uuid = page.uuid;
+      }
+      const pagePath = typeof spec.path === 'string' ? spec.path : '';
+      if (options.remotePageByUuid && uuid) {
+        const remotePage = options.remotePageByUuid.get(uuid);
+        const pathAliasChange = remotePage
+          ? getPathAliasChange(pagePath, remotePage.path)
+          : null;
+        if (pathAliasChange) {
+          details.push({
+            heading: 'path',
+            content: formatPagePathAliasChangeError(pathAliasChange),
+          });
+        }
       }
 
       results.push({

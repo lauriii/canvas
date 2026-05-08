@@ -187,6 +187,92 @@ describe('pushPages', () => {
     expect(api.createPage).not.toHaveBeenCalled();
   });
 
+  it('should reject path alias changes for existing pages', async () => {
+    const filePath = path.join(tmpDir, 'home.json');
+    await fs.writeFile(
+      filePath,
+      JSON.stringify({ uuid: 'page-uuid-1', title: 'Home', elements: {} }),
+      'utf-8',
+    );
+
+    const prepared = [
+      {
+        index: 0,
+        result: {
+          uuid: 'page-uuid-1',
+          title: 'Home',
+          description: '',
+          path: '/new-home',
+          components: [],
+          filePath,
+          pendingMediaReconciliations: [],
+        },
+      },
+    ];
+
+    const remoteByUuid = new Map([
+      ['page-uuid-1', mockPageListItem(1, 'page-uuid-1', 'Home', '/home')],
+    ]);
+
+    const api = {
+      updatePage: vi.fn(),
+      createPage: vi.fn(),
+    } as unknown as Pick<ApiService, 'createPage' | 'updatePage'>;
+
+    const results = await pushPages(prepared, remoteByUuid, api);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].success).toBe(false);
+    expect(results[0].error?.message).toBe(
+      'Path alias changes are not allowed for existing pages. Remote path is "/home"; local path is "/new-home".',
+    );
+    expect(api.updatePage).not.toHaveBeenCalled();
+    expect(api.createPage).not.toHaveBeenCalled();
+  });
+
+  it('should reject missing path aliases for existing pages', async () => {
+    const filePath = path.join(tmpDir, 'home.json');
+    await fs.writeFile(
+      filePath,
+      JSON.stringify({ uuid: 'page-uuid-1', title: 'Home', elements: {} }),
+      'utf-8',
+    );
+
+    const prepared = [
+      {
+        index: 0,
+        result: {
+          uuid: 'page-uuid-1',
+          title: 'Home',
+          description: '',
+          path: '',
+          components: [],
+          filePath,
+          pendingMediaReconciliations: [],
+        },
+      },
+    ];
+
+    const remoteByUuid = new Map([
+      ['page-uuid-1', mockPageListItem(1, 'page-uuid-1', 'Home', '/home')],
+    ]);
+
+    const api = {
+      updatePage: vi.fn(),
+      createPage: vi.fn(),
+    } as unknown as Pick<ApiService, 'createPage' | 'updatePage'>;
+
+    const results = await pushPages(prepared, remoteByUuid, api);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].success).toBe(false);
+    expect(results[0].error?.message).toBe(
+      'Path alias changes are not allowed for existing pages. Remote path is "/home"; local path is "".',
+    );
+    expect(api.updatePage).not.toHaveBeenCalled();
+    expect(api.createPage).not.toHaveBeenCalled();
+  });
+
   it('should create new pages and write UUID back', async () => {
     const filePath = path.join(tmpDir, 'new.json');
     await fs.writeFile(

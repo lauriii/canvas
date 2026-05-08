@@ -1,6 +1,11 @@
 import fs from 'fs/promises';
 import { loadComponentsMetadata } from '@drupal-canvas/discovery';
 
+import {
+  formatPagePathAliasChangeError,
+  getPathAliasChange,
+  normalizePathAlias,
+} from './page-path-alias-validation';
 import { authoredSpecToComponentTree } from './pages';
 import {
   collectUnreconciledMediaProps,
@@ -125,11 +130,17 @@ export async function pushPages(
     const remotePage = page.uuid ? remotePageByUuid.get(page.uuid) : undefined;
 
     if (remotePage) {
+      // Keep this guard at the write boundary even though push validates earlier.
+      const pathAliasChange = getPathAliasChange(page.path, remotePage.path);
+      if (pathAliasChange) {
+        throw new Error(formatPagePathAliasChangeError(pathAliasChange));
+      }
+
       await apiService.updatePage(remotePage.id, {
         title: page.title,
         description: page.description,
         status: remotePage.status,
-        path: page.path,
+        path: normalizePathAlias(page.path),
         components: page.components,
       });
       return { title: page.title, operation: 'Updated' as const };
