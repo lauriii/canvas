@@ -165,20 +165,6 @@ readonly final class CodeComponentDataProvider {
   }
 
   /**
-   * Parses the js code and attach the associated library.
-   *
-   * @param string $jsCode
-   *   The JavaScript code.
-   *
-   * @return array|string[]
-   *   The array of the drupalSettings libraries.
-   */
-  public static function getRequiredCanvasDataLibraries(string $jsCode): array {
-    @trigger_error('Calling ' . __METHOD__ . '() is deprecated in canvas:0.7.3-alpha1 and will be removed from canvas:1.0.0. There is no replacement. See https://www.drupal.org/node/3538276', E_USER_DEPRECATED);
-    return [];
-  }
-
-  /**
    * Returns main entity data for V0 of drupalSettings.canvasData.
    *
    * @return array
