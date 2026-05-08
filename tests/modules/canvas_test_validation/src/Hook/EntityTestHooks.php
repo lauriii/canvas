@@ -17,7 +17,7 @@ final class EntityTestHooks {
    * Implements hook_entity_base_field_info_alter().
    */
   #[Hook('entity_base_field_info_alter')]
-  public function entityBaseFieldInfoAlter(array &$fields, EntityTypeInterface $entity_type): void {
+  public static function entityBaseFieldInfoAlter(array &$fields, EntityTypeInterface $entity_type): void {
     if ($entity_type->id() === 'node') {
       \assert(isset($fields['title']));
       $title_field = $fields['title'];

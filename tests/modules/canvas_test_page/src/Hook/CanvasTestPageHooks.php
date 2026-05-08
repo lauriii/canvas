@@ -9,16 +9,21 @@ use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\canvas\Entity\Page;
 
-class CanvasTestPageHooks {
+readonly class CanvasTestPageHooks {
+
+  public function __construct(
+    private StateInterface $state,
+  ) {}
 
   /**
    * Implements hook_entity_base_field_info().
    */
   #[Hook('entity_base_field_info')]
-  public function entityBaseFieldInfo(EntityTypeInterface $entity_type): array {
+  public static function entityBaseFieldInfo(EntityTypeInterface $entity_type): array {
     if ($entity_type->id() === Page::ENTITY_TYPE_ID) {
       $fields = [];
       $fields['canvas_test_field'] = BaseFieldDefinition::create('string')
@@ -36,8 +41,7 @@ class CanvasTestPageHooks {
 
   #[Hook('entity_base_field_info_alter')]
   public function entityBaseFieldInfoAlter(array &$base_field_definitions, EntityTypeInterface $entity_type): void {
-    // @phpstan-ignore-next-line
-    $default_value = \Drupal::state()->get('canvas_test_page.components_default_value', []);
+    $default_value = $this->state->get('canvas_test_page.components_default_value', []);
     if ($entity_type->id() === Page::ENTITY_TYPE_ID && !empty($default_value)) {
       /** @var \Drupal\Core\Field\BaseFieldDefinition[] $base_field_definitions */
       $base_field_definitions['components']->setDefaultValue($default_value);
@@ -48,14 +52,14 @@ class CanvasTestPageHooks {
    * Implements hook_ENTITY_TYPE_view().
    */
   #[Hook('canvas_page_view')]
-  public function canvasPageView(array &$build): void {
+  public static function canvasPageView(array &$build): void {
     $build['#attached']['drupalSettings']['canvas_test_page'] = ['foo' => 'Bar'];
     $build['#attached']['library'][] = 'core/drupalSettings';
     $build['canvas_test_page_markup'] = ['#markup' => '<div id="canvas-test-page-markup">canvas_test_page_canvas_page_view markup</div>'];
   }
 
   #[Hook('field_widget_info_alter')]
-  public function widgetInfoAlter(array &$info): void {
+  public static function widgetInfoAlter(array &$info): void {
     // @see \Drupal\Tests\canvas\Kernel\LibraryInfoAlterTest::testTransformMounting()
     $info['non_existent_widget']['canvas'] = [
       'transforms' => [
@@ -65,7 +69,7 @@ class CanvasTestPageHooks {
   }
 
   #[Hook('canvas_page_create_access')]
-  public function createAccess(): AccessResultInterface {
+  public static function createAccess(): AccessResultInterface {
     return AccessResult::neutral()->addCacheTags(['test_create_access_cache_tag']);
   }
 

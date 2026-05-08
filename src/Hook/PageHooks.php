@@ -139,7 +139,7 @@ final class PageHooks {
    *   all eligible content entity types.
    */
   #[Hook('gin_ignore_sticky_form_actions')]
-  public function ignoreGinStickyForm(): array {
+  public static function ignoreGinStickyForm(): array {
     return ['canvas_page_form'];
   }
 

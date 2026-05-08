@@ -47,7 +47,7 @@ final class ComponentMultiBundleReferencePropExpressionsUpdateTest extends Canva
     $this->databaseDumpFiles[] = \dirname(__DIR__, 3) . '/fixtures/update/drupal-11.2.2-with-canvas-1.0.0-alpha1.bare.php.gz';
   }
 
-  private function assertExpectedVersionsExpression(string $component_id, string $prop_name, string $expected_expression): void {
+  private static function assertExpectedVersionsExpression(string $component_id, string $prop_name, string $expected_expression): void {
     $component = Component::load($component_id);
     self::assertInstanceOf(Component::class, $component);
     foreach ($component->getVersions() as $version) {
@@ -56,7 +56,7 @@ final class ComponentMultiBundleReferencePropExpressionsUpdateTest extends Canva
     }
   }
 
-  private function assertExpectedVersions(string $component_id, array $versions): void {
+  private static function assertExpectedVersions(string $component_id, array $versions): void {
     $component = Component::load($component_id);
     self::assertInstanceOf(Component::class, $component);
     self::assertSame($versions, $component->getVersions(), $component_id);

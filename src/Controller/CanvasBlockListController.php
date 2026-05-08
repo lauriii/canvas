@@ -100,7 +100,7 @@ final class CanvasBlockListController extends BlockListController implements Eve
     return $events;
   }
 
-  public function onAlterRoutes(RouteBuildEvent $event): void {
+  public static function onAlterRoutes(RouteBuildEvent $event): void {
     $collection = $event->getRouteCollection();
     if ($route = $collection->get('block.admin_display')) {
       $route->setDefault('_controller', static::class . '::listing');

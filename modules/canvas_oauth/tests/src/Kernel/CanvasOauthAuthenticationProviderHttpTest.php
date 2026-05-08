@@ -398,7 +398,7 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
    * @return \Symfony\Component\HttpFoundation\Request
    *   The request.
    */
-  private function createRequest(string $route_name, array $parameters, string $method, array $data): Request {
+  private static function createRequest(string $route_name, array $parameters, string $method, array $data): Request {
     $request = Request::create(
       Url::fromRoute($route_name, $parameters)->toString(),
       $method,
@@ -446,7 +446,7 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
    * @return array
    *   The scopes.
    */
-  private function createScopes(array $permissions): array {
+  private static function createScopes(array $permissions): array {
     $scopes = [];
     foreach ($permissions as $index => $permission) {
       $scope = Oauth2Scope::create([

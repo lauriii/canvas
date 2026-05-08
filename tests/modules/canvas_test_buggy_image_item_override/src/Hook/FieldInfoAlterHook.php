@@ -13,7 +13,7 @@ use Drupal\Core\Hook\Attribute\Hook;
 final class FieldInfoAlterHook {
 
   #[Hook('field_info_alter')]
-  public function fieldInfoAlter(array &$info): void {
+  public static function fieldInfoAlter(array &$info): void {
     if (\array_key_exists('image', $info)) {
       $info['image']['class'] = BuggyImageItemOverride::class;
     }

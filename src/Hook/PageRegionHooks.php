@@ -21,7 +21,7 @@ class PageRegionHooks {
    * Implements hook_form_FORM_ID_alter() for system_theme_settings.
    */
   #[Hook('form_system_theme_settings_alter')]
-  public function formSystemThemeSettingsAlter(array &$form, FormStateInterface $form_state): void {
+  public static function formSystemThemeSettingsAlter(array &$form, FormStateInterface $form_state): void {
     if (empty($form_state->getBuildInfo()['args'][0])) {
       // Do not alter the "Global settings" tab.
       return;

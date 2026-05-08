@@ -293,7 +293,7 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
    * Implements hook_field_widget_info_alter().
    */
   #[Hook('field_widget_info_alter')]
-  public function fieldWidgetInfoAlter(array &$info): void {
+  public static function fieldWidgetInfoAlter(array &$info): void {
     $map = [
       'boolean_checkbox' => ['mainProperty' => []],
       'datetime_default' => ['mainProperty' => [], 'dateTime' => []],
@@ -327,7 +327,7 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
    * Implements hook_field_widget_info_alter().
    */
   #[Hook('field_widget_info_alter', module: 'media_library')]
-  public function mediaLibraryFieldWidgetInfoAlter(array &$info): void {
+  public static function mediaLibraryFieldWidgetInfoAlter(array &$info): void {
     $info['media_library_widget']['canvas'] = [
       'transforms' => [
         'mediaSelection' => [],
@@ -337,7 +337,7 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
   }
 
   #[Hook('element_info_alter', order: new OrderAfter(['editor']))]
-  public function elementInfoAlter(array &$info): void {
+  public static function elementInfoAlter(array &$info): void {
     if (isset($info['text_format'])) {
       $info['text_format']['#process'][] = [ReduxIntegratedFieldWidgetsHooks::class, 'processTextFormat'];
       $info['text_format']['#pre_render'][] = [ReduxIntegratedFieldWidgetsHooks::class, 'preRenderTextFormat'];

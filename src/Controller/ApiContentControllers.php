@@ -225,7 +225,7 @@ final class ApiContentControllers extends ApiControllerBase {
    *
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
-  public function delete(ContentEntityInterface $canvas_page): JsonResponse {
+  public static function delete(ContentEntityInterface $canvas_page): JsonResponse {
     $canvas_page->delete();
     return new JsonResponse(status: Response::HTTP_NO_CONTENT);
   }
@@ -343,7 +343,7 @@ final class ApiContentControllers extends ApiControllerBase {
    *
    * @see https://jsonapi.org/format/#fetching-pagination
    */
-  private function buildPaginationLinks(Request $request, int $offset, int $limit, int $total): array {
+  private static function buildPaginationLinks(Request $request, int $offset, int $limit, int $total): array {
     $uri = $request->getSchemeAndHttpHost() . $request->getBaseUrl() . $request->getPathInfo();
     $existing_query = $request->query->all();
     unset($existing_query['page']);

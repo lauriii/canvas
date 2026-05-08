@@ -83,7 +83,7 @@ class ComponentAuditTest extends ComponentAuditTestBase {
     self::assertEquals([$revisionId1], \array_map(static fn(ContentEntityInterface $page): int|null|string => $page->getRevisionId(), $content));
   }
 
-  protected function createTestPattern(array $tree): Pattern {
+  protected static function createTestPattern(array $tree): Pattern {
     $pattern = Pattern::create([
       'id' => 'test_pattern',
       'label' => 'Test Pattern',
@@ -93,7 +93,7 @@ class ComponentAuditTest extends ComponentAuditTestBase {
     return $pattern;
   }
 
-  protected function createTestPageRegion(array $tree): PageRegion {
+  protected static function createTestPageRegion(array $tree): PageRegion {
     $page_region = PageRegion::create([
       'theme' => 'stark',
       'region' => 'sidebar_first',

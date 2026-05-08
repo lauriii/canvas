@@ -180,7 +180,7 @@ class CanvasConfigUpdater {
     }
   }
 
-  public function needsIntermediateDependenciesComponentUpdate((ComponentTreeEntityInterface&ConfigEntityInterface)|FieldConfig $entity): bool {
+  public static function needsIntermediateDependenciesComponentUpdate((ComponentTreeEntityInterface&ConfigEntityInterface)|FieldConfig $entity): bool {
     if ($entity instanceof FieldConfig && $entity->getType() !== ComponentTreeItem::PLUGIN_ID) {
       return FALSE;
     }
@@ -195,7 +195,7 @@ class CanvasConfigUpdater {
     return !empty($component_tree->componentTreeItemsIterator($has_reference_expression));
   }
 
-  public function needsTrackingPropsRequiredFlag(Component $component): bool {
+  public static function needsTrackingPropsRequiredFlag(Component $component): bool {
     $component_source = $component->getComponentSource();
     // @see `type: canvas.generated_field_explicit_input_ux`
     if (!$component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase) {
@@ -340,7 +340,7 @@ class CanvasConfigUpdater {
     return $active_version_updated || $past_version_updated;
   }
 
-  public function needsUpdatingPropFieldDefinitionsUsingTextValue(Component $component): bool {
+  public static function needsUpdatingPropFieldDefinitionsUsingTextValue(Component $component): bool {
     $component_source = $component->getComponentSource();
     // @see `type: canvas.generated_field_explicit_input_ux`
     if (!$component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase) {
@@ -491,7 +491,7 @@ class CanvasConfigUpdater {
     return $active_version_updated || $past_version_updated;
   }
 
-  public function needsPropReordering(Component $component): bool {
+  public static function needsPropReordering(Component $component): bool {
     $component_source = $component->getComponentSource();
     // @see `type: canvas.generated_field_explicit_input_ux`
     if (!$component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase) {
@@ -584,7 +584,7 @@ class CanvasConfigUpdater {
    * @see \canvas_post_update_0011_multi_bundle_reference_prop_expressions()
    * @internal
    */
-  public function needsMultiBundleReferencePropExpressionUpdate(Component $component): bool {
+  public static function needsMultiBundleReferencePropExpressionUpdate(Component $component): bool {
     $component_source = $component->getComponentSource();
     // @see `type: canvas.generated_field_explicit_input_ux`
     if (!$component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase) {

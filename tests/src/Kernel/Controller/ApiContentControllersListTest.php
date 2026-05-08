@@ -189,7 +189,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
    * @param array $expected_auto_save_data
    *   Optional auto-save data to validate.
    */
-  protected function assertValidResultData(array $response_data, array $expected_search_result_data, array $expected_auto_save_data = []): void {
+  protected static function assertValidResultData(array $response_data, array $expected_search_result_data, array $expected_auto_save_data = []): void {
     // Assert that all expected fields are present and correct
     foreach ($expected_search_result_data as $key => $expected_value) {
       self::assertArrayHasKey($key, $response_data, "Response should contain key: {$key}");
@@ -426,7 +426,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
    * @return array
    *   An array containing the entity's ID, title, status, and path.
    */
-  private function getEntityData(EntityPublishedInterface $entity) {
+  private static function getEntityData(EntityPublishedInterface $entity) {
     return [
       'id' => (int) $entity->id(),
       'title' => $entity->label(),

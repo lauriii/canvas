@@ -71,7 +71,7 @@ final readonly class ComponentTreeConfigEntityTransformer implements EventSubscr
    * @param \Drupal\Core\Config\StorageTransformEvent $event
    *   The transformation event.
    */
-  public function import(StorageTransformEvent $event): void {
+  public static function import(StorageTransformEvent $event): void {
     $storage = $event->getStorage();
     // @see ::export()
     if ($storage->getCollectionName() !== StorageInterface::DEFAULT_COLLECTION) {
@@ -117,7 +117,7 @@ final readonly class ComponentTreeConfigEntityTransformer implements EventSubscr
    * @param \Drupal\Core\Config\StorageTransformEvent $event
    *   The transformation event.
    */
-  public function export(StorageTransformEvent $event): void {
+  public static function export(StorageTransformEvent $event): void {
     $storage = $event->getStorage();
     // Export transformation applies only to the default collection — aka the
     // default translation (English). This is fine as long as only symmetrical

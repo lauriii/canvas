@@ -243,7 +243,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     return $dependencies;
   }
 
-  private function calculateDependenciesForFieldDefinition(FieldDefinitionInterface $field_definition, ?string $bundle): array {
+  private static function calculateDependenciesForFieldDefinition(FieldDefinitionInterface $field_definition, ?string $bundle): array {
     $dependencies = [];
 
     // If this is a base field definition, there are no other dependencies.

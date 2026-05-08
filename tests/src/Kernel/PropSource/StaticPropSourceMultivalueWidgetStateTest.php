@@ -139,7 +139,7 @@ final class StaticPropSourceMultivalueWidgetStateTest extends CanvasKernelTestBa
   /**
    * Builds an unlimited multivalue prop source.
    */
-  private function buildMultivaluePropSource(string $field_type, string $prop_name, array $values = [], array $field_storage_settings = [], array $field_instance_settings = []): StaticPropSource {
+  private static function buildMultivaluePropSource(string $field_type, string $prop_name, array $values = [], array $field_storage_settings = [], array $field_instance_settings = []): StaticPropSource {
     $prop_source = StaticPropSource::generate(
       new FieldTypePropExpression($field_type, $prop_name),
       FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
@@ -169,7 +169,7 @@ final class StaticPropSourceMultivalueWidgetStateTest extends CanvasKernelTestBa
   /**
    * Creates a form state suitable for prop source widget rendering.
    */
-  private function createFormState(): FormState {
+  private static function createFormState(): FormState {
     $form_state = new FormState();
     $form_state->setFormObject(new StubForm('some_id', []));
     return $form_state;
@@ -197,7 +197,7 @@ final class StaticPropSourceMultivalueWidgetStateTest extends CanvasKernelTestBa
    * @return list<int>
    *   The rendered row deltas.
    */
-  private function getRenderedDeltas(array $widget): array {
+  private static function getRenderedDeltas(array $widget): array {
     $deltas = [];
     foreach (Element::children($widget) as $key) {
       if (\is_numeric($key)) {

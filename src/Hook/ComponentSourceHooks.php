@@ -81,7 +81,7 @@ readonly final class ComponentSourceHooks {
    * Implements hook_config_schema_info_alter().
    */
   #[Hook('config_schema_info_alter')]
-  public function configSchemaInfoAlter(array &$definitions): void {
+  public static function configSchemaInfoAlter(array &$definitions): void {
     // @todo Remove this when https://www.drupal.org/project/drupal/issues/3534717 lands.
     $definitions['field.value.boolean']['mapping']['value']['type'] = 'boolean';
   }

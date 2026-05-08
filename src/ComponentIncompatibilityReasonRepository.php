@@ -40,7 +40,7 @@ final class ComponentIncompatibilityReasonRepository {
     $this->keyValue->delete($key);
   }
 
-  private function generateKey(string $source_plugin_id, string $identifier): string {
+  private static function generateKey(string $source_plugin_id, string $identifier): string {
     return \sprintf('%s:%s', $source_plugin_id, $identifier);
   }
 

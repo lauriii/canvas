@@ -47,7 +47,7 @@ final class ApiExtensionControllers {
    * @return array
    *   An associative array containing the normalized extension.
    */
-  private function normalize(CanvasExtensionInterface $extension): array {
+  private static function normalize(CanvasExtensionInterface $extension): array {
     return [
       'id' => $extension->id(),
       'name' => $extension->label(),

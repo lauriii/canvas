@@ -334,13 +334,13 @@ class AssetLibraryManifestTest extends CanvasKernelTestBase {
     self::assertFileDoesNotExist($file_uri);
   }
 
-  private function getAssetLibrary(): AssetLibrary {
+  private static function getAssetLibrary(): AssetLibrary {
     $entity = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
     self::assertNotNull($entity);
     return $entity;
   }
 
-  private function createTestFile(string $filename, string $data): FileInterface {
+  private static function createTestFile(string $filename, string $data): FileInterface {
     \file_put_contents(AssetLibrary::ARTIFACTS_DIRECTORY . $filename, $data);
     $file = File::create([
       'uri' => AssetLibrary::ARTIFACTS_DIRECTORY . $filename,

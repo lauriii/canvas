@@ -29,7 +29,7 @@ final class HostEntityUrlPropSourceMatcher {
    * @return list<\Drupal\canvas\PropSource\HostEntityUrlPropSource>
    *   An array of HostEntityUrlPropSource instances, empty array if no matches.
    */
-  public function match(bool $is_required, PropShape $prop_shape): array {
+  public static function match(bool $is_required, PropShape $prop_shape): array {
     if ($prop_shape->getType() !== JsonSchemaType::String) {
       return [];
     }

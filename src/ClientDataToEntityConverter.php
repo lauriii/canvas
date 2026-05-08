@@ -123,7 +123,7 @@ class ClientDataToEntityConverter {
    *
    * @see \Drupal\jsonapi\Controller\EntityResource::checkPatchFieldAccess
    */
-  private function checkPatchFieldAccess(FieldItemListInterface $original_field, FieldItemListInterface $received_field): bool {
+  private static function checkPatchFieldAccess(FieldItemListInterface $original_field, FieldItemListInterface $received_field): bool {
     // If the user is allowed to edit the field, it is always safe to set the
     // received value. We may be setting an unchanged value, but that is ok.
     $field_edit_access = $original_field->access('edit', NULL, TRUE);

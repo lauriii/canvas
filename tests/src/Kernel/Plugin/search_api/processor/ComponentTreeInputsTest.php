@@ -223,7 +223,7 @@ final class ComponentTreeInputsTest extends CanvasKernelTestBase {
     self::assertEmpty($values, 'No values should be extracted when all string props are ignored');
   }
 
-  private function getIndex(): IndexInterface {
+  private static function getIndex(): IndexInterface {
     $index = Index::load(self::INDEX_ID);
     self::assertInstanceOf(IndexInterface::class, $index);
     return $index;

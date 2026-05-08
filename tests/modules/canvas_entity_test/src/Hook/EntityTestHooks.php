@@ -20,7 +20,7 @@ final class EntityTestHooks {
    * Implements hook_entity_base_field_info_alter().
    */
   #[Hook('entity_base_field_info_alter')]
-  public function entityBaseFieldInfoAlter(array &$fields, EntityTypeInterface $entity_type): void {
+  public static function entityBaseFieldInfoAlter(array &$fields, EntityTypeInterface $entity_type): void {
     if ($entity_type->id() === 'entity_test_mulrev') {
       $key = $entity_type->getKey('revision');
       \assert(\is_string($key));
@@ -35,7 +35,7 @@ final class EntityTestHooks {
   }
 
   #[Hook('entity_test_create_access')]
-  public function createAccess(): AccessResultInterface {
+  public static function createAccess(): AccessResultInterface {
     return AccessResult::neutral()->addCacheTags(['test_create_access_cache_tag']);
   }
 

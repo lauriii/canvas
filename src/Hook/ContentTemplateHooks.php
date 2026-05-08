@@ -69,7 +69,7 @@ final class ContentTemplateHooks {
    * Implements hook_entity_type_alter.
    */
   #[Hook('entity_type_alter')]
-  public function entityTypeAlter(array $definitions): void {
+  public static function entityTypeAlter(array $definitions): void {
     /** @var \Drupal\Core\Entity\EntityTypeInterface $entity_type */
     foreach ($definitions as $entity_type) {
       // Canvas pages don't have any structured data, and therefore don't

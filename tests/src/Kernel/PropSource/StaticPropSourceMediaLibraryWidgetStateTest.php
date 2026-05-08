@@ -47,7 +47,7 @@ class StaticPropSourceMediaLibraryWidgetStateTest extends PropSourceTestBase {
    * @param \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max>|null $cardinality
    *   Field cardinality: -1 for unlimited, positive int for a fixed limit, or NULL.
    */
-  private function buildMediaPropSource(?int $cardinality = FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED): StaticPropSource {
+  private static function buildMediaPropSource(?int $cardinality = FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED): StaticPropSource {
     $expression = StructuredDataPropExpression::fromString(self::EXPRESSION);
     \assert($expression instanceof FieldTypeBasedPropExpressionInterface);
     return StaticPropSource::generate(

@@ -164,7 +164,7 @@ final class ThemeSettingsDiscovery {
    * @return array
    *   Validated viewport configuration with invalid entries removed.
    */
-  private function validateViewports(array $viewports): array {
+  private static function validateViewports(array $viewports): array {
     $validated = [];
     foreach ($viewports as $id => $width) {
       // Only accept positive integers.

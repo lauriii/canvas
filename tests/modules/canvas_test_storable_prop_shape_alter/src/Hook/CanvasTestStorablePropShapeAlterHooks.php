@@ -59,7 +59,7 @@ class CanvasTestStorablePropShapeAlterHooks {
    * Implements hook_field_widget_info_alter().
    */
   #[Hook('field_widget_info_alter')]
-  public function fieldWidgetInfoAlter(array &$info): void {
+  public static function fieldWidgetInfoAlter(array &$info): void {
     $info['uri']['canvas'] = ['transforms' => ['mainProperty' => []]];
   }
 

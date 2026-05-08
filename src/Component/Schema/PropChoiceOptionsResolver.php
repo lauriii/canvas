@@ -166,7 +166,7 @@ final class PropChoiceOptionsResolver {
    * @return string
    *   The encoded value or placeholder.
    */
-  private function encodeFallback(mixed $value): string {
+  private static function encodeFallback(mixed $value): string {
     $encoded = Json::encode($value);
     return $encoded === FALSE ? '[unable to encode]' : $encoded;
   }

@@ -31,7 +31,7 @@ final class ConfigEntityAssetLibrariesTest extends CanvasKernelTestBase {
     $this->installEntitySchema('user');
   }
 
-  private function getCanvasAssetLibraries(): array {
+  private static function getCanvasAssetLibraries(): array {
     $library_discovery = \Drupal::service(LibraryDiscoveryInterface::class);
     \assert($library_discovery instanceof CacheCollectorInterface);
 

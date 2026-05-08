@@ -262,7 +262,7 @@ final class CanvasTemplateDisplayTest extends BrowserTestBase {
    * @param bool $status
    *   TRUE to enable, FALSE to disable.
    */
-  private function setTemplateStatus(ConfigEntityInterface $template, bool $status): void {
+  private static function setTemplateStatus(ConfigEntityInterface $template, bool $status): void {
     $template->setStatus($status);
     $template->save();
   }
@@ -328,7 +328,7 @@ final class CanvasTemplateDisplayTest extends BrowserTestBase {
   /**
    * Finds a tab by its text content.
    */
-  private function findTabByText(Crawler $crawler, string $link_text): ?Crawler {
+  private static function findTabByText(Crawler $crawler, string $link_text): ?Crawler {
     $tab_links = $crawler->filterXPath(self::SECONDARY_TABS_XPATH);
 
     foreach ($tab_links as $tab_link_element) {

@@ -27,7 +27,7 @@ final class ComponentWithRichTextShouldUseProcessedUpdateTest extends CanvasUpda
     $this->databaseDumpFiles[] = \dirname(__DIR__, 3) . '/fixtures/update/component_text_processed/components-with-rich-text-fixture.php';
   }
 
-  private function assertExpectedVersionsExpression(string $component_id, string $prop_name, string $expected_expression): void {
+  private static function assertExpectedVersionsExpression(string $component_id, string $prop_name, string $expected_expression): void {
     $component = Component::load($component_id);
     self::assertInstanceOf(Component::class, $component);
     foreach ($component->getVersions() as $version) {
@@ -36,7 +36,7 @@ final class ComponentWithRichTextShouldUseProcessedUpdateTest extends CanvasUpda
     }
   }
 
-  private function assertExpectedVersions(string $component_id, array $versions): void {
+  private static function assertExpectedVersions(string $component_id, array $versions): void {
     $component = Component::load($component_id);
     self::assertInstanceOf(Component::class, $component);
     self::assertSame($versions, $component->getVersions(), $component_id);

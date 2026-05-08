@@ -14,7 +14,7 @@ final class EntityReferenceHooks {
    * Implements hook_canvas_storable_prop_shape_alter().
    */
   #[Hook('canvas_storable_prop_shape_alter')]
-  public function storablePropShapeAlter(CandidateStorablePropShape $storable_prop_shape): void {
+  public static function storablePropShapeAlter(CandidateStorablePropShape $storable_prop_shape): void {
     if ($storable_prop_shape->shape->schema === ['type' => 'string', 'minLength' => 10]) {
       $storable_prop_shape->fieldTypeProp = ReferenceFieldTypePropExpression::fromString('ℹ︎entity_reference␟entity␜␜entity:user␝name␞␟value');
       $storable_prop_shape->fieldInstanceSettings = [];

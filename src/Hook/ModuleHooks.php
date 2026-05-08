@@ -43,7 +43,7 @@ class ModuleHooks {
    * Implements hook_theme().
    */
   #[Hook('theme')]
-  public function theme() : array {
+  public static function theme() : array {
     return [
       // We override this template, as it makes Canvas' preview in the "editor
       // frame" and the live version of the field inconsistent if the
@@ -67,7 +67,7 @@ class ModuleHooks {
    * Implements hook_validation_constraint_alter().
    */
   #[Hook('validation_constraint_alter')]
-  public function validationConstraintAlter(array &$definitions): void {
+  public static function validationConstraintAlter(array &$definitions): void {
     // Add the Symfony validation constraints that Drupal core does not add in
     // \Drupal\Core\Validation\ConstraintManager::registerDefinitions() for
     // unknown reasons. Do it defensively, to not break when this changes.
@@ -148,7 +148,7 @@ class ModuleHooks {
    * Implements hook_toolbar_alter().
    */
   #[Hook('toolbar')]
-  public function toolbar(): array {
+  public static function toolbar(): array {
     $items = [];
     $items['canvas'] = [
       '#type' => 'toolbar_item',

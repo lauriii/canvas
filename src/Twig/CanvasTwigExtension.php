@@ -205,7 +205,7 @@ final class CanvasTwigExtension extends AbstractExtension {
    *   JSON-encoded array for compound types, or the original value for other
    *   types.
    */
-  public function jsxAttributes(mixed $attribute): mixed {
+  public static function jsxAttributes(mixed $attribute): mixed {
     if ($attribute instanceof Attribute || \is_object($attribute) && method_exists($attribute, 'toArray')) {
       return Json::encode($attribute->toArray());
     }

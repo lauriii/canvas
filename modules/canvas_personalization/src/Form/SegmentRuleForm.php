@@ -80,7 +80,7 @@ final class SegmentRuleForm extends EntityForm {
     return $form;
   }
 
-  public function pluginSelectedCallback(array &$form, FormStateInterface $form_state): array {
+  public static function pluginSelectedCallback(array &$form, FormStateInterface $form_state): array {
     return $form['settings'];
   }
 

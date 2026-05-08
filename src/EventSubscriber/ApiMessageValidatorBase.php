@@ -100,7 +100,7 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
   /**
    * Determines whether the application is in production.
    */
-  private function isProd(): bool {
+  private static function isProd(): bool {
     $is_prod = TRUE;
 
     // Assertions are assumed to be disabled in prod, so this assignment will

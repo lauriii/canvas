@@ -34,7 +34,7 @@ final class SdcTestExtension extends AbstractExtension {
    *
    * @throws \Twig\Error\Error
    */
-  public function throwException(bool $crash = FALSE): void {
+  public static function throwException(bool $crash = FALSE): void {
     if ($crash) {
       throw new Error('Intentional test exception.');
     }

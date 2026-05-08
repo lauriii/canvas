@@ -26,7 +26,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('canvas')]
 final class AssetLibraryFontsTest extends CanvasKernelTestBase {
 
-  private function createFontFile(string $filename = 'test-font.woff2'): string {
+  private static function createFontFile(string $filename = 'test-font.woff2'): string {
     return BrandKit::ARTIFACTS_DIRECTORY . $filename;
   }
 

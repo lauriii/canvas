@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class SegmentationRuleController {
 
-  public function delete(Segment $segment, string $rule): Response {
+  public static function delete(Segment $segment, string $rule): Response {
     $segment->removeSegmentRule($rule);
     $segment->save();
     return new TrustedRedirectResponse($segment->toUrl('edit-form')->toString());

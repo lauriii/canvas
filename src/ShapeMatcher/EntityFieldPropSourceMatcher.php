@@ -863,7 +863,7 @@ final class EntityFieldPropSourceMatcher {
     return $instances;
   }
 
-  private function dataDefinitionMatchesPrimitiveType(DataDefinitionInterface $data_definition, JsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema): bool {
+  private static function dataDefinitionMatchesPrimitiveType(DataDefinitionInterface $data_definition, JsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema): bool {
     $data_type_class = $data_definition->getClass();
 
     // Any data type that is more complex than a primitive is not accepted.
@@ -1089,7 +1089,7 @@ final class EntityFieldPropSourceMatcher {
     };
   }
 
-  private function dataLeafIsReference(TypedDataInterface|DataDefinitionInterface $td_or_dd): ?bool {
+  private static function dataLeafIsReference(TypedDataInterface|DataDefinitionInterface $td_or_dd): ?bool {
     if ($td_or_dd instanceof TypedDataInterface && !$td_or_dd->getParent() instanceof FieldItemInterface) {
       throw new \LogicException(__METHOD__ . ' was given a non-leaf.');
     }

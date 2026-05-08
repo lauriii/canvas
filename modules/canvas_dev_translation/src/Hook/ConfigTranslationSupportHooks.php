@@ -19,7 +19,7 @@ readonly final class ConfigTranslationSupportHooks {
    * Implements hook_entity_type_alter.
    */
   #[Hook('entity_type_alter', order: new OrderBefore(['config_translation']))]
-  public function entityTypeAlter(array $definitions): void {
+  public static function entityTypeAlter(array $definitions): void {
     $edit_links = [
       ContentTemplate::ENTITY_TYPE_ID => '/admin/structure/content-template/{content_template}',
       PageRegion::ENTITY_TYPE_ID => '/admin/appearance/page-region/{page_region}',

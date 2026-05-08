@@ -25,7 +25,7 @@ final class PageVariantSelectorSubscriber implements EventSubscriberInterface {
    *
    * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant
    */
-  public function onSelectPageDisplayVariant(PageDisplayVariantSelectionEvent $event): void {
+  public static function onSelectPageDisplayVariant(PageDisplayVariantSelectionEvent $event): void {
     $regions = PageRegion::loadForActiveTheme();
     if (empty($regions)) {
       // No active page regions for this theme.

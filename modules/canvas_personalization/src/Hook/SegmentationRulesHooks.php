@@ -19,7 +19,7 @@ final class SegmentationRulesHooks {
    * segmentation rules.
    */
   #[Hook('plugin_filter_condition__canvas_personalization_alter')]
-  public function conditionPersonalizationAlter(array &$definitions, array $extra): void {
+  public static function conditionPersonalizationAlter(array &$definitions, array $extra): void {
     $allowlist = [
       // @todo Will remove these when we have the ones we need, but using these temporarily for testing. See https://drupal.org/i/3527076, which will be the second one.
       'current_theme',
@@ -43,7 +43,7 @@ final class SegmentationRulesHooks {
    * For condition plugins.
    */
   #[Hook('config_schema_info_alter')]
-  public function configSchemaInfoAlter(array &$definitions): void {
+  public static function configSchemaInfoAlter(array &$definitions): void {
     // This allows conditions to be used for now, but the schema should actually
     // be FullyValidatable.
     // @todo Fix this in core in https://www.drupal.org/i/3525391

@@ -14,7 +14,7 @@ final class ImageStyleHooks {
    * Implements hook_image_style_flush().
    */
   #[Hook('image_style_flush')]
-  public function imageStyleFlush(ImageStyle $style, ?string $path = NULL): void {
+  public static function imageStyleFlush(ImageStyle $style, ?string $path = NULL): void {
     // Avoid recursion.
     if ($style instanceof ParametrizedImageStyle) {
       return;

@@ -163,16 +163,4 @@ final class InvalidSlots extends ComponentSourceBase implements ComponentSourceW
     return [];
   }
 
-  /**
-   * {@inheritdoc}
-   */
-  public function validateConfigurationForm(array &$form, FormStateInterface $form_state): void {
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function submitConfigurationForm(array &$form, FormStateInterface $form_state): void {
-  }
-
 }

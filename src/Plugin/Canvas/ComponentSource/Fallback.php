@@ -152,12 +152,6 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
     return [];
   }
 
-  public function validateConfigurationForm(array &$form, FormStateInterface $form_state): void {
-  }
-
-  public function submitConfigurationForm(array &$form, FormStateInterface $form_state): void {
-  }
-
   public function getSlotDefinitions(): array {
     return $this->getConfiguration()['slots'] ?? [];
   }

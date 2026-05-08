@@ -20,7 +20,7 @@ readonly final class UsePrivateApis {
    * Implements hook_config_schema_info_alter().
    */
   #[Hook('config_schema_info_alter', order: Order::Last)]
-  public function configSchemaInfoAlter(array &$definitions): void {
+  public static function configSchemaInfoAlter(array &$definitions): void {
     // Allow any ComponentSource plugin to be used.
     // @see \Drupal\canvas\ComponentSource\ComponentSourceInterface
     // @todo Remove this constraint after https://www.drupal.org/i/3520484#stable is done.

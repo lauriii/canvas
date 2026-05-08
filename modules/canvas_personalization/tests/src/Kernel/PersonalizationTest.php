@@ -80,7 +80,7 @@ final class PersonalizationTest extends KernelTestBase {
     return $response;
   }
 
-  protected function assertHtmlResponseCacheability(HtmlResponse $response): void {
+  protected static function assertHtmlResponseCacheability(HtmlResponse $response): void {
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     $cache_tags = $response->getCacheableMetadata()->getCacheTags();
     sort($cache_tags);

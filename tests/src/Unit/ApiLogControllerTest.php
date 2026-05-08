@@ -92,14 +92,14 @@ class ApiLogControllerTest extends TestCase {
   /**
    * Initializes a LogController with a BufferingLogger.
    */
-  private function getController(BufferingLogger $logger): ApiLogController {
+  private static function getController(BufferingLogger $logger): ApiLogController {
     return new ApiLogController($logger);
   }
 
   /**
    * Returns a new instance of BufferingLogger.
    */
-  private function getLogger(): BufferingLogger {
+  private static function getLogger(): BufferingLogger {
     return new BufferingLogger();
   }
 

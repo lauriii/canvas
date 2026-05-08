@@ -68,12 +68,12 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
     'canvas_test_code_components',
   ];
 
-  protected function reloadJavascriptComponent(): JavaScriptComponent {
+  protected static function reloadJavascriptComponent(): JavaScriptComponent {
     /** @var \Drupal\canvas\Entity\JavaScriptComponent */
     return \Drupal::entityTypeManager()->getStorage(JavaScriptComponent::ENTITY_TYPE_ID)->loadUnchanged(self::JAVASCRIPT_COMPONENT_ID);
   }
 
-  protected function reloadComponent(): ComponentInterface {
+  protected static function reloadComponent(): ComponentInterface {
     /** @var \Drupal\canvas\Entity\ComponentInterface */
     return \Drupal::entityTypeManager()->getStorage(Component::ENTITY_TYPE_ID)->loadUnchanged(self::COMPONENT_ID);
   }

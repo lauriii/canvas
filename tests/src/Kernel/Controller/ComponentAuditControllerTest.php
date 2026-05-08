@@ -222,7 +222,7 @@ final class ComponentAuditControllerTest extends CanvasKernelTestBase {
     $this->assertStringContainsString($needle, trim((string) $xpath_element[0]->asXML()));
   }
 
-  private function entityData(): array {
+  private static function entityData(): array {
     return [
       Page::ENTITY_TYPE_ID => [
         Page::ENTITY_TYPE_ID => [

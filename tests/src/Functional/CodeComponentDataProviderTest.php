@@ -264,7 +264,7 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
    *
    * @see \Drupal\Tests\BrowserTestBase::getDrupalSettings
    */
-  private function getLayoutPreviewDrupalSettings(string $html): array {
+  private static function getLayoutPreviewDrupalSettings(string $html): array {
     $crawler = new Crawler($html);
     $elements = $crawler->filterXPath('//script[@type="application/json" and @data-drupal-selector="drupal-settings-json"]');
     if (count($elements) === 1) {

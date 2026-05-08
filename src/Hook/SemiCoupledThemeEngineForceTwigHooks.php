@@ -55,7 +55,7 @@ class SemiCoupledThemeEngineForceTwigHooks {
    * Implements hook_theme_suggestions_form_element_label().
    */
   #[Hook('theme_suggestions_form_element_label')]
-  public function themeSuggestionsFormElementLabel(array $variables): array {
+  public static function themeSuggestionsFormElementLabel(array $variables): array {
     $suggestions = [];
     if (isset($variables['element']['#form_id']) && \str_contains($variables['element']['#form_id'], 'media_library')) {
       $suggestions[] = 'form_element_label__media_library';
@@ -67,7 +67,7 @@ class SemiCoupledThemeEngineForceTwigHooks {
    * Implements hook_theme_suggestions_HOOK().
    */
   #[Hook('theme_suggestions_form_element')]
-  public function themeSuggestionsFormElement(array $variables): array {
+  public static function themeSuggestionsFormElement(array $variables): array {
     $suggestions = [];
     if (isset($variables['element']['#form_id']) && str_contains($variables['element']['#form_id'], 'media_library')) {
       $suggestions[] = 'form_element__media_library';
@@ -79,7 +79,7 @@ class SemiCoupledThemeEngineForceTwigHooks {
    * Implements hook_theme_suggestions_HOOK().
    */
   #[Hook('theme_suggestions_form')]
-  public function themeSuggestionsForm(array $variables): array {
+  public static function themeSuggestionsForm(array $variables): array {
     $suggestions = [];
     $ml_view = isset($variables['element']['#id']) && str_contains($variables['element']['#id'], 'views-exposed-form-media-library-widget');
     $ml_form = !empty($variables['element']['#form_id']) && str_contains($variables['element']['#form_id'], 'media_library');
@@ -93,7 +93,7 @@ class SemiCoupledThemeEngineForceTwigHooks {
    * Implements hook_theme_suggestions_HOOK().
    */
   #[Hook('theme_suggestions_select')]
-  public function themeSuggestionsSelect(array $variables): array {
+  public static function themeSuggestionsSelect(array $variables): array {
     $suggestions = [];
     $ml_view = isset($variables['element']['#id']) && str_contains($variables['element']['#id'], 'views-exposed-form-media-library-widget');
     $ml_form = !empty($variables['element']['#form_id']) && str_contains($variables['element']['#form_id'], 'media_library');
@@ -107,7 +107,7 @@ class SemiCoupledThemeEngineForceTwigHooks {
    * Implements hook_theme_suggestions_HOOK().
    */
   #[Hook('theme_suggestions_input')]
-  public function themeSuggestionsInput(array $variables): array {
+  public static function themeSuggestionsInput(array $variables): array {
     $suggestions = [];
     $ml_ajax = isset($variables['element']['#ajax']['wrapper']) && $variables['element']['#ajax']['wrapper'] === 'media-library-wrapper';
     $ml_form = isset($variables['element']['#form_id']) && str_contains($variables['element']['#form_id'], 'media_library');

@@ -148,7 +148,7 @@ readonly final class CodeComponentDataProvider {
    *
    * @return array[]
    */
-  public function getCanvasDataThemeAssetsV0(): array {
+  public static function getCanvasDataThemeAssetsV0(): array {
     return [
       self::V0 => [
         'themeAssets' => [

@@ -51,7 +51,7 @@ final class CanvasHtmlRouteEnhancer implements EnhancerInterface {
    * @return bool
    *   Whether the route applies to this enhancer.
    */
-  private function applies(Route $route): bool {
+  private static function applies(Route $route): bool {
     return $route->hasDefault('_canvas');
   }
 

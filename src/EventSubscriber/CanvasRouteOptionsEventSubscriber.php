@@ -40,7 +40,7 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
     }
   }
 
-  public function addCsrfToken(RouteBuildEvent $event): void {
+  public static function addCsrfToken(RouteBuildEvent $event): void {
     foreach ($event->getRouteCollection() as $name => $route) {
       if (str_starts_with($name, 'canvas.api.') &&
         // Drupal's AJAX submits to these URL and doesn't know that it needs to
@@ -54,7 +54,7 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
     }
   }
 
-  public function preventRouteNormalization(RouteBuildEvent $event): void {
+  public static function preventRouteNormalization(RouteBuildEvent $event): void {
     foreach ($event->getRouteCollection()->getIterator() as $route_name => $route) {
       \assert($route instanceof Route);
       // This ensures our react based routing works with redirect module
@@ -66,7 +66,7 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
     }
   }
 
-  public function enforceJsonFormatForApis(RouteBuildEvent $event): void {
+  public static function enforceJsonFormatForApis(RouteBuildEvent $event): void {
     foreach ($event->getRouteCollection() as $route_name => $route) {
       if (str_starts_with($route_name, 'canvas.api.')) {
         $route->setRequirement('_format', 'json');

@@ -91,7 +91,7 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
     $this->generateComponentConfig();
   }
 
-  private function convertClientData(EntityInterface $entity, array $data): EntityInterface {
+  private static function convertClientData(EntityInterface $entity, array $data): EntityInterface {
     if ($entity instanceof FieldableEntityInterface) {
       $data['model'] = (array) $data['model'];
       $layout = $data['layout'];

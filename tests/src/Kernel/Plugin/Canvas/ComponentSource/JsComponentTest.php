@@ -122,7 +122,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     $this->container->get('config.installer')->installDefaultConfig('module', 'canvas_test_code_components');
   }
 
-  private function createFontFile(string $filename = 'test-font.woff2'): string {
+  private static function createFontFile(string $filename = 'test-font.woff2'): string {
     return BrandKit::ARTIFACTS_DIRECTORY . $filename;
   }
 
