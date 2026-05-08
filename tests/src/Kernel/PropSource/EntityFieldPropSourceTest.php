@@ -99,11 +99,38 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
       ],
       cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
     );
+
+    // For testing a simple FieldPropExpression pointing to a computed field
+    // property provided by Canvas.
+    // @see \Drupal\canvas\Plugin\DataType\ListStringItemLabel
+    FieldStorageConfig::create([
+      'field_name' => 'one_from_an_string_list',
+      'entity_type' => 'node',
+      'type' => 'list_string',
+      'cardinality' => 1,
+      'settings' => [
+        'allowed_values' => [
+          'first_key' => 'First Value',
+          'second_key' => 'Second Value',
+          // Make sure that the allowed value's label is properly sanitized.
+          'sanitization_required' => 'Some <script>dangerous</script> & unescaped <strong>markup</strong>',
+        ],
+      ],
+    ])->save();
+    FieldConfig::create([
+      'label' => 'A pre-defined string',
+      'field_name' => 'one_from_an_string_list',
+      'entity_type' => 'node',
+      'bundle' => 'page',
+      'field_type' => 'list_string',
+      'required' => TRUE,
+    ])->save();
     $node = $this->createNode([
       'type' => 'page',
       'uid' => $user->id(),
       'field_image' => ['target_id' => 1],
       'field_photos' => [['target_id' => 2], ['target_id' => 1], ['target_id' => 3]],
+      'one_from_an_string_list' => ['value' => 'sanitization_required'],
     ]);
 
     $original = EntityFieldPropSource::parse(match ($adapter_plugin_id) {
@@ -244,6 +271,54 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
       'expected_node_access_denied_message' => NULL,
       'expected_dependencies_expression_only' => ['module' => ['user']],
       'expected_dependencies_with_host_entity' => ['module' => ['user']],
+    ];
+
+    yield "simple: FieldPropExpression, but for a `list_string` field type's Canvas-specific computed `label` property" => [
+      'permissions' => ['access content'],
+      'expression' => 'ℹ︎␜entity:node:page␝one_from_an_string_list␞␟label',
+      'adapter_plugin_id' => NULL,
+      'is_required' => TRUE,
+      'expected_array_representation' => [
+        'sourceType' => PropSource::EntityField->value,
+        'expression' => 'ℹ︎␜entity:node:page␝one_from_an_string_list␞␟label',
+      ],
+      'expected_expression_class' => FieldPropExpression::class,
+      'expected_evaluation_with_user_host_entity' => NULL,
+      'expected_user_access_denied_message' => NULL,
+      'expected_evaluation_with_node_host_entity' => new EvaluationResult(
+        'Some <script>dangerous</script> & unescaped <strong>markup</strong>',
+        (new CacheableMetadata())
+          ->setCacheTags([
+            // The host entity.
+            'node:1',
+            // The bundle field that is evaluated.
+            'config:field.storage.node.one_from_an_string_list',
+          ])
+          ->setCacheContexts([
+            // Cache context added during the computing of the `label` field
+            // property.
+            // @see \Drupal\canvas\Plugin\DataType\ListStringItemLabel::computeValue
+            'languages:language_content',
+            // Cache context added by host entity access checking.
+            // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::validateAccess()
+            'user.permissions',
+          ]),
+      ),
+      'expected_node_access_denied_message' => ["Access denied to entity while evaluating expression, ℹ︎␜entity:node:page␝one_from_an_string_list␞␟label, reason: The 'access content' permission is required."],
+      'expected_dependencies_expression_only' => [
+        'module' => ['node'],
+        'config' => [
+          'node.type.page',
+          'field.field.node.page.one_from_an_string_list',
+        ],
+      ],
+      'expected_dependencies_with_host_entity' => [
+        'module' => ['node'],
+        'config' => [
+          'node.type.page',
+          'field.field.node.page.one_from_an_string_list',
+        ],
+      ],
     ];
 
     yield "simple, with adapter: FieldPropExpression" => [
