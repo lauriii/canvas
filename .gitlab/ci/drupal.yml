@@ -34,13 +34,13 @@
     MODULE_SHA=$(cd web/modules/contrib/$CI_PARENT_PROJECT_NAME && git rev-parse HEAD)
     if [ "$MODULE_SHA" != "$CI_COMMIT_SHA" ]; then
       echo "Unable to link to local $CI_PARENT_PROJECT_NAME package"
-      echo "Expected: $EXPECTED_PATH"
-      echo "Got: $PACKAGE_INFO"
+      echo "Expected: $MODULE_SHA"
+      echo "Got: $CI_COMMIT_SHA"
       exit 1
     fi
   # Change to the project directory
   - cd $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME
-  - git config --global --add safe.directory $CI_PROJECT_DIR/_drupal/web/modules/contrib/canvas
+  - git config --global --add safe.directory $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME
 
 .drupal-webserver: &drupal-webserver # Setup webserver root
   - rm -rf /var/www/html
@@ -58,11 +58,7 @@
   # Start the webserver
   - service apache2 start
 
-.drupal-enable-test-modules: &drupal-site
-  # Ensure that every test site will be able to discover and install test modules.
-  # Anything in settings.testing.php is automatically copied into the settings of
-  # individual test sites. See \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(),
-  # which is called (indirectly) by \Drupal\TestSite\Commands\TestSiteInstallCommand.
+.drupal-enable-test-modules: &drupal-enable-test-modules
   # Ensure that every test site will be able to discover and install test modules.
   # Anything in settings.testing.php is automatically copied into the settings of
   # individual test sites. See \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(),
@@ -78,10 +74,10 @@
   - composer install
   - !reference [ .drupal-restore-git ]
 
-.drupal-files-with-dev-dependencies: &drupal-files
+.drupal-files-with-dev-dependencies: &drupal-files-with-dev-dependencies
   - !reference [ .drupal-setup-composer-install ]
   - |
-    PACKAGES=$(cat ../$CI_PROJECT_NAME/composer.json | jq -r '.["require-dev"] // {} | to_entries[] | "\(.key):\(.value)"' | tr '\n' ' ')
+    PACKAGES=$(jq -r '.["require-dev"] // {} | to_entries[] | "\(.key):\(.value)"' ../$CI_PROJECT_NAME/composer.json | tr '\n' ' ')
     composer require ${PACKAGES} --dev -W
   - !reference [ .drupal-restore-git ]
 
