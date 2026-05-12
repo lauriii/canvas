@@ -26,6 +26,7 @@ use Drupal\Core\Entity\Plugin\DataType\EntityReference;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -100,7 +101,7 @@ use Symfony\Component\Validator\Constraint;
  *
  * @phpstan-import-type JsonSchema from \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType
  * @phpstan-type ScalarMatches array<int, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression>
- * @phpstan-type ObjectMatches array<int, \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression>
+ * @phpstan-type ObjectMatches array<int, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression>
  *
  * @internal
  */
@@ -261,6 +262,9 @@ final class EntityFieldPropSourceMatcher {
    * @param \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max> $cardinality_in_json_schema
    * @return ObjectMatches
    *   A list of object matches, which are either:
+   *   - a FieldPropExpression with `propName: 'entity'`, if this is a
+   *     content-entity-reference shape and a host-entity reference field
+   *     targets the allowed entity type + bundle
    *   - a FieldObjectPropsExpression, if the data is available directly in a
    *     field of the given entity type + bundle
    *   - a ReferenceFieldPropExpression that points to a
@@ -420,7 +424,13 @@ final class EntityFieldPropSourceMatcher {
     }
     \assert(Inspector::assertAll(fn ($expr) => $expr instanceof ObjectPropExpressionInterface, $matches));
     \assert(Inspector::assertAll(fn ($expr) => $expr instanceof ReferencePropExpressionInterface, $matches_references));
-    return [...$matches_references, ...$matches];
+    // Append host-entity reference field matches for content-entity-reference
+    // shapes; for any other object shape the helper produces no matches.
+    return [
+      ...$matches_references,
+      ...$matches,
+      ...self::matchContentEntityReferenceShape($entity_data_definition, $schema),
+    ];
   }
 
   /**
@@ -861,6 +871,88 @@ final class EntityFieldPropSourceMatcher {
     $instances = array_values($keyed_by_string);
     $this->cache->set($cid, $instances);
     return $instances;
+  }
+
+  /**
+   * Matches host-entity reference fields to a content-entity-reference prop.
+   *
+   * Returns no matches for any object schema that is not a
+   * content-entity-reference shape. `x-allowed-entity-type-id` is exclusively
+   * defined by that schema definition and is preserved by `PropShape` through
+   * resolution, so its presence is a sufficient identifier.
+   *
+   * @param \Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface $entity_data_definition
+   *   The host entity type + bundle data definition.
+   * @param array<string, mixed> $schema
+   *   The resolved JSON schema for the prop. When `x-allowed-entity-type-id`
+   *   is present, MUST also contain `x-allowed-bundle` if the target entity
+   *   type has bundles; absent only for bundle-less target entity types (the
+   *   rule is enforced already by the metadata requirements).
+   *
+   * @see \Drupal\canvas\ComponentMetadataRequirementsChecker
+   * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::ContentEntityReference
+   * @see \Drupal\canvas\Entity\JavaScriptComponent::getContentEntityReferenceProps()
+   *
+   * @return list<\Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression>
+   *   Matched reference field expressions.
+   */
+  private static function matchContentEntityReferenceShape(EntityDataDefinitionInterface $entity_data_definition, array $schema): array {
+    if (!\array_key_exists('x-allowed-entity-type-id', $schema)) {
+      return [];
+    }
+    $json_schema_target_entity_type_id = $schema['x-allowed-entity-type-id'];
+    $json_schema_target_bundle = $schema['x-allowed-bundle'] ?? NULL;
+    \assert(\is_string($json_schema_target_entity_type_id));
+
+    $field_definitions = $entity_data_definition->getPropertyDefinitions();
+    // @phpstan-ignore argument.type
+    $matches = \array_filter($field_definitions, function (FieldDefinitionInterface $field_definition) use ($json_schema_target_entity_type_id, $json_schema_target_bundle): bool {
+      // Only consider entity reference fields.
+      if (!is_subclass_of($field_definition->getClass(), EntityReferenceFieldItemListInterface::class, TRUE)) {
+        return FALSE;
+      }
+
+      // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItemInterface::getReferenceableBundles()
+      $item_class = $field_definition->getItemDefinition()->getClass();
+      $target_type_bundles = $item_class::getReferenceableBundles($field_definition);
+
+      // Target entity type must match.
+      if (\array_keys($target_type_bundles) !== [$json_schema_target_entity_type_id]) {
+        return FALSE;
+      }
+
+      if ($json_schema_target_bundle === NULL) {
+        // Require target bundles to be specified if the target entity type
+        // supports bundles. If it doesn't support bundles, then
+        // EntityReferenceItemInterface::getReferenceableBundles() should
+        // have returned something like this (for the User entity type):
+        // @code
+        // ['user' => [0 => 'user']]
+        // @endcode
+        // ComponentMetadataRequirementsChecker rejects a missing
+        // `x-allowed-bundle` for bundled entity types upstream, so this branch
+        // is only reachable when both the prop and the field are bundle-less.
+        \assert($target_type_bundles[$json_schema_target_entity_type_id] === [0 => $json_schema_target_entity_type_id]);
+        return TRUE;
+      }
+
+      // Target bundle must match strictly.
+      // Compare values (not keys) so both numerically-indexed
+      // (`[0 => 'article']`, common when the field is created programmatically)
+      // and associative (`['article' =>  'article']`, common when configured
+      // via the entity reference UI) forms canonicalize to the same comparison.
+      return \array_values(\reset($target_type_bundles)) === [$json_schema_target_bundle];
+    });
+    return \array_values(\array_map(
+      // @phpstan-ignore argument.type
+      fn (FieldDefinitionInterface $field_definition): FieldPropExpression => new FieldPropExpression(
+        entityType: $entity_data_definition,
+        fieldName: $field_definition->getName(),
+        delta: NULL,
+        propName: 'entity',
+      ),
+      $matches,
+    ));
   }
 
   private static function dataDefinitionMatchesPrimitiveType(DataDefinitionInterface $data_definition, JsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema): bool {

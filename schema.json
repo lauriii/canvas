@@ -292,6 +292,11 @@
         }
       }
     },
+    "content-entity-reference": {
+      "title": "Content entity reference",
+      "type": "object",
+      "x-allowed-entity-type-id": null
+    },
     "config-entity-id": {
       "title": "config entity id",
       "type": "string",

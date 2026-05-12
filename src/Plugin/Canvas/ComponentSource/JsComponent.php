@@ -4,11 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
+use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\GeneratedUrl;
@@ -25,6 +31,7 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\GlobalImports;
 use Drupal\canvas\ComponentSource\UrlRewriteInterface;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -46,6 +53,13 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
 
   public const EXAMPLE_VIDEO_HORIZONTAL = '/ui/assets/videos/mountain_wide.mp4';
   public const EXAMPLE_VIDEO_VERTICAL = '/ui/assets/videos/bird_vertical.mp4';
+
+  /**
+   * Separator between segments of a content-entity-reference prop payload key.
+   *
+   * @see ::generateKeyForExpression()
+   */
+  public const CONTENT_ENTITY_REFERENCE_KEY_SEPARATOR = '$';
 
   protected ExtensionPathResolver $extensionPathResolver;
   protected AutoSaveManager $autoSaveManager;
@@ -143,6 +157,117 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     catch (\Exception) {
       return new TranslatableMarkup('Invalid/broken code component');
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getExplicitInput(string $uuid, ComponentTreeItem $item, ?FieldableEntityInterface $host_entity = NULL): array {
+    $explicit_input = parent::getExplicitInput($uuid, $item, $host_entity);
+
+    $js_component = $this->getJavaScriptComponent();
+    $content_entity_reference_prop_names = \array_keys($js_component->getContentEntityReferenceProps());
+
+    // Nothing extra to do if this code component has no
+    // content-entity-reference props.
+    if (empty($content_entity_reference_prop_names)) {
+      return $explicit_input;
+    }
+
+    // Nothing extra to do if none of this code component's content-entity-
+    // reference props are populated in the stored inputs.
+    $raw_inputs = $item->getInputs() ?? [];
+    $populated_content_entity_reference_props = \array_intersect(
+      $content_entity_reference_prop_names,
+      \array_keys($raw_inputs)
+    );
+    if (empty($populated_content_entity_reference_props)) {
+      return $explicit_input;
+    }
+
+    // Resolve all content-entity-reference props, by evaluating their entity
+    // field expressions on the referenced entities. The parent already parsed
+    // each prop's PropSource and evaluated it against the host entity (with the
+    // tree-root fallback for missing $host_entity), so reuse those resolved
+    // EvaluationResults instead of re-parsing and re-evaluating here.
+    foreach ($populated_content_entity_reference_props as $prop_name) {
+      \assert(isset($explicit_input['resolved']) && \is_array($explicit_input['resolved']));
+      $referenced_result = $explicit_input['resolved'][$prop_name] ?? NULL;
+      $referenced_entity = $referenced_result?->value;
+      if (!$referenced_entity instanceof FieldableEntityInterface) {
+        // Dangling reference (target entity deleted, or the referencing field
+        // on the host is empty), or the parent could not resolve the source —
+        // nothing to evaluate against, skip.
+        continue;
+      }
+
+      // Evaluate every entity field expression declared for this prop against
+      // the resolved entity, and assemble a payload keyed by a developer-facing
+      // name derived from the terminal field/prop name of each expression.
+      $expression_strings = $js_component->getEntityFieldExpressions($prop_name);
+      if (empty($expression_strings)) {
+        continue;
+      }
+      $payload = [];
+      foreach ($expression_strings as $expression_string) {
+        $expression = StructuredDataPropExpression::fromString($expression_string);
+        // Entity field expressions for content-entity-reference props must be
+        // entity-field-based (validated at save time): the config schema
+        // restricts `entityFields.*.*` to FieldPropExpression /
+        // FieldObjectPropsExpression / ReferenceFieldPropExpression.
+        // @see canvas.schema.yml (canvas.js_component.*: dataDependencies.entityFields)
+        // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidStructuredDataPropExpressionConstraintValidator
+        \assert($expression instanceof EntityFieldBasedPropExpressionInterface);
+        $key = self::generateKeyForExpression($expression);
+        $payload[$key] = Evaluator::evaluate($referenced_entity, $expression, is_required: FALSE);
+      }
+
+      // Wrap the payload in a single EvaluationResult, carrying the resolved
+      // entity's cacheability so it is merged into the rendered component
+      // instance's cacheability downstream.
+      \assert(isset($explicit_input['resolved']) && \is_array($explicit_input['resolved']));
+      $explicit_input['resolved'][$prop_name] = new EvaluationResult(
+        $payload,
+        CacheableMetadata::createFromObject($referenced_result)
+          ->addCacheableDependency($referenced_entity),
+      );
+    }
+
+    return $explicit_input;
+  }
+
+  /**
+   * Computes a developer-facing key for a content-entity-reference payload.
+   *
+   * When a code component declares a content-entity-reference prop, the payload
+   * it receives contains one entry per declared entity field expression. This
+   * method derives the developer-facing key for each expression: an entity key
+   * (e.g. `label`) when the expression targets one, otherwise the raw field
+   * name. Reference expressions are rendered as `key$target_key`.
+   *
+   * The `$` separator is used because:
+   * - it is not valid in a Drupal field machine name, so a flat field named
+   *   `prop__body` can never collide with a reference expression `prop` →
+   *   `body`;
+   * - it IS a valid JavaScript/TypeScript identifier character, so consumers
+   *   can use dot access like `payload.prop$body`.
+   *
+   * @see ::CONTENT_ENTITY_REFERENCE_KEY_SEPARATOR
+   * @see ::getExplicitInput()
+   */
+  public static function generateKeyForExpression(EntityFieldBasedPropExpressionInterface $expr): string {
+    $entity_type_and_bundle = $expr->getHostEntityDataDefinition();
+    \assert($entity_type_and_bundle instanceof BetterEntityDataDefinition);
+    $field_names_to_entity_keys = \array_flip(
+      $entity_type_and_bundle->getEntityType()->getKeys(),
+    );
+    $field_name = $expr->getFieldName();
+    $key = $field_names_to_entity_keys[$field_name] ?? $field_name;
+    if ($expr instanceof ReferencePropExpressionInterface) {
+      $key .= self::CONTENT_ENTITY_REFERENCE_KEY_SEPARATOR . self::generateKeyForExpression($expr->getTargetExpression());
+    }
+    \assert(\preg_match('/^[a-z]+[a-z0-9_\$]*$/', $key) === 1);
+    return $key;
   }
 
   /**

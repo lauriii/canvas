@@ -1,0 +1,12 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: 'Contributor card'
+description: 'SDC that receives a User entity via a content-entity-reference prop.'
+props:
+  type: object
+  properties:
+    # @todo Refine as part of https://www.drupal.org/i/3585135.
+    contributor:
+      title: Contributor
+      type: object
+      $ref: json-schema-definitions://canvas.module/content-entity-reference
+      x-allowed-entity-type-id: user

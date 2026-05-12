@@ -474,3 +474,45 @@ Explanation:
 - `x-allowed-schemes` - Optional; indicates which URI schemes are allowed for URIs passed into this shape. Specifying
   `[http, https]` conveys the URI must be resolvable by web browsers. (As opposed to something like Drupal's `public` or
   `private`, or other proprietary URI schemes.)
+
+#### 3.2.3 (Content) Entity objects
+A prop that wishes to receive a (content) entity object can use the
+`json-schema-definitions://canvas.module/content-entity-reference` well-known prop shape.
+
+Note that such a prop is never allowed to be required, because the component must continue to render in all
+circumstances:
+- the referenced entity may have been deleted
+- on a content template the entity reference field may be optional
+- on a content template the entity reference field may be required but nodes were created before it was required.
+
+It is entirely up to the `Component Source Plugin` developer to determine what to do with the received entity object,
+but typically it would be used to then retrieve one or more `field prop`s from that entity object.
+
+> [!WARNING]
+> Today only code components actually support `content-entity-reference` props end-to-end. The YAML examples
+> below show the shape, but **an SDC that authors them directly will currently be flagged ineligible at discovery time**.
+
+Any User entity:
+```yaml
+contributor:
+  type: object
+  $ref: json-schema-definitions://canvas.module/content-entity-reference
+  x-allowed-entity-type-id: user
+```
+
+Any Node entity of the "article" content type:
+```yaml
+promoted_article:
+  type: object
+  $ref: json-schema-definitions://canvas.module/content-entity-reference
+  x-allowed-entity-type-id: node
+  x-allowed-bundle: article
+```
+
+##### Projection (code components only)
+
+For code components (`JsComponent`), the developer-facing `props` definition deliberately omits these keys. The concrete target
+entity type and bundle live in the JavaScriptComponent config entity's `dataDependencies.entityFields` (the single source of
+truth). At runtime, `JavaScriptComponent::toSdcDefinition()` **projects** these keys into the SDC definition so it matches the
+shape above. The persisted config entity is never mutated; the projection produces a local copy of the props for the SDC
+definition. See ADR 11.

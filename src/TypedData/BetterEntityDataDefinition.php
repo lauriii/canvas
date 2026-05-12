@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\TypedData;
 
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\TypedData\ComplexDataDefinitionBase;
@@ -175,6 +176,11 @@ class BetterEntityDataDefinition extends ComplexDataDefinitionBase implements En
       $better->addConstraint($constraint_name, $options);
     }
     return $better;
+  }
+
+  public function getEntityType(): EntityTypeInterface {
+    $entity_type_id = $this->getEntityTypeId();
+    return \Drupal::entityTypeManager()->getDefinition($entity_type_id);
   }
 
 }

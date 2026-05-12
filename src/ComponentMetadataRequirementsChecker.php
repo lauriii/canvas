@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropShape\EphemeralPropShapeRepository;
+use Drupal\canvas\Validation\JsonSchema\ContentEntityReferenceObjectConstraint;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\canvas\PropShape\StorablePropShape;
@@ -65,10 +67,18 @@ final class ComponentMetadataRequirementsChecker {
         $messages[] = \sprintf('Prop "%s" has an empty enum value in items.', $prop_name);
       }
 
-      // Required props must have examples.
+      // Required props must have examples — except content-entity-reference
+      // props, for which `examples` are explicitly unsupported (see below).
       $is_required_prop = \in_array($prop_name, $required_props, TRUE);
-      if ($is_required_prop && !isset($prop['examples'][0])) {
+      if ($is_required_prop && !isset($prop['examples'][0]) && !JsonSchemaObjectRef::isContentEntityReference($prop)) {
         $messages[] = \sprintf('Prop "%s" is required, but does not have example value', $prop_name);
+      }
+
+      // Content-entity-reference props must not carry `examples`: the
+      // referenced entity is resolved at runtime from
+      // `dataDependencies.entityFields`, so an example value is meaningless.
+      if (JsonSchemaObjectRef::isContentEntityReference($prop) && \array_key_exists('examples', $prop)) {
+        $messages[] = \sprintf('Prop "%s" is a content-entity-reference prop and must not have examples.', $prop_name);
       }
 
       // Required array ("multiple cardinality") props must have `minItems: 1`.
@@ -125,10 +135,30 @@ final class ComponentMetadataRequirementsChecker {
 
       // Validation for the additional functionality overlaid on top of the SDC
       // JSON Schema.
-      // @see docs/shape-matching-into-field-types.md#3.2
+      // @see docs/shape-matching-into-field-types.md#3.2.1
       if (\array_key_exists('contentMediaType', $prop) && $prop['contentMediaType'] === 'text/html' && isset($prop['x-formatting-context'])) {
         if (!\in_array($prop['x-formatting-context'], ['inline', 'block'], TRUE)) {
           $messages[] = \sprintf('Invalid value "%s" for "x-formatting-context". Valid values are "inline" and "block".', $prop['x-formatting-context']);
+          continue;
+        }
+      }
+
+      // Validation for content-entity-reference props.
+      // ContentEntityReferenceObjectConstraint is registered as the JSON Schema
+      // "object" constraint, but it only fires when validating prop *values*
+      // (ComponentValidator::validateProps), not at metadata-derivation time —
+      // hence the explicit static call below.
+      // @see docs/shape-matching.md#3.2.3
+      // @see \Drupal\canvas\CanvasServiceProvider::alter()
+      // @see \Drupal\canvas\Validation\JsonSchema\ContentEntityReferenceObjectConstraint
+      if (JsonSchemaObjectRef::isContentEntityReference($prop)) {
+        if (\in_array($prop_name, $required_props, TRUE)) {
+          $messages[] = \sprintf('Prop "%s" is required, but content-entity-reference props must be optional.', $prop_name);
+          continue;
+        }
+        $schema_errors = ContentEntityReferenceObjectConstraint::validateMetadataSchema($prop, $prop_name);
+        if (!empty($schema_errors)) {
+          $messages = [...$messages, ...$schema_errors];
           continue;
         }
       }

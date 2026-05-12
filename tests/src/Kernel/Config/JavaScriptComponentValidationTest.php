@@ -635,6 +635,8 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
    */
   public function testObjectPropDefinition(): void {
     $this->entity->set('props', [
+      // A well-known object shape that is fully described by JSON Schema: the
+      // code component developer knows exactly what to expect.
       'some_object' => JsonSchemaObjectRef::Image->asPropShapeArray() + [
         'title' => $this->randomString(),
         'enum' => [NULL],
@@ -674,14 +676,47 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
           ],
         ],
       ],
+      // A well-known object shape that is loosely described by JSON Schema: the
+      // code component developer knows to expect an optional object, but the
+      // exact shape depends on the entity field data they choose. Those choices
+      // are stored in `dataDependencies.entityFields`.
+      'article' => [
+        'title' => 'Interesting article',
+        'type' => 'object',
+        '$ref' => 'json-schema-definitions://canvas.module/content-entity-reference',
+      ],
+      // The constraints chosen by the code component developer should not be
+      // duplicated in the prop definition: it can be computed from
+      // `dataDependencies.entityFields` and would be redundant to maintain in
+      // two places. `examples` are also unsupported: the referenced entity is
+      // resolved at runtime from `dataDependencies.entityFields`.
+      'employee' => [
+        'title' => 'Employee',
+        'type' => 'object',
+        '$ref' => 'json-schema-definitions://canvas.module/content-entity-reference',
+        // Valid in JSON Schema, but not allowed in code component's prop
+        // definitions.
+        'x-allowed-entity-type-id' => 'user',
+        'examples' => [],
+      ],
+    ]);
+    $this->entity->set('required', ['employee']);
+    $this->entity->set('dataDependencies', [
+      'entityFields' => [
+        'article' => ['ℹ︎␜entity:node:article␝title␞␟value'],
+        'employee' => ['ℹ︎␜entity:user␝name␞␟value'],
+      ],
     ]);
     $this->assertValidationErrors([
       '' => [
         'Prop "some_object" has invalid example value: [src] The property src is required',
+        'Prop "employee" is a content-entity-reference prop and must not have examples.',
+        'Prop "employee" is required, but content-entity-reference props must be optional.',
         'Image prop "some_object" example src "hi mum, this is not a url" must be a fully-qualified URL with both scheme and host. Use a placeholder URL such as https://placehold.co/600x400.',
         'Image prop "some_object" example src "path/to/image.png" must be a fully-qualified URL with both scheme and host. Use a placeholder URL such as https://placehold.co/600x400.',
         'Image prop "some_object" example src "/root/relative/path/to/image.png" must be a fully-qualified URL with both scheme and host. Use a placeholder URL such as https://placehold.co/600x400.',
       ],
+      'props.employee.x-allowed-entity-type-id' => "'x-allowed-entity-type-id' is not a supported key.",
       'props.some_object.enum.0' => 'This value should not be null.',
       'props.some_object.examples.0' => [
         "'src' is a required key.",
@@ -692,6 +727,14 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       'props.some_object.examples.5' => "'src' is a required key.",
       'props.some_object.examples.8.src' => "'public' is not allowed, must be one of the allowed schemes: http, https.",
     ]);
+    \assert($this->entity instanceof JavaScriptComponent);
+    // Invalid props won't be returned, but no error should happen when calling `getContentEntityReferenceProps()`.
+    $this->assertSame([
+      'article' => [
+        'title' => 'Interesting article',
+        ...JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+      ],
+    ], $this->entity->getContentEntityReferenceProps());
   }
 
   /**
@@ -838,6 +881,16 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
               'title' => 'Number',
               'examples' => [3.14],
             ],
+            'journalist' => [
+              'type' => 'object',
+              'title' => 'Journalist',
+              '$ref' => 'json-schema-definitions://canvas.module/content-entity-reference',
+            ],
+            'article' => [
+              'type' => 'object',
+              'title' => 'News article',
+              '$ref' => 'json-schema-definitions://canvas.module/content-entity-reference',
+            ],
           ],
           'required' => [
             'string',
@@ -852,7 +905,15 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
             'original' => '.test { display: none; }',
             'compiled' => '.test{display:none;}',
           ],
-          'dataDependencies' => [],
+          'dataDependencies' => [
+            'entityFields' => [
+              'journalist' => ['ℹ︎␜entity:user␝name␞␟value'],
+              'article' => [
+                'ℹ︎␜entity:node:article␝title␞␟value',
+                'ℹ︎␜entity:node:article␝body␞␟processed',
+              ],
+            ],
+          ],
         ],
         [],
       ],
@@ -1334,10 +1395,28 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
    *           [{"drupalSettings": ["v0.pageTitle", "v0.branding"]}, []]
    *           [{"urls": []}, {"dataDependencies.urls": "This value should not be blank."}]
    *           [{"urls": ["https://www.drupal.org/jsonapi"]}, []]
-   *           [{"drupalSettings": ["v0.pageTitle", "v0.branding"], "urls": ["https://www.drupal.org/jsonapi"], "entityFields": {"text": ["ℹ︎␜entity:user␝name␞␟value"]}}, []]
+   *           [{"drupalSettings": ["v0.pageTitle", "v0.branding"], "urls": ["https://www.drupal.org/jsonapi"], "entityFields": {"my_reference": ["ℹ︎␜entity:user␝name␞␟value"]}}, []]
    *           [{"drupalSettings": ["foo"], "entityFields": {"nonexistent_prop": ["ℹ︎␜entity:user␝name␞␟value"]}}, {"dataDependencies.drupalSettings.0": "The value you selected is not a valid choice.", "dataDependencies.entityFields.nonexistent_prop": "'nonexistent_prop' is not a supported key."}]
+   *           [{"entityFields": {"text": ["ℹ︎␜entity:user␝name␞␟value"]}}, {"dataDependencies.entityFields.text": "'text' is not a supported key."}]
    */
   public function testDataDependencies(array $test, array $expected_errors): void {
+    // Auto-inject a synthetic `my_reference` content-entity-reference prop
+    // whenever the test data targets it via `entityFields.my_reference`. This
+    // exercises the `SequenceKeysMustMatch` `conditions` scoping — only
+    // content-entity-reference props are valid keys. Negative rows targeting a
+    // non-content-entity-reference prop key (e.g. `text`) intentionally skip
+    // injection so that the constraint sees zero content-entity-reference
+    // props and flags the key as unsupported.
+    if (\array_key_exists('entityFields', $test) && \array_key_exists('my_reference', $test['entityFields'])) {
+      self::assertInstanceOf(JavaScriptComponent::class, $this->entity);
+      $props = $this->entity->getProps();
+      $props['my_reference'] = [
+        'title' => $this->randomString(),
+        ...JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+      ];
+      $this->entity->setProps($props);
+    }
+
     $this->entity->set('dataDependencies', $test);
     $this->assertValidationErrors($expected_errors);
   }
@@ -1347,6 +1426,18 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
    */
   #[DataProvider('providerEntityFieldsDataDependencies')]
   public function testEntityFieldsDataDependencies(array $test, array $expected_errors, array $required): void {
+    // Add `my_reference` as a content-entity-reference prop when the test row
+    // targets it, so `entityFields` keys have a valid target.
+    if (\array_key_exists('entityFields', $test) && \array_key_exists('my_reference', $test['entityFields'])) {
+      \assert($this->entity instanceof JavaScriptComponent);
+      $props = $this->entity->getProps() ?? [];
+      $props['my_reference'] = [
+        'title' => 'My reference',
+        ...JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+      ];
+      $this->entity->setProps($props);
+    }
+
     $this->entity->set('dataDependencies', $test);
     if (!empty($required)) {
       $this->entity->set('required', $required);
@@ -1360,7 +1451,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
   public static function providerEntityFieldsDataDependencies(): \Generator {
     yield 'empty entityFields' => [
       ['entityFields' => []],
-      ['dataDependencies.entityFields' => "There must be >=1 entity reference prop; otherwise the 'entityFields' key should be omitted."],
+      ['dataDependencies.entityFields' => "There must be >=1 content-entity-reference prop; otherwise the 'entityFields' key should be omitted."],
       [],
     ];
 
@@ -1371,83 +1462,88 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     ];
 
     yield 'entityFields valid key but empty array' => [
-      ['entityFields' => ['text' => []]],
-      ['dataDependencies.entityFields.text' => 'There must be >=1 entity field expression; otherwise the entity reference prop should be deleted.'],
+      ['entityFields' => ['my_reference' => []]],
+      [
+        '' => 'Missing "x-allowed-entity-type-id" for content entity reference prop "my_reference".',
+        'dataDependencies.entityFields.my_reference' => 'There must be >=1 entity field expression; otherwise the content-entity-reference prop should be deleted.',
+      ],
       [],
     ];
 
     yield 'entityFields valid key with invalid expression' => [
-      ['entityFields' => ['text' => ['not-a-valid-expression']]],
-      ['dataDependencies.entityFields.text.0' => '<em class="placeholder">not-a-valid-expression</em> is not a valid prop expression.'],
+      ['entityFields' => ['my_reference' => ['not-a-valid-expression']]],
+      [
+        '' => 'Missing "x-allowed-entity-type-id" for content entity reference prop "my_reference".',
+        'dataDependencies.entityFields.my_reference.0' => '<em class="placeholder">not-a-valid-expression</em> is not a valid prop expression.',
+      ],
       [],
     ];
 
     yield 'entityFields alongside drupalSettings' => [
-      ['drupalSettings' => ['v0.pageTitle'], 'entityFields' => ['text' => ['ℹ︎␜entity:user␝name␞␟value']]],
+      ['drupalSettings' => ['v0.pageTitle'], 'entityFields' => ['my_reference' => ['ℹ︎␜entity:user␝name␞␟value']]],
       [],
       [],
     ];
 
     // Valid expression types: FieldPropExpression, ReferenceFieldPropExpression, FieldObjectPropsExpression.
     yield 'entityFields valid FieldPropExpression' => [
-      ['entityFields' => ['text' => ['ℹ︎␜entity:node:article␝title␞␟value']]],
+      ['entityFields' => ['my_reference' => ['ℹ︎␜entity:node:article␝title␞␟value']]],
       [],
       [],
     ];
 
     yield 'entityFields valid ReferenceFieldPropExpression' => [
-      ['entityFields' => ['text' => ['ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value']]],
+      ['entityFields' => ['my_reference' => ['ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value']]],
       [],
       [],
     ];
 
     yield 'entityFields valid FieldObjectPropsExpression' => [
-      ['entityFields' => ['text' => ['ℹ︎␜entity:user␝user_picture␞␟{src↠url,alt↠alt}']]],
+      ['entityFields' => ['my_reference' => ['ℹ︎␜entity:user␝user_picture␞␟{src↠url,alt↠alt}']]],
       [],
       [],
     ];
 
     // Same entity type+bundle constraint.
     yield 'entityFields mixed entity types in same prop' => [
-      ['entityFields' => ['text' => ['ℹ︎␜entity:user␝name␞␟value', 'ℹ︎␜entity:node:article␝title␞␟value']]],
-      ['dataDependencies.entityFields.text' => 'All entity field expressions must target the same entity type and bundle, but found: entity:user, entity:node:article.'],
+      ['entityFields' => ['my_reference' => ['ℹ︎␜entity:user␝name␞␟value', 'ℹ︎␜entity:node:article␝title␞␟value']]],
+      ['dataDependencies.entityFields.my_reference' => 'All entity field expressions must target the same entity type and bundle, but found: entity:user, entity:node:article.'],
       [],
     ];
 
     yield 'entityFields same entity type in same prop' => [
-      ['entityFields' => ['text' => ['ℹ︎␜entity:user␝name␞␟value', 'ℹ︎␜entity:user␝mail␞␟value']]],
+      ['entityFields' => ['my_reference' => ['ℹ︎␜entity:user␝name␞␟value', 'ℹ︎␜entity:user␝mail␞␟value']]],
       [],
       [],
     ];
 
     // Entity type/bundle existence validation.
     yield 'entityFields non-existent entity type' => [
-      ['entityFields' => ['text' => ['ℹ︎␜entity:nonsense␝title␞␟value']]],
-      ['dataDependencies.entityFields.text.0' => "The entity type 'nonsense' does not exist."],
+      ['entityFields' => ['my_reference' => ['ℹ︎␜entity:nonsense␝title␞␟value']]],
+      [
+        '' => 'Missing "x-allowed-entity-type-id" for content entity reference prop "my_reference".',
+        'dataDependencies.entityFields.my_reference.0' => "The entity type 'nonsense' does not exist.",
+      ],
       [],
     ];
 
     yield 'entityFields non-existent bundle' => [
-      ['entityFields' => ['text' => ['ℹ︎␜entity:node:nonsense␝title␞␟value']]],
-      ['dataDependencies.entityFields.text.0' => "The entity type 'node' does not have a 'nonsense' bundle."],
+      ['entityFields' => ['my_reference' => ['ℹ︎␜entity:node:nonsense␝title␞␟value']]],
+      [
+        '' => 'Invalid value "nonsense" for "x-allowed-bundle": not a known bundle of entity type "node".',
+        'dataDependencies.entityFields.my_reference.0' => "The entity type 'node' does not have a 'nonsense' bundle.",
+      ],
       [],
-    ];
-
-    // Required prop constraint.
-    yield 'entityFields prop cannot be required' => [
-      ['entityFields' => ['text' => ['ℹ︎␜entity:user␝name␞␟value']]],
-      ['required' => 'The prop <em class="placeholder">text</em> has entity field data dependencies and therefore cannot be required: referenced entities may disappear, and this code component should not crash when they do.'],
-      ['text'],
     ];
   }
 
   /**
    * Tests x-allowed-bundle validation for bundled entity types.
    *
-   * @todo Implement this when the entity reference prop type is added in #3573831.
+   * @todo Implement this when the content-entity-reference prop type is added in #3573831.
    */
   public function testEntityFieldsMissingBundleForBundledEntityType(): void {
-    $this->markTestSkipped('Requires the entity reference prop type with x-allowed-bundle from #3573831.');
+    $this->markTestSkipped('Requires the content-entity-reference prop type with x-allowed-bundle from #3573831.');
   }
 
   /**
@@ -1609,8 +1705,8 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       ],
     ];
 
-    // Multiple entity-reference props in one component, with one prop using a
-    // `FieldObjectPropsExpression` that follows an entity reference
+    // Multiple content-entity-reference props in one component, with one prop
+    // using a `FieldObjectPropsExpression` that follows an entity reference
     // (`src↝entity…`) into the referenced `file` entity.
     yield 'multiple entityFields props with follow-reference FieldObjectPropsExpression' => [
       [

@@ -237,21 +237,25 @@ canvas.js_component.*:
           type: sequence
           orderby: key
           constraints:
-            # There must be >=1 entity reference prop; otherwise the key should be omitted.
+            # There must be >=1 content-entity-reference prop; otherwise the key should be omitted.
             NotBlank:
-              message: "There must be >=1 entity reference prop; otherwise the 'entityFields' key should be omitted."
-            # Each key must be a prop name from the component's props.
+              message: "There must be >=1 content-entity-reference prop; otherwise the 'entityFields' key should be omitted."
+            # Every `content-entity-reference`-shaped prop MUST have a corresponding
+            # `entityFields` entry (and vice versa) so `toSdcDefinition()` can
+            # derive `x-allowed-entity-type-id` / `x-allowed-bundle`.
             SequenceKeysMustMatch:
-              matchType: subset
-              # @todo allow filtering to the subset that are actually "entity reference" props, rather than all props.
               propertyPathToSequence: props
+              # @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::ContentEntityReference
+              conditions:
+                type: object
+                "$ref": "json-schema-definitions://canvas.module/content-entity-reference"
           sequence:
             type: sequence
             orderby: value
             constraints:
               # There must be >=1 entity field expression.
               NotBlank:
-                message: 'There must be >=1 entity field expression; otherwise the entity reference prop should be deleted.'
+                message: 'There must be >=1 entity field expression; otherwise the content-entity-reference prop should be deleted.'
               # All expressions must target the same entity type and bundle.
               EntityFieldExpressionsSameTarget: ~
             sequence:

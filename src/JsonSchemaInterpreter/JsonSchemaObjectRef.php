@@ -13,11 +13,29 @@ use Drupal\canvas\PropShape\PropShape;
  * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
  *
  * @internal
+ *
+ * @phpstan-import-type JsonSchema from \Drupal\canvas\PropShape\PropShape
  */
 enum JsonSchemaObjectRef: string {
 
   case Image = 'json-schema-definitions://canvas.module/image';
   case Video = 'json-schema-definitions://canvas.module/video';
+  case ContentEntityReference = 'json-schema-definitions://canvas.module/content-entity-reference';
+
+  /**
+   * Whether the given JSON schema for a prop is a content-entity-reference.
+   *
+   * @param JsonSchema $prop_schema
+   *   The JSON schema for a component prop.
+   *
+   * @return bool
+   */
+  public static function isContentEntityReference(array $prop_schema): bool {
+    $normalized = PropShape::normalizePropSchema($prop_schema);
+    return ($normalized['type'] === 'object'
+      && \array_key_exists('$ref', $normalized)
+      && $normalized['$ref'] === self::ContentEntityReference->value);
+  }
 
   /**
    * Returns the full `{type: object, $ref: <URI>}` prop shape array.

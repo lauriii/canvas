@@ -14,6 +14,7 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceProviderBase;
 use Drupal\canvas\Access\CanvasUiAccessCheck;
 use Drupal\canvas\EventSubscriber\DefaultContentSubscriber;
+use Drupal\canvas\Validation\JsonSchema\ContentEntityReferenceObjectConstraint;
 use Drupal\canvas\Validation\JsonSchema\UriSchemeAwareFormatConstraint;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use JsonSchema\Constraints\Factory;
@@ -59,6 +60,7 @@ class CanvasServiceProvider extends ServiceProviderBase {
     $validator = $container->getDefinition(ComponentValidator::class);
     $factory = $container->setDefinition(Factory::class, new Definition(Factory::class));
     $factory->addMethodCall('setConstraintClass', ['format', UriSchemeAwareFormatConstraint::class]);
+    $factory->addMethodCall('setConstraintClass', ['object', ContentEntityReferenceObjectConstraint::class]);
     $container->setDefinition(Validator::class, new Definition(Validator::class, [
       new Reference(Factory::class),
     ]));

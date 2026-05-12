@@ -142,11 +142,20 @@ final class PropShape {
     // @see https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.9.2
     unset($normalized_prop_schema['default']);
 
-    $normalized_prop_schema['type'] = JsonSchemaType::from(
-    // TRICKY: SDC always allowed `object` for Twig integration reasons.
+    // TRICKY: SDC appends `'object'` to every prop's declared `type` (and then
+    // dedupes) so Twig can defer rendering to the render pipeline.
+    // The originally declared type is therefore always the first element.
     // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
-      \is_array($prop_schema['type']) ? $prop_schema['type'][0] : $prop_schema['type']
-    )->value;
+    //
+    // Prop definitions might not have been validated yet. Their `type` may
+    // therefore be a string that does not correspond to any `JsonSchemaType`
+    // enum case.
+    // If `JsonSchemaType::from()` was called, it would throw `\ValueError` on
+    // such input; this normalization must tolerate it and simply pass it
+    // through (any downstream shape comparison will then not match a known
+    // shape, which is the desired outcome).
+    // @see \Drupal\Tests\canvas\Unit\PropShape\PropShapeNormalizeTest
+    $normalized_prop_schema['type'] = \strtolower(((array) $prop_schema['type'])[0]);
 
     // If this is a `type: object` with not a `$ref` but `properties`, normalize
     // those too.
@@ -245,6 +254,11 @@ final class PropShape {
    *   `x-formatting-context` does not matter. Invalid `x-formatting-contexts`
    *   are blocked during discovery of components from ever making it into
    *   Canvas component trees.
+   *
+   * TRICKY: this is a Canvas concept, not a JSON Schema concept. Hence this
+   * method does not live in:
+   * - \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat
+   * - \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType
    *
    * @param JsonSchema $prop_schema
    *   The JSON schema for a component prop.

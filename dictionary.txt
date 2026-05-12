@@ -71,6 +71,7 @@ ianvs
 importmap
 inlines
 interactable
+invariantly
 inwidget
 jangregor
 Jsona
@@ -162,10 +163,14 @@ uncollapsed
 uncollapses
 unhydrated
 unlayered
+unmodeled
+unparseable
+unrooted
 unstorable
 unstub
 untampered
 unvalidatable
+unvalidated
 upserting
 upserts
 useswr

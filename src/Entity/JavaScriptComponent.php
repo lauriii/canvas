@@ -9,11 +9,16 @@ use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
 use Drupal\canvas\ComponentMetadataRequirementsChecker;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\PropShape\PropShape;
+use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\Resource\CanvasResourceLink;
 use Drupal\canvas\Resource\CanvasResourceLinkCollection;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\Cache;
@@ -23,6 +28,7 @@ use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
@@ -405,6 +411,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
    * @see core/assets/schemas/v1/metadata-full.schema.json
    * @see \Drupal\Core\Theme\Component\ComponentValidator::validateDefinition()
    * @see \Drupal\Tests\Core\Theme\Component\ComponentValidatorTest::loadComponentDefinitionFromFs()
+   * @see ::calculateDependencies()
    */
   public function toSdcDefinition(): array {
     $definition = [
@@ -444,7 +451,74 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     if ($this->required) {
       $definition['props']['required'] = $this->required;
     }
+    // The projected SDC definition carries the concrete target entity type
+    // (and bundle, where applicable) for every content-entity-reference prop.
+    // The code component developer-facing prop definition deliberately does
+    // NOT contain these keys; they are injected here from the single source
+    // of truth: `dataDependencies.entityFields`. The mutation is local to the
+    // returned array — `$this->props` is never touched, so the stored config
+    // entity remains unchanged and repeated calls are idempotent.
+    // @see ::getContentEntityReferenceProps()
+    // @see ::getReferencedTargetEntityDefinition()
+    foreach (\array_keys($this->getContentEntityReferenceProps()) as $prop_name) {
+      // Skip projection for content-entity-reference props whose `entityFields`
+      // entry is empty, unparseable, or targets a non-existent entity type.
+      $target = $this->getReferencedTargetEntityDefinition($prop_name);
+      if (!$target instanceof BetterEntityDataDefinition) {
+        continue;
+      }
+      $definition['props']['properties'][$prop_name]['x-allowed-entity-type-id'] = $target->getEntityTypeId();
+      if ($target->getEntityType()->hasKey('bundle')) {
+        $bundles = $target->getBundles();
+        \assert(\is_array($bundles));
+        // When the expression targets `entity:node:article`, $bundles is
+        // guaranteed to be `['article']` — invariantly a single bundle, per the
+        // EntityFieldExpressionsSameTarget constraint.
+        $definition['props']['properties'][$prop_name]['x-allowed-bundle'] = reset($bundles);
+      }
+    }
     return $definition;
+  }
+
+  /**
+   * Resolves a content-entity-reference prop's target entity data definition.
+   *
+   * @param string $prop_name
+   *   A prop returned by ::getContentEntityReferenceProps().
+   *
+   * @return \Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface|null
+   *
+   * @see ::getEntityFieldExpressions()
+   */
+  private function getReferencedTargetEntityDefinition(string $prop_name): ?EntityDataDefinitionInterface {
+    $expressions = $this->getEntityFieldExpressions($prop_name);
+    if (count($expressions) === 0) {
+      return NULL;
+    }
+    try {
+      // All expressions must point to the same target entity type + bundle.
+      // @see \Drupal\canvas\Plugin\Validation\Constraint\EntityFieldExpressionsSameTargetConstraintValidator
+      $expression = StructuredDataPropExpression::fromString($expressions[0]);
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
+    if (!$expression instanceof EntityFieldBasedPropExpressionInterface) {
+      return NULL;
+    }
+    $target = $expression->getHostEntityDataDefinition();
+    if ($target instanceof BetterEntityDataDefinition) {
+      try {
+        // Probe entity-type resolution eagerly — `BetterEntityDataDefinition`
+        // lazily loads the entity type, so the exception only fires when a
+        // caller inspects the definition.
+        $target->getEntityType();
+      }
+      catch (PluginNotFoundException) {
+        return NULL;
+      }
+    }
+    return $target;
   }
 
   /**
@@ -590,6 +664,45 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
    */
   public function getProps(): ?array {
     return $this->props;
+  }
+
+  /**
+   * Gets the subset of this code component's props that reference entities.
+   *
+   * @return array<string, array>
+   *   Keys are prop names; values are the full prop definitions.
+   *
+   * @see ::getEntityFieldExpressions()
+   */
+  public function getContentEntityReferenceProps(): array {
+    // Compare by normalized shape, not raw prop definition: key order,
+    // title/description, and other shape-irrelevant metadata must not affect
+    // the match. Props with extra schema keys (e.g. `x-allowed-entity-type-id`)
+    // are deliberately excluded: those props fail validation and downstream
+    // code must not act on them.
+    // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::isContentEntityReference()
+    // for the lenient `$ref`-only check used by validation code paths.
+    $entity_reference_prop_shape = PropShape::normalizePropSchema(JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray());
+    return array_filter(
+      $this->getProps() ?? [],
+      fn (array $prop_def) => PropShape::normalizePropSchema($prop_def) === $entity_reference_prop_shape,
+    );
+  }
+
+  /**
+   * Returns the entity-field expressions for a content-entity-reference prop.
+   *
+   * @param string $content_entity_reference_prop_name
+   *   A prop returned by ::getContentEntityReferenceProps().
+   *
+   * @return list<string>
+   *   The list of entity-field expression strings declared under
+   *   `dataDependencies.entityFields.<prop>`. Empty if none are declared.
+   *
+   * @see ::getContentEntityReferenceProps()
+   */
+  public function getEntityFieldExpressions(string $content_entity_reference_prop_name): array {
+    return \array_values($this->dataDependencies['entityFields'][$content_entity_reference_prop_name] ?? []);
   }
 
   /**

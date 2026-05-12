@@ -21,7 +21,9 @@ use Drupal\link\LinkItemInterface;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use Drupal\canvas\PropSource\EntityFieldPropSource;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -878,6 +880,82 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
         parent::test();
       }
     }
+  }
+
+  /**
+   * Tests content-entity-reference prop matching.
+   *
+   * @param array<string, string> $constraints
+   *   The `x-allowed-entity-type-id` (and optionally `x-allowed-bundle`).
+   * @param list<string> $expected_present
+   *   Host-entity reference field names that MUST be matched.
+   * @param list<string> $expected_absent
+   *   Host-entity reference field names that MUST NOT be matched.
+   *
+   * @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher::matchContentEntityReferenceShape()
+   */
+  #[DataProvider('provideContentEntityReferencePropMatches')]
+  public function testContentEntityReferencePropMatching(array $constraints, array $expected_present, array $expected_absent): void {
+    // Referenceable bundles for the bundled target cases.
+    NodeType::create(['type' => 'article', 'name' => 'Article'])->save();
+    NodeType::create(['type' => 'news_item', 'name' => 'News item'])->save();
+
+    // Host-entity reference fields attached to the "foo" node type:
+    // - field_ref_user     → user                      (bundleless target)
+    // - field_ref_article  → node:article              (bundled, article-only)
+    // - field_ref_news     → node:news_item            (bundled, news_item-only)
+    // - field_ref_multi    → node:[article, news_item] (bundled, multi-bundle)
+    // - field_ref_any_node → node                      (no target_bundles)
+    $this->createEntityReferenceField('node', 'foo', 'field_ref_user', 'Referenced user', 'user', 'default', [], cardinality: 1);
+    $this->createEntityReferenceField('node', 'foo', 'field_ref_article', 'Referenced article', 'node', 'default', ['target_bundles' => ['article']], cardinality: 1);
+    $this->createEntityReferenceField('node', 'foo', 'field_ref_news', 'Referenced news item', 'node', 'default', ['target_bundles' => ['news_item']], cardinality: 1);
+    $this->createEntityReferenceField('node', 'foo', 'field_ref_multi', 'Referenced multi', 'node', 'default', ['target_bundles' => ['article', 'news_item']], cardinality: 1);
+    $this->createEntityReferenceField('node', 'foo', 'field_ref_any_node', 'Referenced any node', 'node', 'default', [], cardinality: 1);
+
+    $prop_shape = PropShape::normalize(JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray() + $constraints);
+    $matcher = \Drupal::service(EntityFieldPropSourceMatcher::class);
+    \assert($matcher instanceof EntityFieldPropSourceMatcher);
+    $matches = $matcher->match(FALSE, $prop_shape, 'node', 'foo');
+
+    $matched_field_names = \array_values(\array_map(
+      fn (EntityFieldPropSource $s): string => $s->expression->getFieldName(),
+      $matches,
+    ));
+
+    foreach ($expected_present as $field_name) {
+      self::assertContains($field_name, $matched_field_names, \sprintf('Expected "%s" to be matched.', $field_name));
+    }
+    foreach ($expected_absent as $field_name) {
+      self::assertNotContains($field_name, $matched_field_names, \sprintf('Expected "%s" NOT to be matched.', $field_name));
+    }
+  }
+
+  public static function provideContentEntityReferencePropMatches(): \Generator {
+    yield 'bundleless target (user)' => [
+      'constraints' => ['x-allowed-entity-type-id' => 'user'],
+      'expected_present' => ['field_ref_user'],
+      'expected_absent' => ['field_ref_article', 'field_ref_news', 'field_ref_multi', 'field_ref_any_node'],
+    ];
+    // Strict single-bundle equality: only a host field whose referenceable
+    // bundles set is exactly `[$x_allowed_bundle]` qualifies. A multi-bundle
+    // host field could surface a non-matching bundle at runtime, and an
+    // unrestricted field enumerates every bundle of the target entity type;
+    // neither can guarantee the prop's contract.
+    //
+    // Omitting `x-allowed-bundle` for a bundled entity type is intentionally
+    // not exercised — `ComponentMetadataRequirementsChecker` rejects that
+    // shape upstream, so the matcher's missing-bundle branch is reachable
+    // only for bundle-less target entity types (asserted at runtime).
+    yield 'bundled target (node:article)' => [
+      'constraints' => ['x-allowed-entity-type-id' => 'node', 'x-allowed-bundle' => 'article'],
+      'expected_present' => ['field_ref_article'],
+      'expected_absent' => ['field_ref_user', 'field_ref_news', 'field_ref_multi', 'field_ref_any_node'],
+    ];
+    yield 'bundled target (node:news_item)' => [
+      'constraints' => ['x-allowed-entity-type-id' => 'node', 'x-allowed-bundle' => 'news_item'],
+      'expected_present' => ['field_ref_news'],
+      'expected_absent' => ['field_ref_user', 'field_ref_article', 'field_ref_multi', 'field_ref_any_node'],
+    ];
   }
 
 }

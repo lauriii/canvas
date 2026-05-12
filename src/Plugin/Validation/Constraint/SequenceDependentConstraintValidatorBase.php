@@ -63,7 +63,7 @@ abstract class SequenceDependentConstraintValidatorBase extends ConstraintValida
     return $config_object;
   }
 
-  protected function getSequenceKeys(SequenceDependentConstraintBase $constraint): array {
+  protected function getSequenceKeys(SequenceDependentConstraintBase $constraint, ?callable $filter_callback = NULL): array {
     $target_config_object = match ($constraint->configName) {
       NULL => $this->context->getRoot(),
       default => $this->getTargetConfigObject($constraint),
@@ -82,7 +82,11 @@ abstract class SequenceDependentConstraintValidatorBase extends ConstraintValida
         $target_sequence::class,
       ));
     }
-    return \array_keys($target_sequence->getElements());
+    $elements = $target_sequence->getElements();
+    if ($filter_callback !== NULL) {
+      $elements = \array_filter($elements, $filter_callback);
+    }
+    return \array_keys($elements);
   }
 
 }

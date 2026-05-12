@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
+use Drupal\Core\Config\Schema\Mapping;
+use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\ValidKeysConstraint;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
@@ -25,7 +27,11 @@ final class SequenceKeysMustMatchConstraintValidator extends SequenceDependentCo
       throw new UnexpectedTypeException($constraint, SequenceKeysMustMatchConstraint::class);
     }
 
-    $expected_sequence_keys = $this->getSequenceKeys($constraint);
+    $filter_callback = NULL;
+    if ($constraint->conditions !== NULL) {
+      $filter_callback = fn (mixed $mapping) => self::filter($mapping, $constraint);
+    }
+    $expected_sequence_keys = $this->getSequenceKeys($constraint, $filter_callback);
 
     $invalid_keys = array_diff(\array_keys($value), $expected_sequence_keys);
     $missing_keys = match ($constraint->matchType) {
@@ -53,6 +59,39 @@ final class SequenceKeysMustMatchConstraintValidator extends SequenceDependentCo
         ->setInvalidValue($key)
         ->addViolation();
     }
+  }
+
+  /**
+   * Filter callback for applying `$constraint->conditions` to target elements.
+   *
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\SequenceKeysMustMatchConstraint::$conditions
+   */
+  private static function filter(mixed $mapping, SequenceKeysMustMatchConstraint $constraint): bool {
+    \assert($constraint->conditions !== NULL && \count($constraint->conditions) >= 1);
+
+    if (!$mapping instanceof Mapping) {
+      throw new \LogicException('SequenceKeysMustMatchConstraint conditions can only target sequences containing mappings.');
+    }
+
+    $elements = $mapping->getElements();
+    foreach ($constraint->conditions as $expected_key => $expected_value) {
+      if (!\in_array($expected_key, $mapping->getValidKeys(), TRUE)) {
+        throw new \LogicException(\sprintf('Condition key "%s" is not a valid key of the target sequence item.', $expected_key));
+      }
+      if (!\array_key_exists($expected_key, $elements)) {
+        return FALSE;
+      }
+
+      if (!$elements[$expected_key] instanceof PrimitiveInterface) {
+        throw new \LogicException('Only primitive values can be used in SequenceKeysMustMatchConstraint conditions.');
+      }
+      if ($elements[$expected_key]->getCastedValue() !== $expected_value) {
+        return FALSE;
+      }
+    }
+
+    // All conditions were met.
+    return TRUE;
   }
 
 }
