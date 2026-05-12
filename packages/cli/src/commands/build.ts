@@ -1,15 +1,11 @@
-import { promises as fs } from 'node:fs';
 import chalk from 'chalk';
 import * as p from '@clack/prompts';
 import { discoverCanvasProject } from '@drupal-canvas/discovery';
 
 import { getConfig } from '../config';
 import { ensureAuthConfig } from '../services/api';
-import { analyzeAndBundleImports } from '../utils/analyze-and-bundle-imports';
-import { buildComponent } from '../utils/build-component';
-import { buildTailwindForComponents } from '../utils/build-tailwind';
+import { buildCanvasProject } from '../utils/build-project';
 import { pluralize, updateConfigFromOptions } from '../utils/command-helpers';
-import { generateManifest } from '../utils/generate-manifest';
 import { reportResults } from '../utils/report-results';
 
 import type { Command } from 'commander';
@@ -55,8 +51,6 @@ export function buildCommand(program: Command): void {
         const { aliasBaseDir, outputDir, componentDir } = getConfig();
 
         const skipTailwind = !options.tailwind;
-        // Clean output directory to remove stale builds.
-        await fs.rm(outputDir, { recursive: true, force: true });
 
         if (!skipTailwind) {
           await ensureAuthConfig();
@@ -94,90 +88,46 @@ export function buildCommand(program: Command): void {
           'component',
         );
 
-        // Step 2: Analyze component imports
         const s2 = p.spinner();
-        s2.start('Analyzing component imports');
-
-        // Collect entry files from discovered components
-        const entryFiles = components
-          .filter((c) => c.jsEntryPath)
-          .map((c) => c.jsEntryPath as string);
-
-        // Collect third-party dependencies from all components
-        const { imports, vendorResult, localResult, sharedChunks } =
-          await analyzeAndBundleImports({
-            entryFiles,
-            componentDir,
-            aliasBaseDir,
-            outputDir,
-          });
-
+        s2.start(`Building ${componentLabelPluralized}`);
+        const buildResult = await buildCanvasProject({
+          projectRoot: process.cwd(),
+          componentDir,
+          aliasBaseDir,
+          outputDir,
+          discoveryResult,
+          cleanOutputDir: true,
+          buildTailwind: !skipTailwind,
+          useLocalGlobalCss: true,
+        });
         s2.stop(
-          chalk.green(
-            `Found ${imports.thirdPartyPackages.size} third-party ${pluralize(imports.thirdPartyPackages.size, 'package')} and ${imports.aliasImports.size} local ${pluralize(imports.aliasImports.size, 'import')}`,
-          ),
-        );
-
-        if (imports.unresolvedAliasImports.size > 0) {
-          const unresolved = Array.from(imports.unresolvedAliasImports).sort();
-          p.log.warn(
-            `Unresolved alias imports (${unresolved.length}): ${unresolved.join(', ')}`,
-          );
-        }
-
-        // Report vendor bundling results
-        if (vendorResult.success) {
-          p.log.info(
-            chalk.green(
-              `Bundled ${vendorResult.bundledPackages.length} vendor ${pluralize(vendorResult.bundledPackages.length, 'package')} → ${outputDir}/vendor/`,
-            ),
-          );
-        }
-
-        // Report local import bundling results
-        if (localResult.success) {
-          const bundledLocalImportCount = Object.keys(
-            localResult.localImportMap,
-          ).length;
-          p.log.info(
-            chalk.green(
-              `Bundled ${bundledLocalImportCount} local ${pluralize(bundledLocalImportCount, 'import')} → ${outputDir}/local/`,
-            ),
-          );
-        } else {
-          p.log.warn(`Local import build error: ${localResult.error}`);
-        }
-
-        // Step 3: Build individual components
-        const s3 = p.spinner();
-        s3.start(`Building ${componentLabelPluralized}`);
-        const results = await Promise.all(
-          components.map((c) => buildComponent(c, true, outputDir)),
-        );
-
-        s3.stop(
           chalk.green(`Built ${components.length} ${componentLabelPluralized}`),
         );
 
         // Associate discovery warnings with component results
-        const resultsWithWarnings = results.map((result, index) => {
-          const component = components[index];
-          const componentWarnings = warnings
-            .filter(
-              (w) =>
-                w.path === component.relativeDirectory ||
-                w.message.includes(component.relativeDirectory),
-            )
-            .map((w) => w.message);
+        const resultsWithWarnings = buildResult.componentResults.map(
+          (result, index) => {
+            const component = components[index];
+            if (!component) {
+              return result;
+            }
+            const componentWarnings = warnings
+              .filter(
+                (w) =>
+                  w.path === component.relativeDirectory ||
+                  w.message.includes(component.relativeDirectory),
+              )
+              .map((w) => w.message);
 
-          if (componentWarnings.length > 0) {
-            return {
-              ...result,
-              warnings: [...(result.warnings ?? []), ...componentWarnings],
-            };
-          }
-          return result;
-        });
+            if (componentWarnings.length > 0) {
+              return {
+                ...result,
+                warnings: [...(result.warnings ?? []), ...componentWarnings],
+              };
+            }
+            return result;
+          },
+        );
 
         // Report component build results
         reportResults(resultsWithWarnings, 'Built components', 'Component');
@@ -185,62 +135,20 @@ export function buildCommand(program: Command): void {
           process.exit(1);
         }
 
-        // Step 4: Build Tailwind CSS
         if (skipTailwind) {
           p.log.info('Skipping Tailwind CSS build');
-        } else {
-          const s4 = p.spinner();
-          s4.start('Building Tailwind CSS');
-          const tailwindResult = await buildTailwindForComponents(
-            components,
-            true,
-            outputDir,
-          );
-          s4.stop(
-            chalk.green(
-              `Processed Tailwind CSS classes from ${components.length} selected local ${componentLabelPluralized} and all online components`,
-            ),
-          );
-          reportResults([tailwindResult], 'Built assets', 'Asset');
-          if (!tailwindResult.success) {
+        } else if (buildResult.tailwindResult) {
+          reportResults([buildResult.tailwindResult], 'Built assets', 'Asset');
+          if (!buildResult.tailwindResult.success) {
             process.exit(1);
           }
         }
 
-        // Step 5: Generate canvas-manifest.json
-        const s5 = p.spinner();
-        s5.start('Generating canvas-manifest.json');
-
-        const manifestResult = await generateManifest({
-          outputDir,
-          vendorImportMap: vendorResult.importMap,
-          localImportMap: localResult.localImportMap,
-          sharedChunks,
-        });
-
-        if (manifestResult.success) {
-          const vendorCount = Object.keys(
-            manifestResult.manifest.vendor,
-          ).length;
-          const localCount = Object.keys(manifestResult.manifest.local).length;
-          s5.stop(
-            chalk.green(
-              `Generated canvas-manifest.json — ${vendorCount} vendor ${pluralize(vendorCount, 'package')}, ${localCount} local ${pluralize(localCount, 'import')}`,
-            ),
-          );
-        } else {
-          s5.stop(
-            chalk.yellow('⚠ Manifest generation completed with warnings'),
-          );
-          p.log.warn(`Manifest error: ${manifestResult.error}`);
-        }
-
-        // Display manifest warnings at the end
-        if (manifestResult.warnings && manifestResult.warnings.length > 0) {
-          for (const warning of manifestResult.warnings) {
-            p.log.warn(warning);
-          }
-        }
+        p.log.info(
+          chalk.green(
+            `Generated canvas-manifest.json — ${buildResult.vendorImportCount} vendor ${pluralize(buildResult.vendorImportCount, 'package')}, ${buildResult.localImportCount} local ${pluralize(buildResult.localImportCount, 'import')}`,
+          ),
+        );
 
         p.outro(chalk.bold.green('📦 Build completed'));
       } catch (error) {

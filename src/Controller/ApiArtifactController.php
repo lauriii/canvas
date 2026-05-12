@@ -83,7 +83,7 @@ final class ApiArtifactController extends ApiControllerBase {
       $result = $this->fileUploadHandler->handleFileUpload(
         $uploadedFile,
         validators: [
-          'FileExtension' => ['extensions' => 'js css json map gif png jpg jpeg svg webp avif ico woff woff2 ttf eot otf'],
+          'FileExtension' => ['extensions' => 'js css json map gif png jpg jpeg svg webp avif ico mp3 wav ogg flac aac m4a mp4 webm mov avi woff woff2 ttf eot otf'],
           'FileSizeLimit' => ['fileLimit' => Bytes::toNumber('10MB')],
         ],
         destination: $destination,

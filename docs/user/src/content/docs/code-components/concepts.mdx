@@ -1,0 +1,95 @@
+---
+title: Code Components - Concepts
+---
+
+Code Components use props and slots to define how they receive data and how
+other components can be placed inside them.
+
+Props and slots can be managed in the Canvas UI. When you work with a local
+codebase, the same definitions live in
+[component metadata](/code-components/component-metadata).
+
+## Props
+
+Props allow the component to define inputs when an instance of it is used on a
+page. Each prop can specify its type, whether it is required, and provide an
+example value.
+
+In the Canvas UI, prop definitions appear in the Component Data pane.
+
+![A form showing the Props tab of the Component Data pane in Drupal's Experience
+Builder. The form has two examples showing fields for the Prop name, Type,
+Required, and an Example value](../../../assets/images/props.webp)
+
+In a local codebase, prop definitions live in `component.yml` under `props`. See
+[prop metadata](/code-components/component-metadata#prop-metadata) for the
+supported schema types.
+
+Props are automatically converted to camelCase when passed as parameters to the
+Code Component.
+
+```jsx
+const Hello = ({ firstName }) => {
+  return <div className="text-3xl">Hello, {firstName}!</div>;
+};
+
+export default Hello;
+```
+
+## Slots
+
+Slots allow you to place other Code Components, or any other Drupal Canvas
+provided component, inside your component.
+
+In the Canvas UI, slot definitions also appear in the Component Data pane.
+
+![A form showing the Slots tab of the Component Data pane in Drupal's Experience
+Builder. The form has an example showing slots named "Header" and "Button
+Footer" with Example HTML/JSX values of a simple div element containing text](../../../assets/images/slots-1.webp)
+
+In a local codebase, slot definitions live in `component.yml` under `slots`. See
+[slot metadata](/code-components/component-metadata#slot-metadata) for the
+local metadata shape.
+
+```jsx
+const Jumbotron = ({ header, buttonFooter }) => {
+  return (
+    <section>
+      <div>{header}</div>
+      <div>
+        <button>
+          <a href="#">CTA Button</a>
+        </button>
+        {buttonFooter}
+      </div>
+    </section>
+  );
+};
+
+export default Jumbotron;
+```
+
+Like props, slot names are camelCased when passed as parameters to the component
+code.
+
+Once a slot has been added to a component, saved, and added to a page, the slot
+becomes visible as a place where other components can be added.
+
+In the page-building UI, saved slots appear in the Layers panel and the page
+preview as places where components can be dropped.
+
+![Drupal's Drupal Canvas showing a component named Jumbotron in the Layers
+panel, with 2 slots visible named "Header" and "Button Footer". Both slots are
+also visible as an outline in the central page preview](../../../assets/images/slots-2.webp)
+
+Components can now be added to the slot by dragging them in from the Library.
+When a component is added to the slot, you can configure its props in the
+Settings panel on the right side.
+
+After a component is placed in a slot, Canvas shows the nested component in
+Layers and lets you configure its props in the Settings panel.
+
+![Drupal's Drupal Canvas showing the Layers panel which contains a
+Jumbotron component and Hello component below it. The preview shows the
+rendering of both components, and the Settings section shows a form where a name
+can be entered for the Hello component.](../../../assets/images/slots-3.webp)

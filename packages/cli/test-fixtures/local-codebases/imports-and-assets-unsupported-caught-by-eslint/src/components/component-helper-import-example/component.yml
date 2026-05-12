@@ -1,0 +1,6 @@
+name: Component helper import example
+machineName: component-helper-import-example
+status: true
+props:
+  properties: {}
+slots: {}

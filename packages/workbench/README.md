@@ -39,7 +39,7 @@ need:
 
 ```json
 {
-  "componentDir": "./components",
+  "componentDir": "./src/components",
   "pagesDir": "./pages",
   "aliasBaseDir": "src",
   "globalCssPath": "./src/components/global.css"
@@ -48,12 +48,12 @@ need:
 
 Workbench reads these options:
 
-| Property        | Default                         | Used for                                                                                                                 |
-| --------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `componentDir`  | `process.cwd()`                 | Root directory Workbench scans for `component.yml`, `*.component.yml`, source files, and mocks.                          |
-| `pagesDir`      | `"./pages"`                     | Directory Workbench scans for page specs such as `pages/home.json`.                                                      |
-| `aliasBaseDir`  | `"src"`                         | Base directory for resolving `@/` imports inside component source files.                                                 |
-| `globalCssPath` | `"./src/components/global.css"` | Global CSS entrypoint loaded into the preview iframe. This is where Workbench picks up shared styles and Tailwind setup. |
+| Property        | Default                         | Used for                                                                                                                          |
+| --------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `componentDir`  | `"src/components"`              | Root directory Workbench scans for `component.yml`, `*.component.yml`, source files, and mocks. It must be inside `aliasBaseDir`. |
+| `pagesDir`      | `"./pages"`                     | Directory Workbench scans for page specs such as `pages/home.json`.                                                               |
+| `aliasBaseDir`  | `"src"`                         | Base directory for resolving `@/` imports inside component source files.                                                          |
+| `globalCssPath` | `"./src/components/global.css"` | Global CSS entrypoint loaded into the preview iframe. This is where Workbench picks up shared styles and Tailwind setup.          |
 
 If `canvas.config.json` is not present, Workbench uses those defaults.
 `outputDir` is part of the wider Canvas config surface, but Workbench does not

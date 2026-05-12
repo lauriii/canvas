@@ -1,0 +1,6 @@
+name: Shared code example
+machineName: shared-code-example
+status: true
+props:
+  properties: {}
+slots: {}

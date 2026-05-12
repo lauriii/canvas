@@ -1,0 +1,6 @@
+name: Font import example
+machineName: font-import-example
+status: true
+props:
+  properties: {}
+slots: {}

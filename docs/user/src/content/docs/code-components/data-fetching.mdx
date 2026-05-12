@@ -1,5 +1,5 @@
 ---
-title: Code components - Data fetching
+title: Code Components - Data fetching
 ---
 
 import { Aside } from '@astrojs/starlight/components';
@@ -50,10 +50,10 @@ This can be used to construct JSON:API parameters for requests.
 ℹ️ Not every route has a main entity, in that case `mainEntity` will be null
 (e.g. front page, /user/login, or inside the Canvas code editor).
 
-If the code component is added to a region that may appear on all pages (including pages without a main entity),
+If the Code Component is added to a region that may appear on all pages (including pages without a main entity),
 ensure to check for the existence of `mainEntity` before trying to access its metadata to avoid JS errors. The example below
 uses a wrapper component to check for the existence of `mainEntity` and also checks that `mainEntity` is an article node
-before calling the `useSWR` hook that fetches related articles. If the code component will only be used
+before calling the `useSWR` hook that fetches related articles. If the Code Component will only be used
 on pages with a main entity, then this check is not necessary.
 
 **Example usage that fetches a list of articles but excludes the current article being viewed:**

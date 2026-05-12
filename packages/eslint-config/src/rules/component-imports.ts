@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'path';
 import {
   ASSET_EXTENSIONS,
@@ -6,17 +7,25 @@ import {
 
 import {
   isComponentDir,
+  isNamedComponentEntrypointInDirectory,
   isNonComponentImportFromComponentDir,
 } from '../utils/components.js';
 
 import type { Rule as EslintRule } from 'eslint';
 import type { ImportDeclaration, ImportExpression } from 'estree';
 
+const COMPONENT_IMPORT_PREFIX = 'components/';
+
 function checkImportSource(
   context: EslintRule.RuleContext,
   node: ImportDeclaration | ImportExpression,
   source: string,
 ): void {
+  const sourceWithoutQuery = source.split('?')[0].split('#')[0];
+  const isAssetImport = ASSET_EXTENSIONS.some((ext) =>
+    sourceWithoutQuery.endsWith(ext),
+  );
+
   // Font package imports are not supported.
   if (source.startsWith('@fontsource')) {
     context.report({
@@ -26,8 +35,18 @@ function checkImportSource(
     return;
   }
 
-  // Asset imports (images, video, SVG, fonts, etc.) are not supported in components.
-  if (ASSET_EXTENSIONS.some((ext) => source.endsWith(ext))) {
+  // Vite-style asset imports are supported for local files that Canvas can
+  // upload and expose through the import map.
+  if (
+    isAssetImport &&
+    (source.startsWith('./') ||
+      source.startsWith('../') ||
+      source.startsWith('@/'))
+  ) {
+    return;
+  }
+
+  if (isAssetImport) {
     context.report({
       node,
       message: `Importing asset files ("${source}") is not supported in components.`,
@@ -44,11 +63,12 @@ function checkImportSource(
     return;
   }
 
-  // Relative imports are not supported in Drupal Canvas.
+  // Relative asset imports are allowed above. Relative module imports are not
+  // supported in Drupal Canvas.
   if (source.startsWith('./') || source.startsWith('../')) {
     context.report({
       node,
-      message: `Relative imports are not supported. Use '@/...' alias instead of '${source}' to import other components or helpers/utilities from shared locations outside component dir.`,
+      message: `Relative JavaScript and TypeScript module imports are not supported. Use '@/...' alias instead of '${source}' to import other components or helpers/utilities from shared locations outside component directories.`,
     });
     return;
   }
@@ -170,12 +190,30 @@ function checkImportSource(
   // @/ imports for utils/helpers are allowed from shared locations,
   // but not from component directories.
   if (source.startsWith('@/')) {
-    const suffix = source.slice(2);
+    const suffix = sourceWithoutQuery.slice(2);
     const config = resolveCanvasConfig({ hostRoot: context.cwd });
     const aliasBase = resolve(context.cwd, config.aliasBaseDir);
-    const resolvedPath = resolve(aliasBase, suffix);
+    const configPath = resolve(context.cwd, 'canvas.config.json');
+    const hasCanvasConfig = existsSync(configPath);
+    const isComponentImport =
+      suffix === 'components' || suffix.startsWith(COMPONENT_IMPORT_PREFIX);
+    const componentBase = resolve(context.cwd, config.componentDir);
+    const importBase =
+      hasCanvasConfig && isComponentImport ? componentBase : aliasBase;
+    const resolvedPath =
+      hasCanvasConfig && isComponentImport
+        ? resolve(
+            componentBase,
+            suffix === 'components'
+              ? ''
+              : suffix.slice(COMPONENT_IMPORT_PREFIX.length),
+          )
+        : resolve(aliasBase, suffix);
 
-    if (isNonComponentImportFromComponentDir(resolvedPath, aliasBase)) {
+    if (
+      !isNamedComponentEntrypointInDirectory(resolvedPath) &&
+      isNonComponentImportFromComponentDir(resolvedPath, importBase)
+    ) {
       context.report({
         node,
         message:

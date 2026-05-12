@@ -1,0 +1,5 @@
+{
+  "componentDir": "app/widgets",
+  "aliasBaseDir": "app",
+  "globalCssPath": "app/global.css"
+}

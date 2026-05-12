@@ -1,0 +1,6 @@
+name: Banner
+machineName: banner
+status: true
+props:
+  properties: {}
+slots: {}

@@ -33,8 +33,9 @@ The Canvas CLI uses three types of configuration:
 - **canvas.config.json** - Repository-committed configuration for values tied to
   your codebase structure (where files are stored, build output locations)
 - **canvas.brand-kit.json** - Optional Brand Kit (font) configuration. When
-  present, `canvas push` and `canvas pull` use it to sync fonts with the global
-  Brand Kit. See [Font push (Brand Kit)](#font-push-brand-kit).
+  Brand Kit sync is enabled, `canvas push` and `canvas pull` use it to sync
+  fonts with the global Brand Kit. See
+  [Font push (Brand Kit)](#font-push-brand-kit).
 - **.env** - Environmental configuration and secrets that should not be tracked
   in version control (site URLs, OAuth credentials)
 
@@ -49,7 +50,7 @@ properties:
 
 ```json
 {
-  "componentDir": "./components",
+  "componentDir": "./src/components",
   "pagesDir": "./pages",
   "aliasBaseDir": "src",
   "outputDir": "dist",
@@ -61,7 +62,7 @@ properties:
 
 | Property        | Default                         | Description                                                                                                               |
 | --------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `componentDir`  | `process.cwd()`                 | Directory where Code Components are stored in the filesystem.                                                             |
+| `componentDir`  | `"src/components"`              | Directory where Code Components are stored in the filesystem. It must be inside `aliasBaseDir` for local builds.          |
 | `aliasBaseDir`  | `"src"`                         | Base directory for module resolution when using path aliases in your components. Tied to your project's import structure. |
 | `outputDir`     | `"dist"`                        | Build output directory (similar to Vite's `build.outDir`). Defines where compiled assets are generated.                   |
 | `globalCssPath` | `"./src/components/global.css"` | Path to the global CSS file.                                                                                              |
@@ -72,8 +73,8 @@ shown above.
 #### canvas.brand-kit.json (Optional)
 
 Brand Kit (font) configuration lives in `canvas.brand-kit.json` in the project
-root. When this file is present, `canvas push` and `canvas pull` use it to sync
-fonts with the global Brand Kit. Example:
+root. When Brand Kit sync is enabled, `canvas push` and `canvas pull` use it to
+sync fonts with the global Brand Kit. Example:
 
 ```json
 {
@@ -101,31 +102,21 @@ fonts with the global Brand Kit. Example:
 }
 ```
 
-**Properties:**
-
-| Property        | Default                         | Description                                                                                                               |
-| --------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `componentDir`  | `process.cwd()`                 | Directory where Code Components are stored in the filesystem.                                                             |
-| `pagesDir`      | `"./pages"`                     | Directory where page specs are stored in the filesystem.                                                                  |
-| `aliasBaseDir`  | `"src"`                         | Base directory for module resolution when using path aliases in your components. Tied to your project's import structure. |
-| `outputDir`     | `"dist"`                        | Build output directory (similar to Vite's `build.outDir`). Defines where compiled assets are generated.                   |
-| `globalCssPath` | `"./src/components/global.css"` | Path to the global CSS file.                                                                                              |
-
 Font configuration lives in `canvas.brand-kit.json`. See
 [Font push (Brand Kit)](#font-push-brand-kit) for the full schema.
 
-If `canvas.config.json` is not present, the CLI will use the default values
-shown above.
-
 #### Font push (Brand Kit)
 
-When `canvas.brand-kit.json` is present, the `push` command will resolve each
-family (via a provider or a local file), upload the font files to the site, and
-sync the font list to the global Brand Kit. Push replaces the remote font set
-with the set from config; an empty `families` list clears all fonts on the
-global Brand Kit. Fonts are stored on the Brand Kit entity and generate
-`@font-face` CSS for the Canvas editor and front end. This uses
-[unifont](https://github.com/unjs/unifont) for provider-based families.
+When `canvas.brand-kit.json` is present and Brand Kit sync is enabled, the
+`push` command will resolve each family (via a provider or a local file), upload
+the font files to the site, and sync the font list to the global Brand Kit. Push
+replaces the remote font set with the set from config; an empty `families` list
+clears all fonts on the global Brand Kit. Fonts are stored on the Brand Kit
+entity and generate `@font-face` CSS for the Canvas editor and front end. This
+uses [unifont](https://github.com/unjs/unifont) for provider-based families.
+
+For user-facing Brand Kit docs, see
+[Code Components - Brand Kit](../../docs/user/src/content/docs/code-components/brand-kit.mdx).
 
 **canvas.brand-kit.json shape:** The file has a top-level **`fonts`** key (other
 brand kit keys may be added later). Under `fonts`:
@@ -232,8 +223,9 @@ will use `https://prod.example.com`.
 
 Canvas Code Components support the following import patterns. Unsupported
 patterns are caught by the `drupal-canvas/component-imports` ESLint rule during
-[`npx canvas validate`](#validate). See [KNOWN_ISSUES.md](./KNOWN_ISSUES.md) for
-the full list of unsupported patterns.
+[`npx canvas validate`](#validate). See the
+[imports and assets documentation](../../docs/user/src/content/docs/code-components/imports-and-assets.mdx)
+for the full list of supported and unsupported patterns.
 
 ### Third-Party npm Packages
 
@@ -378,8 +370,8 @@ downloaded by default and can be controlled with `--skip-css` to exclude them or
 
 ### `pull`
 
-Pull code components, global CSS, and fonts from Drupal to your local
-filesystem. Pages are only included when explicitly enabled.
+Pull code components and global CSS from Drupal to your local filesystem. Pages
+and Brand Kit fonts are only included when explicitly enabled.
 
 **Usage:**
 
@@ -392,6 +384,7 @@ npx canvas pull [options]
 - `-d, --dir <directory>`: Component directory (defaults to `componentDir` from
   `canvas.config.json` or current working directory)
 - `--include-pages [enabled]`: Include pages in the pull operation
+- `--include-brand-kit [enabled]`: Include Brand Kit fonts in the pull operation
 - `-y, --yes`: Skip all confirmation prompts (non-interactive mode)
 - `--skip-overwrite`: Skip items that already exist locally
 
@@ -405,16 +398,22 @@ npx canvas pull [options]
 
 **Examples:**
 
-Pull everything:
+Pull Code Components and global CSS:
 
 ```bash
 npx canvas pull
 ```
 
-Pull everything, including pages:
+Pull Code Components, global CSS, and pages:
 
 ```bash
 npx canvas pull --include-pages
+```
+
+Pull Brand Kit fonts:
+
+```bash
+npx canvas pull --include-brand-kit
 ```
 
 Pull only new items (skip existing):
@@ -429,8 +428,9 @@ Fully non-interactive, only pull new items:
 npx canvas pull --yes --skip-overwrite
 ```
 
-Pulls all components, global CSS, and fonts from your site. Use
-`--include-pages` or `CANVAS_INCLUDE_PAGES=true` to include pages, and
+Pulls Code Components and global CSS from your site. Use `--include-pages` or
+`CANVAS_INCLUDE_PAGES=true` to include pages, and `--include-brand-kit` or
+`CANVAS_INCLUDE_BRAND_KIT=true` to include Brand Kit fonts. Use
 `--skip-overwrite` to skip items that already exist locally.
 
 **Fonts:** The pull command fetches fonts from the global Brand Kit, downloads
@@ -710,7 +710,7 @@ the site will be updated if they already exist.
 ### `push`
 
 Build and push local components, global CSS, and build artifacts to Drupal.
-Pages are only included when explicitly enabled.
+Pages and Brand Kit fonts are only included when explicitly enabled.
 
 **Usage:**
 
@@ -723,6 +723,7 @@ npx canvas push [options]
 - `-d, --dir <directory>`: Directory to scan for components (defaults to
   `componentDir` from `canvas.config.json` or current working directory)
 - `--include-pages [enabled]`: Include pages in the push operation
+- `--include-brand-kit [enabled]`: Include Brand Kit fonts in the push operation
 - `-y, --yes`: Skip confirmation prompts (non-interactive mode)
 
 **Examples:**
@@ -737,6 +738,12 @@ Push components and pages:
 
 ```bash
 npx canvas push --include-pages
+```
+
+Push Brand Kit fonts:
+
+```bash
+npx canvas push --include-brand-kit
 ```
 
 Push components in a specific directory:

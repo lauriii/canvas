@@ -1,0 +1,6 @@
+name: Built-in package example
+machineName: built-in-package-example
+status: true
+props:
+  properties: {}
+slots: {}

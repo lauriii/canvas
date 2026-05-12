@@ -1,0 +1,6 @@
+name: Shared React component example
+machineName: shared-react-component-example
+status: true
+props:
+  properties: {}
+slots: {}

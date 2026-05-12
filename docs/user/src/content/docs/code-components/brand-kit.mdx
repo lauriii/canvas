@@ -1,0 +1,84 @@
+---
+title: Code Components - Brand Kit
+---
+
+Brand Kit fonts can be managed from a local codebase with the Canvas CLI. This
+lets you keep the fonts used by Canvas in source control alongside Code
+Components and pages.
+
+Brand Kit font sync is optional. Enable it with the `--include-brand-kit` flag
+or the `CANVAS_INCLUDE_BRAND_KIT=true` environment variable.
+
+```bash
+npx canvas pull --include-brand-kit
+npx canvas push --include-brand-kit
+```
+
+## Pull Brand Kit fonts
+
+Use `canvas pull --include-brand-kit` to download fonts from the global Brand
+Kit into the local codebase.
+
+The command writes font configuration to `canvas.brand-kit.json` and downloads
+font files into a local `fonts/` directory.
+
+## Push Brand Kit fonts
+
+Use `canvas push --include-brand-kit` to sync local font configuration to the
+global Brand Kit.
+
+The command reads `canvas.brand-kit.json`, resolves configured font families,
+uploads font files, and updates the global Brand Kit. The pushed configuration
+replaces the remote Brand Kit font set.
+
+## Configure fonts
+
+Create `canvas.brand-kit.json` in the project root.
+
+```json
+{
+  "fonts": {
+    "defaults": {
+      "weights": ["400"],
+      "styles": ["normal"],
+      "subsets": ["latin"]
+    },
+    "families": [
+      {
+        "name": "Inter",
+        "provider": "google",
+        "weights": ["400", "700"],
+        "styles": ["normal", "italic"]
+      },
+      {
+        "name": "My Font",
+        "src": "fonts/MyFont-Regular.woff2",
+        "weights": ["400"],
+        "styles": ["normal"]
+      }
+    ]
+  }
+}
+```
+
+Font families can use a provider or a local font file. Local `src` values are
+relative to the project root.
+
+Supported providers include `google`, `bunny`, `fontshare`, `fontsource`,
+`npm`, and `adobe`.
+
+For the full CLI schema and advanced font options, see the
+[`@drupal-canvas/cli` README](https://www.npmjs.com/package/@drupal-canvas/cli).
+
+## Use fonts in Code Components
+
+Do not import font packages from Code Component JavaScript or TypeScript files.
+
+```tsx
+// Do not use this.
+import '@fontsource/inter';
+```
+
+Use Brand Kit fonts for fonts that should be available in Canvas. Put component
+styles in the component CSS file, and put shared global styles in the project
+global CSS file.

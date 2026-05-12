@@ -1,4 +1,5 @@
 import { dirname } from 'path';
+import { ASSET_EXTENSIONS } from '@drupal-canvas/discovery';
 
 import { isComponentDir } from '../utils/components.js';
 
@@ -10,6 +11,17 @@ function checkImportSource(
   node: ImportDeclaration | ImportExpression,
   source: string,
 ): void {
+  const isAssetImport = ASSET_EXTENSIONS.some((ext) => source.endsWith(ext));
+
+  if (
+    isAssetImport &&
+    (source.startsWith('./') ||
+      source.startsWith('../') ||
+      source.startsWith('@/'))
+  ) {
+    return;
+  }
+
   // Relative imports are not supported in Drupal Canvas.
   if (source.startsWith('./') || source.startsWith('../')) {
     context.report({

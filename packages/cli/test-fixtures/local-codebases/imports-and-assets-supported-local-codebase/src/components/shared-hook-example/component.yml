@@ -1,0 +1,6 @@
+name: Shared hook example
+machineName: shared-hook-example
+status: true
+props:
+  properties: {}
+slots: {}

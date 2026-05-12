@@ -2,7 +2,7 @@
 title: APIs - Import maps
 ---
 
-Canvas uses [import maps](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap) to resolve JavaScript module specifiers for code components. The import map is built on the backend and injected into the page as a `<script type="importmap">` tag.
+Canvas uses [import maps](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap) to resolve JavaScript module specifiers for Code Components. The import map is built on the backend and injected into the page as a `<script type="importmap">` tag.
 
 Modules and themes can add, remove, or modify import map entries using the `hook_canvas_importmap_alter` hook.
 
@@ -52,7 +52,7 @@ Then use the `@plugin` directive in your **Global CSS**:
 
 ## Use cases
 
-- **Adding a custom package**: Register a local JS file so code components can `import` it by name.
+- **Adding a custom package**: Register a local JS file so Code Components can `import` it by name.
 - **Adding a Tailwind CSS plugin**: Register a Tailwind CSS plugin so it can be used with `@plugin` in Global CSS.
 - **Replacing a built-in package**: Swap a bundled package (e.g., `clsx`) with a custom build.
 

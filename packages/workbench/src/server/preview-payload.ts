@@ -10,8 +10,9 @@ import {
   resolveCanvasConfig,
 } from '@drupal-canvas/discovery';
 import {
-  drupalCanvasCompat,
+  createCanvasViteBuildConfig,
   extractComponentPreviewMetadataFromComponentYaml,
+  validateCanvasImportRoots,
 } from '@drupal-canvas/vite-compat';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
@@ -416,6 +417,10 @@ export async function bundleInteractivePreview(options: {
     componentSources: options.componentSources,
     cssEntryPaths: options.cssEntryPaths,
   });
+  const canvasViteConfig = createCanvasViteBuildConfig({
+    hostRoot: options.projectRoot,
+    hostAliasBaseDir: options.aliasBaseDir,
+  });
 
   try {
     await fs.writeFile(entryPath, entrySource, 'utf-8');
@@ -423,6 +428,7 @@ export async function bundleInteractivePreview(options: {
     const buildResult = await viteBuild({
       configFile: false,
       root: options.projectRoot,
+      esbuild: canvasViteConfig.esbuild,
       logLevel: 'silent',
       define: {
         'process.env.NODE_ENV': JSON.stringify('production'),
@@ -432,10 +438,7 @@ export async function bundleInteractivePreview(options: {
       plugins: [
         react(),
         tailwindcss(),
-        ...drupalCanvasCompat({
-          hostRoot: options.projectRoot,
-          hostAliasBaseDir: options.aliasBaseDir,
-        }),
+        ...(canvasViteConfig.plugins ?? []),
       ] as any,
       resolve: {
         dedupe: [
@@ -756,6 +759,24 @@ export async function buildPreviewPayload(
     dependencies.bundleInteractivePreview ?? bundleInteractivePreview;
 
   const config = resolveConfig({ hostRoot: options.projectRoot });
+  try {
+    validateCanvasImportRoots({
+      hostRoot: options.projectRoot,
+      aliasBaseDir: config.aliasBaseDir,
+      componentDir: config.componentDir,
+    });
+  } catch (error) {
+    return toPayload(request, {
+      ok: false,
+      errors: [
+        toIssue(
+          'invalid_canvas_config',
+          error instanceof Error ? error.message : String(error),
+        ),
+      ],
+    });
+  }
+
   const componentRoot = path.resolve(options.projectRoot, config.componentDir);
   const pagesRoot = path.resolve(options.projectRoot, config.pagesDir);
 

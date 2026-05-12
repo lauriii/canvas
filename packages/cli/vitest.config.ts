@@ -11,12 +11,16 @@ export default defineConfig({
       '@drupal-canvas/discovery': resolveWorkspaceSource(
         '../discovery/src/index.ts',
       ),
+      '@drupal-canvas/eslint-config': resolveWorkspaceSource(
+        '../eslint-config/src/index.ts',
+      ),
       '@drupal-canvas/vite-compat': resolveWorkspaceSource(
         '../vite-compat/src/index.ts',
       ),
       '@drupal-canvas/vite-plugin': resolveWorkspaceSource(
         '../vite-plugin/src/index.ts',
       ),
+      '@drupal-canvas/ui': resolveWorkspaceSource('../../ui/src'),
     },
   },
   test: {

@@ -107,8 +107,8 @@ export async function processComponentFiles(
   }
   const sourceCodeJs = await fs.readFile(jsEntryPath, 'utf-8');
 
-  // Determine the build output directory and filename
-  // buildComponent outputs to: outputDir/components/[name]/[outputBaseName].js
+  // Determine the build output directory and filename.
+  // The project build outputs to: outputDir/components/[name]/[outputBaseName].js.
   const name = componentName || path.basename(componentDir);
   const outputBaseName = componentKind === 'index' ? 'index' : name;
   const distDir = path.join(config.outputDir, 'components', name);

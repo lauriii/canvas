@@ -1,0 +1,6 @@
+name: Pricing card
+machineName: pricing-card
+status: true
+props:
+  properties: {}
+slots: {}

@@ -42,6 +42,17 @@ testRunner.run('component-imports rule', rule, {
     },
 
     {
+      name: 'should pass when component imports a relative image asset',
+      code: `
+        import imageUrl from './image.webp';
+        const Card = ({ title }) => {
+          return <img src={imageUrl} alt={title} />;
+        };
+        export default Card;
+      `,
+      filename: '/components/button/index.jsx',
+    },
+    {
       name: 'should pass when component imports third party packages using full urls',
       code: `
         import { FiArrowRight } from "https://esm.sh/react-icons/fi";

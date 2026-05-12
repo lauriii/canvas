@@ -58,6 +58,9 @@ export class ApiService {
     // Create the client without authorization headers by default
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      // CLI pushes make many short-lived requests; avoid reusing sockets that
+      // may still have request-scoped listeners attached.
+      Connection: 'close',
       // Add the CLI marker header to identify CLI requests
       'X-Canvas-CLI': '1',
     };

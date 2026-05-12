@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'path';
 import { build as viteBuild } from 'vite';
@@ -24,9 +25,26 @@ function isAssetFile(filePath: string): boolean {
   return (ASSET_EXTENSIONS as readonly string[]).includes(ext);
 }
 
+async function copyAssetImport(
+  source: string,
+  resolvedPath: string,
+  outputDirForLocalImports: string,
+): Promise<[string, string]> {
+  const content = await fs.readFile(resolvedPath);
+  const hash = createHash('sha256').update(content).digest('hex').slice(0, 8);
+  const parsed = path.parse(resolvedPath);
+  const fileName = `${parsed.name}-${hash}${parsed.ext}`;
+  await fs.mkdir(outputDirForLocalImports, { recursive: true });
+  await fs.copyFile(
+    resolvedPath,
+    path.join(outputDirForLocalImports, fileName),
+  );
+
+  return [source, `./local/${fileName}`.replace(/\\/g, '/')];
+}
+
 /**
- * Bundle local alias imports with Vite's bundler.
- * @todo: Assets not supported yet, will be handled in a future issue.
+ * Bundle local alias imports with Vite's bundler and copy asset imports.
  */
 export async function bundleLocalAliasImports(
   aliasImports: Map<string, string>,
@@ -47,8 +65,8 @@ export async function bundleLocalAliasImports(
   const sourceByResolvedPath: Map<string, string> = new Map();
 
   for (const [source, resolvedPath] of aliasImports) {
-    // Skip asset files (images, SVGs, audio, video, fonts) - they are not
-    // supported as alias imports yet and should not be added to the manifest.
+    // Asset files are copied separately and added to the manifest as import map
+    // entries.
     if (isAssetFile(resolvedPath)) {
       continue;
     }
@@ -67,6 +85,20 @@ export async function bundleLocalAliasImports(
   const baseConfig = createCanvasViteBuildConfig({ scanRoot, aliasBaseDir });
   const absoluteOutputDir = path.resolve(outputDir);
   const outputDirForLocalImports = path.join(absoluteOutputDir, 'local');
+
+  const assetCopyEntries = [...aliasImports].filter(([, resolvedPath]) =>
+    isAssetFile(resolvedPath),
+  );
+  await Promise.all(
+    assetCopyEntries.map(async ([source, resolvedPath]) => {
+      const [assetSource, outputPath] = await copyAssetImport(
+        source,
+        resolvedPath,
+        outputDirForLocalImports,
+      );
+      localImportMap[assetSource] = outputPath;
+    }),
+  );
 
   // Build JS and CSS entries via Vite
   if (Object.keys(codeEntries).length > 0) {

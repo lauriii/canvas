@@ -1,0 +1,6 @@
+name: Button
+machineName: button
+status: true
+props:
+  properties: {}
+slots: {}

@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import initSwc, { transformSync } from '@swc/wasm-web';
 
+import { rewriteAssetImportsForCanvas } from '@/features/code-editor/utils/assetImports';
 import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
 
 import type { Options as SwcOptions } from '@swc/wasm-web';
@@ -52,6 +53,10 @@ const useCompileJavaScript = (): {
   compileJavaScript: (
     code: string,
     fallbackContentMessage?: string,
+    options?: {
+      componentId?: string;
+      manifestAssetNames?: string[];
+    },
   ) => { code: string; error?: string };
 } => {
   const [isSwcInitialized, setIsSwcInitialized] = useState(false);
@@ -78,12 +83,19 @@ const useCompileJavaScript = (): {
     (
       code: string,
       fallbackContentMessage?: string,
+      options?: {
+        componentId?: string;
+        manifestAssetNames?: string[];
+      },
     ): { code: string; error?: string } => {
       if (!isSwcInitialized) {
         return { code: '', error: 'JavaScript compiler is not initialized' };
       }
       try {
-        const { code: compiledCode } = transformSync(code, SWC_OPTIONS);
+        const { code: compiledCode } = transformSync(
+          rewriteAssetImportsForCanvas(code, options),
+          SWC_OPTIONS,
+        );
         return { code: compiledCode };
       } catch (error) {
         console.error('Failed to compile:', error);

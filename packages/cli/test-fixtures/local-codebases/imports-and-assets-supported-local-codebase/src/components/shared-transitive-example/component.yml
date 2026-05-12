@@ -1,0 +1,6 @@
+name: Shared transitive example
+machineName: shared-transitive-example
+status: true
+props:
+  properties: {}
+slots: {}

@@ -1,0 +1,6 @@
+name: SVG component example
+machineName: svg-component-example
+status: true
+props:
+  properties: {}
+slots: {}

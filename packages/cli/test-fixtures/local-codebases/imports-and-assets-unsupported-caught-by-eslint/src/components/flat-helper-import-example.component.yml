@@ -1,0 +1,6 @@
+name: Flat helper import example
+machineName: flat-helper-import-example
+status: true
+props:
+  properties: {}
+slots: {}

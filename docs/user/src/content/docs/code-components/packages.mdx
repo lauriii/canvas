@@ -1,30 +1,15 @@
 ---
-title: Code components - Using packages
+title: Code Components - Built-in packages
 ---
 
 import { LinkButton } from '@astrojs/starlight/components';
-
-## Importing packages
-
-Although a number of useful built-in and bundled packages are provided, you can also import
-any npm package through the web.
-
-```js
-import { motion } from 'https://esm.sh/motion@12.23.26/react?external=react,react-dom';
-```
-
-[esm.sh](https://esm.sh) unwraps all dependencies of the package you import as
-additional import statements. When importing packages that would normally import
-e.g. `react` or `react-dom` themselves, esm.sh can skip returning import
-statements for those packages by appending the URL with `?external`. This is
-important to avoid running multiple versions of React.
 
 ## Built-in custom packages
 
 ### drupal-canvas 
 
 The [drupal-canvas](https://www.npmjs.com/package/drupal-canvas) package
-provides utilities and base components for building code components.
+provides utilities and base components for building Code Components.
 
 #### FormattedText
 

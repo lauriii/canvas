@@ -169,6 +169,14 @@ export interface AssetLibrary {
     original: string;
     compiled: string;
   };
+  imports?: AssetLibraryManifestEntry[] | null;
+  assets?: AssetLibraryManifestEntry[] | null;
+  shared?: AssetLibraryManifestEntry[] | null;
+}
+
+export interface AssetLibraryManifestEntry {
+  name: string;
+  uri: string;
 }
 
 export interface BrandKit {

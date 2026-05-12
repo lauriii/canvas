@@ -1,0 +1,6 @@
+name: CSS import example
+machineName: css-import-example
+status: true
+props:
+  properties: {}
+slots: {}

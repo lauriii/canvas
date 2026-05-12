@@ -8,6 +8,7 @@ export default defineConfig({
   splitting: false,
   treeshake: true,
   minify: false,
+  external: ['vite-plugin-svgr'],
   publicDir: 'assets',
   noExternal: [
     'tailwindcss-in-browser',

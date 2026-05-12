@@ -27,16 +27,25 @@ export default defineConfig({
       ],
       sidebar: [
         {
-          label: 'Code components',
+          label: 'Code Components',
           items: [
             { label: 'Introduction', slug: 'code-components' },
-            { label: 'Props', slug: 'code-components/props' },
-            { label: 'Slots', slug: 'code-components/slots' },
-            { label: 'Using packages', slug: 'code-components/packages' },
+            { label: 'Concepts', slug: 'code-components/concepts' },
+            { label: 'Local codebase', slug: 'code-components/local-codebase' },
+            {
+              label: 'Imports and assets',
+              slug: 'code-components/imports-and-assets',
+            },
+            { label: 'Built-in packages', slug: 'code-components/packages' },
             { label: 'Data fetching', slug: 'code-components/data-fetching' },
             {
               label: 'Responsive images',
               slug: 'code-components/responsive-images',
+            },
+            { label: 'Brand Kit', slug: 'code-components/brand-kit' },
+            {
+              label: 'Component metadata',
+              slug: 'code-components/component-metadata',
             },
             {
               label: 'Workbench',
@@ -44,13 +53,6 @@ export default defineConfig({
                 { label: 'Introduction', slug: 'code-components/workbench' },
                 { label: 'Mocks', slug: 'code-components/workbench/mocks' },
                 { label: 'Pages', slug: 'code-components/workbench/pages' },
-              ],
-            },
-            {
-              label: 'CLI tool',
-              items: [
-                { label: 'Introduction', slug: 'code-components/cli-tool' },
-                { label: 'Prop schemas', slug: 'code-components/cli-tool/prop-schemas' },
               ],
             },
           ],

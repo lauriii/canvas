@@ -1,37 +1,28 @@
-import { basename, dirname } from 'node:path';
+import { basename, dirname, isAbsolute, relative, resolve } from 'node:path';
+import { resolveCanvasConfig } from '@drupal-canvas/discovery';
 
-import {
-  getFilesInDirectory,
-  isComponentYmlFile,
-} from '../utils/components.js';
+import { isComponentYmlFile } from '../utils/components.js';
 
 import type { Rule as EslintRule } from 'eslint';
 
-function findTopmostComponentsParentDir(
-  currentParentDir: string,
-  rootDir: string,
-): string {
-  if (currentParentDir === rootDir) {
-    return currentParentDir;
-  }
-
-  const parentDir = dirname(currentParentDir);
-  if (hasComponentSubdirectories(parentDir)) {
-    return findTopmostComponentsParentDir(parentDir, rootDir);
-  }
-
-  return currentParentDir;
+function toPosixPath(value: string): string {
+  return value.split('\\').join('/');
 }
 
-function hasComponentSubdirectories(dirPath: string): boolean {
-  const files = getFilesInDirectory(dirPath);
-  for (const file of files) {
-    const subdirFiles = getFilesInDirectory(dirPath + '/' + file);
-    if (subdirFiles.includes('component.yml')) {
-      return true;
-    }
+function isNestedInsideComponentRoot(
+  componentDir: string,
+  componentRoot: string,
+): boolean {
+  const relativeDir = relative(componentRoot, componentDir);
+  if (
+    relativeDir === '' ||
+    relativeDir.startsWith('..') ||
+    isAbsolute(relativeDir)
+  ) {
+    return false;
   }
-  return false;
+
+  return toPosixPath(relativeDir).split('/').length > 1;
 }
 
 const rule: EslintRule.RuleModule = {
@@ -39,37 +30,31 @@ const rule: EslintRule.RuleModule = {
     type: 'problem',
     docs: {
       description:
-        'Validates that all component directories are at the same level with no nesting hierarchy',
+        'Validates that component directories are direct children of the configured componentDir',
     },
-    deprecated: true,
   },
   create(context: EslintRule.RuleContext): EslintRule.RuleListener {
     if (!isComponentYmlFile(context.filename)) {
       return {};
     }
 
+    const canvasConfig = resolveCanvasConfig({ hostRoot: context.cwd });
+    const componentRoot = resolve(context.cwd, canvasConfig.componentDir);
+
     return {
       Program: function (node) {
         const currentComponentDir = dirname(context.filename);
-        const componentsDir = dirname(currentComponentDir);
-
-        const topmostComponentsDir = findTopmostComponentsParentDir(
-          componentsDir,
-          context.cwd,
-        );
-
-        if (topmostComponentsDir !== componentsDir) {
+        if (isNestedInsideComponentRoot(currentComponentDir, componentRoot)) {
           const nestedComponent = basename(currentComponentDir);
-          let parentComponentPath = componentsDir.replace(context.cwd, '');
-          if (!parentComponentPath.startsWith('/')) {
-            parentComponentPath = '/' + parentComponentPath;
-          }
+          const parentComponentPath = toPosixPath(
+            relative(context.cwd, dirname(currentComponentDir)),
+          );
 
           context.report({
             node,
             message:
-              `All component directories must be at the same level with no nesting hierarchy. ` +
-              `Found "${nestedComponent}" component inside the "${parentComponentPath}" directory.`,
+              `Component directories must be direct children of configured componentDir "${canvasConfig.componentDir}". ` +
+              `Found "${nestedComponent}" inside "${parentComponentPath}".`,
           });
         }
       },

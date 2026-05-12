@@ -22,6 +22,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectCodeComponentProperty,
+  selectGlobalAssetLibrary,
   selectGlobalAssetLibraryProperty,
   selectStatus,
   setCodeComponentProperty,
@@ -38,6 +39,7 @@ import {
 } from '@/features/code-editor/utils/utils';
 
 import type {
+  AssetLibrary,
   CodeComponentProp,
   CodeComponentSlot,
 } from '@/types/CodeComponent';
@@ -76,6 +78,9 @@ const useSourceCode = (requestedComponentId: string): void => {
   );
   const globalSourceCodeJS = useAppSelector(
     selectGlobalAssetLibraryProperty(['js', 'original']),
+  );
+  const globalAssetLibrary = useAppSelector((state) =>
+    selectGlobalAssetLibrary<AssetLibrary>(state),
   );
 
   // Keep track of values in refs which we need in the effect that compiles the
@@ -181,6 +186,11 @@ const useSourceCode = (requestedComponentId: string): void => {
       const { code: compiledJs, error: compiledJsError } = compileJavaScript(
         sourceCodeJS,
         `The component ${componentId} failed to compile.`,
+        {
+          componentId,
+          manifestAssetNames:
+            globalAssetLibrary.assets?.map((entry) => entry.name) ?? [],
+        },
       );
       // Compile the component's JS code for previewing slot examples in the
       // code editor's preview.
@@ -264,6 +274,7 @@ const useSourceCode = (requestedComponentId: string): void => {
     extractClassNameCandidates,
     globalSourceCodeCSS,
     isJavaScriptCompilerReady,
+    globalAssetLibrary.assets,
     requestedComponentId,
     slots,
     sourceCodeCSS,

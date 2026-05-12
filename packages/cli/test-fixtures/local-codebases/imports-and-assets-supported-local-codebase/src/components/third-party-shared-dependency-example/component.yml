@@ -1,0 +1,6 @@
+name: Third-party shared dependency example
+machineName: third-party-shared-dependency-example
+status: true
+props:
+  properties: {}
+slots: {}

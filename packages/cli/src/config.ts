@@ -216,8 +216,7 @@ let config: Config = {
   outputDir: outputDir,
   componentDir: componentDir,
   pagesDir: pagesDir,
-  // We need this because the old commands use './components' as a default
-  // but the new componentDir that supports flexible codebases defaults to process.cwd().
+  // We need this because the old commands use './components' as a default.
   deprecatedComponentDir: deprecatedComponentDir,
   globalCssPath: globalCssPath,
   fonts: loadFontsFromBrandKitFile(process.cwd()),

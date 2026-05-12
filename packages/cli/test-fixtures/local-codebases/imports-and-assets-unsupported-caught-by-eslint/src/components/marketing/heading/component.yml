@@ -1,0 +1,6 @@
+name: Heading
+machineName: heading
+status: true
+props:
+  properties: {}
+slots: {}

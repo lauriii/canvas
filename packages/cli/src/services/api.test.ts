@@ -74,6 +74,14 @@ describe('api service', () => {
       expect(userAgentHeader).toBeUndefined();
     });
 
+    it('should request closed API connections', async () => {
+      const client = await ApiService.create(mockConfig);
+
+      // @ts-expect-error allow accessing client directly in the test.
+      const connectionHeader = client.client.defaults.headers.Connection;
+      expect(connectionHeader).toBe('close');
+    });
+
     it('should upload media', async () => {
       const client = await ApiService.create(mockConfig);
 

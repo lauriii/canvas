@@ -26,6 +26,7 @@ describe('analyzeAndBundleImports', () => {
     vi.mocked(collectImports).mockResolvedValue({
       thirdPartyPackages: new Set(),
       aliasImports: new Map(),
+      assetImports: new Map(),
       unresolvedAliasImports: new Set(),
     });
 
@@ -56,6 +57,12 @@ describe('analyzeAndBundleImports', () => {
     vi.mocked(collectImports).mockResolvedValue({
       thirdPartyPackages: new Set(['lodash']),
       aliasImports: new Map([['@/lib/utils', '/project/src/lib/utils.ts']]),
+      assetImports: new Map([
+        [
+          '@/components/card/hero.webp',
+          '/project/src/components/card/hero.webp',
+        ],
+      ]),
       unresolvedAliasImports: new Set(),
     });
     vi.mocked(bundleVendorDependencies).mockResolvedValue({
@@ -80,6 +87,18 @@ describe('analyzeAndBundleImports', () => {
     expect(result.vendorResult.importMap.imports).toEqual({
       lodash: './vendor/lodash-abc123.js',
     });
+    expect(bundleLocalAliasImports).toHaveBeenCalledWith(
+      new Map([
+        ['@/lib/utils', '/project/src/lib/utils.ts'],
+        [
+          '@/components/card/hero.webp',
+          '/project/src/components/card/hero.webp',
+        ],
+      ]),
+      '/project/src/components',
+      '/project/src',
+      '/project/dist',
+    );
     expect(result.localResult.localImportMap).toEqual({
       '@/lib/utils': './local/utils-def456.js',
     });
@@ -93,6 +112,7 @@ describe('analyzeAndBundleImports', () => {
     vi.mocked(collectImports).mockResolvedValue({
       thirdPartyPackages: new Set(['lodash']),
       aliasImports: new Map(),
+      assetImports: new Map(),
       unresolvedAliasImports: new Set(),
     });
     vi.mocked(bundleVendorDependencies).mockRejectedValue(

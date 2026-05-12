@@ -9,7 +9,7 @@ export function resolveCanvasConfig(options: {
   const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
     aliasBaseDir: 'src',
     outputDir: 'dist',
-    componentDir: options.hostRoot,
+    componentDir: 'src/components',
     pagesDir: './pages',
     deprecatedComponentDir: './components',
     globalCssPath: './src/components/global.css',

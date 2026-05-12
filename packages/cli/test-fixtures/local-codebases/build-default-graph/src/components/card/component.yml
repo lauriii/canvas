@@ -1,0 +1,6 @@
+name: Card
+machineName: card
+status: true
+props:
+  properties: {}
+slots: {}

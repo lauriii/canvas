@@ -37,6 +37,7 @@ Canvas Code Components:
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `component-dir-name`                           | Validates that `machineName` matches the directory name (index-style) or filename prefix (named-style). |
 | `component-exports`                            | Validates that component has a default export.                                                          |
+| `component-no-hierarchy`                       | Validates that component directories are direct children of the configured `componentDir`.              |
 | `component-prop-example-value-image-url`       | Validates that `canvas.module/image` prop examples use fully qualified image URLs.                      |
 | `component-prop-example-value-no-empty-string` | Validates that string prop examples do not contain empty string values.                                 |
 | `component-prop-names`                         | Validates that component prop IDs match the camelCase version of their titles.                          |
@@ -46,11 +47,10 @@ Canvas Code Components:
 The following rules are deprecated and only used in the `requiredDeprecated`
 config:
 
-| Rule                     | Description                                                                               |
-| ------------------------ | ----------------------------------------------------------------------------------------- |
-| `component-files`        | Validates that component directory contains only allowed files.                           |
-| `component-imports`      | Validates that component imports only from supported import sources and patterns.         |
-| `component-no-hierarchy` | Validates that all component directories are at the same level with no nesting hierarchy. |
+| Rule                | Description                                                                       |
+| ------------------- | --------------------------------------------------------------------------------- |
+| `component-files`   | Validates that component directory contains only allowed files.                   |
+| `component-imports` | Validates that component imports only from supported import sources and patterns. |
 
 ## Development
 

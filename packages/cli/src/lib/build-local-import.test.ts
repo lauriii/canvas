@@ -149,6 +149,31 @@ describe('bundleLocalAliasImports', () => {
     });
   });
 
+  it('copies asset imports and maps them without invoking Vite', async () => {
+    vi.mocked(fsMock.readFile).mockResolvedValueOnce('image-content');
+
+    const result = await bundleLocalAliasImports(
+      new Map([
+        [
+          '@/components/card/hero.webp',
+          '/project/src/components/card/hero.webp',
+        ],
+      ]),
+      '/project',
+      'src',
+      '/project/build',
+    );
+
+    expect(viteBuild).not.toHaveBeenCalled();
+    expect(fsMock.copyFile).toHaveBeenCalledWith(
+      '/project/src/components/card/hero.webp',
+      expect.stringMatching(/\/project\/build\/local\/hero-[a-f0-9]{8}\.webp$/),
+    );
+    expect(result.localImportMap['@/components/card/hero.webp']).toMatch(
+      /^\.\/local\/hero-[a-f0-9]{8}\.webp$/,
+    );
+  });
+
   it('bubbles Vite build errors to caller', async () => {
     vi.mocked(viteBuild).mockRejectedValueOnce(new Error('Vite exploded'));
 

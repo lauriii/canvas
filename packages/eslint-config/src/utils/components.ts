@@ -103,6 +103,31 @@ export function isNonComponentImportFromComponentDir(
   }
 }
 
+/**
+ * Checks if a resolved import path targets a named component entry point in a
+ * flat component directory.
+ */
+export function isNamedComponentEntrypointInDirectory(
+  resolvedPath: string,
+): boolean {
+  try {
+    const dir = dirname(resolvedPath);
+    const files = getFilesInDirectory(dir);
+    const importBaseName = basename(resolvedPath);
+    const hasNamedMetadata = files.includes(`${importBaseName}${NAMED_SUFFIX}`);
+
+    if (!hasNamedMetadata) {
+      return false;
+    }
+
+    return JS_EXTENSIONS.some((ext) =>
+      files.includes(`${importBaseName}.${ext}`),
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function getFilesInDirectory(dirPath: string): string[] {
   if (!existsSync(dirPath)) {
     return [];

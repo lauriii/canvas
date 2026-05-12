@@ -19,7 +19,7 @@ class CanvasPackagesDocsFileHashTest extends CanvasKernelTestBase {
   public function testLibrariesFileHash(): void {
     // Path to the packages file as defined in the docs section.
     $file_path = __DIR__ . '/../../../../../docs/user/src/content/docs/code-components/packages.mdx';
-    $expected_hash = 'bebc3622fad500a681f343b17a9e058b1ed923c7b09b57b5b0fb4fae630832ad';
+    $expected_hash = 'd435eafb969326b176dd08c02e1dd5ad20535d954b94ba1277a2d6706ed4da87';
 
     $this->assertFileExists($file_path);
 

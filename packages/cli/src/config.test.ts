@@ -258,7 +258,7 @@ describe('config', () => {
         aliasBaseDir: 'src',
         clientId: 'test-client',
         clientSecret: 'test-secret',
-        componentDir: process.cwd(),
+        componentDir: 'src/components',
         deprecatedComponentDir: './components',
         fonts: undefined,
         globalCssPath: './src/components/global.css',
@@ -288,7 +288,7 @@ describe('config', () => {
         includePages: false,
         scope:
           'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
-        componentDir: process.cwd(),
+        componentDir: 'src/components',
         deprecatedComponentDir: './components',
         fonts: undefined,
         globalCssPath: './src/components/global.css',

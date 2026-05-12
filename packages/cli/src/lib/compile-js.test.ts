@@ -38,6 +38,48 @@ describe('compile js', () => {
     `);
   });
 
+  it('rewrites Vite-style image imports to import map resolutions', () => {
+    expect(
+      compileJS(
+        [
+          `import wallImage from './image-1.webp';`,
+          `import cafeImage from './cafe.jpg';`,
+          `const src = wallImage || cafeImage;`,
+        ].join('\n'),
+        {
+          filePath: '/project/src/components/local-image-example/index.tsx',
+          aliasBaseDir: '/project/src',
+        },
+      ),
+    ).toMatchInlineSnapshot(`
+      "const wallImage = import.meta.resolve("@/components/local-image-example/image-1.webp");
+      const cafeImage = import.meta.resolve("@/components/local-image-example/cafe.jpg");
+      const src = wallImage || cafeImage;
+      "
+    `);
+  });
+
+  it('rewrites image imports with query strings and hashes to import map resolutions', () => {
+    expect(
+      compileJS(
+        [
+          `import heroImage from './hero.webp?url';`,
+          `import posterImage from './poster.jpg#poster';`,
+          `const src = heroImage || posterImage;`,
+        ].join('\n'),
+        {
+          filePath: '/project/src/components/card/index.tsx',
+          aliasBaseDir: '/project/src',
+        },
+      ),
+    ).toMatchInlineSnapshot(`
+      "const heroImage = import.meta.resolve("@/components/card/hero.webp");
+      const posterImage = import.meta.resolve("@/components/card/poster.jpg");
+      const src = heroImage || posterImage;
+      "
+    `);
+  });
+
   it('should handle errors', () => {
     expect(() => compileJS('const x')).toThrowErrorMatchingInlineSnapshot(`
       "  x 'const' declarations must be initialized

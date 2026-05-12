@@ -1,0 +1,222 @@
+---
+title: Code Components - Imports and assets
+---
+
+This page shows which imports work when writing Code Components, and where new
+import targets can be added.
+
+The in-browser code editor is for editing component files that already exist in
+Canvas. It can use imports whose targets are already available, including
+imports that were pushed from a local codebase. It cannot add new local modules,
+static assets, SVG files, or package dependencies.
+
+Use a [local codebase](/code-components/local-codebase) when you need to add new
+files or dependencies.
+
+## Quick reference
+
+| Import type | In-browser code editor | Add new files or dependencies from |
+| --- | --- | --- |
+| [Other Code Components with `@/components`](#other-code-components-with-components) | Yes | In-browser code editor or local codebase |
+| [Built-in package imports](#built-in-package-imports) | Yes | Install in local codebase |
+| [Third-party package dependencies](#third-party-package-dependencies) | Yes, when already pushed | Local codebase |
+| [Shared local code with `@/`](#shared-local-code-with) | Yes, when already pushed | Local codebase |
+| [Static asset imports with `./` or `@/`](#static-asset-imports-with--or) | Yes, when already pushed | Local codebase |
+| [SVG as a URL](#svg-as-a-url) | Yes, when already pushed | Local codebase |
+| [SVG as a React component with `?react`](#svg-as-a-react-component-with-react) | Yes, when already pushed | Local codebase |
+| [Relative JavaScript and TypeScript modules](#relative-javascript-and-typescript-modules) | No | Not supported |
+| [CSS side-effect imports](#css-side-effect-imports) | No | Not supported |
+| [Font package imports](#font-package-imports) | No | Not supported |
+
+## Other Code Components with `@/components`
+
+Use `@/components` to import another Code Component.
+
+```tsx
+import Heading from '@/components/heading';
+```
+
+This path is the Code Component import namespace. In a
+[local codebase](/code-components/local-codebase), `@/components/heading`
+resolves to the `heading` component directly inside the configured
+`componentDir`. If `componentDir` is `src/components`, the local path is
+`src/components/heading`.
+
+Local Code Component files must be inside the configured `componentDir`, and
+`componentDir` must be inside `aliasBaseDir`. Do not nest component folders
+inside other folders in `componentDir`.
+
+```tsx
+// Do not use grouping folders in Code Component imports.
+import Heading from '@/components/marketing/heading';
+```
+
+Use `@/components/heading` instead, and place the `heading` component directly
+inside the configured `componentDir`.
+
+## Built-in package imports
+
+Use built-in package imports.
+
+```tsx
+import { clsx } from 'clsx';
+```
+
+Built-in packages are already available in the in-browser code editor. In a
+local codebase, install the package in your project so local builds can resolve
+it.
+
+See [Built-in packages](/code-components/packages) for available packages and
+examples.
+
+## Third-party package dependencies
+
+Use a local codebase to add packages that are not built in. Install the package
+with your package manager, import it with a standard package import, and push the
+component with the Canvas CLI.
+
+```bash
+npm install date-fns
+```
+
+```tsx
+import { format } from 'date-fns';
+
+export default function EventDate({ date }) {
+  return <time>{format(new Date(date), 'PPP')}</time>;
+}
+```
+
+When you run `npx canvas push`, the CLI builds the dependency with the
+component. The import continues to work when the pushed component is edited in
+the in-browser code editor.
+
+Use packages that can run in the browser.
+
+## Shared local code with `@/`
+
+Use `@/` to import shared local code. In a default project, `@/` points to the
+`src` directory.
+
+```tsx
+import { formatDate } from '@/lib/formatDate';
+```
+
+## Static asset imports with `./` or `@/`
+
+Use relative imports for static assets that live next to a component.
+
+```tsx
+import heroImage from './hero.webp';
+
+export default function Hero() {
+  return <img src={heroImage} alt="" />;
+}
+```
+
+Static assets can also be imported with `@/`.
+
+```tsx
+import introVideo from '@/assets/intro.mp4';
+```
+
+Supported static asset types include images, SVG files, audio, video, and font
+files.
+
+## SVG as a URL
+
+Import an SVG without a query string when you need a URL. This works like other
+static asset imports.
+
+```tsx
+import logoUrl from './logo.svg';
+
+export default function LogoImage() {
+  return <img src={logoUrl} alt="Drupal Canvas" />;
+}
+```
+
+## SVG as a React component with `?react`
+
+Import an SVG with `?react` when you need a React component. This uses SVGR
+during the build.
+
+```tsx
+import LogoIcon from './logo.svg?react';
+
+export default function Logo() {
+  return <LogoIcon aria-hidden className="size-6" />;
+}
+```
+
+For TypeScript projects, add the SVGR client types to a Vite environment file.
+
+```ts
+/// <reference types="vite/client" />
+/// <reference types="vite-plugin-svgr/client" />
+```
+
+The `?react` form is component code, not a static asset URL. Use plain `.svg`
+imports when you want Canvas to treat the SVG as a file asset.
+
+## Unsupported imports
+
+### JavaScript and TypeScript modules inside component directories
+
+The `@/components` path is for importing other Code Components and
+component-local static assets. Do not use it to import helper files from inside a
+component directory.
+
+```tsx
+// Do not use this.
+import { formatPrice } from '@/components/pricing-card/helpers';
+```
+
+Move shared helpers to a directory outside `@/components`.
+
+```tsx
+import { formatPrice } from '@/lib/formatPrice';
+```
+
+### Relative JavaScript and TypeScript modules
+
+Relative imports are supported for static assets, but not for JavaScript and
+TypeScript modules that should be shared across components.
+
+```tsx
+// Do not use this.
+import { formatDate } from './formatDate';
+```
+
+Use an `@/` import instead.
+
+```tsx
+import { formatDate } from '@/lib/formatDate';
+```
+
+### CSS side-effect imports
+
+CSS side-effect imports are not supported in component JavaScript or TypeScript
+files.
+
+```tsx
+// Do not use these.
+import 'swiper/css';
+import '@/lib/styles/carousel.css';
+```
+
+Put component styles in the component CSS file. Put shared global styles in the
+project global CSS file.
+
+### Font package imports
+
+Font package imports are not supported in component JavaScript or TypeScript
+files.
+
+```tsx
+// Do not use this.
+import '@fontsource/inter';
+```
+
+Use [Brand Kit fonts](/code-components/brand-kit) for fonts that should be
+available in Canvas.

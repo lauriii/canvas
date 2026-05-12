@@ -64,10 +64,14 @@ export async function analyzeAndBundleImports(
       outputDir,
     );
   }
-  if (imports.aliasImports.size > 0) {
+  const localImports = new Map([
+    ...imports.aliasImports,
+    ...imports.assetImports,
+  ]);
+  if (localImports.size > 0) {
     // Step 3: Bundle local alias imports
     localResult = await bundleLocalAliasImports(
-      imports.aliasImports,
+      localImports,
       componentDir,
       aliasBaseDir,
       outputDir,

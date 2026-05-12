@@ -1,0 +1,6 @@
+name: Relative module import example
+machineName: relative-module-import-example
+status: true
+props:
+  properties: {}
+slots: {}

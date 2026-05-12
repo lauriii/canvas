@@ -1,0 +1,6 @@
+name: Third-party package example
+machineName: third-party-package-example
+status: true
+props:
+  properties: {}
+slots: {}

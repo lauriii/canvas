@@ -2,6 +2,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveCanvasConfig } from '@drupal-canvas/discovery';
+import { validateCanvasImportRoots } from '@drupal-canvas/vite-compat';
 
 export interface WorkbenchPathsOptions {
   moduleUrl: string;
@@ -43,6 +44,11 @@ export function resolveWorkbenchPaths(
     require.resolve('@fontsource-variable/geist-mono/package.json'),
   );
   const canvasConfig = resolveCanvasConfig({ hostRoot: hostProjectRoot });
+  validateCanvasImportRoots({
+    hostRoot: hostProjectRoot,
+    aliasBaseDir: canvasConfig.aliasBaseDir,
+    componentDir: canvasConfig.componentDir,
+  });
   const componentDiscoveryRoot = path.resolve(
     hostProjectRoot,
     canvasConfig.componentDir,
