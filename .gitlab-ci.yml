@@ -195,7 +195,11 @@ variables:
   - *UI-files-change-rule
   - *manual-rule
 
+.image-node: &image-node node:24-alpine
+
 default:
+  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
+  interruptible: true
   cache:
     key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
     fallback_keys:
@@ -208,7 +212,6 @@ default:
     policy: pull
 
 cache dependencies:
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   stage: cache
   needs: []
   cache:
@@ -334,13 +337,15 @@ phpstan-is-up-to-date:
 
 phpcs-rules-match-drupal-11:
   stage: development
+  image: *image-node
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - *manual-rule
+  cache: []
   script:
     - |
       # Download the file from the Drupal repository
-      curl -o drupal_core_phpcs.xml.dist https://git.drupalcode.org/project/drupal/-/raw/11.x/core/phpcs.xml.dist?ref_type=heads
+      wget -O drupal_core_phpcs.xml.dist "https://git.drupalcode.org/project/drupal/-/raw/11.x/core/phpcs.xml.dist?ref_type=heads"
 
       # Check if the download was successful
       if [ $? -ne 0 ]; then
@@ -381,7 +386,6 @@ phpunit (11.2, sqlite):
         - .env.defaults
         - phpunit.xml.dist
     - *manual-rule
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   needs: []
   parallel:
     matrix:
@@ -529,7 +533,7 @@ phpunit (11.3, mysql 8):
 
 vitest:
   stage: test
-  image: node:20-alpine
+  image: *image-node
   allow_failure: false
   needs: []
   rules:
@@ -564,7 +568,6 @@ vitest:
 
 .cypress-base:
   stage: test
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   cache:
     - key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
       fallback_keys:
@@ -650,7 +653,6 @@ cypress unit:
 lint (php):
   stage: validate
   needs: []
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   variables:
     GIT_DEPTH: 1
     COMPOSER_ROOT_VERSION: 0.0.0
@@ -703,8 +705,8 @@ lint (php):
 
 lint (node):
   stage: validate
+  image: *image-node
   needs: []
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   script:
     - npm ci
     - npm run build --workspace=drupal-canvas
@@ -719,7 +721,6 @@ playwright:
         #PROJECT: [ "chromium", "firefox", "webkit" ]
   rules: *e2e-ci-job-rules
   interruptible: true
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   extends:
     - .test-variables
   cache:
@@ -761,12 +762,13 @@ playwright:
 
 playwright-reports:
   stage: report
+  image: *image-node
   rules: *e2e-ci-job-rules
   needs:
     - playwright
+  cache: []
   when:
     always
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   script:
     - mkdir -p test-results
     - npx playwright merge-reports --reporter=html ./blob-report
@@ -798,7 +800,6 @@ playwright-reports:
 
 CLI Test:
   stage: test
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
   needs: []
   rules:
     - *e2e-tests-must-not-be-disabled-rule
@@ -847,7 +848,8 @@ CLI Test:
 
 CLI Publish:
   stage: publish
-  image: node:20-alpine
+  image: *image-node
+  interruptible: false
   needs:
     - lint (node)
     - CLI Test
@@ -863,8 +865,8 @@ CLI Publish:
 
 # User facing documentation.
 pages-mr:
-  image: node:22
   stage: publish
+  image: *image-node
   needs: []
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -887,7 +889,10 @@ pages-mr:
 
 stop-pages-mr:
   stage: publish
+  image: *image-node
+  interruptible: false
   needs: []
+  cache: []
   rules:
     # Branch merge.
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_MERGE_REQUEST_IID
@@ -904,8 +909,8 @@ stop-pages-mr:
     action: stop
 
 pages-publish:
-  image: node:22
   stage: publish
+  image: *image-node
   needs: []
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -923,7 +928,8 @@ pages-publish:
 release:
   # For release flow details, see docs/release-process.md.
   stage: publish
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
+  image: *image-node
+  interruptible: false
   needs: []
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
