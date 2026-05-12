@@ -58,7 +58,30 @@ core.phpcs.xml.dist -> /PATH/TO/DRUPAL/ROOT/core/phpcs.xml.dist
   <rule ref="SlevomatCodingStandard.Namespaces.FullyQualifiedGlobalFunctions">
     <properties>
       <!-- See https://github.com/php/php-src/blob/PHP-8.4.18/Zend/zend_compile.c#L4962 -->
-      <property name="include" type="array" value="assert,sprintf,array_map,array_keys,array_key_exists,is_array,is_bool,is_callable,is_countable,is_double,is_float,is_int,is_integer,is_iterable,is_long,is_null,is_numeric,is_object,is_resource,is_scalar,is_string,in_array" />
+      <property name="include" type="array">
+        <element value="assert"/>
+        <element value="sprintf"/>
+        <element value="array_map"/>
+        <element value="array_keys"/>
+        <element value="array_key_exists"/>
+        <element value="is_array"/>
+        <element value="is_bool"/>
+        <element value="is_callable"/>
+        <element value="is_countable"/>
+        <element value="is_double"/>
+        <element value="is_float"/>
+        <element value="is_int"/>
+        <element value="is_integer"/>
+        <element value="is_iterable"/>
+        <element value="is_long"/>
+        <element value="is_null"/>
+        <element value="is_numeric"/>
+        <element value="is_object"/>
+        <element value="is_resource"/>
+        <element value="is_scalar"/>
+        <element value="is_string"/>
+        <element value="in_array"/>
+      </property>
     </properties>
   </rule>
   <rule ref="./coding_standards/Canvas" />
