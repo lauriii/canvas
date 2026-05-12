@@ -85,14 +85,6 @@ enum JsonSchemaType: string {
     };
   }
 
-  public function isIterable(): bool {
-    return !$this->isScalar();
-  }
-
-  public function isTraversable(): bool {
-    return !$this->isScalar();
-  }
-
   /**
    * Constructs a JsonSchemaType from a typical SDC prop JSON schema.
    *

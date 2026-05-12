@@ -24,7 +24,8 @@
         "mglaman/phpstan-drupal": "2.0.15",
         "phpat/phpat": "0.12.4",
         "phpstan/phpstan": "2.1.53",
-        "phpstan/phpstan-strict-rules": "2.0.10"
+        "phpstan/phpstan-strict-rules": "2.0.10",
+        "shipmonk/dead-code-detector": "1.1.1"
     },
     "scripts": {
         "composer-root": "d=.; i=0; while [ $i -lt 10 ]; do if [ -f \"$d/composer.json\" ] && cat \"$d/composer.json\" | grep -q '\"type\"' && cat \"$d/composer.json\" | grep -q '\"project\"'; then readlink -f \"$d\"; break; fi; d=\"../$d\"; i=$((i+1)); done",

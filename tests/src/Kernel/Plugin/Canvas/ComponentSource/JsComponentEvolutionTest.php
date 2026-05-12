@@ -956,24 +956,10 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
     self::assertSame(self::COMPONENT_INSTANCE_UUID, $values[1]['parent_uuid'], 'Child should still reference parent');
   }
 
-  protected function reAddDescriptionSlot(bool $usingHttpRequest = FALSE): void {
-    $js_component = $this->reloadJavascriptComponent();
-    $slots = $js_component->get('slots');
-    $slots['description'] = [
-      'title' => 'Description',
-      'examples' => ['<p>Example description</p>'],
-    ];
-    if (!$usingHttpRequest) {
-      $js_component->set('slots', $slots);
-      self::assertEntityIsValid($js_component);
-      $js_component->save();
-      return;
-    }
-    $data = $js_component->normalizeForClientSide()->values;
-    $data['slots'] = $slots;
-    $this->patchComponent($data);
-  }
-
+  /**
+   * @todo Remove this ignore in https://www.drupal.org/project/canvas/issues/3557271
+   * @phpstan-ignore-next-line shipmonk.deadMethod
+   */
   protected function modifyPropType(bool $usingHttpRequest = FALSE): void {
     $js_component = $this->reloadJavascriptComponent();
     $options = [

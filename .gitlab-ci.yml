@@ -294,7 +294,7 @@ phpstan-is-up-to-date:
       unset COMPOSER_IGNORE_PLATFORM_REQS
 
       # PHPStan packages in composer.json to check for updates.
-      PACKAGES="phpstan/phpstan jangregor/phpstan-prophecy mglaman/phpstan-drupal phpat/phpat phpstan/phpstan-strict-rules"
+      PACKAGES="phpstan/phpstan jangregor/phpstan-prophecy mglaman/phpstan-drupal phpat/phpat phpstan/phpstan-strict-rules shipmonk/dead-code-detector"
       cp composer.json composer.json.orig
 
       for PKG in $PACKAGES; do

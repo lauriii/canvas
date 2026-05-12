@@ -7,10 +7,8 @@ namespace Drupal\Tests\canvas\Kernel\Controller;
 // cspell:ignore Gábor Hojtsy uniquesearchterm gàbor autosave searchterm
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
-use Drupal\Component\Transliteration\TransliterationInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Controller\ApiContentControllers;
 use Drupal\canvas\Entity\Page;
@@ -59,20 +57,6 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
   protected AutoSaveManager $autoSaveManager;
 
   /**
-   * The entity type manager service.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
-   */
-  protected EntityTypeManagerInterface $entityTypeManager;
-
-  /**
-   * The transliteration service.
-   *
-   * @var \Drupal\Component\Transliteration\TransliterationInterface
-   */
-  protected TransliterationInterface $transliteration;
-
-  /**
    * Test pages.
    *
    * @var \Drupal\canvas\Entity\Page[]
@@ -96,8 +80,6 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
 
     $this->apiContentController = $this->container->get(ApiContentControllers::class);
     $this->autoSaveManager = $this->container->get(AutoSaveManager::class);
-    $this->entityTypeManager = $this->container->get(EntityTypeManagerInterface::class);
-    $this->transliteration = $this->container->get('transliteration');
 
     $this->createTestPages();
   }

@@ -457,19 +457,4 @@ class ShapeMatchingHooks {
     };
   }
 
-  /**
-   * Returns MediaType Source Plugin field name.
-   *
-   * @param \Drupal\media\MediaTypeInterface $media_type
-   *
-   * @return string
-   */
-  protected static function getMediaSourceFieldName(MediaTypeInterface $media_type): string {
-    $source_field_definition = $media_type->getSource()
-      ->getSourceFieldDefinition($media_type);
-    \assert($source_field_definition !== NULL);
-
-    return $source_field_definition->getName();
-  }
-
 }

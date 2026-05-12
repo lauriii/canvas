@@ -281,15 +281,6 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     }, $dependencies);
   }
 
-  public function withDelta(int $delta): static {
-    return new static(
-      $this->entityType,
-      $this->fieldName,
-      $delta,
-      $this->propName,
-    );
-  }
-
   public static function fromString(string $representation): static {
     [$entity_part, $remainder] = explode(self::PREFIX_FIELD_LEVEL, $representation);
     $entity_data_definition = BetterEntityDataDefinition::createFromDataType(mb_substr($entity_part, 3));

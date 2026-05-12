@@ -92,15 +92,6 @@ final class FieldObjectPropsExpression implements EntityFieldBasedPropExpression
     return $dependencies;
   }
 
-  public function withDelta(int $delta): static {
-    return new static(
-      $this->entityType,
-      $this->fieldName,
-      $delta,
-      $this->objectPropsToFieldProps,
-    );
-  }
-
   public static function fromString(string $representation): static {
     [$entity_part, $remainder] = explode(self::PREFIX_FIELD_LEVEL, $representation, 2);
     $entity_data_definition = BetterEntityDataDefinition::createFromDataType(mb_substr($entity_part, 3));

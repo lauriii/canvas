@@ -39,7 +39,6 @@ use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\link\LinkItemInterface;
 use Drupal\Tests\canvas\Kernel\Traits\CacheBustingTrait;
 use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\canvas\CodeComponentDataProvider;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
@@ -70,8 +69,6 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
   use CreateTestJsComponentTrait;
 
   protected readonly AssetResolverInterface $assetResolver;
-  protected readonly CodeComponentDataProvider $codeComponentDataProvider;
-
   /**
    * @see ::testRenderSdcWithOptionalObjectShape())
    */
@@ -95,7 +92,6 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
   public function setUp(): void {
     parent::setUp();
     $this->assetResolver = $this->container->get(AssetResolverInterface::class);
-    $this->codeComponentDataProvider = $this->container->get(CodeComponentDataProvider::class);
 
     // For testing a code component using the "video" prop shape.
     $this->installEntitySchema('field_storage_config');

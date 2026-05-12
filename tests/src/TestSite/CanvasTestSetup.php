@@ -607,6 +607,7 @@ class CanvasTestSetup implements TestSetupInterface {
    * TRICKY: to allow reusing MediaTypeCreationTrait, simulate `::assertSame()`.
    *
    * @see \Drupal\Tests\media\Traits\MediaTypeCreationTrait
+   * @phpstan-ignore-next-line shipmonk.deadMethod
    */
   public static function assertSame(mixed $expected, mixed $actual, string $message = ''): void {
     // Intentionally empty;

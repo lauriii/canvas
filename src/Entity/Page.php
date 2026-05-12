@@ -192,7 +192,13 @@ final class Page extends EditorialContentEntityBase implements EntityOwnerInterf
 
   /**
    * Gets the request time.
+   *
+   * Called via setDefaultValueCallback(self::class . '::getRequestTime') in
+   * baseFieldDefinitions().
+   *
+   * @internal
    */
+  // @phpstan-ignore shipmonk.deadMethod
   public static function getRequestTime(): int {
     return \Drupal::time()->getRequestTime();
   }

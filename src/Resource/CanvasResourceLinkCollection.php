@@ -20,6 +20,7 @@ use Drupal\Core\Cache\RefinableCacheableDependencyTrait;
  * only one.
  * - Implements \Drupal\Core\Cache\CacheableDependencyInterface and
  * \Drupal\Core\Cache\RefinableCacheableDependencyInterface.
+ * - Omits the 3 methods Canvas does not use: hasLinkWithKey, filter, merge.
  *
  * @internal
  *
@@ -98,65 +99,6 @@ final class CanvasResourceLinkCollection implements \IteratorAggregate, Cacheabl
       ->addCacheContexts($this->getCacheContexts())
       ->mergeCacheMaxAge($this->getCacheMaxAge());
     return $collection;
-  }
-
-  /**
-   * Whether a link with the given key exists.
-   *
-   * @param string $key
-   *   The key.
-   *
-   * @return bool
-   *   TRUE if a link with the given key exist, FALSE otherwise.
-   */
-  public function hasLinkWithKey($key): bool {
-    return \array_key_exists($key, $this->links);
-  }
-
-  /**
-   * Filters a CanvasResourceLinkCollection using the provided callback.
-   *
-   * @param callable $f
-   *   The filter callback. The callback has the signature below.
-   *
-   * @code
-   *   boolean callback(string $key, \Drupal\canvas\Resource\CanvasResourceLink $link))
-   * @endcode
-   *
-   * @return CanvasResourceLinkCollection
-   *   A new, filtered CanvasResourceLinkCollection.
-   */
-  public function filter(callable $f): CanvasResourceLinkCollection {
-    $links = iterator_to_array($this);
-    $filtered = array_reduce(\array_keys($links), function ($filtered, $key) use ($links, $f) {
-      if ($f($key, $links[$key])) {
-        $filtered[$key] = $links[$key];
-      }
-      return $filtered;
-    }, []);
-    return new CanvasResourceLinkCollection($filtered);
-  }
-
-  /**
-   * Merges two CanvasResourceLinkCollections.
-   *
-   * @param \Drupal\canvas\Resource\CanvasResourceLinkCollection $a
-   *   The first link collection.
-   * @param \Drupal\canvas\Resource\CanvasResourceLinkCollection $b
-   *   The second link collection.
-   *
-   * @return \Drupal\canvas\Resource\CanvasResourceLinkCollection
-   *   A new CanvasResourceLinkCollection with the links of both inputs.
-   */
-  public static function merge(CanvasResourceLinkCollection $a, CanvasResourceLinkCollection $b): CanvasResourceLinkCollection {
-    $merged = new CanvasResourceLinkCollection([]);
-    foreach ($a as $key => $link) {
-      $merged = $merged->withLink($key, $link);
-    }
-    foreach ($b as $key => $link) {
-      $merged = $merged->withLink($key, $link);
-    }
-    return $merged;
   }
 
   /**

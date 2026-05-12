@@ -24,10 +24,6 @@ class ComponentTest extends CanvasKernelTestBase {
 
   use GenerateComponentConfigTrait;
 
-  const string MISSING_COMPONENT_ID = 'canvas:missing-component';
-  const string MISSING_CONFIG_ENTITY_ID = 'sdc.canvas.missing-component';
-  const string LABEL = 'Test Component';
-
   /**
    * {@inheritdoc}
    */

@@ -41,7 +41,6 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxCom
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropSource\StaticPropSource;
-use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
@@ -126,7 +125,6 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
 
   protected readonly EntityStorageInterface $componentStorage;
   protected readonly ComponentIncompatibilityReasonRepository $componentReasonRepository;
-  protected readonly ComponentTreeLoader $componentTreeLoader;
   protected readonly RendererInterface $renderer;
 
   /**
@@ -136,7 +134,6 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
     parent::setUp();
     $this->componentReasonRepository = $this->container->get(ComponentIncompatibilityReasonRepository::class);
     $this->componentStorage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Component::ENTITY_TYPE_ID);
-    $this->componentTreeLoader = $this->container->get(ComponentTreeLoader::class);
     $this->renderer = $this->container->get(RendererInterface::class);
     $this->installEntitySchema('user');
     $this->installEntitySchema('path_alias');

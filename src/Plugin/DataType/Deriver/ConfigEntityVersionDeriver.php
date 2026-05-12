@@ -16,14 +16,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final class ConfigEntityVersionDeriver implements ContainerDeriverInterface {
 
   protected array $derivatives = [];
-  protected string $basePluginId;
   protected EntityTypeManagerInterface $entityTypeManager;
 
   public function __construct(
-    string $base_plugin_id,
     EntityTypeManagerInterface $entity_type_manager,
   ) {
-    $this->basePluginId = $base_plugin_id;
     $this->entityTypeManager = $entity_type_manager;
   }
 
@@ -32,7 +29,6 @@ final class ConfigEntityVersionDeriver implements ContainerDeriverInterface {
    */
   public static function create(ContainerInterface $container, $base_plugin_id): static {
     return new static(
-      $base_plugin_id,
       $container->get(EntityTypeManagerInterface::class),
     );
   }

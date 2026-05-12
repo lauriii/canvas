@@ -190,13 +190,6 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
     return $dependencies;
   }
 
-  public function withDelta(int $delta): static {
-    return new static(
-      $this->referencer->withDelta($delta),
-      $this->referenced,
-    );
-  }
-
   public static function fromString(string $representation): static {
     $is_branching = str_contains($representation, self::PREFIX_ENTITY_LEVEL . self::PREFIX_BRANCH . self::PREFIX_ENTITY_LEVEL);
     if ($is_branching) {

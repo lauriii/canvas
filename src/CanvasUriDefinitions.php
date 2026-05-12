@@ -25,6 +25,8 @@ class CanvasUriDefinitions {
   const string LINK_REL_UNPUBLISH = 'disable';
   const string LINK_REL_PUBLISH = 'enable';
   // @see \Drupal\canvas\Controller\ApiUsageControllers::componentDetails()
+  // @todo Add it in \Drupal\canvas\Entity\JavaScriptComponent::getEntityOperations()
+  // @phpstan-ignore-next-line shipmonk.deadConstant
   const string LINK_REL_USAGE_DETAILS = 'https://drupal.org/project/canvas#link-rel-usage-details';
 
 }

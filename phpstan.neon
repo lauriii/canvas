@@ -75,6 +75,9 @@ parameters:
       identifier: missingType.return
       count: 1
       path: src/ConfigTranslation/CanvasComponentTreeItemInputsMappingFormElement.php
+    # canvas_ai and canvas_personalization have their own dead code cleanup tasks.
+    - { message: '#^(Unused |Property .+ is never (read|written))#', path: modules/canvas_ai/** }
+    - { message: '#^(Unused |Property .+ is never (read|written))#', path: modules/canvas_personalization/** }
     # canvas_ai code is not held to the same standard.
     - { identifier: canvas.requireStaticMethods, path: modules/canvas_ai/** }
 # Canvas' custom PHPStan rules.
@@ -99,3 +102,47 @@ services:
     class: Canvas\PHPStan\Architecture\Tests
     tags:
       - phpat.test
+  -
+    class: Canvas\PHPStan\UsageProvider\DrupalTestUsageProvider
+    tags:
+      - shipmonk.deadCode.memberUsageProvider
+  -
+    class: Canvas\PHPStan\UsageProvider\DrupalHookUsageProvider
+    tags:
+      - shipmonk.deadCode.memberUsageProvider
+  -
+    class: Canvas\PHPStan\UsageProvider\DrupalRoutingUsageProvider
+    tags:
+      - shipmonk.deadCode.memberUsageProvider
+  -
+    class: Canvas\PHPStan\UsageProvider\DrupalDynamicPropertyUsageProvider
+    tags:
+      - shipmonk.deadCode.memberUsageProvider
+  -
+    class: Canvas\PHPStan\UsageProvider\DrupalPolymorphicDispatchUsageProvider
+    tags:
+      - shipmonk.deadCode.memberUsageProvider
+  -
+    class: Canvas\PHPStan\UsageProvider\DrupalConfigTranslationUsageProvider
+    tags:
+      - shipmonk.deadCode.memberUsageProvider
+  -
+    class: Canvas\PHPStan\UsageProvider\DrupalServiceCallsUsageProvider
+    tags:
+      - shipmonk.deadCode.memberUsageProvider
+  -
+    class: Canvas\PHPStan\UsageProvider\ContribPluginsUsageProvider
+    tags:
+      - shipmonk.deadCode.memberUsageProvider
+  -
+    class: Canvas\PHPStan\UsageProvider\ConfigSchemaValidationUsageProvider
+    tags:
+      - shipmonk.deadCode.memberUsageProvider
+  -
+    class: Canvas\PHPStan\UsageProvider\CanvasApiContractUsageProvider
+    tags:
+      - shipmonk.deadCode.memberUsageProvider
+  -
+    class: Canvas\PHPStan\UsageProvider\CanvasTraitUsageProvider
+    tags:
+      - shipmonk.deadCode.memberUsageProvider
