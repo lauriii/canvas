@@ -580,10 +580,15 @@ final class StaticPropSource extends PropSourceBase {
       // @see \Drupal\datetime\Plugin\Field\FieldWidget\DateTimeWidgetBase::createDefaultValue()
       for ($i = 0; $i < $this->fieldItemList->count(); $i++) {
         \assert($this->fieldItemList[$i] !== NULL);
-        // @see \Drupal\Core\Field\FieldItemList::__get()
-        // @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem::propertyDefinitions()
-        // @phpstan-ignore property.notFound
-        $widget_form['widget'][$i]['value']['#default_value'] = new DrupalDateTime($this->fieldItemList[$i]->value);
+        // Only add default values to existing widget items. In some cases such
+        // as a delete AJAX request, the widget item might not exist despite it
+        // still being present in the fieldItemList.
+        if (isset($widget_form['widget'][$i])) {
+          // @see \Drupal\Core\Field\FieldItemList::__get()
+          // @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem::propertyDefinitions()
+          // @phpstan-ignore property.notFound
+          $widget_form['widget'][$i]['value']['#default_value'] = new DrupalDateTime($this->fieldItemList[$i]->value);
+        }
       }
     }
 
