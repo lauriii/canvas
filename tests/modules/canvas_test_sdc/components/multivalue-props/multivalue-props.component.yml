@@ -87,6 +87,7 @@ props:
       examples:
         - - 42
           - 100
+          - 0
     number_limited:
       title: 'Number (Limited)'
       description: 'A limited array of numeric values (max 3 items).'

@@ -1170,6 +1170,7 @@ HTML
       <ul id="number-list">
                   <li>42</li>
                   <li>100</li>
+                  <li>0</li>
               </ul>
     </div>
     <h2>Number Limited</h2>
@@ -2557,6 +2558,9 @@ HTML
               ],
               1 => [
                 'value' => 100.0,
+              ],
+              2 => [
+                'value' => 0.0,
               ],
             ],
             'expression' => 'ℹ︎float␟value',
@@ -5553,10 +5557,14 @@ HTML
                 1 => [
                   'value' => 100.0,
                 ],
+                2 => [
+                  'value' => 0.0,
+                ],
               ],
               'resolved' => [
                 0 => 42.0,
                 1 => 100.0,
+                2 => 0.0,
               ],
             ],
           ],

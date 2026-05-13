@@ -429,10 +429,34 @@ test.describe('Multivalue Prop Types', () => {
     );
 
     await canvas.testInPreviewFrame('#number-list li', async (numberList) => {
-      await expect(numberList).toHaveCount(2);
+      await expect(numberList).toHaveCount(3);
       await expect(numberList.nth(0)).toHaveText('42.5');
       await expect(numberList.nth(1)).toHaveText('100');
+      // Asserts that the 0 is not rendered as "Empty".
+      await expect(numberList.nth(2)).toHaveText('0');
     });
+
+    // Assert that the zero-value row in the Settings pane shows '0', not 'Empty'.
+    const thirdRow = numberField.locator('tr.draggable').nth(2);
+    await expect(
+      thirdRow.locator('[data-canvas-multivalue-label="true"]'),
+    ).toHaveText('0');
+    await expect(
+      thirdRow.locator('[data-canvas-multivalue-label="true"]'),
+    ).not.toHaveText('Empty');
+
+    // Assert that opening the popover for the zero-value row shows '0' in the
+    // input, not a blank/empty field.
+    await thirdRow.getByRole('button', { name: /^Edit Number/ }).click();
+    const thirdRowPopover = thirdRow.getByRole('dialog');
+    await expect(thirdRowPopover.getByRole('spinbutton')).toHaveValue('0');
+    await thirdRowPopover
+      .getByRole('button', { name: 'Close' })
+      .dispatchEvent('click');
+    await expect(thirdRow.getByRole('dialog')).toHaveAttribute(
+      'data-state',
+      'closed',
+    );
 
     // Integer type rejects decimal values.
     const integerField = page.locator('.field--type-integer').filter({

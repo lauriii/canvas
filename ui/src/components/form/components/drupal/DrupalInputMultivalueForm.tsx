@@ -60,7 +60,7 @@ const DrupalInputMultivalueForm = ({
   const isAutocomplete =
     attributes?.class instanceof Array &&
     attributes?.class?.includes('form-autocomplete');
-  const initialValue = attributes.value || attributes.defaultValue || '';
+  const initialValue = attributes.value ?? attributes.defaultValue ?? '';
   const refs = useRef<MultivalueRefs>({
     triggerRow: null,
     triggerButton: null,
@@ -70,7 +70,7 @@ const DrupalInputMultivalueForm = ({
   });
 
   const [displayValue, setDisplayValue] = useState<string>(
-    initialValue as string,
+    String(initialValue ?? ''),
   );
 
   const hasError = () =>
@@ -80,6 +80,7 @@ const DrupalInputMultivalueForm = ({
   // Controlled popover state so we can close it programmatically on remove.
   const [popoverOpen, setPopoverOpen] = useState(false);
   const fieldLabel = attributes['data-field-label'] || '';
+  const displayText = displayValue === '' ? 'Empty' : String(displayValue);
 
   const setPopoverOpenAndRefocus = (open: boolean) => {
     setPopoverOpen(open);
@@ -223,14 +224,14 @@ const DrupalInputMultivalueForm = ({
             }}
             className={styles.listItem}
             type="button"
-            aria-label={`Edit ${fieldLabel}: ${displayValue || 'Empty'}`}
+            aria-label={`Edit ${fieldLabel}: ${displayText}`}
           >
             <Text
               size="2"
               className={styles.itemText}
               data-canvas-multivalue-label
             >
-              {displayValue || 'Empty'}
+              {displayText}
             </Text>
             <ArrowRightIcon className={styles.arrowIcon} />
           </button>
