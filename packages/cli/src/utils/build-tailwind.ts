@@ -4,6 +4,7 @@ import { compileCss, extractClassNameCandidates } from 'tailwindcss-in-browser';
 import * as p from '@clack/prompts';
 import { JS_EXTENSIONS } from '@drupal-canvas/discovery';
 import { upsertClassNameCandidatesInComment } from '@drupal-canvas/ui/features/code-editor/utils/classNameCandidates';
+import { UNLAYERED_DISPLAY_UTILITIES } from '@drupal-canvas/ui/features/code-editor/utils/tailwindCss';
 import { resolveHostGlobalCssPath } from '@drupal-canvas/vite-compat';
 
 import { getConfig } from '../config';
@@ -95,6 +96,11 @@ export async function buildTailwindCss(
   const compiledTwCss = await compileCss(
     classNameCandidates,
     globalSourceCodeCss,
+    {
+      // Keep generated display utilities outside the utilities layer so they
+      // can override Drupal System's unlayered `.hidden` class.
+      unlayeredUtilities: UNLAYERED_DISPLAY_UTILITIES,
+    },
   );
   const transformedTwCss = await transformCss(compiledTwCss);
   await fs.writeFile(path.join(distDir, 'index.css'), transformedTwCss);
