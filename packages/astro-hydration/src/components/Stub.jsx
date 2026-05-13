@@ -8,6 +8,7 @@
 const { ...preact } = await import('preact');
 const { ...preactCompat } = await import('preact/compat');
 const { ...preactHooks } = await import('preact/hooks');
+const { ...preactRenderToString } = await import('preact-render-to-string');
 const { ...jsxRuntime } = await import('../lib/jsx-runtime-default');
 const { default: clsx } = await import('clsx');
 const { ...tailwindMerge } = await import('tailwind-merge');
@@ -30,6 +31,11 @@ const { cn } = await import('drupal-canvas/utils');
 const { JsonApiClient } = await import('drupal-canvas/jsonapi-client');
 const { getNodePath, sortMenu } = await import('drupal-canvas/jsonapi-utils');
 
-await import('../lib/canvas-island.ts');
+// Only load in the browser: Astro evaluates this module during SSR/build when
+// we add the SSR directive <Stub client:load/> and canvas-island touches
+// customElements (not available server-side)
+if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
+  await import('../lib/canvas-island.ts');
+}
 
 export default function () {}
