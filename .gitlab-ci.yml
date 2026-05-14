@@ -52,7 +52,6 @@ include:
   - local: .gitlab/ci/test.yml
 
 stages:
-  - development
   - build
   - validate
   - test
@@ -69,6 +68,10 @@ stages:
 # Docs at https://git.drupalcode.org/project/gitlab_templates/-/blob/main/includes/include.drupalci.variables.yml
 ################
 variables:
+  # Enable Canvas contributors to change this from `true` to `false` to disable E2E (end-to-end) tests.
+  # (Useful when early in an MR and/or developing low-level functionality that is unlikely to affect E2E tests.)
+  E2E_TESTS_ENABLED: true
+
   PLAYWRIGHT_BROWSERS_PATH: $CI_PROJECT_DIR/.cache/ms-playwright
   COMPOSER_CACHE_DIR: $CI_PROJECT_DIR/.cache/composer
   npm_config_cache: $CI_PROJECT_DIR/.cache/npm
@@ -111,90 +114,92 @@ variables:
   # It should match the latest security release on the branch.
   DRUPAL_CORE: 11.2.11
 
-  # Enable Canvas contributors to change this from `true` to `false` to disable E2E (end-to-end) tests.
-  # (Useful when early in an MR and/or developing low-level functionality that is unlikely to affect E2E tests.)
-  _CANVAS_E2E_TESTS: true
+########################################
+# File groups                          #
+# Used to control when jobs should run #
+########################################
+.backend-files: &backend-files
+  # The files and directories most Drupal modules contain.
+  - canvas.*.yml
+  - canvas.module
+  - canvas.install
+  - canvas.post_update.php
+  - composer.*
+  - config/**/*
+  - src/**/*
+  - templates/**/*
+  - themes/**/*
+  # JSON Schema definitions used by SDCs to define props.
+  - schema.json
+  # SDCs provided by Canvas for other SDCs to reuse.
+  - components/**/*
+  # Submodules.
+  - modules/**/*
+  # Any test using Canvas' Internal HTTP API has its requests and responses validated against the OpenAPI spec.
+  - openapi.yml
+  # Tests
+  - "tests/**/*"
+  - "!tests/src/Playwright/**/*"
 
-.is-nightly-scheduled-rule: &is-nightly-scheduled-rule
-  if: $CI_PIPELINE_SOURCE == "schedule"
+.cli-files: &cli-files
+  - "packages/cli/**/*"
+  - package.json
+  - package-lock.json
+  - openapi.yml
+  # Everything below is a subset of .backend-files
+  - src/Entity/**/*
+  - src/Controller/**/*
+  # CLI Test checks these components so changes may affect test results.
+  - tests/modules/canvas_test_code_components/**/*
 
-.is-push-rule: &is-push-rule
+.data-integrity-files: &data-integrity-files
+  # Configuration schema, which references many validation constraints.
+  - config/schema/**/*
+  # Validation logic for either content or config.
+  - "**/*Constraint.php"
+  - "**/*Validator.php"
+  # ⚠️Imperfect, because validation constraints can be added to entity type classes, altered in, etc. However, it
+  # is very unlikely that an MR would add or change validation constraints without also changing one of these files.
+
+.ui-files: &ui-files
+  # Customizations to Drupal's JS.
+  - js/**/*
+  # The Canvas UI.
+  - package.json
+  - package-lock.json
+  # Workspace packages can affect dependency hoisting to the root node_modules.
+  - packages/*/package.json
+  - ui/**/*
+  # Dependencies of the Canvas UI.
+  - packages/astro-hydration
+  - packages/types
+
+##############################################
+# Rules                                      #
+# https://docs.gitlab.com/ci/jobs/job_rules/ #
+##############################################
+.nightly-rule: &nightly-rule
+  if: $CI_PIPELINE_SOURCE == "schedule" && $CI_SCHEDULE_TYPE == "nightly"
+
+.push-rule: &push-rule
   if: $CI_PIPELINE_SOURCE == "push" && $CI_PROJECT_ROOT_NAMESPACE == "project"
+
+.mr-rule: &mr-rule
+  if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "merge_train"
+
+.mr-e2e-rule: &mr-e2e-rule
+  if: ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "merge_train") && $E2E_TESTS_ENABLED == "true"
+
+.cli-release-rule: &cli-release-rule
+  if: '$CI_COMMIT_TAG =~ /^cli-\d+\.\d+\.\d+(-\w+\d*)?$/'
 
 .manual-rule: &manual-rule
   - when: manual
     allow_failure: true
 
-.backend-files-change-rule: &backend-files-change-rule
-  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
-    changes:
-      # The files and directories most Drupal modules contain.
-      - canvas.*.yml
-      - canvas.module
-      - canvas.install
-      - canvas.post_update.php
-      - composer.*
-      - config/**/*
-      - src/**/*
-      - templates/**/*
-      - themes/**/*
-      # JSON Schema definitions used by SDCs to define props.
-      - schema.json
-      # SDCs provided by Canvas for other SDCs to reuse.
-      - components/**/*
-      # Submodules.
-      - modules/**/*
-      # Any test using Canvas' Internal HTTP API has its requests and responses validated against the OpenAPI spec.
-      - openapi.yml
-      # Tests
-      - "tests/**/*"
-      - "!tests/src/Playwright/**/*"
-    when: on_success
-
-# This is a subset of .backend-files-change-rule.
-.data-integrity-files-change-rule: &data-integrity-files-change-rule
-  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
-    changes:
-      # Configuration schema, which references many validation constraints.
-      - config/schema/**/*
-      # Validation logic for either content or config.
-      - "**/*Constraint.php"
-      - "**/*Validator.php"
-      # ⚠️Imperfect, because validation constraints can be added to entity type classes, altered in, etc. However, it
-      # is very unlikely that an MR would add or change validation constraints without also changing one of these files.
-
-.UI-files-change-rule: &UI-files-change-rule
-  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
-    changes:
-      # Customizations to Drupal's JS.
-      - js/**/*
-      # The Canvas UI.
-      - package.json
-      - package-lock.json
-      - ui/**/*
-      # Dependencies of the Canvas UI.
-      - packages/astro-hydration
-      - packages/types
-    when: on_success
-
-.ui-fixture-files-change-rule: &UI-fixtures-files-change-rule
-  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
-    changes:
-      - ui/tests/fixtures/**/*
-    when: on_success
-
-.e2e-tests-must-not-be-disabled-rule: &e2e-tests-must-not-be-disabled-rule
-  - if: $_CANVAS_E2E_TESTS == "false"
-    when: never
-
-# The rules to be used by all E2E CI jobs, to ensure they are triggered consistently.
-.e2e-ci-job-rules: &e2e-ci-job-rules
-  - *e2e-tests-must-not-be-disabled-rule
-  - *is-push-rule
-  - *backend-files-change-rule
-  - *UI-files-change-rule
-  - *manual-rule
-
+########
+# Jobs #
+########
 .image-node: &image-node node:24-alpine
 
 default:
@@ -214,6 +219,9 @@ default:
 cache dependencies:
   stage: cache
   needs: []
+  rules:
+    - *push-rule
+    - *mr-rule
   cache:
     - key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
       paths:
@@ -288,9 +296,9 @@ test-only changes:
     - when: never
 
 phpstan-is-up-to-date:
-  stage: development
+  stage: validate
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - *nightly-rule
     - *manual-rule
   script:
     - |
@@ -336,10 +344,10 @@ phpstan-is-up-to-date:
   allow_failure: true
 
 phpcs-rules-match-drupal-11:
-  stage: development
+  stage: validate
   image: *image-node
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - *nightly-rule
     - *manual-rule
   cache: []
   script:
@@ -376,17 +384,96 @@ phpcs-rules-match-drupal-11:
   # Allow this to fail, to avoid disrupting Canvas's CI when upstream changes.
   allow_failure: true
 
-phpunit (11.2, sqlite):
-  rules:
-    - *is-nightly-scheduled-rule
-    - *backend-files-change-rule
-    # Changes to the infra for running PHPUnit itself also need to trigger CI.
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && ($_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null)
-      changes:
-        - .env.defaults
-        - phpunit.xml.dist
-    - *manual-rule
+lint (php):
+  stage: validate
   needs: []
+  rules:
+    - *push-rule
+    - *mr-rule
+  variables:
+    GIT_DEPTH: 1
+    COMPOSER_ROOT_VERSION: 0.0.0
+  cache:
+    - key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
+      fallback_keys:
+        - ${CI_PARENT_PROJECT_NAME}-default-${CI_DEFAULT_BRANCH}
+      paths:
+        - .cache/composer
+        - .cache/npm
+        - .cache/astro
+        - .cache/tsc
+      policy: pull
+    - key: ${CI_PARENT_PROJECT_NAME}-phplint-${CI_COMMIT_REF_NAME}
+      fallback_keys:
+        - ${CI_PARENT_PROJECT_NAME}-phplint-${CI_DEFAULT_BRANCH}
+      paths:
+        - .cache/phpcs
+        - .cache/phpstan
+      policy: pull
+  before_script:
+    - !reference [ .drupal-files-with-dev-dependencies ]
+    - mkdir -p test-results
+  script:
+    # PHPStan doesn't allow multiple outputs, but it will cache the result so
+    # the second run is very fast.
+    - composer run phpstan -- --error-format=junit > test-results/phpstan.xml || true
+    - !reference [ .test_runner ]
+    - run_test "composer validate" "composer validate --strict"
+    - run_test "phpcs" "composer run phpcs"
+    - run_test "phpstan" "composer run phpstan"
+    - !reference [ .test_summary ]
+    # Regenerate the >=11.3 ignores from scratch — this ensures we avoid manual additions.
+    # (Manual additions belong in phpstan.neon; this file should be purely auto-generated ignores.)
+    - composer run phpstan-regenerate-ignores-for-11.3-and-higher
+    - cp phpstan-11.3-and-higher-ignores.neon test-results/
+    - git diff --quiet -- phpstan-11.3-and-higher-ignores.neon && echo "✅ phpstan-11.3-and-higher-ignores.neon in sync." || (echo "❌ phpstan-11.3-and-higher-ignores.neon out of sync." && echo "🙏 Please run composer run phpstan-regenerate-ignores-for-11.3-and-higher or download the file from the CI artifacts, and commit the result." && exit 1)
+  after_script:
+    - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/test-results $CI_PROJECT_DIR/test-results
+  artifacts:
+    expose_as: 'Static tests report'
+    when: always
+    expire_in: 6 mos
+    paths:
+      - test-results/
+    reports:
+      junit:
+        - test-results/phpcs.xml
+        - test-results/phpstan.xml
+
+lint (node):
+  stage: validate
+  image: *image-node
+  needs: []
+  rules:
+    - *push-rule
+    - *mr-rule
+    - *cli-release-rule
+  script:
+    - npm ci
+    - npm run build --workspace=drupal-canvas
+    - npm run lint
+    - |
+      if [ "$E2E_TESTS_ENABLED" != "true" ]; then
+        echo "❌ 'E2E_TESTS_ENABLED' is $E2E_TESTS_ENABLED — E2E tests must not be disabled when merging. Reset it to 'true'."
+        exit 1
+      fi
+
+
+phpunit (11.2 sqlite):
+  rules:
+    - *push-rule
+    - <<: *mr-rule
+      changes:
+        paths: *backend-files
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+    - <<: *mr-rule
+      changes:
+        paths:
+          - .env.defaults
+          - phpunit.xml.dist
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+    - *nightly-rule
+    - *manual-rule
   parallel:
     matrix:
       # The KUBERNETES_CPU_REQUEST and DRUPAL_TEST_CONCURRENCY values match core.
@@ -444,11 +531,11 @@ phpunit (11.2, sqlite):
         - test-results/*.xml
       annotations: test-results/links.json
 
-phpunit (11.2, mariadb 10.6):
-  extends: phpunit (11.2, sqlite)
+phpunit (11.2 mariadb):
+  extends: phpunit (11.2 sqlite)
   # Only run on nightly, not on push to 1.x — the PHPUnit 11.3 CI jobs already test all DBs, do not repeat for 11.2.
   rules:
-    - *is-nightly-scheduled-rule
+    - *nightly-rule
     - *manual-rule
   services:
     - mariadb:10.6
@@ -459,11 +546,11 @@ phpunit (11.2, mariadb 10.6):
     MYSQL_PASSWORD: drupal
     MYSQL_ROOT_PASSWORD: root
 
-phpunit (11.2, pgsql 16):
-  extends: phpunit (11.2, sqlite)
+phpunit (11.2 pgsql):
+  extends: phpunit (11.2 sqlite)
   # Only run on nightly, not on push to 1.x — the PHPUnit 11.3 CI jobs already test all DBs, do not repeat for 11.2.
   rules:
-    - *is-nightly-scheduled-rule
+    - *nightly-rule
     - *manual-rule
   services:
     - postgres:16
@@ -473,11 +560,11 @@ phpunit (11.2, pgsql 16):
     POSTGRES_USER: drupal
     POSTGRES_PASSWORD: drupal
 
-phpunit (11.2, mysql 8):
-  extends: phpunit (11.2, sqlite)
+phpunit (11.2 mysql):
+  extends: phpunit (11.2 sqlite)
   # Only run on nightly, not on push to 1.x — the PHPUnit 11.3 CI jobs already test all DBs, do not repeat for 11.2.
   rules:
-    - *is-nightly-scheduled-rule
+    - *nightly-rule
     - *manual-rule
   services:
     - mysql:8.0
@@ -488,70 +575,38 @@ phpunit (11.2, mysql 8):
     MYSQL_PASSWORD: drupal
     MYSQL_ROOT_PASSWORD: root
 
-phpunit (11.3, sqlite):
-  extends: phpunit (11.2, sqlite)
+phpunit (11.3 sqlite):
+  extends: phpunit (11.2 sqlite)
+  rules:
+    - *nightly-rule
+    - *manual-rule
   variables:
     DRUPAL_CORE: $CORE_NEXT_MINOR
 
-phpunit (11.3, mariadb 10.6):
-  extends: phpunit (11.2, sqlite)
-  services:
-    - mariadb:10.6
+phpunit (11.3 mariadb):
+  extends: phpunit (11.2 mariadb)
   variables:
-    _FOR_EVERY_MR_COMMIT: false
     DRUPAL_CORE: $CORE_NEXT_MINOR
-    SIMPLETEST_DB: mysql://drupal:drupal@127.0.0.1/drupal
-    MYSQL_DATABASE: drupal
-    MYSQL_USER: drupal
-    MYSQL_PASSWORD: drupal
-    MYSQL_ROOT_PASSWORD: root
 
-phpunit (11.3, pgsql 16):
-  extends: phpunit (11.2, sqlite)
-  services:
-    - postgres:16
+phpunit (11.3 pgsql):
+  extends: phpunit (11.2 pgsql)
   variables:
-    _FOR_EVERY_MR_COMMIT: false
     DRUPAL_CORE: $CORE_NEXT_MINOR
-    SIMPLETEST_DB: pgsql://drupal:drupal@127.0.0.1/drupal
-    POSTGRES_DB: drupal
-    POSTGRES_USER: drupal
-    POSTGRES_PASSWORD: drupal
 
-phpunit (11.3, mysql 8):
-  extends: phpunit (11.2, sqlite)
-  services:
-    - mysql:8.0
+phpunit (11.3 mysql):
+  extends: phpunit (11.2 mysql)
   variables:
-    _FOR_EVERY_MR_COMMIT: false
     DRUPAL_CORE: $CORE_NEXT_MINOR
-    SIMPLETEST_DB: mysql://drupal:drupal@127.0.0.1/drupal
-    MYSQL_DATABASE: drupal
-    MYSQL_USER: drupal
-    MYSQL_PASSWORD: drupal
-    MYSQL_ROOT_PASSWORD: root
 
 vitest:
   stage: test
   image: *image-node
-  allow_failure: false
-  needs: []
   rules:
-    - *is-push-rule
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - *push-rule
+    - <<: *mr-rule
       changes:
-        - ui/src/**/*
-        - ui/tsconfig.json
-        - ui/tsconfig.node.json
-        - ui/tests/vitest/**/*
-        - ui/vitest.config.js
-        - ui/vite.config.ts
-        - ui/package.json
-        - package.json
-        - package-lock.json
-        # Workspace packages can affect dependency hoisting to the root node_modules.
-        - packages/*/package.json
-    - *UI-fixtures-files-change-rule
+        paths: *ui-files
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
     - *manual-rule
   script:
     - npm ci
@@ -620,7 +675,17 @@ vitest:
 
 cypress E2E:
   extends: .cypress-base
-  rules: *e2e-ci-job-rules
+  rules:
+    - *push-rule
+    - <<: *mr-e2e-rule
+      changes:
+        paths: *backend-files
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+    - <<: *mr-e2e-rule
+      changes:
+        paths: *ui-files
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+    - *manual-rule
   parallel: 4
   script:
     - npx cypress run --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml" --spec=`node ./tests/support/parallel.js` 2>&1 | tee cypress.log || EXIT_CODE=$?
@@ -640,87 +705,36 @@ cypress unit:
   script:
     - npx cypress run --component --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml"
   rules:
-    - *is-push-rule
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - *push-rule
+    - <<: *mr-rule
       changes:
-        - ui/src/**/*
-        - ui/tsconfig.json
-        - ui/tsconfig.node.json
-        - ui/tests/unit/**/*
-    - *UI-fixtures-files-change-rule
+        paths: *ui-files
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
     - *manual-rule
-
-lint (php):
-  stage: validate
-  needs: []
-  variables:
-    GIT_DEPTH: 1
-    COMPOSER_ROOT_VERSION: 0.0.0
-  cache:
-    - key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
-      fallback_keys:
-        - ${CI_PARENT_PROJECT_NAME}-default-${CI_DEFAULT_BRANCH}
-      paths:
-        - .cache/composer
-        - .cache/npm
-        - .cache/astro
-        - .cache/tsc
-      policy: pull
-    - key: ${CI_PARENT_PROJECT_NAME}-phplint-${CI_COMMIT_REF_NAME}
-      fallback_keys:
-        - ${CI_PARENT_PROJECT_NAME}-phplint-${CI_DEFAULT_BRANCH}
-      paths:
-        - .cache/phpcs
-        - .cache/phpstan
-      policy: pull
-  before_script:
-    - !reference [ .drupal-files-with-dev-dependencies ]
-    - mkdir -p test-results
-  script:
-    # PHPStan doesn't allow multiple outputs, but it will cache the result so
-    # the second run is very fast.
-    - composer run phpstan -- --error-format=junit > test-results/phpstan.xml || true
-    - !reference [ .test_runner ]
-    - run_test "composer validate" "composer validate --strict"
-    - run_test "phpcs" "composer run phpcs"
-    - run_test "phpstan" "composer run phpstan"
-    - !reference [ .test_summary ]
-    # Regenerate the >=11.3 ignores from scratch — this ensures we avoid manual additions.
-    # (Manual additions belong in phpstan.neon; this file should be purely auto-generated ignores.)
-    - composer run phpstan-regenerate-ignores-for-11.3-and-higher
-    - cp phpstan-11.3-and-higher-ignores.neon test-results/
-    - git diff --quiet -- phpstan-11.3-and-higher-ignores.neon && echo "✅ phpstan-11.3-and-higher-ignores.neon in sync." || (echo "❌ phpstan-11.3-and-higher-ignores.neon out of sync." && echo "🙏 Please run composer run phpstan-regenerate-ignores-for-11.3-and-higher or download the file from the CI artifacts, and commit the result." && exit 1)
-  after_script:
-    - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/test-results $CI_PROJECT_DIR/test-results
-  artifacts:
-    expose_as: 'Static tests report'
-    when: always
-    expire_in: 6 mos
-    paths:
-      - test-results/
-    reports:
-      junit:
-        - test-results/phpcs.xml
-        - test-results/phpstan.xml
-
-lint (node):
-  stage: validate
-  image: *image-node
-  needs: []
-  script:
-    - npm ci
-    - npm run build --workspace=drupal-canvas
-    - npm run lint
 
 playwright:
   stage: test
-  needs: []
   parallel:
     matrix:
       - SHARD: [ "1/6", "2/6", "3/6", "4/6", "5/6", "6/6" ]
         #PROJECT: [ "chromium", "firefox", "webkit" ]
-  rules: *e2e-ci-job-rules
-  interruptible: true
+  rules:
+    - *push-rule
+    - <<: *mr-e2e-rule
+      changes:
+        paths: *backend-files
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+    - <<: *mr-e2e-rule
+      changes:
+        paths: *ui-files
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+    - <<: *mr-e2e-rule
+      changes:
+        paths:
+          - tests/fixtures/**/*
+          - tests/src/Playwright/**/*
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+    - *manual-rule
   extends:
     - .test-variables
   cache:
@@ -763,12 +777,12 @@ playwright:
 playwright-reports:
   stage: report
   image: *image-node
-  rules: *e2e-ci-job-rules
+  rules: !reference [playwright, rules]
   needs:
     - playwright
-  cache: []
   when:
     always
+  cache: []
   script:
     - mkdir -p test-results
     - npx playwright merge-reports --reporter=html ./blob-report
@@ -800,21 +814,17 @@ playwright-reports:
 
 CLI Test:
   stage: test
-  needs: []
   rules:
-    - *e2e-tests-must-not-be-disabled-rule
-    - changes:
-        - "packages/cli/**/*"
-        - package.json
-        - package-lock.json
-        - openapi.yml
-        # Everything below is a subset of .backend-files-change-rule.
-        - src/Entity/**/*
-        - src/Controller/**/*
-        # CLI Test checks these components so changes may affect test results.
-        - tests/modules/canvas_test_code_components/**/*
-    - if: '$CI_COMMIT_TAG =~ /^cli-\d+\.\d+\.\d+(-\w+\d*)?$/'
-    - *data-integrity-files-change-rule
+    - *push-rule
+    - <<: *mr-rule
+      changes:
+        paths: *cli-files
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+    - <<: *mr-rule
+      changes:
+        paths: *data-integrity-files
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+    - *cli-release-rule
     - *manual-rule
   variables:
     GIT_DEPTH: 1
@@ -854,7 +864,7 @@ CLI Publish:
     - lint (node)
     - CLI Test
   rules:
-    - if: '$CI_COMMIT_TAG =~ /^cli-\d+\.\d+\.\d+(-\w+\d*)?$/'
+    - *cli-release-rule
   before_script:
     - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
   script:
