@@ -1,11 +1,12 @@
 ---
 title: Code Components - Workbench
-description: Preview Code Components and page specs in a local UI.
+description: Preview Code Components, page specs, and content templates in a local UI.
 ---
 
 Canvas Workbench is a local preview and development app for Drupal Canvas Code
 Components inspired by Storybook. It scans your codebase, lists discovered
-components and pages, and renders previews in an isolated frame.
+components, pages, and content templates, and renders previews in an isolated
+frame.
 
 Workbench has no required configuration. If your project uses the default
 Canvas layout, you can run it from your project root:
@@ -41,6 +42,7 @@ need:
 {
   "componentDir": "./src/components",
   "pagesDir": "./pages",
+  "contentTemplatesDir": "./content-templates",
   "aliasBaseDir": "src",
   "globalCssPath": "./src/components/global.css"
 }
@@ -52,6 +54,7 @@ Workbench reads these options:
 | --- | --- | --- |
 | `componentDir` | `"src/components"` | Root directory Workbench scans for `component.yml`, `*.component.yml`, source files, and mocks. The directory must be inside `aliasBaseDir`. |
 | `pagesDir` | `"./pages"` | Directory Workbench scans for page specs such as `pages/home.json`. |
+| `contentTemplatesDir` | `"./content-templates"` | Directory Workbench scans for content template specs such as `content-templates/node.article.full.json`. |
 | `aliasBaseDir` | `"src"` | Base directory for resolving `@/` imports inside component source files. |
 | `globalCssPath` | `"./src/components/global.css"` | Global CSS entrypoint loaded into the preview iframe. This is where Workbench picks up shared styles and Tailwind setup. |
 
@@ -72,10 +75,11 @@ Workbench looks for the following files in your project:
   - optional CSS entries: `index.css` or `<name>.css`
 - Component mocks: `mocks.json` and `*.mocks.json`
 - Page specs: `pages/*.json`
+- Content template specs: `content-templates/*.json`
 
-Workbench only discovers those files inside the configured `componentDir` and
-`pagesDir`. Files elsewhere in the repository are ignored until you update
-`canvas.config.json` to point at that tree.
+Workbench only discovers those files inside the configured `componentDir`,
+`pagesDir`, and `contentTemplatesDir`. Files elsewhere in the repository are
+ignored until you update `canvas.config.json` to point at that tree.
 
 ## Component preview behavior
 
@@ -100,3 +104,6 @@ To add tabbed mock previews, see
 
 To add page specs for page previews, see
 [Code Components - Workbench pages](/code-components/workbench/pages).
+
+To add content template specs for entity previews, see
+[Code Components - Workbench content templates](/code-components/workbench/content-templates).

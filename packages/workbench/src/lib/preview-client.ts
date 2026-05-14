@@ -36,3 +36,57 @@ export async function fetchPreviewPageSpec(
   const data = (await response.json()) as Spec;
   return data;
 }
+
+export interface ContentTemplatePreviewMetadata {
+  label: string;
+  entityTypeId: string;
+  bundle: string;
+  viewMode: string;
+}
+
+export interface ContentTemplatePreviewResponse {
+  spec: Spec;
+  metadata: ContentTemplatePreviewMetadata;
+}
+
+export async function fetchPreviewContentTemplateSpec(
+  slug: string,
+  signal?: AbortSignal,
+): Promise<ContentTemplatePreviewResponse> {
+  const response = await fetch(
+    `/__canvas/content-template-preview-spec?${new URLSearchParams({ slug }).toString()}`,
+    { signal },
+  );
+
+  if (!response.ok) {
+    const errorBody = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    throw new Error(
+      errorBody?.error ??
+        `Content template preview request failed with status ${response.status}.`,
+    );
+  }
+
+  const data = (await response.json()) as ContentTemplatePreviewResponse;
+  return data;
+}
+
+export interface WorkbenchConfig {
+  siteUrl: string | null;
+}
+
+export async function fetchWorkbenchConfig(
+  signal?: AbortSignal,
+): Promise<WorkbenchConfig> {
+  const response = await fetch('/__canvas/workbench-config', { signal });
+
+  if (!response.ok) {
+    throw new Error(
+      `Workbench config request failed with status ${response.status}.`,
+    );
+  }
+
+  const data = (await response.json()) as WorkbenchConfig;
+  return data;
+}

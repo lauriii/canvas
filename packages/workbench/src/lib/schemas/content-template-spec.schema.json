@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Canvas content template spec",
+  "description": "Authored Canvas content template format. Workbench normalizes this into an @json-render/react-compatible spec by synthesizing the canvas:component-tree root wrapper. Bindings are expressed as prop-source objects: `{\"sourceType\": \"entity-field\", \"expression\": \"…\"}` for field bindings, `{\"sourceType\": \"host-entity-url\", \"absolute\": false}` for the host entity URL, etc. Plain literal values (strings, numbers, booleans, objects without a `sourceType` key) are sent as-is — Drupal wraps them as static prop sources at resolve time.",
+  "type": "object",
+  "required": [
+    "label",
+    "entityType",
+    "bundle",
+    "viewMode",
+    "elements"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional JSON Schema reference for editor tooling."
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable label. Workbench shows this in the sidebar."
+    },
+    "entityType": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Entity type the template targets (e.g. node)."
+    },
+    "bundle": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Entity bundle the template targets (e.g. article)."
+    },
+    "viewMode": {
+      "type": "string",
+      "minLength": 1,
+      "description": "View mode the template targets (e.g. full, teaser)."
+    },
+    "elements": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "Authored template elements. Workbench preserves key insertion order when synthesizing canvas:component-tree children.",
+      "propertyNames": {
+        "not": {
+          "const": "canvas:component-tree"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/element"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "not": {
+    "required": ["root"]
+  },
+  "$defs": {
+    "element": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "props": {
+          "type": "object",
+          "description": "Prop values keyed by prop name. Each value is either a literal (string/number/boolean/array/null/object without `sourceType`) or a prop-source object (object containing a string `sourceType` field).",
+          "additionalProperties": {
+            "$ref": "#/$defs/propValue"
+          }
+        },
+        "slots": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "_provenance": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "propValue": {
+      "description": "A literal value or a prop-source object.",
+      "examples": [
+        "Hello, world",
+        42,
+        true,
+        {
+          "sourceType": "entity-field",
+          "expression": "ℹ︎␜entity:node:article␝title␞␟value"
+        },
+        { "sourceType": "host-entity-url", "absolute": false }
+      ],
+      "oneOf": [
+        {
+          "not": {
+            "type": "object",
+            "required": ["sourceType"]
+          }
+        },
+        {
+          "$ref": "#/$defs/propSource"
+        }
+      ]
+    },
+    "propSource": {
+      "type": "object",
+      "required": ["sourceType"],
+      "properties": {
+        "sourceType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Prop source discriminator. Either a bare type (`entity-field`, `host-entity-url`, `default-relative-url`) or a colon-prefixed form (`static:<field_type>:<column>`, `adapter:<plugin_id>`)."
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

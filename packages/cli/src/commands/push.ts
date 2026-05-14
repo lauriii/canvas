@@ -19,6 +19,11 @@ import {
   updateConfigFromOptions,
 } from '../utils/command-helpers';
 import {
+  collectContentTemplateResults,
+  prepareContentTemplates,
+  pushContentTemplates,
+} from '../utils/prepare-content-templates-push';
+import {
   collectPageResults,
   preparePages,
   pushPages,
@@ -29,6 +34,7 @@ import {
 } from '../utils/prepare-push';
 import { reportResults } from '../utils/report-results';
 import { createProgressCallback, processInPool } from '../utils/request-pool';
+import { validateContentTemplates } from '../utils/validate-content-template';
 import { validatePages } from '../utils/validate-page';
 
 import type { Command } from 'commander';
@@ -39,6 +45,7 @@ import type {
   UploadedArtifact,
   UploadedArtifactResult,
 } from '../types/Component.js';
+import type { ContentTemplateListItem } from '../types/ContentTemplate.js';
 import type { PageListItem } from '../types/Page.js';
 import type { Result } from '../types/Result.js';
 
@@ -48,6 +55,7 @@ interface PushOptions {
   siteUrl?: string;
   scope?: string;
   includePages?: boolean;
+  includeContentTemplates?: boolean;
   includeBrandKit?: boolean;
   dir?: string;
   yes?: boolean;
@@ -284,6 +292,15 @@ export function pushCommand(program: Command): void {
     )
     .addOption(
       new Option(
+        '--include-content-templates [enabled]',
+        'Include content templates in the push operation',
+      )
+        .preset('true')
+        .argParser(parseBooleanOption)
+        .default(undefined),
+    )
+    .addOption(
+      new Option(
         '--include-brand-kit [enabled]',
         'Include brand kit (fonts) in the push operation',
       )
@@ -305,25 +322,34 @@ export function pushCommand(program: Command): void {
         const config = getConfig();
         const { componentDir, aliasBaseDir, outputDir } = config;
         const includesPages = config.includePages;
+        const includesContentTemplates = config.includeContentTemplates;
         const includesBrandKit = config.includeBrandKit;
         const hasBrandKitFontsConfig = config.fonts !== undefined;
-        // Step 1. Discover all components and pages.
+        // Step 1. Discover all components, pages, and content templates.
         const discoveryResult = await discoverCanvasProject({
           componentRoot: componentDir,
           pagesRoot: config.pagesDir,
+          contentTemplatesRoot: config.contentTemplatesDir,
           projectRoot: process.cwd(),
         });
         const {
           components,
           pages: allDiscoveredPages,
+          contentTemplates: allDiscoveredContentTemplates,
           warnings,
         } = discoveryResult;
         const discoveredPages = includesPages ? allDiscoveredPages : [];
         const hasIgnoredPages = !includesPages && allDiscoveredPages.length > 0;
+        const discoveredContentTemplates = includesContentTemplates
+          ? allDiscoveredContentTemplates
+          : [];
+        const hasIgnoredContentTemplates =
+          !includesContentTemplates && allDiscoveredContentTemplates.length > 0;
 
         if (
           components.length === 0 &&
           discoveredPages.length === 0 &&
+          discoveredContentTemplates.length === 0 &&
           !(includesBrandKit && hasBrandKitFontsConfig)
         ) {
           if (hasIgnoredPages) {
@@ -331,7 +357,12 @@ export function pushCommand(program: Command): void {
               'Ignoring local pages. Use --include-pages or set CANVAS_INCLUDE_PAGES=true to push them.',
             );
           }
-          p.log.warn('No components or pages found.');
+          if (hasIgnoredContentTemplates) {
+            p.log.info(
+              'Ignoring local content templates. Use --include-content-templates or set CANVAS_INCLUDE_CONTENT_TEMPLATES=true to push them.',
+            );
+          }
+          p.log.warn('No components, pages, or content templates found.');
           p.outro('Push aborted (nothing to push)');
           return;
         }
@@ -339,11 +370,12 @@ export function pushCommand(program: Command): void {
         if (
           components.length === 0 &&
           discoveredPages.length === 0 &&
+          discoveredContentTemplates.length === 0 &&
           includesBrandKit &&
           hasBrandKitFontsConfig
         ) {
           p.log.info(
-            'No components or pages found; syncing Brand Kit fonts from canvas.brand-kit.json.',
+            'No components, pages, or content templates found; syncing Brand Kit fonts from canvas.brand-kit.json.',
           );
         }
 
@@ -354,6 +386,12 @@ export function pushCommand(program: Command): void {
         if (hasIgnoredPages && components.length > 0) {
           p.log.info(
             'Ignoring local pages. Use --include-pages or set CANVAS_INCLUDE_PAGES=true to push them.',
+          );
+        }
+
+        if (hasIgnoredContentTemplates && components.length > 0) {
+          p.log.info(
+            'Ignoring local content templates. Use --include-content-templates or set CANVAS_INCLUDE_CONTENT_TEMPLATES=true to push them.',
           );
         }
 
@@ -381,6 +419,19 @@ export function pushCommand(program: Command): void {
         const remotePageByUuid = new Map<string, PageListItem>();
         for (const remotePage of Object.values(remotePages)) {
           remotePageByUuid.set(remotePage.uuid, remotePage);
+        }
+
+        // Fetch remote content templates early for the planned summary.
+        const remoteContentTemplates =
+          includesContentTemplates && discoveredContentTemplates.length > 0
+            ? await apiService.listContentTemplates()
+            : {};
+        const remoteContentTemplateById = new Map<
+          string,
+          ContentTemplateListItem
+        >();
+        for (const remote of Object.values(remoteContentTemplates)) {
+          remoteContentTemplateById.set(remote.id, remote);
         }
 
         // Build a preview of planned operations.
@@ -423,6 +474,26 @@ export function pushCommand(program: Command): void {
               },
             ],
           })),
+          ...discoveredContentTemplates.map((template) => {
+            const hasFullId =
+              template.entityTypeId && template.bundle && template.viewMode;
+            const templateId = hasFullId
+              ? `${template.entityTypeId}.${template.bundle}.${template.viewMode}`
+              : null;
+            return {
+              itemName: template.label ?? template.name,
+              itemType: 'Content template',
+              success: true,
+              details: [
+                {
+                  content:
+                    templateId && remoteContentTemplateById.has(templateId)
+                      ? operationLabels.update
+                      : operationLabels.create,
+                },
+              ],
+            };
+          }),
           ...(includesBrandKit && config.fonts !== undefined
             ? buildFontPushPlannedResults(config.fonts, remoteBrandKitFonts, {
                 create: operationLabels.create,
@@ -691,6 +762,101 @@ export function pushCommand(program: Command): void {
           }
         }
 
+        // Validate and push content templates.
+        let pushedContentTemplateCount = 0;
+        if (discoveredContentTemplates.length > 0) {
+          const ctValidationSpinner = p.spinner();
+          ctValidationSpinner.start(
+            `Validating ${discoveredContentTemplates.length} ${pluralize(discoveredContentTemplates.length, 'content template')}`,
+          );
+
+          const { results: ctValidationResults } =
+            await validateContentTemplates(discoveryResult, { apiService });
+
+          ctValidationSpinner.stop(
+            chalk.green(
+              `Validated ${discoveredContentTemplates.length} ${pluralize(discoveredContentTemplates.length, 'content template')}`,
+            ),
+          );
+
+          if (ctValidationResults.some((r) => !r.success)) {
+            reportResults(
+              ctValidationResults,
+              'Content template validation results',
+              'Content template',
+            );
+            throw new Error(
+              'Content template validation failed. Fix the errors above before pushing.',
+            );
+          }
+
+          const componentVersions = await apiService.listComponentVersions();
+
+          const ctSpinner = p.spinner();
+          ctSpinner.start('Preparing content templates');
+
+          const { valid: validTemplates, failed: failedCtPreps } =
+            await prepareContentTemplates(
+              discoveredContentTemplates,
+              componentVersions,
+              discoveryResult,
+            );
+
+          if (validTemplates.length === 0 && failedCtPreps.length > 0) {
+            ctSpinner.stop(chalk.yellow('No valid content templates to push'));
+            const ctResults = collectContentTemplateResults(
+              [],
+              failedCtPreps,
+              discoveredContentTemplates,
+            );
+            reportResults(
+              ctResults,
+              'Pushed content templates',
+              'Content template',
+            );
+          } else if (validTemplates.length > 0) {
+            const ctProgress = createProgressCallback(
+              ctSpinner,
+              'Pushing content templates',
+              validTemplates.length,
+            );
+            ctSpinner.message('Pushing content templates');
+
+            const ctPushResults = await pushContentTemplates(
+              validTemplates,
+              remoteContentTemplateById,
+              apiService,
+            );
+
+            for (const r of ctPushResults) {
+              if (r.success) ctProgress();
+            }
+            pushedContentTemplateCount = ctPushResults.filter(
+              (r) => r.success,
+            ).length;
+
+            ctSpinner.stop(
+              chalk.green(
+                `Processed ${ctPushResults.length} ${pluralize(ctPushResults.length, 'content template')}`,
+              ),
+            );
+
+            const ctResults = collectContentTemplateResults(
+              ctPushResults,
+              failedCtPreps,
+              discoveredContentTemplates,
+            );
+
+            reportResults(
+              ctResults,
+              'Pushed content templates',
+              'Content template',
+            );
+          } else {
+            ctSpinner.stop(chalk.yellow('No valid content templates to push'));
+          }
+        }
+
         await apiService.signalPushComplete();
         const componentCount = components.length;
         const parts = [];
@@ -700,6 +866,14 @@ export function pushCommand(program: Command): void {
         if (discoveredPages.length > 0) {
           parts.push(
             `${discoveredPages.length} ${pluralize(discoveredPages.length, 'page')}`,
+          );
+        }
+        if (pushedContentTemplateCount > 0) {
+          parts.push(
+            `${pushedContentTemplateCount} ${pluralize(
+              pushedContentTemplateCount,
+              'content template',
+            )}`,
           );
         }
         if (includeGlobalCss) {

@@ -37,6 +37,7 @@ export function updateConfigFromOptions(options: {
   dir?: string;
   scope?: string;
   includePages?: boolean;
+  includeContentTemplates?: boolean;
   includeBrandKit?: boolean;
   all?: boolean;
   aliasBaseDir?: string;
@@ -47,36 +48,27 @@ export function updateConfigFromOptions(options: {
   if (options.siteUrl) setConfig({ siteUrl: options.siteUrl });
   if (options.dir) setConfig({ componentDir: options.dir });
   if (typeof options.includePages === 'boolean') {
-    const currentConfig = getConfig();
     setConfig({ includePages: options.includePages });
-    if (
-      !options.scope &&
-      !process.env.CANVAS_SCOPE &&
-      usesManagedDefaultScope(currentConfig.scope)
-    ) {
-      setConfig({
-        scope: getDefaultScope(
-          options.includePages,
-          currentConfig.includeBrandKit,
-        ),
-      });
-    }
+  }
+  if (typeof options.includeContentTemplates === 'boolean') {
+    setConfig({ includeContentTemplates: options.includeContentTemplates });
   }
   if (typeof options.includeBrandKit === 'boolean') {
-    const currentConfig = getConfig();
     setConfig({ includeBrandKit: options.includeBrandKit });
-    if (
-      !options.scope &&
-      !process.env.CANVAS_SCOPE &&
-      usesManagedDefaultScope(currentConfig.scope)
-    ) {
-      setConfig({
-        scope: getDefaultScope(
-          currentConfig.includePages,
-          options.includeBrandKit,
-        ),
-      });
-    }
+  }
+  const currentConfig = getConfig();
+  if (
+    !options.scope &&
+    !process.env.CANVAS_SCOPE &&
+    usesManagedDefaultScope(currentConfig.scope)
+  ) {
+    setConfig({
+      scope: getDefaultScope(
+        currentConfig.includePages,
+        currentConfig.includeBrandKit,
+        currentConfig.includeContentTemplates,
+      ),
+    });
   }
   if (options.scope) setConfig({ scope: options.scope });
   if (options.all) setConfig({ all: options.all });

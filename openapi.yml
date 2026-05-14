@@ -735,6 +735,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ContentTemplate'
+    patch:
+      summary: Updates a specific Content Template.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      requestBody:
+        description: Properties to update on the Content Template.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContentTemplate'
+      responses:
+        '200':
+          description: Updated Content Template.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentTemplate'
     delete:
       summary: Deletes a ContentTemplate.
       parameters:
@@ -1692,6 +1710,63 @@ paths:
               schema:
                 type: object
                 description: A Drupal AJAX response.
+  '/canvas/api/v0/layout-content-template-draft/{entityTypeId}/{entityId}':
+    description: >
+      Resolves a content template draft (provided in the request body) against
+      a preview entity, returning evaluated input values, for use in consumers
+      that provide their own renderer.
+    parameters:
+      - $ref: '#/components/parameters/entityTypeId'
+      - $ref: '#/components/parameters/entityId'
+    post:
+      summary: Resolves a content template draft against a preview entity.
+      requestBody:
+        description: The content template draft to resolve.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - bundle
+                - viewMode
+              properties:
+                bundle:
+                  type: string
+                  description: The content entity bundle the template targets.
+                viewMode:
+                  type: string
+                  description: The view mode the template targets.
+                component_tree:
+                  $ref: '#/components/schemas/ComponentTree'
+                  description: The component tree to resolve. Defaults to empty.
+      responses:
+        '200':
+          description: The resolved draft model keyed by component instance UUID.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - model
+                properties:
+                  model:
+                    $ref: '#/components/schemas/Model'
+        '400':
+          description: Malformed request body or mismatched bundle.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
   '/canvas/api/v0/layout-content-template/{configEntityId}/{entityId}':
     description: Layout content template endpoints for managing layout components with preview entity context
     parameters:
@@ -3699,6 +3774,23 @@ components:
         viewMode:
           type: string
           description: Drupal View Mode
+        status:
+          type: boolean
+          description: ContentTemplate entity status. Defaults to false (disabled) when omitted.
+        component_tree:
+          $ref: '#/components/schemas/ComponentTree'
+          description: Initial component tree. Defaults to an empty tree when omitted.
+    UpdateContentTemplate:
+      title: ContentTemplate fields the client may PATCH on the server side.
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: boolean
+          description: ContentTemplate entity status.
+        component_tree:
+          $ref: '#/components/schemas/ComponentTree'
+          description: Replacement component tree.
     Extension:
       title: Canvas Extension metadata
       description: Canvas Extension metadata
@@ -3980,6 +4072,7 @@ components:
         - suggestedPreviewEntityId
         - label
         - viewModeLabel
+        - component_tree
       properties:
         entityType:
           type: string
@@ -4005,6 +4098,44 @@ components:
         viewModeLabel:
           type: string
           description: Entity View Mode label.
+        component_tree:
+          $ref: '#/components/schemas/ComponentTree'
+          description: The persisted component tree.
+    ComponentTree:
+      title: A flat array of component tree items.
+      description: >
+        The stored component tree as a flat array of items.
+      type: array
+      items:
+        type: object
+        required:
+          - uuid
+          - component_id
+          - component_version
+        properties:
+          uuid:
+            type: string
+            format: uuid
+            description: Unique identifier of this component instance.
+          component_id:
+            type: string
+            description: The component config entity ID.
+          component_version:
+            type: string
+            description: The component version hash.
+          parent_uuid:
+            type: [ 'null', string ]
+            format: uuid
+            description: UUID of the parent component (null for root items).
+          slot:
+            type: [ 'null', string ]
+            description: The slot name in the parent component (null for root items).
+          inputs:
+            type: [ 'null', object ]
+            description: The component input values (prop sources).
+          label:
+            type: [ 'null', string ]
+            description: Optional label for the component instance.
   # @see https://spec.openapis.org/oas/v3.1.0.html#response-object
   responses:
     ContentEntityResponse:

@@ -2,7 +2,8 @@
 
 Canvas Workbench is a local preview and development app for Drupal Canvas Code
 Components, inspired by Storybook. It scans your project, lists discovered
-components and pages, and renders previews in an isolated frame.
+components, pages, and content templates, and renders previews in an isolated
+frame.
 
 Workbench has no required configuration. If your project uses the default Canvas
 layout, you can run it from your project root:
@@ -41,6 +42,7 @@ need:
 {
   "componentDir": "./src/components",
   "pagesDir": "./pages",
+  "contentTemplatesDir": "./content-templates",
   "aliasBaseDir": "src",
   "globalCssPath": "./src/components/global.css"
 }
@@ -48,12 +50,13 @@ need:
 
 Workbench reads these options:
 
-| Property        | Default                         | Used for                                                                                                                          |
-| --------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `componentDir`  | `"src/components"`              | Root directory Workbench scans for `component.yml`, `*.component.yml`, source files, and mocks. It must be inside `aliasBaseDir`. |
-| `pagesDir`      | `"./pages"`                     | Directory Workbench scans for page specs such as `pages/home.json`.                                                               |
-| `aliasBaseDir`  | `"src"`                         | Base directory for resolving `@/` imports inside component source files.                                                          |
-| `globalCssPath` | `"./src/components/global.css"` | Global CSS entrypoint loaded into the preview iframe. This is where Workbench picks up shared styles and Tailwind setup.          |
+| Property              | Default                         | Used for                                                                                                                          |
+| --------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `componentDir`        | `"src/components"`              | Root directory Workbench scans for `component.yml`, `*.component.yml`, source files, and mocks. It must be inside `aliasBaseDir`. |
+| `pagesDir`            | `"./pages"`                     | Directory Workbench scans for page specs such as `pages/home.json`.                                                               |
+| `contentTemplatesDir` | `"./content-templates"`         | Directory Workbench scans for content template specs such as `content-templates/node.article.full.json`.                          |
+| `aliasBaseDir`        | `"src"`                         | Base directory for resolving `@/` imports inside component source files.                                                          |
+| `globalCssPath`       | `"./src/components/global.css"` | Global CSS entrypoint loaded into the preview iframe. This is where Workbench picks up shared styles and Tailwind setup.          |
 
 If `canvas.config.json` is not present, Workbench uses those defaults.
 `outputDir` is part of the wider Canvas config surface, but Workbench does not

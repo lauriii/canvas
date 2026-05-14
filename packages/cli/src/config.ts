@@ -79,6 +79,7 @@ export interface Config {
   scope: string;
   userAgent: string;
   includePages: boolean;
+  includeContentTemplates: boolean;
   includeBrandKit: boolean;
   all?: boolean;
   // The following properties are loaded from canvas.config.json.
@@ -86,6 +87,7 @@ export interface Config {
   outputDir: string;
   componentDir: string;
   pagesDir: string;
+  contentTemplatesDir: string;
   deprecatedComponentDir: string;
   globalCssPath: string;
   fonts?: FontsConfig;
@@ -132,18 +134,17 @@ const {
   outputDir,
   componentDir,
   pagesDir,
+  contentTemplatesDir,
   deprecatedComponentDir,
   globalCssPath,
 } = resolveCanvasConfig({ hostRoot: process.cwd() });
 
 export const DEFAULT_INCLUDE_PAGES = false;
+export const DEFAULT_INCLUDE_CONTENT_TEMPLATES = false;
 export const DEFAULT_INCLUDE_BRAND_KIT = false;
 
-const DEFAULT_SCOPE =
+const BASE_SCOPE =
   'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view';
-const DEFAULT_SCOPE_WITH_PAGES = `${DEFAULT_SCOPE} canvas:page:create canvas:page:read canvas:page:edit`;
-const DEFAULT_SCOPE_WITH_BRAND_KIT = `${DEFAULT_SCOPE} canvas:brand_kit`;
-const DEFAULT_SCOPE_WITH_PAGES_AND_BRAND_KIT = `${DEFAULT_SCOPE_WITH_PAGES} canvas:brand_kit`;
 
 export function parseBooleanSetting(value: string): boolean | undefined {
   const normalizedValue = value.trim().toLowerCase();
@@ -162,27 +163,40 @@ export function parseBooleanSetting(value: string): boolean | undefined {
 export function getDefaultScope(
   includePages: boolean,
   includeBrandKit: boolean = false,
+  includeContentTemplates: boolean = false,
 ): string {
-  if (includePages && includeBrandKit) {
-    return DEFAULT_SCOPE_WITH_PAGES_AND_BRAND_KIT;
-  }
+  const parts = [BASE_SCOPE];
   if (includePages) {
-    return DEFAULT_SCOPE_WITH_PAGES;
+    parts.push('canvas:page:create canvas:page:read canvas:page:edit');
+  }
+  if (includeContentTemplates) {
+    parts.push('canvas:content_template');
   }
   if (includeBrandKit) {
-    return DEFAULT_SCOPE_WITH_BRAND_KIT;
+    parts.push('canvas:brand_kit');
   }
-  return DEFAULT_SCOPE;
+  return parts.join(' ');
 }
 
 export function usesManagedDefaultScope(scope: string): boolean {
-  return (
-    scope.length === 0 ||
-    scope === DEFAULT_SCOPE ||
-    scope === DEFAULT_SCOPE_WITH_PAGES ||
-    scope === DEFAULT_SCOPE_WITH_BRAND_KIT ||
-    scope === DEFAULT_SCOPE_WITH_PAGES_AND_BRAND_KIT
-  );
+  if (scope.length === 0) return true;
+  const tokens = new Set(scope.split(/\s+/));
+  const baseTokens = BASE_SCOPE.split(/\s+/);
+  const optionalTokens = [
+    'canvas:page:create',
+    'canvas:page:read',
+    'canvas:page:edit',
+    'canvas:content_template',
+    'canvas:brand_kit',
+  ];
+  for (const token of baseTokens) {
+    if (!tokens.has(token)) return false;
+    tokens.delete(token);
+  }
+  for (const token of tokens) {
+    if (!optionalTokens.includes(token)) return false;
+  }
+  return true;
 }
 
 function getEnvBoolean(value: string | undefined, fallback: boolean): boolean {
@@ -198,6 +212,11 @@ const includePages = getEnvBoolean(
   DEFAULT_INCLUDE_PAGES,
 );
 
+const includeContentTemplates = getEnvBoolean(
+  process.env.CANVAS_INCLUDE_CONTENT_TEMPLATES,
+  DEFAULT_INCLUDE_CONTENT_TEMPLATES,
+);
+
 const includeBrandKit = getEnvBoolean(
   process.env.CANVAS_INCLUDE_BRAND_KIT,
   DEFAULT_INCLUDE_BRAND_KIT,
@@ -208,14 +227,17 @@ let config: Config = {
   clientId: process.env.CANVAS_CLIENT_ID || '',
   clientSecret: process.env.CANVAS_CLIENT_SECRET || '',
   scope:
-    process.env.CANVAS_SCOPE || getDefaultScope(includePages, includeBrandKit),
+    process.env.CANVAS_SCOPE ||
+    getDefaultScope(includePages, includeBrandKit, includeContentTemplates),
   userAgent: process.env.CANVAS_USER_AGENT || '',
   includePages,
+  includeContentTemplates,
   includeBrandKit,
   aliasBaseDir: aliasBaseDir,
   outputDir: outputDir,
   componentDir: componentDir,
   pagesDir: pagesDir,
+  contentTemplatesDir: contentTemplatesDir,
   // We need this because the old commands use './components' as a default.
   deprecatedComponentDir: deprecatedComponentDir,
   globalCssPath: globalCssPath,

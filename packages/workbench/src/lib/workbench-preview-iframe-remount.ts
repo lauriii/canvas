@@ -1,3 +1,4 @@
+import { isTopLevelContentTemplateSpecPath } from './content-template-spec-path';
 import { isTopLevelPageSpecPath } from './page-spec-path';
 
 import type { DiscoveryResult } from './discovery-client';
@@ -5,8 +6,8 @@ import type { PreviewManifest } from './preview-contract';
 
 /**
  * Stable structural fingerprint for discovery + manifest: global CSS URL, sorted
- * component names, sorted page slugs. Content edits to an existing page JSON file
- * should not change this string.
+ * component names, sorted page slugs, sorted content-template slugs. Content
+ * edits to an existing JSON file should not change this string.
  */
 export function computeWorkbenchStructuralFingerprint(
   discovery: DiscoveryResult,
@@ -21,7 +22,11 @@ export function computeWorkbenchStructuralFingerprint(
     .map((page) => page.slug)
     .sort()
     .join('\0');
-  return `${globalCss}\n${componentNames}\n${pageSlugs}`;
+  const contentTemplateSlugs = [...discovery.contentTemplates]
+    .map((template) => template.slug)
+    .sort()
+    .join('\0');
+  return `${globalCss}\n${componentNames}\n${pageSlugs}\n${contentTemplateSlugs}`;
 }
 
 export interface WorkbenchHotPayload {
@@ -50,7 +55,10 @@ export function shouldSkipWorkbenchIframeRemount(params: {
     return false;
   }
 
-  if (!isTopLevelPageSpecPath(payload.filePath)) {
+  if (
+    !isTopLevelPageSpecPath(payload.filePath) &&
+    !isTopLevelContentTemplateSpecPath(payload.filePath)
+  ) {
     return false;
   }
 

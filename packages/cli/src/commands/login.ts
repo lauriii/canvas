@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import open from 'open';
 import * as p from '@clack/prompts';
+import { removeTokenEntry, setTokenEntry } from '@drupal-canvas/auth';
 
 import {
   getConfig,
@@ -8,7 +9,6 @@ import {
   promptForConfig,
   setConfig,
 } from '../config.js';
-import { removeTokenEntry, setTokenEntry } from '../lib/token-store.js';
 import {
   DEFAULT_CALLBACK_PORT,
   deriveCodeChallenge,

@@ -21,17 +21,20 @@ import {
   pluralizeComponent,
   updateConfigFromOptions,
 } from '../utils/command-helpers';
+import { contentTemplateToAuthored } from '../utils/content-templates';
 import { ensureTailwindImportAtTop } from '../utils/ensure-global-css-tailwind-import';
 import { pageToAuthoredSpec } from '../utils/pages';
 import { reportResults } from '../utils/report-results';
 
 import type {
   DiscoveredComponent,
+  DiscoveredContentTemplate,
   DiscoveredPage,
 } from '@drupal-canvas/discovery';
 import type { Command } from 'commander';
 import type { ApiService } from '../services/api';
 import type { Component } from '../types/Component';
+import type { ContentTemplateListItem } from '../types/ContentTemplate';
 import type { Metadata } from '../types/Metadata';
 import type { PageListItem } from '../types/Page';
 import type { Result } from '../types/Result';
@@ -42,6 +45,7 @@ interface PullOptions {
   siteUrl?: string;
   scope?: string;
   includePages?: boolean;
+  includeContentTemplates?: boolean;
   includeBrandKit?: boolean;
   dir?: string;
   yes?: boolean;
@@ -371,6 +375,103 @@ export function createPagesPullTask(
   };
 }
 
+export function createContentTemplatesPullTask(
+  apiService: ApiService,
+  contentTemplatesDir: string,
+  skipOverwrite: boolean,
+): PullTask {
+  let templates: Record<string, ContentTemplateListItem> = {};
+  const localById = new Map<string, DiscoveredContentTemplate>();
+
+  return {
+    async prepare(): Promise<PullTaskPrepareResult> {
+      const [fetchedTemplates, discoveryResult] = await Promise.all([
+        apiService.listContentTemplates(),
+        discoverCanvasProject({ contentTemplatesRoot: contentTemplatesDir }),
+      ]);
+
+      templates = fetchedTemplates;
+
+      for (const discovered of discoveryResult.contentTemplates) {
+        localById.set(discovered.slug, discovered);
+      }
+
+      const total = Object.keys(templates).length;
+      if (total === 0) return { summaryLines: [], localOnlyCount: 0 };
+
+      const existingCount = Object.values(templates).filter((template) =>
+        localById.has(template.id),
+      ).length;
+      const newCount = total - existingCount;
+
+      const lines = [
+        formatSummaryLine('content template', total, newCount, existingCount),
+      ];
+      return { summaryLines: lines, localOnlyCount: 0 };
+    },
+
+    async execute(): Promise<PullTaskResult> {
+      const results: Result[] = [];
+
+      for (const listItem of Object.values(templates)) {
+        try {
+          const discovered = localById.get(listItem.id);
+
+          if (discovered && skipOverwrite) {
+            results.push({
+              itemName: listItem.label,
+              success: true,
+              details: [{ content: 'Skipped (already exists)' }],
+            });
+            continue;
+          }
+
+          const fullTemplate = await apiService.getContentTemplate(listItem.id);
+
+          const authored = contentTemplateToAuthored(fullTemplate);
+
+          const filePath =
+            discovered?.path ??
+            path.join(contentTemplatesDir, `${listItem.id}.json`);
+          const resolvedDir = path.resolve(contentTemplatesDir);
+          if (!path.resolve(filePath).startsWith(resolvedDir + path.sep)) {
+            throw new Error(
+              `Content template ID "${listItem.id}" resolves outside the content templates directory.`,
+            );
+          }
+          await fs.mkdir(path.dirname(filePath), { recursive: true });
+          await fs.writeFile(
+            filePath,
+            JSON.stringify(authored, null, 2) + '\n',
+            'utf-8',
+          );
+
+          results.push({
+            itemName: listItem.label,
+            success: true,
+          });
+        } catch (error) {
+          results.push({
+            itemName: listItem.label,
+            success: false,
+            details: [
+              {
+                content: error instanceof Error ? error.message : String(error),
+              },
+            ],
+          });
+        }
+      }
+
+      return {
+        results,
+        title: 'Pulled content templates',
+        label: 'Content template',
+      };
+    },
+  };
+}
+
 export function createAssetsPullTask(
   apiService: ApiService,
   globalCssPath: string,
@@ -532,6 +633,15 @@ export function pullCommand(program: Command): void {
     )
     .addOption(
       new Option(
+        '--include-content-templates [enabled]',
+        'Include content templates in the pull operation',
+      )
+        .preset('true')
+        .argParser(parseBooleanOption)
+        .default(undefined),
+    )
+    .addOption(
+      new Option(
         '--include-brand-kit [enabled]',
         'Include brand kit (fonts) in the pull operation',
       )
@@ -554,12 +664,14 @@ export function pullCommand(program: Command): void {
         const config = getConfig();
         const apiService = await createApiService();
         const includesPages = config.includePages;
+        const includesContentTemplates = config.includeContentTemplates;
         const includesBrandKit = config.includeBrandKit;
 
         const s = p.spinner();
         const contentParts: string[] = ['components', 'global CSS'];
         if (includesBrandKit) contentParts.push('fonts');
         if (includesPages) contentParts.push('pages');
+        if (includesContentTemplates) contentParts.push('content templates');
         const contentLabel = contentParts.join(', ');
 
         // Build pull tasks.
@@ -586,6 +698,16 @@ export function pullCommand(program: Command): void {
             createPagesPullTask(
               apiService,
               config.pagesDir,
+              options.skipOverwrite ?? false,
+            ),
+          );
+        }
+
+        if (includesContentTemplates) {
+          tasks.push(
+            createContentTemplatesPullTask(
+              apiService,
+              path.resolve(projectRoot, config.contentTemplatesDir),
               options.skipOverwrite ?? false,
             ),
           );

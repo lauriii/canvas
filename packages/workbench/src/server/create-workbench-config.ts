@@ -8,6 +8,7 @@ import {
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 
+import { createAuthProxy } from './auth-proxy';
 import { createWorkbenchPlugin } from './create-workbench-plugin';
 import { resolveWorkbenchPaths } from './paths';
 
@@ -18,15 +19,18 @@ export interface CreateWorkbenchConfigOptions {
   useWorkbenchSourceAlias?: boolean;
 }
 
-export function createWorkbenchConfig(
+export async function createWorkbenchConfig(
   options: CreateWorkbenchConfigOptions,
-): UserConfig {
+): Promise<UserConfig> {
   const paths = resolveWorkbenchPaths({
     moduleUrl: import.meta.url,
     clientRootRelativePath: options.clientRootRelativePath,
   });
   const env = loadEnv('development', process.cwd(), 'CANVAS_');
   const siteUrl = env.CANVAS_SITE_URL || undefined;
+  const authProxyEntry = siteUrl
+    ? await createAuthProxy(siteUrl, env)
+    : undefined;
   const require = createRequire(import.meta.url);
   // Workbench owns its React runtime. Resolve both packages from this package's
   // install tree so the app does not mix host React with Workbench React, and
@@ -46,13 +50,15 @@ export function createWorkbenchConfig(
       fs: {
         allow: paths.allowedFsRoots,
       },
-      ...(siteUrl
+      ...(siteUrl && authProxyEntry
         ? {
             proxy: {
               '/sites/': {
                 target: siteUrl,
                 changeOrigin: true,
               },
+              '/canvas/api/': authProxyEntry(siteUrl),
+              '/session/token': authProxyEntry(siteUrl),
             },
           }
         : {}),

@@ -43,11 +43,13 @@ describe('pushFonts', () => {
       scope: 'canvas:js_component canvas:asset_library canvas:brand_kit',
       userAgent: '',
       includePages: false,
+      includeContentTemplates: false,
       includeBrandKit: true,
       aliasBaseDir: 'src',
       outputDir: 'dist',
       componentDir: tmpDir,
       pagesDir: './pages',
+      contentTemplatesDir: './content-templates',
       deprecatedComponentDir: tmpDir,
       globalCssPath: './src/global.css',
     };

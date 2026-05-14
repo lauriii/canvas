@@ -29,6 +29,7 @@ const sampleEntry: SiteTokenEntry = {
 };
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.mocked(os.homedir).mockReturnValue(FAKE_HOME);
 });
 

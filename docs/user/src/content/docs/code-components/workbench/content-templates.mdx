@@ -1,0 +1,129 @@
+---
+title: Code Components - Workbench content templates
+description: Add content template specs for Workbench previews.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Workbench can preview content template specs from the configured
+`contentTemplatesDir` directory. By default, this is the top-level
+`content-templates` directory.
+
+Content templates describe how Canvas components should render a Drupal node in a specific view mode. They can include literal prop values and prop
+sources that bind component props to entity data.
+
+## File naming and placement
+
+Place content template files in the configured `contentTemplatesDir` directory.
+If `contentTemplatesDir` is not set in `canvas.config.json`, use the top-level
+`content-templates` directory.
+
+```text
+content-templates/
+  node.article.full.json
+  node.article.teaser.json
+```
+
+Workbench discovers `content-templates/*.json`. Nested files are ignored.
+
+Use the naming convention `{entityType}.{bundle}.{viewMode}.json`. The values
+in the filename should match `entityType`, `bundle`, and `viewMode` inside the
+file.
+
+## Content template files
+
+Each content template file contains a JSON object.
+
+| Key | Description |
+| --- | --- |
+| `label` | Labels the content template in Workbench. |
+| `entityType` | Entity type the template targets. The only currently supported type is `node`. |
+| `bundle` | Entity bundle the template targets, such as `article`. |
+| `viewMode` | View mode the template targets, such as `full` or `teaser`. |
+| `elements` | Defines the template element tree. |
+
+Each entry in `elements` must include a `type`. It can also include `props`
+and `slots`, which reference other element IDs from the same `elements`
+object.
+
+Each element `type` must match a discovered component name, such as `card` or
+`js.card`. Workbench discovers these component types from the Code Components
+available in your project.
+
+Props can hold static values, entity field references, or host entity URLs.
+Static values are plain JSON values: strings, numbers, booleans, or objects
+with `value` and `format` for rich text. Entity field references and host
+entity URLs are prop-source objects that include a `sourceType` and are
+resolved by Drupal when the content template is rendered.
+
+For `entity-field` prop sources, the `expression` value is a compact Canvas
+prop expression string. These strings identify the dynamic values that Drupal should read for the component prop. The easiest way to get valid
+expressions is to build the template in the Canvas UI and then run
+`npx canvas pull`, or to use the `canvas-content-templates` agentic skill from
+[`drupal-canvas/skills`](https://github.com/drupal-canvas/skills) and ask an
+AI coding agent to generate them. For the technical model behind prop
+expressions, see `docs/shape-matching.md` in this repository.
+
+Common prop sources include:
+
+| Source type | Description |
+| --- | --- |
+| `entity-field` | Reads a value from a field on the preview entity. |
+| `host-entity-url` | Uses the URL for the preview entity. Set `absolute` to `false` for a relative URL. |
+| `default-relative-url` | Uses the default relative URL source. |
+| `static:<field_type>:<column>` | Wraps a static value for a typed field column. |
+| `adapter:<plugin_id>` | Uses a Drupal prop-source adapter plugin. |
+
+**Example:** `content-templates/node.article.full.json`
+
+```json
+{
+  "label": "Article full",
+  "entityType": "node",
+  "bundle": "article",
+  "viewMode": "full",
+  "elements": {
+    "article-hero": {
+      "type": "hero",
+      "props": {
+        "heading": {
+          "sourceType": "entity-field",
+          "expression": "ℹ︎␜entity:node:article␝title␞␟value"
+        },
+        "linkUrl": {
+          "sourceType": "host-entity-url",
+          "absolute": false
+        }
+      },
+      "slots": {
+        "content": ["article-summary"]
+      }
+    },
+    "article-summary": {
+      "type": "text",
+      "props": {
+        "content": {
+          "sourceType": "entity-field",
+          "expression": "ℹ︎␜entity:node:article␝body␞␟summary"
+        }
+      }
+    },
+    "article-cta": {
+      "type": "button",
+      "props": {
+        "label": "Read article",
+        "description": {
+          "value": "Read the <em>full article</em>.",
+          "format": "canvas_html_inline"
+        },
+        "href": {
+          "sourceType": "host-entity-url",
+          "absolute": false
+        }
+      }
+    }
+  }
+}
+```
+
+<Aside>Before rendering, Workbench normalizes the authored content template format into a [`@json-render/react`](https://json-render.dev)-compatible spec shape (with our [hopefully temporary patch](https://github.com/vercel-labs/json-render/pull/105)) by automatically creating a synthetic `canvas:component-tree` wrapper.</Aside>

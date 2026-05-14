@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/workbench",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -41,6 +41,7 @@
     "vite-plugin-svgr": "^4.5.0"
   },
   "devDependencies": {
+    "@drupal-canvas/auth": "*",
     "@drupal-canvas/discovery": "*",
     "@drupal-canvas/vite-compat": "*",
     "@types/node": "^24.10.1",

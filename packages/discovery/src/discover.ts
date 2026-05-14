@@ -8,6 +8,7 @@ import { findDuplicateMachineNames, loadComponentsMetadata } from './metadata';
 
 import type {
   DiscoveredComponent,
+  DiscoveredContentTemplate,
   DiscoveredPage,
   DiscoveryOptions,
   DiscoveryResult,
@@ -95,6 +96,18 @@ async function getCandidatePageFiles(pagesRoot: string): Promise<string[]> {
   });
 }
 
+async function getCandidateContentTemplateFiles(
+  contentTemplatesRoot: string,
+): Promise<string[]> {
+  return glob('*.json', {
+    cwd: contentTemplatesRoot,
+    nodir: true,
+    dot: true,
+    posix: true,
+    ignore: [...ALWAYS_IGNORED_PATTERNS],
+  });
+}
+
 /**
  * Discovers code components under a scan root by pairing metadata files with
  * JavaScript entries.
@@ -122,13 +135,20 @@ export async function discoverCanvasProject(
   const pagesRoot = path.resolve(
     options.pagesRoot ?? path.join(componentRoot, 'pages'),
   );
+  const contentTemplatesRoot = path.resolve(
+    options.contentTemplatesRoot ??
+      path.join(componentRoot, 'content-templates'),
+  );
   const gitignoreMatcher = await readGitignore(projectRoot);
 
   const allCandidates = await getCandidateMetadataFiles(componentRoot);
   const pageCandidates = await getCandidatePageFiles(pagesRoot);
+  const contentTemplateCandidates =
+    await getCandidateContentTemplateFiles(contentTemplatesRoot);
   const warnings: DiscoveryWarning[] = [];
   const components: DiscoveredComponent[] = [];
   const pages: DiscoveredPage[] = [];
+  const contentTemplates: DiscoveredContentTemplate[] = [];
 
   let ignoredFiles = 0;
 
@@ -189,6 +209,63 @@ export async function discoverCanvasProject(
       slug,
       uuid,
       path: absolutePagePath,
+      relativePath: projectRelativePath.startsWith('..')
+        ? normalizedRelativePath
+        : projectRelativePath,
+    });
+  }
+
+  for (const templateRelativePath of contentTemplateCandidates) {
+    const normalizedRelativePath = toPosixPath(templateRelativePath);
+    const absoluteTemplatePath = path.resolve(
+      contentTemplatesRoot,
+      normalizedRelativePath,
+    );
+    const projectRelativePath = toPosixPath(
+      path.relative(projectRoot, absoluteTemplatePath),
+    );
+
+    if (
+      !projectRelativePath.startsWith('..') &&
+      gitignoreMatcher.ignores(projectRelativePath)
+    ) {
+      ignoredFiles += 1;
+      continue;
+    }
+
+    const templateFilename = path.posix.basename(normalizedRelativePath);
+    const slug = templateFilename.replace(/\.json$/, '');
+    let label: string | null = null;
+    let entityTypeId: string | null = null;
+    let bundle: string | null = null;
+    let viewMode: string | null = null;
+    try {
+      const content = JSON.parse(
+        await fs.readFile(absoluteTemplatePath, 'utf-8'),
+      );
+      if (typeof content.label === 'string' && content.label) {
+        label = content.label;
+      }
+      if (typeof content.entityType === 'string' && content.entityType) {
+        entityTypeId = content.entityType;
+      }
+      if (typeof content.bundle === 'string' && content.bundle) {
+        bundle = content.bundle;
+      }
+      if (typeof content.viewMode === 'string' && content.viewMode) {
+        viewMode = content.viewMode;
+      }
+    } catch {
+      // Skip files that can't be read/parsed.
+    }
+    contentTemplates.push({
+      name: label ?? slug,
+      slug,
+      label,
+      entityTypeId,
+      bundle,
+      viewMode,
+      path: absoluteTemplatePath,
       relativePath: projectRelativePath.startsWith('..')
         ? normalizedRelativePath
         : projectRelativePath,
@@ -298,15 +375,20 @@ export async function discoverCanvasProject(
 
   components.sort((a, b) => a.metadataPath.localeCompare(b.metadataPath));
   pages.sort((a, b) => a.path.localeCompare(b.path));
+  contentTemplates.sort((a, b) => a.path.localeCompare(b.path));
 
   const result: DiscoveryResult = {
     componentRoot,
     projectRoot,
     components,
     pages,
+    contentTemplates,
     warnings,
     stats: {
-      scannedFiles: allCandidates.length + pageCandidates.length,
+      scannedFiles:
+        allCandidates.length +
+        pageCandidates.length +
+        contentTemplateCandidates.length,
       ignoredFiles,
     },
   };

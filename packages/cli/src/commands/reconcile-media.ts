@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
 import axios from 'axios';
@@ -90,7 +91,8 @@ export async function downloadExternalMedia(
     path.extname(rawBaseName) || extensionFromContentType(contentType);
   const baseName =
     path.basename(rawBaseName, path.extname(rawBaseName)) || 'media';
-  const filename = sanitizeFilename(`${baseName}${extension}`);
+  const urlHash = createHash('sha256').update(url).digest('hex').slice(0, 8);
+  const filename = sanitizeFilename(`${baseName}-${urlHash}${extension}`);
 
   return {
     buffer: Buffer.from(response.data),
@@ -272,7 +274,7 @@ export function reconcileMediaCommand(program: Command): void {
   program
     .command('reconcile-media')
     .description(
-      'upload supported external page media to Drupal and store its provenance',
+      'upload supported external media from pages and content templates to Drupal and store its provenance',
     )
     .option('--client-id <id>', 'Client ID')
     .option('--client-secret <secret>', 'Client Secret')
@@ -297,29 +299,56 @@ export function reconcileMediaCommand(program: Command): void {
         const discoveryResult = await discoverCanvasProject({
           componentRoot: nextConfig.componentDir,
           pagesRoot: nextConfig.pagesDir,
+          contentTemplatesRoot: nextConfig.contentTemplatesDir,
           projectRoot: process.cwd(),
         });
         const componentMetadata = await loadComponentsMetadata(discoveryResult);
 
-        if (discoveryResult.pages.length === 0) {
-          p.log.warn('No local pages found.');
+        interface SpecFile {
+          label: string;
+          relativePath: string;
+          path: string;
+          spec: { elements: AuthoredSpecElementMap; [key: string]: unknown };
+        }
+
+        const specFiles: SpecFile[] = [];
+
+        for (const page of discoveryResult.pages) {
+          const content = await fs.readFile(page.path, 'utf-8');
+          const spec = JSON.parse(content) as {
+            title: string;
+            elements: AuthoredSpecElementMap;
+          };
+          specFiles.push({
+            label: `page "${page.name}"`,
+            relativePath: page.relativePath,
+            path: page.path,
+            spec,
+          });
+        }
+
+        for (const template of discoveryResult.contentTemplates) {
+          const content = await fs.readFile(template.path, 'utf-8');
+          const spec = JSON.parse(content) as {
+            label: string;
+            elements: AuthoredSpecElementMap;
+          };
+          specFiles.push({
+            label: `content template "${template.name}"`,
+            relativePath: template.relativePath,
+            path: template.path,
+            spec,
+          });
+        }
+
+        if (specFiles.length === 0) {
+          p.log.warn('No local pages or content templates found.');
           p.outro('Media reconciliation skipped');
           return;
         }
 
-        const pageSpecs = await Promise.all(
-          discoveryResult.pages.map(async (page) => {
-            const content = await fs.readFile(page.path, 'utf-8');
-            const spec = JSON.parse(content) as {
-              title: string;
-              elements: AuthoredSpecElementMap;
-            };
-            return { page, spec };
-          }),
-        );
-
         let pendingCount = 0;
-        for (const { spec } of pageSpecs) {
+        for (const { spec } of specFiles) {
           for (const element of Object.values(spec.elements ?? {})) {
             if (!isRecord(element.props)) {
               continue;
@@ -346,7 +375,7 @@ export function reconcileMediaCommand(program: Command): void {
         }
 
         p.log.info(
-          `Found ${pendingCount} unreconciled ${pluralize(pendingCount, 'media item', 'media items')} across ${pageSpecs.length} ${pluralize(pageSpecs.length, 'page')}.`,
+          `Found ${pendingCount} unreconciled ${pluralize(pendingCount, 'media item', 'media items')} across ${specFiles.length} ${pluralize(specFiles.length, 'file')}.`,
         );
 
         if (!options.yes) {
@@ -366,17 +395,17 @@ export function reconcileMediaCommand(program: Command): void {
 
         let reconciledCount = 0;
         const resultsByUrl = new Map<string, Result>();
-        for (const { page, spec } of pageSpecs) {
+        for (const specFile of specFiles) {
           const { reconciled, failures, successes } =
             await reconcileElementMapMedia(
-              spec.elements ?? {},
+              specFile.spec.elements ?? {},
               componentMetadata,
               apiService,
             );
 
           for (const success of successes) {
             const existing = resultsByUrl.get(success.src);
-            const ref = `${page.relativePath}, element ${success.elementId}, prop ${success.propName}`;
+            const ref = `${specFile.relativePath}, element ${success.elementId}, prop ${success.propName}`;
             if (existing) {
               existing.details!.push({ content: `(${ref})` });
             } else {
@@ -393,7 +422,7 @@ export function reconcileMediaCommand(program: Command): void {
 
           for (const failure of failures) {
             const existing = resultsByUrl.get(failure.src);
-            const ref = `${page.relativePath}, element ${failure.elementId}, prop ${failure.propName}`;
+            const ref = `${specFile.relativePath}, element ${failure.elementId}, prop ${failure.propName}`;
             if (existing && !existing.success) {
               existing.details!.push({ content: `(${ref})` });
             } else {
@@ -411,8 +440,8 @@ export function reconcileMediaCommand(program: Command): void {
 
           reconciledCount += reconciled;
           await fs.writeFile(
-            page.path,
-            JSON.stringify(spec, null, 2) + '\n',
+            specFile.path,
+            JSON.stringify(specFile.spec, null, 2) + '\n',
             'utf-8',
           );
           spinner.message(

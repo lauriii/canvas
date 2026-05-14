@@ -7,7 +7,8 @@ import { LinkButton } from '@astrojs/starlight/components';
 The Canvas CLI is the command-line tool for working with local Canvas content.
 Use it when you want to manage Code Components with your own editor, source
 control, shared local code, static assets, SVGs, package dependencies, or
-component metadata files. It can also manage pages and Brand Kit fonts.
+component metadata files. It can also manage pages, content templates, and
+Brand Kit fonts.
 
 The most important commands are `push` and `pull`.
 
@@ -42,6 +43,7 @@ use the default Canvas paths. You can set only the options you need.
 {
   "componentDir": "./src/code-components",
   "pagesDir": "./pages",
+  "contentTemplatesDir": "./content-templates",
   "aliasBaseDir": "src",
   "outputDir": "dist",
   "globalCssPath": "./src/global.css"
@@ -52,6 +54,7 @@ use the default Canvas paths. You can set only the options you need.
 | --- | --- | --- |
 | `componentDir` | `src/components` | Directory scanned for Code Components. The directory can have any name, but must be inside `aliasBaseDir`. |
 | `pagesDir` | `./pages` | Directory scanned for page definitions. |
+| `contentTemplatesDir` | `./content-templates` | Directory scanned for content template definitions. |
 | `aliasBaseDir` | `src` | Base directory for shared local imports that use `@/`. |
 | `outputDir` | `dist` | CLI build output directory. Workbench does not use this option. |
 | `globalCssPath` | `./src/components/global.css` | Global CSS entry used by the CLI and Workbench. |
@@ -81,7 +84,9 @@ npx canvas pull
 ```
 
 The command pulls Code Components and global CSS from Canvas. It can also pull
-pages with `--include-pages` or `CANVAS_INCLUDE_PAGES=true`.
+pages with `--include-pages` or `CANVAS_INCLUDE_PAGES=true`, and content
+templates with `--include-content-templates` or
+`CANVAS_INCLUDE_CONTENT_TEMPLATES=true`.
 
 Brand Kit fonts are included with `--include-brand-kit` or
 `CANVAS_INCLUDE_BRAND_KIT=true`. When Brand Kit sync is enabled, the command
@@ -100,9 +105,11 @@ The command discovers components in the local codebase, builds the browser
 assets, runs the Tailwind CSS build, uploads component configuration, and syncs
 global CSS.
 
-Pages are included with `--include-pages` or `CANVAS_INCLUDE_PAGES=true`. Brand
-Kit fonts are included with `--include-brand-kit` or
-`CANVAS_INCLUDE_BRAND_KIT=true` when `canvas.brand-kit.json` is present.
+Pages are included with `--include-pages` or `CANVAS_INCLUDE_PAGES=true`.
+Content templates are included with `--include-content-templates` or
+`CANVAS_INCLUDE_CONTENT_TEMPLATES=true`. Brand Kit fonts are included with
+`--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT=true` when
+`canvas.brand-kit.json` is present.
 
 After Code Components are pushed, they can still be opened and edited in the
 in-browser code editor. New source files, static assets, SVGs, and package

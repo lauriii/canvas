@@ -208,7 +208,6 @@ export function PreviewFrameApp() {
             jsEntryPath: source.jsEntryUrl,
           })),
         );
-
         const node = renderSpec(request.payload.spec, registry);
         const renderType: RenderableState['type'] = request.payload.renderType;
 

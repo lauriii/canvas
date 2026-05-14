@@ -105,6 +105,7 @@ describe('validatePages', () => {
       componentRoot: tmpDir,
       projectRoot: tmpDir,
       components: [],
+      contentTemplates: [],
       pages: [
         {
           name: 'home',
@@ -146,6 +147,7 @@ describe('validatePages', () => {
       componentRoot: tmpDir,
       projectRoot: tmpDir,
       components: [],
+      contentTemplates: [],
       pages: [
         {
           name: 'home',
@@ -203,6 +205,7 @@ describe('validatePages', () => {
       componentRoot: tmpDir,
       projectRoot: tmpDir,
       components: [],
+      contentTemplates: [],
       pages: [
         {
           name: 'new-page',

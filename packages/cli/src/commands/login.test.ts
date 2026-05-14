@@ -1,9 +1,9 @@
 import { Command } from 'commander';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as p from '@clack/prompts';
+import { removeTokenEntry, setTokenEntry } from '@drupal-canvas/auth';
 
 import { getConfig, getDefaultScope, promptForConfig } from '../config.js';
-import { removeTokenEntry, setTokenEntry } from '../lib/token-store.js';
 import {
   deriveCodeChallenge,
   discoverAuth,
@@ -15,7 +15,7 @@ import {
 import { loginCommand, logoutCommand } from './login';
 
 vi.mock('../services/auth.js');
-vi.mock('../lib/token-store.js');
+vi.mock('@drupal-canvas/auth');
 vi.mock('../config.js');
 vi.mock('open', () => ({ default: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('@clack/prompts', () => ({
@@ -61,11 +61,13 @@ function setupHappyPath(overrides?: {
     clientSecret: '',
     scope: '',
     includePages: false,
+    includeContentTemplates: false,
     includeBrandKit: false,
     componentDir: '',
     deprecatedComponentDir: '',
     outputDir: '',
     pagesDir: '',
+    contentTemplatesDir: '',
     globalCssPath: '',
     aliasBaseDir: '',
     userAgent: '',

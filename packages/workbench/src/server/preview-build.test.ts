@@ -96,6 +96,7 @@ function makeDiscoveryResult(projectRoot: string): DiscoveryResult {
         relativePath: 'pages/home.json',
       },
     ],
+    contentTemplates: [],
     warnings: [],
     stats: {
       scannedFiles: 0,
@@ -110,6 +111,7 @@ function makeCanvasConfig(): CanvasConfig {
     outputDir: './dist',
     componentDir: './components',
     pagesDir: './pages',
+    contentTemplatesDir: './content-templates',
     deprecatedComponentDir: './components',
     globalCssPath: './src/global.css',
   };

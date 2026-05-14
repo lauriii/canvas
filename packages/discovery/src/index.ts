@@ -13,6 +13,7 @@ export type {
   CanvasConfig,
   ComponentMetadata,
   DiscoveredComponent,
+  DiscoveredContentTemplate,
   DiscoveredPage,
   DiscoveryOptions,
   DiscoveryResult,

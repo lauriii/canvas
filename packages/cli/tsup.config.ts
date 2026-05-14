@@ -12,6 +12,7 @@ export default defineConfig({
   publicDir: 'assets',
   noExternal: [
     'tailwindcss-in-browser',
+    '@drupal-canvas/auth',
     '@drupal-canvas/discovery',
     '@drupal-canvas/vite-compat',
   ],

@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { Command } from 'commander';
 
 import packageJson from '../package.json';
+import { agentsContextCommand } from './commands/agents-context';
 import { buildCommand } from './commands/build';
 import { buildDeprecatedCommand } from './commands/build-deprecated';
 import { downloadCommand } from './commands/download-deprecated';
@@ -28,6 +29,7 @@ loginCommand(program);
 logoutCommand(program);
 downloadCommand(program);
 pullCommand(program);
+agentsContextCommand(program);
 pushCommand(program);
 reconcileMediaCommand(program);
 scaffoldCommand(program);

@@ -441,6 +441,16 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
       }
     }
 
+    // Normalize component tree for API consumers.
+    $component_tree = [];
+    foreach ($this->getComponentTree() as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      $values = \array_map(fn($property) => $property->getValue(), $item->getProperties(TRUE));
+      unset($values['parent_item'], $values['component']);
+      $values['inputs'] = $item->getInputs();
+      $component_tree[] = $values;
+    }
+
     return ClientSideRepresentation::create(
       values: [
         'entityType' => $this->content_entity_type_id,
@@ -451,6 +461,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
         'status' => $this->status,
         'id' => $this->id(),
         'suggestedPreviewEntityId' => $preview_entity ? (int) $preview_entity->id() : NULL,
+        'component_tree' => $component_tree,
       ],
       preview: NULL,
     )
@@ -468,15 +479,22 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
       'content_entity_type_id' => $entity_type,
       'content_entity_type_bundle' => $bundle,
       'content_entity_type_view_mode' => $view_mode,
-      'component_tree' => [],
-      'status' => FALSE,
+      'component_tree' => $data['component_tree'] ?? [],
+      'status' => $data['status'] ?? FALSE,
     ]);
   }
 
   public function updateFromClientSide(array $data): void {
-    // This config entity is updated indirectly, using the editor frame.
+    // The Canvas UI's editor frame edits content templates indirectly via the
+    // Layout API and the auto-save flow; PATCH on this config endpoint is for
+    // external consumers (CLI) that write the persisted state directly.
     // @see \Drupal\canvas\Controller\ApiLayoutController::patch()
-    throw new \LogicException();
+    if (\array_key_exists('component_tree', $data)) {
+      $this->set('component_tree', $data['component_tree']);
+    }
+    if (\array_key_exists('status', $data)) {
+      $this->set('status', (bool) $data['status']);
+    }
   }
 
   public static function refineListQuery(QueryInterface &$query, RefinableCacheableDependencyInterface $cacheability): void {

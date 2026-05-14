@@ -2289,6 +2289,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'status' => FALSE,
       'id' => 'node.bunny.full',
       'suggestedPreviewEntityId' => NULL,
+      'component_tree' => [],
     ];
 
     // The list response MUST contain unpublished ContentTemplates.
@@ -2302,11 +2303,9 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Create a ContentTemplate via the Canvas HTTP API, but forget crucial data
     // that causes the required shape to be violated: 500, courtesy of OpenAPI.
-    // ⚠️ Unlike all other Canvas config entity types, this does NOT support:
-    // - POSTing the full representation of the config entity: only the initial
-    //   creation of an empty ContentTemplate is supported, all modifications
-    //   happen via the Canvas UI' editor frame, which talks to the "layout" API
-    // - PATCHing: similar
+    // ℹ️ POST and PATCH on this endpoint are intended for external consumers
+    // (Canvas CLI). The Canvas UI's editor frame edits content
+    // templates indirectly via the "layout" API and the auto-save flow.
     // @see \Drupal\canvas\Controller\ApiLayoutController::patch()
     $content_template_to_send = [
       'bundle' => 'llama',
@@ -2373,6 +2372,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'status' => FALSE,
       'id' => 'node.llama.full',
       'suggestedPreviewEntityId' => NULL,
+      'component_tree' => [],
     ];
     $this->assertSame($expected_full_llama_normalization, $body);
     // The same normalization should be present when GETting the `Location`.
@@ -2444,10 +2444,37 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:llama', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame($expected_list_normalization, $body);
 
-    // This was now tested as full circle as possible! ✅
-    // (POST with component tree and PATCH cannot be tested here, see comment
-    // at the top.)
-    // @see \Drupal\canvas\Controller\ApiLayoutController::patch()
+    // PATCH the existing llama template (CLI push path).
+    $patch_url = Url::fromUri('base:/canvas/api/v0/config/content_template/node.llama.full');
+    $request_options[RequestOptions::JSON] = [
+      'status' => TRUE,
+      'component_tree' => [],
+    ];
+    $body = $this->assertExpectedResponse('PATCH', $patch_url, $request_options, 200, NULL, NULL, NULL, NULL);
+    self::assertIsArray($body);
+    self::assertTrue($body['status']);
+    self::assertSame([], $body['component_tree']);
+
+    // POST a brand-new template with explicit status — what `canvas push` does
+    // for a not-yet-existing template. The "cat" bundle was created above.
+    $request_options[RequestOptions::JSON] = [
+      'entityType' => 'node',
+      'bundle' => 'cat',
+      'viewMode' => 'full',
+      'status' => TRUE,
+      'component_tree' => [],
+    ];
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
+      'Location' => [
+        "$base/canvas/api/v0/config/content_template/node.cat.full",
+      ],
+    ]);
+    self::assertIsArray($body);
+    self::assertTrue($body['status']);
+    self::assertSame([], $body['component_tree']);
+
+    // Clean up the templates we just created/mutated.
+    $this->assertExpectedResponse('DELETE', Url::fromUri('base:/canvas/api/v0/config/content_template/node.cat.full'), [], 204, NULL, NULL, NULL, NULL);
   }
 
 }

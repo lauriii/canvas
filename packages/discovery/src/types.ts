@@ -9,6 +9,7 @@ export type DiscoveryWarningCode =
 export interface DiscoveryOptions {
   componentRoot?: string;
   pagesRoot?: string;
+  contentTemplatesRoot?: string;
   projectRoot?: string;
 }
 
@@ -38,11 +39,23 @@ export interface DiscoveredPage {
   relativePath: string;
 }
 
+export interface DiscoveredContentTemplate {
+  name: string;
+  slug: string;
+  label: string | null;
+  entityTypeId: string | null;
+  bundle: string | null;
+  viewMode: string | null;
+  path: string;
+  relativePath: string;
+}
+
 export interface DiscoveryResult {
   componentRoot: string;
   projectRoot: string;
   components: DiscoveredComponent[];
   pages: DiscoveredPage[];
+  contentTemplates: DiscoveredContentTemplate[];
   warnings: DiscoveryWarning[];
   stats: {
     scannedFiles: number;
@@ -64,6 +77,7 @@ export interface CanvasConfig {
   outputDir: string;
   componentDir: string;
   pagesDir: string;
+  contentTemplatesDir: string;
   deprecatedComponentDir: string;
   globalCssPath: string;
 }

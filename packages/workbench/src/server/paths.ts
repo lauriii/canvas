@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadEnv } from 'vite';
 import { resolveCanvasConfig } from '@drupal-canvas/discovery';
 import { validateCanvasImportRoots } from '@drupal-canvas/vite-compat';
 
@@ -14,6 +15,8 @@ export interface WorkbenchPaths {
   allowedFsRoots: string[];
   clientRoot: string;
   componentDiscoveryRoot: string;
+  contentTemplatesDiscoveryRoot: string;
+  siteUrl: string | null;
   hostProjectRoot: string;
   packageRoot: string;
   pagesDiscoveryRoot: string;
@@ -57,7 +60,17 @@ export function resolveWorkbenchPaths(
     hostProjectRoot,
     canvasConfig.pagesDir,
   );
-  const watchRoots = [...new Set([componentDiscoveryRoot, pagesDiscoveryRoot])];
+  const contentTemplatesDiscoveryRoot = path.resolve(
+    hostProjectRoot,
+    canvasConfig.contentTemplatesDir,
+  );
+  const watchRoots = [
+    ...new Set([
+      componentDiscoveryRoot,
+      pagesDiscoveryRoot,
+      contentTemplatesDiscoveryRoot,
+    ]),
+  ];
 
   return {
     appHtmlPath: path.resolve(clientRoot, 'index.html'),
@@ -71,6 +84,13 @@ export function resolveWorkbenchPaths(
     ],
     clientRoot,
     componentDiscoveryRoot,
+    contentTemplatesDiscoveryRoot,
+    siteUrl:
+      loadEnv(
+        'development',
+        hostProjectRoot,
+        'CANVAS_',
+      ).CANVAS_SITE_URL?.trim() || null,
     hostProjectRoot,
     packageRoot,
     pagesDiscoveryRoot,

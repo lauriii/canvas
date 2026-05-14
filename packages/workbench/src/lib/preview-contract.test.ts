@@ -84,6 +84,7 @@ describe('preview-contract', () => {
         },
       ],
       pages: [],
+      contentTemplates: [],
       warnings: [
         {
           code: 'duplicate_definition',

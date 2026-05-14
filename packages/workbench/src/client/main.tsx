@@ -52,6 +52,8 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/component/:componentId/:mockIndex" element={<App />} />
           <Route path="/page" element={<App />} />
           <Route path="/page/:slug" element={<App />} />
+          <Route path="/content-template" element={<App />} />
+          <Route path="/content-template/:templateSlug" element={<App />} />
           <Route
             path="*"
             element={<Navigate to={defaultWorkbenchRoute} replace />}

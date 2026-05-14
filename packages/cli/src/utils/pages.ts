@@ -1,6 +1,9 @@
-import { randomUUID } from 'crypto';
 import { canvasTreeToSpec } from 'drupal-canvas/json-render-utils';
 
+import {
+  buildChildToParentMap,
+  buildElementKeyToUuidMap,
+} from './authored-element-utils';
 import { isRecord } from './utils';
 
 import type {
@@ -8,9 +11,6 @@ import type {
   CanvasComponentTree,
 } from 'drupal-canvas/json-render-utils';
 import type { Page } from '../types/Page';
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isResolvedMediaValue(
   value: unknown,
@@ -94,23 +94,8 @@ export function authoredSpecToComponentTree(
   elements: AuthoredSpecElementMap,
   componentVersions?: Map<string, string>,
 ): CanvasComponentTree {
-  // Map element keys to valid UUIDs, generating new ones for non-UUID keys.
-  const keyToUuid = new Map<string, string>();
-  for (const key of Object.keys(elements)) {
-    keyToUuid.set(key, UUID_RE.test(key) ? key : randomUUID());
-  }
-
-  // Build a reverse lookup: child key → { parentKey, slotName }
-  const childToParent = new Map<string, { parentKey: string; slot: string }>();
-
-  for (const [key, element] of Object.entries(elements)) {
-    if (!element.slots) continue;
-    for (const [slotName, childKeys] of Object.entries(element.slots)) {
-      for (const childKey of childKeys) {
-        childToParent.set(childKey, { parentKey: key, slot: slotName });
-      }
-    }
-  }
+  const keyToUuid = buildElementKeyToUuidMap(Object.keys(elements));
+  const childToParent = buildChildToParentMap(elements);
 
   const components: CanvasComponentTree = [];
   for (const [key, element] of Object.entries(elements)) {

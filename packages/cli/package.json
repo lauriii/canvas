@@ -31,6 +31,7 @@
     "cli"
   ],
   "devDependencies": {
+    "@drupal-canvas/auth": "*",
     "@drupal-canvas/discovery": "*",
     "@drupal-canvas/vite-compat": "*",
     "@types/js-yaml": "^4.0.9",

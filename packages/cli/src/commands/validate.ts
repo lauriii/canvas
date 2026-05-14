@@ -3,6 +3,7 @@ import * as p from '@clack/prompts';
 import { discoverCanvasProject } from '@drupal-canvas/discovery';
 
 import { getConfig } from '../config.js';
+import { createApiService, ensureAuthConfig } from '../services/api.js';
 import {
   pluralize,
   pluralizeComponent,
@@ -11,10 +12,12 @@ import {
 } from '../utils/command-helpers';
 import { selectLocalComponents } from '../utils/component-selector.js';
 import { reportResults } from '../utils/report-results.js';
+import { validateContentTemplates } from '../utils/validate-content-template.js';
 import { validatePages } from '../utils/validate-page.js';
 import { validateComponent } from '../utils/validate.js';
 
 import type { Command } from 'commander';
+import type { ApiService } from '../services/api.js';
 import type { Result } from '../types/Result.js';
 
 interface ValidateOptions {
@@ -95,6 +98,7 @@ export function validateCommand(program: Command): void {
           discoveryResult = await discoverCanvasProject({
             componentRoot: config.componentDir,
             pagesRoot: config.pagesDir,
+            contentTemplatesRoot: config.contentTemplatesDir,
             projectRoot: process.cwd(),
           });
           componentDirectoriesToValidate = discoveryResult.components.map(
@@ -140,6 +144,36 @@ export function validateCommand(program: Command): void {
           pageSpinner.stop(
             chalk.green(
               `Processed ${discoveryResult.pages.length} ${pluralize(discoveryResult.pages.length, 'page')}`,
+            ),
+          );
+        }
+
+        if (discoveryResult && discoveryResult.contentTemplates.length > 0) {
+          const ctCount = discoveryResult.contentTemplates.length;
+          const ctSpinner = p.spinner();
+          ctSpinner.start(
+            `Validating ${ctCount} ${pluralize(ctCount, 'content template')}`,
+          );
+
+          let apiService: ApiService | undefined;
+          try {
+            await ensureAuthConfig();
+            apiService = await createApiService();
+          } catch {
+            // Auth not configured — draft validation will be skipped.
+          }
+
+          const { results: ctResults } = await validateContentTemplates(
+            discoveryResult,
+            apiService ? { apiService } : undefined,
+          );
+          for (const result of ctResults) {
+            results.push({ ...result, itemType: 'Content template' });
+          }
+
+          ctSpinner.stop(
+            chalk.green(
+              `Processed ${ctCount} ${pluralize(ctCount, 'content template')}`,
             ),
           );
         }

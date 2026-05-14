@@ -1,9 +1,17 @@
 import path from 'path';
 
+import {
+  parseContentTemplateSpec,
+  parseContentTemplateSpecMetadata,
+} from './content-template-spec';
 import { validateMockSpecArray } from './mock-spec';
 import { parsePageSpec, parsePageSpecMetadata } from './page-spec';
 
 import type { Spec } from '@json-render/core';
+import type {
+  ContentTemplateSpecIssue,
+  ContentTemplateSpecMetadata,
+} from './content-template-spec';
 import type { PageSpecIssue } from './page-spec';
 import type {
   PreviewManifestComponentMock,
@@ -70,6 +78,47 @@ export function toPreviewPageSpec(
 
   return {
     spec: parsed.page?.spec ?? null,
+    issues: parsed.issues,
+  };
+}
+
+export function toDiscoveredContentTemplateName(
+  value: unknown,
+  sourcePath: string,
+  fallbackName: string,
+): string {
+  const parsed = parseContentTemplateSpecMetadata(value, sourcePath);
+
+  return parsed.template?.label ?? fallbackName;
+}
+
+export function toPreviewContentTemplateSpec(
+  value: unknown,
+  options: {
+    sourcePath: string;
+    componentNames: string[];
+  },
+): {
+  spec: Spec | null;
+  metadata: ContentTemplateSpecMetadata | null;
+  issues: ContentTemplateSpecIssue[];
+} {
+  const parsed = parseContentTemplateSpec(value, options.sourcePath, {
+    componentNames: options.componentNames,
+  });
+
+  const metadata: ContentTemplateSpecMetadata | null = parsed.template
+    ? {
+        label: parsed.template.label,
+        entityTypeId: parsed.template.entityTypeId,
+        bundle: parsed.template.bundle,
+        viewMode: parsed.template.viewMode,
+      }
+    : null;
+
+  return {
+    spec: parsed.template?.spec ?? null,
+    metadata,
     issues: parsed.issues,
   };
 }

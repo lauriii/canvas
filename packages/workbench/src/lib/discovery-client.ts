@@ -2,6 +2,7 @@ import type { DiscoveredPage, DiscoveryResult } from '@drupal-canvas/discovery';
 
 export type {
   DiscoveredComponent,
+  DiscoveredContentTemplate,
   DiscoveredPage,
   DiscoveryResult,
   DiscoveryWarning,

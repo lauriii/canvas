@@ -208,7 +208,7 @@ canvas.api.config.patch:
     _canvas_http_eligible_config_entity: 'TRUE'
     _entity_access: 'canvas_config_entity.update'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(folder|pattern|js_component|asset_library|brand_kit)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit)'
   options:
     parameters:
       canvas_config_entity:
@@ -422,6 +422,22 @@ canvas.api.form.content_entity:
     - GET
     # Used by Drupal's AJAX system.
     - POST
+
+canvas.api.layout.content_template_draft:
+  path: '/canvas/api/v0/layout-content-template-draft/{entity_type}/{preview_entity}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiLayoutController::draftContentTemplate'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'administer content templates'
+    _entity_access: 'preview_entity.view'
+    _format: 'json'
+  options:
+    parameters:
+      preview_entity:
+        type: entity:{entity_type}
+    canvas_external_api: true
+  methods: [POST]
 
 canvas.api.layout.get: &layout_get_route
   path: '/canvas/api/v0/layout/{entity_type}/{entity}'
