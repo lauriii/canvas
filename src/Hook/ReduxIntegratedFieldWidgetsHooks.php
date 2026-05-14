@@ -155,6 +155,12 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
 
   #[Hook('field_widget_single_element_link_default_form_alter')]
   public function fieldWidgetSingleElementLinkDefaultWidgetFormAlter(array &$form, FormStateInterface $form_state, array $context): void {
+    // Mark the URI input so Canvas UI can resolve selected entity references
+    // into the `entity:<type>/<id>` URI scheme on selection.
+    // @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()
+    // @see ui/src/components/form/components/TextFieldAutocomplete.tsx
+    $form['uri']['#attributes']['data-canvas-resolve-entity-uri'] = 'true';
+
     if ($this->themeManager->getActiveTheme()->getName() === 'canvas_stark') {
       // We want the link widget to have less information, so we need to revert
       // the description mangling happening at
