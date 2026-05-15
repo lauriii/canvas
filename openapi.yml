@@ -2413,6 +2413,78 @@ paths:
           description: Push start recorded.
         '403':
           $ref: '#/components/responses/AuthenticationErrorResponse'
+  /canvas/api/v0/site-data:
+    description: Returns the site-level canvasData.v0 payload.
+    get:
+      summary: Returns the site-level canvasData.v0 payload.
+      responses:
+        '200':
+          description: The site-level canvasData.v0 payload
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - baseUrl
+                  - branding
+                  - jsonapiSettings
+                  - themeAssets
+                properties:
+                  baseUrl:
+                    type: string
+                    format: uri-reference
+                    description: The absolute base URL of the site.
+                  branding:
+                    type: object
+                    required:
+                      - homeUrl
+                      - siteName
+                      - siteSlogan
+                    properties:
+                      homeUrl:
+                        type: string
+                        format: uri-reference
+                      siteName:
+                        type: string
+                      siteSlogan:
+                        type: string
+                  jsonapiSettings:
+                    type: ['object', 'null']
+                    properties:
+                      apiPrefix:
+                        type: string
+                    required:
+                      - apiPrefix
+                  themeAssets:
+                    type: object
+                    required:
+                      - logo
+                      - favicon
+                    properties:
+                      logo:
+                        type: object
+                        required:
+                          - url
+                        properties:
+                          url:
+                            type: string
+                            format: uri-reference
+                      favicon:
+                        type: object
+                        required:
+                          - url
+                          - mimeType
+                        properties:
+                          url:
+                            type: string
+                            format: uri-reference
+                          mimeType:
+                            type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+
   /canvas/api/v0/staged-update/auto-save:
     description: Auto-save endpoints for staged config updates.
     post:

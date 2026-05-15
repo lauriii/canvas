@@ -614,6 +614,18 @@ canvas.api.push.start:
     _format: 'json'
     canvas_external_api: true
 
+canvas.api.site_data:
+  path: '/canvas/api/v0/site-data'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\SiteDataController::get'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+    _format: 'json'
+  methods: [GET]
+  options:
+    canvas_external_api: true
+
 canvas.api.staged-update.auto-save.post:
   path: '/canvas/api/v0/staged-update/auto-save'
   defaults:

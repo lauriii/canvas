@@ -200,6 +200,7 @@ services:
   Drupal\canvas\Controller\ApiArtifactController: {}
   Drupal\canvas\Controller\ApiNotificationController: {}
   Drupal\canvas\Controller\ApiPushController: {}
+  Drupal\canvas\Controller\SiteDataController: {}
 
   # Decorators.
   Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor:

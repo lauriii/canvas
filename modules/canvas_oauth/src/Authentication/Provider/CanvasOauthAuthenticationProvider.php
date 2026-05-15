@@ -66,6 +66,7 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       'canvas.api.push.fail',
       'canvas.api.push.start',
       'canvas.api.layout.content_template_draft',
+      'canvas.api.site_data',
     ];
     if (\in_array($route_match->getRouteName(), $named_routes, TRUE)) {
       return $this->simpleOauthAuthenticationProvider->applies($request);
