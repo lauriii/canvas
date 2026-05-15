@@ -3,6 +3,7 @@
 namespace Drupal\canvas_ai\Plugin\AiFunctionCall;
 
 use Drupal\Component\Serialization\Json;
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -90,8 +91,9 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
     try {
       // Collect the context values.
       $component_name = $this->getContextValue('component_name');
-      $javascript = $this->getContextValue('js_structure') ?? '';
-      $css = $this->getContextValue('css_structure') ?? '';
+      // Decode HTML entities that LLMs sometimes introduce in code output.
+      $javascript = Html::decodeEntities($this->getContextValue('js_structure') ?? '');
+      $css = Html::decodeEntities($this->getContextValue('css_structure') ?? '');
       $props = $this->getContextValue('props_metadata') ?? '';
       $machine_name = strtolower(preg_replace('/\s+/', '_', $component_name));
 

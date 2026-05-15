@@ -138,6 +138,30 @@ final class EditComponentJsTest extends CanvasKernelTestBase {
     self::assertEquals(['title', 'description'], $result['required_props']);
   }
 
+  /**
+   * Test that HTML entities in LLM-generated JavaScript are decoded.
+   *
+   * LLMs sometimes return HTML-escaped code, e.g. `data.length &gt; 0`
+   * instead of `data.length > 0`.
+   */
+  public function testHtmlEntitiesInJavascriptAreDecoded(): void {
+    $tool = $this->functionCallManager->createInstance('ai_agent:edit_component_js');
+    $this->assertInstanceOf(EditComponentJs::class, $tool);
+
+    // Simulate LLM output that contains HTML-escaped characters.
+    $escaped_js = 'if (data.length &gt; 0 &amp;&amp; count &lt; 10) { return &quot;ok&quot;; }';
+    $expected_js = 'if (data.length > 0 && count < 10) { return "ok"; }';
+
+    $tool->setContextValue('javascript', $escaped_js);
+    $tool->setContextValue('props_metadata', Json::encode([]));
+    $tool->setContextValue('component_machine_name', 'existing_component');
+    $tool->execute();
+    $result = $tool->getStructuredOutput();
+
+    $this->assertArrayHasKey('js_structure', $result);
+    $this->assertEquals($expected_js, $result['js_structure']);
+  }
+
   public function testComponentValidation(): void {
     $component_machine_name = 'existing_component';
     $javascript = 'console.log("Hello World");';

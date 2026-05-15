@@ -134,6 +134,36 @@ final class CreateComponentTest extends CanvasKernelTestBase {
     );
   }
 
+  /**
+   * Test that HTML entities in LLM-generated JavaScript and CSS are decoded.
+   *
+   * LLMs sometimes return HTML-escaped code, e.g. `data.length &gt; 0`
+   * instead of `data.length > 0`.
+   */
+  public function testHtmlEntitiesInCodeAreDecoded(): void {
+    $tool = $this->functionCallManager->createInstance('ai_agent:create_component');
+    $this->assertInstanceOf(CreateComponent::class, $tool);
+
+    // Simulate LLM output that contains HTML-escaped characters.
+    $escaped_js = 'if (data.length &gt; 0 &amp;&amp; count &lt; 10) { return &quot;ok&quot;; }';
+    $expected_js = 'if (data.length > 0 && count < 10) { return "ok"; }';
+
+    $escaped_css = '.hero &gt; h1 { color: &quot;red&quot;; }';
+    $expected_css = '.hero > h1 { color: "red"; }';
+
+    $tool->setContextValue('component_name', 'Html Entity Component');
+    $tool->setContextValue('js_structure', $escaped_js);
+    $tool->setContextValue('css_structure', $escaped_css);
+    $tool->setContextValue('props_metadata', Json::encode([]));
+    $tool->execute();
+    $result = $tool->getStructuredOutput();
+
+    $this->assertArrayHasKey('component_structure', $result);
+    $component_structure = $result['component_structure'];
+    $this->assertEquals($expected_js, $component_structure['sourceCodeJs']);
+    $this->assertEquals($expected_css, $component_structure['sourceCodeCss']);
+  }
+
   public function testComponentValidation(): void {
     $component_name = 'Invalid Component';
     $javascript = 'console.log("Hello World");';
