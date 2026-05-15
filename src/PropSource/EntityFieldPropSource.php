@@ -8,8 +8,10 @@ use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\canvas\Plugin\AdapterManager;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\canvas\PropExpressions\StructuredData\Labeler;
 use Drupal\Component\Plugin\Definition\PluginDefinitionInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
@@ -30,7 +32,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * @phpstan-import-type PropSourceArray from PropSourceBase
  * @internal
  */
-final class EntityFieldPropSource extends PropSourceBase {
+final class EntityFieldPropSource extends PropSourceBase implements LinkedPropSourceInterface {
 
   /**
    * @param \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface $expression
@@ -154,13 +156,8 @@ final class EntityFieldPropSource extends PropSourceBase {
     return $deps;
   }
 
-  public function label(): TranslatableMarkup|string {
-    $field_name = $this->expression->getFieldName();
-    $entity_data_definition = $this->expression->getHostEntityDataDefinition();
-    $field_definitions = $entity_data_definition->getPropertyDefinitions();
-    \assert(\array_key_exists($field_name, $field_definitions));
-    // @phpstan-ignore-next-line return.type
-    return $field_definitions[$field_name]->getLabel();
+  public function label(EntityDataDefinitionInterface $host_entity_data_definition): TranslatableMarkup {
+    return Labeler::flatten(Labeler::label($this->expression, $host_entity_data_definition));
   }
 
 }

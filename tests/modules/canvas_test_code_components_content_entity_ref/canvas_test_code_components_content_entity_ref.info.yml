@@ -1,0 +1,9 @@
+name: 'Test code components with content-entity-reference props'
+description: 'Provides JsComponent fixtures that declare content-entity-reference props (parallel to canvas_test_sdc_content_entity_ref for SDCs).'
+# @todo Merge these components into canvas_test_code_components once the
+#   entity_reference_autocomplete field-widget client-side transform lands
+#   in https://www.drupal.org/i/3574857.
+type: module
+package: Testing
+dependencies:
+  - canvas:canvas

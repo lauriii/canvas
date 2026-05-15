@@ -10,6 +10,7 @@ use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\Exception\UndefinedLinkTemplateException;
+use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -102,7 +103,7 @@ class HostEntityUrlPropSourceTest extends PropSourceTestBase {
     );
     self::assertSame(
       $source->absolute ? 'Absolute URL' : 'Relative URL',
-      (string) $source->label(),
+      (string) $source->label(EntityDataDefinition::createFromDataType('entity:node:page')),
     );
 
     $this->installConfig('node');

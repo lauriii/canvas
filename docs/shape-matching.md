@@ -293,13 +293,17 @@ There may be additional `prop source`s that may be offered as suggestions to Sit
 populate `component input`s:
 - For the various URI `prop shape`s (see also [3.2.2](#3.2.2)!), there is the `host entity URL prop source`, which is
   able to generate various URIs that point to the host entity (i.e. the containing `content entity`).
-- @todo <https://www.drupal.org/project/canvas/issues/3573831> will add a `HostEntityPropSource`
+- For the `content-entity-reference` `prop shape` (see [3.2.3](#3.2.3)!), there is the `host entity prop source`, which
+  populates the prop with the host `content entity` itself when the host's entity type and bundle satisfy the prop's
+  `x-allowed-entity-type-id` and `x-allowed-bundle`.
 - TBD: there may be more, such as a `remote prop source` that can retrieve data from remote sources ("external data")
 
 See:
 - `\Drupal\canvas\ShapeMatcher\PropSourceSuggester`
 - `\Drupal\canvas\PropSource\HostEntityUrlPropSource`
 - `\Drupal\canvas\ShapeMatcher\HostEntityUrlPropSourceMatcher`
+- `\Drupal\canvas\PropSource\HostEntityPropSource`
+- `\Drupal\canvas\ShapeMatcher\HostEntityPropSourceMatcher`
 
 
 #### 3.1.3 `prop expression`s: evaluating a `entity field prop source` or `static prop source`
@@ -508,6 +512,29 @@ promoted_article:
   x-allowed-entity-type-id: node
   x-allowed-bundle: article
 ```
+
+##### Sources
+
+A `content-entity-reference` prop can be populated by any of these `prop source`s:
+
+- **Static pick** (`\Drupal\canvas\PropSource\StaticPropSource`): the Site Builder picks a specific entity at edit time,
+  stored as `unstructured data` via a `conjured field`.
+- **Host-entity reference field** (`\Drupal\canvas\PropSource\EntityFieldPropSource`): when the host entity has an
+  entity reference `base field` or `bundle field` whose target entity type and bundle match the prop's
+  `x-allowed-entity-type-id` and `x-allowed-bundle`, the referenced entity populates the prop. Suggested by
+  `\Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher`.
+- **Host entity itself** (`\Drupal\canvas\PropSource\HostEntityPropSource`): when the host entity rendering the
+  component is itself a valid target for the prop (its entity type and bundle satisfy the prop's
+  `x-allowed-entity-type-id` and `x-allowed-bundle`), the prop can be populated with the host entity directly. The
+  stored source is:
+  ```json
+  {"sourceType": "host-entity"}
+  ```
+  Suggested by `\Drupal\canvas\ShapeMatcher\HostEntityPropSourceMatcher` only when the host entity's type strictly
+  equals the prop's `x-allowed-entity-type-id`, and the host's bundle strictly equals the prop's `x-allowed-bundle`
+  (or the prop's target entity type has no bundles). At render time, the prop receives the host entity object, which
+  is then projected through the prop's `dataDependencies.entityFields` expressions to produce the
+  JS-component-facing value.
 
 ##### Projection (code components only)
 

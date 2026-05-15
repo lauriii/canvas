@@ -1,0 +1,46 @@
+uuid: 8b4f2d9e-3c1a-4e5f-9d8c-7a2b6e1f0c4d
+langcode: en
+status: true
+dependencies:
+  enforced: {  }
+machineName: canvas_test_code_components_news_listing
+name: 'News listing'
+required: {  }
+props:
+  heading:
+    title: Heading
+    type: string
+    examples:
+      - 'Latest news'
+  featured_news:
+    title: 'Featured news'
+    type: object
+    $ref: 'json-schema-definitions://canvas.module/content-entity-reference'
+slots: {  }
+js:
+  original: |-
+    const NewsListing = ({heading, featured_news}) =>
+      (<section>
+        <h2>{heading}</h2>
+        <a href={featured_news?.url}>{featured_news?.title}</a>
+      </section>);
+    export default NewsListing;
+  compiled: |
+    import { jsxs as _jsxs, jsx as _jsx } from "react/jsx-runtime";
+    const NewsListing = ({ heading, featured_news }) => /*#__PURE__*/ _jsxs("section", {
+      children: [
+        /*#__PURE__*/ _jsx("h2", { children: heading }),
+        /*#__PURE__*/ _jsx("a", {
+          href: featured_news == null ? void 0 : featured_news.url,
+          children: featured_news == null ? void 0 : featured_news.title
+        })
+      ]
+    });
+    export default NewsListing;
+css:
+  original: ''
+  compiled: ''
+dataDependencies:
+  entityFields:
+    featured_news:
+      - 'ℹ︎␜entity:node:news_item␝title␞␟value'

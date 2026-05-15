@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
 // cspell:ignore Bwidth Fitok Synx Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk
 
+use Drupal\Tests\canvas\Traits\ComponentTreeItemInstantiatorTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -29,7 +30,6 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\StorageInterface;
-use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -50,7 +50,6 @@ use Drupal\file\FileInterface;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\field\Entity\FieldConfig;
@@ -76,6 +75,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
 
   use CacheBustingTrait;
   use CreateTestJsComponentTrait;
+  use ComponentTreeItemInstantiatorTrait;
 
   protected readonly AssetResolverInterface $assetResolver;
   /**
@@ -3193,24 +3193,6 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       'component_id' => $component_id,
       'source' => $source,
     ];
-  }
-
-  /**
-   * Instantiates a (dangling) Canvas component tree item.
-   */
-  private function buildComponentTreeItem(string $component_id, array $inputs, ?FieldableEntityInterface $root_entity = NULL): ComponentTreeItem {
-    $item_list = $this->createDanglingComponentTreeItemList($root_entity);
-    $uuid = $this->container->get('uuid')->generate();
-    $item_list->setValue([
-      [
-        'uuid' => $uuid,
-        'component_id' => $component_id,
-        'inputs' => $inputs,
-      ],
-    ]);
-    $item = $item_list->get(0);
-    \assert($item instanceof ComponentTreeItem);
-    return $item;
   }
 
 }

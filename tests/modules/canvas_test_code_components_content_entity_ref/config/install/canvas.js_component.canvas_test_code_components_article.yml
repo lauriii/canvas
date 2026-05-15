@@ -1,0 +1,52 @@
+uuid: 5a8e1c3b-7f2d-4a1e-9c6b-1f8e9d0a5b21
+langcode: en
+status: true
+dependencies:
+  enforced: {  }
+machineName: canvas_test_code_components_article
+name: Article
+required: {  }
+props:
+  title:
+    title: Title
+    type: string
+    examples:
+      - 'How to bake a cake'
+  body:
+    title: Body
+    type: string
+    examples:
+      - 'First, preheat the oven…'
+  author:
+    title: Author
+    type: object
+    $ref: 'json-schema-definitions://canvas.module/content-entity-reference'
+slots: {  }
+js:
+  original: |-
+    const Article = ({title, body, author}) =>
+      (<article>
+        <h1>{title}</h1>
+        <div>{body}</div>
+        <footer>By {author?.label}</footer>
+      </article>);
+    export default Article;
+  compiled: |
+    import { jsxs as _jsxs, jsx as _jsx } from "react/jsx-runtime";
+    const Article = ({ title, body, author }) => /*#__PURE__*/ _jsxs("article", {
+      children: [
+        /*#__PURE__*/ _jsx("h1", { children: title }),
+        /*#__PURE__*/ _jsx("div", { children: body }),
+        /*#__PURE__*/ _jsxs("footer", {
+          children: ["By ", author == null ? void 0 : author.label]
+        })
+      ]
+    });
+    export default Article;
+css:
+  original: ''
+  compiled: ''
+dataDependencies:
+  entityFields:
+    author:
+      - 'ℹ︎␜entity:user␝name␞␟value'

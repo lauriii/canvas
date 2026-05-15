@@ -10,8 +10,12 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
+use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
+use Drupal\Tests\canvas\Traits\ComponentTreeItemInstantiatorTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
@@ -35,6 +39,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
   use ConstraintViolationsTestTrait;
   use GenerateComponentConfigTrait;
   use ImageFieldCreationTrait;
+  use ComponentTreeItemInstantiatorTrait;
 
   /**
    * {@inheritdoc}
@@ -331,6 +336,113 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
       ['breaking_news'],
       $prop_field_definitions['featured_news']['field_instance_settings']['handler_settings']['target_bundles'],
     );
+  }
+
+  /**
+   * Renders a `HostEntityPropSource` against a fieldable host entity.
+   *
+   * Exercises the matcher → suggester → storage → render pipeline end-to-end:
+   * a code component declares a content-entity-reference prop whose stored
+   * input is `['sourceType' => 'host-entity']`; at render time the parent's
+   * parse/evaluate loop resolves it to the host entity, and `JsComponent`
+   * unfurls it through `dataDependencies.entityFields` into a developer-facing
+   * payload keyed by entity-key-mapped field names (e.g. `title` → `label`).
+   */
+  public function testHostEntityPropSourceResolvesAgainstHost(): void {
+    $this->installEntitySchema('path_alias');
+    $this->setUpCurrentUser([], ['access content']);
+
+    $machine_name = 'host_entity_render_test';
+    $component_id = JsComponent::componentIdFromJavascriptComponentId($machine_name);
+    $js_component = JavaScriptComponent::create([
+      'machineName' => $machine_name,
+      'name' => 'Host entity render test',
+      'status' => TRUE,
+      'props' => [
+        'host_node' => [
+          'title' => 'Host node',
+          ...JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+        ],
+      ],
+      'required' => [],
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [
+        'entityFields' => [
+          'host_node' => ['ℹ︎␜entity:node:news_item␝title␞␟value'],
+        ],
+      ],
+    ]);
+    self::assertEntityIsValid($js_component);
+    $js_component->save();
+
+    $component = Component::load($component_id);
+    self::assertInstanceOf(Component::class, $component);
+    $source = $component->getComponentSource();
+    self::assertInstanceOf(JsComponent::class, $source);
+
+    $host_node = Node::create([
+      'type' => 'news_item',
+      'title' => 'The host news item',
+    ]);
+    self::assertEntityIsValid($host_node);
+    $host_node->save();
+
+    $item = $this->buildComponentTreeItem($component_id, [
+      'host_node' => ['sourceType' => 'host-entity'],
+    ]);
+    $uuid = $this->container->get('uuid')->generate();
+    $result = $source->getExplicitInput($uuid, $item, $host_node);
+
+    self::assertSame(['source', 'resolved'], \array_keys($result));
+    self::assertSame(
+      ['sourceType' => 'host-entity'],
+      $result['source']['host_node'],
+    );
+    self::assertInstanceOf(EvaluationResult::class, $result['resolved']['host_node']);
+    self::assertSame(['label' => 'The host news item'], $result['resolved']['host_node']->value);
+  }
+
+  /**
+   * Asserts `HostEntityPropSource` throws when no host entity is available.
+   */
+  public function testHostEntityPropSourceThrowsWhenHostMissing(): void {
+    $machine_name = 'host_entity_render_test_no_host';
+    $component_id = JsComponent::componentIdFromJavascriptComponentId($machine_name);
+    $js_component = JavaScriptComponent::create([
+      'machineName' => $machine_name,
+      'name' => 'Host entity render test (no host)',
+      'status' => TRUE,
+      'props' => [
+        'host_node' => [
+          'title' => 'Host node',
+          ...JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+        ],
+      ],
+      'required' => [],
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [
+        'entityFields' => [
+          'host_node' => ['ℹ︎␜entity:node:news_item␝title␞␟value'],
+        ],
+      ],
+    ]);
+    self::assertEntityIsValid($js_component);
+    $js_component->save();
+
+    $component = Component::load($component_id);
+    self::assertInstanceOf(Component::class, $component);
+    $source = $component->getComponentSource();
+    self::assertInstanceOf(JsComponent::class, $source);
+
+    $item = $this->buildComponentTreeItem($component_id, [
+      'host_node' => ['sourceType' => 'host-entity'],
+    ]);
+    $uuid = $this->container->get('uuid')->generate();
+
+    $this->expectException(MissingHostEntityException::class);
+    $source->getExplicitInput($uuid, $item, NULL);
   }
 
   private function loadComponent(string $id): Component {

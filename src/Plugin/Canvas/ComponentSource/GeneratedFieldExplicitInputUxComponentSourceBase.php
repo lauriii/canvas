@@ -7,13 +7,13 @@ namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
+use Drupal\canvas\PropSource\LinkedPropSourceInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
-use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\canvas\Utility\ComponentMetadataHelper;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Plugin\DependentPluginInterface;
@@ -827,7 +827,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         ));
       }
       $disabled = FALSE;
-      $linked_prop_source = ($source instanceof EntityFieldPropSource || $source instanceof HostEntityUrlPropSource) ? $source : NULL;
+      $linked_prop_source = $source instanceof LinkedPropSourceInterface ? $source : NULL;
       if (!$source instanceof StaticPropSource) {
         // @todo Build EntityFieldPropSource UX in https://www.drupal.org/i/3541037. Related: https://www.drupal.org/project/canvas/issues/3459234
         // @todo Design is undefined for the AdaptedPropSource UX.

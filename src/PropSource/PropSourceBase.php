@@ -18,13 +18,14 @@ use Drupal\Core\Entity\FieldableEntityInterface;
  * @phpstan-type AdaptedPropSourceArray array{sourceType: string, adapterInputs: array<string, mixed>}
  * @phpstan-type DefaultRelativeUrlPropSourceArray array{sourceType: string, value: mixed, jsonSchema: array, componentId: string}
  * @phpstan-type HostEntityUrlPropSourceArray array{sourceType: string, absolute?: bool}
+ * @phpstan-type HostEntityPropSourceArray array{sourceType: string}
  */
 abstract class PropSourceBase implements \Stringable, ContentAwareDependentInterface {
 
   const SOURCE_TYPE_PREFIX_SEPARATOR = ':';
 
   /**
-   * @param PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray|HostEntityUrlPropSourceArray $sdc_prop_source
+   * @param PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray|HostEntityUrlPropSourceArray|HostEntityPropSourceArray $sdc_prop_source
    */
   abstract public static function parse(array $sdc_prop_source): static;
 

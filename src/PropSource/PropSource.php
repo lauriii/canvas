@@ -27,6 +27,7 @@ namespace Drupal\canvas\PropSource;
  * @phpstan-import-type AdaptedPropSourceArray from PropSourceBase
  * @phpstan-import-type DefaultRelativeUrlPropSourceArray from PropSourceBase
  * @phpstan-import-type HostEntityUrlPropSourceArray from PropSourceBase
+ * @phpstan-import-type HostEntityPropSourceArray from PropSourceBase
  */
 enum PropSource: string {
 
@@ -41,6 +42,7 @@ enum PropSource: string {
   case EntityField = 'entity-field';
   case Static = 'static';
   case HostEntityUrl = 'host-entity-url';
+  case HostEntity = 'host-entity';
 
   /**
    * Returns the proper type prefix for a prop source.
@@ -60,6 +62,7 @@ enum PropSource: string {
       AdaptedPropSource::class => self::Adapter->value,
       DefaultRelativeUrlPropSource::class => self::DefaultRelativeUrl->value,
       HostEntityUrlPropSource::class => self::HostEntityUrl->value,
+      HostEntityPropSource::class => self::HostEntity->value,
       StaticPropSource::class => self::Static->value,
       EntityFieldPropSource::class => self::EntityField->value,
       default => throw new \LogicException('Unknown prop source class.'),
@@ -67,7 +70,7 @@ enum PropSource: string {
   }
 
   /**
-   * @param PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray|HostEntityUrlPropSourceArray $prop_source
+   * @param PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray|HostEntityUrlPropSourceArray|HostEntityPropSourceArray $prop_source
    */
   public static function parse(array $prop_source): PropSourceBase {
     $source_type_prefix = strstr($prop_source['sourceType'], PropSourceBase::SOURCE_TYPE_PREFIX_SEPARATOR, TRUE);
@@ -97,6 +100,12 @@ enum PropSource: string {
       // @todo Possibly support different link templates and options in
       //   https://www.drupal.org/i/3551455.
       self::HostEntityUrl => HostEntityUrlPropSource::parse($prop_source),
+      // The HostEntityPropSource resolves to the host entity itself, intended
+      // to populate content-entity-reference props with the rendering host
+      // (the third option alongside a static pick and a host reference field).
+      // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::isContentEntityReference()
+      // @see \Drupal\canvas\Validation\JsonSchema\ContentEntityReferenceObjectConstraint
+      self::HostEntity => HostEntityPropSource::parse($prop_source),
       // The AdaptedPropSource is the exception: it composes multiple other prop
       // sources, and those are listed under `adapterInputs`.
       // @phpstan-ignore-next-line argument.type

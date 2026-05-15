@@ -12,6 +12,7 @@ use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
+use Drupal\canvas\PropSource\LinkedPropSourceInterface;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Component\Utility\NestedArray;
@@ -53,6 +54,7 @@ final readonly class PropSourceSuggester {
     private EntityFieldPropSourceMatcher $entityFieldPropSourceMatcher,
     private AdaptedPropSourceMatcher $adaptedPropSourceMatcher,
     private HostEntityUrlPropSourceMatcher $hostEntityUrlPropSourceMatcher,
+    private HostEntityPropSourceMatcher $hostEntityPropSourceMatcher,
     private EntityDisplayRepositoryInterface $entityDisplayRepository,
     private Labeler $labeler,
     private EntityTypeManagerInterface $entityTypeManager,
@@ -131,7 +133,7 @@ final readonly class PropSourceSuggester {
    *   Host entity type + bundle, necessary to suggest certain types of prop
    *   sources.
    *
-   * @return array<string, array{required: bool, entity-field: array<string, EntityFieldPropSource>, adapter: array<AdapterInterface>, host-entity-url: array<string, HostEntityUrlPropSource>}>
+   * @return array<string, array{required: bool, entity-field: array<string, EntityFieldPropSource>, adapter: array<AdapterInterface>, host-entity-url: array<string, HostEntityUrlPropSource>, host-entity: array<string, \Drupal\canvas\PropSource\HostEntityPropSource>}>
    */
   public function suggest(string $component_plugin_id, ComponentMetadata $component_metadata, EntityDataDefinitionInterface $host_entity_type): array {
     $host_entity_type_id = $host_entity_type->getEntityTypeId();
@@ -177,6 +179,9 @@ final readonly class PropSourceSuggester {
 
       // Nothing to do for HostEntityUrlPropSource matches.
       $processed_matches[$cpe][PropSource::HostEntityUrl->value] = $m[PropSource::HostEntityUrl->value];
+
+      // Nothing to do for HostEntityPropSource matches.
+      $processed_matches[$cpe][PropSource::HostEntity->value] = $m[PropSource::HostEntity->value];
     }
 
     // 3. Generate appropriate labels for each. And specify whether required.
@@ -214,18 +219,27 @@ final readonly class PropSourceSuggester {
       // Host entity URLs: generate labels, retain match order.
       $suggestions[$cpe][PropSource::HostEntityUrl->value] = array_combine(
         \array_map(
-          fn (HostEntityUrlPropSource $s): string => (string) $s->label(),
+          fn (HostEntityUrlPropSource $s): string => (string) $s->label($host_entity_type),
           $m[PropSource::HostEntityUrl->value],
         ),
         $m[PropSource::HostEntityUrl->value],
       );
+
+      // Host entity: at most one match by definition.
+      // @see \Drupal\canvas\ShapeMatcher\HostEntityPropSourceMatcher::match()
+      $suggestions[$cpe][PropSource::HostEntity->value] = [];
+      $host_entity_match = $m[PropSource::HostEntity->value][0] ?? NULL;
+      if ($host_entity_match !== NULL) {
+        $label = (string) $host_entity_match->label($host_entity_type);
+        $suggestions[$cpe][PropSource::HostEntity->value][$label] = $host_entity_match;
+      }
     }
 
     return $suggestions;
   }
 
   /**
-   * @return array<string, array{entity-field: array<EntityFieldPropSource>, adapter: array<\Drupal\canvas\Plugin\Adapter\AdapterInterface>, host-entity-url: array<HostEntityUrlPropSource>}>
+   * @return array<string, array{entity-field: array<EntityFieldPropSource>, adapter: array<\Drupal\canvas\Plugin\Adapter\AdapterInterface>, host-entity-url: array<HostEntityUrlPropSource>, host-entity: array<\Drupal\canvas\PropSource\HostEntityPropSource>}>
    */
   private function getRawMatches(string $component_plugin_id, ComponentMetadata $component_metadata, string $host_entity_type, string $host_entity_bundle): array {
     $raw_matches = [];
@@ -251,6 +265,7 @@ final readonly class PropSourceSuggester {
       }
       $raw_matches[(string) $cpe][PropSource::Adapter->value] = $this->adaptedPropSourceMatcher->match($is_required, $prop_shape);
       $raw_matches[(string) $cpe][PropSource::HostEntityUrl->value] = $this->hostEntityUrlPropSourceMatcher->match($is_required, $prop_shape);
+      $raw_matches[(string) $cpe][PropSource::HostEntity->value] = $this->hostEntityPropSourceMatcher->match($is_required, $prop_shape, $host_entity_type, $host_entity_bundle);
     }
 
     return $raw_matches;
@@ -263,6 +278,7 @@ final readonly class PropSourceSuggester {
       $combined_suggestions[$key] = [
         ...$value[PropSource::EntityField->value],
         ...$value[PropSource::HostEntityUrl->value],
+        ...$value[PropSource::HostEntity->value],
       ];
     }
 
@@ -277,7 +293,7 @@ final readonly class PropSourceSuggester {
         // populate the component prop.
         fn (array $prop_sources): array => array_combine(
           \array_map(
-            fn (EntityFieldPropSource|HostEntityUrlPropSource $prop_source): string => \hash('xxh64', $prop_source->asChoice()),
+            fn (LinkedPropSourceInterface $prop_source): string => \hash('xxh64', $prop_source->asChoice()),
             array_values($prop_sources),
           ),
           // Values: objects with "label" and "source" keys, with:
@@ -287,7 +303,7 @@ final readonly class PropSourceSuggester {
           //   selected by the human, the client should use verbatim as the
           //   source to populate this component instance's prop.
           \array_map(
-            function (string $label, EntityFieldPropSource|HostEntityUrlPropSource $prop_source) {
+            function (string $label, LinkedPropSourceInterface $prop_source) {
               return [
                 'label' => $label,
                 'source' => $prop_source->toArray(),

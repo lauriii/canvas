@@ -7,6 +7,7 @@ namespace Drupal\canvas\PropSource;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
@@ -23,7 +24,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * @phpstan-import-type HostEntityUrlPropSourceArray from PropSourceBase
  * @internal
  */
-final class HostEntityUrlPropSource extends PropSourceBase {
+final class HostEntityUrlPropSource extends PropSourceBase implements LinkedPropSourceInterface {
 
   public readonly string $rel;
 
@@ -85,7 +86,7 @@ final class HostEntityUrlPropSource extends PropSourceBase {
     return [];
   }
 
-  public function label(): TranslatableMarkup {
+  public function label(EntityDataDefinitionInterface $host_entity_data_definition): TranslatableMarkup {
     return $this->absolute
       ? new TranslatableMarkup('Absolute URL')
       : new TranslatableMarkup('Relative URL');
