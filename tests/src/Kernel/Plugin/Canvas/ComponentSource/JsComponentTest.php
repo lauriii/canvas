@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
-// cspell:ignore Bwidth Fitok Synx Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk
+// cspell:ignore Bwidth Fitok Synx Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk maxitems
 
 use Drupal\Tests\canvas\Traits\ComponentTreeItemInstantiatorTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
@@ -2729,6 +2729,63 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       $test_case[0] = 'js.my-cta';
       yield $label => $test_case;
     }
+  }
+
+  /**
+   * Tests that rendering with more array values than maxItems does not throw.
+   *
+   * When a multivalue prop's maxItems is tightened after content was already
+   * saved, the stored values can exceed the new limit. Rendering should
+   * truncate to maxItems rather than throw an exception.
+   */
+  public function testRenderComponentTruncatesArrayExceedingMaxItems(): void {
+    $js_component = JavaScriptComponent::create([
+      'machineName' => 'test_maxitems',
+      'name' => 'Test MaxItems Component',
+      'status' => TRUE,
+      'props' => [
+        'features' => [
+          'type' => 'array',
+          'title' => 'Features',
+          'maxItems' => 3,
+          'items' => [
+            'type' => 'string',
+          ],
+          'examples' => [['Feature A', 'Feature B']],
+        ],
+      ],
+      'slots' => [],
+      'js' => [
+        'original' => 'console.log("test")',
+        'compiled' => 'console.log("test")',
+      ],
+      'css' => [
+        'original' => '',
+        'compiled' => '',
+      ],
+      'dataDependencies' => [],
+    ]);
+    $js_component->save();
+
+    $component = Component::load('js.test_maxitems');
+    $this->assertInstanceOf(Component::class, $component);
+
+    $source = $component->getComponentSource();
+    $this->assertInstanceOf(JsComponent::class, $source);
+
+    // Simulate stored content with 4 items saved before maxItems was tightened
+    // to 3. This is the exact scenario from the bug report.
+    $island = $source->renderComponent([
+      'props' => [
+        'features' => new EvaluationResult(['Feature A', 'Feature B', 'Feature C', 'Feature D']),
+      ],
+    ], $source->getSlotDefinitions(), 'test-uuid-maxitems');
+
+    // Excess values should be silently truncated to maxItems, not throw.
+    $this->assertSame(
+      ['Feature A', 'Feature B', 'Feature C'],
+      $island['#props']['features'],
+    );
   }
 
   public static function providerResolvedComponentInputs(): \Generator {
