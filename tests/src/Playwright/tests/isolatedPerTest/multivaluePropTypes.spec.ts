@@ -134,6 +134,31 @@ test.describe('Multivalue Prop Types', () => {
         .locator('[data-canvas-multivalue-label="true"]'),
     ).toHaveText('Marshmallow Coast');
 
+    // Assert that a very long label text is visually truncated with ellipsis.
+    // The scrollWidth of the label element exceeds its clientWidth when
+    // CSS text-overflow: ellipsis is active and the text is clipped.
+    const longText =
+      'UI for value input breaks on entering string with more than 44 characters and keeps going even further';
+    await firstRow.getByRole('button', { name: /^Edit Text/ }).click();
+    textbox = popover.getByRole('textbox');
+    await textbox.fill(longText);
+    await textbox.press('Enter');
+    const longLabel = textField
+      .locator('tr.draggable')
+      .first()
+      .locator('[data-canvas-multivalue-label="true"]');
+    await expect(longLabel).toHaveText(longText);
+    const isTruncated = await longLabel.evaluate(
+      (el) => el.scrollWidth > el.clientWidth,
+    );
+    expect(isTruncated).toBe(true);
+
+    // Restore the original value before continuing the test.
+    await firstRow.getByRole('button', { name: /^Edit Text/ }).click();
+    textbox = popover.getByRole('textbox');
+    await textbox.fill('Marshmallow Coast');
+    await textbox.press('Enter');
+
     // Verify text in the Preview pane is updated.
     await canvas.testInPreviewFrame('#text-list li', async (textList) => {
       await expect(textList).toHaveCount(2);

@@ -14,6 +14,7 @@
 .multivalue-container table {
   width: 100%;
   margin: 0;
+  table-layout: fixed;
   border: none;
   border-collapse: collapse;
 }
