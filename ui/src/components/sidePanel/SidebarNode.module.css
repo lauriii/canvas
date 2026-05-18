@@ -6,11 +6,11 @@
 
   height: var(--space-6);
   cursor: default;
-  color: var(--slate-12);
+  color: var(--sidebar-node-color, var(--slate-12));
   border-radius: var(--radius-2);
 
   .icon {
-    color: var(--bg-selected);
+    color: var(--sidebar-node-icon-color, var(--bg-selected));
   }
 
   .title {
@@ -28,11 +28,12 @@
     align-items: center;
     justify-content: center;
     padding: 2px;
-    color: var(--slate-12);
+    color: var(--sidebar-node-dots-color, var(--slate-12));
     border-radius: var(--radius-1);
 
     &:hover {
       cursor: pointer;
+      color: var(--sidebar-node-dots-hover-color, currentColor);
       background-color: var(--bg-hover-dots);
     }
   }
@@ -157,7 +158,7 @@
 
   .dots {
     &:hover {
-      color: var(--blue-9);
+      color: var(--sidebar-node-dots-hover-color, var(--blue-9));
     }
   }
 }

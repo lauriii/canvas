@@ -25,10 +25,14 @@
 .folderTrigger {
   width: 100%;
   border-radius: var(--radius-2);
+
+  &, & * {
+    cursor: grab;
+  }
   .chevron {
     cursor: pointer;
     &:hover {
-        color: var(--blue-9);
+      color: var(--blue-9);
     }
   }
   .folderCount {
@@ -58,8 +62,40 @@
 
 .isDragging {
   cursor: grabbing;
-  opacity: 0.5;
+  border-radius: var(--radius-2);
+  background: var(--blue-9);
 }
+
+.draggingFolderTrigger {
+  --sidebar-node-dots-color: white;
+  --sidebar-node-dots-hover-color: white;
+  --bg-hover-dots: var(--blue-7);
+
+  color: white;
+  background: var(--blue-9);
+
+  .folderName {
+    color: white;
+  }
+
+  button {
+    color: white;
+  }
+
+  .folderIcon {
+    color: white;
+  }
+
+  .folderCount {
+    color: var(--blue-9);
+    background-color: var(--blue-5);
+  }
+
+  .chevron {
+    color: white;
+  }
+}
+
 
 .emptyDropZone {
   min-height: var(--space-6);
