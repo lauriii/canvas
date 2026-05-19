@@ -362,14 +362,6 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       $props_cacheability->merge($published_required_props_cacheability);
     }
 
-    // Truncate array props that exceed their maxItems schema constraint.
-    $schema_properties = $this->getComponentPlugin()->metadata->schema['properties'] ?? [];
-    foreach ($schema_properties as $prop_name => $prop_schema) {
-      if (isset($prop_schema['maxItems'], $props[$prop_name]) && \is_array($props[$prop_name]) && \count($props[$prop_name]) > $prop_schema['maxItems']) {
-        $props[$prop_name] = \array_slice($props[$prop_name], 0, $prop_schema['maxItems']);
-      }
-    }
-
     // Match SDC's developer-only validation of props.
     // @see \Drupal\Core\Template\ComponentsTwigExtension::validateProps()
     // Any InvalidComponentException propagates to RenderSafeComponentContainer

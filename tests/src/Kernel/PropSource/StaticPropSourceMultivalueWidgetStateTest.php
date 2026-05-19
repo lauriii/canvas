@@ -32,7 +32,7 @@ final class StaticPropSourceMultivalueWidgetStateTest extends CanvasKernelTestBa
    */
   #[DataProvider('providerWidgetTypes')]
   public function testInitialRenderRemovesTrailingRow(string $field_type, string $prop_name, string $widget_plugin_id, array $values, array $field_storage_settings, array $field_instance_settings): void {
-    $prop_source = self::buildMultivaluePropSource($field_type, $prop_name, $values, $field_storage_settings, $field_instance_settings);
+    $prop_source = $this->buildMultivaluePropSource($field_type, $prop_name, $values, $field_storage_settings, $field_instance_settings);
     $form_state = $this->createFormState();
 
     $rendered_widget = $this->renderWidget($prop_source, $form_state, $widget_plugin_id);
@@ -49,7 +49,7 @@ final class StaticPropSourceMultivalueWidgetStateTest extends CanvasKernelTestBa
    */
   #[DataProvider('providerWidgetTypes')]
   public function testRebuildPreservesExplicitlyAddedRow(string $field_type, string $prop_name, string $widget_plugin_id, array $values, array $field_storage_settings, array $field_instance_settings): void {
-    $prop_source = self::buildMultivaluePropSource($field_type, $prop_name, $values, $field_storage_settings, $field_instance_settings);
+    $prop_source = $this->buildMultivaluePropSource($field_type, $prop_name, $values, $field_storage_settings, $field_instance_settings);
     $form_state = $this->createFormState();
 
     $this->renderWidget($prop_source, $form_state, $widget_plugin_id);
@@ -80,7 +80,7 @@ final class StaticPropSourceMultivalueWidgetStateTest extends CanvasKernelTestBa
    */
   #[DataProvider('providerWidgetTypes')]
   public function testEmptyMultivalueRendersOneVisibleRow(string $field_type, string $prop_name, string $widget_plugin_id, array $values, array $field_storage_settings, array $field_instance_settings): void {
-    $prop_source = self::buildMultivaluePropSource($field_type, $prop_name, [], $field_storage_settings, $field_instance_settings);
+    $prop_source = $this->buildMultivaluePropSource($field_type, $prop_name, [], $field_storage_settings, $field_instance_settings);
     $form_state = $this->createFormState();
 
     $rendered_widget = $this->renderWidget($prop_source, $form_state, $widget_plugin_id);
@@ -90,25 +90,6 @@ final class StaticPropSourceMultivalueWidgetStateTest extends CanvasKernelTestBa
 
     $widget_state = $this->getWidgetState($prop_source, $form_state, $widget_plugin_id);
     $this->assertSame(0, $widget_state['items_count']);
-  }
-
-  /**
-   * Tests that finite cardinality is exposed to the rendered widget.
-   */
-  public function testFiniteCardinalityIsPassedToTheWidget(): void {
-    $prop_source = self::buildMultivaluePropSource(
-      'string',
-      'value',
-      ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'],
-      [],
-      [],
-      5,
-    );
-    $form_state = $this->createFormState();
-
-    $rendered_widget = $this->renderWidget($prop_source, $form_state, 'string_textfield');
-
-    $this->assertSame(5, $rendered_widget['widget']['#cardinality']);
   }
 
   /**
@@ -156,21 +137,12 @@ final class StaticPropSourceMultivalueWidgetStateTest extends CanvasKernelTestBa
   }
 
   /**
-   * Builds a multivalue prop source.
-   *
-   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max> $cardinality
+   * Builds an unlimited multivalue prop source.
    */
-  private static function buildMultivaluePropSource(
-    string $field_type,
-    string $prop_name,
-    array $values = [],
-    array $field_storage_settings = [],
-    array $field_instance_settings = [],
-    int $cardinality = FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
-  ): StaticPropSource {
+  private static function buildMultivaluePropSource(string $field_type, string $prop_name, array $values = [], array $field_storage_settings = [], array $field_instance_settings = []): StaticPropSource {
     $prop_source = StaticPropSource::generate(
       new FieldTypePropExpression($field_type, $prop_name),
-      $cardinality,
+      FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
       $field_storage_settings ?: NULL,
       $field_instance_settings ?: NULL,
     );
