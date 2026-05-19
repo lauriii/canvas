@@ -67,6 +67,10 @@
   },
   "overrides": {
     "glob": "^13.0.1",
+    "minimatch@10.2.4": {
+      "brace-expansion": "^5.0.6"
+    },
+    "styled-components": "^6.4.2",
     "yaml": "^2.8.3",
     "@drupal-canvas/ui": {
       "react": "^18.2.0",
