@@ -814,7 +814,6 @@ pages-publish:
 release:
   # For release flow details, see docs/release-process.md.
   stage: publish
-  image: *image-node
   interruptible: false
   needs: []
   rules:
