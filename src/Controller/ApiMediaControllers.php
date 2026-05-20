@@ -124,11 +124,11 @@ final class ApiMediaControllers extends ApiControllerBase {
     // @todo Should this be flexible based on the media type fields?
     $media = $media_storage->create([
       'bundle' => $media_type_id,
-      'name' => $request->get('title') ?? $request->get('alt') ?? $file->getFilename(),
+      'name' => $request->request->get('title') ?? $request->request->get('alt') ?? $file->getFilename(),
       $source_field_definition->getName() => [
         'target_id' => $file->id(),
-        'title' => $request->get('title') ?? '',
-        'alt' => $request->get('alt') ?? '',
+        'title' => $request->request->get('title') ?? '',
+        'alt' => $request->request->get('alt') ?? '',
       ],
     ]);
 

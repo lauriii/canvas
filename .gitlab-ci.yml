@@ -30,8 +30,8 @@ variables:
 
   # Target a specific release, not 11.x.x-dev, to avoid breaking on evolving
   # test expectations unnecessarily.
-  DRUPAL_CORE: 11.2.11
-  DRUPAL_CORE_NEXT_MINOR: 11.3.8
+  DRUPAL_CORE: 11.2.12
+  DRUPAL_CORE_NEXT_MINOR: 11.3.10
 
   DRUPAL_TEST_WEBSERVER_USER: www-data
 
