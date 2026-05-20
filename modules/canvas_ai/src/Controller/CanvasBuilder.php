@@ -17,6 +17,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\ai_agents\PluginInterfaces\AiAgentInterface;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
+use Drupal\canvas_ai\CanvasAiChatHelper;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Drupal\canvas_ai\CanvasAiTempStore;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -41,6 +42,7 @@ final class CanvasBuilder extends ControllerBase {
     protected CanvasAiTempStore $canvasAiTempStore,
     protected FileSystemInterface $fileSystem,
     protected AiAgentStatusPollerServiceInterface $poller,
+    protected CanvasAiChatHelper $canvasAiChatHelper,
   ) {}
 
   /**
@@ -55,6 +57,7 @@ final class CanvasBuilder extends ControllerBase {
       $container->get('canvas_ai.tempstore'),
       $container->get('file_system'),
       $container->get('ai_agents.agent_status_poller'),
+      $container->get('canvas_ai.chat_helper'),
     );
   }
 
@@ -162,33 +165,8 @@ final class CanvasBuilder extends ControllerBase {
       $this->canvasAiTempStore->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, Json::encode($current_layout));
     }
 
-    $task = $prompt['messages'];
-    $messages = [];
-    foreach ($task as $message) {
-      if (!empty($message['files'])) {
-        $images = [];
-        foreach ($message['files'] as $file_info) {
-          if (!empty($file_info['src']) && preg_match('/^data:(image\/(?:jpeg|png));base64,(.+)$/i', $file_info['src'], $matches)) {
-            $mime_type = $matches[1];
-            $binary = base64_decode($matches[2], TRUE);
-            if ($binary !== FALSE) {
-              $images[] = new ImageFile($binary, $mime_type, 'temp');
-            }
-          }
-        }
-        // The text is intentionally kept empty while setting it in comments
-        // so that the AI only takes the image as a context/history for the
-        // next prompt not any text related to it.
-        $messages[] = new ChatMessage($message['role'], '', $images);
-        break;
-      }
-      else {
-        if (!empty($message['text'])) {
-          $messages[] = new ChatMessage($message['role'] === 'user' ? 'user' : 'assistant', $message['text']);
-        }
-      }
-    }
-    $agent->setChatHistory($messages);
+    $chat_history = $this->canvasAiChatHelper->getFilteredChatHistory($prompt['messages']);
+    $agent->setChatHistory($chat_history);
     $agent->setProgressThreadId($prompt['request_id']);
     $agent->setDetailedProgressTracking([
       AiAgentStatusItemTypes::Started,

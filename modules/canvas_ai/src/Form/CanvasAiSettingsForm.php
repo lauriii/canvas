@@ -8,7 +8,7 @@ use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 
 /**
- * Configure the image upload size.
+ * Provides the Canvas AI settings form.
  */
 final class CanvasAiSettingsForm extends ConfigFormBase {
 
@@ -38,6 +38,16 @@ final class CanvasAiSettingsForm extends ConfigFormBase {
       '#min' => 1,
     ];
 
+    $form['chat_history_max_messages'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Maximum chat history messages'),
+      '#default_value' => $this->config('canvas_ai.settings')->get('chat_history_max_messages'),
+      '#description' => $this->t('The maximum number of previous messages passed to the AI as conversation history. Use -1 to include the full history, or 0 to send no history at all (every request starts fresh).'),
+      '#min' => -1,
+      '#step' => 1,
+      '#required' => TRUE,
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -47,6 +57,7 @@ final class CanvasAiSettingsForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $this->config('canvas_ai.settings')
       ->set('file_upload_size', $form_state->getValue('file_upload_size'))
+      ->set('chat_history_max_messages', (int) $form_state->getValue('chat_history_max_messages'))
       ->save();
 
     parent::submitForm($form, $form_state);

@@ -27,6 +27,7 @@ final class CanvasAiPageBuilderHelperTest extends CanvasKernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
+    'ai',
     'canvas_ai',
   ];
 

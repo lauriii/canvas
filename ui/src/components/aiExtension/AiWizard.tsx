@@ -788,9 +788,10 @@ const AiWizard = () => {
               },
             },
           }}
-          // @todo Revisit once https://www.drupal.org/node/3528730 is in.
+          // Setting to -1 to allow sending the entire conversation history.
+          // @see https://deepchat.dev/docs/connect/#requestBodyLimits
           requestBodyLimits={{
-            maxMessages: 3,
+            maxMessages: -1,
           }}
           connect={{
             // Defining a handler instead of an object to ensure we can work with

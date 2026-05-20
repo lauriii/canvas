@@ -12,4 +12,8 @@ services:
     arguments:
       - '@Drupal\Core\Validation\BasicRecursiveValidatorFactory'
       - '@uuid'
+  canvas_ai.chat_helper:
+    class: Drupal\canvas_ai\CanvasAiChatHelper
+    arguments:
+      - '@config.factory'
   Drupal\canvas_ai\CanvasAiTempStore: '@canvas_ai.tempstore'
