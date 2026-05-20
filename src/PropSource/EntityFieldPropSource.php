@@ -32,7 +32,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * @phpstan-import-type PropSourceArray from PropSourceBase
  * @internal
  */
-final class EntityFieldPropSource extends PropSourceBase implements LinkedPropSourceInterface {
+final class EntityFieldPropSource extends PropSourceBase implements LinkablePropSourceInterface {
 
   /**
    * @param \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface $expression

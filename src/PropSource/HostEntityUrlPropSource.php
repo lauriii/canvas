@@ -24,7 +24,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * @phpstan-import-type HostEntityUrlPropSourceArray from PropSourceBase
  * @internal
  */
-final class HostEntityUrlPropSource extends PropSourceBase implements LinkedPropSourceInterface {
+final class HostEntityUrlPropSource extends PropSourceBase implements LinkablePropSourceInterface {
 
   public readonly string $rel;
 

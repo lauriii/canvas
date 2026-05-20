@@ -12,7 +12,7 @@ use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
-use Drupal\canvas\PropSource\LinkedPropSourceInterface;
+use Drupal\canvas\PropSource\LinkablePropSourceInterface;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Component\Utility\NestedArray;
@@ -293,7 +293,7 @@ final readonly class PropSourceSuggester {
         // populate the component prop.
         fn (array $prop_sources): array => array_combine(
           \array_map(
-            fn (LinkedPropSourceInterface $prop_source): string => \hash('xxh64', $prop_source->asChoice()),
+            fn (LinkablePropSourceInterface $prop_source): string => \hash('xxh64', $prop_source->asChoice()),
             array_values($prop_sources),
           ),
           // Values: objects with "label" and "source" keys, with:
@@ -303,7 +303,7 @@ final readonly class PropSourceSuggester {
           //   selected by the human, the client should use verbatim as the
           //   source to populate this component instance's prop.
           \array_map(
-            function (string $label, LinkedPropSourceInterface $prop_source) {
+            function (string $label, LinkablePropSourceInterface $prop_source) {
               return [
                 'label' => $label,
                 'source' => $prop_source->toArray(),

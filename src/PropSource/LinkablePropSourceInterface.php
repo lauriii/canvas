@@ -13,11 +13,11 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * In the UI, a prop populated by one of these sources is considered linked to
  * data outside the component instance.
  *
- * @see \Drupal\canvas\Element\LinkedPropSource
+ * @see \Drupal\canvas\Element\LinkedProp
  *
  * @internal
  */
-interface LinkedPropSourceInterface {
+interface LinkablePropSourceInterface {
 
   public function asChoice(): string;
 

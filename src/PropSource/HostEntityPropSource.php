@@ -20,7 +20,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * @phpstan-import-type HostEntityPropSourceArray from PropSourceBase
  * @internal
  */
-final class HostEntityPropSource extends PropSourceBase implements LinkedPropSourceInterface {
+final class HostEntityPropSource extends PropSourceBase implements LinkablePropSourceInterface {
 
   /**
    * @return HostEntityPropSourceArray
