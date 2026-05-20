@@ -16,7 +16,7 @@ trait CoreBugFixTextItemBaseGenerateSampleValueTrait {
   public static function generateSampleValue(FieldDefinitionInterface $field_definition) {
     $values = parent::generateSampleValue($field_definition);
     $settings = $field_definition->getSettings();
-    if (count($settings['allowed_formats']) > 0) {
+    if (!empty($settings['allowed_formats'])) {
       $values['format'] = $settings['allowed_formats'][0];
     }
     return $values;
