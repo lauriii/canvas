@@ -41,11 +41,13 @@ const CANVAS_MODULE_UI_PATH =
 const getFallbackCompiledJs = (fallbackContentMessage: string) =>
   `// @error
 import { jsx as _jsx } from "react/jsx-runtime";
-  export default function() {
+export default function() {
     return /*#__PURE__*/ _jsx("div", {
         dangerouslySetInnerHTML: {
             __html: '<!-- ${fallbackContentMessage} -->'
         }
+    });
+}
 `;
 
 const useCompileJavaScript = (): {
