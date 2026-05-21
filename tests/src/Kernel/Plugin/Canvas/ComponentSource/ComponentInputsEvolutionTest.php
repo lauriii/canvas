@@ -406,8 +406,18 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     $active_version = match(TRUE) {
       // The 11.3.x version.
       version_compare(\Drupal::VERSION, "11.3", '>=') => "ecbfb3dfb7ce5717",
-      // The 11.2.10 version.
-      default => "ec03b64ff4f992b9",
+      // The 11.2.10 version, for the original implementation + schema of the
+      // block being tested, because:
+      // - no new version should be generated thanks to the Block
+      //   ComponentSource plugin's ::checkRequirements() observing that the
+      //   value returned by ::defaultConfiguration() is not valid according to
+      //   the updated config schema
+      // - but the config schema has still been altered, and hence the existing
+      //   Component config entity (that was previously valid and working fine)
+      //   now cannot pass validation anymore: that's what the validation errors
+      //   are about
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::checkRequirements()
+      default => "7cc894b85e93a7d8",
     };
     $expected_version = match(TRUE) {
       // The 11.3.x version.

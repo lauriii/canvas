@@ -11,7 +11,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
   id: "canvas_test_block_input_validatable_crash",
   admin_label: new TranslatableMarkup("Test Block with settings, crashes when 'crash' setting is TRUE"),
 )]
-final class CanvasTestBlockInputValidatableCrash extends CanvasTestBlockInputUnvalidatable {
+class CanvasTestBlockInputValidatableCrash extends CanvasTestBlockInputUnvalidatable {
 
   /**
    * {@inheritdoc}

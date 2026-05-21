@@ -97,6 +97,9 @@ final class BlockComponentTest extends ComponentSourceTestBase {
     // Some Block Components may already be discovered at this point due to the
     // BlockManagerDecorator reacting to earlier block definition cache clears.
     self::assertSame([
+      'block.canvas_test_block_input_invalid_default' => [
+        'Block plugin has invalid default setting "crash": This value should be of the correct primitive type.',
+      ],
       'block.canvas_test_block_input_unvalidatable' => [
         'Block plugin settings must opt into strict validation. Use the FullyValidatable constraint. See https://www.drupal.org/node/3404425',
       ],

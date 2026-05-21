@@ -16,6 +16,7 @@ use Drupal\Core\Plugin\Context\ContextDefinitionInterface;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\FullyValidatableConstraint;
 use Drupal\views\Entity\View;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent
@@ -93,7 +94,16 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
     $block = $this->blockManager->createInstance($source_specific_id);
     \assert($block instanceof BlockPluginInterface);
     $settings = $block->defaultConfiguration();
-    $data_definition = $this->typedConfigManager->createFromNameAndData('block.settings.' . $block->getPluginId(), $settings);
+    $plugin_definition = $block->getPluginDefinition();
+    \assert(\is_array($plugin_definition));
+    $data_definition = $this->typedConfigManager->createFromNameAndData('block.settings.' . $block->getPluginId(), $settings + [
+      'id' => $block->getPluginId(),
+      'provider' => $plugin_definition['provider'] ?? 'system',
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\computeCurrentComponentMetadata
+      // @todo Refine in https://www.drupal.org/project/canvas/issues/3572850
+      'label' => (string) $plugin_definition['admin_label'],
+      'label_display' => FALSE,
+    ]);
     // We currently support only block plugins with no settings, or if they do
     // have settings, they must be fully validatable.
     $fullyValidatable = FALSE;
@@ -109,8 +119,17 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
       $reasons[] = 'Block plugin settings must opt into strict validation. Use the FullyValidatable constraint. See https://www.drupal.org/node/3404425';
     }
 
-    $plugin_definition = $block->getPluginDefinition();
-    \assert(\is_array($plugin_definition));
+    if (empty($reasons)) {
+      $violations = $data_definition->validate();
+      foreach ($violations as $violation) {
+        \assert($violation instanceof ConstraintViolationInterface);
+        $property_path = $violation->getPropertyPath();
+        $reasons[] = $property_path === ''
+          ? \sprintf('Block plugin has invalid default settings: %s', (string) $violation->getMessage())
+          : \sprintf('Block plugin has invalid default setting "%s": %s', $property_path, (string) $violation->getMessage());
+      }
+    }
+
     $required_contexts = array_filter(
       $plugin_definition['context_definitions'],
       fn (ContextDefinitionInterface $definition): bool => $definition->isRequired(),

@@ -26,6 +26,18 @@ block.settings.canvas_test_block_input_validatable_crash:
     crash:
       type: boolean
       label: 'Crash'
+block.settings.canvas_test_block_input_invalid_default:
+  type: block_settings
+  label: 'Canvas Test Block settings'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    name:
+      type: string
+      label: 'Name'
+    crash:
+      type: boolean
+      label: 'Crash'
 block.settings.canvas_test_block_input_schema_change_poc:
   type: block_settings
   label: 'Input Schema Change POC settings'
