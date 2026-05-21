@@ -10,17 +10,22 @@ the required PHP dependencies.
 
 The following commands are all run from the module directory.
 
+You can run all the following linting scripts in one go:
+```shell
+composer run lint
+```
+
 ### PHP_CodeSniffer
 Also known as [`phpcs`](https://github.com/squizlabs/PHP_CodeSniffer), this
 script will detect violations of a defined coding standard.
 ```shell
-composer run phpcs
+composer run lint:phpcs
 ```
 
 Violations, where possible, can be fixed with `phpcbf` (PHP Code Beautifier and
 Fixer).
 ```shell
-composer run phpcbf
+composer run fix:phpcbf
 ```
 
 Configuration is located in [`phpcs.xml`](../../phpcs.xml).
@@ -28,7 +33,7 @@ Configuration is located in [`phpcs.xml`](../../phpcs.xml).
 ### PHPStan
 PHPStan performs static analysis of code to detects potential errors.
 ```shell
-composer run phpstan
+composer run lint:phpstan
 ```
 
 Configuration is located in [`phpstan.neon`](../../phpstan.neon)

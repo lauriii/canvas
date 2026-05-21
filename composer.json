@@ -34,6 +34,30 @@
         "phpcbf": " mkdir -p .cache/phpc && composer --working-dir=$(composer run composer-root) exec phpcbf -- --standard=$(pwd)/phpcs.xml --colors $(pwd)",
         "phpstan": "mkdir -p test-results && composer --working-dir=$(composer run composer-root) exec phpstan -- --configuration=$(pwd)/phpstan.neon --autoload-file=$(pwd)/phpstan_rules/autoload.php --error-format=junit analyze $(pwd) > test-results/phpstan.xml || true && composer --working-dir=$(composer run composer-root) exec phpstan -- --configuration=$(pwd)/phpstan.neon --autoload-file=$(pwd)/phpstan_rules/autoload.php analyze $(pwd)",
         "phpstan-regenerate-ignores-for-11.3-and-higher": "rm $(pwd)/phpstan-11.3-and-higher-ignores.neon && touch $(pwd)/phpstan-11.3-and-higher-ignores.neon && composer --working-dir=$(composer run composer-root) exec phpstan -- --configuration=$(pwd)/phpstan.neon --autoload-file=$(pwd)/phpstan_rules/autoload.php --generate-baseline=$(pwd)/phpstan-11.3-and-higher-ignores.neon analyze $(pwd)",
-        "phpunit": "./tests/scripts/phpunit.sh"
+        "phpunit": "./tests/scripts/phpunit.sh",
+        "lint:phpcs": "@phpcs",
+        "lint:phpstan": "@phpstan",
+        "lint": [
+            "@lint:phpstan",
+            "@lint:phpcs"
+        ],
+        "fix:phpcbf": "@phpcbf",
+        "fix": [
+            "@fix:phpcbf"
+        ]
+    },
+    "scripts-descriptions": {
+        "composer-root": "Determines host Drupal project's root.",
+        "install-dev-deps": "Installs Canvas' dev dependencies into host Drupal project.",
+        "phpcs": "(deprecated), use `lint:phpcs`.",
+        "phpcbf": "(deprecated), use `fix:phpcbf`.",
+        "phpstan": "(deprecated), use `lint:phpstan`.",
+        "lint:phpcs": "Runs PHPCS using Canvas' rules, generates CI artifact.",
+        "fix:phpcbf": "Fixes all auto-fixable PHPCS errors.",
+        "lint:phpstan": "Runs PHPStan using Canvas' rules, generates CI artifact.",
+        "phpstan-regenerate-ignores-for-11.3-and-higher": "Regenerates PHPStan baseline for Drupal 11.3 and higher.",
+        "phpunit": "Runs Canvas' back-end test suite. Supports running subset, use `composer run phpunit -- --help`.",
+        "lint": "Runs all Canvas back-end (PHP) linting. Sibling: `npm run lint`.",
+        "fix": "Runs all Canvas back-end (PHP) auto-fixing. Sibling: `npm run fix`."
     }
 }

@@ -57,16 +57,14 @@ php core/scripts/drupal recipe modules/contrib/canvas/tests/fixtures/recipes/tes
 
 From the Canvas project root
 ```shell
-# Validate PHP (coding standards & static analysis).
-composer run phpcs
-composer run phpstan
+# Runs all Canvas back-end (PHP) linting.
+composer run lint
 
-# Canvas' back-end test. The output provides guidance on how to run a subset. Running all tests is best left to CI.
-composer run phpunit
-
-# OpenAPI linting.
-npx @redocly/cli@latest lint openapi.yml
+# Runs all other Canvas linting (TS, JS, CSS, YAML, OpenAPI, spelling).
+npm run lint
 ```
+
+(To see everything that's available: `composer run` and `npm run` will show you.)
 
 # Architectural Decision Records
 When architectural decisions are made, they should be recorded in _ADRs_. To create an ADR:
