@@ -6,7 +6,7 @@
     "homepage": "https://www.drupal.org/project/canvas",
     "require": {
         "drupal/core": "^11.2",
-        "justinrainbow/json-schema": "^6.6.2"
+        "justinrainbow/json-schema": "^6.8.0"
     },
     "require-dev": {
         "devizzent/cebe-php-openapi": "^1.1.4",

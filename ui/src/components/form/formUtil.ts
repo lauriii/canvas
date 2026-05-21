@@ -1,9 +1,8 @@
-import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-import addDraft2019 from 'ajv-formats-draft2019';
 import qs from 'qs';
 
 import { isPropSourceComponent } from '@/types/Component';
+import { createAjv } from '@/utils/ajv';
 import { getDrupal } from '@/utils/drupal-globals';
 import transforms from '@/utils/transforms';
 
@@ -19,9 +18,7 @@ import type { FieldDataItem, PropSourceComponent } from '@/types/Component';
 import type { InputUIData } from '@/types/Form';
 import type { TransformConfig, Transforms } from '@/utils/transforms';
 
-const ajv = new Ajv();
-addFormats(ajv);
-addDraft2019(ajv);
+const ajv = createAjv();
 
 /**
  * Tuple containing validation result and validator function.

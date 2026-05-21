@@ -18,6 +18,7 @@ use Drupal\canvas\Validation\JsonSchema\ContentEntityReferenceObjectConstraint;
 use Drupal\canvas\Validation\JsonSchema\UriSchemeAwareFormatConstraint;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use JsonSchema\Constraints\Factory;
+use JsonSchema\DraftIdentifiers;
 use JsonSchema\Validator;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
@@ -59,6 +60,10 @@ class CanvasServiceProvider extends ServiceProviderBase {
   public function alter(ContainerBuilder $container): void {
     $validator = $container->getDefinition(ComponentValidator::class);
     $factory = $container->setDefinition(Factory::class, new Definition(Factory::class));
+    // Align the PHP validator with the Ajv default in the UI: both use JSON
+    // Schema draft-07.
+    // @see ui/src/utils/ajv.ts
+    $factory->addMethodCall('setDefaultDialect', [DraftIdentifiers::DRAFT_7]);
     $factory->addMethodCall('setConstraintClass', ['format', UriSchemeAwareFormatConstraint::class]);
     $factory->addMethodCall('setConstraintClass', ['object', ContentEntityReferenceObjectConstraint::class]);
     $container->setDefinition(Validator::class, new Definition(Validator::class, [

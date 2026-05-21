@@ -7,8 +7,6 @@ import type * as React from 'react';
 
 import './InputBehaviors.css';
 
-import Ajv from 'ajv';
-
 import InputDescription from '@/components/form/components/drupal/InputDescription';
 import { InputBehaviorsComponentPropsForm } from '@/components/form/InputBehaviorsComponentPropsForm';
 import { InputBehaviorsEntityForm } from '@/components/form/InputBehaviorsEntityForm';
@@ -21,6 +19,7 @@ import {
   setFieldValue,
 } from '@/features/form/formStateSlice';
 import { AJAX_UPDATE_FORM_BUILD_ID_EVENT } from '@/types/Ajax';
+import { createAjv } from '@/utils/ajv';
 import { isAjaxing } from '@/utils/isAjaxing';
 
 import type { PropsValues } from '@drupal-canvas/types';
@@ -29,7 +28,7 @@ import type { FormId } from '@/features/form/formStateSlice';
 import type { AjaxUpdateFormBuildIdEvent } from '@/types/Ajax';
 import type { Attributes } from '@/types/DrupalAttribute';
 
-const ajv = new Ajv();
+const ajv = createAjv();
 
 // Helper function to dispatch field value updates
 const dispatchFieldValue = (
