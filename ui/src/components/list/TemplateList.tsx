@@ -20,6 +20,8 @@ import type {
   TemplateViewMode,
 } from '@/services/componentAndLayout';
 
+import nodeStyles from '@/components/sidePanel/SidebarNode.module.css';
+
 type BundleListItemProps = {
   bundle: TemplateInBundle;
 };
@@ -112,6 +114,7 @@ const BundleListItem = ({ bundle }: BundleListItemProps) => {
       menuItems={menuItems.length ? menuItems : undefined}
       isOpen={isOpen}
       onOpenChange={setIsOpen}
+      className={nodeStyles.contextualAccordionVariant}
     >
       <Flex pl="0" direction="column">
         {Object.entries(bundle.viewModes).map(([key, viewMode]) => (

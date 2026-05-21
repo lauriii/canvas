@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import FolderIcon from '@assets/icons/folder.svg?react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { ChevronRightIcon, DotsHorizontalIcon } from '@radix-ui/react-icons';
 import { ContextMenu, DropdownMenu, Flex, Text } from '@radix-ui/themes';
@@ -70,7 +69,6 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
     attributes,
     listeners,
     setNodeRef: setDragRef,
-    transform,
     isDragging,
     active,
   } = useDraggable({
@@ -93,8 +91,7 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
       weight,
     },
     // previewDragging is true when user drags from the editor frame - we disable dropping into folders in that case.
-    // Also disable the active dragged folder itself as a droppable target so reordering can target sibling folders.
-    disabled: !administerFolders || previewDragging || isDragging,
+    disabled: !administerFolders || previewDragging,
   });
 
   // Combine drag and drop refs
@@ -128,9 +125,6 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
     onOpenChange?.(open);
   };
 
-  // Keep children hidden during drag, then restore the prior open/closed state.
-  const effectiveIsOpen = !isDragging && isOpen;
-
   const folderRow = (
     <Flex
       {...listeners}
@@ -139,7 +133,6 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
       data-canvas-folder-name={name}
       className={clsx(listStyles.folderTrigger, {
         [nodeStyles.contextualAccordionVariant]: menuItems,
-        [listStyles.draggingFolderTrigger]: isDragging,
       })}
       flexGrow="1"
       align={nameSlot ? 'start' : 'center'}
@@ -163,13 +156,13 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
         {nameSlot ? (
           nameSlot
         ) : (
-          <Text size="1" weight="medium" className={listStyles.folderName}>
+          <Text size="1" weight="medium">
             {name}
           </Text>
         )}
       </Flex>
 
-      {menuItems && contextualMenuType !== 'context' && !isDragging && (
+      {menuItems && contextualMenuType !== 'context' && (
         <Flex px="2" align="center" flexShrink="0">
           <DropdownMenu.Root>
             <DropdownMenu.Trigger>
@@ -194,7 +187,6 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
           flexShrink="0"
           px="1"
           justify="center"
-          data-count={String(count)}
           className={listStyles.folderCount}
         >
           <Text size="1" weight="medium">
@@ -208,11 +200,11 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
           align="end"
           flexShrink="0"
           role="button"
-          aria-label={`${effectiveIsOpen ? 'Collapse' : 'Expand'} ${name} folder`}
+          aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${name} folder`}
         >
           <ChevronRightIcon
             className={clsx(listStyles.chevron, {
-              [listStyles.isOpen]: effectiveIsOpen,
+              [listStyles.isOpen]: isOpen,
             })}
           />
         </Flex>
@@ -233,7 +225,7 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
   }
 
   const collapsibleFolder = (
-    <Collapsible.Root open={effectiveIsOpen} onOpenChange={handleOpenChange}>
+    <Collapsible.Root open={isOpen} onOpenChange={handleOpenChange}>
       {rowWithContextMenu}
       <Collapsible.Content
         className={clsx(detailsStyles.content, detailsStyles.detailsContent)}
@@ -246,28 +238,12 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
   return (
     <div
       ref={setRefs}
-      className={clsx(className, {
+      className={clsx({
         [listStyles.isOver]: isOver,
         [listStyles.isDragging]: isDragging,
         [listStyles.dropIndicatorAbove]: dropPosition === 'above',
         [listStyles.dropIndicatorBelow]: dropPosition === 'below',
       })}
-      style={
-        transform
-          ? {
-              // Move the actual folder tree with the pointer while dragging.
-              // Lock X-axis to only allow vertical movement.
-              transform: CSS.Transform.toString({
-                ...transform,
-                x: 0,
-                scaleX: 1,
-                scaleY: 1,
-              }),
-              position: 'relative',
-              zIndex: 20,
-            }
-          : undefined
-      }
     >
       {collapsibleFolder}
       {errorSlot}
