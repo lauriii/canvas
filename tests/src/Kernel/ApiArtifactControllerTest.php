@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\Core\Lock\LockAcquiringException;
 use Drupal\file\Entity\File;
@@ -13,6 +12,7 @@ use Drupal\file\Upload\FileUploadHandlerInterface;
 use Drupal\file\Upload\InputStreamFileWriterInterface;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;

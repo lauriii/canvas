@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Entity\Routing;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\Page;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\canvas\Kernel\Traits\CanvasUiAssertionsTrait;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
-use Drupal\Tests\canvas\Kernel\Traits\CanvasUiAssertionsTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 

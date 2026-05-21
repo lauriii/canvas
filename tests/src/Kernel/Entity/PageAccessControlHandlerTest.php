@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Entity;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
+use Drupal\canvas\Entity\Page;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\canvas\Entity\Page;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

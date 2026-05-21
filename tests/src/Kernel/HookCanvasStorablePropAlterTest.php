@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

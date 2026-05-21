@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Validation;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
-use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
+use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator;
+use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\RevisionableInterface;
@@ -11,7 +12,6 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\node\Form\NodeRevisionRevertForm;
 
 /**

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use Drupal\canvas\Entity\PageRegion;
-use PHPUnit\Framework\Attributes\Group;
-use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

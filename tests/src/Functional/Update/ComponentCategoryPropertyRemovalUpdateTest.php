@@ -6,8 +6,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional\Update;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\Component;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

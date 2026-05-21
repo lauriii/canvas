@@ -6,20 +6,20 @@ namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
-use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSwitchCasesInterface;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\EntityConstraintViolationList;
 use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Symfony\Component\Validator\ConstraintViolationList;
 
 /**

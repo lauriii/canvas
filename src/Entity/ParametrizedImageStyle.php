@@ -6,9 +6,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\Core\File\Exception\FileException;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
-use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\image\Entity\ImageStyle;
 
 /**

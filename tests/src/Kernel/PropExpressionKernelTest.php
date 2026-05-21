@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
@@ -15,11 +14,11 @@ use Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranche
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
+use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
@@ -35,6 +34,7 @@ use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 

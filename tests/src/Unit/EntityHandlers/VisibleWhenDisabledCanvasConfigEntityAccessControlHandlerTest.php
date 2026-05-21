@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\EntityHandlers;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
+use Drupal\canvas\Access\CanvasUiAccessCheck;
 use Drupal\canvas\Audit\ComponentAudit;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessControlHandler;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultNeutral;
 use Drupal\Core\Cache\Cache;
@@ -24,10 +24,10 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\canvas\Access\CanvasUiAccessCheck;
-use Drupal\canvas\Entity\JavaScriptComponent;
-use Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessControlHandler;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessControlHandler.

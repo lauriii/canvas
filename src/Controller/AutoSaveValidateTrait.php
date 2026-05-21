@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\Core\Entity\EntityInterface;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**

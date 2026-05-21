@@ -4,7 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+use Drupal\canvas\ComponentSource\ComponentCandidatesDiscoveryInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
@@ -14,13 +21,6 @@ use Drupal\Tests\TestFileCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Drupal\canvas\ComponentSource\ComponentCandidatesDiscoveryInterface;
-use Drupal\canvas\ComponentSource\ComponentSourceManager;
-use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Entity\ComponentInterface;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
-use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
-use Drupal\canvas\PropSource\PropSource;
 
 /**
  * Tests Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.

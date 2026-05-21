@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
+use Drupal\canvas\ComponentIncompatibilityReasonRepository;
+use Drupal\canvas\Entity\Component;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
-use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
-use Drupal\canvas\ComponentIncompatibilityReasonRepository;
-use Drupal\canvas\Entity\Component;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**

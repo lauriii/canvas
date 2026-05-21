@@ -6,11 +6,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\PropSource;
 
-use Drupal\Component\Plugin\Exception\PluginNotFoundException;
-use Drupal\Component\Utility\UrlHelper;
-use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\canvas\Plugin\Adapter\UnixTimestampToDateAdapter;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
@@ -19,6 +14,11 @@ use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
+use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\NodeType;

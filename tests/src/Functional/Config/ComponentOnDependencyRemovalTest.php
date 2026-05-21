@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional\Config;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Audit\ComponentAudit;
 use Drupal\canvas\Audit\RevisionAuditEnum;
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
 use Drupal\Core\Extension\ThemeInstallerInterface;
-use Drupal\canvas\Entity\Component;
 use Drupal\Tests\canvas\Functional\FunctionalTestBase;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

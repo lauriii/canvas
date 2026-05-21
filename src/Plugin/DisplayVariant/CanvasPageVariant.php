@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\DisplayVariant;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\BrandKit;
+use Drupal\canvas\Entity\PageRegion;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Display\Attribute\PageDisplayVariant;
@@ -11,10 +15,6 @@ use Drupal\Core\Display\PageVariantInterface;
 use Drupal\Core\Display\VariantBase;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\canvas\Entity\AssetLibrary;
-use Drupal\canvas\Entity\BrandKit;
-use Drupal\canvas\Entity\PageRegion;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
-use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\CanvasAssetInterface;
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
+use Drupal\Core\Cache\CacheableJsonResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

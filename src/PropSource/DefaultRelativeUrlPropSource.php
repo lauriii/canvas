@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropSource;
 
+use Drupal\canvas\ComponentSource\UrlRewriteInterface;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\canvas\PropShape\PropShape;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\canvas\ComponentSource\UrlRewriteInterface;
-use Drupal\canvas\Entity\Component;
-use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
-use Drupal\canvas\PropShape\PropShape;
 
 /**
  * Prop source that is used to reference default relative URLs.

@@ -10,12 +10,12 @@
 // @todo Re-evaluate this when A) tagging a stable release, B) https://www.drupal.org/project/drupal/issues/3398033 is fixed in Drupal core.
 ini_set('assert.active', 1);
 
-use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\Render\Markup;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\PropSource\FieldStorageDefinition;
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Render\Markup;
 
 /**
  * Provides allowed values for a 'list_*' field used in a StaticPropSource.

@@ -4,25 +4,25 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\DataType;
 
+use Drupal\canvas\ComponentSource\ComponentInstanceInputsConfigSchemaGeneratorInterface;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\MissingComponentInputsException;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\PropExpressions\StructuredData\ContentAwareDependentInterface;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropSource\AdaptedPropSource;
+use Drupal\canvas\PropSource\PropSource;
+use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\Schema\Mapping;
 use Drupal\Core\Config\TypedConfigManagerInterface;
+use Drupal\Core\DependencyInjection\ClassResolverInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
-use Drupal\canvas\MissingComponentInputsException;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\canvas\ComponentSource\ComponentInstanceInputsConfigSchemaGeneratorInterface;
-use Drupal\canvas\Entity\Component;
-use Drupal\Core\DependencyInjection\ClassResolverInterface;
-use Drupal\canvas\PropExpressions\StructuredData\ContentAwareDependentInterface;
-use Drupal\canvas\PropSource\PropSource;
-use Drupal\canvas\PropSource\StaticPropSource;
 
 /**
  * @phpstan-import-type PropSourceArray from \Drupal\canvas\PropSource\PropSourceBase

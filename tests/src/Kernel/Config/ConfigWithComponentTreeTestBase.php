@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\ImportStorageTransformer;
 use Drupal\Core\Config\MemoryStorage;
 use Drupal\Core\Config\StorageInterface;
-use Drupal\Core\Config\Entity\ConfigEntityInterface;
-use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;

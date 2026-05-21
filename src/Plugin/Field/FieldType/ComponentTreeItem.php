@@ -4,7 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Field\FieldType;
 
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\MissingComponentInputsException;
+use Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter;
+use Drupal\canvas\Plugin\DataType\ResolvedComponentInputs;
+use Drupal\canvas\PropExpressions\StructuredData\ContentAwareDependentInterface;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
@@ -21,12 +27,6 @@ use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\DataReferenceDefinition;
 use Drupal\Core\TypedData\DataReferenceInterface;
 use Drupal\Core\TypedData\DataReferenceTargetDefinition;
-use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Entity\ComponentInterface;
-use Drupal\canvas\MissingComponentInputsException;
-use Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter;
-use Drupal\canvas\Plugin\DataType\ResolvedComponentInputs;
-use Drupal\canvas\PropExpressions\StructuredData\ContentAwareDependentInterface;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\ConstraintViolationList;

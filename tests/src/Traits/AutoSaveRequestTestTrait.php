@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Traits;
 
-use Drupal\Core\Url;
 use Drupal\canvas\Controller\ApiAutoSaveController;
+use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

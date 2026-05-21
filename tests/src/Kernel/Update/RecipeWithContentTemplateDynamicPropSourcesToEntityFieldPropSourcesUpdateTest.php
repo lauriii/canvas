@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Update;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\Core\Recipe\Recipe;
 use Drupal\Core\Recipe\RecipeRunner;
 use Drupal\FunctionalTests\Core\Recipe\RecipeTestTrait;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\canvas\Functional\Update\ContentTemplateDynamicPropSourcesToEntityFieldPropSourcesUpdateTest;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 
 /**
  * Proves that no update path is necessary for exported content templates.

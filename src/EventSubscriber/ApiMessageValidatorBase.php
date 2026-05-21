@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EventSubscriber;
 
+use Drupal\canvas\Utility\ExceptionHelper;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\canvas\Utility\ExceptionHelper;
 use League\OpenAPIValidation\PSR7\Exception\NoPath;
 use League\OpenAPIValidation\PSR7\Exception\ValidationFailed;
 use League\OpenAPIValidation\PSR7\ValidatorBuilder;

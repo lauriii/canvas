@@ -9,8 +9,8 @@ use Drupal\ai\Service\FunctionCalling\FunctionCallInterface;
 use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Drupal\canvas_ai\CanvasAiPermissions;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Function call plugin to get component context.

@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
-// cspell:ignore thisisatestpattern
-use Drupal\file\Entity\File;
-use Drupal\media\Entity\Media;
-use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
-use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
-use Drupal\Tests\user\Traits\UserCreationTrait;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\PropSource\PropSource;
+// cspell:ignore thisisatestpattern
+use Drupal\file\Entity\File;
+use Drupal\media\Entity\Media;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
+use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\TestTools\Random;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 

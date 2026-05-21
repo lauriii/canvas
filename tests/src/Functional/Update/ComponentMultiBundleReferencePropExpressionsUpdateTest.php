@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional\Update;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use Drupal\canvas\Entity\Component;
 use Drupal\media\Entity\MediaType;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 

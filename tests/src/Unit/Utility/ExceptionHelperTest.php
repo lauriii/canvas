@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\Utility;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\Utility\ExceptionHelper;
 use Drupal\Tests\canvas\Doubles\TestVerboseException;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests Drupal\canvas\Utility\ExceptionHelper.

@@ -9,11 +9,10 @@ namespace Drupal\Tests\canvas\Kernel\Controller;
 use Drupal\canvas\Controller\ApiMediaControllers;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\Cache\CacheableJsonResponse;
-
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\canvas\Kernel\Traits\MockFileUploadTrait;
 use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
-use Drupal\Tests\canvas\Kernel\Traits\MockFileUploadTrait;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;

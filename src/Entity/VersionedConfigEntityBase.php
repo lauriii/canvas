@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter;
+use Drupal\canvas\Plugin\VersionedConfigurationSubsetSingleLazyPluginCollection;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityWithPluginCollectionInterface;
-use Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter;
-use Drupal\canvas\Plugin\VersionedConfigurationSubsetSingleLazyPluginCollection;
 
 /**
  * @internal

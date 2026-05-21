@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use PHPUnit\Framework\Attributes\Group;
-use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\canvas\Plugin\ComponentPluginManager as CanvasComponentPluginManager;
+use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

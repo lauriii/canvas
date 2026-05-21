@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
-use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\Entity\Component;
-use Drupal\canvas\PropSource\PropSource;
-use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\PropSource\PropSource;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\TestTools\Random;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_test_block_simulate_input_schema_change\Hook;
 
-use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\canvas_test_block_simulate_input_schema_change\Plugin\Block\SimulatedInputSchemaChangeBlock;
+use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\State\StateInterface;
 
 readonly class SimulatedInputSchemaChangeHooks {

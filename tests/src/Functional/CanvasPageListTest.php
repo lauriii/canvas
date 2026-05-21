@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-use PHPUnit\Framework\Attributes\Group;
+use Drupal\canvas\Entity\Page;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
-use Drupal\canvas\Entity\Page;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

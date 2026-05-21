@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_test_code_components\Hook;
 
+use Drupal\canvas\Element\AstroIsland;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Security\Attribute\TrustedCallback;
-use Drupal\canvas\Element\AstroIsland;
 
 /**
  * Defines test hooks.

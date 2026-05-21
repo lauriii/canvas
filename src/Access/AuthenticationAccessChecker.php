@@ -9,10 +9,10 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Drupal\Core\Http\Exception\CacheableUnauthorizedHttpException;
 use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Session\AccountInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 class AuthenticationAccessChecker implements AccessInterface {

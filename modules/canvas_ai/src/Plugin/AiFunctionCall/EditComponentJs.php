@@ -2,19 +2,19 @@
 
 namespace Drupal\canvas_ai\Plugin\AiFunctionCall;
 
+use Drupal\ai\Attribute\FunctionCall;
+use Drupal\ai\Base\FunctionCallBase;
+use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai\Service\FunctionCalling\FunctionCallInterface;
+use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\ai\Attribute\FunctionCall;
-use Drupal\ai\Base\FunctionCallBase;
-use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
-use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
-use Drupal\canvas\Entity\JavaScriptComponent;
-use Drupal\canvas\Exception\ConstraintViolationException;
-use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Yaml\Yaml;

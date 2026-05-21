@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Functional;
 
-use PHPUnit\Framework\Attributes\Group;
-use Drupal\Core\Url;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas_personalization\Entity\Segment;
+use Drupal\Core\Url;
 use Drupal\Tests\canvas\Functional\HttpApiTestBase;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\UserInterface;
-use Drupal\canvas_personalization\Entity\Segment;
 use GuzzleHttp\RequestOptions;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests Segment Http Api.

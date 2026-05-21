@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\TestWith;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Url;
-use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\user\UserInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\TestWith;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

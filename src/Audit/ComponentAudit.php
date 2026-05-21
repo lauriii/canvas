@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Drupal\canvas\Audit;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\Entity\ConfigEntityDependency;
@@ -16,9 +19,6 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
-use Drupal\canvas\Entity\ComponentInterface;
-use Drupal\canvas\Entity\ComponentTreeEntityInterface;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 
 /**
  * @todo Improve in https://www.drupal.org/project/canvas/issues/3522953.

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Access;
 
+use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Entity\EntityCreateAccessCheck;
 use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\canvas\Entity\StagedConfigUpdate;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
 

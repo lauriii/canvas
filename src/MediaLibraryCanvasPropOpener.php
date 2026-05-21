@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+use Drupal\canvas\Access\CanvasUiAccessCheck;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\canvas\Access\CanvasUiAccessCheck;
 use Drupal\media_library\MediaLibraryFieldWidgetOpener;
 use Drupal\media_library\MediaLibraryState;
 

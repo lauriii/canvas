@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional\Config;
 
-use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
-use PHPUnit\Framework\Attributes\Group;
-use Drupal\canvas\PropSource\PropSource;
-use Drupal\Core\Session\AccountInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\PropSource\PropSource;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\canvas\Functional\FunctionalTestBase;
+use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

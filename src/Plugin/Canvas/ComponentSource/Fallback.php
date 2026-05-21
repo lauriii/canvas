@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
-use Drupal\Component\Utility\Html;
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\canvas\Attribute\ComponentSource;
 use Drupal\canvas\ComponentSource\ComponentSourceBase;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 

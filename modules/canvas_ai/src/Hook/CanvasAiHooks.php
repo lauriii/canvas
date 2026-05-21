@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_ai\Hook;
 
-use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\canvas_ai\CanvasAiPermissions;
 
 /**
  * Hook implementations for canvas_ai tokens.

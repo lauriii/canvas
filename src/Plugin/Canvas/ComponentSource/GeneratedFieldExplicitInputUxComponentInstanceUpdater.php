@@ -8,11 +8,11 @@ use Drupal\canvas\ComponentSource\ComponentInstanceUpdateAttemptResult;
 use Drupal\canvas\ComponentSource\ComponentInstanceUpdaterInterface;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
 final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements ComponentInstanceUpdaterInterface {
 

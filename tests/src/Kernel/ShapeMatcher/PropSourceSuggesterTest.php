@@ -4,19 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\ShapeMatcher;
 
-use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
+use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropSource\HostEntityPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
-use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Theme\ComponentPluginManager;
@@ -25,7 +21,11 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\link\LinkItemInterface;
 use Drupal\node\Entity\NodeType;
 use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

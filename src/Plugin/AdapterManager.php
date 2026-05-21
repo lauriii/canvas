@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin;
 
+use Drupal\canvas\Plugin\Adapter\Adapter;
+use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
-use Drupal\canvas\Plugin\Adapter\Adapter;
-use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 
 /**
  * @phpstan-import-type JsonSchema from \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType

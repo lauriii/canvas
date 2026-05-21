@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Adapter;
 
-use Drupal\Core\Plugin\PluginBase;
 use Drupal\canvas\PropShape\PropShape;
+use Drupal\Core\Plugin\PluginBase;
 use JsonSchema\Constraints\Constraint;
 use JsonSchema\Validator;
 

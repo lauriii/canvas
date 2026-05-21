@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Kernel\Config;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
+use Drupal\canvas_personalization\Entity\Segment;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Tests\canvas\Kernel\Config\BetterConfigEntityValidationTestBase;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
@@ -13,7 +12,8 @@ use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
-use Drupal\canvas_personalization\Entity\Segment;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests Segment Validation.

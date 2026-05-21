@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\TypedData;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use Drupal\canvas\Plugin\DataType\ComponentInputs;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
+use Drupal\canvas\TypedData\LinkUrl;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\Url;
-use Drupal\canvas\TypedData\LinkUrl;
 use Drupal\link\LinkItemInterface;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests Drupal\canvas\Plugin\DataType\ComponentInputs.

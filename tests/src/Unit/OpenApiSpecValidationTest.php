@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\RequiresFunction;
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\Tests\UnitTestCase;
 use DrupalFinder\DrupalFinderComposerRuntime;
 use JsonSchema\Validator;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RequiresFunction;
 
 /**
  * Validates this Drupal module's OpenAPI spec against the OpenAPI JSON schema.

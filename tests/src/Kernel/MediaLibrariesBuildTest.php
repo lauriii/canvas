@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Asset\LibraryDiscoveryParser;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Theme\ThemeInitializationInterface;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Drupal\canvas;
 
 use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\Core\Asset\AssetQueryStringInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
-use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\Core\Theme\ThemeManagerInterface;
 
 /**
  * @internal

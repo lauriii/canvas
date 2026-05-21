@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -14,6 +12,8 @@ use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

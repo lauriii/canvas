@@ -7,9 +7,9 @@ namespace Drupal\canvas\Controller;
 use Drupal\canvas\CanvasNotificationHandler;
 use Drupal\canvas\Event\PushEvent;
 use Drupal\canvas\Push\PushStatus;
-use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * REST API controller for CLI push lifecycle signals.

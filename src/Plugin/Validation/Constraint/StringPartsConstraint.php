@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
-use Drupal\Core\Validation\Attribute\Constraint;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Validation\Attribute\Constraint;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
 /**

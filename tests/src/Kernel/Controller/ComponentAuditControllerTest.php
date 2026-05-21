@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Controller;
 
-use PHPUnit\Framework\Attributes\Group;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\Page;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Url;
-use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Entity\Page;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\NodeType;
@@ -19,6 +18,7 @@ use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Access;
 
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
@@ -12,8 +14,6 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
 use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\canvas\Entity\ComponentTreeEntityInterface;
-use Drupal\canvas\Storage\ComponentTreeLoader;
 
 /**
  * Checks access for editing an entity's component tree.

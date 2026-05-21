@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
-use Drupal\Component\Utility\Html;
-use Drupal\Core\Entity\Entity\EntityViewMode;
-use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\canvas\Audit\ComponentAudit;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Entity\Entity\EntityViewMode;
+use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
  * Controller for components audit page.

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\BrandKit;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Version;
 use Drupal\Core\Asset\LibraryDiscoveryParser;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
@@ -15,10 +19,6 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
-use Drupal\canvas\Entity\AssetLibrary;
-use Drupal\canvas\Entity\BrandKit;
-use Drupal\canvas\Entity\JavaScriptComponent;
-use Drupal\canvas\Version;
 
 /**
  * Defines a class for library hooks.

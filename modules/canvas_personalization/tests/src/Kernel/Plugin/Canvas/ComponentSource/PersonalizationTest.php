@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Kernel\Plugin\Canvas\ComponentSource;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\Depends;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
-use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\canvas_personalization\Entity\Segment;
+use Drupal\canvas_personalization\Plugin\Canvas\ComponentSource\Personalization;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\ComponentSourceTestBase;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\TestFileCreationTrait;
-use Drupal\canvas_personalization\Entity\Segment;
-use Drupal\canvas_personalization\Plugin\Canvas\ComponentSource\Personalization;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Depends;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests Drupal\canvas_personalization\Plugin\Canvas\ComponentSource\Personalization.

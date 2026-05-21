@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\CanvasConfigUpdater;
 use Drupal\Core\Config\ConfigInstallerInterface;
 use Drupal\Core\Hook\Attribute\Hook;
-use Drupal\canvas\CanvasConfigUpdater;
 use Drupal\field\Entity\FieldConfig;
 
 final class UpdateHooks {

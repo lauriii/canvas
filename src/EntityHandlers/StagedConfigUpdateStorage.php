@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EntityHandlers;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\Core\Config\Action\ConfigActionManager;
 use Drupal\Core\Config\Entity\ConfigEntityStorage;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\canvas\Entity\StagedConfigUpdate;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 final class StagedConfigUpdateStorage extends ConfigEntityStorage {

@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\block\Entity\Block;
+use Drupal\canvas\Entity\PageRegion;
 use Drupal\Component\Uuid\Uuid;
 use Drupal\Core\Url;
-use Drupal\canvas\Entity\PageRegion;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests Canvas Page Variant Enable.

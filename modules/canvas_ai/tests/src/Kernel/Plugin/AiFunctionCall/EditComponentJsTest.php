@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
-use PHPUnit\Framework\Attributes\Group;
+use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\EditComponentJs;
 use Drupal\Component\Serialization\Json;
-use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Yaml\Yaml;
 
 /**

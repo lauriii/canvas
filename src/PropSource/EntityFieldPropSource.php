@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropSource;
 
+use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\canvas\Plugin\AdapterManager;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\Component\Plugin\Definition\PluginDefinitionInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\canvas\MissingHostEntityException;
-use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
-use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**

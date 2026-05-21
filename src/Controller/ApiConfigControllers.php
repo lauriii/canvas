@@ -4,9 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\canvas\AssetRenderer;
+use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Pattern;
+use Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessControlHandler;
+use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Cache\Cache;
@@ -23,12 +29,6 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Url;
-use Drupal\canvas\AssetRenderer;
-use Drupal\canvas\ClientSideRepresentation;
-use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
-use Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessControlHandler;
-use Drupal\canvas\Exception\ConstraintViolationException;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;

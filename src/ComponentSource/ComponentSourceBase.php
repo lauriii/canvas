@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\ComponentSource;
 
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\Schema\Mapping;
 use Drupal\Core\Config\TypedConfigManagerInterface;
@@ -12,7 +13,6 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Plugin\ContextAwarePluginAssignmentTrait;
 use Drupal\Core\Plugin\ContextAwarePluginTrait;
 use Drupal\Core\Plugin\PluginBase;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 
 /**
  * @internal

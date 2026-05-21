@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\AutoSave;
 
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\AutoSaveRequestTestTrait;
 use Symfony\Component\HttpFoundation\Request;

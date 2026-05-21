@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\AutoSave;
 
-use Drupal\Core\Url;
-use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\Core\Url;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;

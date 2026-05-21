@@ -6,11 +6,11 @@ namespace Drupal\canvas_ai_test\EventSubscriber;
 
 use Drupal\Component\Serialization\Json;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Event subscriber to intercept Canvas AI API requests during tests.

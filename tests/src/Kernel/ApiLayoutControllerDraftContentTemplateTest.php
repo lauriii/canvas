@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use Drupal\node\Entity\Node;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Url;
+use Drupal\node\Entity\Node;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use League\OpenAPIValidation\PSR7\Exception\Validation\InvalidBody;
 use PHPUnit\Framework\Attributes\Group;

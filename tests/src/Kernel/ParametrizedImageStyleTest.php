@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
-use Drupal\Core\File\FileUrlGeneratorInterface;
-use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\canvas\Entity\ParametrizedImageStyle;
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
+use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\file\FileRepositoryInterface;
-use Drupal\Tests\TestFileCreationTrait;
 use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
+use Drupal\Tests\TestFileCreationTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

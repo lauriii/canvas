@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\CodeComponentDataProvider;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Asset\AttachedAssetsInterface;
 use Drupal\Core\Asset\LibraryDependencyResolverInterface;
@@ -13,9 +16,6 @@ use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
-use Drupal\canvas\CodeComponentDataProvider;
-use Drupal\canvas\Entity\AssetLibrary;
-use Drupal\canvas\Entity\BrandKit;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Route;

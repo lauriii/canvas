@@ -4,25 +4,25 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\Plugin\DataType\ComponentInputs;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\canvas\ComponentSource\ComponentSourceManager;
-use Drupal\canvas\Entity\Component;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\Utility\ComponentMetadataHelper;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
-use Drupal\canvas\Entity\ComponentTreeEntityInterface;
-use Drupal\canvas\Entity\JavaScriptComponent;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\field\Entity\FieldConfig;
 
 class CanvasConfigUpdater {

@@ -6,9 +6,9 @@ namespace Drupal\canvas\Extension;
 
 use Drupal\canvas\Exception\ExtensionValidationException;
 use Drupal\Core\Cache\CacheBackendInterface;
-use Drupal\Core\Plugin\Discovery\YamlDiscovery;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
+use Drupal\Core\Plugin\Discovery\YamlDiscovery;
 use Drupal\Core\Plugin\Factory\ContainerFactory;
 use Drupal\Core\Url;
 

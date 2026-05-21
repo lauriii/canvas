@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\RequiresFunction;
 use Drupal\Component\Serialization\Json;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RequiresFunction;
 
 /**
  * Validate the fixtures in the UI against the OpenAPI schema.

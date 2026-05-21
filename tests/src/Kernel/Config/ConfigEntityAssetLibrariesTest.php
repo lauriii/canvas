@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
-use PHPUnit\Framework\Attributes\Group;
-use Drupal\Core\Asset\LibraryDiscoveryInterface;
-use Drupal\Core\Cache\CacheCollectorInterface;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Drupal\Core\Asset\LibraryDiscoveryInterface;
+use Drupal\Core\Cache\CacheCollectorInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests Config Entity Asset Libraries.

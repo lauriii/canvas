@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\Entity\Routing;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
-use Drupal\Core\Routing\RouteObjectInterface;
+use Drupal\canvas\Controller\CanvasController;
 use Drupal\canvas\Entity\Routing\CanvasHtmlRouteEnhancer;
+use Drupal\Core\Routing\RouteObjectInterface;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
-use Drupal\canvas\Controller\CanvasController;
 
 /**
  * Tests Drupal\canvas\Entity\Routing\CanvasHtmlRouteEnhancer.

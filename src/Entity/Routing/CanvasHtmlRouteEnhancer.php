@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity\Routing;
 
+use Drupal\canvas\Controller\CanvasController;
 use Drupal\Core\Routing\EnhancerInterface;
 use Drupal\Core\Routing\RouteObjectInterface;
-use Drupal\canvas\Controller\CanvasController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
 

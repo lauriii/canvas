@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableDependencyTrait;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\canvas\AutoSave\AutoSaveManager;
 
 final class AutoSaveEntity implements CacheableDependencyInterface {
 

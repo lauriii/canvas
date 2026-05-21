@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional\Update;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
-use Symfony\Component\Validator\ConstraintViolation;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
 
 /**

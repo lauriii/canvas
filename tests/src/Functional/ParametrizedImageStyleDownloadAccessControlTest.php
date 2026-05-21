@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\ParametrizedImageStyle;
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\image\Functional\ImageStyleDownloadAccessControlTest;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

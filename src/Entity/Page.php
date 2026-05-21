@@ -4,24 +4,24 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\Entity\Routing\CanvasHtmlRouteProvider;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\Core\Entity\Attribute\ContentEntityType;
 use Drupal\Core\Entity\ContentEntityDeleteForm;
 use Drupal\Core\Entity\EditorialContentEntityBase;
 use Drupal\Core\Entity\EntityListBuilder;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\Form\RevisionDeleteForm;
+use Drupal\Core\Entity\Form\RevisionRevertForm;
+use Drupal\Core\Entity\Routing\RevisionHtmlRouteProvider;
+use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\media\Entity\MediaType;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\user\EntityOwnerTrait;
-use Drupal\Core\Entity\Attribute\ContentEntityType;
-use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\views\EntityViewsData;
-use Drupal\Core\Entity\Form\RevisionDeleteForm;
-use Drupal\Core\Entity\Form\RevisionRevertForm;
-use Drupal\canvas\Entity\Routing\CanvasHtmlRouteProvider;
-use Drupal\Core\Entity\Routing\RevisionHtmlRouteProvider;
 
 /**
  * Defines the page entity class.

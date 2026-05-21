@@ -5,10 +5,10 @@
  * Functions to support theming in the Canvas Stark theme.
  */
 
-use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Render\Element;
 use Drupal\canvas_stark\PreRender;
 use Drupal\Component\Serialization\Json;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
 
 /**
  * Implements hook_form_alter().

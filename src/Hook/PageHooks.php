@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\Entity\Page;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
@@ -16,7 +17,6 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\canvas\Entity\Page;
 use Drupal\pathauto\PathautoItem;
 use Drupal\pathauto\PathautoState;
 

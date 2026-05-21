@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+use Drupal\canvas\Audit\ComponentAudit;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\Entity\ConfigEntityDependency;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
@@ -11,9 +14,6 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleUninstallValidatorInterface;
 use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
 use Drupal\Core\Url;
-use Drupal\canvas\Audit\ComponentAudit;
-use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Entity\ComponentInterface;
 
 /**
  * Defines an uninstall validator for content entity uses of Components.

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Traits;
 
-use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\canvas\Config\Entity\BetterConfigDependencyManager;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 
 /**
  * This exists because existing Configuration System infrastructure falls short.

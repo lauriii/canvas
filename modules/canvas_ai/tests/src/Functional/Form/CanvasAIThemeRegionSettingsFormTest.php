@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Functional\Form;
 
-use PHPUnit\Framework\Attributes\Group;
+use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\BrowserTestBase;
-use Drupal\canvas_ai\CanvasAiPermissions;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests the Canvas AI Theme Region Settings form.

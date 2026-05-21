@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_personalization\Entity;
 
+use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\Core\Condition\ConditionPluginCollection;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\EntityWithPluginCollectionInterface;
-use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 
 /**
  * Provides an interface defining a personalization segment entity type.

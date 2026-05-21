@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Form;
 
+use Drupal\canvas\Audit\ComponentAudit;
+use Drupal\canvas\Entity\Component;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
-use Drupal\canvas\Audit\ComponentAudit;
-use Drupal\canvas\Entity\Component;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**

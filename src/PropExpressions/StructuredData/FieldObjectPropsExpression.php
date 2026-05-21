@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropExpressions\StructuredData;
 
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
@@ -11,7 +12,6 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 
 final class FieldObjectPropsExpression implements EntityFieldBasedPropExpressionInterface, ObjectPropExpressionInterface {
 

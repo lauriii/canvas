@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_test_block_simulate_input_schema_change\Plugin\Block;
 
+use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputSchemaChangePoc;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\State\StateInterface;
-use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputSchemaChangePoc;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**

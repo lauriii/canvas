@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional\Update;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\image\Entity\ImageStyle;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests Canvas Parametrized Width Image Style Avif Update.

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
-use Drupal\canvas\Form\ComponentInstanceForm;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Form\ComponentInstanceForm;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
@@ -17,8 +17,6 @@ use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Url;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
@@ -26,10 +24,12 @@ use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 use Drupal\Tests\system\Functional\Form\StubForm;
 use Drupal\user\Entity\User;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\TestWith;
 use Symfony\Component\DomCrawler\Crawler;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 
 /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\ComponentSource;
 
+use Drupal\canvas\Attribute\ComponentSource;
 use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
 use Drupal\canvas\ComponentIncompatibilityReasonRepository;
 use Drupal\canvas\Entity\Component;
@@ -18,7 +19,6 @@ use Drupal\Core\DependencyInjection\ClassResolverInterface;
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
-use Drupal\canvas\Attribute\ComponentSource;
 use Drupal\Core\Update\UpdateKernel;
 
 /**

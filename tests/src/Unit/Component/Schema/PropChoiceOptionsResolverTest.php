@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\Component\Schema;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Component\Schema\PropChoiceOptionsResolver;
 use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**

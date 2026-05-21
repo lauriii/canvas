@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Render;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 

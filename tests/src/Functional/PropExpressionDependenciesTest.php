@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -19,6 +18,7 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\TestWith;
 

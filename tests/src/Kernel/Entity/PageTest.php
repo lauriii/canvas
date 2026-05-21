@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Entity;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
@@ -12,6 +11,7 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
+use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\TestWith;
-use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
-use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
-use Drupal\canvas\Entity\JavaScriptComponent;
-use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\Yaml\Yaml;
 
 /**

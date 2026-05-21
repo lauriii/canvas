@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\DataType;
 
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\DataReferenceBase;
 use Drupal\Core\TypedData\DataReferenceDefinition;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
 /**
  * Defines a data type that resolves to the parent component tree item.

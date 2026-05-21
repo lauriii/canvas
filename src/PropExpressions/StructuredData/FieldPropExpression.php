@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropExpressions\StructuredData;
 
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\canvas\Utility\TypedDataHelper;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
@@ -16,7 +17,6 @@ use Drupal\Core\Field\FieldConfigInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 
 /**
  * For pointing to a prop in a concrete field.

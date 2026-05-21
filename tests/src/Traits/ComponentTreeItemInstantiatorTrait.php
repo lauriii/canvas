@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Traits;
 
-use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\Core\Entity\FieldableEntityInterface;
 
 /**
  * Builds a dangling Canvas component tree item carrying a single component.

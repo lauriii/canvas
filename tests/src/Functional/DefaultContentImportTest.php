@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-use PHPUnit\Framework\Attributes\Group;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Core\DefaultContent\Finder;
 use Drupal\Core\DefaultContent\Importer;
 use Drupal\Core\Entity\EntityRepositoryInterface;
-use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

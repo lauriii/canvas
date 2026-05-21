@@ -6,21 +6,21 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
+use Drupal\canvas\Entity\Page;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Url;
-use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\canvas\Entity\Page;
-use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\user\Entity\Role;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Psr\Http\Message\ResponseInterface;
 

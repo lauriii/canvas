@@ -11,16 +11,16 @@ declare(strict_types=1);
 
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Language\LanguageInterface;
-use Drupal\link\LinkItemInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 use Drupal\editor\Entity\Editor;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\filter\Entity\FilterFormat;
+use Drupal\link\LinkItemInterface;
 use Drupal\node\NodeInterface;
-use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
 use Drupal\user\Entity\Role;
 use Drupal\user\RoleInterface;
 

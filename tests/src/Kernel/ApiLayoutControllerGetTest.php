@@ -4,34 +4,34 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
-use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Entity\ContentTemplate;
-use Drupal\canvas\PropSource\PropSource;
-use Drupal\Core\Entity\ContentEntityInterface;
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Entity\Entity\EntityViewMode;
-use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
-use Drupal\Core\ParamConverter\ParamNotConvertedException;
-use Drupal\Core\Url;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Controller\ApiLayoutController;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\canvas\PropSource\PropSource;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\Entity\EntityViewMode;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\Core\ParamConverter\ParamNotConvertedException;
+use Drupal\Core\Url;
 use Drupal\link\LinkItemInterface;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\user\Entity\User;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**

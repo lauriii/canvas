@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
+use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\Core\Config\Schema\TypeResolver;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Theme\ComponentPluginManager;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
-use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;

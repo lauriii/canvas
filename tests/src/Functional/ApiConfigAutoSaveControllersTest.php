@@ -4,24 +4,24 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\BrandKit;
+use Drupal\canvas\Entity\CanvasAssetInterface;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\Page;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Url;
-use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\canvas\Entity\AssetLibrary;
-use Drupal\canvas\Entity\BrandKit;
-use Drupal\canvas\Entity\JavaScriptComponent;
-use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Entity\CanvasAssetInterface;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
 use Drupal\file\FileUsage\FileUsageInterface;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use function base_path;
 

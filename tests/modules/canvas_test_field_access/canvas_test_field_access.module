@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
+use Drupal\canvas\Entity\Page;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\canvas\Entity\Page;
 
 /**
  * Implements hook_entity_field_access().

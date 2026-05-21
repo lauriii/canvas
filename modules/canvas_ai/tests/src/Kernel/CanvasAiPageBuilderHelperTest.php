@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
-use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Yaml\Yaml;
 
 /**

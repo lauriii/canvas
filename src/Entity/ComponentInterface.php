@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
-use Drupal\Core\Entity\EntityWithPluginCollectionInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
+use Drupal\Core\Entity\EntityWithPluginCollectionInterface;
 
 /**
  * @internal

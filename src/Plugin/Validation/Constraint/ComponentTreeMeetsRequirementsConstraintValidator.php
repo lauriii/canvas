@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\Core\Config\Schema\Sequence;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
-use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;

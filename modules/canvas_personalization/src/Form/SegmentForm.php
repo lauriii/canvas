@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_personalization\Form;
 
+use Drupal\canvas_personalization\Entity\Segment;
+use Drupal\canvas_personalization\Entity\SegmentInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Condition\ConditionInterface;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
-use Drupal\canvas_personalization\Entity\Segment;
-use Drupal\canvas_personalization\Entity\SegmentInterface;
 
 /**
  * Personalization Segment form.

@@ -4,12 +4,20 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\canvas\AssetRenderer;
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
-use Drupal\canvas\GlobalImports;
 use Drupal\canvas\Config\ThemeSettingsDiscovery;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Extension\CanvasExtensionPluginManager;
+use Drupal\canvas\GlobalImports;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Resource\CanvasResourceLink;
 use Drupal\canvas\Resource\CanvasResourceLinkCollection;
 use Drupal\Component\Utility\Html;
@@ -31,14 +39,6 @@ use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
-use Drupal\canvas\AssetRenderer;
-use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\canvas\Entity\BrandKit;
-use Drupal\canvas\Entity\ContentTemplate;
-use Drupal\canvas\Entity\JavaScriptComponent;
-use Drupal\canvas\Entity\PageRegion;
-use Drupal\canvas\Entity\Pattern;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class CanvasController {

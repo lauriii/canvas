@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Render\MainContent;
 
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\TitleResolverInterface;
@@ -17,8 +19,6 @@ use Drupal\Core\Render\RenderCacheInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
-use Drupal\canvas\Entity\PageRegion;
-use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;

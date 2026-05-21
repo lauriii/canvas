@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\Depends;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\Depends;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Yaml\Yaml;
 
 /**

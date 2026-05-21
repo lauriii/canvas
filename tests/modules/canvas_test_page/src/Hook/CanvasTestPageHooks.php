@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_test_page\Hook;
 
+use Drupal\canvas\Entity\Page;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -11,7 +12,6 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\canvas\Entity\Page;
 
 readonly class CanvasTestPageHooks {
 

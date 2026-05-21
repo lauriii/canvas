@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Extension;
 
-use Drupal\canvas\Extension\CanvasExtensionTypeEnum;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Extension\CanvasExtensionTypeEnum;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Session\AccountInterface;

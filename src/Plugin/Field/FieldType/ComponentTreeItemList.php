@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Field\FieldType;
 
+use Drupal\canvas\ComponentSource\ComponentSourceInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceWithSwitchCasesInterface;
+use Drupal\canvas\Element\RenderSafeComponentContainer;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Exception\SubtreeInjectionException;
+use Drupal\canvas\HydratedTree;
+use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
 use Drupal\Component\Graph\Graph;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
@@ -17,15 +26,6 @@ use Drupal\Core\Form\EnforcedResponseException;
 use Drupal\Core\Form\FormAjaxException;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RenderableInterface;
-use Drupal\canvas\ComponentSource\ComponentSourceInterface;
-use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
-use Drupal\canvas\ComponentSource\ComponentSourceWithSwitchCasesInterface;
-use Drupal\canvas\Element\RenderSafeComponentContainer;
-use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Entity\ComponentTreeEntityInterface;
-use Drupal\canvas\Exception\SubtreeInjectionException;
-use Drupal\canvas\HydratedTree;
-use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
 
 /**
  * A component tree: a list item class for ComponentTreeItem.

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Canvas\PHPStan\UsageProvider;
 
 use Drupal\canvas\Controller\ApiControllerBase;
-use Symfony\Component\Yaml\Yaml;
 use ShipMonk\PHPStan\DeadCode\Provider\ReflectionBasedMemberUsageProvider;
 use ShipMonk\PHPStan\DeadCode\Provider\VirtualUsageData;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Marks Drupal routing-dispatched methods as used.

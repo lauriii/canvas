@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_personalization;
 
+use Drupal\canvas_personalization\Entity\SegmentInterface;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\canvas_personalization\Entity\SegmentInterface;
 
 /**
  * Provides a listing of personalization segments.

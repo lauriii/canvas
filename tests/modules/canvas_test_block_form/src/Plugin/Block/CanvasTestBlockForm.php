@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_test_block_form\Plugin\Block;
 
+use Drupal\canvas\Entity\Page;
 use Drupal\Core\Block\Attribute\Block;
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\canvas\Entity\Page;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 #[Block(

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Drupal\Core\Extension\ThemeHandlerInterface;
-use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasNotificationHandler;
+use Drupal\Core\Extension\ThemeHandlerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 
 /**
  * Implements hook_module_preinstall().

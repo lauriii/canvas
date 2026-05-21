@@ -6,18 +6,18 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 
 // cspell:ignore sofie componente extraño
 
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\FieldStorageConfigInterface;
 use Drupal\media\Entity\MediaType;
 use Drupal\node\Entity\NodeType;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
-use Drupal\canvas\Entity\JavaScriptComponent;
-use Drupal\canvas\Exception\ConstraintViolationException;
-use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

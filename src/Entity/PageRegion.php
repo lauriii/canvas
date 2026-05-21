@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\Controller\ClientServerConversionTrait;
+use Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler;
+use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery;
+use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\canvas\Controller\ClientServerConversionTrait;
-use Drupal\canvas\Exception\ConstraintViolationException;
-use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery;
-use Drupal\Core\Entity\Attribute\ConfigEntityType;
-use Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,

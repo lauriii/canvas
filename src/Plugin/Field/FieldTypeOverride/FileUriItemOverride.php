@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
+use Drupal\canvas\Plugin\DataTypeOverride\ComputedFileUrlOverride;
+use Drupal\canvas\Plugin\DataTypeOverride\UriOverride;
 use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
 use Drupal\canvas\Plugin\Validation\Constraint\UriSchemeConstraint;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\canvas\Plugin\DataTypeOverride\ComputedFileUrlOverride;
-use Drupal\canvas\Plugin\DataTypeOverride\UriOverride;
 use Drupal\file\Plugin\Field\FieldType\FileUriItem;
 
 /**

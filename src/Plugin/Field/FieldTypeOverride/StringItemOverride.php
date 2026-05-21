@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
+use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\StringItem;
-use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
 
 /**
  * @todo Fix upstream.

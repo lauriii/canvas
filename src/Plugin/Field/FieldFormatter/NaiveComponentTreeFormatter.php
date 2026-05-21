@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Field\FieldFormatter;
 
-use Drupal\Core\Field\Attribute\FieldFormatter;
-use Drupal\Core\Field\FormatterBase;
-use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\Core\Field\Attribute\FieldFormatter;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\FormatterBase;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * @todo This is naive and insufficient: this needs to take over the rendering of the entire entity, not just of this single field. Still, for PoC/data model purposes, this is sufficient initially.

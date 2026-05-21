@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\TypedData;
 
+use Drupal\canvas\Entity\ParametrizedImageStyle;
 use Drupal\canvas\Plugin\DataType\ComputedDataTypeWithCacheabilityTrait;
+use Drupal\canvas\Plugin\DataType\UriTemplate;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityReference;
 use Drupal\Core\File\FileUrlGeneratorInterface;
-use Drupal\canvas\Entity\ParametrizedImageStyle;
-use Drupal\canvas\Plugin\DataType\UriTemplate;
-use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\Core\GeneratedUrl;
 use Drupal\file\Entity\File;
 

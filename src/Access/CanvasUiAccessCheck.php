@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Access;
 
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\canvas\Entity\BrandKit;
-use Drupal\canvas\Entity\JavaScriptComponent;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
 /**
  * Checks access to the Canvas UI: requires >=1 component tree to be editable.

@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
-use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
 use Drupal\canvas\MissingComponentInputsException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\ConstraintViolationList;

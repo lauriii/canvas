@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Canvas\Sniffs\Tests;
 
-use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Files\File;
+use PHP_CodeSniffer\Sniffs\Sniff;
 
 /**
  * Disallows PHPUnit annotations in favor of PHP attributes.

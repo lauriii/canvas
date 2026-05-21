@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\ShapeMatcher;
 
+use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
@@ -22,8 +24,6 @@ use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Theme\Component\ComponentMetadata;
-use Drupal\canvas\Plugin\Adapter\AdapterInterface;
-use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 
 /**
  * Suggests prop sources for a component's props in a host entity type + bundle.

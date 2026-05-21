@@ -6,9 +6,9 @@ namespace Drupal\canvas\Block;
 
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
+use Drupal\Component\Plugin\Discovery\CachedDiscoveryInterface;
 use Drupal\Component\Plugin\FallbackPluginManagerInterface;
 use Drupal\Core\Block\BlockManagerInterface;
-use Drupal\Component\Plugin\Discovery\CachedDiscoveryInterface;
 
 /**
  * Decorates the block plugin manager to re-generate block Canvas components.

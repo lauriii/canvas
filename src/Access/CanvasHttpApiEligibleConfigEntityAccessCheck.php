@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Access;
 
+use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 
 /**
  * Defines access check ensuring Canvas config entity is eligible for API usage.

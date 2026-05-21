@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
+use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
 use Drupal\canvas\Plugin\Validation\Constraint\UriSchemeConstraint;
+use Drupal\canvas\TypedData\LinkUrl;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
-use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
-use Drupal\canvas\TypedData\LinkUrl;
 use Drupal\link\Plugin\Field\FieldType\LinkItem;
 
 /**

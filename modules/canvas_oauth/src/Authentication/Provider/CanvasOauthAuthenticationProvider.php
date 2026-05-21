@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_oauth\Authentication\Provider;
 
-use Drupal\Core\Authentication\AuthenticationProviderInterface;
-use Drupal\Core\Routing\RouteMatch;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\Core\Authentication\AuthenticationProviderInterface;
+use Drupal\Core\Routing\RouteMatch;
 use Drupal\simple_oauth\Authentication\Provider\SimpleOauthAuthenticationProvider;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;

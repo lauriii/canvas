@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use Drupal\canvas\Entity\Pattern;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
-use Drupal\canvas\Entity\Pattern;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

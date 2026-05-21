@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\ComponentSource;
 
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Component\Plugin\ConfigurableInterface;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Plugin\DerivativeInspectionInterface;
@@ -13,8 +15,6 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContextAwarePluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**

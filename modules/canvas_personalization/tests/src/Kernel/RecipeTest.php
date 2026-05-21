@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Kernel;
 
-use PHPUnit\Framework\Attributes\Group;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas_personalization\Entity\Segment;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Recipe\Recipe;
 use Drupal\Core\Recipe\RecipeRunner;
-use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\FunctionalTests\Core\Recipe\RecipeTestTrait;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
-use Drupal\canvas_personalization\Entity\Segment;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @legacy-covers \Drupal\canvas\EventSubscriber\RecipeSubscriber

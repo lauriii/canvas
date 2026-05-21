@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\AutoSave;
 
-use Drupal\Core\Url;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Page;
+use Drupal\Core\Url;
 use Drupal\Tests\canvas\Kernel\ApiLayoutControllerTestBase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;

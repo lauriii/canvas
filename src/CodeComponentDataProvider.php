@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Breadcrumb\ChainBreadcrumbBuilderInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\TitleResolverInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;

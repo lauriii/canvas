@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas_ai\CanvasAiPermissions;
+use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
-use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
-use Drupal\canvas\ComponentSource\ComponentSourceManager;
-use Drupal\canvas_ai\CanvasAiPermissions;
-use Drupal\canvas_ai\CanvasAiTempStore;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Yaml\Yaml;
 
 /**

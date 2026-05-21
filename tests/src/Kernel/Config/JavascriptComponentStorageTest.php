@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\canvas\ComponentIncompatibilityReasonRepository;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
@@ -13,6 +12,7 @@ use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Traits\ComponentTreeItemInstantiatorTrait;

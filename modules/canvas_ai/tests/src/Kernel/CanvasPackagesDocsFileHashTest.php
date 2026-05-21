@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Test to ensure the Canvas packages doc file has not changed.

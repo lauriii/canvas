@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\ClientSideRepresentation;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityAccessControlHandler;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\canvas\ClientSideRepresentation;
 
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,

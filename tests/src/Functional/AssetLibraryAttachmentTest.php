@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-use PHPUnit\Framework\Attributes\Group;
-use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\File\FileUrlGeneratorInterface;
-use Drupal\Core\Session\AccountInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\Core\Session\AccountInterface;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DomCrawler\Crawler;
 

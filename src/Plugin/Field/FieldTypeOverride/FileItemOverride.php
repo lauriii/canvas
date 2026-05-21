@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
+use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\Component\Utility\Random;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
-use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\file\Plugin\Field\FieldType\FileItem;
 use Drupal\media\Entity\MediaType;
 

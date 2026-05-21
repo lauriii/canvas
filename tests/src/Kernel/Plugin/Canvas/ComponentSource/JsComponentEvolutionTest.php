@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Controller\ApiConfigAutoSaveControllers;
@@ -30,6 +29,7 @@ use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

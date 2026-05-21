@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Functional\Form;
 
-use PHPUnit\Framework\Attributes\Group;
+use Drupal\canvas_personalization\Entity\Segment;
+use Drupal\canvas_personalization\Plugin\Condition\UtmParameters;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
-use Drupal\canvas_personalization\Entity\Segment;
-use Drupal\canvas_personalization\Plugin\Condition\UtmParameters;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

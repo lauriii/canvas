@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Config\Plugin\Validation\Constraint\ConfigExistsConstraint;
 use Drupal\Core\Config\Schema\Sequence;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
@@ -13,9 +16,6 @@ use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\LengthConstraint;
-use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Entity\ContentTemplate;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\All;

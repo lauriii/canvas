@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_personalization\Form;
 
+use Drupal\canvas_personalization\Entity\SegmentInterface;
 use Drupal\Core\Condition\ConditionInterface;
 use Drupal\Core\Condition\ConditionManager;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\SubformState;
-use Drupal\canvas_personalization\Entity\SegmentInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**

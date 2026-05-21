@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Entity;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\RequiresFunction;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Controller\EntityFormController;
 use Drupal\canvas\Entity\Page;
@@ -14,9 +12,11 @@ use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\TestFileCreationTrait;
-use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RequiresFunction;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\RequestStack;
 

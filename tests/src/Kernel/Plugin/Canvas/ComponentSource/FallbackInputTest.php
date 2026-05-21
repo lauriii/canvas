@@ -4,29 +4,29 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
-use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
-use PHPUnit\Framework\Attributes\CoversClass;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\TestWith;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
-use Drupal\Core\File\FileExists;
-use Drupal\Core\StreamWrapper\PublicStream;
-use Drupal\Core\Url;
 use Drupal\canvas\Controller\ApiAutoSaveController;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
+use Drupal\Core\File\FileExists;
+use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\Core\Url;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\media\Entity\MediaType;
 use Drupal\Tests\canvas\Kernel\ApiLayoutControllerTestBase;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\TestWith;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

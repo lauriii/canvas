@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\MemoryCache\MemoryCacheInterface;
@@ -14,22 +18,18 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
-use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Entity\ComponentInterface;
-use Drupal\canvas\Entity\JavaScriptComponent;
-use Drupal\canvas\Entity\PageRegion;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\file\FileInterface;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\AutoSaveRequestTestTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**

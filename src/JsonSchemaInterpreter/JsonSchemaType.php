@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\JsonSchemaInterpreter;
 
-use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
-use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\PropShape\PropShape;
+use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\canvas\ShapeMatcher\DataTypeShapeRequirement;
 use Drupal\canvas\ShapeMatcher\DataTypeShapeRequirements;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 
 /**
  * Interprets JSON schema types (with type-specific constraints) to Typed Data.

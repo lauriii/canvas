@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Kernel\Plugin\Condition;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
-use Drupal\Core\Condition\ConditionManager;
 use Drupal\canvas_personalization\Plugin\Condition\UtmParameters;
+use Drupal\Core\Condition\ConditionManager;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;

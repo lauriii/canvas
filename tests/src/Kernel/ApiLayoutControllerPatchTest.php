@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use Drupal\media\Entity\Media;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -19,17 +16,20 @@ use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\file\FileInterface;
+use Drupal\media\Entity\Media;
 use Drupal\media\MediaInterface;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\AutoSaveRequestTestTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**

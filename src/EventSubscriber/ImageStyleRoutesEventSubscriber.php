@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EventSubscriber;
 
-use Drupal\Core\Routing\RouteSubscriberBase;
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
+use Drupal\Core\Routing\RouteSubscriberBase;
 use Symfony\Component\Routing\RouteCollection;
 
 /**

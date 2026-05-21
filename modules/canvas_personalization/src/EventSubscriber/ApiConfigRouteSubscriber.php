@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_personalization\EventSubscriber;
 
-use Drupal\Core\Routing\RouteSubscriberBase;
 use Drupal\canvas_personalization\Entity\Segment;
+use Drupal\Core\Routing\RouteSubscriberBase;
 use Symfony\Component\Routing\RouteCollection;
 
 final class ApiConfigRouteSubscriber extends RouteSubscriberBase {

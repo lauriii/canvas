@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Plugin\search_api\processor;
 
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
+use Drupal\canvas\Plugin\search_api\processor\ComponentTreeInputs;
 use Drupal\Component\Uuid\Php as UuidGenerator;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
-use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Plugin\search_api\processor\ComponentTreeInputs;
 use Drupal\search_api\Entity\Index;
 use Drupal\search_api\Entity\Server;
 use Drupal\search_api\IndexInterface;

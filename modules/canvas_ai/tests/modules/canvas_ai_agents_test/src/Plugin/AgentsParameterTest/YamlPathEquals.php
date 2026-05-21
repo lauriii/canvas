@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_ai_agents_test\Plugin\AgentsParameterTest;
 
-use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai_agents_test\AgentsParameterTestPluginBase;
 use Drupal\ai_agents_test\Attribute\AgentsParameterTest;
 use Drupal\canvas_ai_agents_test\Service\YamlPathHelper;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**

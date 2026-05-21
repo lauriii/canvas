@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_personalization\Access;
 
+use Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler;
+use Drupal\canvas_personalization\Entity\Segment;
+use Drupal\canvas_personalization\Entity\SegmentInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler;
-use Drupal\canvas_personalization\Entity\Segment;
-use Drupal\canvas_personalization\Entity\SegmentInterface;
 
 /**
  * Defines the access control handler for Segment entities.

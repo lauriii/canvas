@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EntityHandlers;
 
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\canvas\Entity\BrandKit;
 
 /**
  * Defines an access control handler for Brand Kit entities.

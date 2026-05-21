@@ -6,17 +6,16 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
-use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
-
+use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversClass(ValidComponentTreeItemConstraintValidator::class)]

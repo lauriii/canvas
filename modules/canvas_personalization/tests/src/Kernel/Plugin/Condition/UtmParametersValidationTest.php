@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Kernel\Plugin\Condition;
 
-use PHPUnit\Framework\Attributes\Group;
-use Drupal\Tests\canvas_personalization\Kernel\Config\SegmentValidationTest;
 use Drupal\canvas_personalization\Entity\Segment;
 use Drupal\canvas_personalization\Plugin\Condition\UtmParameters;
+use Drupal\Tests\canvas_personalization\Kernel\Config\SegmentValidationTest;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests Utm Parameters Validation.

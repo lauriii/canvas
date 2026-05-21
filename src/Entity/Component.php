@@ -4,31 +4,31 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\Audit\ComponentAudit;
 use Drupal\canvas\Audit\RevisionAuditEnum;
 use Drupal\canvas\CanvasConfigUpdater;
+use Drupal\canvas\ClientSideRepresentation;
+use Drupal\canvas\ComponentSource\ComponentSourceInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
+use Drupal\canvas\Element\RenderSafeComponentContainer;
+use Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessControlHandler;
+use Drupal\canvas\Form\ComponentListBuilder;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
+use Drupal\canvas\Plugin\VersionedConfigurationSubsetSingleLazyPluginCollection;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Schema\Mapping;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\Theme\ThemeInitializationInterface;
-use Drupal\canvas\Audit\ComponentAudit;
-use Drupal\canvas\ClientSideRepresentation;
-use Drupal\canvas\ComponentSource\ComponentSourceInterface;
-use Drupal\canvas\ComponentSource\ComponentSourceManager;
-use Drupal\canvas\Element\RenderSafeComponentContainer;
-use Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessControlHandler;
-use Drupal\canvas\Form\ComponentListBuilder;
-use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
-use Drupal\canvas\Plugin\VersionedConfigurationSubsetSingleLazyPluginCollection;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**

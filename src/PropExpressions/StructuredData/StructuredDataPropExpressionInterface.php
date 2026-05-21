@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropExpressions\StructuredData;
 
+use Drupal\canvas\PropExpressions\PropExpressionInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\canvas\PropExpressions\PropExpressionInterface;
 
 /**
  * @internal

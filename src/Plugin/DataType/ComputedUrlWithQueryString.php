@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\DataType;
 
+use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\UrlHelper;
@@ -15,8 +17,6 @@ use Drupal\Core\GeneratedUrl;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\Plugin\DataType\Uri;
-use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
-use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 
 #[DataType(
   id: self::PLUGIN_ID,

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\DataType;
 
-use Drupal\Core\Cache\CacheableDependencyInterface;
-use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Core\TypedData\TypedData;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\Core\Cache\CacheableDependencyInterface;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\TypedData\TypedData;
 
 /**
  * A computed field property for a component instance's resolved inputs.

@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\Form\ComponentInstanceForm;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Hook\Order\OrderAfter;
-use Drupal\Core\Security\TrustedCallbackInterface;
-use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\Core\Hook\Order\OrderAfter;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\CurrentRouteMatch;
+use Drupal\Core\Security\TrustedCallbackInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Theme\ThemeManagerInterface;
-use Drupal\canvas\Form\ComponentInstanceForm;
+use Drupal\Core\Url;
 use Drupal\media_library\MediaLibraryState;
 use Symfony\Component\HttpFoundation\RequestStack;
 

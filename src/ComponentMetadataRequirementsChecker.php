@@ -8,10 +8,10 @@ use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropShape\EphemeralPropShapeRepository;
+use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\canvas\Validation\JsonSchema\ContentEntityReferenceObjectConstraint;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\Component\ComponentMetadata;
-use Drupal\canvas\PropShape\StorablePropShape;
 use JsonSchema\Validator;
 
 /**

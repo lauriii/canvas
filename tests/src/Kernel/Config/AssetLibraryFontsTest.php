@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use Drupal\canvas\Entity\BrandKit;
 // cspell:ignore Brien obrien
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\File\FileSystemInterface;
-use Drupal\canvas\Entity\BrandKit;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
 use Drupal\file\FileUsage\FileUsageInterface;

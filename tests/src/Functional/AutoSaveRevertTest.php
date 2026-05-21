@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-use PHPUnit\Framework\Attributes\Group;
-use Drupal\Core\Session\AccountInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Page;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\BrowserTestBase;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

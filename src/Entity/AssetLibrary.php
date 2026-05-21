@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\ClientSideRepresentation;
+use Drupal\canvas\EntityHandlers\AssetLibraryAccessControlHandler;
+use Drupal\canvas\EntityHandlers\CanvasAssetStorage;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
@@ -11,9 +14,6 @@ use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\canvas\ClientSideRepresentation;
-use Drupal\canvas\EntityHandlers\AssetLibraryAccessControlHandler;
-use Drupal\canvas\EntityHandlers\CanvasAssetStorage;
 use Drupal\file\FileInterface;
 use Drupal\file\FileUsage\FileUsageInterface;
 

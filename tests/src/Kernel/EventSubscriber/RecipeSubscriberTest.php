@@ -4,16 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\EventSubscriber;
 
-use PHPUnit\Framework\Attributes\Group;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Recipe\Recipe;
 use Drupal\Core\Recipe\RecipeRunner;
-use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
@@ -25,6 +24,7 @@ use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

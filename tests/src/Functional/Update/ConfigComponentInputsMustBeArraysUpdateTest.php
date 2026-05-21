@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Functional\Update;
 
 use Drupal\canvas\CanvasConfigUpdater;
-use PHPUnit\Framework\Attributes\CoversFunction;
-use PHPUnit\Framework\Attributes\CoversMethod;
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\FieldConfigInterface;
+use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\CoversMethod;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversMethod(CanvasConfigUpdater::class, 'needsConfigEntityWithComponentTreeInputsAsArrays')]

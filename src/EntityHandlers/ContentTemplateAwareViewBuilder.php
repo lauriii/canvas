@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EntityHandlers;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
@@ -13,8 +15,6 @@ use Drupal\Core\Entity\EntityViewBuilder;
 use Drupal\Core\Entity\EntityViewBuilderInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\canvas\Entity\ContentTemplate;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**

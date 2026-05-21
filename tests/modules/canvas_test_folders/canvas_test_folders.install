@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Pattern;
 

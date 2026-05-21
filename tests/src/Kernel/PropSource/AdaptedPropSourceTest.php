@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\PropSource;
 
-use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropSource\AdaptedPropSource;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\CoversClass;

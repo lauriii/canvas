@@ -6,6 +6,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\PropSource;
 
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\canvas\PropSource\PropSource;
+use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -14,12 +20,6 @@ use Drupal\Core\Field\Plugin\Field\FieldWidget\EntityReferenceAutocompleteWidget
 use Drupal\Core\Field\Plugin\Field\FieldWidget\NumberWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget;
-use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
-use Drupal\canvas\PropSource\PropSource;
-use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDatelistWidget;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDefaultWidget;
 use Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget;

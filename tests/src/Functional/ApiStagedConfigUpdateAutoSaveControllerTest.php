@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-use PHPUnit\Framework\Attributes\Group;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Url;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\StagedConfigUpdate;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Url;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

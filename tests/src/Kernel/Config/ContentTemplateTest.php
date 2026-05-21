@@ -6,26 +6,26 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
-use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Config\StorageInterface;
-use Drupal\Core\Language\LanguageManagerInterface;
-use Drupal\language\ConfigurableLanguageManagerInterface;
-use Drupal\language\Entity\ConfigurableLanguage;
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\TestWith;
 use Drupal\canvas\Entity\Component;
-use Drupal\canvas\PropSource\PropSource;
-use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
+use Drupal\canvas\PropSource\PropSource;
+use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Config\StorageInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\language\ConfigurableLanguageManagerInterface;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\TestWith;
 
 /**
  * Tests Drupal\canvas\Entity\ContentTemplate.

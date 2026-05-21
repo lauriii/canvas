@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
-use PHPUnit\Framework\Attributes\TestWith;
 use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery;
-use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
@@ -19,6 +16,8 @@ use Drupal\canvas\Entity\VersionedConfigEntityInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery;
+use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
@@ -27,6 +26,7 @@ use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\TestWith;
 use Symfony\Component\Yaml\Yaml;
 
 /**

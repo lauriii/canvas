@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional\Config;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\Component as ComponentEntity;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\Core\Config\FileStorage;
@@ -12,6 +11,7 @@ use Drupal\Core\Config\InstallStorage;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\KernelTests\AssertConfigTrait;
 use Drupal\Tests\canvas\Functional\FunctionalTestBase;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

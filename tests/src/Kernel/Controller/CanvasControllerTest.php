@@ -4,25 +4,25 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Controller;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
-use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
-use Drupal\Core\Url;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
+use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\Core\Url;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\canvas\Entity\Folder;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\canvas\Kernel\Traits\CanvasUiAssertionsTrait;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
-use Drupal\Tests\canvas\Kernel\Traits\CanvasUiAssertionsTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 

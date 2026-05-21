@@ -6,6 +6,9 @@ namespace Drupal\canvas\Entity;
 
 use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessControlHandler;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
@@ -23,9 +26,6 @@ use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\canvas\Storage\ComponentTreeLoader;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
 /**
  * Defines a template for content entities in a particular view mode.

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EntityHandlers;
 
+use Drupal\canvas\Access\CanvasUiAccessCheck;
+use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
@@ -13,8 +15,6 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\canvas\Access\CanvasUiAccessCheck;
-use Drupal\canvas\Entity\StagedConfigUpdate;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 final class StagedConfigUpdateAccessControlHandler extends EntityAccessControlHandler implements EntityHandlerInterface {

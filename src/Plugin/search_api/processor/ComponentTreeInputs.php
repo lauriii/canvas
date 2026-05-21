@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\search_api\processor;
 
+use Drupal\canvas\ComponentTreeInputExtractor;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\PluginFormInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\canvas\ComponentTreeInputExtractor;
 use Drupal\search_api\Attribute\SearchApiProcessor;
 use Drupal\search_api\Datasource\DatasourceInterface;
 use Drupal\search_api\IndexInterface;

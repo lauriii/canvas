@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
+use Drupal\canvas\Entity\Component;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
-use Drupal\canvas\Entity\Component;
 
 /**
  * Some Drupal Canvas constraint validators need a Component config entity.

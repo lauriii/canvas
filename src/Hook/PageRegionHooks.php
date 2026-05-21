@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\canvas\Entity\PageRegion;
-use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 
 /**
  * @see \Drupal\canvas\Entity\PageRegion

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EventSubscriber;
 
-use Drupal\Core\Render\PageDisplayVariantSelectionEvent;
-use Drupal\Core\Render\RenderEvents;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\Core\Render\PageDisplayVariantSelectionEvent;
+use Drupal\Core\Render\RenderEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**

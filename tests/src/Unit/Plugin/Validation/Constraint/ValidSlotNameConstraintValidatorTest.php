@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\Plugin\Validation\Constraint;
 
-use PHPUnit\Framework\Attributes\DataProvider;
-use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\canvas\Plugin\Validation\Constraint\ValidSlotNameConstraint;
 use Drupal\canvas\Plugin\Validation\Constraint\ValidSlotNameConstraintValidator;
+use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;

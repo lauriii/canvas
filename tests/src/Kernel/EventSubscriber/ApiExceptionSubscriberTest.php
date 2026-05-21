@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\EventSubscriber;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
-use Drupal\Core\Routing\RouteMatch;
 use Drupal\canvas\EventSubscriber\ApiExceptionSubscriber;
+use Drupal\Core\Routing\RouteMatch;
 use Drupal\Tests\canvas\Doubles\TestVerboseException;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\user\Entity\User;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Routing\Route;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests Api Exception Subscriber.

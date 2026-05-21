@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\ComponentSource\ComponentInstanceUpdateAttemptResult;
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
@@ -19,12 +17,14 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\PropShape\PersistentPropShapeRepository;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
-use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Component\Serialization\Json;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentInstanceUpdater.

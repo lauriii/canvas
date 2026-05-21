@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit;
 
+use Drupal\canvas\Controller\ApiLogController;
+use Drupal\Core\Logger\RfcLogLevel;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\ErrorHandler\BufferingLogger;
 use Symfony\Component\HttpFoundation\Request;
-use Drupal\canvas\Controller\ApiLogController;
-use Drupal\Core\Logger\RfcLogLevel;
 
 /**
  * Tests Drupal\canvas\Controller\ApiLogController.

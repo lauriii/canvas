@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_ai_agents_test\Service;
 
-use Symfony\Component\Yaml\Yaml;
 use Symfony\Component\Yaml\Exception\ParseException;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Service to help with YAML parsing and path traversal.

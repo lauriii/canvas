@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\DataType;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
-use Drupal\Component\Serialization\Json;
-use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\MissingComponentInputsException;
 use Drupal\canvas\Plugin\DataType\ComponentInputs;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\Component\Serialization\Json;
+use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests Drupal\canvas\Plugin\DataType\ComponentInputs.

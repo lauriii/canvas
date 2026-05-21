@@ -4,33 +4,33 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\ClientDataToEntityConverter;
+use Drupal\canvas\Controller\ApiLayoutController;
+use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\StagedConfigUpdate;
+use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\canvas\Render\PreviewEnvelope;
 use Drupal\Component\Datetime\Time;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\canvas\ClientDataToEntityConverter;
-use Drupal\canvas\Controller\ApiLayoutController;
-use Drupal\canvas\Entity\AssetLibrary;
-use Drupal\canvas\Entity\JavaScriptComponent;
-use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Entity\PageRegion;
-use Drupal\canvas\Entity\StagedConfigUpdate;
-use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
-use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
-use Drupal\canvas\Render\PreviewEnvelope;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
-use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
+use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
-use Symfony\Component\Validator\ConstraintViolation;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**

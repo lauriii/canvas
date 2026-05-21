@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Drupal\canvas;
 
 use Drupal\canvas\Entity\ComponentInterface;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
-use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
-use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\Storage\ComponentTreeLoader;
+use Drupal\Core\Entity\FieldableEntityInterface;
 
 /**
  * Extracts inputs from the component tree.

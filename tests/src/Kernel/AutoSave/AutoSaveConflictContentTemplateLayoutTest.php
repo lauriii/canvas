@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\AutoSave;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Url;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\canvas\Kernel\ApiLayoutControllerTestBase;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 

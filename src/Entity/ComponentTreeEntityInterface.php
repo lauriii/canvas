@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\Core\Entity\EntityInterface;
 
 /**
  * @internal

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropSource;
 
+use Drupal\canvas\Plugin\Adapter\AdapterInterface;
+use Drupal\canvas\Plugin\AdapterManager;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Component\Plugin\Definition\PluginDefinitionInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\canvas\Plugin\AdapterManager;
-use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 
 /**
  * Adapted prop sources allow combining multiple prop sources, and chaining.

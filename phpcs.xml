@@ -46,6 +46,7 @@ core.phpcs.xml.dist -> /PATH/TO/DRUPAL/ROOT/core/phpcs.xml.dist
   </rule>
 
   <!-- Canvas' additional coding standards. -->
+  <rule ref="SlevomatCodingStandard.Namespaces.AlphabeticallySortedUses"/>
   <rule ref="SlevomatCodingStandard.TypeHints.DeclareStrictTypes">
     <properties>
       <property name="spacesCountAroundEqualsSign" value="0"></property>

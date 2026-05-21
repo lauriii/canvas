@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Cache\RefinableCacheableDependencyTrait;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\RendererInterface;
-use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 
 /**
  * @see \Drupal\jsonapi\Normalizer\Value\CacheableNormalization

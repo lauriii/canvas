@@ -5,12 +5,6 @@ declare(strict_types=1);
 // cspell:ignore gitane
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
-use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputTranslatability;
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\Depends;
-use PHPUnit\Framework\Attributes\TestWith;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\Block\BlockManagerDecorator;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
@@ -20,22 +14,28 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputNone;
 use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputSchemaChangePoc;
+use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputTranslatability;
 use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputValidatable;
 use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputValidatableCrash;
 use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockOptionalContexts;
 use Drupal\canvas_test_block_form\Plugin\Block\CanvasTestBlockForm;
 use Drupal\Core\Block\BlockManagerInterface;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\node\Entity\Node;
 use Drupal\system\Entity\Menu;
 use Drupal\Tests\canvas\Kernel\BrokenBlockManager;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Traits\BlockComponentTreeTestTrait;
 use Drupal\user\Entity\User;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Depends;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\TestWith;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**

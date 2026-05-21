@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Twig;
 
+use Drupal\canvas\Entity\ParametrizedImageStyle;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
+use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
+use Drupal\Component\Render\MarkupInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\UrlHelper;
-use Drupal\Component\Render\MarkupInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\Core\Template\Attribute;
-use Drupal\canvas\Entity\ParametrizedImageStyle;
-use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
-use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 use Twig\TwigFunction;

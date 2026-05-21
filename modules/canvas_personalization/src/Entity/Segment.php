@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_personalization\Entity;
 
+use Drupal\canvas\ClientSideRepresentation;
+use Drupal\canvas_personalization\Access\SegmentAccessControlHandler;
+use Drupal\canvas_personalization\Form\SegmentForm;
+use Drupal\canvas_personalization\Form\SegmentRuleForm;
+use Drupal\canvas_personalization\SegmentListBuilder;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Condition\ConditionPluginCollection;
@@ -15,11 +20,6 @@ use Drupal\Core\Executable\ExecutableManagerInterface;
 use Drupal\Core\Plugin\FilteredPluginManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\canvas\ClientSideRepresentation;
-use Drupal\canvas_personalization\Form\SegmentForm;
-use Drupal\canvas_personalization\Form\SegmentRuleForm;
-use Drupal\canvas_personalization\Access\SegmentAccessControlHandler;
-use Drupal\canvas_personalization\SegmentListBuilder;
 
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,

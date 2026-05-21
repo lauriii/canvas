@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\Twig;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
+use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
+use Drupal\canvas\Twig\CanvasTwigExtension;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
-use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
-use Drupal\canvas\Twig\CanvasTwigExtension;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 // cspell:ignore fitok itok Bwidth
 /**

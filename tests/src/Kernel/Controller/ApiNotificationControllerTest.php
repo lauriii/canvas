@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Controller;
 
-use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
-use League\OpenAPIValidation\PSR7\Exception\Validation\InvalidBody;
 use Drupal\canvas\CanvasNotificationHandler;
 use Drupal\canvas\Controller\ApiNotificationController;
 use Drupal\canvas\Entity\Page;
+use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use League\OpenAPIValidation\PSR7\Exception\Validation\InvalidBody;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;

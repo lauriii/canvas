@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use PHPUnit\Framework\Attributes\Group;
-use Drupal\entity_test\Entity\EntityTest;
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\entity_test\Entity\EntityTest;
 use Drupal\KernelTests\KernelTestBase;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

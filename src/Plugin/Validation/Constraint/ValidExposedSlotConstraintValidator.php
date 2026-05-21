@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
+use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
+use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
-use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
-use Drupal\canvas\Entity\ContentTemplate;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;

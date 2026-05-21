@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
-use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
-use Drupal\canvas\Plugin\Validation\Constraint\UriSchemeConstraint;
-use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\canvas\Plugin\DataType\ComputedUrlWithQueryString;
 use Drupal\canvas\Plugin\DataType\UriTemplate;
 use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
+use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
+use Drupal\canvas\Plugin\Validation\Constraint\UriSchemeConstraint;
 use Drupal\canvas\Plugin\Validation\Constraint\UriTargetMediaTypeConstraint;
 use Drupal\canvas\Plugin\Validation\Constraint\UriTemplateWithVariablesConstraint;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
-use Drupal\image\Plugin\Field\FieldType\ImageItem;
+use Drupal\canvas\TypedData\ImageDerivativeWithParametrizedWidth;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
-use Drupal\canvas\TypedData\ImageDerivativeWithParametrizedWidth;
+use Drupal\image\Plugin\Field\FieldType\ImageItem;
 
 /**
  * @todo Fix upstream.

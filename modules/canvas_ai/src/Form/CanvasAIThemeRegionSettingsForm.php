@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_ai\Form;
 
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
-use Drupal\Component\Utility\NestedArray;
-use Drupal\canvas\Entity\PageRegion;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**

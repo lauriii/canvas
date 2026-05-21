@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\Core\Logger\RfcLogLevel;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Handles logging of error messages via an API endpoint.

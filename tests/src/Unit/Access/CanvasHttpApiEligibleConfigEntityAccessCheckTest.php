@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\Access;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
+use Drupal\canvas\Access\CanvasHttpApiEligibleConfigEntityAccessCheck;
+use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\canvas\Access\CanvasHttpApiEligibleConfigEntityAccessCheck;
-use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests Drupal\canvas\Access\CanvasHttpApiEligibleConfigEntityAccessCheck.

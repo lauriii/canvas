@@ -10,9 +10,9 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
-use Drupal\Core\Field\FieldItemListInterface;
 
 /**
  * For pointing to a prop in a field type (not considering any delta).

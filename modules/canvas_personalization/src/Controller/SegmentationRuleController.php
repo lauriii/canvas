@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_personalization\Controller;
 
-use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\canvas_personalization\Entity\Segment;
+use Drupal\Core\Routing\TrustedRedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
-use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\canvas\Entity\ParametrizedImageStyle;
+use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\image\Entity\ImageStyle;
 
 final class ImageStyleHooks {

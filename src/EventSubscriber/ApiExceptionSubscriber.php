@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EventSubscriber;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Controller\ApiAutoSaveController;
+use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\Utility\ExceptionHelper;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -12,9 +15,6 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\canvas\Exception\ConstraintViolationException;
-use Drupal\canvas\Utility\ExceptionHelper;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;

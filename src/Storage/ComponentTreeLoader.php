@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Storage;
 
-use Drupal\canvas\Entity\Page;
-use Drupal\Core\Entity\EntityFieldManagerInterface;
-use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 
 /**

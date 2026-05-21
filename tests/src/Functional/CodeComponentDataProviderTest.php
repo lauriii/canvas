@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-use PHPUnit\Framework\Attributes\Group;
+use Drupal\canvas\CodeComponentDataProvider;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\Page;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\canvas\CodeComponentDataProvider;
-use Drupal\canvas\Entity\Page;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DomCrawler\Crawler;
 

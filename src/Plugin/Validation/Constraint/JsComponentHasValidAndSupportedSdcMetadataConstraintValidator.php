@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
+use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
+use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\Theme\Component\ComponentValidator;
-use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
-use Drupal\canvas\Entity\JavaScriptComponent;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;

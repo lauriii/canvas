@@ -4,16 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\DataType;
 
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\DataType\ResolvedComponentInputs;
-use PHPUnit\Framework\Attributes\CoversMethod;
-use PHPUnit\Framework\Attributes\Group;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableDependencyInterface;
-use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
@@ -27,6 +25,8 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\CoversMethod;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

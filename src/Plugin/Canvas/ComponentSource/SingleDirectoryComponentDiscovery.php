@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
+use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
 use Drupal\canvas\ComponentMetadataRequirementsChecker;
 use Drupal\canvas\ComponentSource\ComponentCandidatesDiscoveryInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
-use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**

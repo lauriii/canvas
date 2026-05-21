@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\Access;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\Access\CanvasUiAccessCheck;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -18,6 +15,9 @@ use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests Drupal\canvas\Access\CanvasUiAccessCheck.

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\DataType;
 
+use Drupal\canvas\Entity\VersionedConfigEntityInterface;
+use Drupal\canvas\Plugin\DataType\Deriver\ConfigEntityVersionDeriver;
+use Drupal\canvas\TypedData\ConfigEntityVersionDataDefinition;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\ComplexDataInterface;
-use Drupal\canvas\Entity\VersionedConfigEntityInterface;
-use Drupal\canvas\Plugin\DataType\Deriver\ConfigEntityVersionDeriver;
-use Drupal\canvas\TypedData\ConfigEntityVersionDataDefinition;
 
 /**
  * Defines the "config_entity_version" data type.

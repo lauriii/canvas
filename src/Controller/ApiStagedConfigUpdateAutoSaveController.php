@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

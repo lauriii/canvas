@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Traits;
 
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Controller\ApiAutoSaveController;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StreamWrapper\PublicStream;
-use Drupal\canvas\Controller\ApiAutoSaveController;
-use Drupal\canvas\Entity\PageRegion;
 use Drupal\file\Entity\File;
 use Drupal\image\ImageStyleInterface;
 use Drupal\Tests\user\Traits\UserCreationTrait;

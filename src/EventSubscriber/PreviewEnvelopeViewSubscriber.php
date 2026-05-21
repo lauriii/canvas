@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EventSubscriber;
 
+use Drupal\canvas\Render\MainContent\CanvasPreviewRenderer;
+use Drupal\canvas\Render\PreviewEnvelope;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheableResponseInterface;
 use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\canvas\Render\MainContent\CanvasPreviewRenderer;
-use Drupal\canvas\Render\PreviewEnvelope;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\ViewEvent;
 use Symfony\Component\HttpKernel\KernelEvents;

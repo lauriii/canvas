@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Twig;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
+use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
+use Drupal\canvas\Twig\CanvasTwigExtension;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\Image\ImageInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
-use Drupal\canvas\Twig\CanvasTwigExtension;
-use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\file\FileInterface;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 // cspell:ignore itok
 /**

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Routing;
 
+use Drupal\canvas\Entity\ParametrizedImageStyle;
 use Drupal\Core\Http\Exception\CacheableNotFoundHttpException;
 use Drupal\Core\ParamConverter\ParamConverterInterface;
-use Drupal\canvas\Entity\ParametrizedImageStyle;
 use Drupal\image\Entity\ImageStyle;
 use Symfony\Component\Routing\Route;
 

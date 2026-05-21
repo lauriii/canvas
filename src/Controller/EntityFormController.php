@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\RevisionableInterface;
-use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 

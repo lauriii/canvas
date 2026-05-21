@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\EcosystemSupport;
 
-use PHPUnit\Framework\Attributes\Group;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
+use Drupal\canvas\PropSource\PropSource;
+use Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher;
+use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\TypedData\DataReferenceTargetDefinition;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\canvas\PropSource\PropSource;
-use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
-use Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Functional;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas_personalization\Entity\Segment;
+use Drupal\canvas_personalization\Entity\SegmentInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
-use Drupal\canvas\Entity\Page;
 use Drupal\Tests\canvas\Functional\HttpApiTestBase;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\UserInterface;
-use Drupal\canvas_personalization\Entity\Segment;
-use Drupal\canvas_personalization\Entity\SegmentInterface;
 use GuzzleHttp\RequestOptions;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests the details of auto-saving config entities, NOT the "live" version.

@@ -6,9 +6,9 @@ namespace Drupal\canvas\Routing;
 
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\Core\Entity\EntityRepositoryInterface;
-use Symfony\Component\Routing\Route;
 use Drupal\Core\ParamConverter\ParamConverterInterface;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
+use Symfony\Component\Routing\Route;
 
 /**
  * Provides upcasting for a preview entity in ContentTemplate layout API routes.

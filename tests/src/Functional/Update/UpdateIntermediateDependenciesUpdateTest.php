@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional\Update;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageRegion;
-use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 require_once \dirname(__DIR__, 3) . '/fixtures/update/intermediate_component_dependencies/common-component-tree.php';

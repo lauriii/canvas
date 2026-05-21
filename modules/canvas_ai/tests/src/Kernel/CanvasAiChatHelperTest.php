@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel;
 
-use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\ai\OperationType\GenericType\ImageFile;
-use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\canvas_ai\CanvasAiChatHelper;
+use Drupal\Core\Config\Schema\SchemaIncompleteException;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 

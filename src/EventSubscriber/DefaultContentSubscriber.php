@@ -6,6 +6,7 @@ namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\Core\DefaultContent\ExportMetadata;
@@ -16,7 +17,6 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityRepositoryInterface;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\EntityReferenceFieldItemList;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Twig;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\DataProvider;
-use Drupal\Component\Uuid\UuidInterface;
-use Drupal\Core\Render\RendererInterface;
 use Drupal\canvas\Element\AstroIsland;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\Component\Uuid\UuidInterface;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DomCrawler\Crawler;
 

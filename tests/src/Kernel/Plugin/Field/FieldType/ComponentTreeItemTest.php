@@ -4,11 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Field\FieldType;
 
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\CoversClass;
-use Drupal\canvas\PropSource\PropSource;
-use Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator;
-use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -16,6 +11,9 @@ use Drupal\canvas\Entity\VersionedConfigEntityBase;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator;
+use Drupal\canvas\PropSource\PropSource;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -25,7 +23,9 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversClass(ComponentTreeItem::class)]

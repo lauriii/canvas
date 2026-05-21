@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-use PHPUnit\Framework\Attributes\Group;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
-use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\Tests\ApiRequestTrait;
 use Drupal\Tests\canvas\Traits\AutoSaveManagerTestTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

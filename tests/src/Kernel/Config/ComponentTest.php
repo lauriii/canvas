@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
-use PHPUnit\Framework\Attributes\Group;
-use Drupal\Core\Entity\EntityListBuilderInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\VersionedConfigEntityInterface;
-use Drupal\canvas\Entity\Component;
+use Drupal\Core\Entity\EntityListBuilderInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\ClientSideRepresentation;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
-use Drupal\canvas\ClientSideRepresentation;
 
 /**
  * @see \Drupal\canvas\Controller\ApiConfigControllers

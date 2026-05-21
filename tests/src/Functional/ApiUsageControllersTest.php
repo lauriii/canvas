@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Controller\ApiUsageControllers;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -12,6 +11,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\Core\Url;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\UserInterface;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**

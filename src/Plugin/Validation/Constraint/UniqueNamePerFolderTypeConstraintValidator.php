@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
-use Drupal\Core\Config\Schema\TypeResolver;
 use Drupal\canvas\Entity\Folder;
+use Drupal\Core\Config\Schema\TypeResolver;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;

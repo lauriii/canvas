@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
+use Drupal\canvas\Entity\VersionedConfigEntityInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\Schema\TypeResolver;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
-use Drupal\canvas\Entity\VersionedConfigEntityInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;

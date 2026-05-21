@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\TypedData;
 
+use Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
-use Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter;
 
 /**
  * A typed data definition class for describing a versioned config entity.

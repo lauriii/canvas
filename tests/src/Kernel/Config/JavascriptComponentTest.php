@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\EntityConstraintViolationList;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Exception\ConstraintViolationException;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests Drupal\canvas\Entity\JavaScriptComponent.
