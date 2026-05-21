@@ -306,14 +306,14 @@ lint (php):
     - !reference [ .drupal-files-with-dev-dependencies ]
     - mkdir -p test-results
   script:
-    # PHPStan doesn't allow multiple outputs, but it will cache the result so
-    # the second run is very fast.
-    - composer run phpstan -- --error-format=junit > test-results/phpstan.xml || true
     - !reference [ .test_runner ]
     - run_test "composer validate" "composer validate --strict"
     - run_test "phpcs" "composer run phpcs"
     - run_test "phpstan" "composer run phpstan"
     - !reference [ .test_summary ]
+    # PHPStan doesn't allow multiple outputs, but it will cache the result. Use the cache to expose in GitLab CI's UI.
+    # @todo Remove this in https://www.drupal.org/project/canvas/issues/3591277
+    - mkdir -p test-results && composer run phpstan -- --error-format=junit > test-results/phpstan.xml || true
     # Regenerate the >=11.3 ignores from scratch — this ensures we avoid manual additions.
     # (Manual additions belong in phpstan.neon; this file should be purely auto-generated ignores.)
     - composer run phpstan-regenerate-ignores-for-11.3-and-higher
