@@ -1,0 +1,4638 @@
+label: 'Canvas AI Orchestrator Agent test group'
+description: null
+approval_percentage: 90
+config_reset: '0'
+tests:
+  -
+    id:
+      -
+        value: '1'
+    uuid:
+      -
+        value: 527faa80-96dc-4e0c-b170-7b9ecb5fe2a4
+    label:
+      -
+        value: 'Decline Component placement when not on a canvas page.'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Agent should not invoke any sub agents when user is not on a canvas_page (Eg. User is in /canvas path)'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776853383'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nUser has not created any entities\r\n</context>\r\n\r\n<user_message>\r\nAdd a heading component with text hello world to the page\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Agent should not invoke any sub agents when user is not on a canvas_page (Eg. User is in /canvas path)'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_6:
+            tool: 'ai_agent:verify_task_completion'
+            label: 'No tools should be called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '2'
+    uuid:
+      -
+        value: f23c8762-0598-4368-9585-1916a2169280
+    label:
+      -
+        value: 'Decline Component placement when not on a canvas page.'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Agent should not invoke any sub agents when asked to add a component but user is in code component editor'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776853732'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nUser is now in the code component editor, viewing a code component with id hero_banner\r\n</context>\r\n\r\n<user_message>\r\nAdd this component to thee page . Tailor it for a cookie shop website\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Agent should not invoke any sub agents when asked to add a component but user is in code component editor'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_6:
+            tool: 'ai_agent:verify_task_completion'
+            label: 'No tools should be called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '3'
+    uuid:
+      -
+        value: eb44310c-5266-4ed3-8eb7-b84e0617b525
+    label:
+      -
+        value: 'Create code components even if user is not in a canvas page'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Code component agent must be triggered even if user is not on a canvas page'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776854737'
+    changed:
+      -
+        value: '1776940736'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nUser has not created any entities\r\n</context>\r\n\r\n<user_message>\r\nCreate a **hero banner React component**.\r\n\r\nThe component should be visually appealing and suitable for a **modern hospital website**.\r\n\r\n### Requirements:\r\n\r\n* Include:\r\n\r\n  * A **main heading** (clear, reassuring, healthcare-focused)\r\n  * A **subheading** (supportive and informative tone)\r\n  * A **call-to-action button** (example: \"Book Appointment\")\r\n  * A **hero image** (hospital, doctors, or patient care theme)\r\n\r\n### Design guidelines:\r\n\r\n* Use a **green and blue color palette** (trust, care, medical feel)\r\n* The design should feel:\r\n\r\n  * Clean\r\n  * Professional\r\n  * Calm and trustworthy\r\n* Use good spacing, alignment, and typography\r\n* The layout should be modern and slightly premium (not basic)\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Code component agent must be triggered even if user is not on a canvas page'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_6:
+            tool: 'ai_agent:verify_task_completion'
+            label: 'No tools should be called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens:
+      -
+        value: "derived_proptypes: 'None'"
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '4'
+    uuid:
+      -
+        value: 4ae549e3-7014-43f1-865b-89064d491f25
+    label:
+      -
+        value: 'Editing a code component with history'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Editing a code component should invoke the code component agent.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776856872'
+    changed:
+      -
+        value: '1776940888'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "Create a **hero banner React component**.\r\n\r\nThe component should be visually appealing and suitable for a **modern hospital website**.\r\n\r\n### Requirements:\r\n\r\n* Include:\r\n\r\n  * A **main heading** (clear, reassuring, healthcare-focused)\r\n  * A **subheading** (supportive and informative tone)\r\n  * A **call-to-action button** (example: \"Book Appointment\")\r\n  * A **hero image** (hospital, doctors, or patient care theme)\r\n\r\n### Design guidelines:\r\n\r\n* Use a **green and blue color palette** (trust, care, medical feel)\r\n* The design should feel:\r\n\r\n  * Clean\r\n  * Professional\r\n  * Calm and trustworthy\r\n* Use good spacing, alignment, and typography\r\n* The layout should be modern and slightly premium (not basic)"
+          -
+            role: assistant
+            content: "I have created a hero banner component as requested.\r\n\r\nThe banner features a clean, full-width layout with a calming green and blue gradient background, giving it a professional healthcare feel."
+          -
+            role: user
+            content: "<context>\r\nUser is now in the code component editor, viewing a code component with id medical_hero_banner\r\n</context>\r\n\r\n<user_message>\r\nChange the color if the heading to green\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Editing a code component should invoke the code component agent.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_6:
+            tool: 'ai_agent:verify_task_completion'
+            label: 'No tools should be called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens:
+      -
+        value: "derived_proptypes: 'None'"
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '5'
+    uuid:
+      -
+        value: a3823ae3-7859-4bd2-a2f8-93e3e306dfb2
+    label:
+      -
+        value: 'Editing a code component without history'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Editing a code component should invoke the code component agent.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776857317'
+    changed:
+      -
+        value: '1776940905'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nUser is now in the code component editor, viewing a code component with id medical_hero_banner\r\n</context>\r\n\r\n<user_message>\r\nChange the color if the heading to green\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Editing a code component should invoke the code component agent.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_6:
+            tool: 'ai_agent:verify_task_completion'
+            label: 'No tools should be called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens:
+      -
+        value: "derived_proptypes: 'None'"
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '6'
+    uuid:
+      -
+        value: ef0363bf-0f6c-412f-b888-5f89fced82b8
+    label:
+      -
+        value: 'Plans section with empty title and description calls page builder and metadata agents'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Test that when creating a plans section on a canvas page with no title or description, the orchestrator calls the page builder, title, and metadata agents but not the component or template agents.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776862111'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nCreate a plans section showing plans available for an ai coding agent\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Test that when creating a plans section on a canvas page with no title or description, the orchestrator calls the page builder, title, and metadata agents but not the component or template agents.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '7'
+    uuid:
+      -
+        value: 3812d007-4f19-4178-9d51-c01c8806304a
+    label:
+      -
+        value: 'Plans section with title set but empty description calls page builder and metadata agents only'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Test that when creating a plans section on a canvas page with a title but no description, the orchestrator calls the page builder and metadata agents but not the title, component, or template agents.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776862314'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: Pricing Plans for AI Coding Agents. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nCreate a plans section showing plans available for an ai coding agent\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Test that when creating a plans section on a canvas page with a title but no description, the orchestrator calls the page builder and metadata agents but not the title, component, or template agents.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '8'
+    uuid:
+      -
+        value: 396acde0-17a0-4afb-a888-b479ac5ff385
+    label:
+      -
+        value: 'Plans section with empty title but description set calls page builder and title agents only'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Test that when creating a plans section on a canvas page with no title but a description, the orchestrator calls the page builder and title agents but not the metadata, component, or template agents.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776862358'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description: Explore our AI pricing plans for coding agents.\r\n</context>\r\n\r\n<user_message>\r\nCreate a plans section showing plans available for an ai coding agent\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Test that when creating a plans section on a canvas page with no title but a description, the orchestrator calls the page builder and title agents but not the metadata, component, or template agents.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '9'
+    uuid:
+      -
+        value: 0503c186-4798-4ad0-aa3a-f80329874657
+    label:
+      -
+        value: 'Plans section with title and description set calls page builder agent only'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Test that when creating a plans section on a canvas page with both title and description set, the orchestrator calls only the page builder agent and not the title, metadata, component, or template agents.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776862383'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: Pricing Plans for AI Coding Agents. Page description: Explore our AI pricing plans for coding agents.\r\n</context>\r\n\r\n<user_message>\r\nCreate a plans section showing plans available for an ai coding agent\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Test that when creating a plans section on a canvas page with both title and description set, the orchestrator calls only the page builder agent and not the title, metadata, component, or template agents.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '10'
+    uuid:
+      -
+        value: 8d46eb9c-8c5d-4d35-8cf4-c0382afe339c
+    label:
+      -
+        value: 'History with generate pricing cards - both title and description empty'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Test orchestrator routing with multi-turn chat history where user adds components then asks to generate pricing cards with no title or description set.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776862863'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a hero section to the page'
+          -
+            role: assistant
+            content: 'I have added a hero section to your page.'
+          -
+            role: user
+            content: 'Now add a features section below it'
+          -
+            role: assistant
+            content: 'I have added a features section below the hero section.'
+          -
+            role: user
+            content: 'Add a testimonials component to the top of the page'
+          -
+            role: assistant
+            content: 'I have added a testimonials component at the top of the page.'
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nGenerate pricing cards for our AI coding agents\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Test orchestrator routing with multi-turn chat history where user adds components then asks to generate pricing cards with no title or description set.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '11'
+    uuid:
+      -
+        value: d6e5df1c-4d67-4da9-9763-c6eb58d936d4
+    label:
+      -
+        value: 'History with generate pricing cards - title set, description empty'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Test orchestrator routing with multi-turn chat history where user adds components then asks to generate pricing cards with title set but no description.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776862879'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a hero section to the page'
+          -
+            role: assistant
+            content: 'I have added a hero section to your page.'
+          -
+            role: user
+            content: 'Now add a features section below it'
+          -
+            role: assistant
+            content: 'I have added a features section below the hero section.'
+          -
+            role: user
+            content: 'Add a testimonials component to the top of the page'
+          -
+            role: assistant
+            content: 'I have added a testimonials component at the top of the page.'
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: AI Coding Agent Pricing. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nGenerate pricing cards for our AI coding agents\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Test orchestrator routing with multi-turn chat history where user adds components then asks to generate pricing cards with title set but no description.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '12'
+    uuid:
+      -
+        value: 79aad424-cf3b-4a13-a00b-d6f77151741a
+    label:
+      -
+        value: 'History with generate pricing cards - title empty, description set'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Test orchestrator routing with multi-turn chat history where user adds components then asks to generate pricing cards with description set but no title.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776862897'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a hero section to the page'
+          -
+            role: assistant
+            content: 'I have added a hero section to your page.'
+          -
+            role: user
+            content: 'Now add a features section below it'
+          -
+            role: assistant
+            content: 'I have added a features section below the hero section.'
+          -
+            role: user
+            content: 'Add a testimonials component to the top of the page'
+          -
+            role: assistant
+            content: 'I have added a testimonials component at the top of the page.'
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description: Explore pricing plans for AI coding agents.\r\n</context>\r\n\r\n<user_message>\r\nGenerate pricing cards for our AI coding agents\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Test orchestrator routing with multi-turn chat history where user adds components then asks to generate pricing cards with description set but no title.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '13'
+    uuid:
+      -
+        value: 0244627f-bb71-4fcb-9316-d80594be701e
+    label:
+      -
+        value: 'History with generate pricing cards - title and description set'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Test orchestrator routing with multi-turn chat history where user adds components then asks to generate pricing cards with both title and description set.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776862910'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a hero section to the page'
+          -
+            role: assistant
+            content: 'I have added a hero section to your page.'
+          -
+            role: user
+            content: 'Now add a features section below it'
+          -
+            role: assistant
+            content: 'I have added a features section below the hero section.'
+          -
+            role: user
+            content: 'Add a testimonials component to the top of the page'
+          -
+            role: assistant
+            content: 'I have added a testimonials component at the top of the page.'
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: AI Coding Agent Pricing. Page description: Explore pricing plans for AI coding agents.\r\n</context>\r\n\r\n<user_message>\r\nGenerate pricing cards for our AI coding agents\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Test orchestrator routing with multi-turn chat history where user adds components then asks to generate pricing cards with both title and description set.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '14'
+    uuid:
+      -
+        value: dd947fd5-b95d-4b4c-b033-8610269b49ad
+    label:
+      -
+        value: 'Page builder called with empty title and unrelated description'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Orchestrator calls page builder and title agents but NOT metadata when description exists but is about different topic'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776863766'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description: The best chocolate cake recipe with step-by-step instructions.\r\n</context>\r\n\r\n<user_message>\r\nCreate a section explaining the features of Drupal.\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Orchestrator calls page builder and title agents but NOT metadata when description exists but is about different topic'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '15'
+    uuid:
+      -
+        value: fc8e0594-0b16-4e70-b793-12cddeb4a89b
+    label:
+      -
+        value: 'Page builder called with unrelated title and empty description'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Orchestrator calls page builder and metadata agents but NOT title when title exists but is about different topic'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776863985'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: The best chocolate cake recipe with step-by-step instructions. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nCreate a section explaining the features of Drupal.\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Orchestrator calls page builder and metadata agents but NOT title when title exists but is about different topic'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '16'
+    uuid:
+      -
+        value: c189254f-3b74-4cea-b452-0eabb24b795e
+    label:
+      -
+        value: 'Page builder only when user explicitly skips title and description'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Orchestrator calls page builder when title/description are empty but user says not to generate them'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776864467'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nAdd a pricing table to this page. Don't generate a new title or description since we will add those later.\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Orchestrator calls page builder when title/description are empty but user explicitly says not to generate them'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '17'
+    uuid:
+      -
+        value: c4694042-41c0-45fa-9691-352b9b43b4db
+    label:
+      -
+        value: 'Page builder with title and description regeneration when user requests'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Orchestrator calls page builder along with title and metadata agents when user adds component and explicitly requests regeneration'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776864508'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: About Our Team. Page description: Learn about the people behind our company.\r\n</context>\r\n\r\n<user_message>\r\nAdd a FAQ section to the page. Please also regenerate the page title and description to better match this new content.\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Orchestrator calls page builder along with title and metadata agents when user adds component and explicitly requests regeneration'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '18'
+    uuid:
+      -
+        value: 71465bd5-612b-4f61-b22f-c0e56a362eae
+    label:
+      -
+        value: 'User creates landing page then adds components then clicks component to place button'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Test verifies a realistic user flow where user creates a landing page, adds multiple components via chat, then clicks a component to place a button - only page builder is invoked'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776866748'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Create a landing page for my custom clock shop'
+          -
+            role: assistant
+            content: "I've created your landing page with the title 'Custom Clock Shop - Handcrafted Timepieces' and description 'Discover our collection of handcrafted custom clocks, made with precision and passion.' The page is ready for you to add components."
+          -
+            role: user
+            content: 'Add a hero banner at the top of the page'
+          -
+            role: assistant
+            content: "I've added a hero banner component to the top of your clock shop page. It includes a large headline area, a subtext field, and a call-to-action button. The component is styled with a full-width background and centered content."
+          -
+            role: user
+            content: 'Now add pricing cards below the hero banner'
+          -
+            role: assistant
+            content: "Pricing cards section added below the hero banner. The section includes three pricing tier cards - Basic, Pro, and Premium - each with a plan name, price, feature list, and a 'Choose Plan' button."
+          -
+            role: user
+            content: 'Add a testimonial section after the pricing cards'
+          -
+            role: assistant
+            content: 'Testimonial section added after the pricing cards. It displays customer reviews with quote text, customer name, and optional avatar image in a clean card layout.'
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has selected a component in the page with uuid a1b2c3d4-e5f6-4789-abcd-ef0123456789. Page title: Custom Clock Shop - Handcrafted Timepieces. Page description: Discover our collection of handcrafted custom clocks, made with precision and passion.\r\n</context>\r\n\r\n<user_message>\r\nPlace a button with text \"Read more here\" on the pricing cards component\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Test verifies a realistic user flow where user creates a landing page, adds multiple components via chat, then clicks a component to place a button - only page builder is invoked'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '19'
+    uuid:
+      -
+        value: 154c66f6-5881-4830-a649-992da3e85f3e
+    label:
+      -
+        value: 'CTA code component - add to page declined when user is in code editor'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Validates that no sub-agents are invoked when a user in the code component editor asks to place a component on a page; the orchestrator should decline and guide the user to create a page manually.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776865278'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Create a CTA code component for a cookie shop. It should have a headline, a short subtext, and a call-to-action button that links somewhere.'
+          -
+            role: assistant
+            content: "I've created a cookie_shop_cta code component for you! It accepts the following props:\r\n\r\n- headline (string): The main heading text\r\n- subtext (string): A short supporting description below the headline\r\n- buttonLabel (string): The call-to-action button text\r\n- buttonUrl (string): The URL the button links to\r\n\r\nLet me know if you'd like any tweaks!"
+          -
+            role: user
+            content: 'Nice! Can you make the button fully rounded and add a smooth hover effect to it?'
+          -
+            role: assistant
+            content: 'Done! The button now has fully rounded corners using border-radius: 9999px and a smooth background-color transition on hover. It should feel polished and clickable.'
+          -
+            role: user
+            content: 'Can you also add a backgroundImage prop so the whole CTA can sit on top of a banner image?'
+          -
+            role: assistant
+            content: "I've added a backgroundImage prop. When a URL is provided, the image renders as a full-width banner behind the headline, subtext, and button. The component handles the no-image case gracefully with a solid background fallback."
+          -
+            role: user
+            content: 'Good thinking — but the text might be hard to read over a busy image. Can you add a dark overlay between the image and the content?'
+          -
+            role: assistant
+            content: "Absolutely — I've added a semi-transparent dark overlay that sits between the background image and the text. It keeps the content readable no matter what image is used."
+          -
+            role: user
+            content: 'Last thing — the headline feels a bit small on desktop. Can you bump it up to text-4xl on larger screens?'
+          -
+            role: assistant
+            content: "Updated! The headline now uses text-2xl on mobile and scales to text-4xl on desktop using Tailwind's responsive prefix. Looks much more impactful on larger viewports."
+          -
+            role: user
+            content: "<context>\r\nUser is now in the code component editor, viewing a code component with id cookie_shop_cta\r\n</context>\r\n\r\n<user_message>\r\nComponent looks great! Can you add this to a page now and update the prop values to reflect a cookie shop theme — something like 'Freshly Baked, Just for You' as the headline and 'Shop Now' as the button label?\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Validates that no sub-agents are invoked when a user in the code component editor asks to place a component on a page; the orchestrator should decline and guide the user to create a page manually.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '20'
+    uuid:
+      -
+        value: a9593687-04c6-41a2-9ff7-b7119254bc8f
+    label:
+      -
+        value: 'Clock shop landing page - unrelated title and description'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Validates that only the template builder agent is called and title/metadata agents are NOT called when the page already has a title and description, even if they are completely unrelated to the requested page content.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776865193'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: Moon. Page description: Ants are fascinating social insects that live in highly organized colonies.\r\n</context>\r\n\r\n<user_message>\r\nGenerate a landing page for my clock shop. Include a hero section with a tagline, a featured collections section showcasing our best timepieces, an about us section, and a contact section.\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Validates that only the template builder agent is called and title/metadata agents are NOT called when the page already has a title and description, even if they are completely unrelated to the requested page content.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '21'
+    uuid:
+      -
+        value: 712a549b-aa60-4f57-87cf-77dc6b2ac696
+    label:
+      -
+        value: 'Clock shop landing page - empty title, with description'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Validates that template builder and title generation agents are called but metadata generation is skipped when the page already has a description set.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776865157'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description: Explore our curated collection of premium timepieces and handcrafted clocks, perfect for every style and occasion.\r\n</context>\r\n\r\n<user_message>\r\nGenerate a landing page for my clock shop. Include a hero section with a tagline, a featured collections section showcasing our best timepieces, an about us section, and a contact section.\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Validates that template builder and title generation agents are called but metadata generation is skipped when the page already has a description set.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '22'
+    uuid:
+      -
+        value: 9008e4f1-e526-4970-8dd4-5e571200c70f
+    label:
+      -
+        value: 'Clock shop landing page - with title, empty description'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Validates that template builder and metadata generation agents are called but title generation is skipped when the page already has a title set.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776865126'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: The Clock Shop. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nGenerate a landing page for my clock shop. Include a hero section with a tagline, a featured collections section showcasing our best timepieces, an about us section, and a contact section.\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Validates that template builder and metadata generation agents are called but title generation is skipped when the page already has a title set.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '23'
+    uuid:
+      -
+        value: 72f76d50-b921-46cc-8e7e-9562500d8c99
+    label:
+      -
+        value: 'Clock shop landing page - empty title and description'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Validates that template builder, title generation, and metadata generation agents are called when the user requests a full landing page and both page title and description are empty.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776865101'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nGenerate a landing page for my clock shop. Include a hero section with a tagline, a featured collections section showcasing our best timepieces, an about us section, and a contact section.\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Validates that template builder, title generation, and metadata generation agents are called when the user requests a full landing page and both page title and description are empty.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent called'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: isset
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '24'
+    uuid:
+      -
+        value: 56056a70-8084-4236-84aa-6042d6264888
+    label:
+      -
+        value: 'Decline title generation when no entity exists'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Agent should not invoke any sub agents when user has not created any entity and asks to generate a title for a page about honeybees'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776867787'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nUser has not created any entities\r\n</context>\r\n\r\n<user_message>\r\nCan you come up with a nice title for my webpage about honeybees?\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Agent should not invoke any sub agents when user has not created any entity and asks to generate a title for a page about honeybees'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '25'
+    uuid:
+      -
+        value: f884412f-5d83-4761-81b7-5df077ff6786
+    label:
+      -
+        value: 'Decline title and description generation when no entity exists'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Agent should not invoke any sub agents when user has not created any entity and asks to generate a title and description for a page about honeybees'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776867811'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nUser has not created any entities\r\n</context>\r\n\r\n<user_message>\r\nI want to make a webpage about honeybees, can you give me a good title and description for it?\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Agent should not invoke any sub agents when user has not created any entity and asks to generate a title and description for a page about honeybees'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '26'
+    uuid:
+      -
+        value: e88ffffd-ae9e-4cdf-9bc3-71accbf5c57d
+    label:
+      -
+        value: 'Decline page creation request when no entity exists'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Agent should not invoke any sub agents when user has not created any entity and asks to generate a blog page about honeybees'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776867832'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nUser has not created any entities\r\n</context>\r\n\r\n<user_message>\r\nCan you create a blog page about honeybees for me?\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Agent should not invoke any sub agents when user has not created any entity and asks to create a blog page about honeybees'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '27'
+    uuid:
+      -
+        value: 6ce9eb9b-ca3b-42b4-9d17-33378ea1a1f7
+    label:
+      -
+        value: 'Decline section creation request when no entity exists'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Agent should not invoke any sub agents when user has not created any entity and asks to create a section showing facts about honeybees'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776867853'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nUser has not created any entities\r\n</context>\r\n\r\n<user_message>\r\nI need a section showing facts about honeybees, can you add that for me?\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Agent should not invoke any sub agents when user has not created any entity and asks to create a section showing facts about honeybees'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary

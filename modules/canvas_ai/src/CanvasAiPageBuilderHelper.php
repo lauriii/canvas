@@ -1344,4 +1344,21 @@ class CanvasAiPageBuilderHelper {
     return 'User has not created any entities';
   }
 
+  /**
+   * Formats user message and context into XML structure.
+   *
+   * @param string $context
+   *   The system context text.
+   * @param string $userMessage
+   *   The user message text.
+   *
+   * @return string
+   *   The formatted XML string with context and user message.
+   *
+   * @internal
+   */
+  public function formatMessageWithContext(string $context, string $userMessage): string {
+    return "<context>\n{$context}\n</context>\n\n<user_message>\n{$userMessage}\n</user_message>";
+  }
+
 }

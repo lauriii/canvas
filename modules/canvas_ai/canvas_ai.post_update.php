@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Config\FileStorage;
+
 /**
  * Rebuild the router.
  *
@@ -24,5 +26,25 @@ function canvas_ai_post_update_0002_chat_history_max_messages(): void {
   // 10 from config/install/canvas_ai.settings.yml.
   if (!$config->isNew()) {
     $config->set('chat_history_max_messages', 3)->save(TRUE);
+  }
+}
+
+/**
+ * Reimport orchestrator agent as system prompt has changed.
+ *
+ * @see https://www.drupal.org/project/canvas/issues/3582390
+ */
+function canvas_ai_post_update_0003_reimport_orchestrator_agent(): void {
+  $module_path = \Drupal::service('extension.list.module')->getPath('canvas_ai');
+  $source = new FileStorage($module_path . '/config/install');
+  $data = $source->read('ai_agents.ai_agent.canvas_ai_orchestrator');
+  if ($data) {
+    \Drupal::configFactory()
+      ->getEditable('ai_agents.ai_agent.canvas_ai_orchestrator')
+      ->setData($data)
+      ->save(TRUE);
+
+    $message = 'The Canvas AI orchestrator agent system prompt has been updated. If you had customized it directly, those changes have been overwritten. The recommended way to extend or alter agent behavior is through the Context Control Center or custom event subscribers.';
+    \Drupal::logger('canvas_ai')->warning($message);
   }
 }

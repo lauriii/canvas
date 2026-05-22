@@ -235,9 +235,6 @@ system_prompt: |-
   * **Orchestrator Action:** `canvas_page_builder_agent(prompt="Add a header for a university website")`
 
   ---
-
-  ## Entity Context
-  [canvas_ai:verbose_context_for_orchestrator]
 secured_system_prompt: '[ai_agent:agent_instructions]'
 tools:
   'ai_agents::ai_agent::canvas_component_agent': true
@@ -247,33 +244,39 @@ tools:
   'ai_agents::ai_agent::canvas_title_generation_agent': true
   'ai_agent:verify_task_completion': true
 tool_settings:
-  'ai_agents::ai_agent::canvas_page_builder_agent':
-    return_directly: 0
-    description_override: ''
-    progress_message: ''
-    use_artifacts: 0
   'ai_agents::ai_agent::canvas_component_agent':
     return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
   'ai_agents::ai_agent::canvas_metadata_generation_agent':
     return_directly: 0
+    require_usage: 0
+    description_override: ''
+    progress_message: ''
+    use_artifacts: 0
+  'ai_agents::ai_agent::canvas_page_builder_agent':
+    return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
   'ai_agents::ai_agent::canvas_template_builder_agent':
     return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
   'ai_agents::ai_agent::canvas_title_generation_agent':
     return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
   'ai_agent:verify_task_completion':
     return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
@@ -282,52 +285,62 @@ triage_agent: false
 max_loops: 10
 default_information_tools: ''
 tool_usage_limits:
-  'ai_agents::ai_agent::canvas_page_builder_agent':
-    prompt:
-      action: ''
-      hide_property: 0
-      values: ''
-    files:
-      action: ''
-      hide_property: 0
-      values: ''
   'ai_agents::ai_agent::canvas_component_agent':
     prompt:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
     files:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
   'ai_agents::ai_agent::canvas_metadata_generation_agent':
     prompt:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
     files:
       action: ''
       hide_property: 0
+      not_break: 0
+      values: ''
+  'ai_agents::ai_agent::canvas_page_builder_agent':
+    prompt:
+      action: ''
+      hide_property: 0
+      not_break: 0
+      values: ''
+    files:
+      action: ''
+      hide_property: 0
+      not_break: 0
       values: ''
   'ai_agents::ai_agent::canvas_template_builder_agent':
     prompt:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
     files:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
   'ai_agents::ai_agent::canvas_title_generation_agent':
     prompt:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
     files:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
-  'ai_agent:verify_task_completion': null
+  'ai_agent:verify_task_completion': {  }
 exclude_users_role: false
 masquerade_roles: {  }
 structured_output_enabled: false

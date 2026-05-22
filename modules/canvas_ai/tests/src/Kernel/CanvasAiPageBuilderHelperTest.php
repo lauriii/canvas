@@ -309,4 +309,25 @@ YAML;
     $this->assertEquals($expected, $result);
   }
 
+  /**
+   * Tests the formatMessageWithContext method.
+   */
+  public function testFormatMessageWithContext(): void {
+    $context = 'This is system context';
+    $userMessage = 'User wants to add a heading component';
+
+    $expected = <<<XML
+<context>
+This is system context
+</context>
+
+<user_message>
+User wants to add a heading component
+</user_message>
+XML;
+
+    $result = $this->canvasAiPageBuilderHelper->formatMessageWithContext($context, $userMessage);
+    $this->assertEquals($expected, $result);
+  }
+
 }
