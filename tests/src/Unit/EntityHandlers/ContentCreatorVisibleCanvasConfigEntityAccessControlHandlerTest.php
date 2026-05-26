@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Unit\EntityHandlers;
 
 use Drupal\canvas\Access\CanvasUiAccessCheck;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
@@ -147,6 +148,11 @@ final class ContentCreatorVisibleCanvasConfigEntityAccessControlHandlerTest exte
       'id' => Component::ENTITY_TYPE_ID,
       'provider' => 'canvas',
       'config_prefix' => 'component',
+    ]));
+    $entityTypeManager->getDefinition(Folder::ENTITY_TYPE_ID)->willReturn(new ConfigEntityType([
+      'id' => Folder::ENTITY_TYPE_ID,
+      'provider' => 'canvas',
+      'config_prefix' => 'folder',
     ]));
     $canvasUiAccessCheck = $this->prophesize(CanvasUiAccessCheck::class);
     $sut = new ContentCreatorVisibleCanvasConfigEntityAccessControlHandler($entityType, $configManager, $entityTypeManager->reveal(), $canvasUiAccessCheck->reveal());

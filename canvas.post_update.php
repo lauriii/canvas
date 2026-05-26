@@ -7,6 +7,7 @@ use Drupal\canvas\CanvasConfigUpdater;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\Core\Config\Entity\ConfigEntityUpdater;
@@ -403,4 +404,12 @@ function canvas_post_update_0017_content_template_component_tree_sequence_keys(a
   $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
   \Drupal::classResolver(ConfigEntityUpdater::class)
     ->update($sandbox, ContentTemplate::ENTITY_TYPE_ID, static fn(ContentTemplate $template): bool => $canvasConfigUpdater->needsConfigEntityWithComponentTreeSequenceKeysUpdate($template));
+}
+
+/**
+ * Update Folder config entities to declare their items as config dependencies.
+ */
+function canvas_post_update_0018_folder_component_dependencies(array &$sandbox): void {
+  \Drupal::classResolver(ConfigEntityUpdater::class)
+    ->update($sandbox, Folder::ENTITY_TYPE_ID, static fn(Folder $folder): bool => !empty($folder->get('items')));
 }

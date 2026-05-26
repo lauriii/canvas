@@ -656,15 +656,6 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     }
   }
 
-  public static function preDelete(EntityStorageInterface $storage, array $entities): void {
-    // If the Component is deleted, remove it from the Folder it was in.
-    foreach ($entities as $entity) {
-      /** @var \Drupal\canvas\Entity\Component $entity */
-      Folder::loadByItemAndConfigEntityTypeId((string) $entity->id(), self::ENTITY_TYPE_ID)?->removeItem($entity->id())?->save();
-    }
-    parent::preDelete($storage, $entities);
-  }
-
   /**
    * Validates the active version.
    *

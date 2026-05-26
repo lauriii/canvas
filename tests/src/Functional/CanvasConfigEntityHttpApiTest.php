@@ -1398,6 +1398,19 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
     $page->delete();
 
+    // Deleting a Code Component removes it from any Folder that references it.
+    // Verify that a Folder referencing 'test' has the item removed when the
+    // component is deleted via the Canvas HTTP API, so the Folder does not
+    // retain a stale/invalid reference to a now-missing config entity.
+    $folder_for_delete_test = Folder::create([
+      'name' => 'Delete test folder',
+      'configEntityTypeId' => JavaScriptComponent::ENTITY_TYPE_ID,
+      'weight' => 0,
+      'items' => ['test'],
+    ]);
+    $folder_for_delete_test->save();
+    $this->assertSame(['test'], $folder_for_delete_test->get('items'));
+
     // We can delete the 'test' Code Component via the Canvas HTTP API. As it isn't
     // in use it will cascade delete the component as well.
     $component_storage = \Drupal::entityTypeManager()->getStorage(Component::ENTITY_TYPE_ID);
@@ -1408,6 +1421,11 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertNull($body);
     $component = $component_storage->loadUnchanged('js.test');
     self::assertNull($component);
+    // The Folder must no longer contain 'test' after the Code Component was deleted.
+    $folder_for_delete_test = Folder::load($folder_for_delete_test->id());
+    \assert($folder_for_delete_test instanceof Folder);
+    $this->assertSame([], $folder_for_delete_test->get('items'));
+    $folder_for_delete_test->delete();
 
     // Delete the 'another_component' Code Component via the Canvas HTTP API: 204.
     $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/canvas/api/v0/config/js_component/another_component'), [], 204, NULL, NULL, NULL, NULL);

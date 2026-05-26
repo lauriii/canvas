@@ -125,4 +125,42 @@ final class Folder extends ConfigEntityBase implements CanvasHttpApiEligibleConf
     return $this;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies(): static {
+    parent::calculateDependencies();
+    // Each item is the ID of a config entity of type $this->configEntityTypeId.
+    // Declare an explicit config dependency so that core's dependency removal
+    // machinery calls ::onDependencyRemoval() when any item is deleted.
+    $prefix = 'canvas.' . $this->configEntityTypeId;
+    foreach ($this->items as $item_id) {
+      $this->addDependency('config', $prefix . '.' . $item_id);
+    }
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Removes any items from this Folder whose config entities are being deleted.
+   * This covers all FolderItemInterface types (Component, JavaScriptComponent,
+   * Pattern, etc.) without each of them needing their own preDelete hook.
+   */
+  public function onDependencyRemoval(array $dependencies): bool {
+    $prefix = 'canvas.' . $this->configEntityTypeId . '.';
+    $removed_ids = [];
+    foreach (\array_keys($dependencies['config'] ?? []) as $config_name) {
+      if (\is_string($config_name) && str_starts_with($config_name, $prefix)) {
+        $removed_ids[] = substr($config_name, strlen($prefix));
+      }
+    }
+    if (empty($removed_ids)) {
+      return parent::onDependencyRemoval($dependencies);
+    }
+    $this->items = array_values(array_diff($this->items, $removed_ids));
+    parent::onDependencyRemoval($dependencies);
+    return TRUE;
+  }
+
 }

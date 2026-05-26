@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\EntityHandlers;
 
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\Folder;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Config\ConfigManagerInterface;
@@ -52,17 +53,23 @@ class CanvasConfigEntityAccessControlHandler extends EntityAccessControlHandler 
     }
     $adminPermission = $this->entityType->getAdminPermission();
     \assert(\is_string($adminPermission));
-    // There are dependent entities, but we want to exclude any Component
-    // entities from consideration here. Component implements
-    // ::onDependencyRemoval and can react to this entity being deleted.
+    // There are dependent entities, but we want to exclude any Component or
+    // Folder entities from consideration here. Both implement
+    // ::onDependencyRemoval() and can react to this entity being deleted
+    // without requiring the deletion to be blocked.
     // @see \Drupal\canvas\Entity\Component::onDependencyRemoval()
+    // @see \Drupal\canvas\Entity\Folder::onDependencyRemoval()
     $component_entity_type = $this->entityTypeManager->getDefinition(Component::ENTITY_TYPE_ID);
     \assert($component_entity_type instanceof ConfigEntityTypeInterface);
     $component_prefix = $component_entity_type->getConfigPrefix();
 
-    // Filter out dependent component entities.
-    $component_config_entities = \array_filter($dependent_entities, static fn (ConfigEntityDependency $dependent_entity) => \str_starts_with($dependent_entity->getConfigDependencyName(), $component_prefix));
-    $dependent_entities = \array_diff_key($dependent_entities, $component_config_entities);
+    $folder_entity_type = $this->entityTypeManager->getDefinition(Folder::ENTITY_TYPE_ID);
+    \assert($folder_entity_type instanceof ConfigEntityTypeInterface);
+    $folder_prefix = $folder_entity_type->getConfigPrefix();
+
+    // Filter out dependent Component and Folder entities.
+    $ignorable_config_entities = \array_filter($dependent_entities, static fn (ConfigEntityDependency $dependent_entity) => \str_starts_with($dependent_entity->getConfigDependencyName(), $component_prefix) || \str_starts_with($dependent_entity->getConfigDependencyName(), $folder_prefix));
+    $dependent_entities = \array_diff_key($dependent_entities, $ignorable_config_entities);
 
     // Prevent deletion if additional dependent entities exist.
     return AccessResult::forbiddenIf(count($dependent_entities) > 0, \sprintf('There is other configuration depending on this %s.', $this->entityType->getSingularLabel()))

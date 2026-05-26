@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Unit\EntityHandlers;
 
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler;
 use Drupal\Core\Access\AccessResultAllowed;
@@ -78,6 +79,11 @@ final class CanvasConfigEntityAccessControlHandlerTest extends UnitTestCase {
       'id' => Component::ENTITY_TYPE_ID,
       'provider' => 'canvas',
       'config_prefix' => 'component',
+    ]));
+    $entityTypeManager->getDefinition(Folder::ENTITY_TYPE_ID)->willReturn(new ConfigEntityType([
+      'id' => Folder::ENTITY_TYPE_ID,
+      'provider' => 'canvas',
+      'config_prefix' => 'folder',
     ]));
     $sut = new CanvasConfigEntityAccessControlHandler($entityType, $configManager, $entityTypeManager->reveal());
     $sut->setModuleHandler($moduleHandler);
