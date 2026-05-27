@@ -22,6 +22,11 @@ variables:
   # Disable npm lifecycle scripts.
   npm_config_ignore_scripts: "true"
 
+  # @see https://getcomposer.org/doc/03-cli.md#composer-no-blocking
+  COMPOSER_NO_BLOCKING: 1
+  # @todo Remove this once Composer 2.10 is released; this is necessary on Composer <2.10
+  # @see https://github.com/composer/composer/issues/12786
+  COMPOSER_NO_SECURITY_BLOCKING: 1
   COMPOSER_PROCESS_TIMEOUT: 0
   GIT_DEPTH: 1
 
