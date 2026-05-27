@@ -962,6 +962,129 @@ paths:
         '403':
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
+  /canvas/api/v0/config/page_region:
+    description: Endpoint for managing Page Regions.
+    get:
+      summary: Retrieves all available Page Regions for the site's default theme.
+      responses:
+        '200':
+          description: All available Page Regions
+          content:
+            application/json:
+              schema:
+                type: object
+                minProperties: 0
+                additionalProperties:
+                  $ref: '#/components/schemas/PageRegion'
+              examples:
+                page_regions:
+                  summary: Page regions for a theme
+                  value:
+                    olivero.sidebar:
+                      id: olivero.sidebar
+                      theme: olivero
+                      region: sidebar
+                      status: true
+                      component_tree: []
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+    post:
+      summary: Creates a new Page Region.
+      requestBody:
+        description: Create a new Page Region.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPageRegion'
+            examples:
+              highlighted_with_empty_tree:
+                value:
+                  region: highlighted
+                  status: true
+                  component_tree: []
+      responses:
+        '201':
+          description: Created Page Region successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageRegion'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '409':
+          description: Page Region with same theme + region already exists.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
+  '/canvas/api/v0/config/page_region/{configEntityId}':
+    description: Endpoint for managing a specific Page Region.
+    get:
+      summary: Retrieves details of a specific Page Region.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Page Region
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageRegion'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+    patch:
+      summary: Updates a specific Page Region.
+      requestBody:
+        description: Update specific Page Region.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PageRegion'
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Page Region
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageRegion'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
+    delete:
+      summary: Deletes a Page Region.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '204':
+          description: Deleted individual Page Region
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
   /canvas/api/v0/config/pattern:
     description: TODO
     get:
@@ -3489,6 +3612,75 @@ components:
         weight:
           type: integer
           description: The weight of the segment, used for ordering segments.
+    PageRegion:
+      title: Page Region
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Page Region ID, composed of theme and region (e.g. "olivero.sidebar")
+        theme:
+          type: string
+          description: The theme this page region belongs to
+        region:
+          type: string
+          description: The region name within the theme
+        status:
+          type: boolean
+          description: Whether the region is editable (active).
+        component_tree:
+          type: array
+          description: |
+            The component instances rendered inside this page region. Each entry
+            is a flat node with its `parent_uuid`/`slot` referencing another
+            entry to express tree structure. The HTTP API accepts an array
+            (deltas); the underlying config storage transforms it into a
+            UUID-keyed sequence on save.
+          items:
+            type: object
+            required:
+              - uuid
+              - component_id
+            additionalProperties: false
+            properties:
+              uuid:
+                type: string
+                format: uuid
+                description: Unique identifier of this component instance.
+              component_id:
+                type: string
+                description: The component config entity ID (e.g. "js.hero").
+              component_version:
+                type: string
+                description: The component version hash.
+              parent_uuid:
+                type:
+                  - string
+                  - 'null'
+                format: uuid
+                description: UUID of the parent component (null for root items).
+              slot:
+                type:
+                  - string
+                  - 'null'
+                description: The slot name in the parent component (null for root items).
+              inputs:
+                type:
+                  - object
+                  - 'null'
+                description: The component input values (prop sources).
+              label:
+                type:
+                  - string
+                  - 'null'
+                description: Optional label for the component instance.
+    NewPageRegion:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/PageRegion'
+      required:
+        - region
     SuggestedPropSources:
       title: A list of suggested prop sources (a level in the tree of hierarchical suggestions)
       type: array
