@@ -3,7 +3,7 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 
 import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
 import { setLayoutModel } from '@/features/layout/layoutModelSlice';
-import { setHtml } from '@/features/pagePreview/previewSlice';
+import { setHtml, setSnapshotHTML } from '@/features/pagePreview/previewSlice';
 import {
   baseQueryWithAutoSaves,
   popCanvasLayoutRequest,
@@ -88,6 +88,29 @@ export const previewApi = createApi({
         }
       },
     }),
+    getLanguagePreview: builder.query<
+      { html: string },
+      {
+        entityType: string;
+        entityId: string;
+        language: string;
+      }
+    >({
+      query: ({ entityType, entityId, language }) => ({
+        url: `${language}/canvas/api/v0/layout/${entityType}/${entityId}`,
+        method: 'GET',
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const { html } = data;
+          // Update the snapshot HTML for preview-only display.
+          dispatch(setSnapshotHTML(html));
+        } catch {
+          // Error is handled by the component.
+        }
+      },
+    }),
     updateComponent: builder.mutation<
       UpdateComponentResultType,
       UpdateComponentQueryArg
@@ -139,8 +162,11 @@ export const previewApi = createApi({
   }),
 });
 
-export const { usePostPreviewMutation, useUpdateComponentMutation } =
-  previewApi;
+export const {
+  usePostPreviewMutation,
+  useGetLanguagePreviewQuery,
+  useUpdateComponentMutation,
+} = previewApi;
 
 let lastBody = {};
 /**

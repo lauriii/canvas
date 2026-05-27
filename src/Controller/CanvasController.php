@@ -24,6 +24,7 @@ use Drupal\Component\Utility\Html;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -31,6 +32,8 @@ use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\WidgetPluginManager;
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
@@ -61,6 +64,7 @@ final class CanvasController {
     private readonly CanvasExtensionPluginManager $extensionPluginManager,
     private readonly ThemeSettingsDiscovery $themeSettingsDiscovery,
     private readonly GlobalImports $globalImports,
+    private readonly LanguageManagerInterface $languageManager,
   ) {}
 
   private const HTML = <<<HTML
@@ -120,6 +124,8 @@ HTML;
     $canvas_module_path = $this->moduleHandler->getModule('canvas')->getPath();
     $dev_mode = $this->moduleHandler->moduleExists('canvas_dev_mode');
     $dev_translation_mode = $this->moduleHandler->moduleExists('canvas_dev_translation');
+    $content_translation_enabled = $this->moduleHandler->moduleExists('content_translation');
+    $config_translation_enabled = $this->moduleHandler->moduleExists('config_translation');
     // ⚠️ This is highly experimental and *will* be refactored.
     $ai_extension_available = $this->moduleHandler->moduleExists('canvas_ai');
     // ⚠️ This is highly experimental and *will* be refactored.
@@ -156,10 +162,27 @@ HTML;
       \assert($create_link instanceof CanvasResourceLink);
       $content_entity_create_operations[$entity_type_id][$bundle] = $create_link->getTargetAttributes()['label'];
     }
+
+    // STATE_CONFIGURABLE excludes locked system placeholders (und/zxx) and
+    // returns only languages visible at /admin/config/regional/language —
+    // the only languages with URL prefixes a user can preview content in.
+    // @see \Drupal\language\ConfigurableLanguageManager::isMultilingual()
+    $languages_data = [];
+    foreach ($this->languageManager->getLanguages(LanguageInterface::STATE_CONFIGURABLE) as $language) {
+      $languages_data[] = [
+        'id' => $language->getId(),
+        'name' => $language->getName(),
+        'direction' => $language->getDirection(),
+        'isDefault' => $language->isDefault(),
+      ];
+    }
+    $languages_cacheability = (new CacheableMetadata())->setCacheTags(['config:configurable_language_list']);
+
     return (new HtmlResponse($this->buildHtml()))
       ->addCacheableDependency($extensions)
       ->addCacheableDependency($system_site_config)
       ->addCacheableDependency($all_content_entity_create_links)
+      ->addCacheableDependency($languages_cacheability)
       ->setAttachments([
         'library' => [
           'canvas/canvas-ui',
@@ -184,6 +207,9 @@ HTML;
             'entityTypeLabels' => $entity_type_labels,
             'devMode' => $dev_mode,
             'devTranslationMode' => $dev_translation_mode,
+            'contentTranslationEnabled' => $content_translation_enabled,
+            'configTranslationEnabled' => $config_translation_enabled,
+            'languages' => $languages_data,
             'extensionsAvailable' => count($extensions) > 0,
             'aiExtensionAvailable' => $ai_extension_available,
             'personalizationExtensionAvailable' => $personalization_extension_available,

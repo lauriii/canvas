@@ -6,7 +6,7 @@ import {
   setInitialPageData,
   setPageData,
 } from '@/features/pageData/pageDataSlice';
-import { setHtml } from '@/features/pagePreview/previewSlice';
+import { setHtml, setSnapshotHTML } from '@/features/pagePreview/previewSlice';
 import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
@@ -174,10 +174,14 @@ export const componentAndLayoutApi = createApi({
     }),
     getPageLayout: builder.query<
       LayoutApiResponse,
-      { entityId: string; entityType: string }
+      { entityId: string; entityType: string; language?: string }
     >({
-      query: ({ entityId, entityType }) => {
-        return `canvas/api/v0/layout/${entityType}/${entityId}`;
+      query: ({ entityId, entityType, language }) => {
+        // When a language code is provided, prefix the URL so Drupal serves
+        // the translated content for that language.
+        return language
+          ? `${language}/canvas/api/v0/layout/${entityType}/${entityId}`
+          : `canvas/api/v0/layout/${entityType}/${entityId}`;
       },
       providesTags: () => [{ type: 'Layout' }],
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
@@ -186,8 +190,13 @@ export const componentAndLayoutApi = createApi({
             data: { entity_form_fields, html, autoSaves },
             meta,
           } = await queryFulfilled;
-          dispatch(setInitialPageData(entity_form_fields));
-          dispatch(setHtml(html));
+          // Language-preview fetch: show translated HTML via snapshotHTML.
+          if (arg.language) {
+            dispatch(setSnapshotHTML(html));
+          } else {
+            dispatch(setInitialPageData(entity_form_fields));
+            dispatch(setHtml(html));
+          }
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         } catch (err) {
           dispatch(setPageData({}));

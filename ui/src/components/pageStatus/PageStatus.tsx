@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
+import { useSearchParams } from 'react-router-dom';
 import { Badge } from '@radix-ui/themes';
 import { skipToken } from '@reduxjs/toolkit/query';
 
@@ -65,11 +66,14 @@ const PageStatus = () => {
   const { data: changes, isSuccess: isGetPendingChangesSuccess } =
     useGetAllPendingChangesQuery();
   const { entityType, entityId } = useParams();
+  const [searchParams] = useSearchParams();
+  const language = searchParams.get('language') || undefined;
   const [hasAutoSave, setHasAutoSave] = useState(false);
   // skipToken prevents the query from running until both args are defined.
   // "Pass skipToken to a query selector to have that selector return an uninitialized state."
+  // Pass current language to match the displayed page.
   const { data: fetchedLayout, isError } = useGetPageLayoutQuery(
-    entityId && entityType ? { entityId, entityType } : skipToken,
+    entityId && entityType ? { entityId, entityType, language } : skipToken,
   );
   const dispatch = useAppDispatch();
 

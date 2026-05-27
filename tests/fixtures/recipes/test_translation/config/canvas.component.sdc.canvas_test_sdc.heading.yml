@@ -1,0 +1,51 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - canvas_test_sdc
+    - options
+active_version: 8c01a2bdb897a810
+versioned_properties:
+  active:
+    settings:
+      prop_field_definitions:
+        text:
+          required: true
+          field_type: string
+          field_storage_settings: {  }
+          field_instance_settings: {  }
+          field_widget: string_textfield
+          default_value:
+            -
+              value: 'A heading element'
+          expression: ℹ︎string␟value
+        style:
+          required: false
+          field_type: list_string
+          field_storage_settings:
+            allowed_values_function: canvas_load_allowed_values_for_component_prop
+          field_instance_settings: {  }
+          field_widget: options_select
+          default_value:
+            -
+              value: primary
+          expression: ℹ︎list_string␟value
+        element:
+          required: true
+          field_type: list_string
+          field_storage_settings:
+            allowed_values_function: canvas_load_allowed_values_for_component_prop
+          field_instance_settings: {  }
+          field_widget: options_select
+          default_value:
+            -
+              value: h1
+          expression: ℹ︎list_string␟value
+    fallback_metadata:
+      slot_definitions: {  }
+label: Heading
+id: sdc.canvas_test_sdc.heading
+provider: canvas_test_sdc
+source: sdc
+source_local_id: 'canvas_test_sdc:heading'
+

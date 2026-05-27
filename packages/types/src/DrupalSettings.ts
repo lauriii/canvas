@@ -1,6 +1,13 @@
 import type { FormatType } from './FormatType';
 import type { PropsValues } from './PropsValues';
 
+export type Language = {
+  id: string;
+  name: string;
+  direction: 'ltr' | 'rtl';
+  isDefault: boolean;
+};
+
 export interface DrupalSettings {
   canvas: {
     base: string;
@@ -31,6 +38,10 @@ export interface DrupalSettings {
     canvasModulePath: string;
     selectedComponent: string;
     devMode: boolean;
+    devTranslationMode: boolean;
+    contentTranslationEnabled: boolean;
+    configTranslationEnabled: boolean;
+    languages: Language[];
     dialogCss: string[];
     extensionsAvailable: boolean;
     // ⚠️ This is highly experimental and *will* be refactored.

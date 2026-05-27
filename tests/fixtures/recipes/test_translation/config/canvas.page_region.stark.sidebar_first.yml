@@ -1,0 +1,16 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - canvas.component.sdc.canvas_test_sdc.heading
+  theme:
+    - stark
+id: stark.sidebar_first
+theme: stark
+region: sidebar_first
+component_tree:
+  - uuid: 33333333-3333-4333-8333-333333333333
+    component_id: sdc.canvas_test_sdc.heading
+    component_version: 8c01a2bdb897a810
+    inputs: '{"text":"Hello from region","element":"h3"}'
+    label: 'English region heading'

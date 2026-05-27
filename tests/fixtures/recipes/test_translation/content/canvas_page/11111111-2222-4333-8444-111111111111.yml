@@ -1,0 +1,60 @@
+# cspell:ignore région
+_meta:
+  version: '1.0'
+  entity_type: canvas_page
+  uuid: 11111111-2222-4333-8444-111111111111
+  default_langcode: en
+default:
+  status:
+    -
+      value: true
+  owner:
+    -
+      target_id: 0
+  title:
+    -
+      value: 'Canvas Translation Test Page'
+  components:
+    - slot: null
+      uuid: 11111111-1111-4111-8111-111111111111
+      component_id: sdc.canvas_test_sdc.heading
+      component_version: 8c01a2bdb897a810
+      inputs:
+        text: 'Hello, Canvas!'
+        element: h1
+      label: 'English heading'
+  path:
+    -
+      alias: /canvas-translation-test
+      langcode: en
+  created:
+    -
+      value: 1747999992
+  revision_translation_affected:
+    -
+      value: true
+translations:
+  fr:
+    status:
+      -
+        value: true
+    title:
+      -
+        value: 'Page de test Canvas'
+    components:
+      - slot: null
+        uuid: 11111111-1111-4111-8111-111111111111
+        component_id: sdc.canvas_test_sdc.heading
+        component_version: 8c01a2bdb897a810
+        inputs:
+          text: 'Bonjour, Canvas!'
+          element: h1
+        label: 'French heading'
+    path:
+      -
+        alias: /canvas-translation-test
+        langcode: fr
+    revision_translation_affected:
+      -
+        value: true
+

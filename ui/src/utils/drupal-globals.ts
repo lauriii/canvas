@@ -1,4 +1,10 @@
-import type { DrupalSettings, PropsValues } from '@drupal-canvas/types';
+import type {
+  DrupalSettings,
+  Language,
+  PropsValues,
+} from '@drupal-canvas/types';
+
+export type { Language };
 
 const { Drupal, drupalSettings } = window as any;
 
@@ -6,6 +12,8 @@ export const getDrupal = () => Drupal;
 export const getDrupalSettings = (): DrupalSettings => drupalSettings;
 export const getCanvasSettings = () => drupalSettings?.canvas;
 export const getBaseUrl = () => drupalSettings?.path?.baseUrl;
+export const getLanguages = (): Language[] =>
+  drupalSettings?.canvas?.languages ?? [];
 export const getCanvasPermissions = () =>
   drupalSettings.canvas.permissions as Record<string, boolean>;
 export const getCanvasModuleBaseUrl = () =>

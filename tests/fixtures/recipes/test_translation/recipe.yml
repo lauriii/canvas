@@ -1,0 +1,51 @@
+# cspell:ignore région
+name: 'Test Translation'
+description: 'Creates canvas page and content template entities with French translations for testing translation scenarios'
+type: 'Canvas'
+install:
+  - language
+  - content_translation
+  - canvas_dev_translation
+config:
+  strict: false
+  import:
+    canvas: '*'
+  actions:
+    # Ensure en exists so language prefix routing is enabled; recipe install skips
+    # language.entity.en.yml, so create it if missing.
+    language.entity.en:
+      createIfNotExists:
+        langcode: en
+        status: true
+        dependencies: {  }
+        id: en
+        label: English
+        direction: ltr
+        weight: 0
+        locked: false
+    language.entity.fr:
+      create:
+        id: fr
+        label: French
+    language.entity.es:
+      create:
+        id: es
+        label: Spanish
+    language.content_settings.canvas_page.canvas_page:
+      create:
+        target_entity_type_id: canvas_page
+        target_bundle: canvas_page
+        third_party_settings:
+          content_translation:
+            enabled: true
+    # @todo Remove setLanguageOverride and replace with config/language/{langcode}/
+    #   files once https://drupal.org/i/3453331 is fixed.
+    canvas.page_region.stark.sidebar_first:
+      setLanguageOverride:
+        language: fr
+        data:
+          component_tree:
+            33333333-3333-4333-8333-333333333333:
+              label: 'French region heading'
+              inputs:
+                text: 'Bonjour de la région'

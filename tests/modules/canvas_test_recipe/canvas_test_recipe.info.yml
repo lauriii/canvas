@@ -1,0 +1,6 @@
+name: 'Canvas Test Recipe'
+type: module
+description: 'Test support module providing config actions for use in test recipes.'
+package: Testing
+dependencies:
+  - canvas:canvas

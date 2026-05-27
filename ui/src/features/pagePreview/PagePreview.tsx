@@ -1,22 +1,33 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { useParams } from 'react-router';
+import { useLocation, useParams } from 'react-router';
+import { useSearchParams } from 'react-router-dom';
 import { AlertDialog, Button, Flex } from '@radix-ui/themes';
+import { skipToken } from '@reduxjs/toolkit/query';
 
-import { useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectLayout,
   selectModel,
   selectUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
-import { selectPreviewHtml } from '@/features/pagePreview/previewSlice';
-import { usePostPreviewMutation } from '@/services/preview';
+import {
+  selectPreviewHtml,
+  setSnapshotHTML,
+} from '@/features/pagePreview/previewSlice';
+import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
+import {
+  useGetLanguagePreviewQuery,
+  usePostPreviewMutation,
+} from '@/services/preview';
 import { getViewportSizes } from '@/utils/viewports';
 
 import styles from './PagePreview.module.css';
 
 const PagePreview = () => {
+  const dispatch = useAppDispatch();
+  const location = useLocation();
   const layout = useAppSelector(selectLayout);
   const updatePreview = useAppSelector(selectUpdatePreview);
   const model = useAppSelector(selectModel);
@@ -24,6 +35,7 @@ const PagePreview = () => {
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
   const [postPreview] = usePostPreviewMutation();
   const { entityId, entityType } = useParams();
+  const [searchParams] = useSearchParams();
   const { showBoundary } = useErrorBoundary();
   const [widthVal, setWidthVal] = useState('100%');
   const { width } = useParams();
@@ -31,6 +43,38 @@ const PagePreview = () => {
   const [submissionIntercepted, setSubmissionIntercepted] = useState(false);
   // Get viewport sizes (supports theme-level customization).
   const viewportSizes = useMemo(() => getViewportSizes(), []);
+
+  // Derive the active language directly from the URL search params.
+  const language = searchParams.get('language') ?? '';
+
+  // Only fetch the language preview when we are on the preview route.
+  const isPreview = location.pathname.includes('/preview');
+
+  // Always fetch the default-language layout so page data (title etc.) is
+  // seeded correctly on a fresh page load at a language preview URL.
+  useGetPageLayoutQuery(
+    entityId && entityType ? { entityId, entityType } : skipToken,
+  );
+
+  // Language preview: auto-fetch whenever language/entity changes.
+  const { error: languagePreviewError } = useGetLanguagePreviewQuery(
+    { entityType: entityType!, entityId: entityId!, language },
+    {
+      skip: !isPreview || !language || !entityType || !entityId,
+      refetchOnMountOrArgChange: true,
+    },
+  );
+
+  // Clear snapshot HTML when leaving language preview and handle errors.
+  useEffect(() => {
+    if (languagePreviewError) {
+      showBoundary(languagePreviewError);
+    }
+    if (!language) return;
+    return () => {
+      dispatch(setSnapshotHTML(''));
+    };
+  }, [language, languagePreviewError, showBoundary, dispatch]);
 
   useEffect(() => {
     const sendPreviewRequest = async () => {
@@ -76,6 +120,7 @@ const PagePreview = () => {
     }
   }, [width, viewportSizes]);
 
+  // Register the preview link/form intercept listener once.
   useEffect(() => {
     function handlePreviewLinkClick(event: MessageEvent) {
       if (event.data && event.data.canvasPreviewClickedUrl) {
@@ -90,7 +135,7 @@ const PagePreview = () => {
     return () => {
       window.removeEventListener('message', handlePreviewLinkClick);
     };
-  });
+  }, []);
 
   const handleDialogOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
