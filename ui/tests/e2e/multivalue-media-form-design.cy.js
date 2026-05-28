@@ -93,7 +93,6 @@ describe('Multivalue Media Form Design', () => {
       .click();
 
     cy.selectorShouldHaveUpdatedFormBuildId(entityFormSelector);
-    cy.wait('@updatePreview');
     cy.findByLabelText('Loading Preview').should('not.exist');
 
     cy.get('@unlimited-media')
@@ -136,7 +135,6 @@ describe('Multivalue Media Form Design', () => {
 
     cy.get('[role="dialog"][aria-modal="true"]').should('not.exist');
 
-    cy.wait('@updatePreview', { timeout: 10000 });
     cy.findByLabelText('Loading Preview').should('not.exist');
 
     cy.get('@unlimited-media')
@@ -225,7 +223,6 @@ describe('Multivalue Media Form Design', () => {
     cy.selectorShouldHaveUpdatedFormBuildId(
       '[data-testid="canvas-page-data-form"]',
     );
-    cy.wait('@updatePreview');
     cy.findByLabelText('Loading Preview').should('not.exist');
 
     cy.get('@limited-media')

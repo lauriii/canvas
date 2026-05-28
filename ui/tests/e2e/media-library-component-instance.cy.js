@@ -27,8 +27,9 @@ const testMediaLibraryInComponentInstanceForm = (
     'not.be.checked',
   );
   cy.findByLabelText('Select The bones are their money').check();
-  cy.get('button:contains("Insert selected")').click();
-  cy.waitForAjax();
+
+  cy.get('button[data-once="drupal-ajax"]:contains("Insert selected")').click();
+
   cy.get('div[role="dialog"]').should('not.exist');
   cy.get(
     '[class*="contextualPanel"] input[aria-label="Remove The bones are their money"]',
@@ -43,17 +44,11 @@ const testMediaLibraryInComponentInstanceForm = (
   // exist on the page. Click to the second image to change the form, then
   // click back again.
   cy.clickComponentInPreview('Test SDC Image', 1);
-  cy.waitForAjax();
   cy.get('.js-media-library-item-preview img').should('not.exist');
   cy.clickComponentInPreview('Test SDC Image');
   cy.get('.js-media-library-item-preview img').should('exist');
-  cy.waitForAjax();
 
   cy.get('[data-testid*="canvas-component-form-"]').as('inputForm');
-  cy.get('@inputForm').recordFormBuildId();
-  cy.intercept('PATCH', '**/canvas/api/v0/form/component-instance/**').as(
-    'patch',
-  );
 
   iterations.forEach((step, index) => {
     // The image location in the preview is different depending on the entity
@@ -67,37 +62,27 @@ const testMediaLibraryInComponentInstanceForm = (
     );
     cy.get('[class*="contextualPanel"]').should('exist');
     cy.get('div[role="dialog"]').should('not.exist');
-    const removeIt = `[class*="contextualPanel"] .js-media-library-selection  [aria-label="${step.removeText}"][data-once="drupal-ajax"]`;
-
-    cy.get(removeIt).realClick({ force: true });
-    cy.waitForAjax();
 
     cy.log(
       `Confirm removing a required image in step ${index + 1} results in the example appearing in the preview.`,
     );
 
+    const removeIt = `[class*="contextualPanel"] .js-media-library-selection  [aria-label="${step.removeText}"][data-once="drupal-ajax"]`;
+    cy.reasonableWait();
+    cy.get(removeIt).realClick();
+    cy.get(removeIt).should('not.exist');
+
     // The default image should appear because the prop is required.
     cy.waitForElementInIframe(defaultPlaceholder);
-
-    // Waiting for the build id does not work - it does not update.
-    // Waiting for the preview (the last request after clicking remove) does not
-    // appear to work reliably either. Hence, the fixed wait. Presumably there is
-    // something that can be waited on, but it is not clear what.
-    // eslint-disable-next-line cypress/no-unnecessary-waiting
-    cy.wait(1000);
+    cy.reasonableWait();
     const addIt = `[class*="contextualPanel"] .js-media-library-widget .js-media-library-open-button[data-once="drupal-ajax"]`;
-    cy.get(addIt).first().click({ force: true });
-    cy.waitForAjax();
+    cy.get(addIt).first().click();
 
     cy.get('div[role="dialog"]').should('exist');
     cy.findByLabelText(step.selectNewText).check();
-    cy.get('button:contains("Insert selected")').realClick({ force: true });
-    cy.waitForAjax();
-    cy.wait('@patch');
+    cy.get('button:contains("Insert selected")').click();
+
     cy.get('div[role="dialog"]').should('not.exist');
-    cy.selectorShouldHaveUpdatedFormBuildId(
-      '[data-testid*="canvas-component-form-"]',
-    );
     cy.get(
       `[class*="contextualPanel"] input[aria-label="${step.removeAriaLabel}"]`,
     ).should('exist');
@@ -196,7 +181,6 @@ describe('Media Library component instance', () => {
         '.previewOverlay [data-canvas-component-id="sdc.canvas_test_sdc.image"]',
       ).should('have.length', 2);
       cy.clickComponentInPreview('Test SDC Image', 0);
-      cy.waitForAjax();
 
       cy.get(
         '[class*="contextualPanel"] .js-media-library-open-button[data-once="drupal-ajax"]',
@@ -204,7 +188,6 @@ describe('Media Library component instance', () => {
         .first()
         .click();
 
-      cy.waitForAjax();
       testMediaLibraryInComponentInstanceForm(cy, 'canvas_page');
     },
   );

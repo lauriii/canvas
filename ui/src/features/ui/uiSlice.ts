@@ -55,6 +55,11 @@ export interface UndoRedoStackItem {
   debugInfoAction?: Action;
 }
 
+export interface UndoRedoMetadata {
+  operation: 'undo' | 'redo' | null;
+  targetSlice: UndoRedoType | null;
+}
+
 export interface uiSliceState {
   pending: boolean;
   zooming: boolean;
@@ -69,6 +74,8 @@ export interface uiSliceState {
   viewportMinHeight: number;
   editorViewPort: EditorViewPort;
   latestUndoRedoActionId: string;
+  undoRedoMetadata: UndoRedoMetadata;
+  needsPreviewAfterUndoRedo: boolean;
   firstLoadComplete: boolean;
   editorFrameMode: EditorFrameMode;
   editorFrameContext: EditorFrameContext;
@@ -113,6 +120,11 @@ export const initialState: uiSliceState = {
     hash: '',
   },
   latestUndoRedoActionId: '',
+  undoRedoMetadata: {
+    operation: null,
+    targetSlice: null,
+  },
+  needsPreviewAfterUndoRedo: false,
   firstLoadComplete: false,
   editorFrameMode: EditorFrameMode.EDIT,
   editorFrameContext: EditorFrameContext.NONE,
@@ -186,6 +198,11 @@ export const uiSlice = createAppSlice({
       (state, action: PayloadAction<UndoRedoStackItem>) => {
         state.undoStack.push(action.payload);
         state.redoStack = [];
+        // Reset metadata when a new action is pushed (not an undo/redo)
+        state.undoRedoMetadata = {
+          operation: null,
+          targetSlice: null,
+        };
       },
     ),
     clearUndoRedoHistory: create.reducer((state) => {
@@ -203,16 +220,19 @@ export const uiSlice = createAppSlice({
         const undoStack = [...state.undoStack];
         const redoStack = [...state.redoStack];
         let routeToRestore: RouteSnapshot | null = null;
+        let targetSlice: UndoRedoType | null = null;
 
         if (isUndo && undoStack.length > 0) {
           const undoItem = undoStack.pop() as UndoRedoStackItem;
           redoStack.unshift(undoItem);
           routeToRestore = undoItem.routeSnapshot;
+          targetSlice = undoItem.targetSlice;
         } else if (redoStack.length > 0) {
           // Move the last redo state into the undo stack.
           const redoItem = redoStack.shift() as UndoRedoStackItem;
           undoStack.push(redoItem);
           routeToRestore = redoItem.routeSnapshot;
+          targetSlice = redoItem.targetSlice;
         }
 
         return {
@@ -220,9 +240,17 @@ export const uiSlice = createAppSlice({
           undoStack,
           redoStack,
           currentRoute: routeToRestore || state.currentRoute,
+          undoRedoMetadata: {
+            operation: isUndo ? 'undo' : 'redo',
+            targetSlice,
+          },
+          needsPreviewAfterUndoRedo: true,
         };
       },
     ),
+    clearPreviewAfterUndoRedo: create.reducer((state) => {
+      state.needsPreviewAfterUndoRedo = false;
+    }),
     setPending: create.reducer((state, action: PayloadAction<boolean>) => {
       state.pending = action.payload;
     }),
@@ -417,6 +445,12 @@ export const uiSlice = createAppSlice({
     selectLatestUndoRedoActionId: (ui): string => {
       return ui.latestUndoRedoActionId;
     },
+    selectUndoRedoMetadata: (ui): UndoRedoMetadata => {
+      return ui.undoRedoMetadata;
+    },
+    selectNeedsPreviewAfterUndoRedo: (ui): boolean => {
+      return ui.needsPreviewAfterUndoRedo;
+    },
     selectFirstLoadComplete: (ui): boolean => {
       return ui.firstLoadComplete;
     },
@@ -484,6 +518,7 @@ export const {
   unsetEditorFrameContext,
   pushUndo,
   performUndoOrRedo,
+  clearPreviewAfterUndoRedo,
   clearUndoRedoHistory,
   clearSelection,
   setSelection,
@@ -507,6 +542,8 @@ export const {
   selectViewportWidth,
   selectViewportMinHeight,
   selectLatestUndoRedoActionId,
+  selectUndoRedoMetadata,
+  selectNeedsPreviewAfterUndoRedo,
   selectFirstLoadComplete,
   selectEditorFrameMode,
   selectEditorFrameContext,

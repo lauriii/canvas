@@ -1,7 +1,8 @@
 import { useState } from 'react';
 
 import Toggle from '@/components/form/components/Toggle';
-import InputBehaviors from '@/components/form/inputBehaviors';
+import { useFieldContext } from '@/components/form/contexts/FieldContext';
+import { withRHF } from '@/components/form/react-hook-form/withRHF';
 import { a2p } from '@/local_packages/utils.js';
 
 import type { Attributes } from '@/types/DrupalAttribute';
@@ -11,9 +12,7 @@ const DrupalToggle = ({
   defaultValue,
   currentValue,
 }: {
-  attributes?: Attributes & {
-    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  };
+  attributes?: Attributes;
   defaultValue?: string | number;
   currentValue?: string | number;
 }) => {
@@ -21,17 +20,13 @@ const DrupalToggle = ({
     !!defaultValue || !!currentValue || false,
   );
 
+  const fieldContext = useFieldContext();
+
   return (
     <Toggle
       checked={isChecked}
       onCheckedChange={(value: boolean) => {
-        const syntheticEvent = {
-          target: {
-            checked: value,
-            name: attributes.name,
-          },
-        } as unknown as React.ChangeEvent<HTMLInputElement>;
-        attributes?.onChange?.(syntheticEvent);
+        fieldContext?.triggerChange(value);
         setIsChecked(value);
       }}
       attributes={a2p(
@@ -44,7 +39,7 @@ const DrupalToggle = ({
           // The `aria-checked` attribute needs to be set to "true" or "false".
           // @see https://w3c.github.io/aria/#aria-checked
           'aria-checked': isChecked ? 'true' : 'false',
-        } as unknown as Omit<typeof attributes, 'onChange'>,
+        },
         {},
         { skipAttributes: ['value', 'onChange', 'type', 'checked'] },
       )}
@@ -52,4 +47,4 @@ const DrupalToggle = ({
   );
 };
 
-export default InputBehaviors(DrupalToggle);
+export default withRHF(DrupalToggle);

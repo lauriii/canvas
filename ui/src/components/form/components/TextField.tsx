@@ -2,6 +2,8 @@ import clsx from 'clsx';
 
 import { a2p } from '@/local_packages/utils';
 
+import { interceptNativeSetter } from './formChangeUtils';
+
 import type { Attributes } from '@/types/DrupalAttribute';
 
 import styles from './TextField.module.css';
@@ -20,44 +22,11 @@ const TextField = ({
         {...a2p(attributes)}
         className={clsx(styles.root, className)}
         ref={(element) => {
-          if (element && attributes.onChange) {
-            // Below is logic that overrides the native setter for the value
-            // property, so any programmatic changes to it trigger a change event -
-            // something that is needed to update the Redux store and the preview.
-            const elementProto = Object.getPrototypeOf(element);
-            const descriptor = Object.getOwnPropertyDescriptor(
-              elementProto,
-              'value',
-            );
-            if (!descriptor || !descriptor.set) {
-              return;
-            }
-            const originalSetter = descriptor.set;
-
-            Object.defineProperty(element, 'value', {
-              get: descriptor.get,
-              set: function (newValue) {
-                if (attributes?.type === 'number' && newValue === 'NaN') {
-                  return;
-                }
-                // Call the original setter to update the value
-                originalSetter.call(this, newValue);
-                const changeEvent = new Event('change');
-                Object.defineProperty(changeEvent, 'target', {
-                  writable: false,
-                  value: element,
-                });
-                if (typeof attributes.onChange === 'function') {
-                  attributes.onChange(changeEvent);
-                  if (window.jQuery) {
-                    const $target = window.jQuery(this);
-                    if ($target.length) {
-                      $target.trigger('change');
-                    }
-                  }
-                }
-              },
-              configurable: true,
+          if (element) {
+            interceptNativeSetter(element, {
+              property: 'value',
+              skipSet: (newValue: string) =>
+                attributes?.type === 'number' && newValue === 'NaN',
             });
           }
         }}

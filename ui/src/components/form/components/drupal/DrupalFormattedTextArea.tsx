@@ -1,6 +1,7 @@
 import { forwardRef, useRef } from 'react';
 import { CKEditor } from '@ckeditor/ckeditor5-react';
 
+import { useFieldContext } from '@/components/form/contexts/FieldContext';
 import { a2p } from '@/local_packages/utils.js';
 
 import type { Editor } from '@ckeditor/ckeditor5-core';
@@ -156,6 +157,7 @@ const DrupalFormattedTextArea = forwardRef<
 >(function DrupalFormattedTextArea({ attributes = {}, format }, ref) {
   const editorRef = useRef<EditorInstance | null>(null);
   const dataRef = useRef<string | null>(null);
+  const fieldContext = useFieldContext();
 
   const { toolbar, plugins, config, language } = format.editorSettings;
   const extraPlugins = selectPlugins(plugins);
@@ -203,16 +205,9 @@ const DrupalFormattedTextArea = forwardRef<
           dataRef.current = data;
           const textareaElement = ref && 'current' in ref ? ref.current : null;
           if (textareaElement) {
-            const changeEvent = new Event('change');
             textareaElement.value = data;
             textareaElement.innerHTML = data;
-            Object.defineProperty(changeEvent, 'target', {
-              writable: false,
-              value: textareaElement,
-            });
-            if (typeof attributes?.onChange === 'function') {
-              attributes.onChange(changeEvent);
-            }
+            fieldContext?.triggerChange(data, textareaElement);
           }
         }}
       />
@@ -221,8 +216,7 @@ const DrupalFormattedTextArea = forwardRef<
         {...a2p(attributes, {}, { skipAttributes: ['value', 'onChange'] })}
         ref={ref}
         style={{ display: 'none' }}
-        value={attributes.value?.toString() ?? ''}
-        onChange={attributes.onChange}
+        defaultValue={attributes.value?.toString() ?? ''}
       ></textarea>
     </>
   );

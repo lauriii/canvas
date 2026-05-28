@@ -1,8 +1,10 @@
 export const edit = (cy) => {
-  cy.findByLabelText('Canvas Boolean Checkbox (default true)').as('checkbox');
-  cy.get('@checkbox').should('have.attr', 'aria-checked', 'true');
-  cy.get('@checkbox').click();
-  cy.get('@checkbox').should('have.attr', 'aria-checked', 'false');
+  cy.findByLabelText('Canvas Boolean Checkbox (default true)').as(
+    'checkboxDefaultTrue',
+  );
+  cy.get('@checkboxDefaultTrue').should('have.attr', 'aria-checked', 'true');
+  cy.get('@checkboxDefaultTrue').click();
+  cy.get('@checkboxDefaultTrue').should('have.attr', 'aria-checked', 'false');
   // Wait for the preview to finish loading.
   cy.wait('@updatePreview');
   cy.findByLabelText('Loading Preview').should('not.exist');
@@ -13,10 +15,12 @@ export const edit = (cy) => {
     times: 1,
     method: 'POST',
   }).as('updatePreview');
-  cy.findByLabelText('Canvas Boolean Checkbox (default false)').as('checkbox');
-  cy.get('@checkbox').should('have.attr', 'aria-checked', 'false');
-  cy.get('@checkbox').click();
-  cy.get('@checkbox').should('have.attr', 'aria-checked', 'true');
+  cy.findByLabelText('Canvas Boolean Checkbox (default false)').as(
+    'checkboxDefaultFalse',
+  );
+  cy.get('@checkboxDefaultFalse').should('have.attr', 'aria-checked', 'false');
+  cy.get('@checkboxDefaultFalse').click();
+  cy.get('@checkboxDefaultFalse').should('have.attr', 'aria-checked', 'true');
 };
 
 export const assertData = (response) => {

@@ -50,13 +50,7 @@ const verifyRowText = (alias, rowIndex, expectedText) => {
  * otherwise the preview POST can fire before the alias exists and cy.wait hangs.
  */
 const typeInRowAwaitPreview = (alias, rowIndex, value) => {
-  cy.intercept({
-    url: '**/canvas/api/v0/layout/node/2',
-    times: 1,
-    method: 'POST',
-  }).as('updatePreview');
   typeInRow(alias, rowIndex, value);
-  cy.wait('@updatePreview');
 };
 
 /**
@@ -225,7 +219,6 @@ configs.forEach((config) => {
 
       // Populate the new item.
       typeInRowAwaitPreview(`@${config.fieldAlias}`, 2, config.testValues[1]);
-      cy.waitForAjax();
 
       confirmInputs(`@${config.fieldAlias}`, [
         config.defaultValue,
@@ -255,7 +248,6 @@ configs.forEach((config) => {
       cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
 
       typeInRowAwaitPreview(`@${config.fieldAlias}`, 2, config.testValues[1]);
-      cy.waitForAjax();
 
       confirmInputs(`@${config.fieldAlias}`, [
         config.defaultValue,
@@ -303,7 +295,6 @@ configs.forEach((config) => {
         expectedOrder: config.reorderedValues,
       });
       cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
-      cy.waitForAjax();
 
       confirmInputs(`@${config.fieldAlias}`, config.reorderedValues);
       // Wait to ensure order is auto saved before reloading.
@@ -334,7 +325,6 @@ configs.forEach((config) => {
       cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
 
       typeInRowAwaitPreview(`@${config.fieldAlias}`, 2, config.testValues[1]);
-      cy.waitForAjax();
 
       confirmInputs(`@${config.fieldAlias}`, [
         config.defaultValue,
@@ -357,7 +347,6 @@ configs.forEach((config) => {
 
       cy.get('[role="dialog"][data-state="open"]').should('not.exist');
       cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
-      cy.waitForAjax();
 
       cy.get(`@${config.fieldAlias}`).find('tbody tr').should('have.length', 2);
     });
@@ -496,7 +485,6 @@ configs.forEach((config) => {
 
         cy.get('[role="dialog"][data-state="open"]').should('not.exist');
         cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
-        cy.waitForAjax();
 
         // Now we should have only one item
         cy.get(`@${config.fieldAlias}`)
@@ -546,7 +534,6 @@ configs.forEach((config) => {
         cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
 
         typeInRowAwaitPreview(`@${config.fieldAlias}`, 2, config.testValues[1]);
-        cy.waitForAjax();
 
         // Now we have 3 items
         confirmInputs(`@${config.fieldAlias}`, [
@@ -577,7 +564,6 @@ configs.forEach((config) => {
           .click();
 
         cy.get('[role="dialog"][data-state="open"]').should('not.exist');
-        cy.waitForAjax();
 
         // Still 2 items, remove should still be enabled
         cy.get(`@${config.fieldAlias}`)

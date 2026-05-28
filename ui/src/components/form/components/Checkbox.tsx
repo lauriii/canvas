@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import clsx from 'clsx';
 
+import { useFieldContext } from '@/components/form/contexts/FieldContext';
 import { a2p } from '@/local_packages/utils';
+
+import { interceptNativeSetter } from './formChangeUtils';
 
 import type { Attributes } from '@/types/DrupalAttribute';
 
@@ -31,27 +34,14 @@ const castBoolean = (value: unknown): boolean => {
   return !!value;
 };
 
-const Checkbox = ({
-  attributes = {},
-}: {
-  attributes?: Attributes & {
-    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  };
-}) => {
+const Checkbox = ({ attributes = {} }: { attributes?: Attributes }) => {
   const [checked, setChecked] = useState(castBoolean(attributes?.checked));
+  const fieldContext = useFieldContext();
 
-  const changeCallback = (
-    e: CheckboxEvent | JQueryProxyCheckboxEvent,
-    shimJquery = true,
-  ) => {
-    setChecked(castBoolean(e.target.checked));
-    const syntheticEvent = {
-      target: {
-        checked: e.target.checked,
-        name: attributes?.name || 'noop',
-      },
-    } as unknown as React.ChangeEvent<HTMLInputElement>;
-    attributes?.onChange?.(syntheticEvent);
+  const handleChange = (e: CheckboxEvent, shimJquery = true) => {
+    const newChecked = castBoolean(e.target.checked);
+    setChecked(newChecked);
+    fieldContext?.triggerChange(newChecked);
     // If jQuery is available, and we haven't explicitly instructed otherwise,
     // trigger a jQuery change event.
     if (shimJquery && window.jQuery) {
@@ -64,11 +54,10 @@ const Checkbox = ({
 
   return (
     <input
-      {...a2p(attributes, {}, { skipAttributes: ['checked'] })}
-      checked={checked}
-      value={checked}
+      {...a2p(attributes, {}, { skipAttributes: ['checked', 'value'] })}
+      defaultChecked={checked}
       className={clsx(attributes.class, styles.base, checked && styles.checked)}
-      onChange={changeCallback}
+      onChange={handleChange}
       ref={(node) => {
         if (!node) {
           return;
@@ -80,44 +69,25 @@ const Checkbox = ({
           // @see jquery.overrides.js
           if (e?.detail?.jqueryProxy && e.target) {
             if (e.target.checked !== checked) {
-              changeCallback(e, false);
+              handleChange(e, false);
             }
           }
         }) as EventListener);
 
-        // Below is logic that overrides the native setter for the checked
-        // property, so any programmatic changes to it trigger a change event -
-        // something that is needed to update the Redux store and the preview.
-        const elementProto = Object.getPrototypeOf(node);
-        const descriptor = Object.getOwnPropertyDescriptor(
-          elementProto,
-          'checked',
-        );
-        if (!descriptor || !descriptor.set) {
-          return;
-        }
-        const originalSetter = descriptor.set;
-        Object.defineProperty(node, 'checked', {
-          get: descriptor.get,
-          set: function (newValue) {
-            // Exit the setter early if the new value represents the same state,
-            // but with different types or values (e.g., string vs. boolean).
-            if (castBoolean(this.checked) === castBoolean(newValue)) {
-              return;
-            }
-
-            // Call the original setter to update the value
-            originalSetter.call(this, newValue);
-
-            // Invoke the onChange callback with a synthetic event.
+        // Override the native setter for the checked property using our utility
+        interceptNativeSetter(node, {
+          property: 'checked',
+          skipSet: (newValue: boolean) =>
+            castBoolean(node.checked) === castBoolean(newValue),
+          afterSet: (element: HTMLInputElement) => {
             const changeEvent = new Event('change');
             Object.defineProperty(changeEvent, 'target', {
               writable: false,
-              value: node,
+              value: element,
             });
-            changeCallback(changeEvent as CheckboxEvent);
+            handleChange(changeEvent as CheckboxEvent);
           },
-          configurable: true,
+          fireJQueryChange: false, // We handle jQuery in handleChange
         });
       }}
     />

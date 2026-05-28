@@ -256,9 +256,9 @@ describe('Prop types editing', () => {
       'exist',
     );
 
-    cy.get(dateSelector).should('have.value', '2016-09-17');
+    cy.get(dateSelector).should('have.value', '2016-09-16');
 
-    cy.get(timeSelector).should('have.value', '06:20:39');
+    cy.get(timeSelector).should('have.value', '20:20:39');
     cy.testInIframe('#test-string-format-date-time', (el) =>
       el.scrollIntoView(),
     );
@@ -274,12 +274,11 @@ describe('Prop types editing', () => {
     cy.realType('72135');
 
     cy.get(dateSelector).should('have.value', '2017-06-28');
-
-    cy.get(timeSelector).should('have.value', '07:21:35');
+    cy.get(timeSelector).should('have.value', '19:21:35');
 
     cy.waitForElementContentInIframe(
       '#test-string-format-date-time',
-      '2017-06-28T07:21:35.000Z',
+      '2017-06-28T19:21:35.000Z',
     );
   });
 

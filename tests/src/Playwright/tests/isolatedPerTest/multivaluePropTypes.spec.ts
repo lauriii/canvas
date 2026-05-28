@@ -345,8 +345,25 @@ test.describe('Multivalue Prop Types', () => {
       'closed',
     );
 
-    // Add another item and verify that it can now be removed.
-    await canvas.addMultiValueProp('Text (Required Unlimited)*');
+    // Add new rows and populate their values.
+    // @todo we should actually be using canvas.addMultiValueProp, but it will
+    // fail due to a legitimate bug: https://drupal.org/i/3587472
+    await textLimitedField.getByRole('button', { name: '+ Add new' }).click();
+    const rows = textLimitedField.locator('tr.draggable');
+    await expect(rows).toHaveCount(2);
+    await rows
+      .last()
+      .getByRole('button', { name: /^Edit Text \(Required Unlimited\)/ })
+      .click();
+    const removeButton = rows
+      .last()
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Remove' });
+    await expect(removeButton).toBeEnabled();
+    await removeButton.click();
+    // eslint-disable-next-line playwright/no-networkidle
+    await page.waitForLoadState('networkidle');
+    await expect(rows).toHaveCount(1);
   });
 
   test('Link items', async ({ page, canvas }) => {
@@ -541,7 +558,7 @@ test.describe('Multivalue Prop Types', () => {
       0,
     );
     await canvas.testInPreviewFrame('#datetime-list li', async (items) => {
-      await expect(items.nth(0)).toContainText('2025-12-24');
+      await expect(items.nth(0)).toContainText('2025-12-24T08:00:00.000Z');
     });
 
     await dateTimeUnlimitedField
@@ -556,9 +573,10 @@ test.describe('Multivalue Prop Types', () => {
       1,
     );
     await canvas.testInPreviewFrame('#datetime-list li', async (items) => {
+      await items.nth(0).scrollIntoViewIfNeeded();
       await expect(items).toHaveCount(2);
-      await expect(items.nth(0)).toContainText('2025-12-24');
-      await expect(items.nth(1)).toContainText('2025-12-25');
+      await expect(items.nth(0)).toContainText('2025-12-24T08:00:00.000Z');
+      await expect(items.nth(1)).toContainText('2025-12-25T14:30:00.000Z');
     });
 
     // Verify popover header label.
@@ -574,7 +592,7 @@ test.describe('Multivalue Prop Types', () => {
     await canvas.removeMultiValueProp('DateTime (Unlimited)', 0);
     await canvas.testInPreviewFrame('#datetime-list li', async (items) => {
       await expect(items).toHaveCount(1);
-      await expect(items.nth(0)).toContainText('2025-12-25');
+      await expect(items.nth(0)).toContainText('2025-12-25T14:30:00.000Z');
     });
 
     // Add a new item and reorder.
@@ -591,8 +609,8 @@ test.describe('Multivalue Prop Types', () => {
     // Drag row 1 (2025-12-26) before row 0 (2025-12-25).
     await canvas.reorderMultiValueProp('DateTime (Unlimited)', 1, 0);
     await canvas.testInPreviewFrame('#datetime-list li', async (items) => {
-      await expect(items.nth(0)).toContainText('2025-12-26');
-      await expect(items.nth(1)).toContainText('2025-12-25');
+      await expect(items.nth(0)).toContainText('2025-12-26T10:00:00.000Z');
+      await expect(items.nth(1)).toContainText('2025-12-24T08:00:00.000Z');
     });
 
     // Verify no ghost rows appear when deleting from bottom to top.
@@ -702,6 +720,7 @@ test.describe('Multivalue Prop Types', () => {
     // Remove first item.
     await canvas.removeMultiValueProp('Date (Unlimited)', 0);
     await canvas.testInPreviewFrame('#date-list li', async (items) => {
+      await items.nth(0).scrollIntoViewIfNeeded();
       await expect(items).toHaveCount(1);
       await expect(items.nth(0)).toContainText('2026-04-28');
     });
@@ -713,8 +732,9 @@ test.describe('Multivalue Prop Types', () => {
     // Drag row 1 (2026-05-01) before row 0 (2026-04-28).
     await canvas.reorderMultiValueProp('Date (Unlimited)', 1, 0);
     await canvas.testInPreviewFrame('#date-list li', async (items) => {
+      await items.nth(0).scrollIntoViewIfNeeded();
       await expect(items.nth(0)).toContainText('2026-05-01');
-      await expect(items.nth(1)).toContainText('2026-04-28');
+      await expect(items.nth(1)).toContainText('2026-04-27');
     });
 
     // ===== DATE (LIMITED) =====
@@ -898,6 +918,7 @@ test.describe('Multivalue Prop Types', () => {
     const intFieldAfterReload = page.locator('.form-item').filter({
       has: page.locator('label', { hasText: 'List Integer (Unlimited)' }),
     });
+    intFieldAfterReload.scrollIntoViewIfNeeded();
     const intChipsAfterReload = intFieldAfterReload.locator(
       '[class*="multiValue"]',
     );

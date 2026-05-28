@@ -45,6 +45,8 @@ export default defineConfig({
       fullPage: true,
     },
     video: 'retain-on-failure',
+    timezoneId: 'Australia/Sydney',
+    locale: 'en-US-u-hc-h23',
   },
 
   /* Configure projects for major browsers */

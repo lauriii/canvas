@@ -53,7 +53,7 @@ export const edit = (cy) => {
     // Verify the value was set.
     verifyRowText(cy, ix + 1, item);
     // Wait for the preview to finish loading.
-    cy.wait('@updatePreview');
+    cy.reasonableWait();
     // Queue another intercept for the wait in the main test and/or the next
     // iteration in the loop.
     cy.intercept({
@@ -61,7 +61,6 @@ export const edit = (cy) => {
       times: 1,
       method: 'POST',
     }).as('updatePreview');
-    cy.waitForAjax();
 
     // Despite waiting on the layout request and AJAX completion, this wait is
     // still necessary in order to prevent a specific problem where the first

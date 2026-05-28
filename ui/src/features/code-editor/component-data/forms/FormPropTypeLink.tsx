@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { Box, Flex, Select, Text, TextField } from '@radix-ui/themes';
 
 import { useAppDispatch } from '@/app/hooks';
-import { jsonSchemaValidate } from '@/components/form/formUtil';
+import { jsonSchemaValidate } from '@/components/form/react-hook-form/fields/componentFieldValidation';
 import {
   Divider,
   FormElement,

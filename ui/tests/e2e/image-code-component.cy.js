@@ -29,7 +29,6 @@ describe('📸️ Code image component', () => {
       );
       const inputFormSelector = '[data-testid*="canvas-component-form-"]';
       cy.get('[data-testid*="canvas-component-form-"]').as('inputForm');
-      cy.get('@inputForm').recordFormBuildId();
       // Log all ajax form requests to help with debugging.
       cy.intercept('PATCH', '**/canvas/api/v0/form/component-instance/**').as(
         'patch',
@@ -41,7 +40,6 @@ describe('📸️ Code image component', () => {
       // The first time the media dialog opens there are a lot of CSS files to
       // load, and it can take more than the default timeout of 4s.
       cy.findByRole('dialog', { timeout: 10000 }).as('dialog');
-      cy.selectorShouldHaveUpdatedFormBuildId(inputFormSelector);
       cy.get('@dialog')
         .findByLabelText('Select Sorry I resemble a dog')
         .check();
@@ -56,7 +54,6 @@ describe('📸️ Code image component', () => {
       cy.get('@inputForm')
         .findByAltText('My barber may have been looking at a picture of a dog')
         .should('exist');
-      cy.selectorShouldHaveUpdatedFormBuildId(inputFormSelector);
       cy.waitForElementInIframe(
         'img[alt="My barber may have been looking at a picture of a dog"]',
         iframeSelector,
@@ -66,7 +63,6 @@ describe('📸️ Code image component', () => {
       cy.get('@inputForm')
         .findByRole('button', { name: 'Remove Sorry I resemble a dog' })
         .click();
-      cy.selectorShouldHaveUpdatedFormBuildId(inputFormSelector);
       // Wait for the preview to finish loading.
       cy.findByLabelText('Loading Preview').should('not.exist');
 

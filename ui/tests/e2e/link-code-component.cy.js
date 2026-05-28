@@ -24,7 +24,6 @@ describe('♾️ Link component', () => {
         '[data-test-canvas-content-initialized="true"][data-canvas-swap-active="true"]';
       cy.waitForElementInIframe('a[href*="/llamas"]', iframeSelector, 10000);
       cy.get('[data-testid*="canvas-component-form-"]').as('inputForm');
-      cy.get('@inputForm').recordFormBuildId();
       // Log all ajax form requests to help with debugging.
       cy.intercept('PATCH', '**/canvas/api/v0/form/component-instance/**').as(
         'patch',
@@ -33,7 +32,6 @@ describe('♾️ Link component', () => {
       cy.get('@inputForm')
         .findByLabelText('Link')
         .type('/node/3?param=value#fragment');
-      cy.get('@inputForm').findByLabelText('Link').blur();
       cy.waitForElementInIframe(
         'a[href*="/the-one-with-a-block?param=value#fragment"]',
         iframeSelector,

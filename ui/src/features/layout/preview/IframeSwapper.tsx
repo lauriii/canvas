@@ -9,11 +9,11 @@ import {
 import clsx from 'clsx';
 
 import { useAppSelector } from '@/app/hooks';
-import { COMPONENT_PREVIEW_UPDATE_EVENT } from '@/components/form/formUtil';
+import { COMPONENT_PREVIEW_UPDATE_EVENT } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
 import { selectDragging } from '@/features/ui/uiSlice';
 
 import type { Dispatch, Ref, SetStateAction } from 'react';
-import type { ComponentPreviewUpdateEvent } from '@/components/form/formUtil';
+import type { ComponentPreviewUpdateEvent } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
 
 import styles from '@/features/layout/preview/Preview.module.css';
 

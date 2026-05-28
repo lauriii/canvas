@@ -21,9 +21,6 @@ export interface InputDescriptionProps {
 
 /**
  * A component that wraps input elements and handles description display.
- *
- * This abstracts the description rendering logic that was previously duplicated
- * in InputBehaviorsCommon and DrupalFormElement.
  */
 const InputDescription: React.FC<InputDescriptionProps> = ({
   children,

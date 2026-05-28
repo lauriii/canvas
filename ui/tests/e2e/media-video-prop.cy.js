@@ -20,11 +20,8 @@ describe('Media Library', () => {
     cy.insertComponent({ name: 'Video' });
     const canvasFormSelector = '[data-testid*="canvas-component-form-"]';
     cy.get('[data-testid*="canvas-component-form-"]').as('inputForm');
-    cy.get('@inputForm').recordFormBuildId();
     cy.insertComponent({ name: 'Video' });
-    cy.selectorShouldHaveUpdatedFormBuildId(canvasFormSelector);
     cy.clickComponentInPreview('Video', 0);
-    cy.selectorShouldHaveUpdatedFormBuildId(canvasFormSelector);
     cy.get(
       '[class*="contextualPanel"] .js-media-library-open-button[data-once="drupal-ajax"]',
     )
@@ -33,10 +30,7 @@ describe('Media Library', () => {
     cy.get('.media-library-item__name').should('have.length', 2);
     cy.findByLabelText('Select Duck Landscape').check();
     cy.get('button:contains("Insert selected")').realClick({ force: true });
-    cy.waitForAjax();
     cy.get('div[role="dialog"]').should('not.exist');
-    cy.waitForAjax();
-    cy.selectorShouldHaveUpdatedFormBuildId(canvasFormSelector);
     cy.get('[aria-label="Remove Duck Landscape"]').should('exist');
     cy.waitForElementInIframe('video > source[src*="duck.mp4"]');
 
@@ -66,7 +60,6 @@ describe('Media Library', () => {
         expect(videoRect.width).to.be.closeTo(500, 1);
       });
     cy.clickComponentInPreview('Video', 1);
-    cy.waitForAjax();
     cy.get(
       '[class*="contextualPanel"] .js-media-library-open-button[data-once="drupal-ajax"]',
     )
@@ -75,9 +68,7 @@ describe('Media Library', () => {
     cy.get('.media-library-item__name').should('have.length', 2);
     cy.findByLabelText('Select Waterfall Portrait').check();
     cy.get('button:contains("Insert selected")').realClick({ force: true });
-    cy.waitForAjax();
     cy.get('div[role="dialog"]').should('not.exist');
-    cy.waitForAjax();
     cy.waitForElementInIframe('video > source[src*="waterfall.mp4"]');
     cy.get('[aria-label="Remove Waterfall Portrait"]').should('exist');
     cy.get('[aria-label="Remove Duck Landscape"]').should('not.exist');
@@ -100,7 +91,8 @@ describe('Media Library', () => {
     }).as('updatePreview');
     cy.findByLabelText('Display width').type(190);
     cy.findByLabelText('Display width').trigger('change');
-    // Make sure the preview has been updated with the new width.
+    // Make sure the preview has been updated with the new width, so we can
+    // then confirm no errors have occurred.
     cy.wait('@updatePreview');
     cy.waitForElementInIframe('video > source');
     // Components that fail to render have this data attribute.

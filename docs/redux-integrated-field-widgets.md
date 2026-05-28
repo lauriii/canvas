@@ -37,7 +37,7 @@ This uses the terms defined above.
 ## 3. Implementation
 
 See:
-- `ui/src/components/form/inputBehaviors.tsx`
+- `ui/src/components/form/withRHF.tsx`
 - `ui/src/components/form/Form.tsx`
 
 Integrating `Redux` with the `component input`s form (and likely other forms in the future) allows us to integrate Drupal Form API-generated forms into the larger Canvas application. The reasons for this include:
@@ -68,21 +68,21 @@ intermediary concepts (`field widget`, `field type`, `field prop`, etc.) into a 
 ### 3.2 How?
 The forms use Drupal's Form API but ultimately render `React component`s  instead of `Twig`. See the [`Twig to React in the Canvas_Stark theme` doc](twig-to-react-in-canvas-stark.md) for more details.
 
-To redux-sync a `React`-rendered `HTML form control element`, it should be wrapped by `inputBehaviors`:
+To redux-sync a `React`-rendered `HTML form control element`, it should be wrapped by `withRHF`:
 
 ```javascript
-import inputBehaviors from './inputBehaviors';
+import { withRHF } from '@/components/form/react-hook-form/withRHF';
 
 const Input = (props) => {
   // Your component...
 };
 
-// Wrap the export in inputBehaviors and it will be integrated with Experience
+// Wrap the export in withRHF and it will be integrated with Experience
 // Builder's Redux store.
-export default inputBehaviors(Input);
+export default withRHF (Input);
 ```
 
-`inputBehaviors` automatically takes care of several things:
+`withRHF` automatically takes care of several things:
 - Value changes update the `Redux` store. This means it can update the `component tree` preview in real time and it is tracked by Canvas's undo history.
 - Client-side validation based on the [JSON Schema definition](https://json-schema.org/understanding-json-schema) of each `component input`.
 - Value changes are also written to the [formState slice](../ui/src/features/form/formStateSlice.ts)

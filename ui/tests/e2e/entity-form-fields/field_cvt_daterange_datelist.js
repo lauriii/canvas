@@ -63,7 +63,7 @@ export const edit = (cy) => {
     cy.get(`@${key}`).should('have.value', value);
   });
   // Check we can select the empty value without raising a 500 error.
-  cy.get('@startDateMonth').select('Month', { force: true });
+  cy.get('@startDateMonth').select('Month');
   // This date is after daylight savings time has finished in the
   // timezone core uses for tests (Australia/Sydney). This is by design
   // as we want to assert that the saved value reflects the new offset
@@ -82,7 +82,8 @@ export const edit = (cy) => {
     endDateMinute: 30,
   };
   Object.entries(newValues).forEach(([key, value]) => {
-    cy.get(`@${key}`).select(String(value), { force: true });
+    cy.get(`@${key}`).select(String(value));
+    cy.reasonableWait();
     cy.get(`@${key}`).should('have.value', String(value));
   });
 };

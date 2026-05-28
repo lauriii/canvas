@@ -240,6 +240,11 @@ function canvas_stark_preprocess_field_multiple_value_form(array &$variables): v
           $row['data'][2]['data-canvas-remove-button'] = '';
         }
       }
+      if (isset($row['data'][3])) {
+        // Skip weight select validation - it would be validated against the
+        // field's validation criteria, which isn't necessarily int enum.
+        $row['data'][3]['data']['#attributes']['data-canvas-no-validate'] = 'true';
+      }
     }
 
     // Attach the library for multivalue form styles.
@@ -255,13 +260,13 @@ function canvas_stark_preprocess_field_multiple_value_form(array &$variables): v
  * Implements hook_preprocess_hook().
  */
 function canvas_stark_preprocess_radios(array &$vars): void {
-  // In inputBehaviors.tsx we expect form elements to have a name attributes
-  // however a radio group is unique in that we want to manage a single value
+  // In withRHF.tsx we expect form elements to have a name attribute.
+  // However, a radio group is unique in that we want to manage a single value
   // for the entire group of radios. For a radio group, all the individual radio
   // elements have the same name, but there is no name attribute on the outer
   // wrapper as this attribute is not valid for this HTML element (typically a
   // div or a fieldset). In the special case of the radio group we make use of a
-  // data-name attribute instead. The code in inputBehaviors.tsx looks for this
+  // data-name attribute instead. The code in withRHF.tsx looks for this
   // attribute when the name attribute does not exist.
   // Similarly, the front-end needs to be able to treat radios differently. To
   // support this we expose a data-type attribute so the front-end can correctly

@@ -19,9 +19,11 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 
-import { toPropName } from '@/components/form/formUtil';
-import { syncPropSourcesToResolvedValues } from '@/components/form/InputBehaviorsComponentPropsForm';
-import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
+import { toPropName } from '@/components/form/react-hook-form/fields/componentFormData';
+import {
+  isEvaluatedComponentModel,
+  syncPropSourcesToResolvedValues,
+} from '@/features/layout/layoutModelSlice';
 import useInputUIData from '@/hooks/useInputUIData';
 import { usePatchComponent, usePatchProp } from '@/services/preview';
 import { isAjaxing } from '@/utils/isAjaxing';

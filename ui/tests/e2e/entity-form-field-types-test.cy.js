@@ -4,7 +4,7 @@ describe(
   'Entity form field types',
   { retries: { openMode: 0, runMode: 3 } },
   () => {
-    before(() => {
+    beforeEach(() => {
       // We need to set the timezone in the running browser too.
       Cypress.automation('remote:debugger:protocol', {
         command: 'Emulation.setTimezoneOverride',
@@ -18,13 +18,10 @@ describe(
         // For validating the shape of the node.
         'jsonapi',
       ]);
-    });
-
-    beforeEach(() => {
       cy.drupalSession();
     });
 
-    after(() => {
+    afterEach(() => {
       cy.drupalUninstall();
     });
 
@@ -40,9 +37,6 @@ describe(
       cy.findByTestId('canvas-page-data-form').as('entityForm');
       // Log all ajax form requests to help with debugging.
       cy.intercept('POST', '**/canvas/api/v0/form/content-entity/**');
-      // Make a record of the starting form build ID for the form
-      cy.get('@entityForm').recordFormBuildId();
-
       cy.intercept({
         url: '**/canvas/api/v0/layout/node/2',
         times: 1,
@@ -97,9 +91,6 @@ describe(
       cy.findByTestId('canvas-page-data-form').as('entityForm');
       // Log all ajax form requests to help with debugging.
       cy.intercept('POST', '**/canvas/api/v0/form/content-entity/**');
-      // Make a record of the starting form build ID for the form
-      cy.get('@entityForm').recordFormBuildId();
-
       cy.intercept({
         url: '**/canvas/api/v0/layout/node/2',
         times: 1,
@@ -111,7 +102,8 @@ describe(
       cy.get('@checkbox').should('be.checked');
       cy.get('@checkbox').click();
       cy.get('@checkbox').should('not.be.checked');
-      // Wait for the preview to finish loading.
+      // Wait for the preview to finish loading to ensure the change is saved
+      // before we publish.
       cy.wait('@updatePreview');
       cy.findByLabelText('Loading Preview').should('not.exist');
       cy.publishAllPendingChanges('Gravy!');
@@ -154,9 +146,6 @@ describe(
         cy.findByTestId('canvas-page-data-form').as('entityForm');
         // Log all ajax form requests to help with debugging.
         cy.intercept('POST', '**/canvas/api/v0/form/content-entity/**');
-        // Make a record of the starting form build ID for the form
-        cy.get('@entityForm').recordFormBuildId();
-
         cy.task('countFiles', './tests/e2e/entity-form-fields/field_*.js').then(
           (count) => {
             expect(count).to.equal(Object.entries(fields).length);
@@ -172,8 +161,6 @@ describe(
             method: 'POST',
           }).as('updatePreview');
           value.edit(cy);
-          // Wait for the preview to finish loading.
-          cy.wait('@updatePreview');
           cy.findByLabelText('Loading Preview').should('not.exist');
         });
 

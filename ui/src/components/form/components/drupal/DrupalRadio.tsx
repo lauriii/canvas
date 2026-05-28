@@ -1,7 +1,8 @@
 import { createContext, useContext, useRef, useState } from 'react';
 
 import { RadioGroup, RadioItem } from '@/components/form/components/Radio';
-import InputBehaviors from '@/components/form/inputBehaviors';
+import { useFieldContext } from '@/components/form/contexts/FieldContext';
+import { withRHF } from '@/components/form/react-hook-form/withRHF';
 import { a2p } from '@/local_packages/utils.js';
 
 import type { Attributes } from '@/types/DrupalAttribute';
@@ -28,19 +29,12 @@ const DrupalRadioGroup = ({
       null,
   );
 
+  const fieldContext = useFieldContext();
+
   // Callback provided to each radio item in the group, which will update the
   // selected value that is kept track of within this component.
   const updateSelected = (value: string | number | undefined) => {
-    const syntheticEvent = {
-      target: {
-        value,
-        name: attributes['data-canvas-name'],
-      },
-    } as unknown as React.ChangeEvent<HTMLInputElement>;
-
-    if (typeof attributes.onChange === 'function') {
-      attributes.onChange(syntheticEvent);
-    }
+    fieldContext?.triggerChange(value);
     setSelected(value ?? null);
   };
 
@@ -94,6 +88,6 @@ const DrupalRadioItem = ({ attributes = {} }: { attributes?: Attributes }) => {
   );
 };
 
-const WrappedDrupalRadioGroup = InputBehaviors(DrupalRadioGroup);
+const WrappedDrupalRadioGroup = withRHF(DrupalRadioGroup);
 
 export { WrappedDrupalRadioGroup as DrupalRadioGroup, DrupalRadioItem };

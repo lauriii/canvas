@@ -84,7 +84,12 @@ describe('Prop with autocomplete', () => {
     );
     cy.intercept('PATCH', '**/canvas/api/layout/node/1').as('patchPreview');
     cy.get('ul.ui-autocomplete li').click();
-    cy.get('@linkField').should('have.value', 'entity:node/3');
+    cy.get('@linkField').should('have.attr', 'value', 'entity:node/3');
+
+    cy.get('@linkField').should(
+      'have.value',
+      'Canvas With a block in the layout (3)',
+    );
     cy.get('@linkField').blur();
     // Wait for the preview to update.
     cy.waitFor('@patchPreview');

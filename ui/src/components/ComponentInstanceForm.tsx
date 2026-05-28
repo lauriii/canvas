@@ -9,8 +9,7 @@ import { useErrorBoundary } from 'react-error-boundary';
 import { Spinner, Text } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { getPropsValues } from '@/components/form/formUtil';
-import { syncPropSourcesToResolvedValues } from '@/components/form/InputBehaviorsComponentPropsForm';
+import { getPropsValues } from '@/components/form/react-hook-form/fields/componentFormData';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
 import { FORM_TYPES } from '@/features/form/constants';
 import {
@@ -21,6 +20,7 @@ import {
   isEvaluatedComponentModel,
   selectLayout,
   selectModel,
+  syncPropSourcesToResolvedValues,
 } from '@/features/layout/layoutModelSlice';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import {

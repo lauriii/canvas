@@ -12,7 +12,9 @@
  * @ingroup themeable
  */
 #}
+{% set elementSubset = {'#value': element['#value'], '#checked': element['#checked'], '#default_value': element['#default_value'] } %}
 <drupal-canvas-input
     attributes="{{ attributes }}"
     type="{{ type }}"
+    element="{{ elementSubset }}"
 ></drupal-canvas-input>{{ children }}

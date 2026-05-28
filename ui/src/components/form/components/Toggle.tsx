@@ -1,6 +1,8 @@
 import { useRef } from 'react';
 import { Switch } from '@radix-ui/themes';
 
+import { interceptNativeSetter } from './formChangeUtils';
+
 import type { Attributes } from '@/types/DrupalAttribute';
 
 const Toggle = ({
@@ -21,25 +23,11 @@ const Toggle = ({
             node?.parentElement &&
             node.parentElement.querySelector('input[type="checkbox"]');
           if (checkboxRef.current && onCheckedChange) {
-            // Below is logic that overrides the native setter for the checked
-            // property, so any programmatic changes to it trigger a change event -
-            // something that is needed to update the Redux store and the preview.
-            const elementProto = Object.getPrototypeOf(checkboxRef.current);
-            const descriptor = Object.getOwnPropertyDescriptor(
-              elementProto,
-              'checked',
-            );
-            if (!descriptor || !descriptor.set) {
-              return;
-            }
-            const originalSetter = descriptor.set;
-            Object.defineProperty(checkboxRef.current, 'checked', {
-              get: descriptor.get,
-              set: function (newValue) {
-                originalSetter.call(this, newValue);
+            interceptNativeSetter(checkboxRef.current, {
+              property: 'checked' as keyof HTMLInputElement,
+              afterSet: (el: HTMLInputElement, newValue: any) => {
                 onCheckedChange(newValue);
               },
-              configurable: true,
             });
           }
         }

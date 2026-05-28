@@ -45,10 +45,12 @@ describe('Copy and paste a node using keyboard shortcuts', () => {
       .last()
       .rightclick({ force: true });
     cy.findByText('Delete').click();
+
     cy.get('[aria-label="Draggable component Hero"]')
       .last()
       .rightclick({ force: true });
     cy.findByText('Delete').click();
+
     cy.get('[aria-label="Draggable component Hero"]')
       .last()
       .rightclick({ force: true });

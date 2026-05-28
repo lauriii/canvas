@@ -1279,12 +1279,13 @@ Cypress.Commands.add('returnToContentRegion', () => {
 });
 Cypress.Commands.add('sendComponentToRegion', (componentName, regionName) => {
   cy.findByTestId('canvas-primary-panel').as('layersTree');
+  cy.get('@layersTree').findAllByText(componentName).first().scrollIntoView();
   cy.get('@layersTree')
     .findAllByText(componentName)
     .first()
-    .trigger('contextmenu');
-  cy.findByText('Move to global region').click();
-  cy.get(`[data-region-name="${regionName}"]`).click();
+    .rightclick({ scrollBehavior: false });
+  cy.findByText('Move to global region').click({ scrollBehavior: false });
+  cy.get(`[data-region-name="${regionName}"]`).click({ scrollBehavior: false });
 });
 Cypress.Commands.add(
   'publishAllPendingChanges',
@@ -1493,4 +1494,15 @@ Cypress.Commands.add('insertComponent', (identifier, options = {}) => {
         .should('not.be.empty');
     }
   });
+});
+
+// Represents a wait that does not exceed how long it would take for a real
+// user to proceed with a subsequent action. Intended to be used for actions
+// that would only fail if they occur faster than a user could reasonably
+// perform them.
+// This is especially true for excessive preview requests, which are queued to
+// prevent parallel requests. This works fine at even the fastest human speed,
+// but becomes less stable at automated speeds.
+Cypress.Commands.add('reasonableWait', () => {
+  cy.wait(100);
 });

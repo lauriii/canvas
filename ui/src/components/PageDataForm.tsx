@@ -113,7 +113,7 @@ const PageDataFormRenderer = () => {
           // ClientDataToEntityConverter::setEntityFields() produces nested arrays
           // that break Select::valueCallback() with "Array to string conversion".
           // @see \Drupal\canvas\ClientDataToEntityConverter::setEntityFields()
-          // @see ui/src/components/form/InputBehaviorsEntityForm.tsx formStateToStore
+          // @see ui/src/components/form/react-hook-form/fields/PageDataFormField.tsx formStateToPageDataStore
           if (
             Array.isArray(value) &&
             // @todo replace this with a better solution in https://www.drupal.org/i/3587609.

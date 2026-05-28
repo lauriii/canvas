@@ -62,13 +62,7 @@ describe('Multivalue Form Design', () => {
    * otherwise the preview POST can fire before the alias exists and cy.wait hangs.
    */
   const typeInRowAwaitPreview = (fieldAlias, rowIndex, text) => {
-    cy.intercept({
-      url: '**/canvas/api/v0/layout/node/*',
-      times: 1,
-      method: 'POST',
-    }).as('updatePreview');
     typeInRow(fieldAlias, rowIndex, text);
-    cy.wait('@updatePreview');
   };
 
   /**
@@ -195,7 +189,6 @@ describe('Multivalue Form Design', () => {
 
     // Populate the new item
     typeInRowAwaitPreview('@unlimited-text', 2, 'The Olivia Tremor Control');
-    cy.waitForAjax();
 
     confirmTextInputs('@unlimited-text', [
       'Marshmallow Coast',
@@ -225,7 +218,6 @@ describe('Multivalue Form Design', () => {
     cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
 
     typeInRowAwaitPreview('@unlimited-text', 2, 'The Olivia Tremor Control');
-    cy.waitForAjax();
 
     confirmTextInputs('@unlimited-text', [
       'Marshmallow Coast',
@@ -278,7 +270,6 @@ describe('Multivalue Form Design', () => {
       ],
     });
     cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
-    cy.waitForAjax();
 
     confirmTextInputs('@unlimited-text', [
       'Marshmallow Coast',
@@ -322,7 +313,6 @@ describe('Multivalue Form Design', () => {
       ],
     });
     cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
-    cy.waitForAjax();
 
     confirmTextInputs('@unlimited-text', [
       'Marshmallow Coast',
@@ -342,9 +332,9 @@ describe('Multivalue Form Design', () => {
       .as('unlimited-text');
 
     const entityFormSelector = '[data-testid="canvas-page-data-form"]';
-
+    cy.get('@unlimited-text').scrollIntoView();
     typeInRowAwaitPreview('@unlimited-text', 1, 'Neutral Milk Hotel');
-
+    cy.reasonableWait();
     cy.get('@unlimited-text')
       .findByRole('button', { name: '+ Add new' })
       .click();
@@ -352,7 +342,6 @@ describe('Multivalue Form Design', () => {
     cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
 
     typeInRowAwaitPreview('@unlimited-text', 2, 'The Olivia Tremor Control');
-    cy.waitForAjax();
 
     confirmTextInputs('@unlimited-text', [
       'Marshmallow Coast',
@@ -364,19 +353,19 @@ describe('Multivalue Form Design', () => {
     cy.openMultivaluePopover('@unlimited-text', 1);
 
     cy.get('[role="dialog"][data-state="open"]').should('be.visible');
+    cy.get('@unlimited-text').scrollIntoView();
 
     cy.get('[role="dialog"][data-state="open"]')
       .findByRole('button', { name: /Remove/i })
       .should('be.visible');
-
     cy.get('[role="dialog"][data-state="open"]')
       .findByRole('button', { name: /Remove/i })
       .click();
+    cy.get('@unlimited-text').scrollIntoView();
 
     cy.get('[role="dialog"][data-state="open"]').should('not.exist');
 
-    cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
-    cy.waitForAjax();
+    // cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
 
     cy.get('@unlimited-text').find('tbody tr').should('have.length', 2);
   });

@@ -37,6 +37,9 @@ drupal-html-fragment, element-prop {
   display: contents;
 }
 
+[data-invalid-prop-value][data-invalid-prop-value] {
+  outline: 1px solid red;
+}
 .canvas-linked-prop-label-wrapper--multiple-values {
   display: flex;
   align-items: center;

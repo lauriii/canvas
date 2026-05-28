@@ -107,7 +107,6 @@ final class ComponentInstanceForm extends FormBase {
 
     // Make sure these get sent in subsequent AJAX requests.
     // Note: they're prefixed with `form_` to avoid storage in the UI state.
-    // @see ui/src/components/form/inputBehaviors.tsx
     $form['form_canvas_selected'] = [
       '#type' => 'hidden',
       '#value' => $component_instance_uuid,
@@ -124,7 +123,7 @@ final class ComponentInstanceForm extends FormBase {
     // Prevent form submission while specifying values for component instance's
     // inputs, because changes are saved via Redux instead of a traditional
     // submit.
-    // @see ui/src/components/form/inputBehaviors.tsx
+    // @see ui/src/components/form/withRHF-fields/ComponentFormField.tsx
     // @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method
     $form['#method'] = 'dialog';
 

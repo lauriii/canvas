@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import TextField from '@/components/form/components/TextField';
-import InputBehaviors from '@/components/form/inputBehaviors';
+import { useFieldContext } from '@/components/form/contexts/FieldContext';
+import { withRHF } from '@/components/form/react-hook-form/withRHF';
 import { useEntityTitle } from '@/hooks/useEntityTitle';
 import { a2p } from '@/local_packages/utils.js';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
@@ -55,9 +56,7 @@ const getPathAlias = (titleValue: string) => {
 const DrupalPathWidget = ({
   attributes = {},
 }: {
-  attributes?: Attributes & {
-    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  };
+  attributes?: Attributes;
   children?: React.ReactNode;
 }) => {
   const initialValue = attributes?.value || '';
@@ -66,14 +65,10 @@ const DrupalPathWidget = ({
   const [initialTitle, setInitialTitle] = useState<string | null>(null);
   const [userHasEditedPath, setUserHasEditedPath] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const fieldContext = useFieldContext();
 
   const { entityId, entityType } = useParams();
   const titleInput = useEntityTitle();
-
-  // Keep a ref to the latest onChange so handleChange can call it without
-  // needing it in the useCallback dependency array.
-  const onChangeRef = useRef(attributes.onChange);
-  onChangeRef.current = attributes.onChange;
   const { data: fetchedLayout } = useGetPageLayoutQuery(
     entityId && entityType ? { entityId, entityType } : skipToken,
   );
@@ -104,12 +99,14 @@ const DrupalPathWidget = ({
     setIsInitialized(true);
   }, [titleInput, isInitialized, initialValue]);
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setPathValue(e.target.value);
-    if (onChangeRef.current) {
-      onChangeRef.current(e);
-    }
-  }, []);
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setPathValue(e.target.value);
+      // Pass through the event to trigger form state update
+      fieldContext?.triggerChange(e);
+    },
+    [fieldContext],
+  );
 
   const handleManualChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -185,4 +182,4 @@ const DrupalPathWidget = ({
   return <TextField attributes={processedAttrs} />;
 };
 
-export default InputBehaviors(DrupalPathWidget);
+export default withRHF(DrupalPathWidget);

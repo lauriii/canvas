@@ -35,12 +35,10 @@
 # Issues: https://www.drupal.org/project/issues/canvas?component=Redux-integrated+field+widgets
 /src/Hook/ReduxIntegratedFieldWidgetHooks.php
 /src/MediaLibraryCanvasPropOpener.php
-/ui/src/components/form/inputBehaviors.tsx
 /tests/src/Cypress/cypress/e2e/media-library.cy.js
 /tests/src/Cypress/cypress/e2e/prop-types.cy.js
 /tests/src/Kernel/LibraryInfoAlterTest.php
 /templates/form/
-/ui/src/components/form/inputBehaviors.tsx
 
 ^[Component sources] @f.mazeikis @larowlan @longwave @wimleers
 # Issues: https://www.drupal.org/project/issues/canvas?component=Component+sources

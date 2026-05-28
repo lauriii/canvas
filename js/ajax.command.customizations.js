@@ -557,15 +557,28 @@
 
       Drupal.AjaxCommands.prototype.update_build_id = function (...args) {
         const [, response] = args;
+        const el = args[0].element;
         const formId = getFormId(response.old);
         if (!formId) {
           return;
         }
+
+        // If the form ID is not one that belongs to a Canvas contextual form,
+        // use the default `update_build_id` from ajax.js.
+        if (!['page_data_form', 'component_instance_form'].includes(formId)) {
+          originalUpdateBuildId.apply(this, args);
+          return;
+        }
+
+        // If we've reached this point, we know this is in a Canvas contextual
+        // form and the build ID will be managed differently to mitigate the
+        // understandable confusion jQuery and Drupal AJAX can encounter while
+        // working in a React form.
+
         // Keep a record of the association between these form build IDs and the
         // form ID they relate to.
         formBuildIdMap[response.old] = formId;
         formBuildIdMap[response.new] = formId;
-        originalUpdateBuildId.apply(this, args);
         // Notify the application that the form build ID has changed.
         const event = new CustomEvent('ajaxUpdateFormBuildId', {
           detail: {

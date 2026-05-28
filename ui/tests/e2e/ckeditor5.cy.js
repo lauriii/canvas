@@ -1,5 +1,9 @@
 const assertDialogUsingClaroStyles = (cy) => {
   cy.waitForElementsToStabilize('[data-dialog-style-from]');
+  // Wait until preview has finished loading as AJAX enabled inputs have styles
+  // applied during preview-in-progress that differ from the Claro styles we are
+  // checking for.
+  cy.get('body[data-canvas-layout-request-in-progress]').should('not.exist');
   cy.get('[role="dialog"] .button--primary')
     .should('exist')
     .then((primaryButton) => {
@@ -139,6 +143,7 @@ describe('ckeditor 5', () => {
   it('uses the admin theme for dialogs triggered via CKEditor5', () => {
     cy.loadURLandWaitForCanvasLoaded();
     cy.waitForElementsToStabilize('[data-dialog-style-from]');
+    cy.intercept('POST', '**/canvas/api/v0/layout/node/1').as('getPreview');
 
     cy.findByLabelText('Canvas Text Area').as('textarea');
     cy.get('@textarea')

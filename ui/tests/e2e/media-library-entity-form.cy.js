@@ -33,8 +33,6 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
   cy.findByTestId('canvas-page-data-form').as('entityForm');
   // Log all ajax form requests to help with debugging.
   cy.intercept('POST', '**/canvas/api/v0/form/content-entity/**');
-  // Make a record of the starting form build ID for the form
-  cy.get('@entityForm').recordFormBuildId();
 
   // Perform media operations.
   iterations.forEach((step, ix) => {
@@ -42,37 +40,37 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
     cy.findByRole('dialog').should('not.exist');
     cy.get('@entityForm').findByAltText(step.expectedAlt).should('not.exist');
     if (ix > 0) {
-      cy.intercept('POST', '**/canvas/api/v0/layout/**').as('updatePreview');
-      cy.get('@entityForm')
-        .findByRole('button', { name: step.removeText })
-        .should('exist')
-        .click();
-      // Wait for the preview to finish loading.
-      cy.wait('@updatePreview');
-      cy.findByLabelText('Loading Preview').should('not.exist');
-      cy.selectorShouldHaveUpdatedFormBuildId(entityFormSelector);
+      const removeIt = `[class*="contextualPanel"] .js-media-library-selection  [aria-label="${step.removeText}"][data-form-id="page_data_form"][data-once="drupal-ajax"][data-ajax="true"]:not(.visually-hidden)`;
+      cy.reasonableWait();
+      cy.get(removeIt).click();
+      cy.get(removeIt).should('not.exist', { timeout: 10000 });
       cy.log(`Iteration ${ix + 1}: ${step.removeText} complete`);
     }
-    cy.get('@entityForm')
-      .findByRole('button', { name: 'Add media', timeout: 10000 })
-      .should('not.be.disabled');
-    cy.get('@entityForm')
-      .findByRole('button', { name: 'Add media', timeout: 10000 })
-      .click();
+    const addIt = `[data-form-id="page_data_form"] .js-media-library-widget .js-media-library-open-button[data-once="drupal-ajax"]`;
+    cy.get(addIt).should(($button) => {
+      expect($button).to.exist;
+      // Custom check for disabled to account for the disabled attribute
+      // leveraging truthy values instead of strict boolean.
+      const disabled = $button.attr('disabled');
+      const isDisabled =
+        disabled !== undefined && disabled !== false && disabled !== 'false';
+      expect(isDisabled, 'Button should not be disabled').to.be.false;
+    });
+    cy.reasonableWait();
+    cy.get(addIt).first().click();
+
     // The first time the media dialog opens there are a lot of CSS files to
     // load, and it can take more than the default timeout of 4s.
     cy.findByRole('dialog', { timeout: 10000 }).as('dialog');
-    cy.selectorShouldHaveUpdatedFormBuildId(entityFormSelector);
+    cy.reasonableWait();
     cy.get('@dialog').findByLabelText(step.selectNewText).check();
-    cy.intercept('POST', '**/canvas/api/v0/layout/**').as('updatePreview');
-    cy.get(
-      'button[data-once="drupal-ajax"]:contains("Insert selected")',
-    ).click();
-
+    cy.reasonableWait();
+    cy.get('@dialog')
+      .findByRole('button', {
+        name: 'Insert selected',
+      })
+      .click();
     cy.findByRole('dialog').should('not.exist');
-    // Wait for the preview to finish loading.
-    cy.wait('@updatePreview', { timeout: 10000 });
-    cy.findByLabelText('Loading Preview').should('not.exist');
     cy.get('@entityForm').findByAltText(step.expectedAlt).should('exist');
     cy.get('@entityForm')
       .findByRole('button', { name: step.removeAriaLabel })

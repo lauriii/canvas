@@ -5,7 +5,7 @@ import * as Popover from '@radix-ui/react-popover';
 import { Button, Flex, Text } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { toPropName } from '@/components/form/formUtil';
+import { toPropName } from '@/components/form/react-hook-form/fields/componentFormData';
 import { removeFieldValue } from '@/features/form/formStateSlice';
 import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
 import { selectEditorFrameContext } from '@/features/ui/uiSlice';
@@ -91,10 +91,7 @@ const DrupalDatetimeMultivalueForm = ({
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [displayDate, setDisplayDate] = useState('');
   const [displayTime, setDisplayTime] = useState('');
-  const valueAtOpenRef = useRef<{ date: string; time: string }>({
-    date: '',
-    time: '',
-  });
+
   // Tracks whether a time input exists — derived from the real DOM via
   // useEffect  rather than queried at render time, so it is stable across
   // renders and correct before the popover container is first populated.
@@ -109,7 +106,7 @@ const DrupalDatetimeMultivalueForm = ({
 
   const hasError = () =>
     popoverContainer &&
-    !!popoverContainer.querySelector('[data-has-field-error="true"]');
+    !!popoverContainer.querySelector('[data-invalid-prop-value="true"]');
 
   // Returns the date input from the popover container, or null.
   const getDateInput = (): HTMLInputElement | null =>
@@ -184,10 +181,6 @@ const DrupalDatetimeMultivalueForm = ({
     if (open) {
       const dateInput = getDateInput();
       const timeInput = getTimeInput();
-      valueAtOpenRef.current = {
-        date: dateInput?.value ?? displayDate,
-        time: timeInput?.value ?? displayTime,
-      };
       setTimeout(() => {
         const firstInput = dateInput || timeInput;
         firstInput?.focus();

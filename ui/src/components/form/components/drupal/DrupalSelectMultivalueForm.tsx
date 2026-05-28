@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import ReactSelect, { components } from 'react-select';
 import { ChevronDownIcon, Cross2Icon } from '@radix-ui/react-icons';
 
-import InputBehaviors from '@/components/form/inputBehaviors';
+import { withRHF } from '@/components/form/react-hook-form/withRHF';
 import { a2p } from '@/local_packages/utils';
 
 import type {
@@ -72,7 +72,7 @@ const ClearIndicator = (
 );
 
 /**
- * Hidden native select element wrapped with InputBehaviors.
+ * Hidden native select element wrapped with withRHF.
  */
 const HiddenSelect: React.FC<{
   attributes?: DrupalSelectMultivalueFormProps['attributes'];
@@ -112,8 +112,8 @@ const HiddenSelect: React.FC<{
   );
 };
 
-// Wrap the native select with InputBehaviors so Redux tracks it.
-const HiddenSelectWithBehaviors = InputBehaviors(HiddenSelect);
+// Wrap the native select using withRHF so Redux tracks it.
+const HiddenSelectWithBehaviors = withRHF(HiddenSelect);
 
 /**
  * DrupalSelectMultivalueForm component for select elements within multivalue
@@ -130,10 +130,10 @@ const DrupalSelectMultivalueForm = ({
   // Ref to the hidden native <select> element for form integration.
   const nativeSelectRef = useRef<HTMLSelectElement | null>(null);
 
-  // Callback ref to capture the native select element after InputBehaviors wraps it.
+  // Callback ref to capture the native select element after withRHF wraps it.
   const hiddenSelectContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Find the native select within the InputBehaviors wrapper.
+  // Find the native select wrapped by withRHF.
   useEffect(() => {
     if (hiddenSelectContainerRef.current) {
       const selectElement =
@@ -167,8 +167,6 @@ const DrupalSelectMultivalueForm = ({
 
   /**
    * Handle changes from React Select.
-   * Update the native select options and dispatch change event.
-   * InputBehaviors' onChange handler (attached to the native select) will handle the rest.
    */
   const handleChange = (
     newValue: MultiValue<ReactSelectOption>,
@@ -195,7 +193,7 @@ const DrupalSelectMultivalueForm = ({
 
   return (
     <div className={styles.container}>
-      {/* Hidden native <select> wrapped with InputBehaviors. */}
+      {/* Hidden native <select> wrapped with withRHF. */}
       <div ref={hiddenSelectContainerRef}>
         <HiddenSelectWithBehaviors
           attributes={{ ...attributes, 'data-is-multiselect': true }}

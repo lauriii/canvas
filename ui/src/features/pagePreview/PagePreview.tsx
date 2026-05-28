@@ -19,7 +19,7 @@ import {
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import {
   useGetLanguagePreviewQuery,
-  usePostPreviewMutation,
+  useQueuedPostPreviewMutation,
 } from '@/services/preview';
 import { getViewportSizes } from '@/utils/viewports';
 
@@ -33,7 +33,7 @@ const PagePreview = () => {
   const model = useAppSelector(selectModel);
   const entity_form_fields = useAppSelector(selectPageData);
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
-  const [postPreview] = usePostPreviewMutation();
+  const [postPreview] = useQueuedPostPreviewMutation();
   const { entityId, entityType } = useParams();
   const [searchParams] = useSearchParams();
   const { showBoundary } = useErrorBoundary();
@@ -88,7 +88,7 @@ const PagePreview = () => {
           entity_form_fields,
           entityId,
           entityType,
-        }).unwrap();
+        });
       } catch (err) {
         showBoundary(err);
       }

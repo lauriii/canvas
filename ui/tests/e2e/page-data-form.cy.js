@@ -34,18 +34,14 @@ describe('Page data form', () => {
     cy.get('@titleField').focus();
     cy.get('@titleField').clear();
     cy.get('@titleField').type('This is a new title');
-    cy.intercept('POST', '**/canvas/api/v0/layout/**').as('updatePreview');
     cy.get('@titleField').should('have.value', 'This is a new title');
-    cy.wait('@updatePreview');
-    // Wait until the alias has been generated and preview updated.
+    // Wait until the alias has been generated and preview updated to ensure
+    // the undo history is saved.
     cy.intercept('POST', '**/canvas/api/v0/layout/**').as('updatePreview');
-    cy.get('@titleField').blur();
     cy.wait('@updatePreview');
     cy.get('button[aria-label="Undo"]').should('be.enabled');
     cy.get('button[aria-label="Redo"]').should('be.disabled');
-    cy.intercept('POST', '**/canvas/api/v0/layout/**').as('updatePreview');
     cy.realPress(['Meta', 'Z']);
-    cy.wait('@updatePreview');
 
     // Undo twice to first revert the page alias and then to revert the page title.
     // @todo find a way to bundle the two undo actions into one.

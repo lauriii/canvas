@@ -1,10 +1,12 @@
 import {
   coerceValueForSchema,
+  validateProp,
+} from '@/components/form/react-hook-form/fields/componentFieldValidation';
+import {
   formStateToObject,
   getPropsValues,
   propInputData,
-  validateProp,
-} from '@/components/form/formUtil';
+} from '@/components/form/react-hook-form/fields/componentFormData';
 
 let formState = {
   'canvas_component_props[all-props][heading][0][value]': 'hello, world!',

@@ -64,7 +64,7 @@ jQuery(document).on('ajaxStop', () => {
   // synthesized event object, it does not perfectly replicate a
   // naturally occurring event. We fire a CustomEvent to allow listeners added
   // in components to fire.
-  // @see inputBehaviors.tsx
+  // @see createEnhancedOnChange in '@/components/form/react-hook-form/utils'
   // @see https://api.jquery.com/trigger/
   document.dispatchEvent(new CustomEvent('drupalAjaxStop'));
 });
@@ -177,51 +177,73 @@ if (container) {
   ): void => {
     const container = document.createElement('drupal-html-fragment');
     context.after(container);
-    const root = createRoot(container);
 
-    // Wrap the newly rendered content in the Redux provider so it has access
-    // to the existing store.
-    root.render(
-      <Theme
-        asChild
-        accentColor="blue"
-        hasBackground={false}
-        panelBackground="solid"
-        appearance="light"
-      >
-        {React.createElement<ProviderComponentProps>(
-          Provider as FC,
-          { store },
-          Application as ReactHTMLElement<any>,
-        )}
-      </Theme>,
-    );
-    // If the render root already has content, we know it is rendered and can
-    // return it.
-    if (container.innerHTML.length > 0) {
-      context.remove();
-      attachBehaviorsAfterAjaxing(
-        container,
-        settings as { doNotReinvoke?: boolean },
-      );
+    // Find the nearest form ancestor to get the form's React root
+    const formElement = context.closest('form');
+
+    if (formElement) {
+      // For form-based AJAX, dispatch event with unwrapped Application
+      // The form component will wrap it with the correct providers including FormProvider
+
+      const event = new CustomEvent('canvas:renderAjaxContent', {
+        detail: {
+          container,
+          application: Application,
+          context,
+          settings,
+        },
+        bubbles: true,
+      });
+      formElement.dispatchEvent(event);
     } else {
-      // If the render root does not have content yet, it isn't yet rendered.
-      // Set an interval to check for content length, and return the element
-      // once it is ready. If the process exceeds an unlikely 600ms, the
-      // empty div will be returned regardless.
-      let attempts = 0;
-      const intervalDuration = 5;
-      const intervalId = setInterval(() => {
-        attempts += 1;
-        if (container.innerHTML.length || attempts * intervalDuration > 600) {
-          clearInterval(intervalId);
-          context.remove();
-          attachBehaviorsAfterAjaxing(
-            container,
-            settings as { doNotReinvoke?: boolean },
-          );
-        }
-      }, intervalDuration);
+      // No form ancestor found, fall back to creating a new root
+      // This handles AJAX content outside of forms
+      const root = createRoot(container);
+
+      // Wrap the newly rendered content in the Redux provider so it has access
+      // to the existing store.
+      root.render(
+        <Theme
+          asChild
+          accentColor="blue"
+          hasBackground={false}
+          panelBackground="solid"
+          appearance="light"
+        >
+          {React.createElement<ProviderComponentProps>(
+            Provider as FC,
+            { store },
+            Application as ReactHTMLElement<any>,
+          )}
+        </Theme>,
+      );
+      // If the render root already has content, we know it is rendered and can
+      // return it.
+      if (container.innerHTML.length > 0) {
+        context.remove();
+        attachBehaviorsAfterAjaxing(
+          container,
+          settings as { doNotReinvoke?: boolean },
+        );
+      } else {
+        // If the render root does not have content yet, it isn't yet rendered.
+        // Set an interval to check for content length, and return the element
+        // once it is ready. If the process exceeds an unlikely 600ms, the
+        // empty div will be returned regardless.
+        let attempts = 0;
+        const intervalDuration = 5;
+        const intervalId = setInterval(() => {
+          attempts += 1;
+          if (container.innerHTML.length || attempts * intervalDuration > 600) {
+            clearInterval(intervalId);
+            context.remove();
+            attachBehaviorsAfterAjaxing(
+              container,
+              settings as { doNotReinvoke?: boolean },
+            );
+          }
+        }, intervalDuration);
+      }
     }
   };
 
