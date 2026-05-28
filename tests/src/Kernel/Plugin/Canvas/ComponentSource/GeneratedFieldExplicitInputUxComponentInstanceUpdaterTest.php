@@ -19,6 +19,7 @@ use Drupal\canvas\PropShape\PersistentPropShapeRepository;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -35,6 +36,7 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('canvas_data_model')]
 class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKernelTestBase {
 
+  use ConstraintViolationsTestTrait;
   use GenerateComponentConfigTrait;
   use ComponentTreeItemListInstantiatorTrait;
   use MediaTypeCreationTrait;
@@ -50,7 +52,8 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
   private JavaScriptComponent $jsComponent;
 
   protected const string COMPONENT_INSTANCE_UUID = '2c6e91ae-23ac-433d-9bb8-687144464b34';
-  protected const string ORIGINAL_VERSION_HASH = '00706dc2aa3d68d1';
+  protected const string ORIGINAL_VERSION_HASH = '542cc17c549ba2bc';
+  private const array IS_NO_BC_BREAK = [];
   private const null EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED = NULL;
 
   /**
@@ -75,6 +78,21 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
         'type' => 'string',
         'title' => 'Optional Text',
         'examples' => ['Press', 'Submit now'],
+      ],
+      // Multiple-cardinality; unlimited.
+      'features' => [
+        'type' => 'array',
+        'title' => 'Features',
+        'items' => ['type' => 'string'],
+        'examples' => [['Alpha', 'Beta']],
+      ],
+      // Multiple-cardinality; limited.
+      'favorite_animals' => [
+        'type' => 'array',
+        'title' => 'Favorite animals',
+        'items' => ['type' => 'string'],
+        'maxItems' => 2,
+        'examples' => [['alpaca', 'llama']],
       ],
       'background' => JsonSchemaObjectRef::Image->asPropShapeArray() + [
         'title' => 'Background image',
@@ -127,10 +145,15 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
    *   Enum defining the result of the update attempt.
    * @param ?callable $assertion_callback
    *   Optional callback to run assertions on the component instance after update.
+   * @param string[] $bc_break_violations
+   *   If this test case represents a backwards compatibility break,
+   *   original component instance that was valid will suddenly fail to pass
+   *   validation. This should list those expected sudden validation errors.
+   *
    * @return void
    */
   #[DataProvider('providerUpdate')]
-  public function testUpdate(string $new_latest_version, ?callable $setup_callback, ComponentInstanceUpdateAttemptResult $update_result, ?callable $assertion_callback): void {
+  public function testUpdate(string $new_latest_version, ?callable $setup_callback, ComponentInstanceUpdateAttemptResult $update_result, ?callable $assertion_callback, array $bc_break_violations): void {
     $sut = new GeneratedFieldExplicitInputUxComponentInstanceUpdater();
     $component_tree_value = [
       // The test component to be updated.
@@ -142,6 +165,8 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
         'inputs' => [
           'required_text' => 'Canvas is large and in charge!',
           'optional_text' => 'shouting',
+          'features' => ['Alpha', 'Beta', 'Gamma', 'Delta'],
+          'favorite_animals' => ['cat', 'dog'],
         ],
       ],
       // The component in `test-slot` slot.
@@ -159,7 +184,13 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
     if ($setup_callback !== NULL) {
       call_user_func_array($setup_callback, [&$component_tree_value]);
     }
-    $original_component_tree = self::generateComponentTree($component_tree_value);
+    $original_component_tree = self::generateComponentTree(
+      $component_tree_value,
+      // Test cases that are a backwards compatibility break would fail to pass
+      // validation. This is used by very few test cases, but it is important to
+      // be explicit about it.
+      expected_violations: $bc_break_violations
+    );
     self::assertCount(2, $original_component_tree);
     $component_instance = $original_component_tree->getComponentTreeItemByUuid(self::COMPONENT_INSTANCE_UUID);
     self::assertNotNull($component_instance);
@@ -188,65 +219,74 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
       NULL,
       ComponentInstanceUpdateAttemptResult::NotNeeded,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
+      self::IS_NO_BC_BREAK,
     ];
     // If a new optional prop was added, the component instance can be updated.
     yield "Component added a new optional prop" => [
-      'b2d91be1e5b7cc1b',
+      '5e26faade9f74aee',
       [self::class, 'addOptionalProp'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
+      self::IS_NO_BC_BREAK,
     ];
     // If an optional prop was removed, the component instance can be updated.
     yield "Component removed an optional prop" => [
-      'db7edd520f2e5330',
+      'df06df1e8e27d0cc',
       [self::class, 'removeOptionalProp'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertOptionalPropRemoved'],
+      self::IS_NO_BC_BREAK,
     ];
     // If a new required prop was added, the component instance can be updated
     // with the default value from prop_field_definitions.
     yield "Component added a new required prop" => [
-      '336688757ffd5399',
+      '1732f7e210c17c56',
       [self::class, 'addRequiredProp'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertRequiredPropRequired'],
+      self::IS_NO_BC_BREAK,
     ];
     // If a required prop was removed, the component instance can be updated.
     yield "Component removed a required prop" => [
-      '1ca71112dbd7f007',
+      'ca80c7484141dff2',
       [self::class, 'removeRequiredProp'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertRequiredPropRemoved'],
+      self::IS_NO_BC_BREAK,
     ];
     // If a required prop became optional, the component instance can be updated.
     yield "Component required prop became optional" => [
-      '0783eed5599a2bcb',
+      '1351af380133200d',
       [self::class, 'makeRequiredPropOptional'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
+      self::IS_NO_BC_BREAK,
     ];
     // If an optional prop became required and the value was already set,
     // the existing value should be preserved.
     yield "Component optional prop became required" => [
-      '3076958d04987543',
+      'f3bacf880bc7978c',
       [self::class, 'makeOptionalPropRequired'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertOptionalBecameRequiredValuePreserved'],
+      self::IS_NO_BC_BREAK,
     ];
     // If an optional prop became required and the value was not set,
     // the default value from prop_field_definitions should be populated.
     yield "Component optional prop became required (default value populated)" => [
-      '3076958d04987543',
+      'f3bacf880bc7978c',
       [self::class, 'makeOptionalPropRequiredWithMissingInput'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertOptionalBecameRequiredWithDefault'],
+      self::IS_NO_BC_BREAK,
     ];
     // If examples for a prop changed, the component instance can be updated.
     yield "Component prop examples changed" => [
-      '1f82522117964177',
+      '017896997c0e8fdf',
       [self::class, 'changeExamplesFromProp'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
+      self::IS_NO_BC_BREAK,
     ];
     // If the type for a prop changed, the component instance cannot be updated.
     yield "Component prop type changed" => [
@@ -254,60 +294,113 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
       [self::class, 'changePropType'],
       ComponentInstanceUpdateAttemptResult::NotAllowed,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
+      self::IS_NO_BC_BREAK,
     ];
     // If the widget for a prop changed, the component instance can be updated.
     yield "Component prop shape changed its widget" => [
-      '92adccfd864b2131',
+      '480f9bf58812a2a4',
       [self::class, 'changePropShapeWidget'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
+      self::IS_NO_BC_BREAK,
     ];
     // If the expression for a prop changed but the field data is compatible,
     // the component instance can be updated.
     yield "Component prop shape changed its expression" => [
-      'd3202d1ddae0284c',
+      '944d52a17f79b7dc',
       [self::class, 'changeExpression'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
+      self::IS_NO_BC_BREAK,
     ];
     // TRICKY: deleting image media types is prevented by config dependencies,
     // so testing that is not needed: it is a situation that Drupal already
     // prevents from happening.
     // @see \Drupal\canvas\Entity\Component::onDependencyRemoval()
     yield "Component prop shape changed its expression AND instance settings for an entity_reference field type" => [
-      'fb420688327035c2',
+      'd22bf943bb8f6865',
       [self::class, 'createNewImageMediaType'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
+      self::IS_NO_BC_BREAK,
     ];
     // If a new slot was added, the component instance can be updated.
     yield "Component added a new slot" => [
-      'cfbc878f8ec00bb1',
+      '2a684221e1ed6a3d',
       [self::class, 'addSlot'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
+      self::IS_NO_BC_BREAK,
     ];
     // If a slot was removed, the component instance can be updated.
     yield "Component removed an existing slot" => [
-      'ac8ee428ed61cbd8',
+      '6a6c0ff2d80eb51f',
       [self::class, 'removeSlot'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertSlotRemoved'],
+      self::IS_NO_BC_BREAK,
     ];
     // If examples for a prop changed, the component instance can be updated.
     yield "Component slot examples changed" => [
-      '92034a6805921dd0',
+      '07f28141f941d47a',
       [self::class, 'changeExamplesFromSlot'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
+      self::IS_NO_BC_BREAK,
     ];
     // If a required prop stays required while something else changes, the
     // existing input must be preserved unchanged.
     yield "Required prop stays required while a new optional prop is added" => [
-      'b2d91be1e5b7cc1b',
+      '5e26faade9f74aee',
       [self::class, 'addOptionalProp'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertRequiredPropInputPreserved'],
+      self::IS_NO_BC_BREAK,
+    ];
+    // If the maxItems on an array prop is decreased, the update is accepted as
+    // safe (acceptable data loss).
+    yield "Component array prop maxItems/cardinality decreased; # of stored values > than new cardinality" => [
+      'ccd0eda77a693730',
+      [self::class, 'decreaseArrayPropCardinality'],
+      ComponentInstanceUpdateAttemptResult::Latest,
+      [self::class, 'assertFeaturesArrayPropHasThreeValues'],
+      // ⚠️ Backwards compatibility break means existing component instances
+      // that were valid are now considered invalid.
+      [
+        \sprintf("0.inputs.%s.features", self::COMPONENT_INSTANCE_UUID) => 'There must be a maximum of 3 items in the array, 4 found.',
+      ],
+    ];
+    // If the maxItems on an array prop is decreased, and a component instance
+    // contains at most that number of maxItems, there is no BC break for such
+    // component instances.
+    yield "Component array prop maxItems/cardinality decreased; # of stored values <= than new cardinality" => [
+      'ccd0eda77a693730',
+      [self::class, 'decreaseArrayPropCardinalityAndRemoveOneStoredValue'],
+      ComponentInstanceUpdateAttemptResult::Latest,
+      [self::class, 'assertFeaturesArrayPropHasThreeValues'],
+      // ⚠️ Backwards compatibility break only affects component instances that
+      // have >3 values stored for the prop with reduced cardinality.
+      self::IS_NO_BC_BREAK,
+    ];
+
+    // If the maxItems on an array prop is increased to a specific number, the
+    // component instance can be updated.
+    yield "Component array prop maxItems/cardinality increased by one" => [
+      '8073c4cc6570d599',
+      [self::class, 'increaseArrayPropCardinalityByOne'],
+      ComponentInstanceUpdateAttemptResult::Latest,
+      [self::class, 'assertFavoriteAnimalsArrayPropUnchanged'],
+      self::IS_NO_BC_BREAK,
+    ];
+
+    // If the maxItems on an array prop is increased to "unlimited", the
+    // component instance can be updated.
+    yield "Component array prop maxItems/cardinality increased to unlimited" => [
+      '232b912588909cd6',
+      [self::class, 'increaseArrayPropCardinalityToUnlimited'],
+      ComponentInstanceUpdateAttemptResult::Latest,
+      [self::class, 'assertFavoriteAnimalsArrayPropUnchanged'],
+      self::IS_NO_BC_BREAK,
     ];
   }
 
@@ -330,6 +423,10 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
    *   editing the javascript component, so a new version is generated.
    * @param \Drupal\canvas\ComponentSource\ComponentInstanceUpdateAttemptResult $update_result
    *   Enum defining the result of the update attempt.
+   * @param ?callable $assertion_callback
+   *   Unused; accepted to reuse providerUpdate() unchanged.
+   * @param string[] $bc_break_violations
+   *   Expected validation errors for cases that are a backwards compatibility break.
    * @return void
    */
   #[DataProvider('providerUpdate')]
@@ -337,8 +434,11 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
     string $new_latest_version,
     ?callable $setup_callback,
     ComponentInstanceUpdateAttemptResult $update_result,
+    ?callable $assertion_callback,
+    array $bc_break_violations,
   ): void {
     $sut = new GeneratedFieldExplicitInputUxComponentInstanceUpdater();
+    // Match testUpdate() so shared setup callbacks can keep strict fixture assumptions.
     $component_tree_value = [
       [
         'uuid' => self::COMPONENT_INSTANCE_UUID,
@@ -348,13 +448,15 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
         'inputs' => [
           'required_text' => 'Canvas is large and in charge!',
           'optional_text' => 'shouting',
+          'features' => ['Alpha', 'Beta', 'Gamma', 'Delta'],
+          'favorite_animals' => ['cat', 'dog'],
         ],
       ],
     ];
     if ($setup_callback !== NULL) {
       call_user_func_array($setup_callback, [&$component_tree_value]);
     }
-    $component_instance = self::generateComponentTree($component_tree_value)->getComponentTreeItemByUuid(self::COMPONENT_INSTANCE_UUID);
+    $component_instance = self::generateComponentTree($component_tree_value, expected_violations: $bc_break_violations)->getComponentTreeItemByUuid(self::COMPONENT_INSTANCE_UUID);
     self::assertNotNull($component_instance);
     $this->assertSame($update_result === ComponentInstanceUpdateAttemptResult::Latest, $sut->canUpdate($component_instance));
     // Ensure we have the expected versions, as a validation of the test itself.
@@ -455,7 +557,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
 
     $this->addOptionalArrayProp();
 
-    $component_instance = self::generateComponentTree($component_tree_value)->getComponentTreeItemByUuid(self::COMPONENT_INSTANCE_UUID);
+    $component_instance = self::generateComponentTree($component_tree_value, expected_violations: [])->getComponentTreeItemByUuid(self::COMPONENT_INSTANCE_UUID);
     self::assertNotNull($component_instance);
 
     // Regression test for https://www.drupal.org/i/3579365: this used to
@@ -468,10 +570,48 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
     $this->assertSame($component->getActiveVersion(), $component_instance->getComponentVersion());
   }
 
-  private static function generateComponentTree(array $component_tree_value): ComponentTreeItemList {
+  protected function decreaseArrayPropCardinality(): void {
+    $props = $this->jsComponent->getProps();
+    $props['features']['maxItems'] = 3;
+    $this->jsComponent->setProps($props)->save();
+  }
+
+  protected function decreaseArrayPropCardinalityAndRemoveOneStoredValue(array &$component_instance_value): void {
+    $this->decreaseArrayPropCardinality();
+    self::assertArrayHasKey('features', $component_instance_value[0]['inputs']);
+    self::assertCount(4, \array_keys($component_instance_value[0]['inputs']['features']));
+    unset($component_instance_value[0]['inputs']['features'][3]);
+    self::assertCount(3, \array_keys($component_instance_value[0]['inputs']['features']));
+  }
+
+  protected function increaseArrayPropCardinalityToUnlimited(): void {
+    $props = $this->jsComponent->getProps();
+    \assert(\is_array($props));
+    unset($props['favorite_animals']['maxItems']);
+    $this->jsComponent->setProps($props)->save();
+  }
+
+  protected function increaseArrayPropCardinalityByOne(): void {
+    $props = $this->jsComponent->getProps();
+    \assert(\is_array($props) && isset($props['favorite_animals']));
+    $props['favorite_animals']['maxItems']++;
+    $this->jsComponent->setProps($props)->save();
+  }
+
+  protected static function assertFeaturesArrayPropHasThreeValues(ComponentTreeItem $component_instance): void {
+    $inputs = $component_instance->getInputs() ?? [];
+    self::assertSame(['Alpha', 'Beta', 'Gamma'], $inputs['features']);
+  }
+
+  protected static function assertFavoriteAnimalsArrayPropUnchanged(ComponentTreeItem $component_instance): void {
+    $inputs = $component_instance->getInputs() ?? [];
+    self::assertSame(['cat', 'dog'], $inputs['favorite_animals']);
+  }
+
+  private static function generateComponentTree(array $component_tree_value, array $expected_violations): ComponentTreeItemList {
     $component_tree = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
     $component_tree->setValue($component_tree_value);
-    self::assertCount(0, $component_tree->validate(), (string) $component_tree->validate());
+    self::assertSame($expected_violations, self::violationsToArray($component_tree->validate()));
     return $component_tree;
   }
 
@@ -545,6 +685,11 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
       [self::class, 'addOptionalProp'],
       TRUE,
     ];
+    yield "Component array prop maxItems decreased" => [
+      $test_component_instance,
+      [self::class, 'decreaseArrayPropCardinality'],
+      TRUE,
+    ];
   }
 
   protected function addOptionalProp(): void {
@@ -608,9 +753,9 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
    */
   protected function makeOptionalPropRequiredWithMissingInput(array &$component_instance_value): void {
     $this->makeOptionalPropRequired();
-    self::assertSame(['required_text', 'optional_text'], \array_keys($component_instance_value[0]['inputs']));
+    self::assertSame(['required_text', 'optional_text', 'features', 'favorite_animals'], \array_keys($component_instance_value[0]['inputs']));
     unset($component_instance_value[0]['inputs']['optional_text']);
-    self::assertSame(['required_text'], \array_keys($component_instance_value[0]['inputs']));
+    self::assertSame(['required_text', 'features', 'favorite_animals'], \array_keys($component_instance_value[0]['inputs']));
   }
 
   protected function addRequiredProp(): void {

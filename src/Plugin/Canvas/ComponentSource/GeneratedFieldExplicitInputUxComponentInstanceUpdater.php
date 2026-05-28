@@ -13,6 +13,7 @@ use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInt
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 
 final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements ComponentInstanceUpdaterInterface {
 
@@ -48,6 +49,11 @@ final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements Com
    * - Changing a prop matched prop shape field widget (but only the widget!)
    * - Changing default values in prop_field_definitions
    * - Changing slot examples
+   * - Increasing `maxItems` (cardinality) for `type: array` props
+   *
+   * Unsafe changes considered acceptable (⚠️) include:
+   * - Decreasing cardinality of `type: array` props (acceptable data loss:
+   *   excess stored values are dropped)
    *
    * Unsafe changes (that prevent auto-update) include:
    * - Changing prop shapes
@@ -80,11 +86,17 @@ final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements Com
         ? new PropShape(['type' => 'object'])
         : new PropShape(['type' => 'array', 'items' => ['type' => 'object']]);
 
+      // Normalize to unlimited so cardinality changes don't block the update.
+      // - Increasing cardinality is allowed: the data fits in the new storage.
+      // - Decreasing cardinality is allowed: the data loss is accepted on
+      // update.
+      $comparison_cardinality = $is_single_value ? NULL : FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED;
+
       return new StorablePropShape(
         shape: $irrelevant_prop_shape,
         fieldTypeProp: $field_type_prop,
         fieldWidget: 'irrelevant',
-        cardinality: $prop_field_definition['cardinality'] ?? NULL,
+        cardinality: $comparison_cardinality,
         fieldStorageSettings: $prop_field_definition['field_storage_settings'] ?? NULL,
         fieldInstanceSettings: $prop_field_definition['field_instance_settings'] ?? NULL,
       );
@@ -132,6 +144,30 @@ final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements Com
     $unknown_inputs = \array_diff_key($inputs, $to_props);
     if (count($unknown_inputs) > 0) {
       $inputs = \array_intersect_key($inputs, $to_props);
+      $needs_input_update = TRUE;
+    }
+
+    // Truncate array inputs exceeding the new finite cardinality. This handles
+    // the case where maxItems was tightened after component instances were
+    // already created.
+    foreach ($to_props as $prop_name => $def) {
+      // @see \Drupal\canvas\PropSource\StaticPropSource::getCardinality()
+      $new_cardinality = $def['cardinality'] ?? StorablePropShape::DEFAULT_CARDINALITY;
+      // When the new cardinality is unlimited, no change is necessary because
+      // any number of stored values is valid.
+      if ($new_cardinality === FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED) {
+        continue;
+      }
+      // Skip if prop is absent, not an array, or already within the new limit.
+      if (
+        !isset($inputs[$prop_name]) ||
+        !\is_array($inputs[$prop_name]) ||
+        \count($inputs[$prop_name]) <= $new_cardinality
+      ) {
+        continue;
+      }
+
+      $inputs[$prop_name] = \array_slice($inputs[$prop_name], 0, $new_cardinality);
       $needs_input_update = TRUE;
     }
 
