@@ -130,6 +130,13 @@ final class ApiLayoutController {
         self::getEditableRegions($entity),
       )),
     ];
+    $available_translations = [];
+    if (method_exists($entity, 'getTranslationLanguages')) {
+      $available_translations = \array_keys($entity->getTranslationLanguages());
+    }
+    $data['translations'] = [
+      'available' => $available_translations,
+    ];
     if ($entity instanceof ContentEntityInterface && $entity instanceof EntityPublishedInterface) {
       $data['isPublished'] = $entity->isPublished();
       $data['entity_form_fields'] = $this->getFilteredEntityData($entity);

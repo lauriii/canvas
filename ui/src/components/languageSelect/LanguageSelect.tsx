@@ -1,14 +1,19 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronDownIcon, GlobeIcon } from '@radix-ui/react-icons';
-import { Button, DropdownMenu, Flex, Text } from '@radix-ui/themes';
+import { CheckIcon, ChevronDownIcon, GlobeIcon } from '@radix-ui/react-icons';
+import { Box, Button, DropdownMenu, Flex, Text } from '@radix-ui/themes';
 
+import { useAppSelector } from '@/app/hooks';
+import { selectTranslations } from '@/features/layout/layoutModelSlice';
 import { getLanguages } from '@/utils/drupal-globals';
+
+import styles from './LanguageSelect.module.css';
 
 const LanguageSelect = () => {
   const languages = getLanguages();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { entityType, entityId, width } = useParams();
+  const translations = useAppSelector(selectTranslations);
 
   // Derive the active language directly from the URL.
   const activeLanguageId = searchParams.get('language') ?? '';
@@ -66,8 +71,20 @@ const LanguageSelect = () => {
             data-testid={`language-option-${language.id}`}
             onSelect={() => handleLanguageChange(language.id)}
           >
-            <Flex justify="between" width="100%">
-              <Text>
+            <Flex align="center" width="100%">
+              <Box className={styles.checkIconContainer}>
+                {translations?.available?.includes(language.id) && (
+                  <CheckIcon />
+                )}
+              </Box>
+              <Text
+                className={styles.languageName}
+                data-canvas-has-translation={
+                  translations?.available?.includes(language.id)
+                    ? 'true'
+                    : undefined
+                }
+              >
                 {language.name}
                 {language.isDefault && ' (Default)'}
               </Text>

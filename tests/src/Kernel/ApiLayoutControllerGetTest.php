@@ -401,6 +401,9 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $this->assertArrayHasKey('layout', $json);
     $this->assertCount($count, $json['layout']);
     self::assertArrayHasKey('html', $json);
+    self::assertArrayHasKey('translations', $json);
+    self::assertArrayHasKey('available', $json['translations']);
+    self::assertIsArray($json['translations']['available']);
     $content = $this->getRegion('content');
     $this->assertNotNull($content);
 

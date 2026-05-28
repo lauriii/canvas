@@ -1,0 +1,17 @@
+.menuItem {
+  padding-left: 0;
+}
+
+.checkIconContainer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+}
+
+.languageName {
+  padding-inline-start: 4px;
+}
+
+

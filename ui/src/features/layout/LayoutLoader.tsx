@@ -60,6 +60,7 @@ const LayoutLoader = () => {
         setInitialLayoutModel({
           layout: fetchedLayout.layout,
           model: fetchedLayout.model,
+          translations: fetchedLayout.translations || {},
           // We don't need to update the preview here - it is done in the layout
           // api's onQueryStarted method - @see componentAndLayout.ts
           updatePreview: false,

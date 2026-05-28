@@ -32,6 +32,7 @@ type LayoutApiResponse = RootLayoutModel & {
   hasUnsavedStatusChange?: boolean;
   html: string;
   autoSaves: AutoSavesHash;
+  translations?: Record<string, any>;
 };
 
 export type TemplateViewMode = {

@@ -101,6 +101,23 @@ test.describe('Language Select', () => {
     await expect(languageButton).toBeVisible();
     await languageButton.click();
 
+    // Verify translation indicators are present for translated languages.
+    await expect(
+      page.locator(
+        '[data-testid="language-option-en"] [data-canvas-has-translation="true"]',
+      ),
+    ).toHaveAttribute('data-canvas-has-translation', 'true');
+    await expect(
+      page.locator(
+        '[data-testid="language-option-fr"] [data-canvas-has-translation="true"]',
+      ),
+    ).toHaveAttribute('data-canvas-has-translation', 'true');
+    await expect(
+      page.locator(
+        '[data-testid="language-option-es"] [data-canvas-has-translation="true"]',
+      ),
+    ).toHaveCount(0);
+
     const frenchOption = page.locator('[data-testid="language-option-fr"]');
     await expect(frenchOption).toBeVisible();
     await frenchOption.click();
