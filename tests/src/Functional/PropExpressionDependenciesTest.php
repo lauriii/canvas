@@ -9,7 +9,7 @@ use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropShape\PersistentPropShapeRepository;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\file\Entity\File;
@@ -121,7 +121,7 @@ class PropExpressionDependenciesTest extends FunctionalTestBase {
     $imageComponent = Component::load($component_id);
     \assert($imageComponent instanceof ComponentInterface);
     $imageComponentSource = $imageComponent->getComponentSource();
-    \assert($imageComponentSource instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+    \assert($imageComponentSource instanceof JsonSchemaPropsComponentSourceBase);
     // @phpstan-ignore-next-line
     $expression_string = $imageComponentSource->getDefaultExplicitInput()['image']['expression'];
     self::assertStringNotContainsString('entity:media', $expression_string);

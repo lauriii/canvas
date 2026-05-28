@@ -11,7 +11,7 @@
 ini_set('assert.active', 1);
 
 use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropSource\FieldStorageDefinition;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -21,7 +21,7 @@ use Drupal\Core\Render\Markup;
  * Provides allowed values for a 'list_*' field used in a StaticPropSource.
  *
  * @see callback_allowed_values_function()
- * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getOptionsForExplicitInputEnumProps()
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getOptionsForExplicitInputEnumProps()
  */
 function canvas_load_allowed_values_for_component_prop(FieldStorageDefinitionInterface $canvas_field_storage_definition, ?FieldableEntityInterface $entity = NULL, bool &$cacheable = FALSE): array {
   // Allowed values can't be cached, as they not only depend on the prop but
@@ -48,7 +48,7 @@ function canvas_load_allowed_values_for_component_prop(FieldStorageDefinitionInt
   // StaticPropSources are only used for ComponentSources with a generated input
   // UX using fields.
   $source = $component->getComponentSource();
-  assert($source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+  assert($source instanceof JsonSchemaPropsComponentSourceBase);
 
   return $source->getOptionsForExplicitInputEnumProp($prop_name);
 }

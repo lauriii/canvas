@@ -23,7 +23,7 @@ use Drupal\Core\Field\FieldItemListInterface;
  * that can be used as a default value.
  *
  * @see \Drupal\canvas\ComponentSource\UrlRewriteInterface
- * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
  * @internal
  *
  * @phpstan-import-type DefaultRelativeUrlPropSourceArray from PropSourceBase

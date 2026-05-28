@@ -23,7 +23,7 @@ Point 5 in ADR #2 does still stand:
 
 > 5. To populate SDCs' props, existing field types and widgets are reused. A lot of infrastructure is necessary for this: matching SDC's props' JSON schemas against Drupal field types as well as field instances
 
-But that functionality has since been generalized (`GeneratedFieldExplicitInputUxComponentSourceBase`), to allow other `Component Source Plugin`s to also use this: when a new type of component does not have a native input UX, this can be used (assuming the component's inputs are described using JSON Schema).
+But that functionality has since been generalized (`JsonSchemaPropsComponentSourceBase`), to allow other `Component Source Plugin`s to also use this: when a new type of component does not have a native input UX, this can be used (assuming the component's inputs are described using JSON Schema).
 
 Unchanged from ADR #2: ideally, all existing Drupal functionality continues to work, because that means:
 

@@ -2972,8 +2972,8 @@ components:
       type: object
       description: Component transforms keyed by prop name.
       # Names of Components' inputs, *if* they use field widgets.
-      # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getExplicitInputDefinitions()
-      # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getClientSideInfo()
+      # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getExplicitInputDefinitions()
+      # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getClientSideInfo()
       additionalProperties:
         type: object
         # Client-side transforms for those inputs' field widgets.

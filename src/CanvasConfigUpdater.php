@@ -9,7 +9,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\Plugin\DataType\ComponentInputs;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
@@ -197,8 +197,8 @@ class CanvasConfigUpdater {
 
   public static function needsTrackingPropsRequiredFlag(Component $component): bool {
     $component_source = $component->getComponentSource();
-    // @see `type: canvas.generated_field_explicit_input_ux`
-    if (!$component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase) {
+    // @see `type: canvas.json_schema_props`
+    if (!$component_source instanceof JsonSchemaPropsComponentSourceBase) {
       return FALSE;
     }
 
@@ -253,7 +253,7 @@ class CanvasConfigUpdater {
 
     // Get the list of required props from the component metadata.
     $component_source = $component->getComponentSource();
-    \assert($component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+    \assert($component_source instanceof JsonSchemaPropsComponentSourceBase);
     $metadata = $component_source->getMetadata();
     \assert(\is_array($metadata->schema));
     \assert(\array_key_exists('properties', $metadata->schema));
@@ -292,7 +292,7 @@ class CanvasConfigUpdater {
           ...$settings,
         ],
       );
-      \assert($source_for_new_version instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+      \assert($source_for_new_version instanceof JsonSchemaPropsComponentSourceBase);
       $version = $source_for_new_version->generateVersionHash();
       $component->createVersion($version)
         ->setSettings($settings);
@@ -342,8 +342,8 @@ class CanvasConfigUpdater {
 
   public static function needsUpdatingPropFieldDefinitionsUsingTextValue(Component $component): bool {
     $component_source = $component->getComponentSource();
-    // @see `type: canvas.generated_field_explicit_input_ux`
-    if (!$component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase) {
+    // @see `type: canvas.json_schema_props`
+    if (!$component_source instanceof JsonSchemaPropsComponentSourceBase) {
       return FALSE;
     }
 
@@ -390,7 +390,7 @@ class CanvasConfigUpdater {
 
     // Get the list of required props from the component metadata.
     $component_source = $component->getComponentSource();
-    \assert($component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+    \assert($component_source instanceof JsonSchemaPropsComponentSourceBase);
     $metadata = $component_source->getMetadata();
     \assert(\is_array($metadata->schema));
     \assert(\array_key_exists('properties', $metadata->schema));
@@ -436,7 +436,7 @@ class CanvasConfigUpdater {
           ...$settings,
         ],
       );
-      \assert($source_for_new_version instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+      \assert($source_for_new_version instanceof JsonSchemaPropsComponentSourceBase);
       $version = $source_for_new_version->generateVersionHash();
       $component->createVersion($version)
         ->setSettings($settings);
@@ -493,8 +493,8 @@ class CanvasConfigUpdater {
 
   public static function needsPropReordering(Component $component): bool {
     $component_source = $component->getComponentSource();
-    // @see `type: canvas.generated_field_explicit_input_ux`
-    if (!$component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase) {
+    // @see `type: canvas.json_schema_props`
+    if (!$component_source instanceof JsonSchemaPropsComponentSourceBase) {
       return FALSE;
     }
 
@@ -523,7 +523,7 @@ class CanvasConfigUpdater {
     }
 
     $component_source = $component->getComponentSource();
-    \assert($component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+    \assert($component_source instanceof JsonSchemaPropsComponentSourceBase);
     $metadata = $component_source->getMetadata();
     $actual_prop_order = \array_keys(ComponentMetadataHelper::getNonAttributeComponentProperties($metadata));
 
@@ -586,8 +586,8 @@ class CanvasConfigUpdater {
    */
   public static function needsMultiBundleReferencePropExpressionUpdate(Component $component): bool {
     $component_source = $component->getComponentSource();
-    // @see `type: canvas.generated_field_explicit_input_ux`
-    if (!$component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase) {
+    // @see `type: canvas.json_schema_props`
+    if (!$component_source instanceof JsonSchemaPropsComponentSourceBase) {
       return FALSE;
     }
 
@@ -627,7 +627,7 @@ class CanvasConfigUpdater {
 
     // Get the list of required props from the component metadata.
     $component_source = $component->getComponentSource();
-    \assert($component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+    \assert($component_source instanceof JsonSchemaPropsComponentSourceBase);
     $metadata = $component_source->getMetadata();
     \assert(\is_array($metadata->schema));
     \assert(\array_key_exists('properties', $metadata->schema));
@@ -674,7 +674,7 @@ class CanvasConfigUpdater {
           ...$settings,
         ],
       );
-      \assert($source_for_new_version instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+      \assert($source_for_new_version instanceof JsonSchemaPropsComponentSourceBase);
       $version = $source_for_new_version->generateVersionHash();
       $component->createVersion($version)
         ->setSettings($settings);

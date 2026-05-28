@@ -256,8 +256,8 @@ HTML,
   /**
    * For use with ::renderComponentsLive() and ::renderComponentsPreview() with some input.
    *
-   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
-   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getDefaultStaticPropSource()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getDefaultStaticPropSource()
    */
   protected static function getDefaultInput(Component $component): array {
     $type = $component->id();

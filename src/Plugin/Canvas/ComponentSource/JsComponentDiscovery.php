@@ -147,7 +147,7 @@ final class JsComponentDiscovery implements ComponentCandidatesDiscoveryInterfac
    * @param array{required: bool, field_type: string, cardinality?: int, field_storage_settings?: array, field_instance_settings?: array, field_widget: string, default_value: array|null, expression: string}|null $prop_field_definitions
    *   (optional) Prop field definitions, when constructing an ephemeral SDC
    *   plugin instance for an existing Component version. Must match the
-   *   `type: canvas.generated_field_explicit_input_ux` config schema type.
+   *   `type: canvas.json_schema_props` config schema type.
    *
    * @throws \Drupal\Core\Render\Component\Exception\InvalidComponentException
    *   Thrown if invalid.

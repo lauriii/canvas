@@ -462,7 +462,7 @@ canvas.component_source_local_id.sdc:
 canvas.component_source_settings.sdc:
   constraints:
     FullyValidatable: ~
-  type: canvas.generated_field_explicit_input_ux
+  type: canvas.json_schema_props
   label: 'SDC component settings'
   mapping:
     prop_field_definitions:
@@ -495,15 +495,15 @@ canvas.component_source_settings.*:
   # No settings by default.
   mapping: {}
 
-# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
-# Each ComponentSource that extends GeneratedFieldExplicitInputUxComponentSourceBase MUST provide an override that:
+# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase
+# Each ComponentSource that extends JsonSchemaPropsComponentSourceBase MUST provide an override that:
 # - MUST override the top-level label
 # - MUST add appropriate validation constraints to `local_source_id`
 # - MAY add more key-value pairs to the mapping — and then add appropriate validation constraints for those
 # - MUST mark the entire subtype as being fully validatable
-canvas.generated_field_explicit_input_ux:
+canvas.json_schema_props:
   type: canvas.component_source_settings.*
-  label: 'Baseline component settings for ComponentSource plugins that extend GeneratedFieldExplicitInputUxComponentSourceBase'
+  label: 'Baseline component settings for ComponentSource plugins that extend JsonSchemaPropsComponentSourceBase'
   mapping:
     prop_field_definitions:
       type: sequence
@@ -512,7 +512,7 @@ canvas.generated_field_explicit_input_ux:
       # Note: simply reordering the props in the schema without other changes (such as changing the example value) will
       # result in an identical component version hash. That means all existing component instances are automatically
       # "upgraded" to the updated prop order.
-      # @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::buildConfigurationForm()
+      # @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsonSchemaPropsComponentSourceBase::buildConfigurationForm()
       orderby: ~
       sequence:
         type: mapping
@@ -603,7 +603,7 @@ canvas.component_source_local_id.js:
 canvas.component_source_settings.js:
   constraints:
     FullyValidatable: ~
-  type: canvas.generated_field_explicit_input_ux
+  type: canvas.json_schema_props
   label: 'Code component settings'
   mapping:
     prop_field_definitions:

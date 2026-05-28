@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\StaticPropSource;
@@ -96,7 +96,7 @@ final class DefaultContentSubscriber implements EventSubscriberInterface {
           //   considering refactoring this to use
           //   ComponentInputs::getPropSourcesUsingExpressionClass(), but only
           //   once https://www.drupal.org/i/3566720 is resolved.
-          if (!$component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase) {
+          if (!$component_source instanceof JsonSchemaPropsComponentSourceBase) {
             continue;
           }
           $prop_source = PropSource::parse($input);

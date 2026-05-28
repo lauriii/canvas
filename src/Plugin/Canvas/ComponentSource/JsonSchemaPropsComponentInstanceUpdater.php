@@ -15,7 +15,7 @@ use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 
-final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements ComponentInstanceUpdaterInterface {
+final class JsonSchemaPropsComponentInstanceUpdater implements ComponentInstanceUpdaterInterface {
 
   /**
    * {@inheritdoc}
@@ -58,7 +58,7 @@ final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements Com
    * Unsafe changes (that prevent auto-update) include:
    * - Changing prop shapes
    *
-   * @see \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest::providerUpdate
+   * @see \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceUpdaterTest::providerUpdate
    */
   public function canUpdate(ComponentTreeItem $component_instance): bool {
     $component = $component_instance->getComponent();

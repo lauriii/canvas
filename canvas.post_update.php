@@ -176,7 +176,7 @@ function canvas_post_update_0007_respect_prop_ordering(array &$sandbox): void {
  * 2. using a dot in a `meta:enum` key is no longer forbidden for SDCs
  *
  * @see https://www.drupal.org/node/2960601
- * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata()
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getComponentInputsForMetadata()
  * @see \Drupal\canvas\PropShape\PropShape::standardize()
  * @see \Drupal\canvas\ComponentMetadataRequirementsChecker)
  */

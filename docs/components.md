@@ -72,7 +72,7 @@ using both:
 See:
 - `\Drupal\Core\Theme\Component\ComponentMetadata`
 - `\Drupal\Core\Theme\Component\ComponentValidator::validateProps()`
-- `\Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getComponentPlugin()`
+- `\Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getComponentPlugin()`
 - `\Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::buildEphemeralSdcPluginInstance()`
 
 
@@ -90,7 +90,7 @@ available field types against the JSON schema of its explicit inputs ("props"). 
 into Field Types` doc](shape-matching-into-field-types.md). Using the `conjured field`s explained there requires a
 significant amount of metadata, which is reduced significantly thanks to:
 - `\Drupal\canvas\ComponentSource\ComponentSourceInterface::preSaveItem()`
-- `\Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::collapse()`
+- `\Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::collapse()`
 
 #### 3.1.2 Criteria for `SDC` `component`s
 

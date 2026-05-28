@@ -86,7 +86,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  *
  * @internal
  */
-abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends ComponentSourceBase implements ComponentSourceWithSlotsInterface, ContainerFactoryPluginInterface {
+abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase implements ComponentSourceWithSlotsInterface, ContainerFactoryPluginInterface {
 
   public const EXPLICIT_INPUT_NAME = 'props';
 
@@ -966,7 +966,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     // Cache, for the `/canvas/api/v0/config/component` route; this expense is
     // incurred only when Components change.
     // @see \Drupal\Tests\canvas\Functional\CanvasConfigEntityHttpApiTest::testComponent()
-    $prop_shapes = GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component->id(), $this->getMetadata());
+    $prop_shapes = JsonSchemaPropsComponentSourceBase::getComponentInputsForMetadata($component->id(), $this->getMetadata());
 
     $field_data = [];
     $default_props_for_default_markup = [];

@@ -340,7 +340,7 @@ HTML;
    * @return string[]
    *   A list of asset libraries.
    *
-   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase
    */
   private function getTransformAssetLibraries(): array {
     $libraries = [];

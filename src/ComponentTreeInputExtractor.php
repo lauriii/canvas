@@ -6,7 +6,7 @@ namespace Drupal\canvas;
 
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
@@ -69,7 +69,7 @@ final readonly class ComponentTreeInputExtractor {
   /**
    * Gets the prop shapes for the given component.
    *
-   * Only works for GeneratedFieldExplicitInputUxComponentSourceBase based
+   * Only works for JsonSchemaPropsComponentSourceBase based
    * component sources, which excludes Blocks.
    *
    * @param \Drupal\canvas\Entity\ComponentInterface $component
@@ -80,11 +80,11 @@ final readonly class ComponentTreeInputExtractor {
    */
   private static function getPropShapes(ComponentInterface $component): array {
     $component_source = $component->getComponentSource();
-    if (!$component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase) {
+    if (!$component_source instanceof JsonSchemaPropsComponentSourceBase) {
       return [];
     }
     $metadata = $component_source->getMetadata();
-    return GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component_source->getPluginId(), $metadata);
+    return JsonSchemaPropsComponentSourceBase::getComponentInputsForMetadata($component_source->getPluginId(), $metadata);
   }
 
   /**

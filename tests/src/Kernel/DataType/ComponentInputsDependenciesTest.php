@@ -142,7 +142,7 @@ class ComponentInputsDependenciesTest extends CanvasKernelTestBase {
       ],
     ]);
     // Same as above, but now with collapsed values.
-    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::rawInputValueToPropSourceArray()
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::rawInputValueToPropSourceArray()
     // @see \Drupal\canvas\Plugin\DataType\ComponentInputs::getPropSources()
     $item_list->appendItem([
       'uuid' => $uuid->generate(),

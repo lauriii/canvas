@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas;
 
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropShape\EphemeralPropShapeRepository;
 use Drupal\canvas\PropShape\StorablePropShape;
@@ -177,7 +177,7 @@ final class ComponentMetadataRequirementsChecker {
 
     // Every prop must have a StorablePropShape. If an example is provided, it
     // must be considered non-empty by the field type that will power it.
-    $props_for_metadata = GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component_id, $metadata);
+    $props_for_metadata = JsonSchemaPropsComponentSourceBase::getComponentInputsForMetadata($component_id, $metadata);
     /** @var \Drupal\canvas\PropShape\PropShapeRepositoryInterface $prop_shape_repository */
     $prop_shape_repository = \Drupal::service(EphemeralPropShapeRepository::class);
     foreach ($props_for_metadata as $cpe => $prop_shape) {
@@ -189,7 +189,7 @@ final class ComponentMetadataRequirementsChecker {
       }
       // Entity-referencing props skip the StaticPropSource pipeline at runtime,
       // so don't trial them here either.
-      if (GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity($storable_prop_shape)) {
+      if (JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity($storable_prop_shape)) {
         continue;
       }
       $example = $metadata->schema['properties'][$prop_name]['examples'][0] ?? NULL;

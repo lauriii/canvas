@@ -56,7 +56,7 @@ csstree:
   js:
     js/assets/css-tree.js: { minified: true }
 
-# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase
 canvas.transform.mainProperty:
   dependencies:
     # Each transform must be added to the global `Drupal.canvasTransforms`.

@@ -10,7 +10,7 @@ use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\canvas\Plugin\AdapterManager;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\canvas\PropExpressions\PropExpressionInterface;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
@@ -134,8 +134,8 @@ final class Layers {
         Selector::classname(AdapterInterface::class),
         Selector::classname(AdapterManager::class),
         // Shape matching only exists for
-        // GeneratedFieldExplicitInputUxComponentSourceBase.
-        Selector::classname(GeneratedFieldExplicitInputUxComponentSourceBase::class),
+        // JsonSchemaPropsComponentSourceBase.
+        Selector::classname(JsonSchemaPropsComponentSourceBase::class),
         // Shape matching is powered by validation infrastructure.
         Selector::inNamespace('Symfony\Component\Validator'),
         Selector::inNamespace('Drupal\Core\Validation'),

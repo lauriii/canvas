@@ -10,8 +10,8 @@ use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentInstanceUpdater;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceUpdater;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
@@ -28,13 +28,13 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
- * Tests Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentInstanceUpdater.
+ * Tests Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceUpdater.
  */
-#[CoversClass(GeneratedFieldExplicitInputUxComponentInstanceUpdater::class)]
+#[CoversClass(JsonSchemaPropsComponentInstanceUpdater::class)]
 #[Group('canvas')]
 #[Group('canvas_component_sources')]
 #[Group('canvas_data_model')]
-class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKernelTestBase {
+class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
 
   use ConstraintViolationsTestTrait;
   use GenerateComponentConfigTrait;
@@ -154,7 +154,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
    */
   #[DataProvider('providerUpdate')]
   public function testUpdate(string $new_latest_version, ?callable $setup_callback, ComponentInstanceUpdateAttemptResult $update_result, ?callable $assertion_callback, array $bc_break_violations): void {
-    $sut = new GeneratedFieldExplicitInputUxComponentInstanceUpdater();
+    $sut = new JsonSchemaPropsComponentInstanceUpdater();
     $component_tree_value = [
       // The test component to be updated.
       [
@@ -210,7 +210,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
   }
 
   /**
-   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentInstanceUpdater::canUpdate
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceUpdater::canUpdate
    *   where we document every scenario.
    */
   public static function providerUpdate(): \Generator {
@@ -437,7 +437,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
     ?callable $assertion_callback,
     array $bc_break_violations,
   ): void {
-    $sut = new GeneratedFieldExplicitInputUxComponentInstanceUpdater();
+    $sut = new JsonSchemaPropsComponentInstanceUpdater();
     // Match testUpdate() so shared setup callbacks can keep strict fixture assumptions.
     $component_tree_value = [
       [
@@ -474,7 +474,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
    */
   #[DataProvider('providerUpdateWithGarbageInput')]
   public function testUpdateWithGarbageInput(string $setup_method, callable $assertion_callback): void {
-    $sut = new GeneratedFieldExplicitInputUxComponentInstanceUpdater();
+    $sut = new JsonSchemaPropsComponentInstanceUpdater();
 
     // Add a new required `voice` prop to create a new version. Depending on
     // the scenario, the garbage `voice` value already present on the
@@ -542,7 +542,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
   }
 
   public function testAddingOptionalArrayPropToInUseComponentCanUpdate(): void {
-    $sut = new GeneratedFieldExplicitInputUxComponentInstanceUpdater();
+    $sut = new JsonSchemaPropsComponentInstanceUpdater();
     $component_tree_value = [
       [
         'uuid' => self::COMPONENT_INSTANCE_UUID,
@@ -627,7 +627,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
    */
   #[DataProvider('providerUpdateNeeded')]
   public function testIsUpdateNeeded(array $component_instance_value, ?callable $setup_callback, bool $expected): void {
-    $sut = new GeneratedFieldExplicitInputUxComponentInstanceUpdater();
+    $sut = new JsonSchemaPropsComponentInstanceUpdater();
     if ($setup_callback !== NULL) {
       call_user_func_array($setup_callback, []);
     }

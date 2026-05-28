@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\ShapeMatcher;
 
 use Drupal\canvas\Plugin\Adapter\AdapterInterface;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
@@ -45,7 +45,7 @@ use Drupal\Core\Theme\Component\ComponentMetadata;
  * @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher
  * @see \Drupal\canvas\ShapeMatcher\AdaptedPropSourceMatcher
  * @see \Drupal\canvas\ShapeMatcher\HostEntityUrlPropSourceMatcher
- * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata()
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getComponentInputsForMetadata()
  * @internal
  */
 final readonly class PropSourceSuggester {
@@ -244,7 +244,7 @@ final readonly class PropSourceSuggester {
   private function getRawMatches(string $component_plugin_id, ComponentMetadata $component_metadata, string $host_entity_type, string $host_entity_bundle): array {
     $raw_matches = [];
 
-    foreach (GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component_plugin_id, $component_metadata) as $cpe_string => $prop_shape) {
+    foreach (JsonSchemaPropsComponentSourceBase::getComponentInputsForMetadata($component_plugin_id, $component_metadata) as $cpe_string => $prop_shape) {
       $cpe = ComponentPropExpression::fromString($cpe_string);
       // @see https://json-schema.org/understanding-json-schema/reference/object#required
       // @see https://json-schema.org/learn/getting-started-step-by-step#required

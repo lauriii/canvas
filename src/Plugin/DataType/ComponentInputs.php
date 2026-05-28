@@ -30,9 +30,9 @@ use Drupal\Core\TypedData\TypedData;
  * @phpstan-import-type DefaultRelativeUrlPropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
  * @phpstan-type SingleComponentInputArray array<string, PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray>
  * @see \Drupal\canvas\ComponentSource\ComponentSourceInterface::optimizeExplicitInput()
- * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::optimizeExplicitInput()
- * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::collapse()
- * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::uncollapse()
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::optimizeExplicitInput()
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::collapse()
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::uncollapse()
  * @phpstan-type OptimizedExplicitInput bool|int|float|string|bool[]|int[]|float[]|string[]
  * @phpstan-type OptimizedSingleComponentInputArray array<string, PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray|OptimizedExplicitInput>
  */
@@ -196,8 +196,8 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
       if (!\is_array($raw_prop_source) || !\array_key_exists('sourceType', $raw_prop_source)) {
         // This is likely a *collapsed* StaticPropSource.
         /** @var OptimizedExplicitInput $raw_prop_source */
-        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::collapse()
-        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::uncollapse()
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::collapse()
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::uncollapse()
         try {
           $parsed_default_prop_source = \array_key_exists($name, $default_prop_sources) && \is_array($default_prop_sources[$name]) && \array_key_exists('sourceType', $default_prop_sources[$name])
             ? PropSource::parse($default_prop_sources[$name])
@@ -214,8 +214,8 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
         catch (\LogicException) {
         }
 
-        // This isn't a component source using \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
-        // @todo Move this logic into \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
+        // This isn't a component source using \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase.
+        // @todo Move this logic into \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase.
         // @see https://www.drupal.org/project/canvas/issues/3467954
         continue;
       }

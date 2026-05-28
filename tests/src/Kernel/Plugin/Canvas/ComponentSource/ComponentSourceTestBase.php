@@ -16,7 +16,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Form\ComponentInstanceForm;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
@@ -306,19 +306,19 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
   /**
    * For use with ::renderComponentsLive() for Sources with generated input UX.
    *
-   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
-   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getDefaultStaticPropSource()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getDefaultStaticPropSource()
    */
-  protected static function getDefaultInputForGeneratedInputUx(Component $component): array {
-    \assert($component->getComponentSource() instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+  protected static function getDefaultInputForJsonSchemaProps(Component $component): array {
+    \assert($component->getComponentSource() instanceof JsonSchemaPropsComponentSourceBase);
     $explicit_inputs = [];
     foreach ($component->getSettings()['prop_field_definitions'] as $sdc_prop_name => $prop_field_definition) {
       if ($prop_field_definition['default_value'] === NULL) {
         continue;
       }
 
-      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
-      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getDefaultStaticPropSource()
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getDefaultStaticPropSource()
       if ($prop_field_definition['default_value'] === []) {
         // @phpstan-ignore-next-line
         $client_side_info_for_prop = $component->getComponentSource()
@@ -346,7 +346,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
         // Static prop sources can be evaluated without a host entity.
         ->evaluate(NULL, is_required: TRUE);
     }
-    return [GeneratedFieldExplicitInputUxComponentSourceBase::EXPLICIT_INPUT_NAME => $explicit_inputs];
+    return [JsonSchemaPropsComponentSourceBase::EXPLICIT_INPUT_NAME => $explicit_inputs];
   }
 
   /**

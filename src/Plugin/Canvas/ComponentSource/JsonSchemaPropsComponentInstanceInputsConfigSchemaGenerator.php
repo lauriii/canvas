@@ -15,13 +15,13 @@ use Drupal\canvas\PropSource\PropSource;
 /**
  * @internal
  */
-final readonly class GeneratedFieldExplicitInputUxComponentInstanceInputsConfigSchemaGenerator implements ComponentInstanceInputsConfigSchemaGeneratorInterface {
+final readonly class JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator implements ComponentInstanceInputsConfigSchemaGeneratorInterface {
 
   /**
    * {@inheritdoc}
    */
   public function getConfigSchemaMapping(ComponentSourceInterface $component_source): array {
-    \assert($component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+    \assert($component_source instanceof JsonSchemaPropsComponentSourceBase);
     ['required' => $required, 'shapes' => $shapes] = $component_source->getExplicitInputDefinitions();
 
     $normalized_shapes = \array_map(
@@ -123,8 +123,8 @@ final readonly class GeneratedFieldExplicitInputUxComponentInstanceInputsConfigS
    */
   public static function isStaticPropSource(mixed $value): bool {
     // Detect an optimized explicit input.
-    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::optimizeExplicitInputs()
-    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::collapse()
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::optimizeExplicitInputs()
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::collapse()
     if (!\is_array($value) || !\array_key_exists('sourceType', $value)) {
       return TRUE;
     }

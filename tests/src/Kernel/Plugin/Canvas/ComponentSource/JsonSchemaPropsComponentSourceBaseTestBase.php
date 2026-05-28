@@ -9,7 +9,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\file\Entity\File;
@@ -23,11 +23,11 @@ use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
- * Tests Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
+ * Tests Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase.
  */
-#[CoversClass(GeneratedFieldExplicitInputUxComponentSourceBase::class)]
-#[CoversMethod(GeneratedFieldExplicitInputUxComponentSourceBase::class, 'clientModelToInput')]
-abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends ComponentSourceTestBase {
+#[CoversClass(JsonSchemaPropsComponentSourceBase::class)]
+#[CoversMethod(JsonSchemaPropsComponentSourceBase::class, 'clientModelToInput')]
+abstract class JsonSchemaPropsComponentSourceBaseTestBase extends ComponentSourceTestBase {
 
   use MediaTypeCreationTrait;
   use PredictableImageStyleItokTestTrait;
@@ -109,7 +109,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
     // Allow for reuse among different ComponentSource plugins using this base
     // class, without requiring each of the test components to have exactly the
     // same props. The only requirement is an optional `image` prop.
-    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getExplicitInputDefinitions()
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getExplicitInputDefinitions()
     $resolved = array_intersect_key($resolved, $component_with_optional_image_object_shape->getSettings()['prop_field_definitions']);
 
     // TRICKY: EntityFieldPropSources can only be used in ContentTemplates and hence
@@ -139,7 +139,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
       ->getDefaultExplicitInput(only_required: TRUE);
     $hydrated = $source->hydrateComponent(['resolved' => $resolved], [], $active_required_explicit_inputs);
     // @phpstan-ignore-next-line offsetAccess.notFound
-    self::assertSame($is_object_prop_present_in_hydration, \array_key_exists('image', $hydrated[GeneratedFieldExplicitInputUxComponentSourceBase::EXPLICIT_INPUT_NAME]));
+    self::assertSame($is_object_prop_present_in_hydration, \array_key_exists('image', $hydrated[JsonSchemaPropsComponentSourceBase::EXPLICIT_INPUT_NAME]));
     $build = $source->renderComponent($hydrated, [], $this->randomString(), FALSE);
     $html = (string) $this->renderer->renderInIsolation($build);
     if (str_starts_with($expected_html, '<')) {
@@ -183,7 +183,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
     $this->assertInstanceOf(Component::class, $component);
 
     $source = $component->getComponentSource();
-    $this->assertInstanceOf(GeneratedFieldExplicitInputUxComponentSourceBase::class, $source);
+    $this->assertInstanceOf(JsonSchemaPropsComponentSourceBase::class, $source);
 
     $uuid = '07875b1b-b68c-4b90-955c-d6136ff8af93';
 
@@ -322,7 +322,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
     self::assertInstanceOf(ComponentInterface::class, $component);
 
     $source = $component->getComponentSource();
-    self::assertInstanceOf(GeneratedFieldExplicitInputUxComponentSourceBase::class, $source);
+    self::assertInstanceOf(JsonSchemaPropsComponentSourceBase::class, $source);
 
     $options = $source->getOptionsForExplicitInputEnumProp($prop_name);
 

@@ -42,12 +42,12 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   label: new TranslatableMarkup('Code Components'),
   supportsImplicitInputs: FALSE,
   discovery: JsComponentDiscovery::class,
-  updater: GeneratedFieldExplicitInputUxComponentInstanceUpdater::class,
-  inputs_config_schema_generator: GeneratedFieldExplicitInputUxComponentInstanceInputsConfigSchemaGenerator::class,
+  updater: JsonSchemaPropsComponentInstanceUpdater::class,
+  inputs_config_schema_generator: JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator::class,
   // @see \Drupal\canvas\EntityHandlers\JavascriptComponentStorage::doPostSave()
   discoveryCacheTags: ['config:js_component_list'],
 )]
-final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase implements UrlRewriteInterface {
+final class JsComponent extends JsonSchemaPropsComponentSourceBase implements UrlRewriteInterface {
 
   public const SOURCE_PLUGIN_ID = 'js';
 

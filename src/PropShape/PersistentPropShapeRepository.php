@@ -26,7 +26,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * tags and inform relevant source plugins when storable prop shapes have
  * changed.
  *
- * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent
  *
@@ -224,7 +224,7 @@ class PersistentPropShapeRepository extends CacheCollector implements PropShapeR
       // It will call the discovery if any for each component source, compute
       // its new component settings and create/update with a new version the
       // component config as needed.
-      // @todo Optimization #1: update this in https://www.drupal.org/project/canvas/issues/3561272 to only regenerate Components for ComponentSource plugins that extend GeneratedFieldExplicitInputUxComponentSourceBase
+      // @todo Optimization #1: update this in https://www.drupal.org/project/canvas/issues/3561272 to only regenerate Components for ComponentSource plugins that extend JsonSchemaPropsComponentSourceBase
       // @todo Optimization #2: in https://www.drupal.org/project/canvas/issues/3561493 to only regenerate affected Components: those with PropShapes whose StorablePropShapes depended on the invalidated cache tag(s)
       $this->componentSourceManager->generateComponents();
     }

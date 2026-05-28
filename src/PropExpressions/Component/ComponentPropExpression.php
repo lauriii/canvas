@@ -10,15 +10,14 @@ namespace Drupal\canvas\PropExpressions\Component;
  * @internal
  *
  * Used to power ComponentSource plugins without a native explicit input UX that
- * want to reuse the same auto-generated field-based explicit input UX built for
- * SDCs originally, but now also used for "code components".
+ * want to reuse the same auto-generated field-based explicit input UX based on
+ * JSON Schema definitions for props, built for SDCs originally, but now also
+ * used for "code components".
  *
  * @see \Drupal\Core\Theme\Component\ComponentMetadata
- * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent
- *
- * @todo Move into a different namespace, perhaps \Drupal\Canvas\GeneratedFieldExplicitInputUx?
  */
 final class ComponentPropExpression implements ComponentPropExpressionInterface {
 

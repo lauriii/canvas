@@ -7,7 +7,7 @@ namespace Drupal\canvas\ConfigTranslation;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageRegion;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\config_translation\FormElement\FormElementBase;
 use Drupal\Core\Config\Config;
@@ -27,7 +27,7 @@ use Drupal\language\Config\LanguageConfigOverride;
  * @internal
  *
  * @see \Drupal\canvas\Config\Schema\ComponentInputsMapping
- * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentInstanceInputsConfigSchemaGenerator
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator
  */
 final class CanvasStaticPropSourceFieldWidget extends FormElementBase {
 
@@ -95,7 +95,7 @@ final class CanvasStaticPropSourceFieldWidget extends FormElementBase {
     \assert(\array_is_list($config_values), 'Values not keyed by deltas; this does not seem to be a form submission? Every field widget keys values by field item deltas.');
 
     // Optimized ("collapsed") value.
-    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::collapse()
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::collapse()
     $default_static_prop_source = self::getDefaultStaticPropSource($this->definition);
     \assert(!\is_null($default_static_prop_source));
     $optimized_value = $default_static_prop_source
@@ -174,7 +174,7 @@ final class CanvasStaticPropSourceFieldWidget extends FormElementBase {
       return NULL;
     }
 
-    if (!$component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase) {
+    if (!$component_source instanceof JsonSchemaPropsComponentSourceBase) {
       return NULL;
     }
 

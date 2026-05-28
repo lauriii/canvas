@@ -236,7 +236,7 @@ Built-in transforms include:
 ℹ️ The completeness of this is tested by `\Drupal\Tests\canvas\Kernel\EcosystemSupport\FieldWidgetSupportTest`.
 
 The transforms that apply to each prop are attached to the [ComponentInstanceForm](../src/Form/ComponentInstanceForm.php) by
-the [Generated UX source base plugin](../src/Plugin/Canvas/ComponentSource/GeneratedFieldExplicitInputUxComponentSourceBase.php)
+the [JSON schema props ComponentSource base class](../src/Plugin/Canvas/ComponentSource/JsonSchemaPropsComponentSourceBase.php)
 which is used by both SDC and Code (JavaScript) components.
 
 * Example *
@@ -343,7 +343,7 @@ All built-in transforms accept a `multiple` option via `BaseTransformOptions`. T
 
 **How `multiple` is injected**
 
-The `multiple` flag is automatically injected server-side by [`GeneratedFieldExplicitInputUxComponentSourceBase::buildComponentInstanceForm()`](../src/Plugin/Canvas/ComponentSource/GeneratedFieldExplicitInputUxComponentSourceBase.php) based on the field's cardinality:
+The `multiple` flag is automatically injected server-side by [`JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()`](../src/Plugin/Canvas/ComponentSource/JsonSchemaPropsComponentSourceBase.php) based on the field's cardinality:
 
 ```php
 $cardinality = $static_prop_source_field_definition['cardinality'] ?? NULL;

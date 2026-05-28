@@ -27,12 +27,12 @@ use Symfony\Component\Filesystem\Path;
   label: new TranslatableMarkup('Single-Directory Components'),
   supportsImplicitInputs: FALSE,
   discovery: SingleDirectoryComponentDiscovery::class,
-  updater: GeneratedFieldExplicitInputUxComponentInstanceUpdater::class,
-  inputs_config_schema_generator: GeneratedFieldExplicitInputUxComponentInstanceInputsConfigSchemaGenerator::class,
+  updater: JsonSchemaPropsComponentInstanceUpdater::class,
+  inputs_config_schema_generator: JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator::class,
   // @see \Drupal\Core\Theme\ComponentPluginManager::__construct()
   discoveryCacheTags: ['component_plugins'],
 )]
-final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxComponentSourceBase implements UrlRewriteInterface {
+final class SingleDirectoryComponent extends JsonSchemaPropsComponentSourceBase implements UrlRewriteInterface {
 
   public const SOURCE_PLUGIN_ID = 'sdc';
 

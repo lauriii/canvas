@@ -71,7 +71,7 @@ use PHPUnit\Framework\Attributes\TestWith;
 #[Group('canvas')]
 #[Group('canvas_component_sources')]
 #[Group('JavaScriptComponents')]
-final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSourceBaseTestBase {
+final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
 
   use CacheBustingTrait;
   use CreateTestJsComponentTrait;
@@ -192,7 +192,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     // input UX: verifying this results in working `StaticPropSource`s is
     // sufficient, everything beyond that is covered by PropShapeRepositoryTest.
     // @see \Drupal\Tests\canvas\Kernel\PropShapeRepositoryTest::testPropShapesYieldWorkingStaticPropSources()
-    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase
     $components = $this->componentStorage->loadMultiple($component_ids);
     foreach ($components as $component_id => $component) {
       // Use reflection to test the private ::getDefaultStaticPropSource() method.
@@ -227,7 +227,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
             ],
             'field_widget' => 'media_library_widget',
             // ⚠️ Empty default value.
-            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
             'expression' => 'ℹ︎entity_reference␟entity␜␜entity:media:video␝field_media_video_file␞␟{src↝entity␜␜entity:file␝uri␞␟url}',
@@ -292,7 +292,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
             'field_instance_settings' => [],
             'field_widget' => 'image_image',
             // ⚠️ Empty default value.
-            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
@@ -373,7 +373,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
             'field_instance_settings' => [],
             'field_widget' => 'image_image',
             // ⚠️ Empty default value.
-            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
@@ -501,7 +501,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
 
     $rendered = $this->renderComponentsLive(
       $component_ids,
-      get_default_input: [__CLASS__, 'getDefaultInputForGeneratedInputUx'],
+      get_default_input: [__CLASS__, 'getDefaultInputForJsonSchemaProps'],
     );
 
     // ⚠️ The `'html'` expectations are tested separately for this very complex
@@ -1325,7 +1325,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     // instances created before 1.1.0 may still exist (they are not
     // automatically updated), so expect the exception that occurs during
     // hydration to appear similar to a rendering exception.
-    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getExplicitInput()
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getExplicitInput()
     // @see https://www.drupal.org/project/canvas/issues/3524401
     yield "JS Component with extraneous prop, validation error (since 1.1.0), with hydration exception visible similar to rendering exception" => [
       'component_id' => $component_id,
@@ -1333,7 +1333,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
         'age' => 19,
         'name' => 'Tilly',
         // But instead trigger a crash during hydration.
-        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getExplicitInput()
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getExplicitInput()
         'hydration_should_fail_on_this_non_existent_value' => TRUE,
       ],
       'expected_validation_errors' => [
@@ -1542,7 +1542,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     \assert($component instanceof ComponentInterface);
     $source = $component->getComponentSource();
     \assert($source instanceof ComponentSourceWithSlotsInterface);
-    $rendered_component = $source->renderComponent(self::getDefaultInputForGeneratedInputUx($component), $source->getSlotDefinitions(), 'test-uuid', $preview);
+    $rendered_component = $source->renderComponent(self::getDefaultInputForJsonSchemaProps($component), $source->getSlotDefinitions(), 'test-uuid', $preview);
     self::assertArrayHasKey('#import_maps', $rendered_component);
     self::assertArrayHasKey(ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS, $rendered_component['#import_maps']);
     $scoped_import_maps = $rendered_component['#import_maps']['scopes'];
@@ -1591,7 +1591,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       $autoSave->saveEntity(
         $js_component,
       );
-      $rendered_component = $source->renderComponent(self::getDefaultInputForGeneratedInputUx($component), $source->getSlotDefinitions(), 'test-uuid', $preview);
+      $rendered_component = $source->renderComponent(self::getDefaultInputForJsonSchemaProps($component), $source->getSlotDefinitions(), 'test-uuid', $preview);
       self::assertArrayHasKey('#import_maps', $rendered_component);
       self::assertArrayHasKey(ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS, $rendered_component['#import_maps']);
       self::assertEmpty($rendered_component['#import_maps'][ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS]);
@@ -2715,7 +2715,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
   /**
    * {@inheritdoc}
    *
-   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentInstanceInputsConfigSchemaGenerator
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator
    */
   public static function providerSymmetricallyTranslatableComponentInstanceScenarios(string $host_entity_type_id): \Generator {
     foreach (SingleDirectoryComponentTest::providerSymmetricallyTranslatableComponentInstanceScenarios($host_entity_type_id) as $label => $test_case) {

@@ -201,7 +201,7 @@ export interface EvaluatedComponentModel extends ComponentModel {
   // (PropSources are used by ComponentSources without an explicit input UX, but only a schema — such as SDCs. The
   // schema is mapped to PropSources that are able to meet the schema expectations, and to resolve the values stored in
   // those PropSources, evaluation is needed.)
-  // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+  // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase
   // @see docs/components.md#3.1.1
   // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent
   // @see docs/components.md#3.3.1

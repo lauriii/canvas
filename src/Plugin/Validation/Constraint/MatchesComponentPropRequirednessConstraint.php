@@ -10,8 +10,8 @@ use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 /**
  * Validation constraint for comparing component prop requiredness.
  *
- * @see `type: canvas.generated_field_explicit_input_ux`
- * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+ * @see `type: canvas.json_schema_props`
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase
  */
 #[Constraint(
   id: 'MatchesComponentPropRequiredness',

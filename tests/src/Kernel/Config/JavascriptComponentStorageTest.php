@@ -140,7 +140,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
     // Use a non-storable prop shape. The JavaScript Component config entity's
     // config schema SHOULD prevent the component author from choosing props
     // that the Drupal Canvas cannot generate an input UX for.
-    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase
     // @see the `Choice` constraints on `type: canvas.js_component.*`'s for prop `format`.
     $props['title']['format'] = 'hostname';
     $js_component->setProps($props);

@@ -10,7 +10,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -60,7 +60,7 @@ use Twig\Error\SyntaxError;
 #[CoversClass(SingleDirectoryComponent::class)]
 #[Group('canvas')]
 #[Group('canvas_component_sources')]
-final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxComponentSourceBaseTestBase {
+final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
 
   use SingleDirectoryComponentTreeTestTrait;
 
@@ -269,7 +269,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
     // input UX: verifying this results in working `StaticPropSource`s is
     // sufficient, everything beyond that is covered by PropShapeRepositoryTest.
     // @see \Drupal\Tests\canvas\Kernel\PropShapeRepositoryTest::testPropShapesYieldWorkingStaticPropSources()
-    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase
     $components = $this->componentStorage->loadMultiple($component_ids);
     foreach ($components as $component_id => $component) {
       // Use reflection to test the private ::getDefaultStaticPropSource() method.
@@ -317,7 +317,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
 
     $rendered = $this->renderComponentsLive(
       $component_ids,
-      get_default_input: [__CLASS__, 'getDefaultInputForGeneratedInputUx'],
+      get_default_input: [__CLASS__, 'getDefaultInputForJsonSchemaProps'],
     );
 
     $default_render_cache_contexts = [
@@ -1522,7 +1522,7 @@ HTML
     // instances created before 1.1.0 may still exist (they are not
     // automatically updated), so expect the exception that occurs during
     // hydration to appear similar to a rendering exception.
-    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getExplicitInput()
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getExplicitInput()
     // @see https://www.drupal.org/project/canvas/issues/3524401
     yield "SDC with extraneous prop, validation error (since 1.1.0), with hydration exception visible similar to rendering exception" => [
       'component_id' => 'sdc.canvas_test_sdc.crash',
@@ -1530,7 +1530,7 @@ HTML
         // Do not trigger a crash in the render logic.
         'crash' => FALSE,
         // But instead trigger a crash during hydration.
-        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getExplicitInput()
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getExplicitInput()
         'hydration_should_fail_on_this_non_existent_value' => TRUE,
       ],
       'expected_validation_errors' => [
@@ -1559,7 +1559,7 @@ HTML
     yield "SDC with invalid prop type is cast by typed data, raises exception" => [
       'component_id' => 'sdc.canvas_test_sdc.crash',
       'inputs' => [
-        'crash' => 'this is is not a boolean prop but gets cast to TRUE by \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::validateComponentInput',
+        'crash' => 'this is is not a boolean prop but gets cast to TRUE by \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::validateComponentInput',
       ],
       'expected_validation_errors' => [],
       'expected_exception' => [
@@ -2279,7 +2279,7 @@ HTML
             'field_instance_settings' => [],
             'field_widget' => 'image_image',
             // ⚠️ Empty default value.
-            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
@@ -2294,7 +2294,7 @@ HTML
             'field_instance_settings' => [],
             'field_widget' => 'image_image',
             // ⚠️ Empty default value.
-            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
@@ -2318,7 +2318,7 @@ HTML
             'field_instance_settings' => [],
             'field_widget' => 'image_image',
             // ⚠️ Empty default value.
-            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
@@ -2333,7 +2333,7 @@ HTML
             'field_instance_settings' => [],
             'field_widget' => 'image_image',
             // ⚠️ Empty default value.
-            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
@@ -2348,7 +2348,7 @@ HTML
             'field_instance_settings' => [],
             'field_widget' => 'image_image',
             // ⚠️ Empty default value.
-            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
@@ -2376,7 +2376,7 @@ HTML
             'field_instance_settings' => [],
             'field_widget' => 'image_image',
             // ⚠️ Empty default value.
-            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
@@ -2387,7 +2387,7 @@ HTML
             'field_instance_settings' => [],
             'field_widget' => 'image_image',
             // ⚠️ Empty default value.
-            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
@@ -2398,7 +2398,7 @@ HTML
             'field_instance_settings' => [],
             'field_widget' => 'image_image',
             // ⚠️ Empty default value.
-            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
@@ -6890,7 +6890,7 @@ HTML
     \assert($component instanceof Component);
     $component_source = $component->getComponentSource();
     // It can only be Code components or SDC.
-    \assert($component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+    \assert($component_source instanceof JsonSchemaPropsComponentSourceBase);
     $actual_model_client = $component_source->inputToClientModel($explicit_input);
     $this->assertEquals($expected_client_model, $actual_model_client);
   }
@@ -7294,7 +7294,7 @@ HTML
    * items should be filtered out, and the remaining valid items should be
    * retained for validation — rather than discarding the entire prop.
    *
-   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::validateComponentInput()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::validateComponentInput()
    */
   public function testValidateComponentInputFiltersEmptyItemsForMultiCardinalityProps(): void {
     $this->generateComponentConfig();
@@ -7339,7 +7339,7 @@ HTML
    * the last item (setRequired(TRUE) is only passed for required array props
    * that also have minItems: 1).
    *
-   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::validateComponentInput()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::validateComponentInput()
    * @see https://www.drupal.org/project/canvas/issues/3516754
    */
   public function testValidateComponentInputRejectsEmptyRequiredMultiCardinalityProp(): void {
@@ -7388,7 +7388,7 @@ HTML
   /**
    * Tests that clientModelToInput() retains empty arrays for required multi-cardinality props.
    *
-   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::clientModelToInput()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::clientModelToInput()
    */
   public function testClientModelToInputRetainsEmptyArrayForRequiredMultiCardinalityProp(): void {
     $this->generateComponentConfig();
@@ -7433,8 +7433,8 @@ HTML
    * props whose schema is URI-shaped (`format`) or enumerated must not use that
    * path; an empty value is omitted from the returned input.
    *
-   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::clientModelToInput()
-   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::validateComponentInput()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::clientModelToInput()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::validateComponentInput()
    */
   public function testClientModelToInputRetainsRequiredEmptyProseProps(): void {
     $this->generateComponentConfig();
@@ -7591,7 +7591,7 @@ HTML
       $component = Component::load($case['component_id']);
       $this->assertInstanceOf(Component::class, $component, $label);
       $source = $component->getComponentSource();
-      $this->assertInstanceOf(GeneratedFieldExplicitInputUxComponentSourceBase::class, $source, $label);
+      $this->assertInstanceOf(JsonSchemaPropsComponentSourceBase::class, $source, $label);
 
       $input = $source->clientModelToInput(
         'a-uuid-for-testing',
@@ -7633,7 +7633,7 @@ HTML
    * assertion that guarantees every required prop has an entry in $inputValues.
    *
    * @see https://www.drupal.org/project/canvas/issues/3583639
-   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::clientModelToInput()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::clientModelToInput()
    */
   public function testClientModelToInputDefaultsToZeroForRequiredIntegerProp(): void {
     $this->generateComponentConfig();
@@ -7698,7 +7698,7 @@ HTML
   /**
    * {@inheritdoc}
    *
-   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentInstanceInputsConfigSchemaGenerator
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator
    */
   public static function providerSymmetricallyTranslatableComponentInstanceScenarios(string $host_entity_type_id): \Generator {
     yield 'Single-cardinality; All-StaticPropSource inputs' => [

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
@@ -35,7 +35,7 @@ final class MatchesComponentPropRequirednessConstraintValidator extends Constrai
       return;
     }
 
-    \assert($source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+    \assert($source instanceof JsonSchemaPropsComponentSourceBase);
     $component_schema = $source->getMetadata()->schema;
 
     /** @phpstan-ignore method.nonObject */
