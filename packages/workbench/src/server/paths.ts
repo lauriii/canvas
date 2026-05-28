@@ -20,6 +20,9 @@ export interface WorkbenchPaths {
   hostProjectRoot: string;
   packageRoot: string;
   pagesDiscoveryRoot: string;
+  regionsDiscoveryRoot: string;
+  /** Absolute path to the user's optional layout component, or null if absent. */
+  layoutPath: string;
   runningInsideWorkbenchPackage: boolean;
   watchRoots: string[];
   workbenchSourceRoot: string;
@@ -64,11 +67,17 @@ export function resolveWorkbenchPaths(
     hostProjectRoot,
     canvasConfig.contentTemplatesDir,
   );
+  const regionsDiscoveryRoot = path.resolve(
+    hostProjectRoot,
+    canvasConfig.regionsDir,
+  );
+  const layoutPath = path.resolve(hostProjectRoot, canvasConfig.layoutPath);
   const watchRoots = [
     ...new Set([
       componentDiscoveryRoot,
       pagesDiscoveryRoot,
       contentTemplatesDiscoveryRoot,
+      regionsDiscoveryRoot,
     ]),
   ];
 
@@ -94,6 +103,8 @@ export function resolveWorkbenchPaths(
     hostProjectRoot,
     packageRoot,
     pagesDiscoveryRoot,
+    regionsDiscoveryRoot,
+    layoutPath,
     runningInsideWorkbenchPackage,
     watchRoots,
     workbenchSourceRoot,

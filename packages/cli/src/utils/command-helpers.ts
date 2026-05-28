@@ -38,6 +38,7 @@ export function updateConfigFromOptions(options: {
   scope?: string;
   includePages?: boolean;
   includeContentTemplates?: boolean;
+  includeRegions?: boolean;
   includeBrandKit?: boolean;
   all?: boolean;
   aliasBaseDir?: string;
@@ -53,6 +54,9 @@ export function updateConfigFromOptions(options: {
   if (typeof options.includeContentTemplates === 'boolean') {
     setConfig({ includeContentTemplates: options.includeContentTemplates });
   }
+  if (typeof options.includeRegions === 'boolean') {
+    setConfig({ includeRegions: options.includeRegions });
+  }
   if (typeof options.includeBrandKit === 'boolean') {
     setConfig({ includeBrandKit: options.includeBrandKit });
   }
@@ -67,6 +71,7 @@ export function updateConfigFromOptions(options: {
         currentConfig.includePages,
         currentConfig.includeBrandKit,
         currentConfig.includeContentTemplates,
+        currentConfig.includeRegions,
       ),
     });
   }

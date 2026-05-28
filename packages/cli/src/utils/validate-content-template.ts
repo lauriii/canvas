@@ -5,7 +5,7 @@ import Ajv from 'ajv/dist/2020.js';
 import { loadComponentsMetadata } from '@drupal-canvas/discovery';
 
 import contentTemplateSpecSchema from '../../../workbench/src/lib/schemas/content-template-spec.schema.json';
-import { authoredElementsToComponentTree } from './content-templates';
+import { authoredElementMapToComponentTree } from './authored-elements';
 import { collectUnreconciledMediaProps } from './prop-transforms';
 
 import type {
@@ -193,7 +193,7 @@ export async function validateContentTemplates(
         const previewEntityId = suggestionCache.get(cacheKey)!;
         if (previewEntityId) {
           try {
-            const tree = authoredElementsToComponentTree(
+            const tree = authoredElementMapToComponentTree(
               elements,
               componentVersions,
             );

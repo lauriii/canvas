@@ -15,6 +15,7 @@ export type {
   DiscoveredComponent,
   DiscoveredContentTemplate,
   DiscoveredPage,
+  DiscoveredRegion,
   DiscoveryOptions,
   DiscoveryResult,
   DiscoveryWarning,

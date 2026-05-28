@@ -14,6 +14,7 @@ import { selectLocalComponents } from '../utils/component-selector.js';
 import { reportResults } from '../utils/report-results.js';
 import { validateContentTemplates } from '../utils/validate-content-template.js';
 import { validatePages } from '../utils/validate-page.js';
+import { validateRegions } from '../utils/validate-region.js';
 import { validateComponent } from '../utils/validate.js';
 
 import type { Command } from 'commander';
@@ -99,6 +100,7 @@ export function validateCommand(program: Command): void {
             componentRoot: config.componentDir,
             pagesRoot: config.pagesDir,
             contentTemplatesRoot: config.contentTemplatesDir,
+            regionsRoot: config.regionsDir,
             projectRoot: process.cwd(),
           });
           componentDirectoriesToValidate = discoveryResult.components.map(
@@ -174,6 +176,25 @@ export function validateCommand(program: Command): void {
           ctSpinner.stop(
             chalk.green(
               `Processed ${ctCount} ${pluralize(ctCount, 'content template')}`,
+            ),
+          );
+        }
+
+        if (discoveryResult && discoveryResult.regions.length > 0) {
+          const regionSpinner = p.spinner();
+          regionSpinner.start(
+            `Validating ${discoveryResult.regions.length} ${pluralize(discoveryResult.regions.length, 'global region')}`,
+          );
+
+          const { results: regionResults } =
+            await validateRegions(discoveryResult);
+          for (const result of regionResults) {
+            results.push({ ...result, itemType: 'Global region' });
+          }
+
+          regionSpinner.stop(
+            chalk.green(
+              `Processed ${discoveryResult.regions.length} ${pluralize(discoveryResult.regions.length, 'global region')}`,
             ),
           );
         }

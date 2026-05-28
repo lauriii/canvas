@@ -75,6 +75,7 @@ async function makeDiscovery(
         relativePath: `content-templates/${slug}.json`,
       },
     ],
+    regions: [],
     warnings: [],
     stats: { scannedFiles: 1, ignoredFiles: 0 },
   };

@@ -1,0 +1,117 @@
+---
+title: Code Components - Workbench global regions
+description: Add global region specs for Workbench previews.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Workbench can preview global region specs from the configured `regionsDir`
+directory. By default, this is the top-level `regions` directory.
+
+Global regions describe content that Canvas renders into a theme region (such
+as a header or footer) for every page on the site. Each region file becomes
+its own preview in Workbench and can also be pushed to Drupal with the CLI.
+Page and content template previews render with the regions around them when a
+[layout file](#layout-file) is present.
+
+## File naming and placement
+
+Place region files in the configured `regionsDir` directory. If `regionsDir`
+is not set in `canvas.config.json`, use the top-level `regions` directory.
+
+```text
+regions/
+  header.json
+  footer.json
+```
+
+Workbench discovers `regions/*.json`. Nested files are ignored.
+
+The region filename becomes the region's machine name. The theme is implicit
+and resolved by Drupal from the site's default theme when pushing.
+
+- `regions/header.json` -> `header`
+- `regions/footer.json` -> `footer`
+
+## Region files
+
+Each region file contains a JSON object.
+
+| Key | Description |
+| --- | --- |
+| `status` | Optional. Whether the region is enabled. Defaults to `true`. |
+| `elements` | Defines the region element tree. |
+
+Each entry in `elements` must include a `type`. It can also include `props`
+and `slots`, which reference other element IDs from the same `elements`
+object.
+
+Each element `type` must match a discovered component name, such as `card` or
+`js.card`. Workbench discovers these component types from the Code Components
+available in your project.
+
+**Example:** `regions/header.json`
+
+```json
+{
+  "status": true,
+  "elements": {
+    "header": {
+      "type": "js.header",
+      "props": {
+        "darkVariant": true,
+        "backgroundColor": "crust"
+      },
+      "slots": {
+        "branding": ["header-logo"],
+        "navigation": ["header-navigation"]
+      }
+    },
+    "header-logo": {
+      "type": "js.logo",
+      "props": {
+        "linkToFrontPage": true
+      }
+    },
+    "header-navigation": {
+      "type": "js.navigation",
+      "props": {}
+    }
+  }
+}
+```
+
+<Aside>Before rendering, Workbench normalizes the authored region format into a [`@json-render/react`](https://json-render.dev)-compatible spec shape (with our [hopefully temporary patch](https://github.com/vercel-labs/json-render/pull/105)) by automatically creating a synthetic `canvas:component-tree` wrapper.</Aside>
+
+## Layout file
+
+When Workbench previews a page or content template, it wraps the output in
+the project's layout component so regions can render around it (header,
+footer, sidebar, etc.). The layout file path is set by the `layoutPath`
+option in `canvas.config.json` and defaults to `./src/layout.jsx`. If the
+file is absent, pages and content templates preview without surrounding
+regions.
+
+The layout module must have a default export that is a React component
+accepting `children`. Use the `Region` component from `drupal-canvas` to slot
+in each region by its machine name (matching the filename in `regionsDir`).
+The component receives the page output as `children`.
+
+**Example:** `src/layout.jsx`
+
+```jsx
+import { Region } from 'drupal-canvas';
+
+export default function Layout({ children }) {
+  return (
+    <>
+      <Region name="header" />
+      <main>{children}</main>
+      <Region name="footer" />
+    </>
+  );
+}
+```
+
+Regions that have no matching file in `regionsDir` render as nothing; pass a
+`fallback` prop to `Region` to render a placeholder while developing.

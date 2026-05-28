@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  authoredSpecToComponentTree,
-  pageToAuthoredSpec,
-  specToAuthoredElementMap,
-} from './pages';
+  authoredElementMapToComponentTree,
+  jsonRenderSpecToAuthoredElementMap,
+} from './authored-elements';
+import { pageToAuthoredSpec } from './pages';
 
 import type {
   AuthoredSpecElementMap,
@@ -12,7 +12,7 @@ import type {
 } from 'drupal-canvas/json-render-utils';
 import type { Page } from '../types/Page';
 
-describe('specToAuthoredElementMap', () => {
+describe('jsonRenderSpecToAuthoredElementMap', () => {
   it('strips the component-tree wrapper and merges children into slots.children', () => {
     const heroId = '11111111-1111-4111-8111-111111111111';
     const textId = '22222222-2222-4222-8222-222222222222';
@@ -45,7 +45,7 @@ describe('specToAuthoredElementMap', () => {
       },
     };
 
-    expect(specToAuthoredElementMap(spec)).toEqual({
+    expect(jsonRenderSpecToAuthoredElementMap(spec)).toEqual({
       [heroId]: {
         type: 'js.hero',
         props: { heading: 'Welcome' },
@@ -78,7 +78,7 @@ describe('specToAuthoredElementMap', () => {
       },
     };
 
-    expect(specToAuthoredElementMap(spec)).toEqual({
+    expect(jsonRenderSpecToAuthoredElementMap(spec)).toEqual({
       [spacerId]: {
         type: 'js.spacer',
         props: {},
@@ -87,7 +87,7 @@ describe('specToAuthoredElementMap', () => {
   });
 });
 
-describe('authoredSpecToComponentTree', () => {
+describe('authoredElementMapToComponentTree', () => {
   it('rebuilds parent and slot relationships from authored slots', () => {
     const heroId = '11111111-1111-4111-8111-111111111111';
     const textId = '22222222-2222-4222-8222-222222222222';
@@ -115,7 +115,7 @@ describe('authoredSpecToComponentTree', () => {
     };
 
     expect(
-      authoredSpecToComponentTree(
+      authoredElementMapToComponentTree(
         elements,
         new Map([
           ['js.hero', heroVersionId],
@@ -171,7 +171,7 @@ describe('authoredSpecToComponentTree', () => {
       },
     };
 
-    const tree = authoredSpecToComponentTree(elements);
+    const tree = authoredElementMapToComponentTree(elements);
     expect(tree).toHaveLength(2);
 
     const hero = tree.find((c) => c.component_id === 'js.hero')!;
@@ -197,7 +197,7 @@ describe('authoredSpecToComponentTree', () => {
       },
     };
 
-    expect(authoredSpecToComponentTree(elements)).toEqual([
+    expect(authoredElementMapToComponentTree(elements)).toEqual([
       {
         uuid: spacerId,
         component_id: 'js.spacer',
@@ -383,7 +383,7 @@ describe('pageToAuthoredSpec', () => {
     });
 
     expect(
-      authoredSpecToComponentTree(
+      authoredElementMapToComponentTree(
         result.elements,
         new Map([
           ['js.hero', 'v1'],

@@ -80,6 +80,7 @@ export interface Config {
   userAgent: string;
   includePages: boolean;
   includeContentTemplates: boolean;
+  includeRegions: boolean;
   includeBrandKit: boolean;
   all?: boolean;
   // The following properties are loaded from canvas.config.json.
@@ -88,8 +89,10 @@ export interface Config {
   componentDir: string;
   pagesDir: string;
   contentTemplatesDir: string;
+  regionsDir: string;
   deprecatedComponentDir: string;
   globalCssPath: string;
+  layoutPath: string;
   fonts?: FontsConfig;
 }
 
@@ -135,16 +138,59 @@ const {
   componentDir,
   pagesDir,
   contentTemplatesDir,
+  regionsDir,
   deprecatedComponentDir,
   globalCssPath,
+  layoutPath,
 } = resolveCanvasConfig({ hostRoot: process.cwd() });
 
 export const DEFAULT_INCLUDE_PAGES = false;
 export const DEFAULT_INCLUDE_CONTENT_TEMPLATES = false;
+export const DEFAULT_INCLUDE_REGIONS = false;
 export const DEFAULT_INCLUDE_BRAND_KIT = false;
 
-const BASE_SCOPE =
+const DEFAULT_SCOPES =
   'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view';
+const PAGE_SCOPES = 'canvas:page:create canvas:page:read canvas:page:edit';
+const CONTENT_TEMPLATE_SCOPES = 'canvas:content_template';
+const REGION_SCOPES = 'canvas:page_region';
+const BRAND_KIT_SCOPES = 'canvas:brand_kit';
+
+export function getDefaultScope(
+  includePages: boolean,
+  includeBrandKit: boolean = false,
+  includeContentTemplates: boolean = false,
+  includeRegions: boolean = false,
+): string {
+  const parts = [DEFAULT_SCOPES];
+  if (includePages) parts.push(PAGE_SCOPES);
+  if (includeContentTemplates) parts.push(CONTENT_TEMPLATE_SCOPES);
+  if (includeRegions) parts.push(REGION_SCOPES);
+  if (includeBrandKit) parts.push(BRAND_KIT_SCOPES);
+  return parts.join(' ');
+}
+
+export function usesManagedDefaultScope(scope: string): boolean {
+  if (scope.length === 0) return true;
+  const tokens = new Set(scope.split(/\s+/).filter(Boolean));
+  const baseTokens = DEFAULT_SCOPES.split(/\s+/);
+  const optionalTokens = new Set(
+    [
+      PAGE_SCOPES,
+      REGION_SCOPES,
+      BRAND_KIT_SCOPES,
+      CONTENT_TEMPLATE_SCOPES,
+    ].flatMap((s) => s.split(/\s+/)),
+  );
+  for (const token of baseTokens) {
+    if (!tokens.has(token)) return false;
+    tokens.delete(token);
+  }
+  for (const token of tokens) {
+    if (!optionalTokens.has(token)) return false;
+  }
+  return true;
+}
 
 export function parseBooleanSetting(value: string): boolean | undefined {
   const normalizedValue = value.trim().toLowerCase();
@@ -159,46 +205,6 @@ export function parseBooleanSetting(value: string): boolean | undefined {
 
   return undefined;
 }
-
-export function getDefaultScope(
-  includePages: boolean,
-  includeBrandKit: boolean = false,
-  includeContentTemplates: boolean = false,
-): string {
-  const parts = [BASE_SCOPE];
-  if (includePages) {
-    parts.push('canvas:page:create canvas:page:read canvas:page:edit');
-  }
-  if (includeContentTemplates) {
-    parts.push('canvas:content_template');
-  }
-  if (includeBrandKit) {
-    parts.push('canvas:brand_kit');
-  }
-  return parts.join(' ');
-}
-
-export function usesManagedDefaultScope(scope: string): boolean {
-  if (scope.length === 0) return true;
-  const tokens = new Set(scope.split(/\s+/));
-  const baseTokens = BASE_SCOPE.split(/\s+/);
-  const optionalTokens = [
-    'canvas:page:create',
-    'canvas:page:read',
-    'canvas:page:edit',
-    'canvas:content_template',
-    'canvas:brand_kit',
-  ];
-  for (const token of baseTokens) {
-    if (!tokens.has(token)) return false;
-    tokens.delete(token);
-  }
-  for (const token of tokens) {
-    if (!optionalTokens.includes(token)) return false;
-  }
-  return true;
-}
-
 function getEnvBoolean(value: string | undefined, fallback: boolean): boolean {
   if (value === undefined) {
     return fallback;
@@ -217,6 +223,11 @@ const includeContentTemplates = getEnvBoolean(
   DEFAULT_INCLUDE_CONTENT_TEMPLATES,
 );
 
+const includeRegions = getEnvBoolean(
+  process.env.CANVAS_INCLUDE_REGIONS,
+  DEFAULT_INCLUDE_REGIONS,
+);
+
 const includeBrandKit = getEnvBoolean(
   process.env.CANVAS_INCLUDE_BRAND_KIT,
   DEFAULT_INCLUDE_BRAND_KIT,
@@ -228,19 +239,27 @@ let config: Config = {
   clientSecret: process.env.CANVAS_CLIENT_SECRET || '',
   scope:
     process.env.CANVAS_SCOPE ||
-    getDefaultScope(includePages, includeBrandKit, includeContentTemplates),
+    getDefaultScope(
+      includePages,
+      includeBrandKit,
+      includeContentTemplates,
+      includeRegions,
+    ),
   userAgent: process.env.CANVAS_USER_AGENT || '',
   includePages,
   includeContentTemplates,
+  includeRegions,
   includeBrandKit,
   aliasBaseDir: aliasBaseDir,
   outputDir: outputDir,
   componentDir: componentDir,
   pagesDir: pagesDir,
   contentTemplatesDir: contentTemplatesDir,
+  regionsDir: regionsDir,
   // We need this because the old commands use './components' as a default.
   deprecatedComponentDir: deprecatedComponentDir,
   globalCssPath: globalCssPath,
+  layoutPath: layoutPath,
   fonts: loadFontsFromBrandKitFile(process.cwd()),
 };
 

@@ -90,3 +90,31 @@ export async function fetchWorkbenchConfig(
   const data = (await response.json()) as WorkbenchConfig;
   return data;
 }
+
+export interface RegionPreviewResponse {
+  spec: Spec;
+  status: boolean;
+}
+
+export async function fetchPreviewRegionSpec(
+  id: string,
+  signal?: AbortSignal,
+): Promise<RegionPreviewResponse> {
+  const response = await fetch(
+    `/__canvas/region-preview-spec?${new URLSearchParams({ id }).toString()}`,
+    { signal },
+  );
+
+  if (!response.ok) {
+    const errorBody = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    throw new Error(
+      errorBody?.error ??
+        `Region preview request failed with status ${response.status}.`,
+    );
+  }
+
+  const data = (await response.json()) as RegionPreviewResponse;
+  return data;
+}

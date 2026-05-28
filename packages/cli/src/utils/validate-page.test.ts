@@ -6,8 +6,8 @@ import { describe, expect, it } from 'vitest';
 import {
   buildElementsValidationContext,
   validateElements,
-  validatePages,
-} from './validate-page';
+} from './validate-elements';
+import { validatePages } from './validate-page';
 
 import type {
   ComponentMetadata,
@@ -115,6 +115,7 @@ describe('validatePages', () => {
           relativePath: 'pages/home.json',
         },
       ],
+      regions: [],
       warnings: [],
       stats: { scannedFiles: 1, ignoredFiles: 0 },
     };
@@ -157,6 +158,7 @@ describe('validatePages', () => {
           relativePath: 'pages/home.json',
         },
       ],
+      regions: [],
       warnings: [],
       stats: { scannedFiles: 1, ignoredFiles: 0 },
     };
@@ -215,6 +217,7 @@ describe('validatePages', () => {
           relativePath: 'pages/new-page.json',
         },
       ],
+      regions: [],
       warnings: [],
       stats: { scannedFiles: 1, ignoredFiles: 0 },
     };

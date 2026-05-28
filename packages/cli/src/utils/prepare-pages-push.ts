@@ -1,12 +1,12 @@
 import fs from 'fs/promises';
 import { loadComponentsMetadata } from '@drupal-canvas/discovery';
 
+import { authoredElementMapToComponentTree } from './authored-elements';
 import {
   formatPagePathAliasChangeError,
   getPathAliasChange,
   normalizePathAlias,
 } from './page-path-alias-validation';
-import { authoredSpecToComponentTree } from './pages';
 import {
   collectUnreconciledMediaProps,
   serializeElementMapForServer,
@@ -77,7 +77,10 @@ export async function preparePages(
       spec.elements ?? {},
       componentMetadata,
     );
-    const components = authoredSpecToComponentTree(elements, componentVersions);
+    const components = authoredElementMapToComponentTree(
+      elements,
+      componentVersions,
+    );
     return {
       uuid: localPage.uuid,
       title: spec.title,

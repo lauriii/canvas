@@ -46,9 +46,12 @@ describe('config', () => {
         globalCssPath: './src/components/global.css',
         includePages: false,
         includeContentTemplates: false,
+        includeRegions: false,
         includeBrandKit: false,
         outputDir: 'dist',
         pagesDir: './pages',
+        regionsDir: './regions',
+        layoutPath: './src/layout.jsx',
         scope:
           'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
         siteUrl: '',
@@ -72,9 +75,12 @@ describe('config', () => {
         globalCssPath: './src/components/global.css',
         includePages: false,
         includeContentTemplates: false,
+        includeRegions: false,
         includeBrandKit: false,
         outputDir: 'dist',
         pagesDir: './pages',
+        regionsDir: './regions',
+        layoutPath: './src/layout.jsx',
         scope:
           'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
         siteUrl: 'https://example.com',
@@ -250,7 +256,7 @@ describe('config', () => {
       vi.stubEnv('CANVAS_CLIENT_SECRET', 'test-secret');
       vi.stubEnv(
         'CANVAS_SCOPE',
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:page_region',
       );
       vi.stubEnv('CANVAS_INCLUDE_PAGES', 'true');
       vi.stubEnv('CANVAS_USER_AGENT', 'simpletest123456');
@@ -269,11 +275,14 @@ describe('config', () => {
         globalCssPath: './src/components/global.css',
         includePages: true,
         includeContentTemplates: false,
+        includeRegions: false,
         includeBrandKit: false,
         outputDir: 'dist',
         pagesDir: './pages',
+        regionsDir: './regions',
+        layoutPath: './src/layout.jsx',
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:page_region',
         siteUrl: 'https://test.example.com',
         userAgent: 'simpletest123456',
       });
@@ -293,6 +302,7 @@ describe('config', () => {
         includeBrandKit: false,
         includeContentTemplates: false,
         includePages: false,
+        includeRegions: false,
         scope:
           'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
         componentDir: 'src/components',
@@ -302,6 +312,8 @@ describe('config', () => {
         globalCssPath: './src/components/global.css',
         outputDir: 'dist',
         pagesDir: './pages',
+        regionsDir: './regions',
+        layoutPath: './src/layout.jsx',
         userAgent: '',
       });
     });
@@ -314,6 +326,17 @@ describe('config', () => {
       expect(getConfig().includePages).toBe(true);
       expect(getConfig().scope).toBe(
         'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit',
+      );
+    });
+
+    it('should enable region scopes when CANVAS_INCLUDE_REGIONS is true', async () => {
+      vi.stubEnv('CANVAS_INCLUDE_REGIONS', 'true');
+
+      const { getConfig } = await import('./config');
+
+      expect(getConfig().includeRegions).toBe(true);
+      expect(getConfig().scope).toBe(
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page_region',
       );
     });
   });

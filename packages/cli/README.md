@@ -183,12 +183,15 @@ to get started.
 | `--include-pages`             | `CANVAS_INCLUDE_PAGES`             | (Optional) Include pages in `pull` and `push`. Defaults to `false`. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                                   |
 | `--include-content-templates` | `CANVAS_INCLUDE_CONTENT_TEMPLATES` | (Optional) Include content templates in `pull` and `push`. Defaults to `false`. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                       |
 | `--include-brand-kit`         | `CANVAS_INCLUDE_BRAND_KIT`         | (Optional) Include brand kit (fonts) in `pull` and `push`. Defaults to `false`. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                       |
+| `--include-regions`           | `CANVAS_INCLUDE_REGIONS`           | (Optional) Include global regions in `pull` and `push`. Defaults to `false`. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                          |
 
 **Note:** When `CANVAS_SCOPE` is unset, the CLI uses the `canvas_oauth`
 defaults. With `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT`, it adds the
 `canvas:brand_kit` scope. With `--include-pages` or `CANVAS_INCLUDE_PAGES`, it
 adds the `canvas:page:*` scopes. With `--include-content-templates` or
 `CANVAS_INCLUDE_CONTENT_TEMPLATES`, it adds the `canvas:content_template` scope.
+With `--include-regions` or `CANVAS_INCLUDE_REGIONS`, it also adds the
+`canvas:page_region` scope.
 
 #### Configuration Precedence
 
@@ -393,6 +396,7 @@ npx canvas pull [options]
 - `--include-content-templates [enabled]`: Include content templates in the pull
   operation
 - `--include-brand-kit [enabled]`: Include Brand Kit fonts in the pull operation
+- `--include-regions [enabled]`: Include global regions in the pull operation
 - `-y, --yes`: Skip all confirmation prompts (non-interactive mode)
 - `--skip-overwrite`: Skip items that already exist locally
 
@@ -438,9 +442,10 @@ npx canvas pull --yes --skip-overwrite
 
 Pulls Code Components and global CSS from your site. Use `--include-pages` or
 `CANVAS_INCLUDE_PAGES=true` to include pages, `--include-content-templates` or
-`CANVAS_INCLUDE_CONTENT_TEMPLATES=true` to include content templates, and
+`CANVAS_INCLUDE_CONTENT_TEMPLATES=true` to include content templates,
 `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT=true` to include Brand Kit
-fonts. Use `--skip-overwrite` to skip items that already exist locally.
+fonts and `--include-regions` or `CANVAS_INCLUDE_REGIONS=true` to include global
+regions. Use `--skip-overwrite` to skip items that already exist locally.
 
 **Fonts:** The pull command fetches fonts from the global Brand Kit, downloads
 font files into a `fonts/` directory, and adds local `src` entries to
@@ -736,6 +741,7 @@ npx canvas push [options]
 - `--include-content-templates [enabled]`: Include content templates in the push
   operation
 - `--include-brand-kit [enabled]`: Include Brand Kit fonts in the push operation
+- `--include-regions [enabled]`: Include global regions in the push operation
 - `-y, --yes`: Skip confirmation prompts (non-interactive mode)
 
 **Examples:**
@@ -794,6 +800,8 @@ Tailwind CSS, and uploads the selected content to your Drupal site including:
 8. **Content Templates** - Content templates that define component layouts for
    entity view modes, when enabled with `--include-content-templates` or
    `CANVAS_INCLUDE_CONTENT_TEMPLATES=true`.
+9. **Global regions** - Theme global regions, when enabled with
+   `--include-regions` or `CANVAS_INCLUDE_REGIONS=true`.
 
 ---
 

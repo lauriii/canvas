@@ -53,6 +53,14 @@ export default defineConfig({
                 { label: 'Introduction', slug: 'code-components/workbench' },
                 { label: 'Mocks', slug: 'code-components/workbench/mocks' },
                 { label: 'Pages', slug: 'code-components/workbench/pages' },
+                {
+                  label: 'Content templates',
+                  slug: 'code-components/workbench/content-templates',
+                },
+                {
+                  label: 'Global regions',
+                  slug: 'code-components/workbench/regions',
+                },
               ],
             },
           ],

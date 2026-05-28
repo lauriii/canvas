@@ -32,10 +32,16 @@ import {
   pushBuiltComponents,
   uploadGlobalAssetLibrary,
 } from '../utils/prepare-push';
+import {
+  collectRegionResults,
+  prepareRegions,
+  pushRegions,
+} from '../utils/prepare-regions-push';
 import { reportResults } from '../utils/report-results';
 import { createProgressCallback, processInPool } from '../utils/request-pool';
 import { validateContentTemplates } from '../utils/validate-content-template';
 import { validatePages } from '../utils/validate-page';
+import { validateRegions } from '../utils/validate-region';
 
 import type { Command } from 'commander';
 import type { ApiService } from '../services/api.js';
@@ -56,6 +62,7 @@ interface PushOptions {
   scope?: string;
   includePages?: boolean;
   includeContentTemplates?: boolean;
+  includeRegions?: boolean;
   includeBrandKit?: boolean;
   dir?: string;
   yes?: boolean;
@@ -301,6 +308,15 @@ export function pushCommand(program: Command): void {
     )
     .addOption(
       new Option(
+        '--include-regions [enabled]',
+        'Include global regions in the push operation',
+      )
+        .preset('true')
+        .argParser(parseBooleanOption)
+        .default(undefined),
+    )
+    .addOption(
+      new Option(
         '--include-brand-kit [enabled]',
         'Include brand kit (fonts) in the push operation',
       )
@@ -323,19 +339,22 @@ export function pushCommand(program: Command): void {
         const { componentDir, aliasBaseDir, outputDir } = config;
         const includesPages = config.includePages;
         const includesContentTemplates = config.includeContentTemplates;
+        const includesRegions = config.includeRegions;
         const includesBrandKit = config.includeBrandKit;
         const hasBrandKitFontsConfig = config.fonts !== undefined;
-        // Step 1. Discover all components, pages, and content templates.
+        // Step 1. Discover all components, pages, content templates and regions.
         const discoveryResult = await discoverCanvasProject({
           componentRoot: componentDir,
           pagesRoot: config.pagesDir,
           contentTemplatesRoot: config.contentTemplatesDir,
+          regionsRoot: config.regionsDir,
           projectRoot: process.cwd(),
         });
         const {
           components,
           pages: allDiscoveredPages,
           contentTemplates: allDiscoveredContentTemplates,
+          regions: allDiscoveredRegions,
           warnings,
         } = discoveryResult;
         const discoveredPages = includesPages ? allDiscoveredPages : [];
@@ -345,11 +364,15 @@ export function pushCommand(program: Command): void {
           : [];
         const hasIgnoredContentTemplates =
           !includesContentTemplates && allDiscoveredContentTemplates.length > 0;
+        const discoveredRegions = includesRegions ? allDiscoveredRegions : [];
+        const hasIgnoredRegions =
+          !includesRegions && allDiscoveredRegions.length > 0;
 
         if (
           components.length === 0 &&
           discoveredPages.length === 0 &&
           discoveredContentTemplates.length === 0 &&
+          discoveredRegions.length === 0 &&
           !(includesBrandKit && hasBrandKitFontsConfig)
         ) {
           if (hasIgnoredPages) {
@@ -362,7 +385,15 @@ export function pushCommand(program: Command): void {
               'Ignoring local content templates. Use --include-content-templates or set CANVAS_INCLUDE_CONTENT_TEMPLATES=true to push them.',
             );
           }
-          p.log.warn('No components, pages, or content templates found.');
+          p.log.warn(
+            'No components, pages, content templates or global regions found.',
+          );
+          if (hasIgnoredRegions) {
+            p.log.info(
+              'Ignoring local global regions. Use --include-regions or set CANVAS_INCLUDE_REGIONS=true to push them.',
+            );
+          }
+          p.log.warn('No components, pages, or global regions found.');
           p.outro('Push aborted (nothing to push)');
           return;
         }
@@ -371,11 +402,12 @@ export function pushCommand(program: Command): void {
           components.length === 0 &&
           discoveredPages.length === 0 &&
           discoveredContentTemplates.length === 0 &&
+          discoveredRegions.length === 0 &&
           includesBrandKit &&
           hasBrandKitFontsConfig
         ) {
           p.log.info(
-            'No components, pages, or content templates found; syncing Brand Kit fonts from canvas.brand-kit.json.',
+            'No components, pages, content templates or global regions found; syncing Brand Kit fonts from canvas.brand-kit.json.',
           );
         }
 
@@ -392,6 +424,12 @@ export function pushCommand(program: Command): void {
         if (hasIgnoredContentTemplates && components.length > 0) {
           p.log.info(
             'Ignoring local content templates. Use --include-content-templates or set CANVAS_INCLUDE_CONTENT_TEMPLATES=true to push them.',
+          );
+        }
+
+        if (hasIgnoredRegions && components.length > 0) {
+          p.log.info(
+            'Ignoring local global regions. Use --include-regions or set CANVAS_INCLUDE_REGIONS=true to push them.',
           );
         }
 
@@ -421,7 +459,7 @@ export function pushCommand(program: Command): void {
           remotePageByUuid.set(remotePage.uuid, remotePage);
         }
 
-        // Fetch remote content templates early for the planned summary.
+        // Fetch remote content templates early for the planned operations summary.
         const remoteContentTemplates =
           includesContentTemplates && discoveredContentTemplates.length > 0
             ? await apiService.listContentTemplates()
@@ -433,6 +471,26 @@ export function pushCommand(program: Command): void {
         for (const remote of Object.values(remoteContentTemplates)) {
           remoteContentTemplateById.set(remote.id, remote);
         }
+
+        // Fetch remote page regions early for the planned operations summary.
+        const remoteRegions = includesRegions
+          ? await apiService.listRegions()
+          : {};
+        // Map each remote region's name to its full `{theme}.{region}` id so
+        // the push step can resolve the PATCH/DELETE target without needing
+        // the theme in the local file.
+        const remoteRegionIdsByName = new Map(
+          Object.values(remoteRegions).map(
+            (r) => [r.region, `${r.theme}.${r.region}`] as const,
+          ),
+        );
+        const localRegionNames = new Set(
+          discoveredRegions.map((r) => r.region),
+        );
+        // Remote regions absent locally are deleted on push.
+        const remoteRegionNamesToDelete = Array.from(
+          remoteRegionIdsByName.keys(),
+        ).filter((name) => !localRegionNames.has(name));
 
         // Build a preview of planned operations.
         const operationLabels: Record<string, string> = {
@@ -494,6 +552,24 @@ export function pushCommand(program: Command): void {
               ],
             };
           }),
+          ...discoveredRegions.map((region) => ({
+            itemName: region.region,
+            itemType: 'Global region',
+            success: true,
+            details: [
+              {
+                content: remoteRegionIdsByName.has(region.region)
+                  ? operationLabels.update
+                  : operationLabels.create,
+              },
+            ],
+          })),
+          ...remoteRegionNamesToDelete.map((name) => ({
+            itemName: name,
+            itemType: 'Global region',
+            success: true,
+            details: [{ content: operationLabels.delete }],
+          })),
           ...(includesBrandKit && config.fonts !== undefined
             ? buildFontPushPlannedResults(config.fonts, remoteBrandKitFonts, {
                 create: operationLabels.create,
@@ -523,6 +599,11 @@ export function pushCommand(program: Command): void {
           if (discoveredPages.length > 0) {
             parts.push(
               `${discoveredPages.length} ${pluralize(discoveredPages.length, 'page')}`,
+            );
+          }
+          if (discoveredRegions.length > 0) {
+            parts.push(
+              `${discoveredRegions.length} global ${pluralize(discoveredRegions.length, 'region')}`,
             );
           }
           if (includesBrandKit && hasBrandKitFontsConfig) {
@@ -857,6 +938,104 @@ export function pushCommand(program: Command): void {
           }
         }
 
+        // Validate and push global regions.
+        if (
+          discoveredRegions.length > 0 ||
+          remoteRegionNamesToDelete.length > 0
+        ) {
+          let validRegions: Awaited<
+            ReturnType<typeof prepareRegions>
+          >['valid'] = [];
+
+          if (discoveredRegions.length > 0) {
+            const regionValidationSpinner = p.spinner();
+            regionValidationSpinner.start(
+              `Validating ${discoveredRegions.length} global ${pluralize(discoveredRegions.length, 'region')}`,
+            );
+
+            const { results: regionValidationResults } =
+              await validateRegions(discoveryResult);
+
+            regionValidationSpinner.stop(
+              chalk.green(
+                `Validated ${discoveredRegions.length} global ${pluralize(discoveredRegions.length, 'region')}`,
+              ),
+            );
+
+            if (regionValidationResults.some((r) => !r.success)) {
+              reportResults(
+                regionValidationResults,
+                'Global region validation results',
+                'Global region',
+              );
+              throw new Error(
+                'Global region validation failed. Fix the errors above before pushing.',
+              );
+            }
+
+            const componentVersions = await apiService.listComponentVersions();
+
+            const regionPrepSpinner = p.spinner();
+            regionPrepSpinner.start(
+              `Preparing ${discoveredRegions.length} global ${pluralize(discoveredRegions.length, 'region')}`,
+            );
+            const { valid, failed: failedRegionPreps } = await prepareRegions(
+              discoveredRegions,
+              componentVersions,
+              discoveryResult,
+            );
+            validRegions = valid;
+            regionPrepSpinner.stop(
+              chalk.green(
+                `Prepared ${validRegions.length} global ${pluralize(validRegions.length, 'region')}`,
+              ),
+            );
+
+            if (failedRegionPreps.length > 0) {
+              const failedResults = collectRegionResults(
+                [],
+                failedRegionPreps,
+                discoveredRegions,
+              );
+              reportResults(
+                failedResults,
+                'Global region validation results',
+                'Global region',
+              );
+              throw new Error(
+                'Global region validation failed. Fix the errors above before pushing.',
+              );
+            }
+          }
+
+          const regionPushSpinner = p.spinner();
+          regionPushSpinner.start('Pushing global regions');
+          const regionPushResults = await pushRegions(
+            validRegions,
+            remoteRegionIdsByName,
+            apiService,
+            remoteRegionNamesToDelete,
+          );
+          regionPushSpinner.stop(
+            chalk.green(
+              `Processed ${regionPushResults.length} global ${pluralize(regionPushResults.length, 'region')}`,
+            ),
+          );
+
+          const regionResults = collectRegionResults(
+            regionPushResults,
+            [],
+            discoveredRegions,
+          );
+          if (regionResults.length > 0) {
+            reportResults(
+              regionResults,
+              'Pushed global regions',
+              'Global region',
+            );
+          }
+        }
+
         await apiService.signalPushComplete();
         const componentCount = components.length;
         const parts = [];
@@ -874,6 +1053,11 @@ export function pushCommand(program: Command): void {
               pushedContentTemplateCount,
               'content template',
             )}`,
+          );
+        }
+        if (discoveredRegions.length > 0) {
+          parts.push(
+            `${discoveredRegions.length} global ${pluralize(discoveredRegions.length, 'region')}`,
           );
         }
         if (includeGlobalCss) {

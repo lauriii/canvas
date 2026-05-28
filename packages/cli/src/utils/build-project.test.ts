@@ -151,6 +151,7 @@ describe('buildCanvasProject', () => {
       components: [component],
       pages: [],
       contentTemplates: [],
+      regions: [],
       warnings: [],
       stats: {
         scannedFiles: 2,
@@ -242,6 +243,7 @@ describe('buildCanvasProject', () => {
           components: [],
           pages: [],
           contentTemplates: [],
+          regions: [],
           warnings: [],
           stats: {
             scannedFiles: 0,

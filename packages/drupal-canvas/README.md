@@ -376,6 +376,47 @@ export default function MyComponent({ photo }) {
 }
 ```
 
+### Region / RegionsProvider
+
+Render Drupal Canvas global regions inside a layout component.
+`<Region name="..." />` slots in the region whose machine name matches `name`,
+and `<RegionsProvider regions={...}>` supplies the region node map. On the
+Drupal side, region placement is handled by the active theme; these components
+are used by standalone renderers (such as
+[Workbench](https://project.pages.drupalcode.org/canvas/code-components/workbench/regions))
+that compose a page with its surrounding regions on their own.
+
+```jsx
+import { Region } from 'drupal-canvas';
+
+export default function Layout({ children }) {
+  return (
+    <>
+      <Region name="header" />
+      <main>{children}</main>
+      <Region name="footer" />
+    </>
+  );
+}
+```
+
+Pass a `fallback` to render placeholder content when a region is not provided:
+
+```jsx
+<Region name="sidebar" fallback={<aside>No sidebar configured</aside>} />
+```
+
+When composing a renderer outside of Drupal or Workbench, wrap the tree in
+`RegionsProvider` with a map of region machine names to React nodes:
+
+```jsx
+import { RegionsProvider } from 'drupal-canvas';
+
+<RegionsProvider regions={{ header: <SiteHeader />, footer: <SiteFooter /> }}>
+  <Layout>{pageContent}</Layout>
+</RegionsProvider>;
+```
+
 ## Development
 
 The following scripts are available for developing this package:

@@ -10,6 +10,7 @@ export interface DiscoveryOptions {
   componentRoot?: string;
   pagesRoot?: string;
   contentTemplatesRoot?: string;
+  regionsRoot?: string;
   projectRoot?: string;
 }
 
@@ -50,12 +51,19 @@ export interface DiscoveredContentTemplate {
   relativePath: string;
 }
 
+export interface DiscoveredRegion {
+  region: string;
+  path: string;
+  relativePath: string;
+}
+
 export interface DiscoveryResult {
   componentRoot: string;
   projectRoot: string;
   components: DiscoveredComponent[];
   pages: DiscoveredPage[];
   contentTemplates: DiscoveredContentTemplate[];
+  regions: DiscoveredRegion[];
   warnings: DiscoveryWarning[];
   stats: {
     scannedFiles: number;
@@ -78,6 +86,8 @@ export interface CanvasConfig {
   componentDir: string;
   pagesDir: string;
   contentTemplatesDir: string;
+  regionsDir: string;
   deprecatedComponentDir: string;
   globalCssPath: string;
+  layoutPath: string;
 }

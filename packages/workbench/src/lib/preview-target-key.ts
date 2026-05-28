@@ -4,7 +4,7 @@
  * can reset scroll without affecting same-target HMR.
  */
 export function getPreviewTargetKey(
-  renderType: 'component' | 'page',
+  renderType: 'component' | 'page' | 'region',
   renderId: string,
 ): string {
   return `${renderType}:${renderId}`;

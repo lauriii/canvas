@@ -10,6 +10,7 @@ import type {
   DiscoveredComponent,
   DiscoveredContentTemplate,
   DiscoveredPage,
+  DiscoveredRegion,
   DiscoveryOptions,
   DiscoveryResult,
   DiscoveryWarning,
@@ -108,6 +109,24 @@ async function getCandidateContentTemplateFiles(
   });
 }
 
+async function getCandidateRegionFiles(regionsRoot: string): Promise<string[]> {
+  return glob('*.json', {
+    cwd: regionsRoot,
+    nodir: true,
+    dot: true,
+    posix: true,
+    ignore: [...ALWAYS_IGNORED_PATTERNS],
+  });
+}
+
+function parseRegionFilename(filename: string): { region: string } | null {
+  const base = filename.replace(/\.json$/, '');
+  if (!/^[a-z0-9_]+$/.test(base) || base.length === 0) {
+    return null;
+  }
+  return { region: base };
+}
+
 /**
  * Discovers code components under a scan root by pairing metadata files with
  * JavaScript entries.
@@ -139,16 +158,21 @@ export async function discoverCanvasProject(
     options.contentTemplatesRoot ??
       path.join(componentRoot, 'content-templates'),
   );
+  const regionsRoot = path.resolve(
+    options.regionsRoot ?? path.join(componentRoot, 'regions'),
+  );
   const gitignoreMatcher = await readGitignore(projectRoot);
 
   const allCandidates = await getCandidateMetadataFiles(componentRoot);
   const pageCandidates = await getCandidatePageFiles(pagesRoot);
   const contentTemplateCandidates =
     await getCandidateContentTemplateFiles(contentTemplatesRoot);
+  const regionCandidates = await getCandidateRegionFiles(regionsRoot);
   const warnings: DiscoveryWarning[] = [];
   const components: DiscoveredComponent[] = [];
   const pages: DiscoveredPage[] = [];
   const contentTemplates: DiscoveredContentTemplate[] = [];
+  const regions: DiscoveredRegion[] = [];
 
   let ignoredFiles = 0;
 
@@ -272,6 +296,38 @@ export async function discoverCanvasProject(
     });
   }
 
+  for (const regionRelativePath of regionCandidates) {
+    const normalizedRelativePath = toPosixPath(regionRelativePath);
+    const absoluteRegionPath = path.resolve(
+      regionsRoot,
+      normalizedRelativePath,
+    );
+    const projectRelativePath = toPosixPath(
+      path.relative(projectRoot, absoluteRegionPath),
+    );
+
+    if (
+      !projectRelativePath.startsWith('..') &&
+      gitignoreMatcher.ignores(projectRelativePath)
+    ) {
+      ignoredFiles += 1;
+      continue;
+    }
+
+    const filename = path.posix.basename(normalizedRelativePath);
+    const parsed = parseRegionFilename(filename);
+    if (!parsed) {
+      continue;
+    }
+    regions.push({
+      region: parsed.region,
+      path: absoluteRegionPath,
+      relativePath: projectRelativePath.startsWith('..')
+        ? normalizedRelativePath
+        : projectRelativePath,
+    });
+  }
+
   const sortedDirectories = [...byDirectory.keys()].sort();
 
   for (const relativeDirectoryRaw of sortedDirectories) {
@@ -376,6 +432,7 @@ export async function discoverCanvasProject(
   components.sort((a, b) => a.metadataPath.localeCompare(b.metadataPath));
   pages.sort((a, b) => a.path.localeCompare(b.path));
   contentTemplates.sort((a, b) => a.path.localeCompare(b.path));
+  regions.sort((a, b) => a.region.localeCompare(b.region));
 
   const result: DiscoveryResult = {
     componentRoot,
@@ -383,12 +440,14 @@ export async function discoverCanvasProject(
     components,
     pages,
     contentTemplates,
+    regions,
     warnings,
     stats: {
       scannedFiles:
         allCandidates.length +
         pageCandidates.length +
-        contentTemplateCandidates.length,
+        contentTemplateCandidates.length +
+        regionCandidates.length,
       ignoredFiles,
     },
   };

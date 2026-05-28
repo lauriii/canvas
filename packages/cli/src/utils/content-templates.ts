@@ -1,14 +1,7 @@
-import {
-  buildChildToParentMap,
-  buildElementKeyToUuidMap,
-} from './authored-element-utils';
+import { componentTreeToAuthoredElementMap } from './authored-elements';
 import { isRecord } from './utils';
 
-import type {
-  AuthoredSpecElement,
-  AuthoredSpecElementMap,
-  CanvasComponentTree,
-} from 'drupal-canvas/json-render-utils';
+import type { AuthoredSpecElementMap } from 'drupal-canvas/json-render-utils';
 import type { ContentTemplate } from '../types/ContentTemplate';
 
 /**
@@ -28,7 +21,9 @@ function sourceTypePrefix(value: unknown): string | null {
 }
 
 /**
- * Convert a single server prop value into the authored format.
+ * Convert a single server prop value into the authored format. Content
+ * templates are the only authored shape that carries prop expressions —
+ * pages and regions don't support `sourceType`, so they skip this step.
  *
  * - Static prop sources (`{sourceType: "static:...", value: X}`) unwrap to
  *   their inner literal — in authored files, plain values without a
@@ -53,16 +48,6 @@ export function serverPropToAuthored(value: unknown): unknown {
   return value;
 }
 
-/**
- * Convert a single authored prop value back into the server's component_tree
- * format. The server wraps plain literals as static at resolve time, and
- * prop-source objects (`{sourceType, ...}`) are sent verbatim, so this is a
- * pass-through.
- */
-export function authoredPropToServer(value: unknown): unknown {
-  return value;
-}
-
 function translateInputsFromServer(
   inputs: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -71,103 +56,6 @@ function translateInputsFromServer(
     result[key] = serverPropToAuthored(value);
   }
   return result;
-}
-
-function translateInputsToServer(
-  inputs: Record<string, unknown>,
-): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(inputs)) {
-    result[key] = authoredPropToServer(value);
-  }
-  return result;
-}
-
-/**
- * Convert a content template's server `component_tree` into an authored
- * element map.
- */
-export function componentTreeToAuthoredElements(
-  tree: CanvasComponentTree,
-): AuthoredSpecElementMap {
-  const elements: AuthoredSpecElementMap = {};
-
-  // Build a reverse lookup: parent uuid → { [slot]: [childUuids] }
-  const parentToSlots = new Map<string, Record<string, string[]>>();
-  for (const node of tree) {
-    if (!node.parent_uuid || !node.slot) {
-      continue;
-    }
-    const slots = parentToSlots.get(node.parent_uuid) ?? {};
-    const slotChildren = slots[node.slot] ?? [];
-    slotChildren.push(node.uuid);
-    slots[node.slot] = slotChildren;
-    parentToSlots.set(node.parent_uuid, slots);
-  }
-
-  for (const node of tree) {
-    const rawInputs: Record<string, unknown> =
-      typeof node.inputs === 'string'
-        ? safeParseInputs(node.inputs)
-        : isRecord(node.inputs)
-          ? (node.inputs as Record<string, unknown>)
-          : {};
-
-    const element: AuthoredSpecElement = {
-      type: node.component_id,
-      props: translateInputsFromServer(rawInputs),
-    };
-
-    const slots = parentToSlots.get(node.uuid);
-    if (slots && Object.keys(slots).length > 0) {
-      element.slots = slots;
-    }
-
-    elements[node.uuid] = element;
-  }
-
-  return elements;
-}
-
-function safeParseInputs(raw: string): Record<string, unknown> {
-  try {
-    const parsed = JSON.parse(raw);
-    return isRecord(parsed) ? (parsed as Record<string, unknown>) : {};
-  } catch {
-    return {};
-  }
-}
-
-/**
- * Convert an authored element map back to the server's component_tree array.
- */
-export function authoredElementsToComponentTree(
-  elements: AuthoredSpecElementMap,
-  componentVersions?: Map<string, string>,
-): CanvasComponentTree {
-  const keyToUuid = buildElementKeyToUuidMap(Object.keys(elements));
-  const childToParent = buildChildToParentMap(elements);
-
-  const tree: CanvasComponentTree = [];
-  for (const [key, element] of Object.entries(elements)) {
-    const parent = childToParent.get(key);
-    const rawProps = isRecord(element.props)
-      ? (element.props as Record<string, unknown>)
-      : {};
-    const node: Record<string, unknown> = {
-      uuid: keyToUuid.get(key)!,
-      component_id: element.type,
-      component_version: componentVersions?.get(element.type) ?? '',
-      inputs: translateInputsToServer(rawProps),
-    };
-    if (parent) {
-      node.parent_uuid = keyToUuid.get(parent.parentKey) ?? undefined;
-      node.slot = parent.slot;
-    }
-    tree.push(node as unknown as CanvasComponentTree[number]);
-  }
-
-  return tree;
 }
 
 export interface AuthoredContentTemplateFile {
@@ -184,8 +72,9 @@ export interface AuthoredContentTemplateFile {
 export function contentTemplateToAuthored(
   template: ContentTemplate,
 ): AuthoredContentTemplateFile {
-  const elements = componentTreeToAuthoredElements(
+  const elements = componentTreeToAuthoredElementMap(
     template.component_tree ?? [],
+    translateInputsFromServer,
   );
   return {
     label: template.label,

@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { RegionsProvider } from 'drupal-canvas';
 import {
   defineComponentRegistry,
   renderSpec,
@@ -27,7 +28,7 @@ import {
 import { getPreviewTargetKey } from '@wb/lib/preview-target-key';
 import { resolveWorkbenchPreviewNavigation } from '@wb/lib/resolve-workbench-preview-navigation';
 
-import type { ErrorInfo, ReactNode } from 'react';
+import type { ComponentType, ErrorInfo, ReactNode } from 'react';
 import type { EnrichedDiscoveryResult } from '@wb/lib/discovery-client';
 import type {
   PreviewFrameError,
@@ -49,7 +50,7 @@ function postFrameMessage(
 }
 
 interface RenderableState {
-  type: 'component' | 'page';
+  type: 'component' | 'page' | 'region';
   renderId: string;
   node: ReactNode;
 }
@@ -72,8 +73,8 @@ function RenderSignal({
   onRendered,
 }: {
   renderId: string;
-  type: 'component' | 'page';
-  onRendered: (type: 'component' | 'page', renderId: string) => void;
+  type: 'component' | 'page' | 'region';
+  onRendered: (type: 'component' | 'page' | 'region', renderId: string) => void;
 }) {
   useEffect(() => {
     onRendered(type, renderId);
@@ -208,7 +209,45 @@ export function PreviewFrameApp() {
             jsEntryPath: source.jsEntryUrl,
           })),
         );
-        const node = renderSpec(request.payload.spec, registry);
+
+        let node = renderSpec(request.payload.spec, registry);
+
+        // When the request carries a layout payload, render each region into
+        // a node, dynamically import the user's layout component, and wrap
+        // the page output in `<RegionsProvider><Layout>{children}</Layout>`.
+        const layoutPayload = request.payload.layout;
+        if (layoutPayload && request.payload.renderType === 'page') {
+          const renderedRegions: Record<string, ReactNode> = {};
+          for (const [regionName, regionSpec] of Object.entries(
+            layoutPayload.regions,
+          )) {
+            renderedRegions[regionName] = renderSpec(regionSpec, registry);
+          }
+          const layoutModule = (await import(
+            /* @vite-ignore */ layoutPayload.jsEntryUrl
+          )) as { default?: ComponentType<{ children: ReactNode }> };
+          const LayoutComponent = layoutModule.default;
+          if (typeof LayoutComponent !== 'function') {
+            throw new Error(
+              `Layout module at ${layoutPayload.jsEntryUrl} must have a default export that is a React component.`,
+            );
+          }
+          // Cast: workbench's @types/react may not be exact-version-identical
+          // with the one drupal-canvas's emitted .d.ts resolves to, so the
+          // ReactNode type identities differ structurally even when they're
+          // the same shape. Suppress the assignability check at the boundary.
+          const RegionsProviderUntyped =
+            RegionsProvider as unknown as ComponentType<{
+              regions: Record<string, ReactNode>;
+              children: ReactNode;
+            }>;
+          node = (
+            <RegionsProviderUntyped regions={renderedRegions}>
+              <LayoutComponent>{node}</LayoutComponent>
+            </RegionsProviderUntyped>
+          );
+        }
+
         const renderType: RenderableState['type'] = request.payload.renderType;
 
         setActiveRender({

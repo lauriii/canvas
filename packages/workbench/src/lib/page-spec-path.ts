@@ -22,3 +22,12 @@ export function pageSlugFromTopLevelSpecPath(filePath: string): string | null {
 
   return base.slice(0, -'.json'.length);
 }
+
+/**
+ * Whether `filePath` is a top-level Canvas region spec
+ * (e.g. `regions/header.json`).
+ */
+export function isTopLevelRegionSpecPath(filePath: string): boolean {
+  const normalizedPath = filePath.replaceAll('\\', '/');
+  return /(^|\/)regions\/[^/]+\.json$/.test(normalizedPath);
+}

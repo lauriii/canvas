@@ -2,7 +2,8 @@ import fs from 'fs/promises';
 import chalk from 'chalk';
 import { loadComponentsMetadata } from '@drupal-canvas/discovery';
 
-import { authoredElementsToComponentTree } from './content-templates';
+import { authoredElementMapToComponentTree } from './authored-elements';
+import { stripNullableKeysForConfigComponentTree } from './component-tree-payload';
 import { serializeElementMapForServer } from './prop-transforms';
 import { processInPool } from './request-pool';
 import { isRecord } from './utils';
@@ -17,10 +18,7 @@ import type {
   CanvasComponentTree,
 } from 'drupal-canvas/json-render-utils';
 import type { ApiService } from '../services/api';
-import type {
-  ContentTemplate,
-  ContentTemplateListItem,
-} from '../types/ContentTemplate';
+import type { ContentTemplateListItem } from '../types/ContentTemplate';
 import type { Result } from '../types/Result';
 
 export interface ContentTemplatePushResult {
@@ -117,7 +115,7 @@ export async function prepareContentTemplates(
       spec.elements ?? {},
       componentMetadata,
     );
-    const tree = authoredElementsToComponentTree(
+    const tree = authoredElementMapToComponentTree(
       serializedElements,
       componentVersions,
     );
@@ -166,10 +164,14 @@ export async function pushContentTemplates(
     const template = entry.result;
     const remote = remoteById.get(template.id);
 
+    const component_tree = stripNullableKeysForConfigComponentTree(
+      template.components,
+    );
+
     if (remote) {
       await apiService.updateContentTemplate(template.id, {
         status: true,
-        component_tree: template.components,
+        component_tree,
       });
       return {
         label: template.label,
@@ -179,12 +181,13 @@ export async function pushContentTemplates(
     }
 
     await apiService.createContentTemplate({
+      label: template.label,
       entityType: template.entityTypeId,
       bundle: template.bundle,
       viewMode: template.viewMode,
       status: true,
-      component_tree: template.components,
-    } as ContentTemplate);
+      component_tree,
+    });
     return {
       label: template.label,
       id: template.id,
