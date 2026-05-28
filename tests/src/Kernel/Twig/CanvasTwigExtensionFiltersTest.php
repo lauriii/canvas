@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Twig;
 
+// cspell:ignore itok
+
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\canvas\Twig\CanvasTwigExtension;
 use Drupal\Core\Image\ImageFactory;
@@ -16,7 +18,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-// cspell:ignore itok
 /**
  * Tests Twig filter functionality.
  *

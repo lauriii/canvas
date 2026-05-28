@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-// cspell:ignore magnifique Propulsé Bienvenue savoir Découvrez Identité visuelle Nœud prévisualisation Bonjour région utilisant नोड
-
 namespace Drupal\Tests\canvas\Functional;
+
+// cspell:ignore magnifique Propulsé Bienvenue savoir Découvrez Identité visuelle Nœud prévisualisation Bonjour région utilisant नोड
 
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;

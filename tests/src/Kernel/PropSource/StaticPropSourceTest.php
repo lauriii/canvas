@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-// cspell:ignore Qqzr
-
 namespace Drupal\Tests\canvas\Kernel\PropSource;
+
+// cspell:ignore Qqzr
 
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;

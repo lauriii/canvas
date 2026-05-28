@@ -8,4 +8,7 @@
   <rule ref="Canvas.Tests.PhpunitAnnotations">
     <include-pattern>tests/src/*</include-pattern>
   </rule>
+  <rule ref="Canvas.Commenting.CspellIgnorePlacement">
+    <exclude-pattern>tests/fixtures/*</exclude-pattern>
+  </rule>
 </ruleset>

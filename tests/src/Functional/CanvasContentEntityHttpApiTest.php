@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-// cspell:ignore Bwidth
-
 namespace Drupal\Tests\canvas\Functional;
+
+// cspell:ignore Bwidth
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;

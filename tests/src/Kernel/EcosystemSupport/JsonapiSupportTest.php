@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-// cspell:ignore Bwidth Fitok Synx
-
 namespace Drupal\Tests\canvas\Kernel\EcosystemSupport;
+
+// cspell:ignore Bwidth Fitok Synx
 
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-// cspell:ignore msword openxmlformats officedocument wordprocessingml
-
 namespace Drupal\Tests\canvas\Kernel\ShapeMatcher;
+
+// cspell:ignore msword openxmlformats officedocument wordprocessingml
 
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\PropShape\PropShape;

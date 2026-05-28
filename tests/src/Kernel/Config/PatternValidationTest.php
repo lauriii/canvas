@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+// cspell:ignore thisisatestpattern
+
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\PropSource\PropSource;
-// cspell:ignore thisisatestpattern
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;

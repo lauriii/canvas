@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-// cspell:ignore vlaquxuup
 namespace Drupal\Tests\canvas\Kernel\Plugin\Field\FieldType;
+
+// cspell:ignore vlaquxuup
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Element\RenderSafeComponentContainer;

@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Render;
 
+// cspell:ignore razzler
+
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\MainContent\HtmlRenderer;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
-// cspell:ignore razzler
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;

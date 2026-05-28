@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+// cspell:ignore Druplicons
+
 use Drupal\canvas\ComponentIncompatibilityReasonRepository;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\Controller\ApiConfigControllers;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
-// cspell:ignore Druplicons
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;

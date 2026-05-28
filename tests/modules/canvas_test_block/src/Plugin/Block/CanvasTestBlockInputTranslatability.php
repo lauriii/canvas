@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-// cspell:ignore gitane
 namespace Drupal\canvas_test_block\Plugin\Block;
+
+// cspell:ignore gitane
 
 use Drupal\Core\Block\Attribute\Block;
 use Drupal\Core\Block\BlockBase;

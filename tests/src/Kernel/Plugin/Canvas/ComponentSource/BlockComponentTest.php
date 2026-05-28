@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-// cspell:ignore gitane
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
+
+// cspell:ignore gitane
 
 use Drupal\canvas\Block\BlockManagerDecorator;
 use Drupal\canvas\Entity\Component;

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-// cspell:ignore Bwidth
-
 namespace Drupal\canvas\Entity;
+
+// cspell:ignore Bwidth
 
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\Core\File\Exception\FileException;

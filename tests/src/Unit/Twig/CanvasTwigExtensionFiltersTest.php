@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\Twig;
 
+// cspell:ignore fitok itok Bwidth
+
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\canvas\Twig\CanvasTwigExtension;
 use Drupal\Core\File\FileUrlGeneratorInterface;
@@ -14,7 +16,6 @@ use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-// cspell:ignore fitok itok Bwidth
 /**
  * Tests Twig filter functionality.
  *

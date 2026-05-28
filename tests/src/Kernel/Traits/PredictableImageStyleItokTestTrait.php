@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-// cspell:ignore oauth
-
 namespace Drupal\Tests\canvas\Kernel\Traits;
+
+// cspell:ignore oauth
 
 use Drupal\Component\Datetime\Time;
 use Drupal\Core\Site\Settings;

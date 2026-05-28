@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-// cspell:ignore Aangedreven Holle daar staan voor Hallo wereld
-
 namespace Drupal\Tests\canvas\Kernel\Config;
+
+// cspell:ignore Aangedreven Holle daar staan voor Hallo wereld
 
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;

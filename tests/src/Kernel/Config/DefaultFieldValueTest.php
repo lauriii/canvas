@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-// cspell:ignore elink estring
-
 namespace Drupal\Tests\canvas\Kernel\Config;
+
+// cspell:ignore elink estring
 
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator;

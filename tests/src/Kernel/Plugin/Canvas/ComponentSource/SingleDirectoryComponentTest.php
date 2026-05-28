@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+// cspell:ignore Bwidth Fitok Synx
+
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -46,8 +48,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Twig\Error\Error;
 use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
-
-// cspell:ignore Bwidth Fitok Synx
 
 /**
  * Tests Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent.
