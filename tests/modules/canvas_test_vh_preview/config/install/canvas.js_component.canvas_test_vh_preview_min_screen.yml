@@ -1,0 +1,67 @@
+uuid: 8f3e5d9c-2b1a-4c7e-9f2d-8e6a4c5b7d9e
+langcode: en
+status: true
+dependencies:
+  enforced: {  }
+machineName: canvas_test_vh_preview_min_screen
+name: 'VH Min Screen Code'
+required: {  }
+props:
+  label:
+    title: Label
+    type: string
+    examples:
+      - Initial label
+slots: {  }
+js:
+  original: |-
+    export default function VhMinScreen({ label }) {
+      return (
+        <section
+          data-testid="vh-code-min-screen"
+          style={{
+            minHeight: '100vh',
+            backgroundColor: '#eee',
+            fontSize: '64px',
+            lineHeight: '72px',
+            padding: '0',
+            margin: '0',
+          }}
+        >
+          <p
+            data-testid="vh-code-min-screen-label"
+            style={{ margin: '0', wordBreak: 'break-word' }}
+          >
+            {label}
+          </p>
+        </section>
+      );
+    }
+  compiled: |
+    import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+    const VhMinScreen = ({ label })=>{
+        return /*#__PURE__*/ _jsxs("section", {
+            "data-testid": "vh-code-min-screen",
+            style: {
+                minHeight: "100vh",
+                backgroundColor: "#eee",
+                fontSize: "64px",
+                lineHeight: "72px",
+                padding: "0",
+                margin: "0"
+            },
+            children: /*#__PURE__*/ _jsx("p", {
+                "data-testid": "vh-code-min-screen-label",
+                style: {
+                    margin: "0",
+                    wordBreak: "break-word"
+                },
+                children: label
+            })
+        });
+    };
+    export default VhMinScreen;
+css:
+  original: ''
+  compiled: ''
+dataDependencies: []

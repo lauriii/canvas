@@ -2,3 +2,5 @@ name: 'Canvas Test VH In preview'
 type: module
 description: 'Provides components that set height with VH units.'
 package: Testing
+dependencies:
+  - canvas:canvas
