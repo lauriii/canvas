@@ -262,26 +262,30 @@ export function CanvasComponentsMixin<
       const labelLocator = `[data-testid="canvas-contextual-panel"] [data-drupal-selector="component-instance-form"] .field--name-${propName.toLowerCase()} label`;
 
       switch (propType) {
-        case 'file':
+        case 'file': {
+          const fileInput = this.page.locator(`${inputLocator}[type="file"]`);
           // For a moment there's 2 file choosers whilst the elements are processed.
-          await expect(
-            this.page.locator(`${inputLocator}[type="file"]`),
-          ).toHaveCount(1);
-          await expect(
-            this.page.locator(`${inputLocator}[type="file"]`),
-          ).toBeVisible();
-          await this.page
-            .locator(`${inputLocator}[type="file"]`)
-            .setInputFiles(
-              nodePath.join(
-                nodePath.dirname(fileURLToPath(import.meta.url)),
-                propValue,
-              ),
-            );
+          await expect(fileInput).toHaveCount(1);
+          await expect(fileInput).toBeVisible();
+          // Wait until Drupal's fileAutoUpload behavior has attached its change
+          // listener to the input (marked with data-once="auto-file-upload").
+          // Setting the file before then fires no upload AJAX, so the "remove"
+          // button never appears and the test times out (flaky failure).
+          await expect(fileInput).toHaveAttribute(
+            'data-once',
+            /(^|\s)auto-file-upload(\s|$)/,
+          );
+          await fileInput.setInputFiles(
+            nodePath.join(
+              nodePath.dirname(fileURLToPath(import.meta.url)),
+              propValue,
+            ),
+          );
           await expect(
             this.page.getByRole('button', { name: 'remove' }),
           ).toBeVisible();
           break;
+        }
         default:
           await this.page.locator(inputLocator).fill(propValue);
           // Click the label as autocomplete/link fields will not update until the
