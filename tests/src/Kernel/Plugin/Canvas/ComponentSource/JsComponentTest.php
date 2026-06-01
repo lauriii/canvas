@@ -1028,6 +1028,8 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       'props' => $expected_component_props,
     ], $source->getSlotDefinitions(), 'some-uuid', $preview_requested);
 
+    self::assertSame($js_component->id(), $island['#machine_name']);
+
     $this->assertEquals($expected_cacheability, CacheableMetadata::createFromRenderArray($island));
 
     $crawler = $this->crawlerForRenderArray($island);

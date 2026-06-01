@@ -380,6 +380,7 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
       '#uuid' => $componentUuid,
       '#import_maps' => $import_maps,
       '#name' => $component->label(),
+      '#machine_name' => $component->id(),
       '#component_url' => $component_url,
       '#props' => $props + [
         'canvas_uuid' => $componentUuid,

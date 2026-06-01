@@ -21,6 +21,7 @@ use Drupal\Core\Render\Element\RenderElementBase;
  * - #component_url: URL of component to hydrate. This will be a JavaScript
  *   file.
  * - #name: A name for the component.
+ * - #machine_name: Machine name of the source component.
  * - #props: Array of properties for the JavaScript component where the keys are
  *   the prop names and the values are the prop values. Only values that can be
  *   serialized to JSON are supported - such as scalar values or objects that
@@ -47,6 +48,7 @@ use Drupal\Core\Render\Element\RenderElementBase;
  *   '#type' => 'astro_island',
  *   '#uuid' => 'da6bf2a2-3d4b-42a2-bb05-03a0e33a2d79',
  *   '#name' => 'Jazz Hands (elite)',
+ *   '#machine_name' => 'jazz_hands_elite',
  *   '#component_url' => '/uri/to/jazz-hands-elite.js',
  *   '#props' => [
  *     'oscillation_size' => 'extremely_animated',
@@ -76,6 +78,7 @@ final class AstroIsland extends RenderElementBase {
       '#pre_render' => [
         [static::class, 'preRenderIsland'],
       ],
+      '#machine_name' => NULL,
       '#slots' => [],
       '#props' => [],
       '#framework' => 'preact',
