@@ -130,9 +130,11 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public static function getSubscribedEvents(): array {
-    // Lower than the priority of
-    // \Drupal\Core\EventSubscriber\ExceptionJsonSubscriber.
-    $events[KernelEvents::EXCEPTION][] = ['onException', 50];
+    // Run after \Drupal\Core\EventSubscriber\ExceptionLoggingSubscriber
+    // (priority 50) so exceptions on Canvas API routes are still logged, but
+    // before \Drupal\Core\EventSubscriber\ExceptionJsonSubscriber
+    // (priority -75) so Canvas API routes get this JSON response.
+    $events[KernelEvents::EXCEPTION][] = ['onException', -50];
     return $events;
   }
 
