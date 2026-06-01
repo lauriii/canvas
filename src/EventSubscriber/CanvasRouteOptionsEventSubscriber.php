@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\RouteBuildEvent;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Routing\RoutingEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Routing\Route;
@@ -22,7 +25,33 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
 
   public function __construct(
     private readonly RouteMatchInterface $routeMatch,
+    private readonly LanguageManagerInterface $languageManager,
   ) {}
+
+  public function redirectCanvasToDefaultLanguage(RequestEvent $event): void {
+    $request = $event->getRequest();
+    $path = $request->getPathInfo();
+    // Only act on /canvas paths, but not canvas API paths - those handle
+    // language negotiation themselves and must not be redirected.
+    if (!preg_match('#^/[^/]+/canvas(/|$)#', $path) || str_contains($path, '/canvas/api/')) {
+      return;
+    }
+
+    // If the current language differs from the default, the URL will contain a
+    // language prefix (e.g. /es/canvas/editor/canvas_page/1). Strip it with a
+    // 302 redirect so that Canvas always receives a prefix-free path
+    // (/canvas/editor/canvas_page/1).
+    // @todo Remove this redirect once Canvas natively supports
+    //   language-prefixed URLs in
+    //   https://git.drupalcode.org/project/canvas/-/work_items/3546597.
+    $default_langcode = $this->languageManager->getDefaultLanguage()->getId();
+    $current_langcode = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_URL)->getId();
+    if ($current_langcode !== $default_langcode) {
+      $base_path = $request->getBasePath();
+      $canvas_path = preg_replace('#^/' . preg_quote($current_langcode, '#') . '/#', '/', $path);
+      $event->setResponse(new RedirectResponse($base_path . $canvas_path, 302));
+    }
+  }
 
   public function transformWrapperFormatRouteOption(RequestEvent $event): void {
     if (!str_starts_with($this->routeMatch->getRouteName() ?? '', 'canvas.api.')) {
@@ -78,6 +107,7 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
    * {@inheritdoc}
    */
   public static function getSubscribedEvents(): array {
+    $events[KernelEvents::REQUEST][] = ['redirectCanvasToDefaultLanguage', 100];
     $events[KernelEvents::REQUEST][] = ['transformWrapperFormatRouteOption'];
     $events[RoutingEvents::ALTER][] = ['addCsrfToken'];
     $events[RoutingEvents::ALTER][] = ['preventRouteNormalization'];
