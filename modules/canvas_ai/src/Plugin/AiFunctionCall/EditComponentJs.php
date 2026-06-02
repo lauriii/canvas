@@ -11,7 +11,6 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\Component\Serialization\Json;
-use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -90,8 +89,7 @@ final class EditComponentJs extends FunctionCallBase implements ExecutableFuncti
   public function execute(): void {
     try {
       $machine_name = $this->getContextValue('component_machine_name');
-      // Decode HTML entities that LLMs sometimes introduce in code output.
-      $js = Html::decodeEntities($this->getContextValue('javascript'));
+      $js = $this->getContextValue('javascript');
       $props = $this->getContextValue('props_metadata');
       $props_array = Json::decode($props);
       // Check if the component exists.
