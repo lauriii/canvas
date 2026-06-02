@@ -8,6 +8,7 @@ use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
 use Drupal\canvas\ComponentSource\ComponentCandidatesDiscoveryInterface;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -20,18 +21,22 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @phpstan-import-type ComponentSourceSpecificId from \Drupal\canvas\ComponentSource\ComponentCandidatesDiscoveryInterface
  * @internal
  */
-final class JsComponentDiscovery implements ComponentCandidatesDiscoveryInterface {
+final class JsComponentDiscovery extends JsonSchemaPropsComponentDiscoveryBase implements ComponentCandidatesDiscoveryInterface {
 
   public function __construct(
+    PropShapeRepositoryInterface $propShapeRepository,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly EntityTypeManagerInterface $entityTypeManager,
-  ) {}
+  ) {
+    parent::__construct($propShapeRepository);
+  }
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): self {
     return new static(
+      $container->get(PropShapeRepositoryInterface::class),
       $container->get(ConfigFactoryInterface::class),
       $container->get(EntityTypeManagerInterface::class),
     );
@@ -92,7 +97,7 @@ final class JsComponentDiscovery implements ComponentCandidatesDiscoveryInterfac
     $ephemeral_sdc_component = self::buildEphemeralSdcPluginInstance($js_component);
     // @see `type: canvas.component_source_settings.sdc`
     return [
-      'prop_field_definitions' => SingleDirectoryComponent::getPropsForComponentPlugin($ephemeral_sdc_component),
+      'prop_field_definitions' => $this->getPropsForComponentPlugin($ephemeral_sdc_component),
     ];
   }
 

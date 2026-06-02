@@ -17,6 +17,7 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery;
+use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
@@ -466,7 +467,10 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     // Manually create a Component config entity that this source's discovery
     // would not have created because it does not meet requirements. This is
     // considered valid as long as the Component is disabled (`status=FALSE`).
-    $discovery = new SingleDirectoryComponentDiscovery($this->container->get(ComponentPluginManager::class));
+    $discovery = new SingleDirectoryComponentDiscovery(
+      $this->container->get(PropShapeRepositoryInterface::class),
+      $this->container->get(ComponentPluginManager::class),
+    );
     try {
       $discovery->checkRequirements($source_specific_component_id);
       $this->fail("$source_specific_component_id should not meet requirements for the purposes of this test.");

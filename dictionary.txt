@@ -102,6 +102,7 @@ fontshare
 myfont
 nourl
 opsz
+phpat
 placehold
 Postel
 slugified

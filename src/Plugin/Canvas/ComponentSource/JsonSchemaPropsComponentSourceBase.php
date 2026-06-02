@@ -36,7 +36,6 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Field\WidgetPluginManager;
@@ -84,6 +83,8 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * @phpstan-import-type OptimizedExplicitInput from \Drupal\canvas\Plugin\DataType\ComponentInputs
  * @phpstan-import-type OptimizedSingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
  *
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentDiscoveryBase
+ *
  * @internal
  */
 abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase implements ComponentSourceWithSlotsInterface, ContainerFactoryPluginInterface {
@@ -108,7 +109,6 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     array $plugin_definition,
     protected readonly ComponentValidator $componentValidator,
     private readonly WidgetPluginManager $fieldWidgetPluginManager,
-    protected readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly PropSourceSuggester $propSourceSuggester,
     private readonly LoggerChannelInterface $logger,
     protected readonly PropShapeRepositoryInterface $propShapeRepository,
@@ -128,7 +128,6 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $plugin_definition,
       $container->get(ComponentValidator::class),
       $container->get('plugin.manager.field.widget'),
-      $container->get(EntityTypeManagerInterface::class),
       $container->get(PropSourceSuggester::class),
       $container->get('logger.channel.canvas'),
       $container->get(PropShapeRepositoryInterface::class),
@@ -819,6 +818,8 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       // form, abort and inform the user.
       $default_static_source = $this->getDefaultStaticPropSource($sdc_prop_name, FALSE);
       if ($source instanceof StaticPropSource && !$source->hasSameShapeAs($default_static_source)) {
+        // This should never occur: ignore this use of a HTTP-level exception.
+        // @phpstan-ignore-next-line phpat.jsonSchemaPropsComponentSourceBase
         throw new NotAcceptableHttpException(\sprintf(
           "Corrupted component instance detected: an instance of the %s Component (version %s) is being populated using a deviating storage shape for the %s prop. Manually recreate this component in the UI to resolve this.",
           $component->id(),
@@ -1112,85 +1113,6 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
    *   The source label.
    */
   abstract protected function getSourceLabel(): TranslatableMarkup;
-
-  /**
-   * Build the prop settings for an SDC component.
-   *
-   * @param \Drupal\Core\Plugin\Component $component_plugin
-   *   The SDC component.
-   *
-   * @return array<string, array{field_type: string, field_widget: string, expression: string, default_value: mixed, field_storage_settings: array<string, mixed>, field_instance_settings: array<string, mixed>, cardinality?: int}>
-   *   The prop settings.
-   */
-  public static function getPropsForComponentPlugin(ComponentPlugin $component_plugin): array {
-    $props = [];
-    /** @var \Drupal\canvas\PropShape\PropShapeRepositoryInterface $prop_shape_repository */
-    $prop_shape_repository = \Drupal::service(PropShapeRepositoryInterface::class);
-    foreach (self::getComponentInputsForMetadata($component_plugin->pluginId, $component_plugin->metadata) as $cpe_string => $prop_shape) {
-      $cpe = ComponentPropExpression::fromString($cpe_string);
-
-      $storable_prop_shape = $prop_shape_repository->getStorablePropShape($prop_shape);
-      if (\is_null($storable_prop_shape)) {
-        continue;
-      }
-
-      $schema = $component_plugin->metadata->schema ?? [];
-      $props[$cpe->propName] = [
-        'required' => isset($schema['required']) && \in_array($cpe->propName, $schema['required'], TRUE),
-        'field_type' => $storable_prop_shape->fieldTypeProp->getFieldType(),
-        'field_widget' => $storable_prop_shape->fieldWidget,
-        'expression' => (string) $storable_prop_shape->fieldTypeProp,
-        'default_value' => self::computeDefaultFieldValue($storable_prop_shape, $component_plugin->metadata, $cpe->propName),
-        'field_storage_settings' => $storable_prop_shape->fieldStorageSettings ?? [],
-        'field_instance_settings' => $storable_prop_shape->fieldInstanceSettings ?? [],
-      ];
-      if ($storable_prop_shape->cardinality !== NULL) {
-        $props[$cpe->propName]['cardinality'] = $storable_prop_shape->cardinality;
-      }
-    }
-
-    return $props;
-  }
-
-  private static function computeDefaultFieldValue(StorablePropShape $storable_prop_shape, ComponentMetadata $sdc_metadata, string $sdc_prop_name): mixed {
-    // Special case.
-    // TRICKY: Do not store a default value for field types that reference
-    // entities, because that would require those entities to be created.
-    // @see ::getClientSideInfo()
-    if (self::exampleValueRequiresEntity($storable_prop_shape)) {
-      return [];
-    }
-
-    \assert(\is_array($sdc_metadata->schema));
-    // @see https://json-schema.org/understanding-json-schema/reference/object#required
-    // @see https://json-schema.org/learn/getting-started-step-by-step#required
-    $is_required = \in_array($sdc_prop_name, $sdc_metadata->schema['required'] ?? [], TRUE);
-
-    // @see `type: canvas.component.*`
-    \assert(\array_key_exists('properties', $sdc_metadata->schema));
-
-    // TRICKY: need to transform to the array structure that depends on the
-    // field type.
-    // @see `type: field.storage_settings.*`
-    $static_prop_source = $storable_prop_shape->toStaticPropSource();
-    $example_assigned_to_field_item_list = $static_prop_source->withValue(
-      $is_required
-        // Example guaranteed to exist if a required prop.
-        ? $sdc_metadata->schema['properties'][$sdc_prop_name]['examples'][0]
-        // Example may exist if an optional prop.
-        : (
-          \array_key_exists('examples', $sdc_metadata->schema['properties'][$sdc_prop_name]) && \array_key_exists(0, $sdc_metadata->schema['properties'][$sdc_prop_name]['examples'])
-            ? $sdc_metadata->schema['properties'][$sdc_prop_name]['examples'][0]
-            : NULL
-        )
-    )->fieldItemList;
-
-    return !$example_assigned_to_field_item_list->isEmpty()
-      // The actual value in the field if there is one.
-      ? $example_assigned_to_field_item_list->getValue()
-      // If empty: do not store anything in the Component config entity.
-      : NULL;
-  }
 
   /**
    * Whether this storable prop shape needs a (referenceable) entity created.
