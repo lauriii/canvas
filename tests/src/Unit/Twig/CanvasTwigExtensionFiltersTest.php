@@ -82,10 +82,16 @@ class CanvasTwigExtensionFiltersTest extends UnitTestCase {
       self::generateExpectedSrcSetForWidths(ParametrizedImageStyleConverter::ALLOWED_WIDTHS),
     ];
 
-    yield 'complex image with alternateWidths with the image *slightly smaller* than the maximum allowed width' => [
+    yield 'complex image with alternateWidths with the target width *slightly smaller* than the maximum allowed width' => [
       '/sites/default/files/2025-07/Screenshot%202025-07-08%20at%208.56.02.png?alternateWidths=/sites/default/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/2025-07/Screenshot%25202025-07-08%2520at%25208.56.02.png.webp%3Fitok%3DWp4lG4Wk#fragment',
       max(ParametrizedImageStyleConverter::ALLOWED_WIDTHS) - 1,
-      self::generateExpectedSrcSetForWidths(array_slice(ParametrizedImageStyleConverter::ALLOWED_WIDTHS, 0, -1)),
+      self::generateExpectedSrcSetForWidths(ParametrizedImageStyleConverter::ALLOWED_WIDTHS),
+    ];
+
+    yield 'complex image with alternateWidths includes next larger candidate for target width' => [
+      '/sites/default/files/2025-07/Screenshot%202025-07-08%20at%208.56.02.png?alternateWidths=/sites/default/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/2025-07/Screenshot%25202025-07-08%2520at%25208.56.02.png.webp%3Fitok%3DWp4lG4Wk#fragment',
+      400,
+      self::generateExpectedSrcSetForWidths([16, 32, 48, 64, 96, 128, 256, 384, 640]),
     ];
 
     yield 'complex image with alternateWidths with the image *slightly bigger* than the maximum allowed width' => [
@@ -98,10 +104,8 @@ class CanvasTwigExtensionFiltersTest extends UnitTestCase {
       '/sites/default/files/2025-07/Screenshot%202025-07-08%20at%208.56.02.png?alternateWidths=/sites/default/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/2025-07/Screenshot%25202025-07-08%2520at%25208.56.02.png.webp%3Fitok%3DWp4lG4Wk#fragment',
       // Simulate a real image width.
       1245,
-      // Do not generate higher resolutions than 1200.
-      // Same ParametrizedImageStyleConverter::ALLOWED_WIDTHS array but lower
-      // values than 1245, the image's real width.
-      self::generateExpectedSrcSetForWidths([16, 32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200]),
+      // Include the next larger candidate to prevent browser upscaling.
+      self::generateExpectedSrcSetForWidths([16, 32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200, 1920]),
     ];
 
     // @todo Add test cases in https://drupal.org/i/3533563 that test a customized set of allowed widths

@@ -141,12 +141,17 @@ final class CanvasTwigExtension extends AbstractExtension {
 
     \assert(str_contains($template, '{width}'), "Expected '{width}' in template not found");
 
-    // Filter widths greater than the intrinsic width to avoid generating
-    // upscaled images. We still create a srcset candidate when the width is the
-    // same so we can do other things to it like convert it to a more optimized
-    // format.
+    // Include widths up to the target width, plus the next larger allowed
+    // width. This avoids browsers upscaling the largest generated candidate
+    // when the target width falls between two allowed widths.
     // @todo Read this from third-party settings: https://drupal.org/i/3533563
-    $widths = array_filter(ParametrizedImageStyleConverter::ALLOWED_WIDTHS, static fn($w) => $w <= $intrinsicImageWidth);
+    $widths = [];
+    foreach (ParametrizedImageStyleConverter::ALLOWED_WIDTHS as $allowed_width) {
+      $widths[] = $allowed_width;
+      if ($allowed_width > $intrinsicImageWidth) {
+        break;
+      }
+    }
 
     $srcset = \array_map(static fn($w) => str_replace('{width}', (string) $w, $template) . " {$w}w", $widths);
     return implode(', ', $srcset);

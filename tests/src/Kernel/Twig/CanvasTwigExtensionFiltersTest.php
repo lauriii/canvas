@@ -81,7 +81,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
   public static function providerToSrcSet(): \Generator {
     $actual_width = 640;
     $expect_all_srcset_widths = self::generateExpectedSrcSet(
-      array_filter(ParametrizedImageStyleConverter::ALLOWED_WIDTHS, fn($w) => $w <= $actual_width)
+      self::getWidthsIncludingNextLarger($actual_width)
     );
 
     yield 'public stream wrapper image' => [
@@ -106,9 +106,23 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       'public://balloons.png',
       200,
       self::generateExpectedSrcSet(
-        array_filter(ParametrizedImageStyleConverter::ALLOWED_WIDTHS, fn($w) => $w <= 200)
+        self::getWidthsIncludingNextLarger(200)
       ),
     ];
+  }
+
+  /**
+   * Gets allowed widths up to the target width, plus the next larger width.
+   */
+  private static function getWidthsIncludingNextLarger(int $target_width): array {
+    $widths = [];
+    foreach (ParametrizedImageStyleConverter::ALLOWED_WIDTHS as $allowed_width) {
+      $widths[] = $allowed_width;
+      if ($allowed_width > $target_width) {
+        break;
+      }
+    }
+    return $widths;
   }
 
   /**

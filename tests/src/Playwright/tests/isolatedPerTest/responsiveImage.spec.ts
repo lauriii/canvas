@@ -55,6 +55,7 @@ test.describe('Responsive Image', () => {
     const previewSrcset = await previewImg.getAttribute('srcset');
     const defaultWidths = [
       16, 32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200, 1920, 2048,
+      3840,
     ];
     const matches = previewSrcset.match(/itok=[^&\s]+/g);
     expect(matches).toHaveLength(defaultWidths.length);
@@ -65,11 +66,9 @@ test.describe('Responsive Image', () => {
       expect(previewSrcset).toContain(` ${width}w`);
     });
 
-    // The default widths also contain 3840 but the source image is smaller so it shouldn't be generated.
-    expect(previewSrcset).not.toContain(
-      '/styles/canvas_parametrized_width--3840',
-    );
-    expect(previewSrcset).not.toContain(' 3840w');
+    // The next larger default width is generated so the browser can downscale instead of upscaling.
+    expect(previewSrcset).toContain('/styles/canvas_parametrized_width--3840');
+    expect(previewSrcset).toContain(' 3840w');
 
     await previewIframe.locator('img.image').waitFor({ state: 'attached' });
     // eslint-disable-next-line playwright/no-networkidle
@@ -119,12 +118,13 @@ test.describe('Responsive Image', () => {
       .contentFrame();
     const defaultWidths = [
       16, 32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200, 1920, 2048,
+      3840,
     ];
 
     // Card whose image is populated by an image Media entity.
     const card = previewIframe.locator('.card img.card--image');
     await card.scrollIntoViewIfNeeded();
-    const cardWidths = 15;
+    const cardWidths = 16;
     expect(await card.getAttribute('src')).toContain('gracie');
     const cardSrcset = await card.getAttribute('srcset');
     expect(cardSrcset.match(/itok=[^&\s]+/g)).toHaveLength(cardWidths);
@@ -134,10 +134,8 @@ test.describe('Responsive Image', () => {
       );
       expect(cardSrcset).toContain(` ${width}w`);
     });
-    expect(cardSrcset).not.toContain(
-      `/styles/canvas_parametrized_width--${defaultWidths[cardWidths + 1]}`,
-    );
-    expect(cardSrcset).not.toContain(`${defaultWidths[cardWidths + 1]}w`);
+    expect(cardSrcset).not.toContain('/styles/canvas_parametrized_width--5000');
+    expect(cardSrcset).not.toContain('5000w');
     await expect(card).toHaveAttribute('sizes', 'auto 50vw');
     await expect(card).toHaveAttribute('alt', 'A cute dog');
     await expect(card).toHaveAttribute('width', '3000');
@@ -177,7 +175,7 @@ test.describe('Responsive Image', () => {
       '.card--with-stream-wrapper-image img.card--image',
     );
     await cardStreamWrapper.scrollIntoViewIfNeeded();
-    const cardStreamWrapperWidths = 9;
+    const cardStreamWrapperWidths = 10;
     expect(await cardStreamWrapper.getAttribute('src')).toContain('balloons');
     const cardStreamWrapperSrcset =
       await cardStreamWrapper.getAttribute('srcset');
