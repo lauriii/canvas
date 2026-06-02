@@ -24,7 +24,7 @@
   - composer config prefer-stable true
   - |
     composer config repositories.$CI_PARENT_PROJECT_NAME --json '{"type": "path", "url": "../'$CI_PROJECT_NAME'", "options": { "symlink": false } }'
-  - composer require drupal/core-dev "drupal/$CI_PARENT_PROJECT_NAME @dev" --with-all-dependencies --no-install
+  - composer require "drupal/core-dev:$DRUPAL_CORE" "drupal/$CI_PARENT_PROJECT_NAME @dev" --with-all-dependencies --no-install
 
 .drupal-restore-git: &drupal-restore-git
   # Restore the .git directory, this is removed by composer when bringing in the module.
