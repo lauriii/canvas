@@ -294,6 +294,14 @@ final class ApiAutoSaveController extends ApiControllerBase {
             );
           }
         }
+        // Preserve non-default language translations from the original entity,
+        // since the auto-save data only contains the default translation.
+        foreach ($original_entity->getTranslationLanguages(FALSE) as $langcode => $language) {
+          if (!$entity->hasTranslation($langcode)) {
+            $entity->addTranslation($langcode, $original_entity->getTranslation($langcode)->toArray());
+          }
+        }
+
         $is_draft = AutoSaveManager::entityIsConsideredNew($original_entity);
 
         // For draft entities automatically publish them when publishing
