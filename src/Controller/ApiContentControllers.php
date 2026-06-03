@@ -89,18 +89,6 @@ final class ApiContentControllers extends ApiControllerBase {
   }
 
   public function patch(Request $request, ContentEntityInterface $canvas_page): JsonResponse {
-    // If there's any auto-saved data, we throw a conflict error.
-    $autoSaved = $this->autoSaveManager->getAutoSaveEntity($canvas_page);
-    if (!$autoSaved->isEmpty()) {
-      throw new ConflictHttpException(
-        \sprintf(
-          '%s with ID %s has existing auto-saved data. Please use the Canvas UI to publish or discard it before pushing.',
-          (string) $canvas_page->getEntityType()->getLabel(),
-          $canvas_page->id(),
-        )
-      );
-    }
-
     // Get the request body content
     $content = $request->getContent();
     $body = \json_decode($content, TRUE);
