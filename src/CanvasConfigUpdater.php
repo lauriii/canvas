@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+use Drupal\canvas\Attribute\ComponentPreSaveUpdate;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
@@ -230,6 +231,7 @@ class CanvasConfigUpdater {
     return $needs_updating;
   }
 
+  #[ComponentPreSaveUpdate(postUpdate: 'canvas_post_update_0009_unset_category_property_on_components')]
   public function unsetComponentCategoryProperty(Component $component): bool {
     if (!\is_null($component->get('category'))) {
       $component->set('category', NULL);
@@ -244,6 +246,7 @@ class CanvasConfigUpdater {
     return FALSE;
   }
 
+  #[ComponentPreSaveUpdate(postUpdate: 'canvas_post_update_0001_track_props_have_required_flag_in_components')]
   public function updatePropFieldDefinitionsWithRequiredFlag(Component $component) : bool {
     if (!$this->needsTrackingPropsRequiredFlag($component)) {
       return FALSE;
@@ -381,6 +384,7 @@ class CanvasConfigUpdater {
     return $needs_updating;
   }
 
+  #[ComponentPreSaveUpdate(postUpdate: 'canvas_post_update_0005_use_processed_for_text_props_in_components')]
   public function updatePropFieldDefinitionsUsingTextValue(Component $component) : bool {
     if (!$this->needsUpdatingPropFieldDefinitionsUsingTextValue($component)) {
       return FALSE;
@@ -517,6 +521,7 @@ class CanvasConfigUpdater {
     return $stored_prop_order !== $actual_prop_order;
   }
 
+  #[ComponentPreSaveUpdate(postUpdate: 'canvas_post_update_0007_respect_prop_ordering')]
   public function updatePropOrder(Component $component) : bool {
     if (!$this->needsPropReordering($component)) {
       return FALSE;
@@ -618,6 +623,7 @@ class CanvasConfigUpdater {
     return $needs_updating;
   }
 
+  #[ComponentPreSaveUpdate(postUpdate: 'canvas_post_update_0011_multi_bundle_reference_prop_expressions')]
   public function updateMultiBundleReferencePropExpressionToMultiBranch(Component $component) : bool {
     if (!$this->needsMultiBundleReferencePropExpressionUpdate($component)) {
       return FALSE;
