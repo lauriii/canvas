@@ -49,6 +49,9 @@ export async function setupAgentSkills(
 
   try {
     if (!hasExplicitSelection && !interactive) {
+      info(
+        'Agent compatibility skipped because the command is non-interactive. Use --agents to enable it.',
+      );
       return;
     }
 
@@ -100,10 +103,14 @@ export async function setupAgentSkills(
       selectedAgents: nonUniversalAgents,
     });
 
-    const selectedAgentNames = selected
-      .map((agent) => agents[agent].displayName)
-      .join(', ');
-    info(`Selected agent support: ${selectedAgentNames}.`);
+    info(
+      `Agent compatibility:\n${nonUniversalAgents
+        .map(
+          (agent) =>
+            `- ${agents[agent].displayName}: ${agents[agent].skillsDir}`,
+        )
+        .join('\n')}`,
+    );
 
     if (results.created.length > 0) {
       info(
@@ -144,7 +151,7 @@ export async function defaultPromptForAgents(): Promise<AgentType[] | symbol> {
   p.log.message('');
 
   const selected = await searchMultiselect({
-    message: 'Which additional agents should this codebase support?',
+    message: 'Which AI coding agents should this codebase support?',
     items: additionalAgents.map((agent) => ({
       value: agent,
       label: agents[agent].displayName,

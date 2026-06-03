@@ -13,14 +13,14 @@ import useGit from './lib/use-git.js';
 import type { TaskOptions } from 'simple-git';
 import type { Context } from './types/context.js';
 
-export default async function createApp(ctx: Context) {
-  const { template, appName, selectedAgents } = ctx;
-  const projectDir = `${process.cwd()}/${appName}`;
+export default async function createProject(ctx: Context) {
+  const { template, projectName, selectedAgents } = ctx;
+  const projectDir = `${process.cwd()}/${projectName}`;
 
   try {
-    // Step 1: Fetch initial codebase.
+    // Step 1: Fetch template.
     const s1 = p.spinner();
-    s1.start('Fetching initial codebase');
+    s1.start('Fetching template');
 
     const hasCommitSHARef = /^[a-f0-9]{40}$/i.test(template.repository.ref);
 
@@ -32,13 +32,13 @@ export default async function createApp(ctx: Context) {
     if (template.repository.ref !== 'HEAD' && !hasCommitSHARef) {
       options['--branch'] = template.repository.ref;
     }
-    await git.clone(template.repository.url, appName, options);
+    await git.clone(template.repository.url, projectName, options);
 
     // Checkout commit if SHA is provided.
-    const gitAppDir = useGit(projectDir);
+    const gitProjectDir = useGit(projectDir);
     if (hasCommitSHARef) {
-      await gitAppDir.fetch('origin', template.repository.ref);
-      await gitAppDir.checkout(template.repository.ref);
+      await gitProjectDir.fetch('origin', template.repository.ref);
+      await gitProjectDir.checkout(template.repository.ref);
     }
 
     // Delete .git directory.
@@ -48,15 +48,14 @@ export default async function createApp(ctx: Context) {
     const packageJsonPath = join(projectDir, 'package.json');
     const packageJsonContent = await readFile(packageJsonPath, 'utf-8');
     const packageJson = JSON.parse(packageJsonContent);
-    packageJson.name = appName;
+    packageJson.name = projectName;
     await writeFile(
       packageJsonPath,
       JSON.stringify(packageJson, null, 2) + '\n',
     );
 
-    s1.stop(chalk.green('Fetched initial codebase'));
+    s1.stop(chalk.green('Fetched template'));
 
-    // Set up compatibility symlinks for additional agent skills directories.
     await setupAgentSkills(projectDir, {
       selectedAgents,
       interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
@@ -65,11 +64,11 @@ export default async function createApp(ctx: Context) {
     // Step 2: Install dependencies.
     const s2 = p.spinner();
     const packageManager = detectPackageManager();
-    s2.start(`Installing dependencies using ${packageManager}`);
+    s2.start(`Installing dependencies with ${packageManager}`);
 
     await new Promise<void>((resolve, reject) => {
       const child = spawn(packageManager, ['install'], {
-        cwd: `./${appName}`,
+        cwd: `./${projectName}`,
         stdio: ['ignore', 'ignore', 'pipe'],
         env: {
           ...process.env,
@@ -88,7 +87,7 @@ export default async function createApp(ctx: Context) {
         if (code !== 0) {
           reject(
             new Error(
-              `Package installation failed with code ${code}${stderrOutput ? `:\n${stderrOutput}` : ''}`,
+              `Package installation failed with code ${code}.\nFailed command: ${packageManager} install\nWorking directory: ./${projectName}${stderrOutput ? `\n\n${stderrOutput}` : ''}`,
             ),
           );
         } else {
@@ -97,27 +96,31 @@ export default async function createApp(ctx: Context) {
       });
     });
 
-    s2.stop(chalk.green('Installed dependencies'));
+    s2.stop(chalk.green(`Installed dependencies with ${packageManager}`));
 
     // Step 3: Prepare repository.
     const s3 = p.spinner();
-    s3.start('Preparing your repository');
+    s3.start('Initializing Git repository');
 
     // Initialize repository.
-    await git.init(['--initial-branch=main', appName]);
+    await git.init(['--initial-branch=main', projectName]);
 
     // Add first commit.
-    await gitAppDir.add(['--all']);
-    await gitAppDir.commit(
-      `Init codebase using ${getName()}@${getVersion()}\n\nTemplate repository: ${template.repository.url}\nRef: ${template.repository.ref}`,
+    await gitProjectDir.add(['--all']);
+    await gitProjectDir.commit(
+      `Init project using ${getName()}@${getVersion()}\n\nTemplate repository: ${template.repository.url}\nRef: ${template.repository.ref}`,
     );
 
-    s3.stop(chalk.green('Prepared repository'));
+    s3.stop(
+      chalk.green('Initialized Git repository on main with initial commit'),
+    );
 
-    // Show next steps.
-    p.note(`$ cd ${appName}\n$ ${packageManager} run dev`, 'Get started');
+    p.note(
+      `Created project in ./${projectName}\n\nNext steps:\n  cd ${projectName}\n  ${packageManager} run dev`,
+      'Get started',
+    );
 
-    p.outro('🚀 App created successfully');
+    p.outro('Canvas project created successfully.');
   } catch (error) {
     if (error instanceof Error) {
       p.log.error(`Error: ${error.message}`);

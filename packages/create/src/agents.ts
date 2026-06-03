@@ -27,7 +27,7 @@ export function agentsCommand(program: Command): void {
           interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
         });
 
-        p.outro('🤖 Done.');
+        p.outro('Agent compatibility setup complete.');
       } catch (error) {
         if (error instanceof Error) {
           p.log.error(`Error: ${error.message}`);

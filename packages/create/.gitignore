@@ -2,6 +2,6 @@
 # directory. We need to ignore it otherwise initializing the app repo would fail
 # given that we're already in a repository. (Plus we don't want to accidentially
 # commit the scaffolded app's code.)
-# This also means that you need to use the `my-canvas-app` as the app name when
+# This also means that you need to use the `my-canvas-project` as the app name when
 # testing locally.
-my-canvas-app
+my-canvas-project

@@ -22,40 +22,40 @@ pnpm dlx @drupal-canvas/create@latest
 bunx @drupal-canvas/create@latest
 ```
 
-You can also provide the app name as an argument:
+You can also provide the project name as an argument:
 
 ```bash
-npx @drupal-canvas/create@latest my-app
+npx @drupal-canvas/create@latest my-project
 ```
 
 ### Options
 
-| Option          | Description                                                                                                                                                                                |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `--template -t` | Template to use when scaffolding the app. One of the predefined templates (currently available: `acquia-nebula`, `balintbrews-canvas-starter`) or URL to custom template's Git repository. |
-| `--ref <ref>`   | Custom Git ref to use when cloning the template repository. For example, a branch name or a tag.                                                                                           |
-| `--agents -a`   | Comma-separated list of additional agents to support, or `none` to skip compatibility symlink creation.                                                                                    |
+| Option          | Description                                                                                                                                                                                    |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--template -t` | Template to use when scaffolding the project. One of the predefined templates (currently available: `acquia-nebula`, `balintbrews-canvas-starter`) or URL to custom template's Git repository. |
+| `--ref <ref>`   | Custom Git ref to use when cloning the template repository. For example, a branch name or a tag.                                                                                               |
+| `--agents -a`   | Comma-separated list of additional agents to support, or `none` to skip compatibility symlink creation.                                                                                        |
 
 ### Example
 
 ```bash
-npx @drupal-canvas/create@latest my-app --template acquia-nebula
+npx @drupal-canvas/create@latest my-project --template acquia-nebula
 ```
 
 Explicitly skip additional agent compatibility symlinks:
 
 ```bash
-npx @drupal-canvas/create@latest my-app --template acquia-nebula --agents none
+npx @drupal-canvas/create@latest my-project --template acquia-nebula --agents none
 ```
 
 Provide additional agent compatibility symlinks without prompting:
 
 ```bash
-npx @drupal-canvas/create@latest my-app --template acquia-nebula --agents claude-code,roo
+npx @drupal-canvas/create@latest my-project --template acquia-nebula --agents claude-code,roo
 ```
 
 If `--agents` is omitted, the CLI keeps the current interactive prompt on TTY
-runs. On non-interactive runs, it skips compatibility setup silently.
+runs. On non-interactive runs, it skips compatibility setup and prints a note.
 
 ### `agents` command
 
@@ -82,7 +82,7 @@ npx @drupal-canvas/create@latest agents none
 
 Drupal Canvas Create is designed to be easily extendable with new templates.
 
-**Templates** are predefined application starter codebases. Each template
+**Templates** are predefined Canvas project starter codebases. Each template
 references a Git repository that will be cloned to provide the initial codebase.
 To add a template, edit `templates.json` in the package root.
 
@@ -103,9 +103,9 @@ npm start
 Alternatively, use `npm run dev` to compile and watch for changes during
 development.
 
-⚠️ You must use `my-canvas-app` (provided as default value) as your app name
-when running the script from a local directory. (Reasons are explained in the
-`.gitignore` file where we had to ignore this directory.)
+⚠️ You must use `my-canvas-project` (provided as default value) as your project
+name when running the script from a local directory. (Reasons are explained in
+the `.gitignore` file where we had to ignore this directory.)
 
 ### Scripts
 

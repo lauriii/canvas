@@ -228,7 +228,7 @@ describe('setupAgentSkills', () => {
     }
   });
 
-  it('skips omitted selection silently in non-interactive mode', async () => {
+  it('prints a note when skipping omitted selection in non-interactive mode', async () => {
     const projectDir = await createProjectDir('create-agent-skills-');
     const infos: string[] = [];
     let promptCalls = 0;
@@ -249,7 +249,9 @@ describe('setupAgentSkills', () => {
       });
 
       expect(promptCalls).toBe(0);
-      expect(infos).toEqual([]);
+      expect(infos).toEqual([
+        'Agent compatibility skipped because the command is non-interactive. Use --agents to enable it.',
+      ]);
       expect(
         await pathExists(join(projectDir, '.claude', 'skills', 'test-skill')),
       ).toBe(false);

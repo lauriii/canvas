@@ -1,15 +1,20 @@
 /**
  * @file
- * Ported from https://github.com/vercel-labs/skills/blob/v1.3.7/src/agents.ts
+ * Ported from https://github.com/vercel-labs/skills/blob/v1.5.9/src/agents.ts
  */
 export type AgentType =
+  | 'aider-desk'
   | 'amp'
   | 'antigravity'
   | 'augment'
+  | 'bob'
   | 'claude-code'
   | 'openclaw'
   | 'cline'
+  | 'codearts-agent'
   | 'codebuddy'
+  | 'codemaker'
+  | 'codestudio'
   | 'codex'
   | 'command-code'
   | 'continue'
@@ -17,10 +22,15 @@ export type AgentType =
   | 'crush'
   | 'cursor'
   | 'deepagents'
+  | 'devin'
+  | 'dexto'
   | 'droid'
+  | 'firebender'
+  | 'forgecode'
   | 'gemini-cli'
   | 'github-copilot'
   | 'goose'
+  | 'hermes-agent'
   | 'iflow-cli'
   | 'junie'
   | 'kilo'
@@ -37,11 +47,15 @@ export type AgentType =
   | 'qoder'
   | 'qwen-code'
   | 'replit'
+  | 'rovodev'
   | 'roo'
+  | 'tabnine-cli'
   | 'trae'
   | 'trae-cn'
+  | 'universal'
   | 'warp'
   | 'windsurf'
+  | 'zed'
   | 'zencoder'
   | 'pochi'
   | 'adal';
@@ -59,6 +73,10 @@ export const DEFAULT_AGENT_SELECTION: AgentType[] = [
 ];
 
 export const agents: Record<AgentType, AgentConfig> = {
+  'aider-desk': {
+    displayName: 'AiderDesk',
+    skillsDir: '.aider-desk/skills',
+  },
   amp: {
     displayName: 'Amp',
     skillsDir: '.agents/skills',
@@ -70,6 +88,10 @@ export const agents: Record<AgentType, AgentConfig> = {
   augment: {
     displayName: 'Augment',
     skillsDir: '.augment/skills',
+  },
+  bob: {
+    displayName: 'IBM Bob',
+    skillsDir: '.bob/skills',
   },
   'claude-code': {
     displayName: 'Claude Code',
@@ -83,9 +105,21 @@ export const agents: Record<AgentType, AgentConfig> = {
     displayName: 'Cline',
     skillsDir: '.agents/skills',
   },
+  'codearts-agent': {
+    displayName: 'CodeArts Agent',
+    skillsDir: '.codeartsdoer/skills',
+  },
   codebuddy: {
     displayName: 'CodeBuddy',
     skillsDir: '.codebuddy/skills',
+  },
+  codemaker: {
+    displayName: 'Codemaker',
+    skillsDir: '.codemaker/skills',
+  },
+  codestudio: {
+    displayName: 'Code Studio',
+    skillsDir: '.codestudio/skills',
   },
   codex: {
     displayName: 'Codex',
@@ -115,9 +149,25 @@ export const agents: Record<AgentType, AgentConfig> = {
     displayName: 'Deep Agents',
     skillsDir: '.agents/skills',
   },
+  devin: {
+    displayName: 'Devin for Terminal',
+    skillsDir: '.devin/skills',
+  },
+  dexto: {
+    displayName: 'Dexto',
+    skillsDir: '.agents/skills',
+  },
   droid: {
     displayName: 'Droid',
     skillsDir: '.factory/skills',
+  },
+  firebender: {
+    displayName: 'Firebender',
+    skillsDir: '.agents/skills',
+  },
+  forgecode: {
+    displayName: 'ForgeCode',
+    skillsDir: '.forge/skills',
   },
   'gemini-cli': {
     displayName: 'Gemini CLI',
@@ -130,6 +180,10 @@ export const agents: Record<AgentType, AgentConfig> = {
   goose: {
     displayName: 'Goose',
     skillsDir: '.goose/skills',
+  },
+  'hermes-agent': {
+    displayName: 'Hermes Agent',
+    skillsDir: '.hermes/skills',
   },
   junie: {
     displayName: 'Junie',
@@ -192,9 +246,17 @@ export const agents: Record<AgentType, AgentConfig> = {
     skillsDir: '.agents/skills',
     showInUniversalList: false,
   },
+  rovodev: {
+    displayName: 'Rovo Dev',
+    skillsDir: '.rovodev/skills',
+  },
   roo: {
     displayName: 'Roo Code',
     skillsDir: '.roo/skills',
+  },
+  'tabnine-cli': {
+    displayName: 'Tabnine CLI',
+    skillsDir: '.tabnine/agent/skills',
   },
   trae: {
     displayName: 'Trae',
@@ -204,6 +266,11 @@ export const agents: Record<AgentType, AgentConfig> = {
     displayName: 'Trae CN',
     skillsDir: '.trae/skills',
   },
+  universal: {
+    displayName: 'Universal',
+    skillsDir: '.agents/skills',
+    showInUniversalList: false,
+  },
   warp: {
     displayName: 'Warp',
     skillsDir: '.agents/skills',
@@ -211,6 +278,10 @@ export const agents: Record<AgentType, AgentConfig> = {
   windsurf: {
     displayName: 'Windsurf',
     skillsDir: '.windsurf/skills',
+  },
+  zed: {
+    displayName: 'Zed',
+    skillsDir: '.agents/skills',
   },
   zencoder: {
     displayName: 'Zencoder',
