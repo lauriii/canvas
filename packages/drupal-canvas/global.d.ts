@@ -4,4 +4,5 @@ declare global {
   interface Window {
     drupalSettings: DrupalSettings;
   }
+  var drupalSettings: DrupalSettings;
 }

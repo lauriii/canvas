@@ -97,11 +97,11 @@ interface SiteData {
 
 export const getPageData = (): PageData => {
   const pageData = {
-    pageTitle: window.drupalSettings?.canvasData?.v0?.pageTitle || '',
-    breadcrumbs: window.drupalSettings?.canvasData?.v0?.breadcrumbs || [],
-    mainEntity: window.drupalSettings?.canvasData?.v0?.mainEntity || null,
+    pageTitle: globalThis?.drupalSettings?.canvasData?.v0?.pageTitle || '',
+    breadcrumbs: globalThis?.drupalSettings?.canvasData?.v0?.breadcrumbs || [],
+    mainEntity: globalThis?.drupalSettings?.canvasData?.v0?.mainEntity || null,
   };
-  window.parent.postMessage({
+  window?.parent.postMessage({
     type: '_canvas_useswr_data_fetch',
     id: 'getPageData()',
     data: pageData,
@@ -111,18 +111,18 @@ export const getPageData = (): PageData => {
 
 export const getSiteData = (): SiteData => {
   const siteData = {
-    branding: window.drupalSettings?.canvasData?.v0?.branding || {
+    branding: globalThis?.drupalSettings?.canvasData?.v0?.branding || {
       homeUrl: '',
       siteName: '',
       siteSlogan: '',
     },
-    baseUrl: window.drupalSettings?.canvasData?.v0?.baseUrl || '/',
-    themeAssets: window.drupalSettings?.canvasData?.v0?.themeAssets || {
+    baseUrl: globalThis?.drupalSettings?.canvasData?.v0?.baseUrl || '/',
+    themeAssets: globalThis?.drupalSettings?.canvasData?.v0?.themeAssets || {
       logo: { url: '' },
       favicon: { url: '', mimeType: '' },
     },
   };
-  window.parent.postMessage({
+  window?.parent.postMessage({
     type: '_canvas_useswr_data_fetch',
     id: 'getSiteData()',
     data: siteData,
