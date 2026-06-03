@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Drupal\canvas;
 
 use Drupal\canvas\Attribute\ComponentPreSaveUpdate;
+use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -821,6 +823,112 @@ class CanvasConfigUpdater {
     // For FieldConfig entities, explicitly convert.
     $entity->set('default_value', ComponentTreeConfigEntityBase::componentTreeInstancesInputsMustBeArrays($entity->get('default_value')));
     return TRUE;
+  }
+
+  /**
+   * Whether a Component's `list_float` default broke its active version hash.
+   *
+   * A `list_float` default (e.g. `2`) hashes as the native int `2` in PHP but
+   * as the string `"2"` after a config round-trip, so a pre-fix
+   * `active_version` no longer matches the recomputed hash.
+   *
+   * Deliberately narrow — detected via a `list_float` prop field definition,
+   * not a catch-all hash comparison: other casting mismatches are distinct bugs
+   * that each need their own update path, and a post-update never runs twice to
+   * apply one.
+   *
+   * @see \canvas_post_update_0019_recompute_list_float_component_version_hashes()
+   * @see \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
+   */
+  public static function needsComponentVersionHashRecomputationForListFloatDefaultValue(Component $component): bool {
+    // The fallback version is never hash-validated.
+    // @see \Drupal\canvas\Entity\Component::validateActiveVersion()
+    if ($component->getActiveVersion() === ComponentInterface::FALLBACK_VERSION) {
+      return FALSE;
+    }
+    $component->resetToActiveVersion();
+    // Only components with a `list_float` prop can be affected by this bug.
+    if (!self::hasListFloatPropFieldDefinition($component)) {
+      return FALSE;
+    }
+    try {
+      $expected_version = $component->getComponentSource()->generateVersionHash();
+    }
+    catch (\Exception) {
+      // Something more serious is wrong with this component (e.g. a missing
+      // SDC); leave it to existing validation to surface.
+      return FALSE;
+    }
+    return $component->getActiveVersion() !== $expected_version;
+  }
+
+  /**
+   * Whether the active version has any `list_float` prop field definition.
+   */
+  private static function hasListFloatPropFieldDefinition(Component $component): bool {
+    $settings = $component->getSettings();
+    if (!\array_key_exists('prop_field_definitions', $settings)) {
+      return FALSE;
+    }
+    foreach ($settings['prop_field_definitions'] as $prop_field_definition) {
+      if (($prop_field_definition['field_type'] ?? NULL) === 'list_float') {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
+   * Recomputes the active version hash of a Component whose `list_float` broke.
+   *
+   * Thin, list_float-specific entry point: it only decides *whether* this is
+   * the known list_float bug, then delegates the actual recomputation to the
+   * generic ::recomputeActiveVersionHash(). A future "core changed the casting
+   * of field type X" bug should add its own narrow `needs…` check and a sibling
+   * wrapper here, reusing the same generic helper.
+   *
+   * @see ::needsComponentVersionHashRecomputationForListFloatDefaultValue()
+   * @see ::recomputeActiveVersionHash()
+   */
+  #[ComponentPreSaveUpdate(postUpdate: 'canvas_post_update_0019_recompute_list_float_component_version_hashes')]
+  public function updateListFloatComponentVersionHash(Component $component): bool {
+    if (!self::needsComponentVersionHashRecomputationForListFloatDefaultValue($component)) {
+      return FALSE;
+    }
+    $this->recomputeActiveVersionHash($component);
+    return TRUE;
+  }
+
+  /**
+   * Recomputes a Component's active version hash, preserving the stale one.
+   *
+   * Generic and reason-agnostic: given a Component whose stored
+   * `active_version` no longer matches the hash its (unchanged) settings now
+   * generate, this re-derives the hash and records it as a new active version.
+   * The previous, stale hash is kept as a past version so existing component
+   * instances that reference it keep resolving. The caller is responsible for
+   * deciding that a recomputation is actually warranted.
+   */
+  private function recomputeActiveVersionHash(Component $component): void {
+    $component->resetToActiveVersion();
+    $settings = $component->getSettings();
+    // Recompute the active version hash from the (unchanged) settings.
+    $source = $this->componentSourceManager->createInstance(
+      $component->getComponentSource()->getPluginId(),
+      [
+        'local_source_id' => $component->get('source_local_id'),
+        ...$settings,
+      ],
+    );
+    \assert($source instanceof ComponentSourceInterface);
+    $new_version = $source->generateVersionHash();
+
+    // Create a new active version with the corrected hash. The settings are
+    // identical; only the hash differs. Creating a new version (rather than
+    // overwriting `active_version` in place) preserves the previous, incorrect
+    // hash as a past version, so existing component instances that reference it
+    // keep resolving.
+    $component->createVersion($new_version)->setSettings($settings);
   }
 
 }

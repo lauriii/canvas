@@ -1,0 +1,29 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Heading
+description: A heading whose `level` prop is a `number` + `enum`, which Canvas maps to the `list_float` field type.
+props:
+  type: object
+  required:
+    - text
+    - level
+  properties:
+    text:
+      type: string
+      title: Text
+      examples:
+        - Hello, world!
+    # ⚠️ A `number` + `enum` prop maps to the `list_float` field type, whose
+    # `field.value.list_float.value` is typed `string` in core.
+    level:
+      type: number
+      title: Heading level
+      enum: [1, 2, 3, 4, 5, 6]
+      'meta:enum':
+        1: 'H1'
+        2: 'H2'
+        3: 'H3'
+        4: 'H4'
+        5: 'H5'
+        6: 'H6'
+      examples:
+        - 2

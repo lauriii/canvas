@@ -413,3 +413,14 @@ function canvas_post_update_0018_folder_component_dependencies(array &$sandbox):
   \Drupal::classResolver(ConfigEntityUpdater::class)
     ->update($sandbox, Folder::ENTITY_TYPE_ID, static fn(Folder $folder): bool => !empty($folder->get('items')));
 }
+
+/**
+ * Recompute version hashes of components with a `list_float` prop default.
+ */
+function canvas_post_update_0019_recompute_list_float_component_version_hashes(array &$sandbox): void {
+  $canvasConfigUpdater = \Drupal::service(CanvasConfigUpdater::class);
+  \assert($canvasConfigUpdater instanceof CanvasConfigUpdater);
+  $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
+  \Drupal::classResolver(ConfigEntityUpdater::class)
+    ->update($sandbox, Component::ENTITY_TYPE_ID, static fn(Component $component): bool => $canvasConfigUpdater->updateListFloatComponentVersionHash($component));
+}

@@ -1,0 +1,6 @@
+name: 'Canvas test: list_float prop'
+type: module
+description: 'Provides an SDC with a `number` + `enum` prop (maps to the `list_float` field type) for regression-testing component version hashing.'
+package: Testing
+dependencies:
+  - canvas:canvas
