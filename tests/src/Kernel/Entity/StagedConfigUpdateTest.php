@@ -116,11 +116,11 @@ final class StagedConfigUpdateTest extends CanvasKernelTestBase implements Servi
       ],
     ], $sut->getActions());
 
-    self::assertCount(0, $auto_save_manager->getAllAutoSaveList());
+    self::assertCount(0, $auto_save_manager->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE));
     self::assertNull($storage->load($sut->id()));
 
     $sut->save();
-    self::assertCount(1, $auto_save_manager->getAllAutoSaveList());
+    self::assertCount(1, $auto_save_manager->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE));
 
     $sut->set('label', 'Test Update Modified');
     $sut->save();
@@ -129,7 +129,7 @@ final class StagedConfigUpdateTest extends CanvasKernelTestBase implements Servi
     self::assertEquals($sut, $loaded);
 
     $sut->delete();
-    self::assertCount(0, $auto_save_manager->getAllAutoSaveList());
+    self::assertCount(0, $auto_save_manager->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE));
   }
 
   public function testCreateFromClientSide(): void {
