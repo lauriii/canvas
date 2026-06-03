@@ -86,7 +86,7 @@
     "sonner": "^2.0.3",
     "tailwindcss-in-browser": "^0.6.0",
     "use-debounce": "^10.0.4",
-    "uuid": "^9.0.1",
+    "uuid": "^11.1.1",
     "woff2-encoder": "^2.0.0"
   },
   "devDependencies": {
@@ -125,6 +125,6 @@
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vite-plugin-svgr": "^4.3.0",
-    "vitest": "^3.1.2"
+    "vitest": "^4.1.8"
   }
 }

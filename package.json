@@ -42,7 +42,8 @@
     "@playwright/test": "^1.59.1",
     "@redocly/cli": "^2.25.3",
     "@types/node": "^22.14.0",
-    "@vitest/eslint-plugin": "^1.6.3",
+    "@vitest/eslint-plugin": "^1.6.19",
+    "concurrently": "^9.2.1",
     "cspell": "^9.2.0",
     "dotenv-defaults": "^5.0.2",
     "eslint": "^9.26.0",
@@ -54,7 +55,6 @@
     "eslint-plugin-playwright": "^2.10.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
-    "concurrently": "^9.2.1",
     "globals": "^16.1.0",
     "prettier": "^3.5.3",
     "stylelint": "^17.6.0",
@@ -63,15 +63,18 @@
     "stylelint-order": "^8.1.1",
     "stylelint-prettier": "^5.0.3",
     "typescript-eslint": "^8.50.1",
+    "vitest": "^4.1.8",
     "yaml-lint": "^1.7.0"
   },
   "overrides": {
     "glob": "^13.0.1",
+    "qs": "^6.15.2",
     "minimatch@10.2.4": {
       "brace-expansion": "^5.0.6"
     },
     "styled-components": "^6.4.2",
     "yaml": "^2.8.3",
+    "uuid": "^11.1.1",
     "@drupal-canvas/ui": {
       "react": "^18.2.0",
       "react-dom": "^18.2.0"

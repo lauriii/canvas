@@ -9,11 +9,16 @@ const mockDrupalSettings = {
   canvas: {},
 };
 
-vi.stubGlobal('URL', {
-  createObjectURL: vi.fn().mockImplementation((blob) => {
-    return `mock-object-url/${blob.name}`;
-  }),
-});
+const RealURL = globalThis.URL;
+
+vi.stubGlobal(
+  'URL',
+  class MockURL extends RealURL {
+    static createObjectURL = vi.fn().mockImplementation((blob) => {
+      return `mock-object-url/${blob.name}`;
+    });
+  },
+);
 
 vi.mock('@/utils/drupal-globals', () => ({
   getDrupal: () => ({
@@ -50,11 +55,13 @@ vi.mock('tailwindcss-in-browser', () => ({
 
 vi.stubGlobal(
   'ResizeObserver',
-  vi.fn(() => ({
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-  })),
+  class MockResizeObserver {
+    observe = vi.fn();
+
+    unobserve = vi.fn();
+
+    disconnect = vi.fn();
+  },
 );
 
 class MockPointerEvent extends Event {
