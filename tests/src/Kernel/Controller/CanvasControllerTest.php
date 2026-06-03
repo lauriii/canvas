@@ -12,6 +12,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Url;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -46,6 +47,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
     'entity_test',
     'canvas_entity_test',
     'node',
+    'language',
     ...self::PAGE_TEST_MODULES,
   ];
 
@@ -70,6 +72,24 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'field_storage' => $field_storage,
       'bundle' => 'article',
     ])->save();
+  }
+
+  /**
+   * Asserts that cache contexts match the expected values, sorted.
+   *
+   * @param \Drupal\Core\Render\HtmlResponse $response
+   *   The response to check.
+   */
+  private static function assertCanvasControllerCacheContexts(HtmlResponse $response): void {
+    $expected_contexts = [
+      'user.permissions',
+      'languages:language_interface',
+      'theme',
+    ];
+    $actual_contexts = $response->getCacheableMetadata()->getCacheContexts();
+    sort($expected_contexts);
+    sort($actual_contexts);
+    self::assertSame($expected_contexts, $actual_contexts);
   }
 
   /**
@@ -108,11 +128,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
     /** @var \Drupal\Core\Render\HtmlResponse $response */
     $response = $this->request(Request::create($edit_url));
 
-    self::assertSame([
-      'user.permissions',
-      'languages:language_interface',
-      'theme',
-    ], $response->getCacheableMetadata()->getCacheContexts());
+    self::assertCanvasControllerCacheContexts($response);
     self::assertSame([
       'config:system.site',
       'test_create_access_cache_tag',
@@ -173,11 +189,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
     $response = $this->request(Request::create($canvas_url));
 
     $this->assertSame($expectedPermissionFlags, $this->drupalSettings['canvas']['permissions']);
-    self::assertSame([
-      'user.permissions',
-      'languages:language_interface',
-      'theme',
-    ], $response->getCacheableMetadata()->getCacheContexts());
+    self::assertCanvasControllerCacheContexts($response);
     self::assertSame([
       'config:system.site',
       'test_create_access_cache_tag',
@@ -211,6 +223,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           'contentTemplates' => FALSE,
           'publishChanges' => FALSE,
           'folders' => FALSE,
+          'configureLanguages' => FALSE,
         ],
       ],
       [
@@ -227,6 +240,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           'contentTemplates' => FALSE,
           'publishChanges' => TRUE,
           'folders' => FALSE,
+          'configureLanguages' => FALSE,
         ],
       ],
       [
@@ -243,6 +257,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           'contentTemplates' => FALSE,
           'publishChanges' => FALSE,
           'folders' => FALSE,
+          'configureLanguages' => FALSE,
         ],
       ],
       [
@@ -260,6 +275,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           'contentTemplates' => FALSE,
           'publishChanges' => FALSE,
           'folders' => FALSE,
+          'configureLanguages' => FALSE,
         ],
       ],
       [
@@ -271,6 +287,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           ContentTemplate::ADMIN_PERMISSION,
           AutoSaveManager::PUBLISH_PERMISSION,
           Folder::ADMIN_PERMISSION,
+          'administer languages',
         ],
         [
           'globalRegions' => TRUE,
@@ -280,6 +297,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           'contentTemplates' => TRUE,
           'publishChanges' => TRUE,
           'folders' => TRUE,
+          'configureLanguages' => TRUE,
         ],
       ],
     ];
@@ -309,11 +327,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
     $response = $this->request(Request::create($canvas_url));
 
     $this->assertSame($expectedCreateOperations, $this->drupalSettings['canvas']['contentEntityCreateOperations']);
-    self::assertSame([
-      'user.permissions',
-      'languages:language_interface',
-      'theme',
-    ], $response->getCacheableMetadata()->getCacheContexts());
+    self::assertCanvasControllerCacheContexts($response);
     self::assertSame([
       'config:system.site',
       'test_create_access_cache_tag',
@@ -392,11 +406,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       $this->assertSame($featureFlagValue, $this->drupalSettings['canvas'][$featureFlag]);
     }
 
-    self::assertSame([
-      'user.permissions',
-      'languages:language_interface',
-      'theme',
-    ], $response->getCacheableMetadata()->getCacheContexts());
+    self::assertCanvasControllerCacheContexts($response);
     self::assertSame([
       'config:system.site',
       'test_create_access_cache_tag',

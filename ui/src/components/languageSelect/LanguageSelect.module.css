@@ -1,7 +1,3 @@
-.menuItem {
-  padding-left: 0;
-}
-
 .checkIconContainer {
   display: flex;
   flex-shrink: 0;
@@ -14,4 +10,158 @@
   padding-inline-start: 4px;
 }
 
+.dropdown.dropdown {
+  min-width: 200px;
+  padding: 8px;
+}
 
+.row {
+  padding-right: 4px;
+  border-radius: 4px;
+}
+
+.row:hover {
+  color: var(--gray-12);
+  background: var(--gray-a3);
+}
+
+/* Mirror hover styles on keyboard-focused items for accessibility */
+.row [data-highlighted] {
+  color: inherit !important;
+  background: transparent !important;
+}
+
+/* Custom focus indicators for keyboard navigation */
+/* Only show outline when the main language item is focused via keyboard, not the dots button */
+.row:not(:hover):has([data-radix-collection-item]:first-child[data-highlighted]) {
+  outline: 2px solid var(--accent-9);
+  outline-offset: 2px;
+}
+
+/* Show outline on dots button wrapper when it's focused via keyboard */
+.row:not(:hover) [data-radix-collection-item]:has(.dotsButton)[data-highlighted] {
+  border-radius: 4px;
+  outline: 2px solid var(--accent-9);
+  outline-offset: 2px;
+}
+
+.configureButton {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--gray-12);
+  border: none;
+  border-radius: 4px;
+  background: none;
+}
+
+.configureButton:hover {
+  background: var(--gray-a3);
+}
+
+.configureButton:focus-visible {
+  outline: 2px solid var(--accent-9);
+  outline-offset: 2px;
+}
+
+/* Remove button focus outline when inside DropdownMenu.Item - the wrapper handles focus */
+[data-radix-collection-item] .configureButton:focus-visible {
+  outline: none;
+}
+
+/* Remove DropdownMenu.Item default styling when wrapping configure button */
+.dropdown [data-radix-collection-item]:has(.configureButton) {
+  padding: 0;
+}
+
+.dropdown [data-radix-collection-item]:has(.configureButton):focus {
+  background: none;
+}
+
+/* Show outline when configure button's wrapper is highlighted via keyboard */
+.dropdown [data-radix-collection-item]:has(.configureButton)[data-highlighted]:not(:hover) {
+  border-radius: 4px;
+  outline: 2px solid var(--accent-9);
+  outline-offset: 2px;
+}
+
+.dotsButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--gray-11);
+  border: none;
+  border-radius: 4px;
+  background: none;
+}
+
+.dotsButton:hover {
+  background: var(--gray-a3);
+}
+
+.dotsButton:focus-visible {
+  outline: 2px solid var(--accent-9);
+  outline-offset: 2px;
+}
+
+/* Remove button focus outline when inside DropdownMenu.Item - the wrapper handles focus */
+[data-radix-collection-item] .dotsButton:focus-visible {
+  outline: none;
+}
+
+/* Remove DropdownMenu.Item default styling when wrapping dots button */
+.row [data-radix-collection-item]:has(.dotsButton) {
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.row [data-radix-collection-item]:has(.dotsButton):focus {
+  background: none;
+}
+
+.popover.popover {
+  min-width: 160px;
+  padding: 8px;
+}
+
+.popoverTitle {
+  padding: 4px 10px;
+  color: var(--gray-11);
+}
+
+.popoverItem {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--gray-12);
+  border: none;
+  border-radius: 4px;
+  background: none;
+  gap: 8px;
+}
+
+.popoverItem:hover {
+  background: var(--gray-a3);
+}
+
+.popoverItem:focus-visible {
+  outline: 2px solid var(--accent-9);
+  outline-offset: 2px;
+}
+
+.popoverItemRed {
+  color: var(--red-11);
+}
+
+.popoverItemRed:hover {
+  color: white;
+  background: #e5484d;
+}

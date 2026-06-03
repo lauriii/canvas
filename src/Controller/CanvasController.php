@@ -230,6 +230,7 @@ HTML;
               'contentTemplates' => $this->currentUser->hasPermission(ContentTemplate::ADMIN_PERMISSION),
               'publishChanges' => $this->currentUser->hasPermission(AutoSaveManager::PUBLISH_PERMISSION),
               'folders' => $this->currentUser->hasPermission(Folder::ADMIN_PERMISSION),
+              'configureLanguages' => $this->currentUser->hasPermission('administer languages'),
             ],
             'contentEntityCreateOperations' => $content_entity_create_operations,
             'homepagePath' => $system_site_config->get('page.front'),

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ClientDataToEntityConverter;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
@@ -22,9 +23,11 @@ use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\RevisionableInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Theme\ThemeManagerInterface;
+use Drupal\Core\Url;
 use GuzzleHttp\Psr7\Query;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -55,6 +58,7 @@ final class ApiLayoutController {
     private readonly ClientDataToEntityConverter $converter,
     private readonly ComponentTreeLoader $componentTreeLoader,
     private readonly ComponentSourceManager $componentSourceManager,
+    private readonly ModuleHandlerInterface $moduleHandler,
   ) {
     $theme = $this->themeManager->getActiveTheme()->getName();
     $theme_regions = system_region_list($theme);
@@ -131,11 +135,33 @@ final class ApiLayoutController {
       )),
     ];
     $available_translations = [];
-    if (method_exists($entity, 'getTranslationLanguages')) {
-      $available_translations = \array_keys($entity->getTranslationLanguages());
+    $links = [];
+    if ($entity instanceof ContentEntityInterface) {
+      $available_translations = \array_keys($entity->getTranslationLanguages(FALSE));
+      if ($this->moduleHandler->moduleExists('content_translation')) {
+        $entity_type_id = $entity->getEntityTypeId();
+
+        foreach ($available_translations as $langcode) {
+          $translation = $entity->getTranslation($langcode);
+          if ($translation->access('delete')) {
+            $links[$langcode] = [
+              CanvasUriDefinitions::LINK_REL_DELETE => Url::fromRoute(
+                "entity.{$entity_type_id}.content_translation_delete",
+                [$entity_type_id => $entity->id(), 'language' => $langcode],
+              )->toString(),
+            ];
+          }
+        }
+      }
     }
+    // The client should also list the default language.
+    $default_langcode = $entity instanceof ContentEntityInterface
+      ? $entity->getUntranslated()->language()->getId()
+      : $entity->language()->getId();
+    array_unshift($available_translations, $default_langcode);
     $data['translations'] = [
       'available' => $available_translations,
+      'links' => $links,
     ];
     if ($entity instanceof ContentEntityInterface && $entity instanceof EntityPublishedInterface) {
       $data['isPublished'] = $entity->isPublished();
