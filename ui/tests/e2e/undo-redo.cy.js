@@ -31,33 +31,23 @@ describe('Undo/Redo functionality', () => {
     // Click on the menu item with data-canvas-name="Hero" inside menu.
     cy.insertComponent({ name: 'Hero' });
 
-    cy.getIframeBody().find(
-      '[data-component-id="canvas_test_sdc:my-hero"]',
-      (myHeroComponent) => {
-        expect(myHeroComponent.length).to.equal(4);
-      },
-    );
-    // Undo
+    const heroInPreview = '[data-component-id="canvas_test_sdc:my-hero"]';
+
+    // Inserting the Hero adds a fourth my-hero to the preview. Each layout
+    // change re-renders the preview asynchronously and swaps the iframe, so use
+    // a retryable count assertion that re-queries the active iframe and waits
+    // for the render to settle. (The previous version used
+    // `cy.getIframeBody().find(selector, callback)`, whose second argument is
+    // options, not a callback — so the count was never actually asserted.)
+    cy.waitForElementCountInIframe(heroInPreview, 4, undefined, 12000);
+
+    // Undo removes the just-inserted Hero.
     cy.realPress(['Meta', 'Z']);
+    cy.waitForElementCountInIframe(heroInPreview, 3, undefined, 12000);
 
-    // Assert that the component was deleted from the layout.
-    cy.getIframeBody().find(
-      '[data-component-id="canvas_test_sdc:my-hero"]',
-      (myHeroComponent) => {
-        expect(myHeroComponent.length).to.equal(3);
-      },
-    );
-
-    // Redo.
+    // Redo adds it back.
     cy.realPress(['Meta', 'Shift', 'Z']);
-
-    // Assert that the component was again added to the layout.
-    cy.getIframeBody().find(
-      '[data-component-id="canvas_test_sdc:my-hero"]',
-      (myHeroComponent) => {
-        expect(myHeroComponent.length).to.equal(4);
-      },
-    );
+    cy.waitForElementCountInIframe(heroInPreview, 4, undefined, 12000);
   });
 
   it('Component instance form values are included in Undo/Redo', () => {

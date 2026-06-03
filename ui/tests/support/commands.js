@@ -552,6 +552,47 @@ Cypress.Commands.add(
   },
 );
 
+/**
+ * Waits for an iframe to contain exactly `count` elements matching a selector.
+ *
+ * Re-queries the *currently active* preview iframe on every retry, so it
+ * tolerates the iframe swap + asynchronous re-render that follow a layout
+ * change (insert/undo/redo): it resolves as soon as the preview settles on the
+ * expected count, rather than reading a single (possibly mid-render) frame.
+ *
+ * @param {string} selector
+ *   The selector to count inside the iframe.
+ * @param {number} count
+ *   The expected number of matching elements.
+ * @param {string} iframeSelector
+ *   The selector of the iframe to check inside. Defaults to the first preview.
+ * @param {number|null} customTimeout
+ *   Optional override for how long to wait for the count to settle.
+ */
+Cypress.Commands.add(
+  'waitForElementCountInIframe',
+  (
+    selector,
+    count,
+    iframeSelector = initializedReadyPreviewIframeSelector,
+    customTimeout,
+  ) => {
+    cy.document().then((doc) => {
+      cy.get(true, {
+        timeout: customTimeout || Cypress.config('defaultCommandTimeout'),
+      }).should(() => {
+        const elements = doc
+          .querySelector(iframeSelector)
+          ?.contentWindow?.document?.body.querySelectorAll(selector);
+        expect(
+          elements?.length ?? 0,
+          `'${selector}' count in iframe '${iframeSelector}'`,
+        ).to.equal(count);
+      });
+    });
+  },
+);
+
 Cypress.Commands.add(
   'waitForElementHTMLInIframe',
   (
