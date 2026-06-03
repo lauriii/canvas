@@ -7,11 +7,11 @@ namespace Drupal\canvas\EventSubscriber;
 use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\Routing\LocalRedirectResponse;
 use Drupal\Core\Routing\RouteBuildEvent;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Routing\RoutingEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Routing\Route;
@@ -44,12 +44,13 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
     // @todo Remove this redirect once Canvas natively supports
     //   language-prefixed URLs in
     //   https://git.drupalcode.org/project/canvas/-/work_items/3546597.
+    // @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::preventRouteNormalization()
     $default_langcode = $this->languageManager->getDefaultLanguage()->getId();
     $current_langcode = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_URL)->getId();
     if ($current_langcode !== $default_langcode) {
       $base_path = $request->getBasePath();
       $canvas_path = preg_replace('#^/' . preg_quote($current_langcode, '#') . '/#', '/', $path);
-      $event->setResponse(new RedirectResponse($base_path . $canvas_path, 302));
+      $event->setResponse(new LocalRedirectResponse($base_path . $canvas_path, 302));
     }
   }
 
