@@ -38,20 +38,21 @@ Tip: Use `ddev help <command>` for additional information about the command and 
 1. Clone Drupal 11 (preferably a clone for Git archeology: `git clone git@git.drupal.org:project/drupal.git` — Drupal >=11.2 is required, so also do: `git checkout 11.2.x`).
 2. `cd drupal && git clone git@git.drupal.org:project/canvas.git modules/contrib/canvas`
 3. `composer require drush/drush`
-4. Add `$settings['extension_discovery_scan_tests'] = TRUE;` to the end of the `sites/default/settings.php` file (this allows hidden modules to be installed).
-5.a Recommended: using Recipes to set up a standardized environment for development *and* testing:
+4. Install Canvas's dev dependencies into the host project (required for static analysis and tests): `cd modules/contrib/canvas && composer run install-dev-deps && cd -`
+5. Add `$settings['extension_discovery_scan_tests'] = TRUE;` to the end of the `sites/default/settings.php` file (this allows hidden modules to be installed).
+6.a Recommended: using Recipes to set up a standardized environment for development *and* testing:
 ```
 php core/scripts/drupal install minimal
 php core/scripts/drupal recipe modules/contrib/canvas/tests/fixtures/recipes/base
 php core/scripts/drupal recipe modules/contrib/canvas/tests/fixtures/recipes/test_site
 ```
-5.b If you prefer Drush and "Standard", and then subsequently manually installing `canvas_test_*` modules:
-6. Build the front end: `cd modules/contrib/canvas/ui` and then either
+6.b If you prefer Drush and "Standard", and then subsequently manually installing `canvas_test_*` modules:
+7. Build the front end: `cd modules/contrib/canvas/ui` and then either
     * With Node.js available: `npm install && npm run build`
     * With Docker available: `docker build --output dist .`
-7. You can access Drupal Canvas at `/canvas` and start by creating your first Canvas Page!
-8. If you're curious: look at the code, step through it with a debugger, and join us!
-9. If you want to run *all* tests locally: `composer require drupal/simple_oauth:^6 jangregor/phpstan-prophecy league/openapi-psr7-validator devizzent/cebe-php-openapi --dev && composer update`
+8. You can access Drupal Canvas at `/canvas` and start by creating your first Canvas Page!
+9. If you're curious: look at the code, step through it with a debugger, and join us!
+10. If you want to run *all* tests locally: `composer require drupal/simple_oauth:^6 jangregor/phpstan-prophecy league/openapi-psr7-validator devizzent/cebe-php-openapi --dev && composer update`
 
 ### During development
 
