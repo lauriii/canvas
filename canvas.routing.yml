@@ -234,6 +234,22 @@ canvas.api.config.post:
     canvas_external_api: true
   methods: [POST]
 
+canvas.api.config.translation.delete:
+  path: '/canvas/api/v0/config/{canvas_config_entity_type_id}/{config_entity}/translations'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiTranslationControllers::deleteConfigTranslation'
+  requirements:
+    _canvas_authentication_required: TRUE
+    # Symmetrical translations are only supported for Content Templates and Page Regions.
+    canvas_config_entity_type_id: '(content_template|page_region)'
+    _permission: 'translate configuration'
+  options:
+    parameters:
+      config_entity:
+        type: entity:{canvas_config_entity_type_id}
+    _format: 'json'
+  methods: [DELETE]
+
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 canvas.api.content.auto-save.patch:
   path: '/canvas/api/v0/content/auto-save/canvas_page/{canvas_page}'
@@ -338,6 +354,29 @@ canvas.api.content.patch:
     # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
     canvas_external_api: true
   methods: [PATCH]
+
+canvas.api.content.translation.delete:
+  path: '/canvas/api/v0/content/canvas_page/{canvas_page}/translations'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiTranslationControllers::delete'
+  requirements:
+    _canvas_authentication_required: TRUE
+    # Removing a translation modifies the entity, so update access is the
+    # correct check. _access_content_translation_manage is intentionally not
+    # used: it forbids access when the user already has entity-level delete
+    # access (it targets translators-without-edit-rights), which is the
+    # opposite of Canvas's permission model.
+    # @see \Drupal\content_translation\Access\ContentTranslationManageAccessCheck
+    _entity_access: 'canvas_page.update'
+    # @todo Consider supporting the `delete content translations` permission provided by the content_translation module.
+    # @see \content_translation_translate_access()
+  options:
+    parameters:
+      canvas_page:
+        type: entity:canvas_page
+    _format: 'json'
+  methods: [DELETE]
+
 canvas.api.extension.list:
   path: '/canvas/api/v0/extensions'
   defaults:

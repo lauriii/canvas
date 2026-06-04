@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -26,9 +27,11 @@ use Drupal\Tests\ApiRequestTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
 use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
+use Drupal\user\UserInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Tests Translation.
@@ -1147,6 +1150,136 @@ class TranslationTest extends FunctionalTestBase {
     // English PageRegion text must appear because no Hindi translation exists.
     $this->assertSession()->pageTextContains('Hello from region');
 
+  }
+
+  /**
+   * Tests the Canvas API delete translation endpoint for canvas_page.
+   *
+   * Covers:
+   *  - 204 response when deleting a non-default translation.
+   *  - 400 response when attempting to delete the default translation.
+   *  - 400 response when the translation no longer exists.
+   *
+   * @see \Drupal\canvas\Controller\ApiTranslationControllers::delete()
+   */
+  public function testDeleteCanvasPageTranslation(): void {
+    $page_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID);
+    $page = $this->createCanvasTranslationTestPage();
+    $page_id = (int) $page->id();
+    self::assertTrue($page->hasTranslation('fr'));
+    $fr_delete_url = Url::fromUserInput("/fr/canvas/api/v0/content/canvas_page/{$page_id}/translations");
+
+    $user = $this->drupalCreateUser([]);
+    \assert($user instanceof UserInterface);
+    $this->drupalLogin($user);
+    $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
+    // Attempting to delete non-default translation without the correct
+    // permission returns a 403.
+    $response = $this->makeApiRequest('DELETE', $fr_delete_url, $request_options);
+    self::assertSame(Response::HTTP_FORBIDDEN, $response->getStatusCode());
+    // Ensure the translation was not removed.
+    $reloaded = $page_storage->loadUnchanged($page_id);
+    self::assertInstanceOf(Page::class, $reloaded);
+    self::assertTrue($reloaded->hasTranslation('fr'));
+
+    $user = $this->drupalCreateUser([Page::EDIT_PERMISSION]);
+    \assert($user instanceof UserInterface);
+    $this->drupalLogin($user);
+    $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
+
+    // Deleting a non-default translation removes it and returns 204.
+    $response = $this->makeApiRequest('DELETE', $fr_delete_url, $request_options);
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+
+    $reloaded = $page_storage->loadUnchanged($page_id);
+    self::assertInstanceOf(Page::class, $reloaded);
+    self::assertFalse($reloaded->hasTranslation('fr'));
+    self::assertTrue($reloaded->hasTranslation('en'));
+
+    // Trying to delete the default/source language is not allowed.
+    $delete_default_url = Url::fromUserInput("/canvas/api/v0/content/canvas_page/{$page_id}/translations");
+    $response = $this->makeApiRequest('DELETE', $delete_default_url, $request_options);
+    self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    $reloaded = $page_storage->loadUnchanged($page_id);
+    self::assertInstanceOf(Page::class, $reloaded);
+    self::assertTrue($reloaded->hasTranslation('en'));
+
+    // Trying to delete a translation that no longer exists returns 400 because
+    // Drupal's entity translation negotiation will load the default translation.
+    $response = $this->makeApiRequest('DELETE', $fr_delete_url, $request_options);
+    self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+  }
+
+  /**
+   * Data provider for testDeleteConfigEntityTranslation().
+   *
+   * @return array<string, array{string}>
+   *   Keyed by label, each value is [entity_type_id].
+   */
+  public static function deleteConfigEntityTranslationProvider(): array {
+    return [
+      'Content Template' => [ContentTemplate::ENTITY_TYPE_ID],
+      'Page Region' => [PageRegion::ENTITY_TYPE_ID],
+    ];
+  }
+
+  /**
+   * Tests the Canvas API delete translation endpoint for config entities.
+   *
+   * Covers:
+   *  - 204 response when deleting a non-default translation.
+   *  - 400 response when the translation no longer exists.
+   *
+   * @see \Drupal\canvas\Controller\ApiTranslationControllers::deleteConfigTranslation()
+   */
+  #[DataProvider('deleteConfigEntityTranslationProvider')]
+  public function testDeleteConfigEntityTranslation(string $entity_type_id): void {
+    $this->container->get(ModuleInstallerInterface::class)->install(['config_translation']);
+    $this->rebuildContainer();
+
+    if ($entity_type_id === ContentTemplate::ENTITY_TYPE_ID) {
+      $entity = ContentTemplate::load('node.article.full');
+      self::assertInstanceOf(ContentTemplate::class, $entity);
+    }
+    else {
+      $entity = $this->createPageRegionWithFrenchOverride();
+    }
+    $entity_id = $entity->id();
+
+    $language_manager = $this->container->get(LanguageManagerInterface::class);
+    self::assertInstanceOf(ConfigurableLanguageManagerInterface::class, $language_manager);
+    $override = $language_manager->getLanguageConfigOverride('fr', $entity->getConfigDependencyName());
+    self::assertFalse($override->isNew());
+
+    $fr_delete_url = Url::fromUserInput("/fr/canvas/api/v0/config/{$entity_type_id}/{$entity_id}/translations");
+
+    $user = $this->drupalCreateUser([]);
+    \assert($user instanceof UserInterface);
+    $this->drupalLogin($user);
+    $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
+    // Attempting to delete non-default translation without the correct
+    // permission returns a 403.
+    $response = $this->makeApiRequest('DELETE', $fr_delete_url, $request_options);
+    self::assertSame(Response::HTTP_FORBIDDEN, $response->getStatusCode());
+    // Ensure the translation was not removed.
+    $override = $language_manager->getLanguageConfigOverride('fr', $entity->getConfigDependencyName());
+    self::assertFalse($override->isNew());
+
+    $user = $this->drupalCreateUser(['translate configuration']);
+    \assert($user instanceof UserInterface);
+    $this->drupalLogin($user);
+    $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
+
+    // Deleting a non-default translation removes it and returns 204.
+    $response = $this->makeApiRequest('DELETE', $fr_delete_url, $request_options);
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode(), $response->getBody()->__toString());
+
+    $override = $language_manager->getLanguageConfigOverride('fr', $entity->getConfigDependencyName());
+    self::assertTrue($override->isNew());
+
+    // Trying to delete a translation that no longer exists returns 400.
+    $response = $this->makeApiRequest('DELETE', $fr_delete_url, $request_options);
+    self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
   }
 
 }
