@@ -54,19 +54,26 @@ interface EntityFieldBasedPropExpressionInterface extends StructuredDataPropExpr
   public function getDelta(): ?int;
 
   /**
-   * Whether the starting point is the same as that of another expression.
+   * Returns a stable identity for the expression's starting point.
    *
    * When comparing entity field-based prop expressions, it is important to know
    * whether they start from the same point, meaning they evaluate the same set
    * of data.
    * In Drupal Typed data terminology: whether they target the same field data:
-   * the same field item list, or potentially even the same specific field item.
+   * the same field item list, or potentially even the same specific field
+   * (delta).
    *
-   * @param \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface $other
-   *   The other expression to compare with.
+   * @return string
+   *   The starting point key, for example:
+   *   - `entity:node:article|title|0` — first item of a node article's title
+   *      field
+   *   - `entity:node:article|field_tags|*` — all items of a node article's
+   *      field_tags field
+   *   NOTE: this representation may change without warning: it is considered
+   *   internal.
    *
-   * @return bool
+   * @internal
    */
-  public function hasSameStartingPointAs(EntityFieldBasedPropExpressionInterface $other): bool;
+  public function getStartingPointKey(): string;
 
 }

@@ -11,13 +11,18 @@ namespace Drupal\canvas\PropExpressions\StructuredData;
 trait EntityFieldBasedExpressionTrait {
 
   /**
-   * @see \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface::hasSameStartingPointAs()
+   * @see \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface::getStartingPointKey()
    */
-  public function hasSameStartingPointAs(EntityFieldBasedPropExpressionInterface $other): bool {
+  public function getStartingPointKey(): string {
     \assert($this instanceof EntityFieldBasedPropExpressionInterface);
-    return $this->getHostEntityDataDefinition() == $other->getHostEntityDataDefinition()
-      && $this->getFieldName() === $other->getFieldName()
-      && $this->getDelta() === $other->getDelta();
+    // Example: `entity:node:article|title|0` — first item of a node article's
+    // title field.
+    return \sprintf(
+      '%s|%s|%s',
+      $this->getHostEntityDataDefinition()->getDataType(),
+      $this->getFieldName(),
+      $this->getDelta() ?? '*',
+    );
   }
 
 }

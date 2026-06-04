@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
@@ -34,6 +35,7 @@ use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -134,6 +136,13 @@ class PropExpressionKernelTest extends CanvasKernelTestBase {
         'vacation_photos',
       ],
     ]);
+    $this->createEntityReferenceField(
+      'node', 'article', 'field_multi_media', 'Multi media', 'media',
+      selection_handler_settings: [
+        'target_bundles' => ['image', 'baby_photos', 'remote_image'],
+      ],
+      cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+    );
 
     // `foo` node type.
     NodeType::create([
@@ -516,6 +525,108 @@ class PropExpressionKernelTest extends CanvasKernelTestBase {
         'entity:media:remote_image' => new FieldPropExpression(BetterEntityDataDefinition::create('media', ['remote_image']), 'field_media_test', NULL, 'non_existent_computed_property'),
       ]),
     );
+  }
+
+  /**
+   * Tests multi-bundle reference evaluation against an unmatched bundle.
+   *
+   * `field_multi_media` references image, baby_photos and remote_image media
+   * (0→image, 1→remote_image, 2→image), but the expression only has branches
+   * for image and baby_photos. The unmatched remote_image at delta 1 is
+   * silently omitted when the result is optional, but surfaces as an
+   * \OutOfRangeException when it is required.
+   *
+   * @param array<int, string>|null $expected_value
+   *   The expected evaluation result, or NULL when an exception is expected.
+   * @param string|null $expected_exception_message
+   *   The expected \OutOfRangeException message, or NULL when a value is
+   *   expected.
+   *
+   * @todo Figure out a fuller solution for the required case in
+   *   https://www.drupal.org/project/canvas/issues/3563309
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\Evaluator
+   */
+  #[DataProvider('providerMultiBundleEvaluationUnmatchedBundle')]
+  public function testMultiBundleEvaluationUnmatchedBundle(bool $is_required, ?array $expected_value, ?string $expected_exception_message): void {
+    $node = self::createMultiBundleMediaFixture();
+
+    $article = BetterEntityDataDefinition::create('node', 'article');
+    $image_host = BetterEntityDataDefinition::create('media', 'image');
+    $baby_photos_host = BetterEntityDataDefinition::create('media', 'baby_photos');
+    $file_host = BetterEntityDataDefinition::create('file');
+
+    // Expression covers image + baby_photos but NOT remote_image.
+    $expr = new ReferenceFieldPropExpression(
+      new FieldPropExpression($article, 'field_multi_media', NULL, 'entity'),
+      new ReferencedBundleSpecificBranches([
+        'entity:media:baby_photos' => new ReferenceFieldPropExpression(
+          new FieldPropExpression($baby_photos_host, 'field_media_image_1', NULL, 'entity'),
+          new FieldPropExpression($file_host, 'uri', NULL, 'value'),
+        ),
+        'entity:media:image' => new ReferenceFieldPropExpression(
+          new FieldPropExpression($image_host, 'field_media_image', NULL, 'entity'),
+          new FieldPropExpression($file_host, 'uri', NULL, 'value'),
+        ),
+      ]),
+    );
+
+    if ($expected_exception_message !== NULL) {
+      self::expectException(\OutOfRangeException::class);
+      self::expectExceptionMessage($expected_exception_message);
+      Evaluator::evaluate($node, $expr, is_required: $is_required);
+      return;
+    }
+
+    $result = Evaluator::evaluate($node, $expr, is_required: $is_required);
+    // Delta 1 (remote_image) is omitted — only deltas 0 and 2 remain.
+    self::assertSame($expected_value, $result->value);
+  }
+
+  /**
+   * @return iterable<string, array{bool, array<int, string>|null, string|null}>
+   */
+  public static function providerMultiBundleEvaluationUnmatchedBundle(): iterable {
+    yield 'optional → unmatched bundle omitted' => [
+      FALSE,
+      [0 => 'public://example.png', 2 => 'public://example.png'],
+      NULL,
+    ];
+    yield 'required → unmatched bundle throws' => [
+      TRUE,
+      NULL,
+      "No branch found for entity type 'media' and bundle 'remote_image'.",
+    ];
+  }
+
+  /**
+   * Creates a node with field_multi_media referencing image+remote+image media.
+   */
+  private static function createMultiBundleMediaFixture(): Node {
+    $image_media = Media::load(1);
+    \assert($image_media !== NULL);
+    self::assertSame('image', $image_media->bundle());
+
+    $remote_media = Media::create([
+      'name' => 'Remote test',
+      'bundle' => 'remote_image',
+      'field_media_test' => 'http://example.com/image.png',
+    ]);
+    $remote_media->save();
+
+    // 0 → image, 1 → remote_image, 2 → image.
+    $node = Node::create([
+      'title' => 'Multi-bundle test',
+      'type' => 'article',
+      'uid' => 1,
+      'field_multi_media' => [
+        ['target_id' => $image_media->id()],
+        ['target_id' => $remote_media->id()],
+        ['target_id' => $image_media->id()],
+      ],
+    ]);
+    $node->save();
+    return $node;
   }
 
 }

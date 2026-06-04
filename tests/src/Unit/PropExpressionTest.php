@@ -1860,4 +1860,116 @@ class PropExpressionTest extends UnitTestCase {
     self::assertSame($updated, (string) $updated_expr);
   }
 
+  /**
+   * Tests with final target replaced.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression::withFinalTargetReplaced
+   */
+  public function testWithFinalTargetReplaced(): void {
+    // Direct reference: referenced IS the leaf.
+    $direct_reference = new ReferenceFieldPropExpression(
+      referencer: new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'uid', NULL, 'entity'),
+      referenced: new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', NULL, 'value'),
+    );
+    $new_leaf = new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'mail', NULL, 'value');
+    $rewritten = $direct_reference->withFinalTargetReplaced($new_leaf);
+    self::assertSame(
+      'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝mail␞␟value',
+      (string) $rewritten,
+    );
+    // The original is untouched.
+    self::assertSame(
+      'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value',
+      (string) $direct_reference,
+    );
+
+    // Nested reference: leaf sits at the bottom of a nested ReferenceFieldPropExpression.
+    $nested_reference = new ReferenceFieldPropExpression(
+      referencer: new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'uid', NULL, 'entity'),
+      referenced: new ReferenceFieldPropExpression(
+        referencer: new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, 'entity'),
+        referenced: new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+      ),
+    );
+    $rewritten_nested_reference = $nested_reference->withFinalTargetReplaced($new_leaf);
+    self::assertSame(
+      'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:user␝mail␞␟value',
+      (string) $rewritten_nested_reference,
+    );
+
+    // The new leaf can itself be a reference, extending the chain.
+    $new_reference_leaf = new ReferenceFieldPropExpression(
+      referencer: new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, 'entity'),
+      referenced: new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+    );
+    $extended = $direct_reference->withFinalTargetReplaced($new_reference_leaf);
+    self::assertSame(
+      'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+      (string) $extended,
+    );
+
+    // Multi-bundle target: ambiguous, must throw.
+    $multi_bundle = new ReferenceFieldPropExpression(
+      referencer: new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'yo_ho', NULL, 'entity'),
+      referenced: new ReferencedBundleSpecificBranches([
+        'entity:media:baby_photos' => new FieldPropExpression(BetterEntityDataDefinition::create('media', 'baby_photos'), 'name', NULL, 'value'),
+        'entity:media:image' => new FieldPropExpression(BetterEntityDataDefinition::create('media', 'image'), 'name', NULL, 'value'),
+      ]),
+    );
+    $this->expectException(\LogicException::class);
+    $this->expectExceptionMessage('Cannot replace the final target of a multi-bundle reference expression');
+    $multi_bundle->withFinalTargetReplaced($new_leaf);
+  }
+
+  /**
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionTrait::getStartingPointKey
+   */
+  public function testStartingPointKey(): void {
+    $node_title_0 = new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'title', 0, 'value');
+    $node_title_0_format = new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'title', 0, 'format');
+    $node_title_null_delta = new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'title', NULL, 'value');
+    $node_title_1 = new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'title', 1, 'value');
+    $node_body_0 = new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'body', 0, 'value');
+    $page_title_0 = new FieldPropExpression(BetterEntityDataDefinition::create('node', 'page'), 'title', 0, 'value');
+    $user_title_0 = new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'title', 0, 'value');
+
+    // Key format: `<entity-data-type>|<field-name>|<delta-or-*>`.
+    self::assertSame('entity:node:article|title|0', $node_title_0->getStartingPointKey());
+    self::assertSame('entity:node:article|title|*', $node_title_null_delta->getStartingPointKey());
+
+    // Two expressions targeting the same field item but different leaf
+    // properties share a key — they have the same starting point.
+    self::assertSame($node_title_0->getStartingPointKey(), $node_title_0_format->getStartingPointKey());
+
+    // Differing entity type, bundle, field name or delta all yield different
+    // keys.
+    self::assertNotSame($node_title_0->getStartingPointKey(), $page_title_0->getStartingPointKey());
+    self::assertNotSame($node_title_0->getStartingPointKey(), $user_title_0->getStartingPointKey());
+    self::assertNotSame($node_title_0->getStartingPointKey(), $node_body_0->getStartingPointKey());
+    self::assertNotSame($node_title_0->getStartingPointKey(), $node_title_1->getStartingPointKey());
+    self::assertNotSame($node_title_0->getStartingPointKey(), $node_title_null_delta->getStartingPointKey());
+
+    // ReferenceFieldPropExpression's starting point is its referencer.
+    $reference = new ReferenceFieldPropExpression(
+      referencer: new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'uid', NULL, 'entity'),
+      referenced: new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', NULL, 'value'),
+    );
+    self::assertSame('entity:node:article|uid|*', $reference->getStartingPointKey());
+
+    // FieldObjectPropsExpression: starting point matches the entity field it
+    // groups; same key as a FieldPropExpression on that same field item.
+    $node_image_0 = new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', 0, 'target_id');
+    $node_image_alt = new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', 0, 'alt');
+    $image_object = new FieldObjectPropsExpression(
+      BetterEntityDataDefinition::create('node', 'article'),
+      'field_image',
+      0,
+      [
+        'src' => $node_image_0,
+        'alt' => $node_image_alt,
+      ],
+    );
+    self::assertSame('entity:node:article|field_image|0', $image_object->getStartingPointKey());
+  }
+
 }

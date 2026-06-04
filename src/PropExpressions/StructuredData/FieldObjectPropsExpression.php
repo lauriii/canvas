@@ -37,7 +37,7 @@ final class FieldObjectPropsExpression implements EntityFieldBasedPropExpression
       return $expr instanceof FieldPropExpression || $expr instanceof ReferenceFieldPropExpression;
     }, $this->objectPropsToFieldProps));
     array_walk($objectPropsToFieldProps, function (EntityFieldBasedPropExpressionInterface $expr) {
-      $targets_same_field_item = $this->hasSameStartingPointAs($expr);
+      $targets_same_field_item = $this->getStartingPointKey() === $expr->getStartingPointKey();
       if (!$targets_same_field_item) {
         throw new \InvalidArgumentException(\sprintf(
           '`%s` is not a valid expression, because it does not map the same field item (entity type `%s`, field name `%s`, delta `%s`).',

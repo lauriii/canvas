@@ -26,6 +26,8 @@ cebe
 Clurichaun
 cnvs
 cnvst # Used for "canvas tests"
+coalescable
+Coalescer
 CODEOWNERS
 codespaces
 cqmr
@@ -35,6 +37,7 @@ cycache
 ddev
 debucketed
 dedreux
+dedup
 Deepchat
 delaville
 devizzent
@@ -130,6 +133,7 @@ reparsed
 requiredness
 rightbar
 rightclick
+roundtripped
 rtkq
 scriptification
 scriptified

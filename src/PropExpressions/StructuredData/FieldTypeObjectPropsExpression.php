@@ -200,7 +200,7 @@ final class FieldTypeObjectPropsExpression implements FieldTypeBasedPropExpressi
 
         $rewritten_expr = new FieldPropExpression(
           // The starting point is the same for all object props in this branch.
-          // @see \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface::hasSameStartingPointAs()
+          // @see \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface::getStartingPointKey()
           entityType: $entity_type_and_bundle,
           fieldName: $field_name,
           delta: $delta,
