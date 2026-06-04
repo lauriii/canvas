@@ -139,12 +139,14 @@ tools:
 tool_settings:
   'canvas_ai:set_template_data':
     return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
 orchestration_agent: false
 triage_agent: false
 max_loops: 10
+max_loops_message: ''
 default_information_tools: |
   current_layout:
     label: 'Current layout'
@@ -161,8 +163,10 @@ tool_usage_limits:
     component_structure:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
 exclude_users_role: false
 masquerade_roles: {  }
 structured_output_enabled: false
 structured_output_schema: ''
+hostname_filter_disabled: false

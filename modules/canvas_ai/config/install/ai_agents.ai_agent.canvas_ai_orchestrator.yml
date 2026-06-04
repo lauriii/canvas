@@ -283,6 +283,7 @@ tool_settings:
 orchestration_agent: true
 triage_agent: false
 max_loops: 10
+max_loops_message: ''
 default_information_tools: ''
 tool_usage_limits:
   'ai_agents::ai_agent::canvas_component_agent':
@@ -345,3 +346,4 @@ exclude_users_role: false
 masquerade_roles: {  }
 structured_output_enabled: false
 structured_output_schema: ''
+hostname_filter_disabled: false

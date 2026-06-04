@@ -313,32 +313,38 @@ tools:
 tool_settings:
   'ai_agent:edit_component_js':
     return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
   'ai_agent:create_component':
     return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
   'ai_agent:get_props_type':
     return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
   'ai_agent:get_js_component':
     return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
   'ai_agent:get_node_fields':
     return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
 orchestration_agent: false
 triage_agent: true
 max_loops: 10
+max_loops_message: ''
 default_information_tools: |
   get_prop_context:
     label: 'Get props context'
@@ -351,52 +357,64 @@ tool_usage_limits:
     javascript:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
     props_metadata:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
     component_machine_name:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
     selected_component_required_props:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
   'ai_agent:create_component':
     component_name:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
     js_structure:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
     css_structure:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
     props_metadata:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
   'ai_agent:get_props_type':
     derived_proptypes:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
   'ai_agent:get_js_component':
     component_name:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
   'ai_agent:get_node_fields':
     node_type:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
 exclude_users_role: false
 masquerade_roles: {  }
 structured_output_enabled: false
 structured_output_schema: ''
+hostname_filter_disabled: true

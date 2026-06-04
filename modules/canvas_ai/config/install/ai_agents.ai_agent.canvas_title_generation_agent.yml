@@ -40,19 +40,22 @@ tools:
   'ai_agent:create_field_content': true
   'ai_agent:edit_field_content': true
 tool_settings:
-  'ai_agent:edit_field_content':
+  'ai_agent:create_field_content':
     return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
-  'ai_agent:create_field_content':
+  'ai_agent:edit_field_content':
     return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
 orchestration_agent: false
 triage_agent: false
 max_loops: 5
+max_loops_message: ''
 default_information_tools: |
   get_entity_context:
     label: 'Get entity context'
@@ -69,25 +72,30 @@ default_information_tools: |
     parameters:
       page_title: '[canvas_ai:page_title]'
 tool_usage_limits:
-  'ai_agent:edit_field_content':
-    text_value:
-      action: ''
-      hide_property: 0
-      values: ''
-    field_name:
-      action: ''
-      hide_property: 0
-      values: ''
   'ai_agent:create_field_content':
     field_content:
       action: ''
       hide_property: 0
+      not_break: 0
       values: ''
     field_name:
       action: ''
       hide_property: 0
+      not_break: 0
+      values: ''
+  'ai_agent:edit_field_content':
+    text_value:
+      action: ''
+      hide_property: 0
+      not_break: 0
+      values: ''
+    field_name:
+      action: ''
+      hide_property: 0
+      not_break: 0
       values: ''
 exclude_users_role: false
 masquerade_roles: {  }
 structured_output_enabled: false
 structured_output_schema: ''
+hostname_filter_disabled: false
