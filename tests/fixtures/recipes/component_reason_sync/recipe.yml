@@ -1,0 +1,5 @@
+name: 'Component reason sync'
+type: 'Test'
+description: 'Applies with no config so that RecipeAppliedEvent fires and Canvas regenerates components. Used to assert incompatibility reasons stay in sync when a recipe (e.g. a Drupal CMS site template) is applied.'
+install:
+  - canvas

@@ -86,7 +86,7 @@ final class ComponentStatusController {
     $source_plugin_id = $source->getPluginId();
     if ($op === 'disable') {
       $component->disable()->save();
-      $this->reasonRepository->storeReasons($source_plugin_id, $component_id, ['Manually disabled']);
+      $this->reasonRepository->storeReasons($source_plugin_id, $component_id, [ComponentIncompatibilityReasonRepository::MANUALLY_DISABLED_REASON]);
     }
     elseif ($op === 'enable') {
       try {

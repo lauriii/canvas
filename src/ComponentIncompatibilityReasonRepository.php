@@ -14,6 +14,14 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  */
 final class ComponentIncompatibilityReasonRepository {
 
+  /**
+   * The reason stored when a site owner disables a component via the UI.
+   *
+   * Distinguishes an explicit site-owner decision from an auto-disable caused
+   * by failed requirements, so component regeneration never clears it.
+   */
+  public const string MANUALLY_DISABLED_REASON = 'Manually disabled';
+
   private readonly KeyValueStoreInterface $keyValue;
 
   public function __construct(
