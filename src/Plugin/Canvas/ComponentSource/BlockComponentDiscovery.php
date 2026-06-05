@@ -102,7 +102,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
       // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\computeCurrentComponentMetadata
       // @todo Refine in https://www.drupal.org/project/canvas/issues/3572850
       'label' => (string) $plugin_definition['admin_label'],
-      'label_display' => FALSE,
+      'label_display' => '0',
     ]);
     // We currently support only block plugins with no settings, or if they do
     // have settings, they must be fully validatable.
