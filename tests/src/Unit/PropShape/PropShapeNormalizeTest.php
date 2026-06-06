@@ -101,4 +101,50 @@ final class PropShapeNormalizeTest extends UnitTestCase {
     ];
   }
 
+  /**
+   * Tests that the resolved `$ref` id keyword is stripped in either form.
+   *
+   * The justinrainbow/json-schema library injects the resolved `$ref` URI under
+   * `id` (<= 6.8.x, and Draft-04) or `$id` (>= 6.9.0, Draft-06+). Either must be
+   * removed so the URI does not make otherwise-equivalent prop shapes unique
+   * and therefore non-storable.
+   *
+   * @see https://github.com/jsonrainbow/json-schema/issues/911
+   */
+  #[DataProvider('providerResolvedRefIdKeyword')]
+  public function testNormalizePropSchemaStripsResolvedRefId(string $id_keyword): void {
+    // An image-uri prop after its `$ref` to
+    // json-schema-definitions://canvas.module/image-uri has been resolved: the
+    // referenced definition is inlined and its URI stamped under the id keyword.
+    // @see canvas/schema.json
+    $resolved = [
+      'title' => 'Image URL',
+      'type' => 'string',
+      'format' => 'uri-reference',
+      'contentMediaType' => 'image/*',
+      'x-allowed-schemes' => ['http', 'https'],
+      $id_keyword => 'json-schema-definitions://canvas.module/image-uri',
+    ];
+
+    // Both keyword forms collapse to the same id-less shape, so equivalent
+    // props match regardless of the json-schema version that resolved them.
+    $this->assertSame(
+      [
+        'type' => 'string',
+        'contentMediaType' => 'image/*',
+        'format' => 'uri-reference',
+        'x-allowed-schemes' => ['http', 'https'],
+      ],
+      PropShape::normalizePropSchema($resolved),
+    );
+  }
+
+  /**
+   * @return \Generator<string, array{0: string}>
+   */
+  public static function providerResolvedRefIdKeyword(): \Generator {
+    yield 'Draft-04 / pre-6.9.0 `id`' => ['id'];
+    yield 'Draft-07 / 6.9.0+ `$id`' => ['$id'];
+  }
+
 }
