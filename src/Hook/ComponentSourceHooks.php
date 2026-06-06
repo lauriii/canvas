@@ -12,10 +12,12 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Asset\AttachedAssetsInterface;
 use Drupal\Core\Asset\LibraryDependencyResolverInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\DrupalKernelInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Route;
@@ -38,6 +40,8 @@ readonly final class ComponentSourceHooks {
     private ConfigFactoryInterface $configFactory,
     private RequestStack $requestStack,
     private ThemeInstallerInterface $themeInstaller,
+    #[Autowire(service: 'kernel')]
+    private DrupalKernelInterface $kernel,
   ) {}
 
   const ASSET_LIBRARY_METHOD_MAPPING = [
@@ -74,7 +78,20 @@ readonly final class ComponentSourceHooks {
     if ($is_syncing) {
       return;
     }
-    $this->rebuild();
+    // Generate via the container's *current* ComponentSourceManager rather
+    // than the injected one. Since Drupal 11.3, installing canvas_stark above
+    // reboots the kernel and rebuilds the service container: ThemeInstaller
+    // now resets the container in install/uninstall (via
+    // DrupalKernel::updateThemes()). That leaves $this — and its injected
+    // $this->componentSourceManager — pointing at now-orphaned pre-rebuild
+    // services. Resolving the manager (and through it the
+    // PersistentPropShapeRepository) from the live container makes the prop
+    // shapes get written to the cache that outlives the install (the other one
+    // will never have its ::destruct() called).
+    // @see \Drupal\canvas\PropShape\PersistentPropShapeRepository
+    $component_source_manager = $this->kernel->getContainer()->get(ComponentSourceManager::class);
+    \assert($component_source_manager instanceof ComponentSourceManager);
+    $component_source_manager->generateComponents();
   }
 
   /**
