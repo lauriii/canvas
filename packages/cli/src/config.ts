@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import * as p from '@clack/prompts';
 import { resolveCanvasConfig } from '@drupal-canvas/discovery';
 
+import type { CanvasConfigWarning } from '@drupal-canvas/discovery';
+
 // Load environment variables.
 export function loadEnvFiles() {
   // Load from the user's home directory (for global settings).
@@ -132,6 +134,7 @@ function loadFontsFromBrandKitFile(hostRoot: string): FontsConfig | undefined {
   return undefined;
 }
 
+const canvasConfigWarnings: CanvasConfigWarning[] = [];
 const {
   aliasBaseDir,
   outputDir,
@@ -142,7 +145,10 @@ const {
   deprecatedComponentDir,
   globalCssPath,
   layoutPath,
-} = resolveCanvasConfig({ hostRoot: process.cwd() });
+} = resolveCanvasConfig({
+  hostRoot: process.cwd(),
+  onWarning: (warning) => canvasConfigWarnings.push(warning),
+});
 
 export const DEFAULT_INCLUDE_PAGES = false;
 export const DEFAULT_INCLUDE_CONTENT_TEMPLATES = false;
@@ -265,6 +271,19 @@ let config: Config = {
 
 export function getConfig(): Config {
   return config;
+}
+
+let emittedCanvasConfigWarnings = false;
+
+export function emitCanvasConfigWarnings(): void {
+  if (emittedCanvasConfigWarnings) {
+    return;
+  }
+
+  emittedCanvasConfigWarnings = true;
+  for (const warning of canvasConfigWarnings) {
+    p.log.warn(warning.message);
+  }
 }
 
 export function setConfig(newConfig: Partial<Config>): void {
@@ -444,7 +463,7 @@ export async function promptForConfig(key: ConfigKey): Promise<void> {
     case 'componentDir': {
       const value = await p.text({
         message: 'Enter the component directory',
-        placeholder: './components',
+        placeholder: 'components',
         validate: (value) => {
           if (!value) return 'Component directory is required';
           return;

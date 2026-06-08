@@ -758,7 +758,12 @@ export async function buildPreviewPayload(
   const bundle =
     dependencies.bundleInteractivePreview ?? bundleInteractivePreview;
 
-  const config = resolveConfig({ hostRoot: options.projectRoot });
+  const configWarnings: PreviewIssue[] = [];
+  const config = resolveConfig({
+    hostRoot: options.projectRoot,
+    onWarning: (warning) =>
+      configWarnings.push(toIssue(warning.code, warning.message, warning.path)),
+  });
   try {
     validateCanvasImportRoots({
       hostRoot: options.projectRoot,
@@ -799,9 +804,14 @@ export async function buildPreviewPayload(
     });
   }
 
-  const warnings: PreviewIssue[] = discoveryResult.warnings.map((warning) =>
-    toIssue(warning.code, warning.message, warning.path),
-  );
+  // Preview build returns config warnings in the JSON payload.
+  // This gives command output the same deprecation notices that live Workbench logs during startup.
+  const warnings: PreviewIssue[] = [
+    ...configWarnings,
+    ...discoveryResult.warnings.map((warning) =>
+      toIssue(warning.code, warning.message, warning.path),
+    ),
+  ];
 
   const globalCssResult = await maybeResolveGlobalCssPath(
     options.projectRoot,

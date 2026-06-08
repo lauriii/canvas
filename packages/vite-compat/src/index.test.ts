@@ -116,7 +116,7 @@ describe('vite-compat', () => {
     const root = await makeTempDir();
     await fs.writeFile(
       path.join(root, 'canvas.config.json'),
-      JSON.stringify({ globalCssPath: './app/components/global.css' }),
+      JSON.stringify({ globalCssPath: 'app/components/global.css' }),
       'utf-8',
     );
     const resolved = resolveHostGlobalCssPath(root);
@@ -127,19 +127,19 @@ describe('vite-compat', () => {
     const root = await makeTempDir();
     await fs.writeFile(
       path.join(root, 'canvas.config.json'),
-      JSON.stringify({ pagesDir: './content/pages' }),
+      JSON.stringify({ pagesDir: 'content/pages' }),
       'utf-8',
     );
 
     expect(resolveCanvasConfig({ hostRoot: root }).pagesDir).toBe(
-      './content/pages',
+      'content/pages',
     );
   });
 
   it('uses default pagesDir when canvas.config.json is missing', async () => {
     const root = await makeTempDir();
 
-    expect(resolveCanvasConfig({ hostRoot: root }).pagesDir).toBe('./pages');
+    expect(resolveCanvasConfig({ hostRoot: root }).pagesDir).toBe('pages');
   });
 
   it('extracts component labels and example props from component metadata', async () => {
@@ -173,6 +173,16 @@ describe('vite-compat', () => {
   });
 
   it('validates host global css existence', async () => {
+    const root = await makeTempDir();
+    const cssPath = path.join(root, 'src/global.css');
+    await fs.mkdir(path.dirname(cssPath), { recursive: true });
+    await fs.writeFile(cssPath, '@import "tailwindcss";', 'utf-8');
+
+    const resolved = await ensureHostGlobalCssExists(root);
+    expect(resolved).toBe(cssPath);
+  });
+
+  it('validates legacy host global css existence when new default is missing', async () => {
     const root = await makeTempDir();
     const cssPath = path.join(root, 'src/components/global.css');
     await fs.mkdir(path.dirname(cssPath), { recursive: true });

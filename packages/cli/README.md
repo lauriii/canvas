@@ -50,28 +50,31 @@ properties:
 
 ```json
 {
-  "componentDir": "./src/components",
-  "pagesDir": "./pages",
-  "contentTemplatesDir": "./content-templates",
+  "componentDir": "src/components",
+  "pagesDir": "pages",
+  "contentTemplatesDir": "content-templates",
   "aliasBaseDir": "src",
   "outputDir": "dist",
-  "globalCssPath": "./src/components/global.css"
+  "globalCssPath": "src/global.css"
 }
 ```
 
 **Properties:**
 
-| Property              | Default                         | Description                                                                                                               |
-| --------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `componentDir`        | `"src/components"`              | Directory where Code Components are stored in the filesystem. It must be inside `aliasBaseDir` for local builds.          |
-| `pagesDir`            | `"./pages"`                     | Directory where pages are stored in the filesystem.                                                                       |
-| `contentTemplatesDir` | `"./content-templates"`         | Directory where content templates are stored in the filesystem.                                                           |
-| `aliasBaseDir`        | `"src"`                         | Base directory for module resolution when using path aliases in your components. Tied to your project's import structure. |
-| `outputDir`           | `"dist"`                        | Build output directory (similar to Vite's `build.outDir`). Defines where compiled assets are generated.                   |
-| `globalCssPath`       | `"./src/components/global.css"` | Path to the global CSS file.                                                                                              |
+| Property              | Default               | Description                                                                                                               |
+| --------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `componentDir`        | `"src/components"`    | Directory where Code Components are stored in the filesystem. It must be inside `aliasBaseDir` for local builds.          |
+| `pagesDir`            | `"pages"`             | Directory where pages are stored in the filesystem.                                                                       |
+| `contentTemplatesDir` | `"content-templates"` | Directory where content templates are stored in the filesystem.                                                           |
+| `aliasBaseDir`        | `"src"`               | Base directory for module resolution when using path aliases in your components. Tied to your project's import structure. |
+| `outputDir`           | `"dist"`              | Build output directory (similar to Vite's `build.outDir`). Defines where compiled assets are generated.                   |
+| `globalCssPath`       | `"src/global.css"`    | Path to the global CSS file.                                                                                              |
 
 If `canvas.config.json` is not present, the CLI will use the default values
-shown above.
+shown above. For existing projects, if `globalCssPath` is not set and
+`src/global.css` is missing, the CLI temporarily falls back to
+`src/components/global.css` when that file exists. Move the file to
+`src/global.css`, or set `globalCssPath` explicitly to keep the legacy location.
 
 #### canvas.brand-kit.json (Optional)
 
@@ -207,8 +210,8 @@ Configuration sources are applied in order of precedence from highest to lowest:
 2. **canvas.config.json** - Values defined in your project's config file
 3. **Default values** - Built-in defaults if nothing else is specified
 
-Example: If you have `"componentDir": "./components"` in `canvas.config.json`
-but run `npx canvas build --dir ./my-components`, the CLI will use
+Example: If you have `"componentDir": "components"` in `canvas.config.json` but
+run `npx canvas build --dir ./my-components`, the CLI will use
 `./my-components`.
 
 **For .env properties** (`siteUrl`, `clientId`, `clientSecret`, `scope`):

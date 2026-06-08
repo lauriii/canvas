@@ -41,27 +41,32 @@ use the default Canvas paths. You can set only the options you need.
 
 ```json
 {
-  "componentDir": "./src/code-components",
-  "pagesDir": "./pages",
-  "contentTemplatesDir": "./content-templates",
-  "regionsDir": "./regions",
-  "layoutPath": "./src/layout.jsx",
+  "componentDir": "src/code-components",
+  "pagesDir": "pages",
+  "contentTemplatesDir": "content-templates",
+  "regionsDir": "regions",
+  "layoutPath": "src/layout.jsx",
   "aliasBaseDir": "src",
   "outputDir": "dist",
-  "globalCssPath": "./src/global.css"
+  "globalCssPath": "src/global.css"
 }
 ```
 
 | Option | Default | Purpose |
 | --- | --- | --- |
 | `componentDir` | `src/components` | Directory scanned for Code Components. The directory can have any name, but must be inside `aliasBaseDir`. |
-| `pagesDir` | `./pages` | Directory scanned for page definitions. |
-| `contentTemplatesDir` | `./content-templates` | Directory scanned for content template definitions. |
-| `regionsDir` | `./regions` | Directory scanned for global region definitions. |
-| `layoutPath` | `./src/layout.jsx` | Layout component used by Workbench to wrap page and content template previews so global regions render around them. The CLI does not use this option. |
+| `pagesDir` | `pages` | Directory scanned for page definitions. |
+| `contentTemplatesDir` | `content-templates` | Directory scanned for content template definitions. |
+| `regionsDir` | `regions` | Directory scanned for global region definitions. |
+| `layoutPath` | `src/layout.jsx` | Layout component used by Workbench to wrap page and content template previews so global regions render around them. The CLI does not use this option. |
 | `aliasBaseDir` | `src` | Base directory for shared local imports that use `@/`. |
 | `outputDir` | `dist` | CLI build output directory. Workbench does not use this option. |
-| `globalCssPath` | `./src/components/global.css` | Global CSS entry used by the CLI and Workbench. |
+| `globalCssPath` | `src/global.css` | Global CSS entry used by the CLI and Workbench. |
+
+For existing projects, if `globalCssPath` is not set and `src/global.css` is
+missing, Canvas temporarily falls back to `src/components/global.css` when
+that file exists. Move the file to `src/global.css`, or set `globalCssPath`
+explicitly to keep the legacy location.
 
 The `componentDir` option controls where local tools discover Code Components.
 The directory can have any name, but it must be inside `aliasBaseDir`. Place

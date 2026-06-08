@@ -14,7 +14,10 @@ import { reconcileMediaCommand } from './commands/reconcile-media';
 import { scaffoldCommand } from './commands/scaffold';
 import { uploadCommand } from './commands/upload-deprecated';
 import { validateCommand } from './commands/validate';
-import { handleLegacyComponentDirMigration } from './config';
+import {
+  emitCanvasConfigWarnings,
+  handleLegacyComponentDirMigration,
+} from './config';
 
 const version = (packageJson as { version?: string }).version;
 
@@ -51,6 +54,7 @@ program.hook('preAction', async (command, actionCommand) => {
       skipPrompt: Boolean(commandOptions?.yes),
     });
   }
+  emitCanvasConfigWarnings();
 });
 
 // Handle errors

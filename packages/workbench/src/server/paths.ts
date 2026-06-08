@@ -49,7 +49,14 @@ export function resolveWorkbenchPaths(
   const geistMonoPackageRoot = path.dirname(
     require.resolve('@fontsource-variable/geist-mono/package.json'),
   );
-  const canvasConfig = resolveCanvasConfig({ hostRoot: hostProjectRoot });
+  const canvasConfigWarnings: string[] = [];
+  const canvasConfig = resolveCanvasConfig({
+    hostRoot: hostProjectRoot,
+    onWarning: (warning) => canvasConfigWarnings.push(warning.message),
+  });
+  for (const warning of canvasConfigWarnings) {
+    console.warn(`[workbench] ${warning}`);
+  }
   validateCanvasImportRoots({
     hostRoot: hostProjectRoot,
     aliasBaseDir: canvasConfig.aliasBaseDir,

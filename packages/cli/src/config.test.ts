@@ -29,7 +29,7 @@ describe('config', () => {
         clientSecret: '',
         includePages: false,
         fonts: undefined,
-        componentDir: './components',
+        componentDir: 'components',
       });
     });
 
@@ -39,19 +39,19 @@ describe('config', () => {
         aliasBaseDir: 'src',
         clientId: '',
         clientSecret: '',
-        componentDir: './components',
-        contentTemplatesDir: './content-templates',
-        deprecatedComponentDir: './components',
+        componentDir: 'components',
+        contentTemplatesDir: 'content-templates',
+        deprecatedComponentDir: 'components',
         fonts: undefined,
-        globalCssPath: './src/components/global.css',
+        globalCssPath: 'src/global.css',
         includePages: false,
         includeContentTemplates: false,
         includeRegions: false,
         includeBrandKit: false,
         outputDir: 'dist',
-        pagesDir: './pages',
-        regionsDir: './regions',
-        layoutPath: './src/layout.jsx',
+        pagesDir: 'pages',
+        regionsDir: 'regions',
+        layoutPath: 'src/layout.jsx',
         scope:
           'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
         siteUrl: '',
@@ -68,19 +68,19 @@ describe('config', () => {
         aliasBaseDir: 'src',
         clientId: 'test-client',
         clientSecret: '',
-        componentDir: './components',
-        contentTemplatesDir: './content-templates',
-        deprecatedComponentDir: './components',
+        componentDir: 'components',
+        contentTemplatesDir: 'content-templates',
+        deprecatedComponentDir: 'components',
         fonts: undefined,
-        globalCssPath: './src/components/global.css',
+        globalCssPath: 'src/global.css',
         includePages: false,
         includeContentTemplates: false,
         includeRegions: false,
         includeBrandKit: false,
         outputDir: 'dist',
-        pagesDir: './pages',
-        regionsDir: './regions',
-        layoutPath: './src/layout.jsx',
+        pagesDir: 'pages',
+        regionsDir: 'regions',
+        layoutPath: 'src/layout.jsx',
         scope:
           'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
         siteUrl: 'https://example.com',
@@ -96,7 +96,7 @@ describe('config', () => {
         clientId: 'test-client',
         clientSecret: 'test-secret',
         includePages: false,
-        componentDir: './components',
+        componentDir: 'components',
       });
 
       await ensureConfig(['siteUrl', 'clientId', 'clientSecret']);
@@ -176,7 +176,7 @@ describe('config', () => {
 
       expect(p.text).toHaveBeenCalledWith({
         message: 'Enter the component directory',
-        placeholder: './components',
+        placeholder: 'components',
         validate: expect.any(Function),
       });
 
@@ -269,18 +269,18 @@ describe('config', () => {
         clientId: 'test-client',
         clientSecret: 'test-secret',
         componentDir: 'src/components',
-        contentTemplatesDir: './content-templates',
-        deprecatedComponentDir: './components',
+        contentTemplatesDir: 'content-templates',
+        deprecatedComponentDir: 'components',
         fonts: undefined,
-        globalCssPath: './src/components/global.css',
+        globalCssPath: 'src/global.css',
         includePages: true,
         includeContentTemplates: false,
         includeRegions: false,
         includeBrandKit: false,
         outputDir: 'dist',
-        pagesDir: './pages',
-        regionsDir: './regions',
-        layoutPath: './src/layout.jsx',
+        pagesDir: 'pages',
+        regionsDir: 'regions',
+        layoutPath: 'src/layout.jsx',
         scope:
           'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:page_region',
         siteUrl: 'https://test.example.com',
@@ -306,14 +306,14 @@ describe('config', () => {
         scope:
           'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
         componentDir: 'src/components',
-        contentTemplatesDir: './content-templates',
-        deprecatedComponentDir: './components',
+        contentTemplatesDir: 'content-templates',
+        deprecatedComponentDir: 'components',
         fonts: undefined,
-        globalCssPath: './src/components/global.css',
+        globalCssPath: 'src/global.css',
         outputDir: 'dist',
-        pagesDir: './pages',
-        regionsDir: './regions',
-        layoutPath: './src/layout.jsx',
+        pagesDir: 'pages',
+        regionsDir: 'regions',
+        layoutPath: 'src/layout.jsx',
         userAgent: '',
       });
     });
@@ -354,7 +354,7 @@ describe('config', () => {
     it('should skip when componentDir already exists in canvas.config.json', async () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue(
-        JSON.stringify({ componentDir: './components' }),
+        JSON.stringify({ componentDir: 'components' }),
       );
 
       await handleLegacyComponentDirMigration();
@@ -364,9 +364,9 @@ describe('config', () => {
     });
 
     it('should use legacy env var as default and write to config', async () => {
-      vi.stubEnv('CANVAS_COMPONENT_DIR', './legacy-components');
+      vi.stubEnv('CANVAS_COMPONENT_DIR', 'legacy-components');
       vi.mocked(fs.existsSync).mockReturnValue(false);
-      vi.mocked(p.text).mockResolvedValue('./legacy-components');
+      vi.mocked(p.text).mockResolvedValue('legacy-components');
 
       await handleLegacyComponentDirMigration();
 
@@ -375,17 +375,17 @@ describe('config', () => {
       );
       expect(p.text).toHaveBeenCalledWith(
         expect.objectContaining({
-          defaultValue: './legacy-components',
+          defaultValue: 'legacy-components',
         }),
       );
       expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
       const writeContent = vi.mocked(fs.writeFileSync).mock
         .calls[0][1] as string;
       expect(JSON.parse(writeContent)).toEqual({
-        componentDir: './legacy-components',
+        componentDir: 'legacy-components',
       });
-      expect(getConfig().componentDir).toBe('./legacy-components');
-      expect(getConfig().deprecatedComponentDir).toBe('./legacy-components');
+      expect(getConfig().componentDir).toBe('legacy-components');
+      expect(getConfig().deprecatedComponentDir).toBe('legacy-components');
     });
 
     it('should prompt with default when no env var set', async () => {

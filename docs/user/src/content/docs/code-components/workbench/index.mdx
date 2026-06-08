@@ -40,13 +40,13 @@ need:
 
 ```json
 {
-  "componentDir": "./src/components",
-  "pagesDir": "./pages",
-  "contentTemplatesDir": "./content-templates",
-  "regionsDir": "./regions",
-  "layoutPath": "./src/layout.jsx",
+  "componentDir": "src/components",
+  "pagesDir": "pages",
+  "contentTemplatesDir": "content-templates",
+  "regionsDir": "regions",
+  "layoutPath": "src/layout.jsx",
   "aliasBaseDir": "src",
-  "globalCssPath": "./src/components/global.css"
+  "globalCssPath": "src/global.css"
 }
 ```
 
@@ -55,16 +55,19 @@ Workbench reads these options:
 | Property | Default | Used for |
 | --- | --- | --- |
 | `componentDir` | `"src/components"` | Root directory Workbench scans for `component.yml`, `*.component.yml`, source files, and mocks. The directory must be inside `aliasBaseDir`. |
-| `pagesDir` | `"./pages"` | Directory Workbench scans for page specs such as `pages/home.json`. |
-| `contentTemplatesDir` | `"./content-templates"` | Directory Workbench scans for content template specs such as `content-templates/node.article.full.json`. |
-| `regionsDir` | `"./regions"` | Directory Workbench scans for global region specs such as `regions/header.json`. |
-| `layoutPath` | `"./src/layout.jsx"` | Layout component wrapped around page and content template previews so global regions render around the output. If the file is absent, previews render without surrounding regions. See [Workbench global regions](/code-components/workbench/regions#layout-file). |
+| `pagesDir` | `"pages"` | Directory Workbench scans for page specs such as `pages/home.json`. |
+| `contentTemplatesDir` | `"content-templates"` | Directory Workbench scans for content template specs such as `content-templates/node.article.full.json`. |
+| `regionsDir` | `"regions"` | Directory Workbench scans for global region specs such as `regions/header.json`. |
+| `layoutPath` | `"src/layout.jsx"` | Layout component wrapped around page and content template previews so global regions render around the output. If the file is absent, previews render without surrounding regions. See [Workbench global regions](/code-components/workbench/regions#layout-file). |
 | `aliasBaseDir` | `"src"` | Base directory for resolving `@/` imports inside component source files. |
-| `globalCssPath` | `"./src/components/global.css"` | Global CSS entrypoint loaded into the preview iframe. This is where Workbench picks up shared styles and Tailwind setup. |
+| `globalCssPath` | `"src/global.css"` | Global CSS entrypoint loaded into the preview iframe. This is where Workbench picks up shared styles and Tailwind setup. |
 
-If `canvas.config.json` is not present, Workbench uses those defaults.
-`outputDir` is part of the wider Canvas config surface, but Workbench does not
-use it.
+If `canvas.config.json` is not present, Workbench uses those defaults. For
+existing projects, if `globalCssPath` is not set and `src/global.css` is missing,
+Workbench temporarily falls back to `src/components/global.css` when that file
+exists. Move the file to `src/global.css`, or set `globalCssPath` explicitly to
+keep the legacy location. `outputDir` is part of the wider Canvas config
+surface, but Workbench does not use it.
 
 ## What Workbench discovers
 

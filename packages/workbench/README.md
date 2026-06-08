@@ -40,27 +40,30 @@ need:
 
 ```json
 {
-  "componentDir": "./src/components",
-  "pagesDir": "./pages",
-  "contentTemplatesDir": "./content-templates",
+  "componentDir": "src/components",
+  "pagesDir": "pages",
+  "contentTemplatesDir": "content-templates",
   "aliasBaseDir": "src",
-  "globalCssPath": "./src/components/global.css"
+  "globalCssPath": "src/global.css"
 }
 ```
 
 Workbench reads these options:
 
-| Property              | Default                         | Used for                                                                                                                          |
-| --------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `componentDir`        | `"src/components"`              | Root directory Workbench scans for `component.yml`, `*.component.yml`, source files, and mocks. It must be inside `aliasBaseDir`. |
-| `pagesDir`            | `"./pages"`                     | Directory Workbench scans for page specs such as `pages/home.json`.                                                               |
-| `contentTemplatesDir` | `"./content-templates"`         | Directory Workbench scans for content template specs such as `content-templates/node.article.full.json`.                          |
-| `aliasBaseDir`        | `"src"`                         | Base directory for resolving `@/` imports inside component source files.                                                          |
-| `globalCssPath`       | `"./src/components/global.css"` | Global CSS entrypoint loaded into the preview iframe. This is where Workbench picks up shared styles and Tailwind setup.          |
+| Property              | Default               | Used for                                                                                                                          |
+| --------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `componentDir`        | `"src/components"`    | Root directory Workbench scans for `component.yml`, `*.component.yml`, source files, and mocks. It must be inside `aliasBaseDir`. |
+| `pagesDir`            | `"pages"`             | Directory Workbench scans for page specs such as `pages/home.json`.                                                               |
+| `contentTemplatesDir` | `"content-templates"` | Directory Workbench scans for content template specs such as `content-templates/node.article.full.json`.                          |
+| `aliasBaseDir`        | `"src"`               | Base directory for resolving `@/` imports inside component source files.                                                          |
+| `globalCssPath`       | `"src/global.css"`    | Global CSS entrypoint loaded into the preview iframe. This is where Workbench picks up shared styles and Tailwind setup.          |
 
-If `canvas.config.json` is not present, Workbench uses those defaults.
-`outputDir` is part of the wider Canvas config surface, but Workbench does not
-use it.
+If `canvas.config.json` is not present, Workbench uses those defaults. For
+existing projects, if `globalCssPath` is not set and `src/global.css` is
+missing, Workbench temporarily falls back to `src/components/global.css` when
+that file exists. Move the file to `src/global.css`, or set `globalCssPath`
+explicitly to keep the legacy location. `outputDir` is part of the wider Canvas
+config surface, but Workbench does not use it.
 
 ## Preview build command
 
@@ -157,10 +160,10 @@ Workbench does not ingest arbitrary host Vite config/plugins automatically.
 - Supported module resolution via `@drupal-canvas/vite-compat` — see
   `[packages/vite-compat/README.md](../vite-compat/README.md)`
 - Tailwind entrypoint: Workbench loads the host's global CSS (default
-  `src/components/global.css`, configurable via `globalCssPath` in
-  `canvas.config.json`) through a virtual Vite CSS module that imports the host
-  CSS and includes explicit host `@source` scanning so Tailwind processing is
-  applied in Workbench context.
+  `src/global.css`, configurable via `globalCssPath` in `canvas.config.json`)
+  through a virtual Vite CSS module that imports the host CSS and includes
+  explicit host `@source` scanning so Tailwind processing is applied in
+  Workbench context.
 
 ## Current architecture decision
 

@@ -19,7 +19,7 @@ describe('command-helpers', () => {
       scope:
         'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
       includePages: false,
-      componentDir: './components',
+      componentDir: 'components',
       userAgent: '',
       aliasBaseDir: '',
       outputDir: '',
@@ -73,10 +73,10 @@ describe('command-helpers', () => {
     });
 
     it('should update componentDir when dir is provided', () => {
-      updateConfigFromOptions({ dir: './my-components' });
+      updateConfigFromOptions({ dir: 'my-components' });
 
       const config = getConfig();
-      expect(config.componentDir).toBe('./my-components');
+      expect(config.componentDir).toBe('my-components');
     });
 
     it('should update aliasBaseDir when provided', () => {

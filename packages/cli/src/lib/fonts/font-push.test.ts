@@ -49,12 +49,12 @@ describe('pushFonts', () => {
       aliasBaseDir: 'src',
       outputDir: 'dist',
       componentDir: tmpDir,
-      pagesDir: './pages',
-      contentTemplatesDir: './content-templates',
-      regionsDir: './regions',
+      pagesDir: 'pages',
+      contentTemplatesDir: 'content-templates',
+      regionsDir: 'regions',
       deprecatedComponentDir: tmpDir,
-      globalCssPath: './src/global.css',
-      layoutPath: './src/layout.jsx',
+      globalCssPath: 'src/global.css',
+      layoutPath: 'src/layout.jsx',
     };
     api = {
       getBrandKit: vi.fn().mockResolvedValue({ id: 'global', fonts: [] }),

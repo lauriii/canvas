@@ -3,24 +3,65 @@ import { resolve } from 'node:path';
 
 import type { CanvasConfig } from './types';
 
-export function resolveCanvasConfig(options: {
-  hostRoot: string;
-}): CanvasConfig {
-  const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
-    aliasBaseDir: 'src',
-    outputDir: 'dist',
-    componentDir: 'src/components',
-    pagesDir: './pages',
-    contentTemplatesDir: './content-templates',
-    regionsDir: './regions',
-    deprecatedComponentDir: './components',
-    globalCssPath: './src/components/global.css',
-    layoutPath: './src/layout.jsx',
-  };
+const LEGACY_GLOBAL_CSS_PATH = './src/components/global.css';
 
+const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
+  aliasBaseDir: 'src',
+  outputDir: 'dist',
+  componentDir: 'src/components',
+  pagesDir: 'pages',
+  contentTemplatesDir: 'content-templates',
+  regionsDir: 'regions',
+  deprecatedComponentDir: 'components',
+  globalCssPath: 'src/global.css',
+  layoutPath: 'src/layout.jsx',
+};
+
+export interface CanvasConfigWarning {
+  code: 'legacy_default_global_css_path';
+  message: string;
+  path: string;
+}
+
+interface ResolveCanvasConfigOptions {
+  hostRoot: string;
+  onWarning?: (warning: CanvasConfigWarning) => void;
+}
+
+function resolveDefaultGlobalCssPath(
+  options: ResolveCanvasConfigOptions,
+): string {
+  const defaultGlobalCssPath = resolve(
+    options.hostRoot,
+    DEFAULT_CANVAS_CONFIG.globalCssPath,
+  );
+  const legacyGlobalCssPath = resolve(options.hostRoot, LEGACY_GLOBAL_CSS_PATH);
+
+  if (!existsSync(defaultGlobalCssPath) && existsSync(legacyGlobalCssPath)) {
+    options.onWarning?.({
+      code: 'legacy_default_global_css_path',
+      path: LEGACY_GLOBAL_CSS_PATH,
+      message:
+        `Canvas is using the legacy default global CSS path ${LEGACY_GLOBAL_CSS_PATH} because ` +
+        `globalCssPath is not set. Move the file to ${DEFAULT_CANVAS_CONFIG.globalCssPath}, or add ` +
+        `"globalCssPath": "${LEGACY_GLOBAL_CSS_PATH}" to canvas.config.json to keep this location. ` +
+        'The implicit fallback will be removed in a future release.',
+    });
+    return LEGACY_GLOBAL_CSS_PATH;
+  }
+
+  return DEFAULT_CANVAS_CONFIG.globalCssPath;
+}
+
+export function resolveCanvasConfig(
+  options: ResolveCanvasConfigOptions,
+): CanvasConfig {
   const configPath = resolve(options.hostRoot, 'canvas.config.json');
   if (!existsSync(configPath)) {
-    return { ...DEFAULT_CANVAS_CONFIG };
+    return {
+      ...DEFAULT_CANVAS_CONFIG,
+      globalCssPath: resolveDefaultGlobalCssPath(options),
+    };
   }
 
   try {
@@ -37,10 +78,13 @@ export function resolveCanvasConfig(options: {
       deprecatedComponentDir:
         parsed.componentDir ?? DEFAULT_CANVAS_CONFIG.deprecatedComponentDir,
       globalCssPath:
-        parsed.globalCssPath ?? DEFAULT_CANVAS_CONFIG.globalCssPath,
+        parsed.globalCssPath ?? resolveDefaultGlobalCssPath(options),
       layoutPath: parsed.layoutPath ?? DEFAULT_CANVAS_CONFIG.layoutPath,
     };
   } catch {
-    return { ...DEFAULT_CANVAS_CONFIG };
+    return {
+      ...DEFAULT_CANVAS_CONFIG,
+      globalCssPath: resolveDefaultGlobalCssPath(options),
+    };
   }
 }
