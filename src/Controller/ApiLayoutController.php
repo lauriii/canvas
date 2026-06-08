@@ -139,15 +139,17 @@ final class ApiLayoutController {
     if ($entity instanceof ContentEntityInterface) {
       $available_translations = \array_keys($entity->getTranslationLanguages(FALSE));
       if ($this->moduleHandler->moduleExists('content_translation')) {
-        $entity_type_id = $entity->getEntityTypeId();
-
         foreach ($available_translations as $langcode) {
           $translation = $entity->getTranslation($langcode);
-          if ($translation->access('delete')) {
+          // The delete route gates on update access, so emit the link to the
+          // same users to avoid offering a link that would return 403.
+          // @see canvas.api.content.translation.delete in canvas.routing.yml
+          if ($translation->access('update')) {
             $links[$langcode] = [
               CanvasUriDefinitions::LINK_REL_DELETE => Url::fromRoute(
-                "entity.{$entity_type_id}.content_translation_delete",
-                [$entity_type_id => $entity->id(), 'language' => $langcode],
+                'canvas.api.content.translation.delete',
+                ['canvas_page' => $entity->id()],
+                ['language' => $translation->language()],
               )->toString(),
             ];
           }

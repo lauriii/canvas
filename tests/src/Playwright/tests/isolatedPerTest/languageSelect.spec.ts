@@ -185,11 +185,15 @@ test.describe('Language Select', () => {
       ),
     ).toHaveCount(0);
 
-    // The current permissions should result in no language options popover
-    // triggers being rendered.
+    // The editor role has edit (update) access, so the delete-translation
+    // options trigger is rendered for the existing French translation - and
+    // only for it (the default English and untranslated Spanish have none).
+    await expect(
+      page.locator('[aria-label="More options for French"]'),
+    ).toBeVisible();
     await expect(
       page.locator('[data-testid="language-options-popover-trigger"]'),
-    ).toHaveCount(0);
+    ).toHaveCount(1);
     // The current permissions include 'administer languages' so the configure
     // button should be present.
     await expect(
@@ -272,7 +276,7 @@ test.describe('Language Select', () => {
     await expect(previewFrame.locator('html')).toHaveAttribute('lang', /^es/i);
   });
 
-  test('Language context popover shows delete link for existing translations and no actions for missing translations', async ({
+  test('Language context popover deletes an existing translation in-app and shows no actions for missing translations', async ({
     page,
     canvas,
     drupal,
@@ -281,9 +285,13 @@ test.describe('Language Select', () => {
     await drupal.addPermissions({
       role: 'editor',
       permissions: [
-        'delete content translations',
+        // The delete-translation route gates on update access
+        // (canvas_page.update), so editing access is what enables the link.
+        // @see canvas.api.content.translation.delete in canvas.routing.yml
+        'edit canvas page',
         'translate canvas page',
         'delete canvas page',
+        'delete content translations',
       ],
     });
     await logout(drupal);
@@ -343,12 +351,46 @@ test.describe('Language Select', () => {
       page.locator('[data-testid="language-options-delete"]').first(),
     ).toBeVisible();
 
-    // Clicking outside the dropdown is the most reliable way to close both
-    // the popover and dropdown.
-    await page.locator('[data-testid="scale-to-fit"]').click();
+    // Deleting the French translation happens in-app: no new browser tab
+    // opens, and the dropdown updates without a page reload.
+    let popupOpened = false;
+    page.on('popup', () => {
+      popupOpened = true;
+    });
+    await page
+      .locator('[data-testid="language-options-delete"]')
+      .first()
+      .click();
+    expect(popupOpened).toBe(false);
 
-    // Spanish has no translation: the dots button is not rendered at all.
+    // The in-app delete drops French's options trigger (and with it the
+    // popover) once the request resolves. Wait for that before reopening so
+    // the dropdown - not a still-open popover - receives the Escape key.
+    await expect(
+      page.locator('[aria-label="More options for French"]'),
+    ).toHaveCount(0);
+
+    // Reopen the dropdown: French is still listed but, with its translation
+    // gone, it no longer shows a check mark or an options trigger - confirming
+    // the list refreshed without a page reload.
+    await page.keyboard.press('Escape');
+    await expect(
+      page.locator('[data-state="open"][role="menu"]'),
+    ).not.toBeAttached();
     await languageButton.click();
+    await expect(
+      page.locator('[data-testid="language-option-fr"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator(
+        '[data-testid="language-option-fr"] [data-canvas-has-translation="true"]',
+      ),
+    ).toHaveCount(0);
+    await expect(
+      page.locator('[aria-label="More options for French"]'),
+    ).toHaveCount(0);
+
+    // Spanish never had a translation: the dots button is not rendered at all.
     await expect(
       page.locator('[aria-label="More options for Spanish"]'),
     ).toHaveCount(0);

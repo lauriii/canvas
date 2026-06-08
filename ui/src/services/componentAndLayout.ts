@@ -226,6 +226,12 @@ export const componentAndLayoutApi = createApi({
         }
       },
     }),
+    deletePageTranslation: builder.mutation<void, string>({
+      query: (url) => ({
+        url,
+        method: 'DELETE',
+      }),
+    }),
     postTemplateLayout: builder.mutation<
       { html: string; autoSaves: AutoSavesHash },
       { layout: any; model: any; entity_form_fields: any }
@@ -626,4 +632,5 @@ export const {
   useGetContentTemplatesQuery,
   useGetViewModesQuery,
   useGetPreviewContentEntitiesQuery,
+  useDeletePageTranslationMutation,
 } = componentAndLayoutApi;

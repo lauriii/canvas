@@ -23,6 +23,7 @@ import { useAppSelector } from '@/app/hooks';
 import { selectTranslations } from '@/features/layout/layoutModelSlice';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import { useTemplateRef } from '@/hooks/useTemplateRef';
+import { useDeletePageTranslationMutation } from '@/services/componentAndLayout';
 import { getCanvasPermissions, getLanguages } from '@/utils/drupal-globals';
 import { getEntityTitle } from '@/utils/entityTitle';
 
@@ -33,6 +34,9 @@ const LanguageSelect = () => {
   const permissions = getCanvasPermissions();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
+  // Languages whose translation was deleted in-session. Used to hide their
+  // check mark and options trigger without re-fetching the layout.
+  const [removedLanguages, setRemovedLanguages] = useState<string[]>([]);
   const popoverOffsetsRef = useRef<Record<string, number>>({});
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -54,6 +58,7 @@ const LanguageSelect = () => {
   const { isTemplateContext, isTemplatePreviewRoute } = useTemplateRef();
   const translations = useAppSelector(selectTranslations);
   const isTemplateRoute = isTemplateContext || isTemplatePreviewRoute;
+  const [deletePageTranslation] = useDeletePageTranslationMutation();
   const pageData = useAppSelector(selectPageData);
   const pageTitle =
     getEntityTitle(entityType, pageData) || pageData?.['title[0][value]'];
@@ -104,10 +109,15 @@ const LanguageSelect = () => {
     setOpenPopoverId(null);
   };
 
-  const handleDeleteTranslation = (languageId: string) => {
+  const handleDeleteTranslation = async (languageId: string) => {
     const url = translations?.links?.[languageId]?.['delete-form'];
     if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
+      try {
+        await deletePageTranslation(url).unwrap();
+        setRemovedLanguages((prev) => [...prev, languageId]);
+      } catch (error) {
+        console.error('Failed to delete translation:', error);
+      }
     }
     setOpenPopoverId(null);
   };
@@ -122,6 +132,12 @@ const LanguageSelect = () => {
   };
 
   const currentLangObj = languages.find((lang) => lang.id === currentLanguage);
+
+  // A language counts as translated only if the layout reports it and it has
+  // not been deleted in this session.
+  const hasTranslation = (languageId: string) =>
+    Boolean(translations?.available?.includes(languageId)) &&
+    !removedLanguages.includes(languageId);
 
   if (languages.length <= 1) {
     return null;
@@ -158,16 +174,12 @@ const LanguageSelect = () => {
             >
               <Flex align="center" width="100%">
                 <Box className={styles.checkIconContainer}>
-                  {translations?.available?.includes(language.id) && (
-                    <CheckIcon />
-                  )}
+                  {hasTranslation(language.id) && <CheckIcon />}
                 </Box>
                 <Text
                   className={styles.languageName}
                   data-canvas-has-translation={
-                    translations?.available?.includes(language.id)
-                      ? 'true'
-                      : undefined
+                    hasTranslation(language.id) ? 'true' : undefined
                   }
                 >
                   {language.name}
@@ -175,85 +187,86 @@ const LanguageSelect = () => {
                 </Text>
               </Flex>
             </DropdownMenu.Item>
-            {translations?.links?.[language.id] && (
-              <Popover.Root
-                open={openPopoverId === language.id}
-                onOpenChange={(open) =>
-                  handlePopoverOpenChange(language.id, open)
-                }
-              >
-                <DropdownMenu.Item
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    handlePopoverOpenChange(language.id, true);
-                  }}
+            {translations?.links?.[language.id] &&
+              !removedLanguages.includes(language.id) && (
+                <Popover.Root
+                  open={openPopoverId === language.id}
+                  onOpenChange={(open) =>
+                    handlePopoverOpenChange(language.id, open)
+                  }
                 >
-                  <Popover.Trigger>
-                    <button
-                      data-testid="language-options-popover-trigger"
-                      className={styles.dotsButton}
-                      aria-label={`More options for ${language.name}`}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <DotsVerticalIcon width="14" height="14" />
-                    </button>
-                  </Popover.Trigger>
-                </DropdownMenu.Item>
-                <Popover.Content
-                  side="left"
-                  sideOffset={popoverOffsetsRef.current[language.id] ?? 0}
-                  align="start"
-                  className={styles.popover}
-                  data-testid="language-options-popover"
-                  onPointerDownOutside={(e) => {
-                    e.preventDefault();
-                    setOpenPopoverId(null);
-                  }}
-                  onInteractOutside={(e) => {
-                    e.preventDefault();
-                  }}
-                >
-                  <Flex direction="column" gap="1">
-                    <Text
-                      size="2"
-                      weight="medium"
-                      className={styles.popoverTitle}
-                      data-testid="language-options-popover-title"
-                    >
-                      {pageTitle || 'Untitled'} ({language.name})
-                    </Text>
-                    <Separator size="4" my="1" />
-                    {(translations?.links?.[language.id]?.['edit-form'] ||
-                      translations?.links?.[language.id]?.['create']) && (
+                  <DropdownMenu.Item
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      handlePopoverOpenChange(language.id, true);
+                    }}
+                  >
+                    <Popover.Trigger>
                       <button
-                        className={styles.popoverItem}
-                        onClick={() => handleTranslate(language.id)}
+                        data-testid="language-options-popover-trigger"
+                        className={styles.dotsButton}
+                        aria-label={`More options for ${language.name}`}
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <ExternalLinkIcon width="14" height="14" />
-                        <Text size="2">
-                          {translations?.links?.[language.id]?.['edit-form']
-                            ? 'Edit translation'
-                            : 'Add translation'}
-                        </Text>
+                        <DotsVerticalIcon width="14" height="14" />
                       </button>
-                    )}
-                    {translations?.links?.[language.id]?.['delete-form'] && (
-                      <button
-                        className={clsx(
-                          styles.popoverItem,
-                          styles.popoverItemRed,
-                        )}
-                        data-testid="language-options-delete"
-                        onClick={() => handleDeleteTranslation(language.id)}
+                    </Popover.Trigger>
+                  </DropdownMenu.Item>
+                  <Popover.Content
+                    side="left"
+                    sideOffset={popoverOffsetsRef.current[language.id] ?? 0}
+                    align="start"
+                    className={styles.popover}
+                    data-testid="language-options-popover"
+                    onPointerDownOutside={(e) => {
+                      e.preventDefault();
+                      setOpenPopoverId(null);
+                    }}
+                    onInteractOutside={(e) => {
+                      e.preventDefault();
+                    }}
+                  >
+                    <Flex direction="column" gap="1">
+                      <Text
+                        size="2"
+                        weight="medium"
+                        className={styles.popoverTitle}
+                        data-testid="language-options-popover-title"
                       >
-                        <TrashIcon width="14" height="14" />
-                        <Text size="2">Delete translation</Text>
-                      </button>
-                    )}
-                  </Flex>
-                </Popover.Content>
-              </Popover.Root>
-            )}
+                        {pageTitle || 'Untitled'} ({language.name})
+                      </Text>
+                      <Separator size="4" my="1" />
+                      {(translations?.links?.[language.id]?.['edit-form'] ||
+                        translations?.links?.[language.id]?.['create']) && (
+                        <button
+                          className={styles.popoverItem}
+                          onClick={() => handleTranslate(language.id)}
+                        >
+                          <ExternalLinkIcon width="14" height="14" />
+                          <Text size="2">
+                            {translations?.links?.[language.id]?.['edit-form']
+                              ? 'Edit translation'
+                              : 'Add translation'}
+                          </Text>
+                        </button>
+                      )}
+                      {translations?.links?.[language.id]?.['delete-form'] && (
+                        <button
+                          className={clsx(
+                            styles.popoverItem,
+                            styles.popoverItemRed,
+                          )}
+                          data-testid="language-options-delete"
+                          onClick={() => handleDeleteTranslation(language.id)}
+                        >
+                          <TrashIcon width="14" height="14" />
+                          <Text size="2">Delete translation</Text>
+                        </button>
+                      )}
+                    </Flex>
+                  </Popover.Content>
+                </Popover.Root>
+              )}
           </Flex>
         ))}
         <Separator size="4" my="2" />
