@@ -1,4 +1,5 @@
 import { setFieldError, setFieldValue } from '@/features/form/formStateSlice';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 import { isAjaxing } from '@/utils/isAjaxing';
 
 import type * as React from 'react';
@@ -145,6 +146,14 @@ export const createEnhancedOnChange = ({
   errorsText,
 }: CreateEnhancedOnChangeParams) => {
   return (e: ChangeEvent) => {
+    // Set this attribute immediately instead of waiting for the preview API to
+    // do it via pushCanvasLayoutRequest(), to ensure the attribute is present
+    // even if the input itself is debounced.
+    document.body.setAttribute(
+      'data-canvas-layout-request-in-progress',
+      'true',
+    );
+
     const newValue = extractNewValue(e);
 
     // Always update react-hook-form state (for UI consistency and RHF validation)
@@ -173,6 +182,18 @@ export const createEnhancedOnChange = ({
             fieldName,
             validationResult,
             errorsText,
+          );
+        }
+        // If validation fails, the preview request may have not occurred. In
+        // those instances, the layout-request-in-progress added at the beginning
+        // of this function would not be removed. To address this, we check the
+        // size of the requests-in-progress stack and if it's empty, we remove
+        // the attribute.
+        const stackLength =
+          getCanvasSettings()?.canvasLayoutRequestInProgress?.length ?? 0;
+        if (stackLength === 0) {
+          document.body.removeAttribute(
+            'data-canvas-layout-request-in-progress',
           );
         }
         return; // Block auto-save

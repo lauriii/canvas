@@ -46,7 +46,9 @@ export const popCanvasLayoutRequest = () => {
     const event = new CustomEvent('canvasLayoutRequestComplete');
     document.dispatchEvent(event);
     setTimeout(() => {
-      document.body.removeAttribute('data-canvas-layout-request-in-progress');
+      if (canvasSettings.canvasLayoutRequestInProgress.length === 0) {
+        document.body.removeAttribute('data-canvas-layout-request-in-progress');
+      }
     }, 10);
   }
 };
