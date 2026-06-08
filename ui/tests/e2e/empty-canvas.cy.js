@@ -55,11 +55,7 @@ describe('Empty preview', () => {
   });
 
   it(`canvas/editor/canvas_page/2 can add a component to an empty preview`, () => {
-    cy.loadURLandWaitForCanvasLoaded({
-      url: 'canvas/editor/canvas_page/2',
-      // @todo Temporary measure; remove in https://git.drupalcode.org/project/canvas/-/work_items/3585970
-      clearAutoSave: true,
-    });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/2' });
 
     // Wait for an element in the page data panel to be present.
     cy.get('#edit-title-0-value').should('exist');

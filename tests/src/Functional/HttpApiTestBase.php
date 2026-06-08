@@ -160,7 +160,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
       // The entity is deleted.
       $this->assertNull($entity);
       // No corresponding auto-save entries exists.
-      $auto_save_keys = \array_keys($this->container->get(AutoSaveManager::class)->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE));
+      $auto_save_keys = \array_keys($this->container->get(AutoSaveManager::class)->getAllAutoSaveList());
       // Auto save keys start with the entity type ID and ID, but could also
       // include a language ID if the entity supports translation.
       self::assertCount(0, \array_filter($auto_save_keys, static fn (string $key): bool => \str_starts_with($key, "$entity_type_id:$entity_id")));
