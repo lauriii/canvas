@@ -1,7 +1,6 @@
 import { useParams } from 'react-router-dom';
 
-import { useAppSelector } from '@/app/hooks';
-import { selectEditorFrameContext } from '@/features/ui/uiSlice';
+import { useTemplateRef } from '@/hooks/useTemplateRef';
 import { useGetContentTemplatesQuery } from '@/services/componentAndLayout';
 
 function getBundleName(
@@ -35,8 +34,8 @@ function getViewModeName(
 }
 
 export function useTemplateCaption(): string | undefined {
-  const isTemplateRoute =
-    useAppSelector(selectEditorFrameContext) === 'template';
+  const { isTemplateContext, isTemplatePreviewRoute } = useTemplateRef();
+  const isTemplateRoute = isTemplateContext || isTemplatePreviewRoute;
   const { entityType, bundle, viewMode } = useParams();
   const { data: templatesData } = useGetContentTemplatesQuery(undefined, {
     skip: !isTemplateRoute,

@@ -22,6 +22,7 @@ import {
 import { useAppSelector } from '@/app/hooks';
 import { selectTranslations } from '@/features/layout/layoutModelSlice';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
+import { useTemplateRef } from '@/hooks/useTemplateRef';
 import { getCanvasPermissions, getLanguages } from '@/utils/drupal-globals';
 import { getEntityTitle } from '@/utils/entityTitle';
 
@@ -48,8 +49,11 @@ const LanguageSelect = () => {
   };
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { entityType, entityId, width } = useParams();
+  const { entityType, entityId, width, previewEntityId, bundle, viewMode } =
+    useParams();
+  const { isTemplateContext, isTemplatePreviewRoute } = useTemplateRef();
   const translations = useAppSelector(selectTranslations);
+  const isTemplateRoute = isTemplateContext || isTemplatePreviewRoute;
   const pageData = useAppSelector(selectPageData);
   const pageTitle =
     getEntityTitle(entityType, pageData) || pageData?.['title[0][value]'];
@@ -64,20 +68,29 @@ const LanguageSelect = () => {
     setDropdownOpen(false);
     const selectedLang = languages.find((lang) => lang.id === languageId);
 
-    if (!selectedLang || !entityType || !entityId) {
+    if (!selectedLang || !entityType || (!entityId && !previewEntityId)) {
       return;
     }
 
     if (selectedLang.isDefault) {
-      navigate(`/editor/${entityType}/${entityId}`);
+      if (isTemplateRoute) {
+        navigate(
+          `/template/${entityType}/${bundle}/${viewMode}/${entityId || previewEntityId}`,
+        );
+      } else {
+        navigate(`/editor/${entityType}/${entityId}`);
+      }
     } else {
       const currentWidth = width || 'full';
-      navigate(
-        `/preview/${entityType}/${entityId}/${currentWidth}?language=${languageId}`,
-        {
-          state: { isLanguagePreview: true, language: languageId },
-        },
-      );
+      if (isTemplateRoute) {
+        navigate(
+          `/preview/template/${entityType}/${bundle}/${entityId || previewEntityId}/${viewMode}/${currentWidth}?language=${languageId}`,
+        );
+      } else {
+        navigate(
+          `/preview/${entityType}/${entityId}/${currentWidth}?language=${languageId}`,
+        );
+      }
     }
   };
 

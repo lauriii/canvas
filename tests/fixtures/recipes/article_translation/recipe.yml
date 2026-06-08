@@ -1,0 +1,41 @@
+name: 'Article Translation'
+description: 'Creates an Article content type with an Article One node and a Spanish translation, for testing translation scenarios.'
+type: 'Canvas'
+recipes:
+  - core/recipes/article_content_type
+install:
+  - language
+  - content_translation
+  - canvas:canvas_dev_translation
+  - canvas:canvas_test_sdc
+config:
+  strict: false
+  actions:
+    language.entity.en:
+      createIfNotExists:
+        langcode: en
+        status: true
+        dependencies: {}
+        id: en
+        label: English
+        direction: ltr
+        weight: 0
+        locked: false
+    language.entity.fr:
+      createIfNotExists:
+        id: fr
+        label: French
+    language.entity.es:
+      createIfNotExists:
+        id: es
+        label: Spanish
+    language.content_settings.node.article:
+      createIfNotExists:
+        target_entity_type_id: node
+        target_bundle: article
+        third_party_settings:
+          content_translation:
+            enabled: true
+content:
+  node:
+    - aaaa1111-bbbb-4ccc-8ddd-eeeeeeeeeeee

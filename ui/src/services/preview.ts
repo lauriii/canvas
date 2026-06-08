@@ -88,18 +88,24 @@ export const previewApi = createApi({
         }
       },
     }),
-    getLanguagePreview: builder.query<
+    // Snapshot preview updates the preview frame without changing the active
+    // model in the UI.
+    getSnapshotPreview: builder.query<
       { html: string },
       {
         entityType: string;
         entityId: string;
         language: string;
+        isTemplate?: boolean;
+        templateInfo?: { bundle?: string; viewMode?: string };
       }
     >({
-      query: ({ entityType, entityId, language }) => ({
-        url: `${language}/canvas/api/v0/layout/${entityType}/${entityId}`,
-        method: 'GET',
-      }),
+      query: ({ entityType, entityId, language, isTemplate, templateInfo }) => {
+        const url = isTemplate
+          ? `${language}/canvas/api/v0/layout-content-template/${entityType}.${templateInfo?.bundle}.${templateInfo?.viewMode}/${entityId}`
+          : `${language}/canvas/api/v0/layout/${entityType}/${entityId}`;
+        return { url, method: 'GET' };
+      },
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
@@ -164,7 +170,7 @@ export const previewApi = createApi({
 
 export const {
   usePostPreviewMutation,
-  useGetLanguagePreviewQuery,
+  useGetSnapshotPreviewQuery,
   useUpdateComponentMutation,
 } = previewApi;
 

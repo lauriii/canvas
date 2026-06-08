@@ -6,6 +6,7 @@ import { Button } from '@radix-ui/themes';
 import { useAppDispatch } from '@/app/hooks';
 import PreviewWidthSelector from '@/features/pagePreview/PreviewWidthSelector';
 import { useEditorNavigation } from '@/hooks/useEditorNavigation';
+import { useTemplateRef } from '@/hooks/useTemplateRef';
 import { pageDataFormApi } from '@/services/pageDataForm';
 
 type PreviewControlsProps = {
@@ -15,8 +16,11 @@ type PreviewControlsProps = {
 const PreviewControls = ({ isPreview }: PreviewControlsProps) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { entityId, entityType } = useParams();
+  const { entityId, entityType, previewEntityId, bundle, viewMode } =
+    useParams();
   const { navigateToEditor } = useEditorNavigation();
+  const { isTemplateContext, isTemplatePreviewRoute } = useTemplateRef();
+
   function handleChangeModeClick() {
     if (isPreview) {
       dispatch(
@@ -24,13 +28,26 @@ const PreviewControls = ({ isPreview }: PreviewControlsProps) => {
           { type: 'PageDataForm', id: 'FORM' },
         ]),
       );
-      navigateToEditor(entityType, entityId);
+      if (isTemplatePreviewRoute) {
+        navigate(`/template/${entityType}/${bundle}/${viewMode}/${entityId}`);
+      } else {
+        navigateToEditor(entityType, entityId);
+      }
     } else {
-      navigate(`/preview/${entityType}/${entityId}/full`);
+      if (isTemplateContext) {
+        navigate(
+          `/preview/template/${entityType}/${bundle}/${previewEntityId}/${viewMode}`,
+        );
+      } else {
+        navigate(`/preview/${entityType}/${entityId}/full`);
+      }
     }
   }
 
-  if (!entityId) {
+  if (
+    (!entityId && !isTemplateContext) ||
+    (isTemplateContext && !previewEntityId)
+  ) {
     return null;
   }
 

@@ -6,7 +6,7 @@ import {
   setInitialPageData,
   setPageData,
 } from '@/features/pageData/pageDataSlice';
-import { setHtml, setSnapshotHTML } from '@/features/pagePreview/previewSlice';
+import { setHtml } from '@/features/pagePreview/previewSlice';
 import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
@@ -191,13 +191,8 @@ export const componentAndLayoutApi = createApi({
             data: { entity_form_fields, html, autoSaves },
             meta,
           } = await queryFulfilled;
-          // Language-preview fetch: show translated HTML via snapshotHTML.
-          if (arg.language) {
-            dispatch(setSnapshotHTML(html));
-          } else {
-            dispatch(setInitialPageData(entity_form_fields));
-            dispatch(setHtml(html));
-          }
+          dispatch(setInitialPageData(entity_form_fields));
+          dispatch(setHtml(html));
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         } catch (err) {
           dispatch(setPageData({}));

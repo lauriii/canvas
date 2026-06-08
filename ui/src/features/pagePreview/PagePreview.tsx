@@ -18,7 +18,7 @@ import {
 } from '@/features/pagePreview/previewSlice';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import {
-  useGetLanguagePreviewQuery,
+  useGetSnapshotPreviewQuery,
   useQueuedPostPreviewMutation,
 } from '@/services/preview';
 import { getViewportSizes } from '@/utils/viewports';
@@ -34,11 +34,10 @@ const PagePreview = () => {
   const entity_form_fields = useAppSelector(selectPageData);
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
   const [postPreview] = useQueuedPostPreviewMutation();
-  const { entityId, entityType } = useParams();
+  const { entityId, entityType, bundle, viewMode, width } = useParams();
   const [searchParams] = useSearchParams();
   const { showBoundary } = useErrorBoundary();
   const [widthVal, setWidthVal] = useState('100%');
-  const { width } = useParams();
   const [linkIntercepted, setLinkIntercepted] = useState('');
   const [submissionIntercepted, setSubmissionIntercepted] = useState(false);
   // Get viewport sizes (supports theme-level customization).
@@ -47,8 +46,11 @@ const PagePreview = () => {
   // Derive the active language directly from the URL search params.
   const language = searchParams.get('language') ?? '';
 
-  // Only fetch the language preview when we are on the preview route.
-  const isPreview = location.pathname.includes('/preview');
+  // Determine template context from the URL path.
+  const isTemplate = location.pathname.includes('/preview/template');
+
+  // Only fetch the language preview when we are on a preview route.
+  const isPreview = isTemplate || location.pathname.includes('/preview');
 
   // Always fetch the default-language layout so page data (title etc.) is
   // seeded correctly on a fresh page load at a language preview URL.
@@ -57,10 +59,17 @@ const PagePreview = () => {
   );
 
   // Language preview: auto-fetch whenever language/entity changes.
-  const { error: languagePreviewError } = useGetLanguagePreviewQuery(
-    { entityType: entityType!, entityId: entityId!, language },
+  const { error: languagePreviewError } = useGetSnapshotPreviewQuery(
     {
-      skip: !isPreview || !language || !entityType || !entityId,
+      entityType: entityType!,
+      entityId: entityId!,
+      language,
+      isTemplate,
+      templateInfo: { bundle, viewMode },
+    },
+    {
+      skip:
+        !isPreview || (!language && !isTemplate) || !entityType || !entityId,
       refetchOnMountOrArgChange: true,
     },
   );

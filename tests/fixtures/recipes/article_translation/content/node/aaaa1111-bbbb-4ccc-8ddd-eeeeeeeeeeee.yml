@@ -1,0 +1,51 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: aaaa1111-bbbb-4ccc-8ddd-eeeeeeeeeeee
+  bundle: article
+  default_langcode: en
+default:
+  revision_uid:
+    -
+      target_id: 1
+  status:
+    -
+      value: true
+  uid:
+    -
+      target_id: 1
+  title:
+    -
+      value: 'Article One'
+  created:
+    -
+      value: 1748379635
+  promote:
+    -
+      value: true
+  sticky:
+    -
+      value: false
+  revision_translation_affected:
+    -
+      value: true
+  path:
+    -
+      alias: /article-one
+      langcode: en
+translations:
+  es:
+    status:
+      -
+        value: true
+    title:
+      -
+        value: 'Artículo Uno'
+    revision_translation_affected:
+      -
+        value: true
+    path:
+      -
+        alias: /articulo-uno
+        langcode: es
+

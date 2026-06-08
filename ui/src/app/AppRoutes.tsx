@@ -162,6 +162,14 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             element: <PagePreview />,
           },
           {
+            path: '/preview/template/:entityType/:bundle/:entityId/:viewMode',
+            element: <PagePreview />,
+          },
+          {
+            path: 'preview/template/:entityType/:bundle/:entityId/:viewMode/:width',
+            element: <PagePreview />,
+          },
+          {
             // belt and braces to catch navigation to /code-editor without component id rather than showing a 404
             path: '/code-editor/',
             element: CodeEditorUi,
