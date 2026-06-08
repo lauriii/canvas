@@ -5,7 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { generateManifest } from '../utils/generate-manifest';
 import { pushBuiltComponents } from '../utils/prepare-push';
-import { syncManifestArtifacts } from './push';
+import {
+  getSyncExclusionMessage,
+  getSyncExclusionSource,
+  syncManifestArtifacts,
+} from './push';
 
 import type { ApiService } from '../services/api';
 
@@ -39,6 +43,56 @@ function mockApiService(): ApiService {
     deleteComponent: vi.fn(),
   } as unknown as ApiService;
 }
+
+describe('push sync exclusion messages', () => {
+  const pageOptions = {
+    noFlag: '--no-pages',
+    includeFlag: '--include-pages',
+    envName: 'CANVAS_INCLUDE_PAGES',
+    configPath: 'sync.pages',
+  };
+
+  it('identifies --no-* flags as the exclusion source', () => {
+    expect(getSyncExclusionSource(false, undefined, undefined)).toBe('flag');
+    expect(getSyncExclusionMessage('pages', 'flag', pageOptions)).toBe(
+      'Local pages were found but excluded by --no-pages. Remove that flag to push them.',
+    );
+  });
+
+  it('identifies deprecated --include-*=false flags as the exclusion source', () => {
+    expect(getSyncExclusionSource(undefined, false, undefined)).toBe(
+      'deprecated-flag',
+    );
+    expect(
+      getSyncExclusionMessage('pages', 'deprecated-flag', pageOptions),
+    ).toBe(
+      'Local pages were found but excluded by deprecated --include-pages=false. Remove that flag, or use --no-pages when you want to exclude them.',
+    );
+  });
+
+  it('identifies deprecated CANVAS_INCLUDE_*=false env vars as the exclusion source', () => {
+    expect(getSyncExclusionSource(undefined, undefined, 'false')).toBe('env');
+    expect(getSyncExclusionMessage('pages', 'env', pageOptions)).toBe(
+      'Local pages were found but excluded by deprecated CANVAS_INCLUDE_PAGES=false. Remove that environment variable, or set "sync.pages" to true in canvas.config.json to push them.',
+    );
+  });
+
+  it('falls back to canvas.config.json as the exclusion source', () => {
+    expect(getSyncExclusionSource(undefined, undefined, undefined)).toBe(
+      'config',
+    );
+    expect(getSyncExclusionMessage('pages', 'config', pageOptions)).toBe(
+      'Local pages were found but excluded by "sync.pages": false in canvas.config.json. Set it to true to push them.',
+    );
+  });
+
+  it('gives CLI options precedence over deprecated environment variables', () => {
+    expect(getSyncExclusionSource(false, undefined, 'false')).toBe('flag');
+    expect(getSyncExclusionSource(undefined, false, 'false')).toBe(
+      'deprecated-flag',
+    );
+  });
+});
 
 describe('Push artifacts', () => {
   let tmpDir: string;

@@ -1,12 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as p from '@clack/prompts';
 
 import { getConfig, setConfig } from '../config';
 import {
+  applySyncOptionAliasesAndWarnings,
   parseBooleanOption,
   pluralizeComponent,
   updateConfigFromOptions,
   validateComponentOptions,
 } from './command-helpers';
+
+vi.mock('@clack/prompts', () => ({
+  log: {
+    warn: vi.fn(),
+  },
+}));
 
 describe('command-helpers', () => {
   beforeEach(() => {
@@ -17,8 +25,10 @@ describe('command-helpers', () => {
       clientId: '',
       clientSecret: '',
       scope:
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
-      includePages: false,
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_region',
+      includePages: true,
+      includeContentTemplates: true,
+      includeRegions: true,
       componentDir: 'components',
       userAgent: '',
       aliasBaseDir: '',
@@ -100,35 +110,65 @@ describe('command-helpers', () => {
       expect(config.scope).toBe('custom:scope');
     });
 
-    it('should update includePages when provided', () => {
-      updateConfigFromOptions({ includePages: true });
+    it('should update includePages when sync.pages is provided', () => {
+      updateConfigFromOptions({ sync: { pages: true } });
 
       const config = getConfig();
       expect(config.includePages).toBe(true);
     });
 
+    it('should warn when deprecated include options are used', () => {
+      applySyncOptionAliasesAndWarnings({ includePages: true });
+
+      expect(p.log.warn).toHaveBeenCalledWith(
+        '--include-pages is deprecated because pages are included by default. Remove this flag.',
+      );
+    });
+
+    it('should warn with the no-pages replacement for deprecated false include options', () => {
+      applySyncOptionAliasesAndWarnings({ includePages: false });
+
+      expect(p.log.warn).toHaveBeenCalledWith(
+        '--include-pages=false is deprecated and will be removed in a future release. Use --no-pages to exclude pages.',
+      );
+    });
+
+    it('should map friendly no options to include exclusions', () => {
+      const options = { pages: false, contentTemplates: false, regions: false };
+
+      applySyncOptionAliasesAndWarnings(options);
+
+      expect(options).toMatchObject({
+        sync: {
+          pages: false,
+          contentTemplates: false,
+          regions: false,
+        },
+      });
+    });
+
     it('should update the default scope when includePages changes', () => {
-      updateConfigFromOptions({ includePages: true });
+      updateConfigFromOptions({ sync: { pages: false } });
 
       const config = getConfig();
       expect(config.scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:content_template canvas:page_region',
       );
     });
 
     it('should update the default scope when includeRegions changes', () => {
-      updateConfigFromOptions({ includeRegions: true });
+      updateConfigFromOptions({ sync: { regions: false } });
 
       const config = getConfig();
       expect(config.scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page_region',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template',
       );
     });
 
-    it('should preserve an explicit scope when includePages changes', () => {
+    it('should preserve an explicit scope when sync.pages changes', () => {
       setConfig({ scope: 'custom:scope' });
 
-      updateConfigFromOptions({ includePages: true });
+      updateConfigFromOptions({ sync: { pages: true } });
 
       const config = getConfig();
       expect(config.scope).toBe('custom:scope');

@@ -17,6 +17,7 @@ import {
 } from '../lib/fonts/font-pull.js';
 import { createApiService, ensureAuthConfig } from '../services/api';
 import {
+  applySyncOptionAliasesAndWarnings,
   parseBooleanOption,
   pluralizeComponent,
   updateConfigFromOptions,
@@ -50,6 +51,9 @@ interface PullOptions {
   includePages?: boolean;
   includeContentTemplates?: boolean;
   includeRegions?: boolean;
+  pages?: boolean;
+  contentTemplates?: boolean;
+  regions?: boolean;
   includeBrandKit?: boolean;
   dir?: string;
   yes?: boolean;
@@ -758,6 +762,12 @@ export function pullCommand(program: Command): void {
         .argParser(parseBooleanOption)
         .default(undefined),
     )
+    .option('--no-pages', 'Exclude pages from the pull operation')
+    .option(
+      '--no-content-templates',
+      'Exclude content templates from the pull operation',
+    )
+    .option('--no-regions', 'Exclude global regions from the pull operation')
     .addOption(
       new Option(
         '--include-brand-kit [enabled]',
@@ -774,6 +784,7 @@ export function pullCommand(program: Command): void {
       p.intro(chalk.bold('Drupal Canvas CLI: pull'));
 
       try {
+        applySyncOptionAliasesAndWarnings(options);
         updateConfigFromOptions(options);
 
         await ensureAuthConfig();

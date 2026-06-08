@@ -48,7 +48,12 @@ use the default Canvas paths. You can set only the options you need.
   "layoutPath": "src/layout.jsx",
   "aliasBaseDir": "src",
   "outputDir": "dist",
-  "globalCssPath": "src/global.css"
+  "globalCssPath": "src/global.css",
+  "sync": {
+    "pages": true,
+    "contentTemplates": true,
+    "regions": true
+  }
 }
 ```
 
@@ -62,6 +67,9 @@ use the default Canvas paths. You can set only the options you need.
 | `aliasBaseDir` | `src` | Base directory for shared local imports that use `@/`. |
 | `outputDir` | `dist` | CLI build output directory. Workbench does not use this option. |
 | `globalCssPath` | `src/global.css` | Global CSS entry used by the CLI and Workbench. |
+| `sync.pages` | `true` | Include pages in `canvas pull` and `canvas push`. Set to `false` to exclude pages by default. |
+| `sync.contentTemplates` | `true` | Include content templates in `canvas pull` and `canvas push`. Set to `false` to exclude content templates by default. |
+| `sync.regions` | `true` | Include global regions in `canvas pull` and `canvas push`. Set to `false` to exclude global regions by default. |
 
 For existing projects, if `globalCssPath` is not set and `src/global.css` is
 missing, Canvas temporarily falls back to `src/components/global.css` when
@@ -92,10 +100,11 @@ Use `canvas pull` to download Canvas content into a local codebase.
 npx canvas pull
 ```
 
-The command pulls Code Components and global CSS from Canvas. It can also pull
-pages with `--include-pages` or `CANVAS_INCLUDE_PAGES=true`, content templates
-with `--include-content-templates` or `CANVAS_INCLUDE_CONTENT_TEMPLATES=true`,
-and global regions with `--include-regions` or `CANVAS_INCLUDE_REGIONS=true`.
+The command pulls Code Components, global CSS, pages, content templates, and
+global regions from Canvas by default. To exclude pages, content templates, or
+global regions by default, set `sync.pages`, `sync.contentTemplates`, or
+`sync.regions` to `false` in `canvas.config.json`. To exclude them for a single
+run, use `--no-pages`, `--no-content-templates`, or `--no-regions`.
 
 Brand Kit fonts are included with `--include-brand-kit` or
 `CANVAS_INCLUDE_BRAND_KIT=true`. When Brand Kit sync is enabled, the command
@@ -111,15 +120,15 @@ npx canvas push
 ```
 
 The command discovers components in the local codebase, builds the browser
-assets, runs the Tailwind CSS build, uploads component configuration, and syncs
-global CSS.
+assets, runs the Tailwind CSS build, uploads component configuration, syncs
+global CSS, and pushes pages, content templates, and global regions by default.
+To exclude pages, content templates, or global regions by default, set
+`sync.pages`, `sync.contentTemplates`, or `sync.regions` to `false` in
+`canvas.config.json`. To exclude them for a single run, use `--no-pages`,
+`--no-content-templates`, or `--no-regions`.
 
-Pages are included with `--include-pages` or `CANVAS_INCLUDE_PAGES=true`.
-Content templates are included with `--include-content-templates` or
-`CANVAS_INCLUDE_CONTENT_TEMPLATES=true`. Global regions are included with
-`--include-regions` or `CANVAS_INCLUDE_REGIONS=true`. Brand Kit fonts are
-included with `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT=true` when
-`canvas.brand-kit.json` is present.
+Brand Kit fonts are included with `--include-brand-kit` or
+`CANVAS_INCLUDE_BRAND_KIT=true` when `canvas.brand-kit.json` is present.
 
 After Code Components are pushed, they can still be opened and edited in the
 in-browser code editor. New source files, static assets, SVGs, and package

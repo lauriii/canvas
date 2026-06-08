@@ -5,7 +5,7 @@ import type { CanvasConfig } from './types';
 
 const LEGACY_GLOBAL_CSS_PATH = './src/components/global.css';
 
-const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
+export const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
   aliasBaseDir: 'src',
   outputDir: 'dist',
   componentDir: 'src/components',
@@ -15,6 +15,11 @@ const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
   deprecatedComponentDir: 'components',
   globalCssPath: 'src/global.css',
   layoutPath: 'src/layout.jsx',
+  sync: {
+    pages: true,
+    contentTemplates: true,
+    regions: true,
+  },
 };
 
 export interface CanvasConfigWarning {
@@ -80,6 +85,13 @@ export function resolveCanvasConfig(
       globalCssPath:
         parsed.globalCssPath ?? resolveDefaultGlobalCssPath(options),
       layoutPath: parsed.layoutPath ?? DEFAULT_CANVAS_CONFIG.layoutPath,
+      sync: {
+        pages: parsed.sync?.pages ?? DEFAULT_CANVAS_CONFIG.sync.pages,
+        contentTemplates:
+          parsed.sync?.contentTemplates ??
+          DEFAULT_CANVAS_CONFIG.sync.contentTemplates,
+        regions: parsed.sync?.regions ?? DEFAULT_CANVAS_CONFIG.sync.regions,
+      },
     };
   } catch {
     return {

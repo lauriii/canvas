@@ -8,6 +8,7 @@ import {
   ensureConfig,
   getConfig,
   handleLegacyComponentDirMigration,
+  handleLegacySyncEnvMigration,
   loadEnvFiles,
   promptForConfig,
   setConfig,
@@ -27,7 +28,11 @@ describe('config', () => {
         siteUrl: '',
         clientId: '',
         clientSecret: '',
-        includePages: false,
+        includePages: true,
+        includeContentTemplates: true,
+        includeRegions: true,
+        scope:
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_region',
         fonts: undefined,
         componentDir: 'components',
       });
@@ -44,16 +49,16 @@ describe('config', () => {
         deprecatedComponentDir: 'components',
         fonts: undefined,
         globalCssPath: 'src/global.css',
-        includePages: false,
-        includeContentTemplates: false,
-        includeRegions: false,
+        includePages: true,
+        includeContentTemplates: true,
+        includeRegions: true,
         includeBrandKit: false,
         outputDir: 'dist',
         pagesDir: 'pages',
         regionsDir: 'regions',
         layoutPath: 'src/layout.jsx',
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_region',
         siteUrl: '',
         userAgent: '',
       });
@@ -73,16 +78,16 @@ describe('config', () => {
         deprecatedComponentDir: 'components',
         fonts: undefined,
         globalCssPath: 'src/global.css',
-        includePages: false,
-        includeContentTemplates: false,
-        includeRegions: false,
+        includePages: true,
+        includeContentTemplates: true,
+        includeRegions: true,
         includeBrandKit: false,
         outputDir: 'dist',
         pagesDir: 'pages',
         regionsDir: 'regions',
         layoutPath: 'src/layout.jsx',
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_region',
         siteUrl: 'https://example.com',
         userAgent: '',
       });
@@ -95,7 +100,9 @@ describe('config', () => {
         siteUrl: 'https://example.com',
         clientId: 'test-client',
         clientSecret: 'test-secret',
-        includePages: false,
+        includePages: true,
+        includeContentTemplates: true,
+        includeRegions: true,
         componentDir: 'components',
       });
 
@@ -274,8 +281,8 @@ describe('config', () => {
         fonts: undefined,
         globalCssPath: 'src/global.css',
         includePages: true,
-        includeContentTemplates: false,
-        includeRegions: false,
+        includeContentTemplates: true,
+        includeRegions: true,
         includeBrandKit: false,
         outputDir: 'dist',
         pagesDir: 'pages',
@@ -286,6 +293,50 @@ describe('config', () => {
         siteUrl: 'https://test.example.com',
         userAgent: 'simpletest123456',
       });
+    });
+
+    it('should prefer canvas.config.json sync settings over deprecated env vars', async () => {
+      vi.stubEnv('CANVAS_INCLUDE_PAGES', 'true');
+      vi.stubEnv('CANVAS_INCLUDE_CONTENT_TEMPLATES', 'true');
+      vi.stubEnv('CANVAS_INCLUDE_REGIONS', 'true');
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({
+          sync: {
+            pages: false,
+            contentTemplates: false,
+            regions: false,
+          },
+        }),
+      );
+
+      const { getConfig } = await import('./config');
+
+      expect(getConfig().includePages).toBe(false);
+      expect(getConfig().includeContentTemplates).toBe(false);
+      expect(getConfig().includeRegions).toBe(false);
+      expect(getConfig().scope).toBe(
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
+      );
+    });
+
+    it('should use deprecated env vars when sync settings are omitted from canvas.config.json', async () => {
+      vi.stubEnv('CANVAS_INCLUDE_PAGES', 'false');
+      vi.stubEnv('CANVAS_INCLUDE_CONTENT_TEMPLATES', 'false');
+      vi.stubEnv('CANVAS_INCLUDE_REGIONS', 'false');
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({ componentDir: 'src/components' }),
+      );
+
+      const { getConfig } = await import('./config');
+
+      expect(getConfig().includePages).toBe(false);
+      expect(getConfig().includeContentTemplates).toBe(false);
+      expect(getConfig().includeRegions).toBe(false);
+      expect(getConfig().scope).toBe(
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
+      );
     });
 
     it('should use default config values when no environment files exist', async () => {
@@ -300,11 +351,11 @@ describe('config', () => {
         clientId: '',
         clientSecret: '',
         includeBrandKit: false,
-        includeContentTemplates: false,
-        includePages: false,
-        includeRegions: false,
+        includeContentTemplates: true,
+        includePages: true,
+        includeRegions: true,
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_region',
         componentDir: 'src/components',
         contentTemplatesDir: 'content-templates',
         deprecatedComponentDir: 'components',
@@ -325,7 +376,7 @@ describe('config', () => {
 
       expect(getConfig().includePages).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_region',
       );
     });
 
@@ -336,7 +387,7 @@ describe('config', () => {
 
       expect(getConfig().includeRegions).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page_region',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_region',
       );
     });
   });
@@ -349,6 +400,91 @@ describe('config', () => {
         '/current/dir/canvas.config.json',
       );
       vi.mocked(p.isCancel).mockReturnValue(false);
+    });
+
+    it('should migrate legacy sync env vars to canvas.config.json', async () => {
+      vi.stubEnv('CANVAS_INCLUDE_PAGES', 'false');
+      vi.stubEnv('CANVAS_INCLUDE_CONTENT_TEMPLATES', 'true');
+      vi.stubEnv('CANVAS_INCLUDE_REGIONS', 'false');
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({ componentDir: 'components' }),
+      );
+      vi.mocked(p.confirm).mockResolvedValue(true);
+
+      await handleLegacySyncEnvMigration();
+
+      expect(p.log.warn).toHaveBeenCalledWith(
+        'CANVAS_INCLUDE_PAGES is deprecated. Set "sync.pages" in canvas.config.json instead.',
+      );
+      expect(p.log.warn).toHaveBeenCalledWith(
+        'CANVAS_INCLUDE_CONTENT_TEMPLATES is deprecated. Set "sync.contentTemplates" in canvas.config.json instead.',
+      );
+      expect(p.log.warn).toHaveBeenCalledWith(
+        'CANVAS_INCLUDE_REGIONS is deprecated. Set "sync.regions" in canvas.config.json instead.',
+      );
+      expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
+      const persistedCanvasConfig = JSON.parse(
+        vi.mocked(fs.writeFileSync).mock.calls[0][1] as string,
+      ) as Record<string, unknown>;
+      expect(persistedCanvasConfig).toEqual({
+        componentDir: 'components',
+        sync: {
+          pages: false,
+          contentTemplates: true,
+          regions: false,
+        },
+      });
+      expect(getConfig().includePages).toBe(false);
+      expect(getConfig().includeContentTemplates).toBe(true);
+      expect(getConfig().includeRegions).toBe(false);
+    });
+
+    it('should create canvas.config.json with sync settings when it does not exist', async () => {
+      vi.stubEnv('CANVAS_INCLUDE_PAGES', 'false');
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+      vi.mocked(p.confirm).mockResolvedValue(true);
+
+      await handleLegacySyncEnvMigration();
+
+      expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
+      const persistedCanvasConfig = JSON.parse(
+        vi.mocked(fs.writeFileSync).mock.calls[0][1] as string,
+      ) as Record<string, unknown>;
+      expect(persistedCanvasConfig).toEqual({
+        sync: {
+          pages: false,
+        },
+      });
+    });
+
+    it('should not override existing sync config during legacy env migration', async () => {
+      vi.stubEnv('CANVAS_INCLUDE_PAGES', 'false');
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({ sync: { pages: true } }),
+      );
+      setConfig({ includePages: true });
+
+      await handleLegacySyncEnvMigration();
+
+      expect(getConfig().includePages).toBe(true);
+      expect(p.confirm).not.toHaveBeenCalled();
+      expect(fs.writeFileSync).not.toHaveBeenCalled();
+    });
+
+    it('should show sync config instructions in non-interactive mode', async () => {
+      vi.stubEnv('CANVAS_INCLUDE_REGIONS', 'false');
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+
+      await handleLegacySyncEnvMigration({ skipPrompt: true });
+
+      expect(p.confirm).not.toHaveBeenCalled();
+      expect(fs.writeFileSync).not.toHaveBeenCalled();
+      expect(p.log.info).toHaveBeenCalledWith(
+        'Add "sync.regions": false to canvas.config.json to persist this setting.',
+      );
+      expect(getConfig().includeRegions).toBe(false);
     });
 
     it('should skip when componentDir already exists in canvas.config.json', async () => {

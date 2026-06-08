@@ -80,6 +80,12 @@ export interface ComponentMetadata extends Pick<
   };
 }
 
+export interface CanvasSyncConfig {
+  pages: boolean;
+  contentTemplates: boolean;
+  regions: boolean;
+}
+
 export interface CanvasConfig {
   aliasBaseDir: string;
   outputDir: string;
@@ -90,4 +96,5 @@ export interface CanvasConfig {
   deprecatedComponentDir: string;
   globalCssPath: string;
   layoutPath: string;
+  sync: CanvasSyncConfig;
 }

@@ -95,6 +95,59 @@ describe('resolveCanvasConfig', () => {
     expect(warnings).toHaveLength(1);
   });
 
+  it('uses default sync settings when no config file exists', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+
+    const config = resolveCanvasConfig({ hostRoot: root });
+
+    expect(config.sync).toEqual({
+      pages: true,
+      contentTemplates: true,
+      regions: true,
+    });
+  });
+
+  it('uses sync settings from canvas.config.json', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+    await writeFile(
+      path.join(root, 'canvas.config.json'),
+      JSON.stringify({
+        sync: {
+          pages: false,
+          contentTemplates: false,
+          regions: false,
+        },
+      }),
+    );
+
+    const config = resolveCanvasConfig({ hostRoot: root });
+
+    expect(config.sync).toEqual({
+      pages: false,
+      contentTemplates: false,
+      regions: false,
+    });
+  });
+
+  it('fills omitted sync settings with defaults', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+    await writeFile(
+      path.join(root, 'canvas.config.json'),
+      JSON.stringify({ sync: { pages: false } }),
+    );
+
+    const config = resolveCanvasConfig({ hostRoot: root });
+
+    expect(config.sync).toEqual({
+      pages: false,
+      contentTemplates: true,
+      regions: true,
+    });
+  });
+
   it('uses explicit globalCssPath without warning', async () => {
     const root = await makeTempDir();
     tempDirs.push(root);
