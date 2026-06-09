@@ -7,6 +7,7 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\FileStorage;
 
 /**
@@ -68,4 +69,48 @@ function canvas_ai_post_update_0004_agent_hostname_filter(): void {
   if (!$config->isNew() && $config->get('hostname_filter_disabled') !== TRUE) {
     $config->set('hostname_filter_disabled', TRUE)->save(TRUE);
   }
+}
+
+/**
+ * Normalize component description settings for stricter schema validation.
+ */
+function canvas_ai_post_update_0005_normalize_component_description_settings(): void {
+  $config_factory = Drupal::service('config.factory');
+  assert($config_factory instanceof ConfigFactoryInterface);
+  $config = $config_factory->getEditable('canvas_ai.component_description.settings');
+
+  if ($config->isNew()) {
+    // The settings form creates this config on first save. Sites that never
+    // saved it have no active config to normalize.
+    return;
+  }
+
+  $context = $config->get('component_context') ?? [];
+  $allowed_sources = ['sdc', 'js', 'block'];
+  $migrated = [];
+
+  // Active configuration may predate schema validation or have been imported
+  // with invalid values, so normalize only the array shape this update supports.
+  foreach (is_array($context) ? $context : [] as $source => $entry) {
+    if (!in_array($source, $allowed_sources, TRUE)) {
+      continue;
+    }
+
+    if (!is_array($entry)) {
+      $entry = [];
+    }
+
+    $data = (string) ($entry['data'] ?? '');
+    if (trim($data) === '') {
+      $data = "{}\n";
+    }
+
+    $migrated[$source] = [
+      'enabled' => (bool) ($entry['enabled'] ?? FALSE),
+      'data' => $data,
+    ];
+  }
+
+  ksort($migrated);
+  $config->set('component_context', $migrated)->save(TRUE);
 }

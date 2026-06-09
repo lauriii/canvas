@@ -4,8 +4,18 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel;
 
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
+use Drupal\canvas_personalization\Plugin\Canvas\ComponentSource\Personalization;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Yaml\Yaml;
@@ -15,6 +25,8 @@ use Symfony\Component\Yaml\Yaml;
  */
 #[Group('canvas_ai')]
 final class CanvasAiPageBuilderHelperTest extends CanvasKernelTestBase {
+
+  use UserCreationTrait;
 
   /**
    * The CanvasAiPageBuilderHelper service.
@@ -36,8 +48,13 @@ final class CanvasAiPageBuilderHelperTest extends CanvasKernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-
-    // Get the service from the container.
+    $this->installEntitySchema('path_alias');
+    $this->installEntitySchema('user');
+    $privileged_user = $this->createUser(['create canvas_page']);
+    if (!$privileged_user instanceof User) {
+      throw new \Exception('Failed to create test user');
+    }
+    $this->container->get('current_user')->setAccount($privileged_user);
     $this->canvasAiPageBuilderHelper = $this->container->get('canvas_ai.page_builder_helper');
   }
 
@@ -328,6 +345,82 @@ XML;
 
     $result = $this->canvasAiPageBuilderHelper->formatMessageWithContext($context, $userMessage);
     $this->assertEquals($expected, $result);
+  }
+
+  /**
+   * Tests that getAllComponentsKeyedBySource returns only sdc, block and js.
+   *
+   * @see \Drupal\canvas_dev_mode\Hook\UsePrivateApis::configSchemaInfoAlter()
+   * @todo Remove canvas_dev_mode once ComponentSourceInterface is a public API,
+   *   i.e. after https://www.drupal.org/i/3520484#stable is done.
+   */
+  public function testGetAllComponentsKeyedBySourceContainsOnlySdcBlockAndJs(): void {
+    // canvas_dev_mode removes the static Choice constraint on canvas.component.*
+    // source fields, allowing third-party sources like p13n to pass schema
+    // validation.
+    $this->enableModules(['canvas_dev_mode', 'canvas_personalization']);
+    $this->installConfig(['canvas_personalization']);
+
+    // Create a JavaScript component.
+    JavaScriptComponent::create([
+      'machineName' => 'test_js_component',
+      'name' => 'Test JS Component',
+      'status' => TRUE,
+      'props' => [],
+      'required' => [],
+      'slots' => [],
+      'js' => ['original' => 'console.log("test");', 'compiled' => 'console.log("test");'],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
+    ])->save();
+
+    // Generate SDC component config entities.
+    $this->container->get(ComponentSourceManager::class)->generateComponents();
+    $helper = $this->container->get('canvas_ai.page_builder_helper');
+    $result = $helper->getAllComponentsKeyedBySource();
+
+    $this->assertArrayHasKey(SingleDirectoryComponent::SOURCE_PLUGIN_ID, $result);
+    $this->assertArrayHasKey(BlockComponent::SOURCE_PLUGIN_ID, $result);
+    $this->assertArrayHasKey(JsComponent::SOURCE_PLUGIN_ID, $result);
+    $this->assertArrayNotHasKey(Personalization::SOURCE_PLUGIN_ID, $result);
+  }
+
+  /**
+   * Tests that getAllComponentsKeyedBySource uses cache correctly.
+   */
+  public function testGetAllComponentsKeyedBySourceCaching(): void {
+    $variation_cache = $this->container->get('variation_cache_factory')->get('default');
+    $memory_variation_cache = $this->container->get('variation_cache_factory')->get('canvas_ai_memory');
+    $cache_keys = [CanvasAiPageBuilderHelper::CACHE_KEY_ALL_COMPONENTS_BY_SOURCE];
+    $component_entity_type = $this->container->get('entity_type.manager')->getDefinition(Component::ENTITY_TYPE_ID);
+    $initial_cacheability = new CacheableMetadata();
+    $initial_cacheability->setCacheContexts($component_entity_type->getListCacheContexts());
+    $initial_cacheability->setCacheTags($component_entity_type->getListCacheTags());
+    $initial_cacheability->addCacheContexts(['user.permissions']);
+
+    // Ensure both caches are empty initially.
+    $variation_cache->delete($cache_keys, $initial_cacheability);
+    $memory_variation_cache->delete($cache_keys, $initial_cacheability);
+    $this->assertFalse($variation_cache->get($cache_keys, $initial_cacheability), 'Persistent cache is empty before first call');
+    $this->assertFalse($memory_variation_cache->get($cache_keys, $initial_cacheability), 'Memory cache is empty before first call');
+
+    // First call - should fetch fresh data and populate both caches.
+    $this->canvasAiPageBuilderHelper->getAllComponentsKeyedBySource();
+
+    $cached_persistent = $variation_cache->get($cache_keys, $initial_cacheability);
+    $cached_memory = $memory_variation_cache->get($cache_keys, $initial_cacheability);
+    $this->assertIsObject($cached_persistent, 'Persistent cache populated after first call');
+    $this->assertNotEmpty($cached_persistent->data, 'Persistent cache data is not empty');
+    $this->assertIsObject($cached_memory, 'Memory cache populated after first call');
+    $this->assertSame($cached_persistent->data, $cached_memory->data, 'Memory cache matches the persistent cache after first call');
+
+    // Update a component to force cache invalidation. Tag invalidation must
+    // clear both bins, including the memory bin within the same request.
+    $page_title_component = Component::load('block.page_title_block');
+    $this->assertNotNull($page_title_component, 'Page title block component exists');
+    $page_title_component->set('label', $page_title_component->label() . ' (updated)')->save();
+    $this->assertFalse($variation_cache->get($cache_keys, $initial_cacheability), 'Persistent cache is invalidated after component update');
+    $this->assertFalse($memory_variation_cache->get($cache_keys, $initial_cacheability), 'Memory cache is invalidated after component update');
   }
 
 }

@@ -93,6 +93,8 @@ final class CanvasAiComponentDescriptionSettingsForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $component_context = $form_state->getValue('component_context');
     $available_components = $this->pageBuilderHelper->getAllComponentsKeyedBySource();
+    $config_data = [];
+
     foreach ($component_context as $source => $components) {
       // Replace descriptions with the submitted descriptions.
       foreach ($components['components'] as $component_id => $component_data_from_form) {
@@ -116,11 +118,16 @@ final class CanvasAiComponentDescriptionSettingsForm extends ConfigFormBase {
         }
       }
 
-      $this->config('canvas_ai.component_description.settings')
-        ->set('component_context.' . $source . '.enabled', $components['enabled'])
-        ->set('component_context.' . $source . '.data', Yaml::encode($available_components[$source]['components']))
-        ->save();
+      $config_data[$source] = [
+        'enabled' => $components['enabled'],
+        'data' => Yaml::encode($available_components[$source]['components']),
+      ];
     }
+
+    $this->config('canvas_ai.component_description.settings')
+      ->set('component_context', $config_data)
+      ->save();
+
     parent::submitForm($form, $form_state);
   }
 
