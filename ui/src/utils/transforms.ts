@@ -16,7 +16,51 @@ export interface TransformConfig {
   [key: keyof PropsValues]: Partial<Transform>;
 }
 
-export const ENTITY_AUTOCOMPLETE_MATCH = /.+\s\(([^)]+)\)/;
+// Mirror Drupal core's parsing of entity autocomplete values like
+// "Label (123)" so the client-side transform extracts the trailing ID.
+// @see \Drupal\Core\Entity\Element\EntityAutocomplete::extractEntityIdFromAutocompleteInput
+export const ENTITY_AUTOCOMPLETE_MATCH = /.+\s\(([^)]+)\)\s*$/;
+
+const parseSingleEntityAutocompleteSelection = (
+  value: string,
+): string | null => {
+  const match = value.trim().match(ENTITY_AUTOCOMPLETE_MATCH);
+  return match !== null ? match[1] : null;
+};
+
+// Quote-aware comma splitter mirroring core/misc/autocomplete.js so labels
+// like `"Hello, world" (3)` survive tags-mode input.
+// @see Drupal.autocomplete.splitValues
+const splitAutocompleteValues = (value: string): string[] => {
+  const result: string[] = [];
+  let quote = false;
+  let current = '';
+  for (let i = 0; i < value.length; i++) {
+    const character = value.charAt(i);
+    if (character === '"') {
+      current += character;
+      quote = !quote;
+    } else if (character === ',' && !quote) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += character;
+    }
+  }
+  if (value.length > 0) {
+    result.push(current.trim());
+  }
+  return result;
+};
+
+const parseEntityAutocompleteValue = (value: string): string[] => {
+  // Treat entries that don't match `Label (id)` as bare ids so a single bad
+  // entry doesn't discard the rest of the selection; server-side validation
+  // surfaces the actual error.
+  return splitAutocompleteValues(value)
+    .filter(Boolean)
+    .map((s) => parseSingleEntityAutocompleteSelection(s) ?? s);
+};
 
 type PropsValuesOrArrayOfPropsValues =
   | Array<PropsValues>
@@ -133,12 +177,12 @@ export interface LinkPropShape extends StaticPropSource {
 }
 
 export const resolveEntityUri = (uri: string): string => {
-  const match = uri.match(ENTITY_AUTOCOMPLETE_MATCH);
+  const id = parseSingleEntityAutocompleteSelection(uri);
   // LinkWidget with autocomplete support only supports matching on node
   // entities.
   // @todo Add support for other entity types once core does -
   // https://www.drupal.org/i/2423093
-  return match !== null ? `entity:node/${match[1]}` : uri;
+  return id !== null ? `entity:node/${id}` : uri;
 };
 
 const hasStringUri = (
@@ -186,6 +230,45 @@ const link: Transformer<
     return returnValue.filter(Boolean);
   }
   return returnValue[0] ?? null;
+};
+
+// Treat unparseable text as a bare ID so the transform stays idempotent when
+// commit re-runs it against its own output (otherwise the second pass would
+// drop the prop).
+// @see \Drupal\Core\Entity\Element\EntityAutocomplete::extractEntityIdFromAutocompleteInput
+const passThroughIfAlreadyExtracted = (value: string): string | null => {
+  const extracted = parseSingleEntityAutocompleteSelection(value);
+  if (extracted !== null) {
+    return extracted;
+  }
+  const trimmed = value.trim();
+  return trimmed === '' ? null : trimmed;
+};
+
+const entityAutocompleteTargetId: Transformer<
+  BaseTransformOptions,
+  null | string | string[],
+  null | string | string[]
+> = (value) => {
+  if (value === null) {
+    return null;
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map(passThroughIfAlreadyExtracted)
+      .filter((id): id is string => id !== null);
+  }
+  // Tags-mode (comma-separated) input; the parser always returns an array.
+  // Collapse to a single id when only one selection survives (e.g. trailing
+  // comma), matching PHP core's single-vs-multi handling.
+  if (value.includes(',')) {
+    const ids = parseEntityAutocompleteValue(value);
+    if (ids.length === 0) {
+      return null;
+    }
+    return ids.length === 1 ? ids[0] : ids;
+  }
+  return passThroughIfAlreadyExtracted(value);
 };
 
 const cast: Transformer<
@@ -381,6 +464,7 @@ const transforms = {
   mediaSelection,
   cast,
   link,
+  entityAutocompleteTargetId,
 };
 
 export type Transforms = typeof transforms;

@@ -457,6 +457,114 @@ describe('Transforms - firstRecord', () => {
   });
 });
 
+describe('Transforms - entityAutocompleteTargetId', () => {
+  it('Should return target ID from single autocomplete value', () => {
+    expect(transforms.entityAutocompleteTargetId('A node title (3)')).to.equal(
+      '3',
+    );
+  });
+
+  it('Should return target IDs from multiple autocomplete values', () => {
+    expect(
+      transforms.entityAutocompleteTargetId(
+        'A node title (3), Another node title (42)',
+      ),
+    ).to.deep.equal(['3', '42']);
+  });
+
+  it('Should parse emoji titles from autocomplete values', () => {
+    expect(
+      transforms.entityAutocompleteTargetId('😎 A node title (7)'),
+    ).to.equal('7');
+  });
+
+  it('Should handle a trailing comma in single-value tags input', () => {
+    expect(
+      transforms.entityAutocompleteTargetId('A node title (3), '),
+    ).to.equal('3');
+  });
+
+  it('Should map array values when given array input', () => {
+    expect(
+      transforms.entityAutocompleteTargetId([
+        'A node title (3)',
+        'Another node title (42)',
+      ]),
+    ).to.deep.equal(['3', '42']);
+  });
+
+  it('Should pass through an already-extracted target ID unchanged', () => {
+    // The transform is re-applied on every commit; the second pass receives
+    // the previously-extracted id (e.g. '3'), and must return it unchanged so
+    // the value is not destroyed. Mirrors the pass-through behavior of
+    // \Drupal\Core\Entity\Element\EntityAutocomplete::extractEntityIdFromAutocompleteInput.
+    expect(transforms.entityAutocompleteTargetId('3')).to.equal('3');
+    expect(transforms.entityAutocompleteTargetId('A node title')).to.equal(
+      'A node title',
+    );
+  });
+
+  it('Should be idempotent for single values', () => {
+    const first = transforms.entityAutocompleteTargetId('A node title (3)');
+    expect(first).to.equal('3');
+    expect(transforms.entityAutocompleteTargetId(first)).to.equal('3');
+  });
+
+  it('Should be idempotent for array values', () => {
+    const first = transforms.entityAutocompleteTargetId([
+      'A node title (3)',
+      'Another node title (42)',
+    ]);
+    expect(first).to.deep.equal(['3', '42']);
+    expect(transforms.entityAutocompleteTargetId(first)).to.deep.equal([
+      '3',
+      '42',
+    ]);
+  });
+
+  it('Should pass through bare ids in an array', () => {
+    expect(transforms.entityAutocompleteTargetId(['3', '42'])).to.deep.equal([
+      '3',
+      '42',
+    ]);
+  });
+
+  it('Should accept arrays mixing bare ids and "Label (id)" values', () => {
+    expect(
+      transforms.entityAutocompleteTargetId(['A node title (3)', '42']),
+    ).to.deep.equal(['3', '42']);
+  });
+
+  it('Should return null for null input', () => {
+    expect(transforms.entityAutocompleteTargetId(null)).to.equal(null);
+  });
+
+  it('Should return null for an empty string', () => {
+    expect(transforms.entityAutocompleteTargetId('')).to.equal(null);
+  });
+
+  it('Should keep an internal comma inside a quoted label', () => {
+    // Mirrors Drupal.autocomplete.splitValues quote handling.
+    expect(
+      transforms.entityAutocompleteTargetId('"Hello, world" (3)'),
+    ).to.equal('3');
+  });
+
+  it('Should split tags around quoted labels containing commas', () => {
+    expect(
+      transforms.entityAutocompleteTargetId('"Hello, world" (3), Another (5)'),
+    ).to.deep.equal(['3', '5']);
+  });
+
+  it('Should keep legitimate ids when a tags-mode entry is unparseable', () => {
+    // Unparseable entries are treated as bare ids (idempotent pass-through);
+    // server-side validation surfaces the actual error.
+    expect(
+      transforms.entityAutocompleteTargetId('A node title (3), invalid'),
+    ).to.deep.equal(['3', 'invalid']);
+  });
+});
+
 describe('Transforms - dateTime', () => {
   const datePropSource = {
     sourceType: 'static:field_item:datetime',

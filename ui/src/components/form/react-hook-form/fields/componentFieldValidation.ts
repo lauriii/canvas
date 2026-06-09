@@ -148,6 +148,21 @@ export const shouldSkipPropValidation = (
   }
 
   const { selectedComponent } = inputAndUiData;
+  const propName = toPropName(name, selectedComponent);
+
+  // Object props (e.g. image) have a source shape that differs from
+  // their resolved value, so they can't be validated client-side,
+  // server-side validation still runs.
+  // @todo Replace the blanket object skip with a more targeted approach in https://git.drupalcode.org/project/canvas/-/work_items/3591602
+  const propSchemas = getPropSchemas(inputAndUiData);
+  if (
+    propSchemas[propName]?.type === 'object' ||
+    (propSchemas[propName]?.type === 'array' &&
+      propSchemas[propName]?.items?.type === 'object')
+  ) {
+    return true;
+  }
+
   const formData = new FormData(target.form);
   const formState = Object.fromEntries(formData);
   const { multipleInputsSingleValue } = propInputData(
@@ -155,9 +170,9 @@ export const shouldSkipPropValidation = (
     inputAndUiData,
   );
 
-  if (multipleInputsSingleValue.includes(toPropName(name, selectedComponent))) {
+  if (multipleInputsSingleValue.includes(propName)) {
     console.warn(
-      `Input ${toPropName(name, selectedComponent)} is part of a single value prop that corresponds to multiple form fields. This is not yet supported and JSON Schema validation is skipped.`,
+      `Input ${propName} is part of a single value prop that corresponds to multiple form fields. This is not yet supported and JSON Schema validation is skipped.`,
     );
     return true;
   }

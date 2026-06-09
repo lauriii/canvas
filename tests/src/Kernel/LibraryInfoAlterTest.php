@@ -68,6 +68,7 @@ final class LibraryInfoAlterTest extends CanvasKernelTestBase {
       'canvas/canvas.transform.mediaSelection',
       'canvas/canvas.transform.cast',
       'canvas/canvas.transform.link',
+      'canvas/canvas.transform.entityAutocompleteTargetId',
       'canvas_test_page/canvas.transform.diaclone',
     ], array_values(array_filter(
       $attachments['library'],

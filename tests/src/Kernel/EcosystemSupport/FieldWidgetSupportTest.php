@@ -17,12 +17,13 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('canvas')]
 final class FieldWidgetSupportTest extends EcosystemSupportTestBase {
 
-  public const COMPLETION = 15 / 28;
+  public const COMPLETION = 16 / 28;
   public const SUPPORTED = [
     'boolean_checkbox',
     'daterange_default',
     'datetime_default',
     'email_default',
+    'entity_reference_autocomplete',
     'file_generic',
     'image_image',
     'link_default',

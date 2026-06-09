@@ -88,6 +88,10 @@ canvas.transform.link:
   dependencies:
     - core/drupal
     - canvas/canvas-ui
+canvas.transform.entityAutocompleteTargetId:
+  dependencies:
+    - core/drupal
+    - canvas/canvas-ui
 
 ajax.hyperscriptify:
   js:

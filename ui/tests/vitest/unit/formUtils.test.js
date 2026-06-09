@@ -1,5 +1,6 @@
 import {
   coerceValueForSchema,
+  shouldSkipPropValidation,
   validateProp,
 } from '@/components/form/react-hook-form/fields/componentFieldValidation';
 import {
@@ -46,6 +47,8 @@ Value`,
   'canvas_component_props[all-props][linkNoTitle][0][uri]':
     'http://example.com',
   'canvas_component_props[all-props][linkNoTitleEmpty][0][uri]': '',
+  'canvas_component_props[all-props][entityReferenceAutocomplete][0][target_id]':
+    'A node title (3)',
   'canvas_component_props[all-props][media][selection][0][target_id]': 3,
   'canvas_component_props[all-props][mediaMultiple][selection][0][target_id]': 3,
   'canvas_component_props[all-props][mediaMultiple][selection][1][target_id]': 4,
@@ -127,6 +130,7 @@ let inputAndUiData = {
             storage: {},
           },
         },
+        entityReferenceAutocomplete: {},
       },
     },
   },
@@ -210,6 +214,7 @@ let inputAndUiData = {
             storage: {},
           },
         },
+        entityReferenceAutocomplete: {},
       },
     },
   },
@@ -226,6 +231,10 @@ const transformConfig = {
   cta1href: { link: {} },
   linkNoTitle: { link: {} },
   linkNoTitleEmpty: { link: {} },
+  entityReferenceAutocomplete: {
+    mainProperty: { name: 'target_id' },
+    entityAutocompleteTargetId: {},
+  },
   cta2: { mainProperty: {} },
   textarea: { mainProperty: {} },
   number: { mainProperty: {} },
@@ -278,6 +287,7 @@ describe('Form state to object', () => {
       cta2: [{ value: '' }],
       linkNoTitle: [{ uri: 'http://example.com' }],
       linkNoTitleEmpty: [{ uri: '' }],
+      entityReferenceAutocomplete: [{ target_id: 'A node title (3)' }],
       a_boolean: { value: 'true' },
       unchecked_boolean: { value: 'false' },
       date: [
@@ -388,6 +398,7 @@ describe('Get prop values from form state', () => {
       cta1href: { uri: 'https://drupal.org', title: 'Do it' },
       linkNoTitle: 'http://example.com',
       linkNoTitleEmpty: '',
+      entityReferenceAutocomplete: '3',
       textarea: `Hi there
 Multiline
 Value`,
@@ -408,6 +419,43 @@ Value`,
       singleColor: ['green'],
       emptyColors: [],
     });
+  });
+
+  it('Should transform multiple entity autocomplete values', () => {
+    const multiCardinalityFormState = {
+      ...formState,
+      'canvas_component_props[all-props][entityReferenceAutocomplete][0][target_id]':
+        'A 😎 node title (3), Another node title (42)',
+    };
+
+    const { propsValues } = getPropsValues(
+      multiCardinalityFormState,
+      inputAndUiData,
+      transformConfig,
+    );
+
+    expect(propsValues.entityReferenceAutocomplete).to.deep.equal(['3', '42']);
+  });
+
+  it('Should pass through an already-extracted entity autocomplete id', () => {
+    // The transform runs on every commit, so values that were extracted on a
+    // prior pass (a bare id like '3') must round-trip unchanged rather than
+    // being dropped. Without idempotency, picking a value once would never
+    // patch the backend because the second pass turns the id into null and
+    // drops the prop. @see entityAutocompleteTargetId in transforms.ts
+    const alreadyExtractedFormState = {
+      ...formState,
+      'canvas_component_props[all-props][entityReferenceAutocomplete][0][target_id]':
+        '3',
+    };
+
+    const { propsValues } = getPropsValues(
+      alreadyExtractedFormState,
+      inputAndUiData,
+      transformConfig,
+    );
+
+    expect(propsValues.entityReferenceAutocomplete).to.equal('3');
   });
 
   it('Should truncate array props that exceed maxItems', () => {
@@ -594,6 +642,120 @@ describe('validateProp', () => {
     };
     const [valid] = validateProp('colors', ['red'], inputAndUiData);
     expect(valid).to.equal(true);
+  });
+});
+
+describe('shouldSkipPropValidation', () => {
+  const buildTargetInForm = (name, otherInputNames = []) => {
+    const form = document.createElement('form');
+    const input = document.createElement('input');
+    input.name = name;
+    form.appendChild(input);
+    otherInputNames.forEach((extraName) => {
+      const extra = document.createElement('input');
+      extra.name = extraName;
+      form.appendChild(extra);
+    });
+    return input;
+  };
+
+  it('skips validation for content-entity-reference props', () => {
+    // Content entity reference props have a source shape that differs from
+    // their resolved value and can't be validated client-side.
+    // Server-side validation remains the source of truth.
+    const target = buildTargetInForm(
+      'canvas_component_props[comp1][author][0][target_id]',
+    );
+    const inputAndUiData = {
+      selectedComponent: 'comp1',
+      selectedComponentType: 'js.article',
+      components: {
+        'js.article': {
+          propSources: {
+            author: {
+              jsonSchema: {
+                type: 'object',
+                id: 'json-schema-definitions://canvas.module/content-entity-reference',
+              },
+            },
+          },
+        },
+      },
+    };
+    expect(
+      shouldSkipPropValidation(target.name, target, inputAndUiData, '3'),
+    ).to.equal(true);
+  });
+
+  it('does not skip validation for an unrelated single-input prop', () => {
+    // Sanity check: the CER skip should not leak to other object props that
+    // happen to live in the same code path.
+    const target = buildTargetInForm(
+      'canvas_component_props[comp1][title][0][value]',
+    );
+    const inputAndUiData = {
+      selectedComponent: 'comp1',
+      selectedComponentType: 'js.article',
+      components: {
+        'js.article': {
+          propSources: {
+            title: { jsonSchema: { type: 'string' } },
+          },
+        },
+      },
+    };
+    expect(
+      shouldSkipPropValidation(target.name, target, inputAndUiData, 'hello'),
+    ).to.equal(false);
+  });
+
+  it('skips validation for image props (multiple inputs per single value)', () => {
+    // Image props have several inputs (fids, alt, width, height) backing one
+    // prop value. propInputData lifts them into multipleInputsSingleValue, so
+    // shouldSkipPropValidation returns true regardless of the schema.
+    const target = buildTargetInForm(
+      'canvas_component_props[comp1][image][0][fids]',
+      [
+        'canvas_component_props[comp1][image][0][alt]',
+        'canvas_component_props[comp1][image][0][width]',
+        'canvas_component_props[comp1][image][0][height]',
+      ],
+    );
+    const inputAndUiData = {
+      selectedComponent: 'comp1',
+      selectedComponentType: 'js.banner',
+      components: {
+        'js.banner': {
+          propSources: {
+            image: { jsonSchema: { type: 'object' } },
+          },
+        },
+      },
+    };
+    expect(
+      shouldSkipPropValidation(target.name, target, inputAndUiData, '5'),
+    ).to.equal(true);
+  });
+
+  it('skips validation for video props (multiple inputs per single value)', () => {
+    const target = buildTargetInForm(
+      'canvas_component_props[comp1][video][0][fids]',
+      ['canvas_component_props[comp1][video][0][poster]'],
+    );
+    const inputAndUiData = {
+      selectedComponent: 'comp1',
+      selectedComponentType: 'js.banner',
+      components: {
+        'js.banner': {
+          propSources: {
+            video: { jsonSchema: { type: 'object' } },
+          },
+        },
+      },
+    };
+    expect(
+      shouldSkipPropValidation(target.name, target, inputAndUiData, '7'),
+    ).to.equal(true);
   });
 });
 
