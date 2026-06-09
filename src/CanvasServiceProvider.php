@@ -7,6 +7,7 @@ namespace Drupal\canvas;
 use Drupal\canvas\Access\CanvasUiAccessCheck;
 use Drupal\canvas\Access\ViewModeAccessCheck;
 use Drupal\canvas\Config\ThemeSettingsDiscovery;
+use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\CoreBugFix\ConfigEntityQueryFactory;
 use Drupal\canvas\CoreBugFix\TypedConfigManagerWithCachePollutionFix;
 use Drupal\canvas\EventSubscriber\DefaultContentSubscriber;
@@ -90,6 +91,15 @@ class CanvasServiceProvider extends ServiceProviderBase {
         ->setAutowired(TRUE)
         ->setDecoratedService('access_check.field_ui.view_mode');
       $container->setDefinition('canvas.access_check.field_ui.view_mode', $definition);
+    }
+
+    // Decorate the content translation synchronizer to perform component tree
+    // field type-specific content translation synchronization.
+    if ($container->hasDefinition('content_translation.synchronizer')) {
+      $definition = (new Definition(ComponentTreeFieldSymmetricalTranslationSynchronizer::class))
+        ->setAutowired(TRUE)
+        ->setDecoratedService('content_translation.synchronizer');
+      $container->setDefinition('canvas.content_translation.synchronizer', $definition);
     }
 
     // Alter the config entity query factory to fix a bug with sorting by

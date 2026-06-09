@@ -145,6 +145,10 @@ services:
     tags:
       - shipmonk.deadCode.memberUsageProvider
   -
+    class: Canvas\PHPStan\UsageProvider\DrupalServiceDecoratorUsageProvider
+    tags:
+      - shipmonk.deadCode.memberUsageProvider
+  -
     class: Canvas\PHPStan\UsageProvider\CanvasTraitUsageProvider
     tags:
       - shipmonk.deadCode.memberUsageProvider

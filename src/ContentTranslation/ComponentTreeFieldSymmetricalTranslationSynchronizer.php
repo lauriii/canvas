@@ -1,0 +1,173 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\canvas\ContentTranslation;
+
+use Drupal\canvas\Plugin\DataType\ComponentInputs;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\content_translation\FieldTranslationSynchronizerInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
+
+/**
+ * Decorates field translation synchronizer to sync component instance inputs.
+ *
+ * After core's synchronizer handles tree-structure synchronization (the 'tree'
+ * column group: uuid, parent_uuid, slot, component_id, component_version),
+ * this decorator additionally synchronizes non-translatable input keys within
+ * the 'inputs' JSON property across all translations.
+ *
+ * @see \Drupal\content_translation\FieldTranslationSynchronizer
+ * @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem
+ */
+final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements FieldTranslationSynchronizerInterface {
+
+  public function __construct(
+    private readonly FieldTranslationSynchronizerInterface $decorated,
+  ) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public function synchronizeFields(ContentEntityInterface $entity, $sync_langcode, $original_langcode = NULL): void {
+    $net_new = $this->getDefaultTranslationNewComponentInstanceUuids($entity);
+    $this->decorated->synchronizeFields($entity, $sync_langcode, $original_langcode);
+    $this->synchronizeComponentInstanceInputs($entity, $net_new);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function synchronizeItems(array &$field_values, array $unchanged_items, $sync_langcode, array $translations, array $properties): void {
+    $this->decorated->synchronizeItems($field_values, $unchanged_items, $sync_langcode, $translations, $properties);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFieldSynchronizedProperties(FieldDefinitionInterface $field_definition): array {
+    return $this->decorated->getFieldSynchronizedProperties($field_definition);
+  }
+
+  /**
+   * Syncs non-translatable component instance input keys across translations.
+   *
+   * After core's synchronizer aligns tree structure (same UUIDs, same order),
+   * this propagates non-translatable input values from the default translation
+   * to all other translations, for every component tree field on the entity.
+   *
+   * @param list<string> $net_new
+   *   UUIDs of net new component instances in the default translation.
+   */
+  private function synchronizeComponentInstanceInputs(ContentEntityInterface $entity, array $net_new): void {
+    foreach ($this->allComponentTreeSymmetricalTranslations($entity) as $target_tree) {
+      $default_tree = $entity->getUntranslated()->get($target_tree->getName());
+      \assert($default_tree instanceof ComponentTreeItemList);
+      foreach ($target_tree as $delta => $target_item) {
+        \assert($target_item instanceof ComponentTreeItem);
+        $default_item = $default_tree->get($delta);
+        \assert($default_item instanceof ComponentTreeItem);
+
+        $default_inputs = $default_item->getInputs() ?? [];
+        $target_inputs = $target_item->getInputs() ?? [];
+
+        $inputs_typed_data = $default_item->get('inputs');
+        \assert($inputs_typed_data instanceof ComponentInputs);
+        $translatable_keys = \array_flip($inputs_typed_data->getTranslatableInputKeys());
+        $non_translatable_inputs = \array_diff_key($default_inputs, $translatable_keys);
+
+        // Non-translatable from default, translatable from target (or
+        // default for newly added instances with no prior translation).
+        $target_item->setInput(\array_merge(
+          !\in_array($target_item->getUuid(), $net_new, TRUE)
+            ? $target_inputs
+            // Core's createMergedItem() merges by delta position; after a
+            // prepend/reorder, target_item may carry inputs from a different
+            // instance.
+            // Unlike most field types, Canvas' field properties are
+            // dependent: which `inputs` make sense depends on the
+            // `component_id` and `component_version` field properties.
+            // Rectify what core did: use the default translation's inputs,
+            // not some other component instance in the current translation
+            // that happened to previously live at the delta of the new
+            // component instance (i.e. $target_inputs exists but is wrong!).
+            // @see \Drupal\content_translation\FieldTranslationSynchronizer::createMergedItem()
+            : $default_inputs,
+          $non_translatable_inputs,
+        ));
+      }
+    }
+  }
+
+  /**
+   * Returns UUIDs of instances that are new in the default translation.
+   *
+   * "New" means not yet present in any non-default translation.
+   *
+   * @return list<string>
+   */
+  private function getDefaultTranslationNewComponentInstanceUuids(ContentEntityInterface $entity): array {
+    foreach ($this->allComponentTreeSymmetricalTranslations($entity) as $target_tree) {
+      $default_tree = $entity->getUntranslated()->get($target_tree->getName());
+      \assert($default_tree instanceof ComponentTreeItemList);
+      $net_new = iterator_to_array($default_tree->componentTreeItemsIterator(
+        ComponentTreeItemList::doesNotExistInOtherComponentTree($target_tree)
+      ));
+      // All non-default translations must be in sync, so checking only the
+      // first non-default translation suffices.
+      return \array_values(\array_map(
+        fn (ComponentTreeItem $i) => $i->getUuid(),
+        $net_new,
+      ));
+    }
+    return [];
+  }
+
+  /**
+   * Yields each non-default translation's symmetrically translated tree.
+   *
+   * Iterates every component tree field in symmetrical translation mode (tree
+   * synced, inputs translatable) and yields each non-default translation's
+   * field item list.
+   *
+   * @return \Generator<int, ComponentTreeItemList>
+   */
+  private function allComponentTreeSymmetricalTranslations(ContentEntityInterface $entity): \Generator {
+    $translations = $entity->getTranslationLanguages();
+    if (count($translations) < 2) {
+      return;
+    }
+
+    $default_translation = $entity->getUntranslated();
+    $default_langcode = $default_translation->language()->getId();
+
+    foreach ($default_translation->getFieldDefinitions() as $field_name => $field_definition) {
+      if ($field_definition->getType() !== ComponentTreeItem::PLUGIN_ID) {
+        continue;
+      }
+      if (!$this->isTreeSynced($field_definition) || $this->isInputsSynced($field_definition)) {
+        continue;
+      }
+
+      foreach ($translations as $langcode => $language) {
+        if ($langcode === $default_langcode) {
+          continue;
+        }
+        $target_tree = $entity->getTranslation($langcode)->get($field_name);
+        \assert($target_tree instanceof ComponentTreeItemList);
+        yield $target_tree;
+      }
+    }
+  }
+
+  private function isTreeSynced(FieldDefinitionInterface $field_definition): bool {
+    return \in_array('uuid', $this->decorated->getFieldSynchronizedProperties($field_definition), TRUE);
+  }
+
+  private function isInputsSynced(FieldDefinitionInterface $field_definition): bool {
+    return \in_array('inputs', $this->decorated->getFieldSynchronizedProperties($field_definition), TRUE);
+  }
+
+}

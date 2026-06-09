@@ -146,6 +146,10 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     return static fn (ComponentTreeItem $item) => $item->getParentUuid() === $parent_uuid && $item->getSlot() === $slot_name;
   }
 
+  public static function doesNotExistInOtherComponentTree(ComponentTreeItemList $other): callable {
+    return static fn (ComponentTreeItem $item) => $other->getComponentTreeItemByUuid($item->getUuid()) === NULL;
+  }
+
   public function componentTreeItemsIterator(?callable $filter = NULL): iterable {
     foreach ($this as $delta => $item) {
       \assert($item instanceof ComponentTreeItem);
