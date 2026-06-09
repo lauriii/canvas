@@ -91,6 +91,10 @@ final class CanvasPageForm extends ContentEntityForm {
     $this->addTransliterationSettings($form);
     $this->customizePathField($form);
 
+    if (isset($form['langcode'])) {
+      $form['langcode']['#access'] = FALSE;
+    }
+
     return $form;
   }
 

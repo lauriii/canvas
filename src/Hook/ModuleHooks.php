@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\Access\CanvasUiAccessCheck;
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Form\FormIdPreRender;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityForm;
@@ -111,13 +112,49 @@ class ModuleHooks {
   }
 
   /**
+   * Implements hook_form_language_content_settings_form_alter().
+   *
+   * Disables and unchecks the "Show language selector" option for Canvas pages
+   * in the content language settings admin form. Canvas pages must always be
+   * created in the site's default language; translated content is managed
+   * through the translation workflow.
+   */
+  #[Hook('form_language_content_settings_form_alter', order: Order::Last)]
+  public static function formLanguageContentSettingsFormAlter(array &$form, FormStateInterface $form_state): void {
+    if (isset($form['settings'][Page::ENTITY_TYPE_ID])) {
+      $form['settings'][Page::ENTITY_TYPE_ID]['#after_build'][] = [
+        static::class,
+        'afterBuildCanvasPageLanguageSettings',
+      ];
+    }
+  }
+
+  /**
+   * After-build callback that disables the language_alterable checkbox.
+   *
+   * Runs after the language_configuration element's #process callbacks have
+   * built the checkbox for Canvas pages, so the element is guaranteed
+   * to exist.
+   */
+  public static function afterBuildCanvasPageLanguageSettings(array $element, FormStateInterface $form_state): array {
+    $bundle = Page::ENTITY_TYPE_ID;
+    if (isset($element[$bundle]['settings']['language']['language_alterable'])) {
+      $element[$bundle]['settings']['language']['language_alterable']['#description'] = t(
+        "Disabled for Canvas pages. Canvas pages must be created in the site's default language only. Translations are managed through the translation interface against the source-language page, not by creating pages in non-default languages."
+      );
+      $element[$bundle]['settings']['language']['language_alterable']['#attributes']['disabled'] = TRUE;
+    }
+    return $element;
+  }
+
+  /**
    * Implements hook_form_alter().
    *
    * For the "page data" tab aka the content entity form.
    *
    * @see \Drupal\canvas\Controller\EntityFormController
    */
-  #[Hook('form_alter', order: Order::Last)]
+  #[Hook('form_alter')]
   public function formAlter(array &$form, FormStateInterface $form_state, string $form_id): void {
     $route_name = $this->routeMatch->getRouteName();
     $form_object = $form_state->getFormObject();
