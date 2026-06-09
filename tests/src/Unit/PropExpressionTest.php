@@ -1008,11 +1008,23 @@ class PropExpressionTest extends UnitTestCase {
           'module' => ['image'],
         ],
       ],
+      // Same as src_with_alternate_widths, technically it is just an alias.
       ['ℹ︎image␟src', new FieldTypePropExpression('image', 'src'),
         self::EXPECT_NO_DEPRECATION,
         new \TypeError($type_error_message),
         [
-          'module' => ['image'],
+          'module' => [
+            'image',
+            'image',
+            'file',
+            'image',
+          ],
+          'content' => [
+            'file:file:some-image-uuid',
+          ],
+          'config' => [
+            'image.style.canvas_parametrized_width',
+          ],
         ],
       ],
       ['ℹ︎image␟src_with_alternate_widths', new FieldTypePropExpression('image', 'src_with_alternate_widths'),

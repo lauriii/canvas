@@ -75,9 +75,7 @@ class ImageItemOverride extends ImageItem {
     // File entity' `uri` field's `url` property an `?alternateWidths` query
     // parameter that contains an (encoded) URI template for a front-end
     // developer to use if they choose to do so.
-    // @todo It's not sustainable nor ecosystem-friendly to add computed field properties to field types. Remove in favor of adapters in https://www.drupal.org/project/canvas/issues/3464003.
-    // ⚠️ TRICKY: switching to adapters will require an update path for ALL
-    // component trees where this field property is being consumed.
+    // @todo Remove this in https://git.drupalcode.org/project/canvas/-/work_items/3591648.
     $properties['src_with_alternate_widths'] = DataDefinition::create('uri')
       ->setLabel(new TranslatableMarkup('Resolved image URL with ?alternateWidths query parameter'))
       ->setDescription(new TranslatableMarkup('Combines the referenced image file URL with the computed srcset template'))
@@ -101,6 +99,17 @@ class ImageItemOverride extends ImageItem {
         'allowedSchemes' => ['http', 'https'],
       ])
       ->setClass(ComputedUrlWithQueryString::class);
+
+    // Just a copy of `src_with_alternate_widths` with better DX:
+    // content-entity-reference selection exposes this in the UI and as a
+    // variable in code for code component developers, so we want them to be
+    // able to reference it with just `src` without exposed internal
+    // implementation details.
+    // @todo It's not sustainable nor ecosystem-friendly to add computed field properties to field types. Remove in favor of adapters in https://www.drupal.org/project/canvas/issues/3464003.
+    // ⚠️ TRICKY: switching to adapters will require an update path for ALL
+    // component trees where this field property is being consumed.
+    $properties['src'] = clone $properties['src_with_alternate_widths'];
+    $properties['src']->setSetting('is source for', 'src_with_alternate_widths');
 
     return $properties;
   }

@@ -419,6 +419,11 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $image_url = $image->get('src_with_alternate_widths');
     self::assertInstanceOf(ComputedUrlWithQueryString::class, $image_url);
     self::assertEquals($image_url->getValue()->getGeneratedUrl(), $data['model'][CanvasTestSetup::UUID_STATIC_IMAGE]['resolved']['image']['src']);
+    // The computed `src` field property is just an alias for
+    // `src_with_alternate_widths`.
+    $src = $image->get('src');
+    self::assertInstanceOf(ComputedUrlWithQueryString::class, $src);
+    self::assertEquals($src->getValue()->getGeneratedUrl(), $data['model'][CanvasTestSetup::UUID_STATIC_IMAGE]['resolved']['image']['src']);
 
     self::assertFalse($autoSave->getAutoSaveEntity($entity)->isEmpty());
     foreach ($regions as $region) {
