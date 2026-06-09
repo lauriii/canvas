@@ -1638,10 +1638,8 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
                   'x-allowed-schemes' => ['http', 'https'],
-                  '$id' => 'json-schema-definitions://canvas.module/image-uri',
                 ],
               ],
-              '$id' => JsonSchemaObjectRef::Video->value,
             ],
             'sourceType' => 'static:field_item:entity_reference',
             // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
@@ -1799,7 +1797,6 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
                   'x-allowed-schemes' => ['http', 'https'],
-                  '$id' => 'json-schema-definitions://canvas.module/image-uri',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -1814,7 +1811,6 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                   'type' => 'integer',
                 ],
               ],
-              '$id' => JsonSchemaObjectRef::Image->value,
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -1972,7 +1968,6 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                     'format' => 'uri-reference',
                     'contentMediaType' => 'image/*',
                     'x-allowed-schemes' => ['http', 'https'],
-                    '$id' => 'json-schema-definitions://canvas.module/image-uri',
                   ],
                   'alt' => [
                     'title' => 'Alternative text',
@@ -1987,7 +1982,6 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                     'type' => 'integer',
                   ],
                 ],
-                '$id' => JsonSchemaObjectRef::Image->value,
               ],
             ],
             'sourceType' => 'static:field_item:image',

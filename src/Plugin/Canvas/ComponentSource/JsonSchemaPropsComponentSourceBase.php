@@ -1058,7 +1058,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       // @see \Drupal\canvas\Form\ComponentInstanceForm
       $field_data[$prop_name] = [
         'required' => \in_array($prop_name, $this->getMetadata()->schema['required'] ?? [], TRUE),
-        'jsonSchema' => self::stripNonStandardJsonSchemaKeys($prop_shape->resolvedSchema),
+        'jsonSchema' => self::simplifySchemaForAjvClient($prop_shape->resolvedSchema),
       ] + \array_diff_key($default_static_prop_source->toArray(), \array_flip(['value']));
       if ($default_resolved->value !== NULL) {
         $field_data[$prop_name]['default_values']['source'] = $default_source_value;
@@ -1485,23 +1485,29 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
   }
 
   /**
-   * Strips non-standard JSON Schema keys recursively from a schema array.
+   * Simplify JSON Schema keys recursively from a schema array.
    *
-   * Keys like `meta:enum` and `x-translation-context` are valid in SDC
-   * component definitions but are not part of the JSON Schema spec. They must
-   * be removed before sending the schema to the client, where a strict-mode
-   * JSON Schema validator (Ajv) would reject them as unknown keywords.
+   * Keys like `meta:enum` and `x-translation-context` are valid JSON Schema
+   * extensions in SDC component definitions, $id is valid JSON Schema, but
+   * be remove them before sending the schema to the client, as we don't want
+   * to expose our canvas/schema.json (or other module defined ones) to the UI.
    *
    * @param array<string, mixed> $schema
    *
    * @return array<string, mixed>
    */
-  protected static function stripNonStandardJsonSchemaKeys(array $schema): array {
-    $keys_to_remove = ['meta:enum', 'x-translation-context'];
+  protected static function simplifySchemaForAjvClient(array $schema): array {
+    // Strip `id`/`$id` injected by justinrainbow/json-schema when resolving
+    // schema `$ref`s. It would cause duplicate definitions, as Ajv has no
+    // way to resolve json-schema-definitions:// based on modules defined
+    // schema.json files.
+    // @see \Drupal\canvas\PropShape\PropShape::normalizePropSchema()
+    // @see ui/src/utils/ajv.ts
+    $keys_to_remove = ['meta:enum', 'x-translation-context', 'id', '$id'];
     $schema = array_diff_key($schema, array_flip($keys_to_remove));
     foreach ($schema as $key => $value) {
       if (\is_array($value)) {
-        $schema[$key] = self::stripNonStandardJsonSchemaKeys($value);
+        $schema[$key] = self::simplifySchemaForAjvClient($value);
       }
     }
     return $schema;

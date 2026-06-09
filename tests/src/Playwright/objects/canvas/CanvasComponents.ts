@@ -286,6 +286,11 @@ export function CanvasComponentsMixin<
           ).toBeVisible();
           break;
         }
+        case 'select': {
+          const selectLocator = `[data-testid="canvas-contextual-panel"] [data-drupal-selector="component-instance-form"] .field--name-${propName.toLowerCase()} select`;
+          await this.page.locator(selectLocator).selectOption(propValue);
+          break;
+        }
         default:
           await this.page.locator(inputLocator).fill(propValue);
           // Click the label as autocomplete/link fields will not update until the

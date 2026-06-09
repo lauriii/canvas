@@ -36,6 +36,23 @@ test.describe('Perform CRUD operations on components', () => {
     ).toMatchAriaSnapshot({
       name: 'Perform-CRUD-operations-on-components-Layer-and-Components-Panel-1.aria.yml',
     });
+    await canvas.addComponent({ id: 'sdc.canvas_test_sdc.heading' });
+    await canvas.clickPreviewComponent('sdc.canvas_test_sdc.heading');
+    // Heading.
+    await canvas.testInPreviewFrame(
+      'h1[data-component-id="canvas_test_sdc:heading"].primary',
+      async (heading) => {
+        await expect(heading).toBeAttached();
+      },
+    );
+    await canvas.editComponentProp('style', 'secondary', 'select');
+    await canvas.editComponentProp('element', 'h3', 'select');
+    await canvas.testInPreviewFrame(
+      'h3[data-component-id="canvas_test_sdc:heading"].secondary',
+      async (heading) => {
+        await expect(heading).toBeAttached();
+      },
+    );
   });
 
   test('Component hovers and clicks', async ({ page, drupal, canvas }) => {

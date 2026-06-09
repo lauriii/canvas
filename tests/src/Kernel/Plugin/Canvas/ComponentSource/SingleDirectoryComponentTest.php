@@ -9,7 +9,6 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
-use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery;
@@ -3763,7 +3762,6 @@ HTML
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
                   'x-allowed-schemes' => ['http', 'https'],
-                  '$id' => 'json-schema-definitions://canvas.module/image-uri',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -3778,7 +3776,7 @@ HTML
                   'type' => 'integer',
                 ],
               ],
-              '$id' => JsonSchemaObjectRef::Image->value,
+
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -3880,7 +3878,6 @@ HTML
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
                   'x-allowed-schemes' => ['http', 'https'],
-                  '$id' => 'json-schema-definitions://canvas.module/image-uri',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -3895,7 +3892,7 @@ HTML
                   'type' => 'integer',
                 ],
               ],
-              '$id' => JsonSchemaObjectRef::Image->value,
+
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -4017,7 +4014,6 @@ HTML
               'format' => 'uri-reference',
               'contentMediaType' => 'image/*',
               'x-allowed-schemes' => ['http', 'https'],
-              '$id' => 'json-schema-definitions://canvas.module/image-uri',
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟src_with_alternate_widths',
@@ -4134,7 +4130,6 @@ HTML
               'format' => 'uri-reference',
               'contentMediaType' => 'image/*',
               'x-allowed-schemes' => ['http', 'https'],
-              '$id' => 'json-schema-definitions://canvas.module/image-uri',
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟src_with_alternate_widths',
@@ -4283,7 +4278,6 @@ HTML
               'format' => 'uri',
               'contentMediaType' => 'image/*',
               'x-allowed-schemes' => ['public'],
-              '$id' => 'json-schema-definitions://canvas.module/stream-wrapper-image-uri',
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟entity␜␜entity:file␝uri␞␟value',
@@ -4761,7 +4755,6 @@ HTML
                 5 => 'h5',
                 6 => 'h6',
               ],
-              '$id' => 'json-schema-definitions://canvas.module/heading-element',
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -4806,7 +4799,6 @@ HTML
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
                   'x-allowed-schemes' => ['http', 'https'],
-                  '$id' => 'json-schema-definitions://canvas.module/image-uri',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -4821,7 +4813,7 @@ HTML
                   'type' => 'integer',
                 ],
               ],
-              '$id' => JsonSchemaObjectRef::Image->value,
+
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -4872,7 +4864,6 @@ HTML
                     'format' => 'uri-reference',
                     'contentMediaType' => 'image/*',
                     'x-allowed-schemes' => ['http', 'https'],
-                    '$id' => 'json-schema-definitions://canvas.module/image-uri',
                   ],
                   'alt' => [
                     'title' => 'Alternative text',
@@ -4887,7 +4878,7 @@ HTML
                     'type' => 'integer',
                   ],
                 ],
-                '$id' => JsonSchemaObjectRef::Image->value,
+
               ],
               'minItems' => 1,
             ],
@@ -4945,7 +4936,6 @@ HTML
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
                   'x-allowed-schemes' => ['http', 'https'],
-                  '$id' => 'json-schema-definitions://canvas.module/image-uri',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -4960,7 +4950,7 @@ HTML
                   'type' => 'integer',
                 ],
               ],
-              '$id' => JsonSchemaObjectRef::Image->value,
+
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -5007,7 +4997,6 @@ HTML
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
                   'x-allowed-schemes' => ['http', 'https'],
-                  '$id' => 'json-schema-definitions://canvas.module/image-uri',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -5022,7 +5011,7 @@ HTML
                   'type' => 'integer',
                 ],
               ],
-              '$id' => JsonSchemaObjectRef::Image->value,
+
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -5059,7 +5048,6 @@ HTML
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
                   'x-allowed-schemes' => ['http', 'https'],
-                  '$id' => 'json-schema-definitions://canvas.module/image-uri',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -5074,7 +5062,7 @@ HTML
                   'type' => 'integer',
                 ],
               ],
-              '$id' => JsonSchemaObjectRef::Image->value,
+
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -5104,7 +5092,6 @@ HTML
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
                   'x-allowed-schemes' => ['http', 'https'],
-                  '$id' => 'json-schema-definitions://canvas.module/image-uri',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -5119,7 +5106,7 @@ HTML
                   'type' => 'integer',
                 ],
               ],
-              '$id' => JsonSchemaObjectRef::Image->value,
+
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -5158,7 +5145,6 @@ HTML
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
                   'x-allowed-schemes' => ['http', 'https'],
-                  '$id' => 'json-schema-definitions://canvas.module/image-uri',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -5173,7 +5159,7 @@ HTML
                   'type' => 'integer',
                 ],
               ],
-              '$id' => JsonSchemaObjectRef::Image->value,
+
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -5212,13 +5198,12 @@ HTML
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
                   'x-allowed-schemes' => ['http', 'https'],
-                  '$id' => 'json-schema-definitions://canvas.module/image-uri',
                 ],
                 'alt' => ['title' => 'Alternative text', 'type' => 'string'],
                 'width' => ['title' => 'Image width', 'type' => 'integer'],
                 'height' => ['title' => 'Image height', 'type' => 'integer'],
               ],
-              '$id' => JsonSchemaObjectRef::Image->value,
+
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -5245,13 +5230,12 @@ HTML
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
                   'x-allowed-schemes' => ['http', 'https'],
-                  '$id' => 'json-schema-definitions://canvas.module/image-uri',
                 ],
                 'alt' => ['title' => 'Alternative text', 'type' => 'string'],
                 'width' => ['title' => 'Image width', 'type' => 'integer'],
                 'height' => ['title' => 'Image height', 'type' => 'integer'],
               ],
-              '$id' => JsonSchemaObjectRef::Image->value,
+
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -5278,13 +5262,12 @@ HTML
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
                   'x-allowed-schemes' => ['http', 'https'],
-                  '$id' => 'json-schema-definitions://canvas.module/image-uri',
                 ],
                 'alt' => ['title' => 'Alternative text', 'type' => 'string'],
                 'width' => ['title' => 'Image width', 'type' => 'integer'],
                 'height' => ['title' => 'Image height', 'type' => 'integer'],
               ],
-              '$id' => JsonSchemaObjectRef::Image->value,
+
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -6715,7 +6698,6 @@ HTML
                 3 => 66,
                 4 => 75,
               ],
-              '$id' => 'json-schema-definitions://canvas.module/column-width',
             ],
             'sourceType' => 'static:field_item:list_integer',
             'expression' => 'ℹ︎list_integer␟value',
@@ -6768,10 +6750,9 @@ HTML
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
                   'x-allowed-schemes' => ['http', 'https'],
-                  '$id' => 'json-schema-definitions://canvas.module/image-uri',
                 ],
               ],
-              '$id' => JsonSchemaObjectRef::Video->value,
+
             ],
             'sourceType' => 'static:field_item:file',
             'expression' => 'ℹ︎file␟{src↝entity␜␜entity:file␝uri␞␟url}',
