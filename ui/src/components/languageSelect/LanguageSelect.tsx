@@ -146,12 +146,7 @@ const LanguageSelect = () => {
   return (
     <DropdownMenu.Root open={dropdownOpen} onOpenChange={setDropdownOpen}>
       <DropdownMenu.Trigger>
-        <Button
-          size="2"
-          color="gray"
-          variant="soft"
-          data-testid="language-select-trigger"
-        >
+        <Button size="2" variant="soft" data-testid="language-select-trigger">
           <GlobeIcon />
           <Text>{currentLangObj?.name || 'Select Language'}</Text>
           <ChevronDownIcon width="16" height="16" />
