@@ -30,6 +30,7 @@ use PHPUnit\Framework\Attributes\TestWith;
  * tested in each config entity's test coverage.
  *
  * @see \Drupal\Tests\canvas\Kernel\Config\ContentTemplateTest::testTranslationLifeCycleInDepth()
+ * @see \Drupal\Tests\canvas\Functional\ConfigWithComponentTreeTranslationTestBase
  */
 abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
 

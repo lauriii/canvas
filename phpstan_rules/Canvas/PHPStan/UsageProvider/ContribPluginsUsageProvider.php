@@ -20,6 +20,10 @@ use ShipMonk\PHPStan\DeadCode\Provider\VirtualUsageData;
  *    Drupal\canvas\Plugin\search_api\ implement ProcessorInterface;
  *    search_api calls methods like supportsIndex() and
  *    getPropertyDefinitions() via plugin dispatch.
+ *
+ * 2. TMGMT Config Processor plugins: canvas classes in Drupal\canvas\Tmgmt\
+ *    registered via `tmgmt_config_processor` in config schema definitions;
+ *    tmgmt_config calls extractTranslatables() via plugin dispatch.
  */
 final class ContribPluginsUsageProvider extends ReflectionBasedMemberUsageProvider {
 
@@ -31,6 +35,14 @@ final class ContribPluginsUsageProvider extends ReflectionBasedMemberUsageProvid
     ) {
       return VirtualUsageData::withNote(
         \sprintf('Called by search_api plugin dispatch: %s::%s().', $method->getDeclaringClass()->getShortName(), $method->getName()),
+      );
+    }
+
+    if ($method->getName() === 'extractTranslatables'
+      && str_starts_with($method->getDeclaringClass()->getName(), 'Drupal\\canvas\\Tmgmt\\')
+    ) {
+      return VirtualUsageData::withNote(
+        \sprintf('Called by tmgmt_config plugin dispatch via tmgmt_config_processor config schema key: %s::extractTranslatables().', $method->getDeclaringClass()->getShortName()),
       );
     }
 

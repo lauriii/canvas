@@ -5,7 +5,8 @@ block.settings.canvas_test_block_input_validatable:
     FullyValidatable: ~
   mapping:
     name:
-      type: string
+      # TRICKY: `type: string, translatable: true` does not work, because without a `form_element_class`, TMGMT would allow translating this string but it won't save it! 🤪
+      type: label
       label: 'Name'
 block.settings.canvas_test_block_input_unvalidatable:
   type: block_settings

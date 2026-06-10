@@ -24,6 +24,7 @@
         "drupal/pathauto": "^1.13",
         "drupal/search_api": "^1",
         "drupal/simple_oauth": "^6",
+        "drupal/tmgmt": "^1.18",
         "drush/drush": "^13",
         "jangregor/phpstan-prophecy": "2.3.0",
         "league/openapi-psr7-validator": "^0.22.0",

@@ -11,3 +11,13 @@ core.base_field_override.*.*.*.third_party.content_translation:
       sequence:
         type: string
         label: 'Field column for which to synchronize translations'
+
+# @todo Remove when https://www.drupal.org/i/3595275 lands.
+# A translatable URI — the translatable variant of `type: uri`, just as
+# `type: label` is the translatable variant of `type: string`.
+# @see \Drupal\Core\TypedData\Plugin\DataType\Uri
+# @see core.data_types.schema.yml: label
+translatable_uri:
+  type: uri
+  label: 'Translatable URI'
+  translatable: true

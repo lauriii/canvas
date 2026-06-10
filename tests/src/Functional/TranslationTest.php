@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-// cspell:ignore magnifique Propulsé Bienvenue savoir Découvrez Identité visuelle Nœud prévisualisation Bonjour région utilisant नोड
+// cspell:ignore magnifique Propulsé Nœud prévisualisation Bonjour région utilisant नोड méthode Essayez
 
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -25,7 +25,6 @@ use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\ApiRequestTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
-use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
 use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
 use Drupal\user\UserInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -50,7 +49,6 @@ class TranslationTest extends FunctionalTestBase {
   use ApiRequestTrait;
   use ConstraintViolationsTestTrait;
   use ContentTranslationTestTrait;
-  use DataProviderWithComponentTreeTrait;
 
   private const UUID_STATIC_CTA =
     '435d1d20-a697-4d36-9892-9d61c825c99c';
@@ -251,196 +249,6 @@ class TranslationTest extends FunctionalTestBase {
     self::assertInstanceOf(ConfigurableLanguageManagerInterface::class, $language_manager);
     $override = $language_manager->getLanguageConfigOverride('fr', $template->getConfigDependencyName());
     self::assertSame([self::UUID_STATIC_CTA], \array_keys($override->getRawData()['component_tree']));
-  }
-
-  /**
-   * Tests config translation UI with mixed component instance input types.
-   *
-   * @see \Drupal\Tests\canvas\Kernel\Config\ContentTemplateTest::testTranslationLifeCycleInDepth()
-   * @see \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\ComponentSourceTestBase::testGetTranslatableInputKeys()
-   * @see \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\ComponentSourceTestBase::providerSymmetricallyTranslatableComponentInstanceScenarios()
-   */
-  public function testContentTemplateConfigTranslationUi(): void {
-    $module_installer = $this->container->get('module_installer');
-    \assert($module_installer instanceof ModuleInstallerInterface);
-    if (!$this->container->get('module_handler')->moduleExists('config_translation')) {
-      $module_installer->install(['config_translation']);
-      $this->rebuildContainer();
-      $module_installer = $this->container->get('module_installer');
-      \assert($module_installer instanceof ModuleInstallerInterface);
-    }
-
-    // 1. SETUP: create a fresh ContentTemplate with mixed component types.
-    $banner = Component::load('sdc.canvas_test_sdc.banner');
-    $my_hero = Component::load('sdc.canvas_test_sdc.my-hero');
-    $branding_block = Component::load('block.system_branding_block');
-    \assert($banner instanceof Component);
-    \assert($my_hero instanceof Component);
-    \assert($branding_block instanceof Component);
-
-    $banner_version = $banner->getActiveVersion();
-    $my_hero_version = $my_hero->getActiveVersion();
-    $branding_block_version = $branding_block->getActiveVersion();
-    $banner->loadVersion($banner_version);
-    $my_hero->loadVersion($my_hero_version);
-    $branding_block->loadVersion($branding_block_version);
-
-    $existing_template = ContentTemplate::load('node.article.full');
-    if ($existing_template instanceof ContentTemplate) {
-      $existing_template->delete();
-    }
-
-    $template = ContentTemplate::create([
-      'content_entity_type_id' => 'node',
-      'content_entity_type_bundle' => 'article',
-      'content_entity_type_view_mode' => 'full',
-      'component_tree' => self::populateActiveComponentVersionPlaceholders([
-        [
-          'uuid' => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
-          'component_id' => 'sdc.canvas_test_sdc.banner',
-          'component_version' => '::ACTIVE_VERSION_IN_SUT::',
-          'inputs' => [
-            'heading' => 'Welcome',
-            'text' => [
-              'value' => '<p>Hello</p>',
-              'format' => 'canvas_html_block',
-            ],
-          ],
-        ],
-        [
-          'uuid' => 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2',
-          'component_id' => 'sdc.canvas_test_sdc.my-hero',
-          'component_version' => '::ACTIVE_VERSION_IN_SUT::',
-          'inputs' => [
-            'heading' => 'Welcome to Canvas',
-            // ⚠️ `subheading` is optional and not populated, but should still
-            // be translatable.
-            // @see \Drupal\canvas\ConfigTranslation\CanvasComponentTreeItemInputsMappingFormElement
-            'cta1' => [
-              'sourceType' => PropSource::EntityField->value,
-              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
-            ],
-            'cta1href' => [
-              'sourceType' => PropSource::HostEntityUrl->value,
-              'absolute' => TRUE,
-            ],
-            'cta2' => 'Learn more',
-          ],
-        ],
-        [
-          'uuid' => 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3',
-          'component_id' => 'block.system_branding_block',
-          'component_version' => '::ACTIVE_VERSION_IN_SUT::',
-          'inputs' => [
-            'label' => 'Branding',
-            'label_display' => 'visible',
-            'use_site_logo' => TRUE,
-            'use_site_name' => TRUE,
-            'use_site_slogan' => FALSE,
-          ],
-        ],
-      ]),
-    ]);
-    $violations = $template->getTypedData()->validate();
-    self::assertSame([], self::violationsToArray($violations), $template->getConfigTarget());
-    $template->save();
-
-    $config_name = 'canvas.content_template.node.article.full';
-    $translation_path = '/admin/structure/content-template/node.article.full/translate/fr/add';
-    $field_name_prefix = "translation[config_names][$config_name][component_tree]";
-    $field = static fn (string $suffix): string => $field_name_prefix . $suffix;
-
-    // 2. Confirm Templates are not translatable via the UI without
-    // `canvas_dev_translation` enabled.
-    $this->drupalLogin($this->rootUser);
-    $this->drupalGet($translation_path);
-    $assert_session = $this->assertSession();
-    $assert_session->statusCodeEquals(404);
-
-    if (!$this->container->get('module_handler')->moduleExists('canvas_dev_translation')) {
-      $module_installer->install(['canvas_dev_translation']);
-      $this->rebuildContainer();
-    }
-
-    // 3. Confirm Templates are translatable via the UI once
-    // `canvas_dev_translation` is enabled.
-    $this->drupalGet($translation_path);
-    $assert_session = $this->assertSession();
-    $assert_session->statusCodeEquals(200);
-
-    // 4. ASSERTIONS: verify rendered translatable/non-translatable fields.
-    $assert_session->fieldExists($field('[aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1][inputs][heading][0][value]'));
-    $assert_session->fieldExists($field('[aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1][inputs][text][0][value]'));
-    $assert_session->elementExists(
-      'css',
-      'input[type="hidden"][name="' . $field('[aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1][inputs][text][0][format]') . '"][value="canvas_html_block"]',
-    );
-
-    // My-hero: static props should exist
-    $assert_session->fieldExists($field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][heading][0][value]'));
-    $assert_session->fieldExists($field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][cta2][0][value]'));
-
-    // My-hero: non-static source props should NOT exist
-    $assert_session->fieldNotExists($field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][cta1]'));
-    $assert_session->fieldNotExists($field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][cta1][0][value]'));
-    $assert_session->fieldNotExists($field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][cta1href]'));
-    $assert_session->fieldNotExists($field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][cta1href][0][uri]'));
-
-    // My-hero: optional prop NOT in default SHOULD render: the translation of
-    // the component instance may opt to use it.
-    // @see \Drupal\canvas\ConfigTranslation\CanvasComponentTreeItemInputsMappingFormElement
-    $assert_session->fieldExists($field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][subheading][0][value]'));
-
-    $assert_session->fieldExists($field('[cccccccc-cccc-4ccc-8ccc-ccccccccccc3][inputs][label]'));
-
-    $assert_session->fieldNotExists($field('[cccccccc-cccc-4ccc-8ccc-ccccccccccc3][inputs][label_display]'));
-    $assert_session->fieldNotExists($field('[cccccccc-cccc-4ccc-8ccc-ccccccccccc3][inputs][use_site_logo]'));
-    $assert_session->fieldNotExists($field('[cccccccc-cccc-4ccc-8ccc-ccccccccccc3][inputs][use_site_name]'));
-    $assert_session->fieldNotExists($field('[cccccccc-cccc-4ccc-8ccc-ccccccccccc3][inputs][use_site_slogan]'));
-
-    // 5. SUBMIT: provide French translations in a single form submission.
-    $edit = [
-      $field('[aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1][inputs][heading][0][value]') => 'Welcome',
-      $field('[aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1][inputs][text][0][value]') => '<p>Bonjour</p>',
-      $field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][heading][0][value]') => 'Bienvenue à Canvas',
-      $field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][cta2][0][value]') => 'En savoir plus',
-      $field('[bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2][inputs][subheading][0][value]') => 'Découvrez Canvas',
-      $field('[cccccccc-cccc-4ccc-8ccc-ccccccccccc3][inputs][label]') => 'Identité visuelle',
-    ];
-    $this->submitForm($edit, 'Save translation');
-    $assert_session->pageTextContains('Successfully saved French translation');
-
-    // 6. VERIFY: ensure the exact expected LanguageConfigOverride is stored.
-    $language_manager = $this->container->get(LanguageManagerInterface::class);
-    self::assertInstanceOf(ConfigurableLanguageManagerInterface::class, $language_manager);
-    $override = $language_manager->getLanguageConfigOverride('fr', $config_name);
-    self::assertFalse($override->isNew());
-    self::assertSame([
-      'component_tree' => [
-        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1' => [
-          'inputs' => [
-            'text' => [
-              'value' => '<p>Bonjour</p>',
-            ],
-          ],
-        ],
-        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2' => [
-          'inputs' => [
-            'heading' => 'Bienvenue à Canvas',
-            'subheading' => 'Découvrez Canvas',
-            'cta2' => 'En savoir plus',
-          ],
-        ],
-        'cccccccc-cccc-4ccc-8ccc-ccccccccccc3' => [
-          'inputs' => [
-            'label' => 'Identité visuelle',
-          ],
-        ],
-      ],
-    ], $override->getRawData());
-
-    self::assertArrayNotHasKey('heading', $override->getRawData()['component_tree']['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1']['inputs']);
-    self::assertArrayNotHasKey(3, $override->getRawData()['component_tree']);
   }
 
   /**

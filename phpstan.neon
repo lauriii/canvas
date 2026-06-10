@@ -47,6 +47,7 @@ parameters:
     - identifier: missingType.generics
     # PHPStan finds many false positives for this, specifically when using the DIC or Typed Data.
     - identifier: varTag.type
+    # All of the ignores below are for missing parameter or return types that are imposed by upstream implementations.
     -
       message: '#^Method Drupal\\canvas\\Plugin\\Field\\FieldType\\ComponentTreeItemList\:\:get\(\) has parameter \$index with no type specified\.$#'
       identifier: missingType.parameter
@@ -75,6 +76,11 @@ parameters:
       identifier: missingType.return
       count: 1
       path: src/ConfigTranslation/CanvasComponentTreeItemInputsMappingFormElement.php
+    -
+      message: '#^Method Drupal\\canvas\\Tmgmt\\ComponentInputsConfigProcessor\:\:extractTranslatables\(\) has parameter \$config_data with no type specified\.$#'
+      identifier: missingType.parameter
+      count: 1
+      path: src/Tmgmt/ComponentInputsConfigProcessor.php
     # canvas_ai and canvas_personalization have their own dead code cleanup tasks.
     - { message: '#^(Unused |Property .+ is never (read|written))#', path: modules/canvas_ai/** }
     - { message: '#^(Unused |Property .+ is never (read|written))#', path: modules/canvas_personalization/** }

@@ -90,14 +90,17 @@ final class CanvasStaticPropSourceFieldWidget extends FormElementBase {
   public function setConfig(Config $base_config, LanguageConfigOverride $config_translation, $config_values, $base_key = NULL): void {
     \assert(\is_string($base_key));
 
-    // Field widgets always generate explicit delta values; even if it's single
-    // cardinality.
-    \assert(\array_is_list($config_values), 'Values not keyed by deltas; this does not seem to be a form submission? Every field widget keys values by field item deltas.');
-
     // Optimized ("collapsed") value.
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::collapse()
     $default_static_prop_source = self::getDefaultStaticPropSource($this->definition);
     \assert(!\is_null($default_static_prop_source));
+    // Multi-value field widgets append an 'add_more' pseudo-submit key to the
+    // submitted form values. Strip it — only integer delta keys are valid.
+    // Single-cardinality multi-property fields (e.g. link) must NOT be filtered
+    // because their keys are property names, not deltas.
+    if ($default_static_prop_source->getCardinality() !== 1 && \is_array($config_values)) {
+      $config_values = \array_filter($config_values, '\is_int', ARRAY_FILTER_USE_KEY);
+    }
     $optimized_value = $default_static_prop_source
       // Pass the raw values expected by the field type.
       ->withValue($config_values)
@@ -128,8 +131,16 @@ final class CanvasStaticPropSourceFieldWidget extends FormElementBase {
     // @todo update for 2 levels as soon as `type: array` support is added
     foreach ($optimized_value as $k => $v) {
       $subkey = "$base_key.$k";
-      if ($base_config->get($subkey) !== $v) {
-        $config_translation->set($base_key, $optimized_value);
+      $base_subkey_value = $base_config->get($subkey);
+      // Optional multi-property field properties (e.g. link's `title` and
+      // `attributes`) may be absent in the base config (stored as NULL via the
+      // minimal representation), while the form always submits empty defaults.
+      // Treat NULL base + empty translation value as equal: no override needed.
+      if ($base_subkey_value === NULL && ($v === '' || $v === [])) {
+        continue;
+      }
+      if ($base_subkey_value !== $v) {
+        $config_translation->set($subkey, $v);
       }
       else {
         $config_translation->clear($subkey);
