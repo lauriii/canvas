@@ -819,7 +819,7 @@ pages-publish:
   image: *image-node
   needs: []
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "schedule"
       changes: *user-docs-files
   variables:
     ASTRO_SITE: https://$CI_PAGES_HOSTNAME

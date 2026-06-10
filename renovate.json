@@ -16,14 +16,13 @@
     },
     {
       "matchManagers": ["npm"],
-      "enabled": false
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "npm minor and patch"
     },
     {
       "matchManagers": ["npm"],
-      "matchPackageNames": ["astro", "@astrojs/**"],
-      "enabled": true,
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "npm minor and patch"
+      "matchPackageNames": ["vite", "vite-*", "@vitejs/**", "astro", "@astrojs/**"],
+      "enabled": false
     }
   ]
 }
