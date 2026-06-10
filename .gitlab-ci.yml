@@ -200,6 +200,20 @@ cache dependencies:
     - npx playwright install
     - npx cypress install
 
+renovate:
+  stage: validate
+  image: renovate/renovate
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_SCHEDULE_TYPE == "renovate"
+  variables:
+    RENOVATE_PLATFORM: gitlab
+    RENOVATE_BASE_BRANCHES: $CI_COMMIT_REF_NAME
+    RENOVATE_ENDPOINT: $CI_SERVER_URL/api/v4
+    RENOVATE_TOKEN: $GITLAB_CI_RENOVATE_TOKEN
+    RENOVATE_GIT_AUTHOR: "Renovate Bot <renovate@example.com>"
+  script:
+    - renovate $CI_PROJECT_PATH
+
 phpstan-is-up-to-date:
   stage: validate
   rules:
