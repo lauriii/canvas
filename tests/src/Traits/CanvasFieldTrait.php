@@ -101,7 +101,7 @@ trait CanvasFieldTrait {
     self::assertEqualsCanonicalizing($expected_component_ids, \array_unique(\array_column($values, 'component_id')));
     $inputs = \array_combine(
       \array_column($values, 'uuid'),
-      \array_map(static fn (string $input): array => \json_decode($input, TRUE, \JSON_THROW_ON_ERROR), \array_column($values, 'inputs')),
+      \array_map(static fn (string $input): array => \json_decode($input, TRUE, flags: \JSON_THROW_ON_ERROR), \array_column($values, 'inputs')),
     );
     // @todo Replace with a single call to
     //   `\PHPUnit\Framework\Assert::assertEqualsCanonicalizing` in

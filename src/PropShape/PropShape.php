@@ -16,7 +16,7 @@ use Drupal\Core\Extension\ThemeHandlerInterface;
  * Pass a `Component` plugin instance to `PropShape::getComponentProps()` and
  * receive an array of PropShape objects.
  *
- * @phpstan-type JsonSchema array<string, mixed>
+ * @phpstan-import-type JsonSchema from \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType
  * @internal
  */
 final class PropShape {

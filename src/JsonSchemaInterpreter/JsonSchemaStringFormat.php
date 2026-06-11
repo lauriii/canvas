@@ -29,7 +29,7 @@ use Symfony\Component\Validator\Constraints\Ip;
  * @see https://json-schema.org/understanding-json-schema/reference/string#format
  * @see https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
  *
- * @phpstan-type JsonSchema array<string, mixed>
+ * @phpstan-import-type JsonSchema from \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType
  * @internal
  */
 enum JsonSchemaStringFormat: string {

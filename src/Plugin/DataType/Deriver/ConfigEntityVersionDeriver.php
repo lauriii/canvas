@@ -15,6 +15,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 final class ConfigEntityVersionDeriver implements ContainerDeriverInterface {
 
+  /**
+   * @var array<string, array<string, mixed>>
+   */
   protected array $derivatives = [];
   protected EntityTypeManagerInterface $entityTypeManager;
 

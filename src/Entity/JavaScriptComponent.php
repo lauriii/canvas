@@ -39,6 +39,9 @@ use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Url;
 use Symfony\Component\Validator\ConstraintViolation;
 
+/**
+ * @phpstan-import-type JsonSchema from \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType
+ */
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
   label: new TranslatableMarkup('Code component'),
@@ -633,7 +636,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
   /**
    * Sets value for props.
    *
-   * @param array<string, array{type: string, format?: string, examples?: string|array<string>, title: string}> $props
+   * @param array<string, JsonSchema> $props
    *   Value for Props.
    */
   public function setProps(array $props): self {

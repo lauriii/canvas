@@ -811,7 +811,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
 
     // Should not trigger an exception during component list rendering.
     $listOutput = \Drupal::classResolver(ApiConfigControllers::class)->list(Component::ENTITY_TYPE_ID);
-    $list = \json_decode($listOutput->getContent() ?: '[]', TRUE, \JSON_THROW_ON_ERROR);
+    $list = \json_decode($listOutput->getContent() ?: '[]', TRUE, flags: \JSON_THROW_ON_ERROR);
     self::assertArrayHasKey($component->id(), $list);
     // Component should be flagged as broken.
     self::assertTrue($list[$component->id()]['broken']);
@@ -830,7 +830,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
 
     // Component list's preview should also output verbose error.
     $listOutput = \Drupal::classResolver(ApiConfigControllers::class)->list(Component::ENTITY_TYPE_ID);
-    $list = \json_decode($listOutput->getContent() ?: '[]', TRUE, \JSON_THROW_ON_ERROR);
+    $list = \json_decode($listOutput->getContent() ?: '[]', TRUE, flags: \JSON_THROW_ON_ERROR);
     self::assertArrayHasKey($component->id(), $list);
     // Component should be flagged as broken.
     self::assertTrue($list[$component->id()]['broken']);

@@ -485,7 +485,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $url = $this->getLayoutUrl($entity)->toString();
     $content = $this->parentRequest(Request::create($url))->getContent() ?: '';
     $this->assertJson($content);
-    $json = json_decode($content, TRUE, JSON_THROW_ON_ERROR);
+    $json = json_decode($content, TRUE, flags: \JSON_THROW_ON_ERROR);
 
     // Add the code component into the layout.
     $uuid = 'ccf36def-3f87-4b7d-bc20-8f8594274818';

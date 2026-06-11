@@ -36,6 +36,7 @@ use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 use Symfony\Component\Yaml\Yaml as SymfonyYaml;
 
+// @phpstan-ignore function.impossibleType
 if (!\class_exists(TestSetupInterface::class)) {
   // We're running test-discovery inside run-tests.sh which is before
   // autoloading for the \Drupal\TestSite namespace has been established.
