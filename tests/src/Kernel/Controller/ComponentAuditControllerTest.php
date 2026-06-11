@@ -4,13 +4,22 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Controller;
 
+// cspell:ignore entiteit
+
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\Pattern;
+use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Url;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\language\ConfigurableLanguageManagerInterface;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -79,6 +88,114 @@ final class ComponentAuditControllerTest extends CanvasKernelTestBase {
         'inputs' => [],
       ],
     ])->save();
+  }
+
+  /**
+   * Tests controller output when config and content entity translations exist.
+   */
+  public function testControllerWithTranslations(): void {
+    $this->enableModules(['language', 'content_translation']);
+    $this->installConfig(['language']);
+    ConfigurableLanguage::createFromLangcode('nl')->save();
+
+    $this->setUpCurrentUser(permissions: [
+      'administer themes',
+      Component::ADMIN_PERMISSION,
+      Page::CREATE_PERMISSION,
+      Page::EDIT_PERMISSION,
+    ]);
+
+    // Component version used in all config entity trees.
+    $druplicon_version = '8fe3be948e0194e1';
+    $uuid = $this->container->get('uuid');
+    $druplicon_tree = [
+      [
+        'uuid' => $uuid->generate(),
+        'component_id' => 'sdc.canvas_test_sdc.druplicon',
+        'component_version' => $druplicon_version,
+        'inputs' => [],
+      ],
+    ];
+
+    // Create one config entity per type, each containing druplicon.
+    $page_region = PageRegion::create([
+      'theme' => 'stark',
+      'region' => 'sidebar_first',
+      'component_tree' => $druplicon_tree,
+    ]);
+    $page_region->save();
+
+    $pattern = Pattern::create([
+      'id' => 'test_pattern',
+      'label' => 'Test Pattern',
+      'component_tree' => $druplicon_tree,
+    ]);
+    $pattern->save();
+
+    EntityViewMode::create([
+      'id' => 'node.teaser',
+      'label' => 'Teaser',
+      'targetEntityType' => 'node',
+    ])->save();
+    $content_template = ContentTemplate::create([
+      'id' => 'node.article.teaser',
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'teaser',
+      'component_tree' => $druplicon_tree,
+    ]);
+    $content_template->save();
+
+    // Write an nl override to each config entity.
+    $language_manager = $this->container->get(LanguageManagerInterface::class);
+    \assert($language_manager instanceof ConfigurableLanguageManagerInterface);
+    foreach ([$page_region, $pattern, $content_template] as $config_entity) {
+      $language_manager
+        ->getLanguageConfigOverride('nl', $config_entity->getConfigDependencyName())
+        ->setData(['label' => 'NL label'])
+        ->save();
+    }
+
+    // Create a content entity (node) with an nl translation.
+    $entity_type_manager = $this->container->get('entity_type.manager');
+    $node_storage = $entity_type_manager->getStorage('node');
+    $node = $node_storage->create([
+      'title' => 'Test entity',
+      'status' => TRUE,
+      'type' => 'article',
+      'field_canvas_test' => [
+        [
+          'uuid' => $uuid->generate(),
+          'component_id' => 'sdc.canvas_test_sdc.druplicon',
+          'component_version' => $druplicon_version,
+          'inputs' => [],
+        ],
+      ],
+    ]);
+    $node->save();
+    $node->addTranslation('nl', [
+      'title' => 'Test entiteit',
+      'status' => TRUE,
+      'field_canvas_test' => $node->get('field_canvas_test')->getValue(),
+    ])->save();
+
+    $audit_url = Url::fromRoute('entity.component.audit', ['component' => 'sdc.canvas_test_sdc.druplicon'])->toString();
+    $response = $this->request(Request::create($audit_url));
+    \assert($response instanceof HtmlResponse);
+    // Config entity tables with only a title column: language is column 2.
+    foreach (['table-page-region', 'table-pattern'] as $table) {
+      $this->assertTableCellContains($table, 1, 2, 'Default (en)');
+      $this->assertTableCellContains($table, 2, 2, 'Translation (nl)');
+    }
+    // Content template table: title, entity type, bundle, mode, language.
+    $this->assertTableCellContains('table-content-template', 1, 5, 'Default (en)');
+    $this->assertTableCellContains('table-content-template', 2, 5, 'Translation (nl)');
+
+    // The content table must show a Default row and a Translation row.
+    // Columns: title, entity type, bundle, id, revision id, in latest,
+    // in default, language.
+    $this->assertTableCellContains('table-content', 1, 8, 'Default (en)');
+    $this->assertTableCellContains('table-content', 2, 8, 'Translation (nl)');
   }
 
   /**

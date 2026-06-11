@@ -11,10 +11,13 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\Component\Utility\Html;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\language\ConfigurableLanguageManagerInterface;
 
 /**
  * Controller for components audit page.
@@ -27,6 +30,7 @@ final class ComponentAuditController {
     private readonly ComponentAudit $componentAudit,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EntityTypeBundleInfoInterface $bundleInfo,
+    private readonly LanguageManagerInterface $languageManager,
   ) {}
 
   public function auditTitle(Component $component): \Stringable {
@@ -109,11 +113,20 @@ final class ComponentAuditController {
       ],
     ];
     $dependents = $this->componentAudit->getContentRevisionsUsingComponent($component, [$component->getLoadedVersion()]);
+
+    $default_langcode = $this->languageManager->getDefaultLanguage()->getId();
+    $has_translations = FALSE;
     foreach ($dependents as $entity) {
-      $row = [];
+      if (count($entity->getTranslationLanguages(FALSE)) > 0) {
+        $has_translations = TRUE;
+        break;
+      }
+    }
+
+    foreach ($dependents as $entity) {
       $entity_type_id = $entity->getEntityTypeId();
       $key = "$entity_type_id:{$entity->id()}";
-      if (isset($rows["$entity_type_id.{$entity->id()}"])) {
+      if (isset($rows[$key])) {
         if ($entity->isLatestRevision()) {
           $rows[$key]['in_latest']['data'] = '✔';
         }
@@ -124,6 +137,7 @@ final class ComponentAuditController {
       }
       else {
         $bundle_label = $this->bundleInfo->getBundleInfo($entity_type_id)[$entity->bundle()]['label'];
+        $row = [];
         $row['title']['data'] = $entity->toLink();
         $row['entity_type_id']['data'] = $entity->getEntityType()->getLabel();
         $row['bundle']['data'] = $bundle_label;
@@ -131,8 +145,31 @@ final class ComponentAuditController {
         $row['revision_id']['data'] = $entity->getRevisionId();
         $row['in_latest']['data'] = $entity->isLatestRevision() ? '✔' : '❌';
         $row['in_default']['data'] = $entity->isDefaultRevision() ? '✔' : '❌';
+        if ($has_translations) {
+          $row['language']['data'] = $this->t('Default (@langcode)', ['@langcode' => $default_langcode]);
+        }
         $rows[$key] = $row;
+
+        if ($has_translations) {
+          foreach ($entity->getTranslationLanguages(FALSE) as $langcode => $language) {
+            $translation = $entity->getTranslation($langcode);
+            $translation_row = [];
+            $translation_row['title']['data'] = $translation->toLink();
+            $translation_row['entity_type_id']['data'] = $entity->getEntityType()->getLabel();
+            $translation_row['bundle']['data'] = $bundle_label;
+            $translation_row['id']['data'] = $entity->id();
+            $translation_row['revision_id']['data'] = $entity->getRevisionId();
+            $translation_row['in_latest']['data'] = $entity->isLatestRevision() ? '✔' : '❌';
+            $translation_row['in_default']['data'] = $entity->isDefaultRevision() ? '✔' : '❌';
+            $translation_row['language']['data'] = $this->t('Translation (@langcode)', ['@langcode' => $langcode]);
+            $rows["$key:$langcode"] = $translation_row;
+          }
+        }
       }
+    }
+
+    if ($has_translations) {
+      $header['language'] = $this->t('Language');
     }
 
     return [
@@ -225,13 +262,60 @@ final class ComponentAuditController {
   }
 
   public function createConfigTable(Component $component, string $config_entity_type_id, \Stringable $sectionTitle, \Stringable $emptyMessage, array $headers, callable $rowCallback): array {
-    $rows = [];
     $dependents = $this->componentAudit->getConfigEntityDependenciesUsingComponent($component, $config_entity_type_id);
-    /** @var \Drupal\canvas\Entity\PageRegion $region */
-    foreach ($dependents as $region) {
-      $row = $rowCallback($region);
-      $rows[] = $row;
+
+    $default_langcode = $this->languageManager->getDefaultLanguage()->getId();
+    $has_translations = FALSE;
+
+    if ($this->languageManager instanceof ConfigurableLanguageManagerInterface) {
+      foreach ($dependents as $entity) {
+        \assert($entity instanceof ConfigEntityInterface);
+        $config_name = $entity->getConfigDependencyName();
+        foreach ($this->languageManager->getLanguages() as $langcode => $language) {
+          if ($langcode === $default_langcode) {
+            continue;
+          }
+          $override = $this->languageManager->getLanguageConfigOverride($langcode, $config_name);
+          if (!$override->isNew() && !empty($override->getRawData())) {
+            $has_translations = TRUE;
+            break 2;
+          }
+        }
+      }
     }
+
+    $rows = [];
+    foreach ($dependents as $entity) {
+      $row = $rowCallback($entity);
+      if ($has_translations) {
+        $row['language']['data'] = $this->t('Default (@langcode)', ['@langcode' => $default_langcode]);
+        $rows[] = $row;
+
+        \assert($entity instanceof ConfigEntityInterface);
+        \assert($this->languageManager instanceof ConfigurableLanguageManagerInterface);
+        $config_name = $entity->getConfigDependencyName();
+        foreach ($this->languageManager->getLanguages() as $langcode => $language) {
+          if ($langcode === $default_langcode) {
+            continue;
+          }
+          $override = $this->languageManager->getLanguageConfigOverride($langcode, $config_name);
+          if ($override->isNew() || empty($override->getRawData())) {
+            continue;
+          }
+          $translation_row = $rowCallback($entity);
+          $translation_row['language']['data'] = $this->t('Translation (@langcode)', ['@langcode' => $langcode]);
+          $rows[] = $translation_row;
+        }
+      }
+      else {
+        $rows[] = $row;
+      }
+    }
+
+    if ($has_translations) {
+      $headers['language'] = $this->t('Language');
+    }
+
     $class = Html::getClass($config_entity_type_id);
     return [
       'title' => [
