@@ -136,11 +136,14 @@ final class ApiLayoutController {
     ];
     $available_translations = [];
     $links = [];
-    if ($entity instanceof ContentEntityInterface) {
-      $available_translations = \array_keys($entity->getTranslationLanguages(FALSE));
+    // ContentTemplate is a config entity with no translations of its own, so
+    // fall back to $preview_entity which holds the translatable content.
+    $translation_entity = $entity instanceof ContentEntityInterface ? $entity : $preview_entity;
+    if ($translation_entity instanceof ContentEntityInterface) {
+      $available_translations = \array_keys($translation_entity->getTranslationLanguages(FALSE));
       if ($this->moduleHandler->moduleExists('content_translation')) {
         foreach ($available_translations as $langcode) {
-          $translation = $entity->getTranslation($langcode);
+          $translation = $translation_entity->getTranslation($langcode);
           // The delete route gates on update access, so emit the link to the
           // same users to avoid offering a link that would return 403.
           // @see canvas.api.content.translation.delete in canvas.routing.yml
@@ -148,7 +151,7 @@ final class ApiLayoutController {
             $links[$langcode] = [
               CanvasUriDefinitions::LINK_REL_DELETE => Url::fromRoute(
                 'canvas.api.content.translation.delete',
-                ['canvas_page' => $entity->id()],
+                ['canvas_page' => $translation_entity->id()],
                 ['language' => $translation->language()],
               )->toString(),
             ];
@@ -157,8 +160,8 @@ final class ApiLayoutController {
       }
     }
     // The client should also list the default language.
-    $default_langcode = $entity instanceof ContentEntityInterface
-      ? $entity->getUntranslated()->language()->getId()
+    $default_langcode = $translation_entity instanceof ContentEntityInterface
+      ? $translation_entity->getUntranslated()->language()->getId()
       : $entity->language()->getId();
     array_unshift($available_translations, $default_langcode);
     $data['translations'] = [

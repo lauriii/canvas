@@ -34,7 +34,7 @@ const TemplateLayout = () => {
 
   const { showBoundary, resetBoundary } = useErrorBoundary();
 
-  const { layout, model } = fetchedLayout || {};
+  const { layout, model, translations } = fetchedLayout || {};
 
   useEffect(() => {
     dispatch(setInitialized(false));
@@ -59,6 +59,7 @@ const TemplateLayout = () => {
         setInitialLayoutModel({
           layout,
           model,
+          translations: translations || {},
           // We don't need to update the preview here - it is done in the layout
           // api's onQueryStarted method - @see componentAndLayout.ts
           updatePreview: false,
@@ -68,6 +69,7 @@ const TemplateLayout = () => {
   }, [
     layout,
     model,
+    translations,
     isInitialized,
     error,
     showBoundary,
