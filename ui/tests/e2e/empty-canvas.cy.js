@@ -5,9 +5,23 @@ describe('Empty preview', () => {
     // passing consistently. This occurs regardless of which test runs first.
     cy.drupalCanvasInstall(['metatag']);
     cy.drupalLogin('canvasUser', 'canvasUser');
+    // Add `auto-saves/pending` intercept.
+    cy.intercept('GET', '**/canvas/api/v0/auto-saves/pending', {
+      log: false,
+    }).as('getAutoSaveItems');
   });
 
   afterEach(() => {
+    // Validate `auto-saves/pending` calls did not result in error responses.
+    cy.get('@getAutoSaveItems.all').then((interceptions) => {
+      // Assert we only get HTTP 200.
+      interceptions.forEach((interception) => {
+        // Cypress does not wait for responses unless explicitly told to.
+        if (interception.responseWaited) {
+          expect(interception.response.statusCode).to.equal(200);
+        }
+      });
+    });
     cy.drupalUninstall();
   });
 
@@ -56,6 +70,7 @@ describe('Empty preview', () => {
 
   it(`canvas/editor/canvas_page/2 can add a component to an empty preview`, () => {
     cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/2' });
+    cy.wait('@getAutoSaveItems');
 
     // Wait for an element in the page data panel to be present.
     cy.get('#edit-title-0-value').should('exist');
@@ -95,5 +110,7 @@ describe('Empty preview', () => {
         1,
       );
     });
+    // Wait for at least one `auto-saves/pending` call to finish.
+    cy.wait('@getAutoSaveItems');
   });
 });

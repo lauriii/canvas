@@ -34,6 +34,7 @@ use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
+use Drupal\path\Plugin\Field\FieldType\PathFieldItemList;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -89,6 +90,34 @@ class AutoSaveManager implements EventSubscriberInterface {
     $this->componentInstanceFormViolationsStore = $keyValueFactory->get(self::COMPONENT_INSTANCE_FORM_VIOLATIONS_STORE);
   }
 
+  /**
+   * Converts an entity to array ready for storing in auto-save item.
+   *
+   * For content entities:
+   * - exclude computed fields: only actually stored data actually matters here
+   * - EXCEPT the path field type, which is weirdly marked as computed.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *
+   * @return array
+   *
+   * @see \Drupal\path\Hook\PathHooks::entityBaseFieldInfo
+   */
+  private static function toStorableArray(EntityInterface $entity): array {
+    if ($entity instanceof FieldableEntityInterface) {
+      $values = [];
+      foreach ($entity->getFields(include_computed: TRUE) as $name => $field_item_list) {
+        \assert($field_item_list instanceof FieldItemListInterface);
+        if ($field_item_list->getFieldDefinition()->isComputed() && !($field_item_list instanceof PathFieldItemList)) {
+          continue;
+        }
+        $values[$name] = $field_item_list->getValue();
+      }
+      return $values;
+    }
+    return $entity->toArray();
+  }
+
   public function saveEntity(EntityInterface $entity, ?string $clientId = NULL): void {
     $key = $this->getAutoSaveKey($entity);
     $data = self::normalizeEntity($entity);
@@ -118,7 +147,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     $auto_save_data = [
       'entity_type' => $entity->getEntityTypeId(),
       'entity_id' => $entity->id(),
-      'data' => $entity->toArray(),
+      'data' => self::toStorableArray($entity),
       'langcode' => $entity->language()->getId(),
       'label' => $entity->label(),
       'data_hash' => $data_hash,
@@ -197,7 +226,7 @@ class AutoSaveManager implements EventSubscriberInterface {
         }
         $entity->setComponentTree($tree->getValue());
       }
-      return $entity->toArray();
+      return self::toStorableArray($entity);
     }
     $normalized = [];
     $fields = $entity->getFields();
@@ -213,8 +242,11 @@ class AutoSaveManager implements EventSubscriberInterface {
       // @todo We can probably remove this when we refactor the pageData slice
       //   in https://drupal.org/i/3535569.
       $fields = \array_filter($fields, static fn (FieldItemListInterface $field) => $field->getFieldDefinition()->getType() !== 'externalUpdates');
-
     }
+    // Exclude all computed properties except path field type.
+    // @see @see \Drupal\path\Hook\PathHooks::entityBaseFieldInfo
+    $fields = \array_filter($fields, static fn (FieldItemListInterface $field) => !$field->getFieldDefinition()->isComputed() || $field instanceof PathFieldItemList);
+
     foreach (\array_keys($fields) as $name) {
       $items = $entity->get($name);
       // Exclude items that are empty.
