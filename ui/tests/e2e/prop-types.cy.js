@@ -916,4 +916,35 @@ describe('Prop types editing', () => {
     );
     cy.get('[data-prop-message="true"]').should('not.exist');
   });
+
+  it('textarea can handle values that are JSON formatted strings', () => {
+    const jsonString = '{"name":"test","value":123,"nested":{"key":"data"}}';
+    const iframeSelector = '#test-string-multiline';
+    const labelText = 'String — multi-line';
+
+    // Clear the existing value and type the JSON string
+    cy.findByLabelText(labelText).clear({ force: true });
+    cy.findByLabelText(labelText).type(jsonString, {
+      parseSpecialCharSequences: false,
+      force: true,
+    });
+
+    // Verify it appears correctly in the input
+    cy.findByLabelText(labelText).should('have.value', jsonString);
+
+    // Wait for it to appear in the preview
+    cy.waitForElementContentInIframe(iframeSelector, jsonString);
+
+    // Reload the page without clearing auto-save
+    cy.loadURLandWaitForCanvasLoaded({ clearAutoSave: false });
+    cy.openLayersPanel();
+    cy.clickComponentInLayersView('All props');
+    cy.findByLabelText('String — single line').should('exist');
+
+    // Verify the JSON string is still in the input (not [Object object]).
+    cy.findByLabelText(labelText).should('have.value', jsonString);
+
+    // Verify it's still correctly displayed in the preview
+    cy.waitForElementContentInIframe(iframeSelector, jsonString);
+  });
 });

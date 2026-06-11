@@ -81,8 +81,11 @@ export default function basicPropsifyFactory({
       // HTML attribute values are strings. JSX prop values can be other data
       // types, such as objects or arrays. Therefore, if the attribute value is
       // a JSON string, parse it.
-      props = mapValues(props, (value) => {
+      props = mapValues(props, (value, propertyName) => {
         try {
+          if (propertyName === 'value') {
+            return value;
+          }
           return JSON.parse(value);
         } catch {
           return value;
