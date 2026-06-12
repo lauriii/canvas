@@ -101,7 +101,7 @@ export const getPageData = (): PageData => {
     breadcrumbs: globalThis?.drupalSettings?.canvasData?.v0?.breadcrumbs || [],
     mainEntity: globalThis?.drupalSettings?.canvasData?.v0?.mainEntity || null,
   };
-  window?.parent.postMessage({
+  globalThis?.window?.parent.postMessage({
     type: '_canvas_useswr_data_fetch',
     id: 'getPageData()',
     data: pageData,
@@ -122,7 +122,7 @@ export const getSiteData = (): SiteData => {
       favicon: { url: '', mimeType: '' },
     },
   };
-  window?.parent.postMessage({
+  globalThis?.window?.parent.postMessage({
     type: '_canvas_useswr_data_fetch',
     id: 'getSiteData()',
     data: siteData,
