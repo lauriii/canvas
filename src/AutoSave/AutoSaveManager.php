@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\content_moderation\Plugin\Field\ModerationStateFieldItemList;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Config\ConfigCrudEvent;
@@ -27,6 +28,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Entity\TranslatableInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
@@ -91,24 +93,42 @@ class AutoSaveManager implements EventSubscriberInterface {
   }
 
   /**
+   * Checks whether a computed field is user-editable and persisted on save.
+   *
+   * Some fields are marked as computed because their values are not stored in
+   * the host entity's tables, but they are user-editable and persisted by
+   * their own storage on entity save:
+   * - `path`: persisted as `path_alias` entities by PathItem::postSave().
+   * - `moderation_state`: persisted as `content_moderation_state` entities.
+   * These must be treated like regular stored fields by the auto-save system,
+   * or edits to them would be silently dropped.
+   *
+   * There is no reliable way to infer these: computed fields are read-only by
+   * default per DataDefinition::isReadOnly() and `moderation_state` declares
+   * setReadOnly(FALSE), but core's `path` field does not, so both are
+   * hardcoded.
+   *
+   * @todo Stop hardcoding these in https://drupal.org/i/3503446
+   */
+  public static function isPersistedComputedField(FieldDefinitionInterface $field_definition): bool {
+    return \is_a($field_definition->getClass(), PathFieldItemList::class, TRUE)
+      || \is_a($field_definition->getClass(), ModerationStateFieldItemList::class, TRUE);
+  }
+
+  /**
    * Converts an entity to array ready for storing in auto-save item.
    *
-   * For content entities:
-   * - exclude computed fields: only actually stored data actually matters here
-   * - EXCEPT the path field type, which is weirdly marked as computed.
+   * For content entities, exclude computed fields: only actually stored data
+   * matters here — except computed fields that are persisted on save.
    *
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   *
-   * @return array
-   *
-   * @see \Drupal\path\Hook\PathHooks::entityBaseFieldInfo
+   * @see self::isPersistedComputedField()
    */
   private static function toStorableArray(EntityInterface $entity): array {
     if ($entity instanceof FieldableEntityInterface) {
       $values = [];
       foreach ($entity->getFields(include_computed: TRUE) as $name => $field_item_list) {
         \assert($field_item_list instanceof FieldItemListInterface);
-        if ($field_item_list->getFieldDefinition()->isComputed() && !($field_item_list instanceof PathFieldItemList)) {
+        if ($field_item_list->getFieldDefinition()->isComputed() && !self::isPersistedComputedField($field_item_list->getFieldDefinition())) {
           continue;
         }
         $values[$name] = $field_item_list->getValue();
@@ -243,9 +263,9 @@ class AutoSaveManager implements EventSubscriberInterface {
       //   in https://drupal.org/i/3535569.
       $fields = \array_filter($fields, static fn (FieldItemListInterface $field) => $field->getFieldDefinition()->getType() !== 'externalUpdates');
     }
-    // Exclude all computed properties except path field type.
-    // @see @see \Drupal\path\Hook\PathHooks::entityBaseFieldInfo
-    $fields = \array_filter($fields, static fn (FieldItemListInterface $field) => !$field->getFieldDefinition()->isComputed() || $field instanceof PathFieldItemList);
+    // Exclude all computed properties except those that are user-editable and
+    // persisted elsewhere on save (path aliases, moderation states).
+    $fields = \array_filter($fields, static fn (FieldItemListInterface $field) => !$field->getFieldDefinition()->isComputed() || self::isPersistedComputedField($field->getFieldDefinition()));
 
     foreach (\array_keys($fields) as $name) {
       $items = $entity->get($name);

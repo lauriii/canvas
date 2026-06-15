@@ -261,16 +261,41 @@ final class ApiAutoSaveController extends ApiControllerBase {
       }
       else {
         \assert($entity instanceof ContentEntityInterface);
+        $auto_save_entity = $entity;
 
-        $fields = $entity->getFieldDefinitions();
-        $entity_definition = $entity->getEntityType();
+        $fields = $auto_save_entity->getFieldDefinitions();
+        $entity_definition = $auto_save_entity->getEntityType();
         \assert($entity_definition instanceof ContentEntityTypeInterface);
-        \assert(!\is_null($entity->id()));
-        $original_entity = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
-        \assert($original_entity instanceof ContentEntityInterface);
+        \assert(!\is_null($auto_save_entity->id()));
+
+        // Apply the auto-saved changes onto the stored entity, instead of
+        // saving the entity that was reconstructed from the auto-save snapshot.
+        // The snapshot only ever contains the translation that was edited, so
+        // saving it directly would drop every other translation. Loading the
+        // real entity preserves all translations — and keeps a valid loaded
+        // revision ID, which content_translation's field synchronizer relies on
+        // to pick the correct synchronization source when untranslatable
+        // ("symmetric") field columns are involved.
+        // @see \Drupal\content_translation\FieldTranslationSynchronizer::synchronizeFields()
+        $entity = $this->entityTypeManager->getStorage($auto_save_entity->getEntityTypeId())->loadUnchanged($auto_save_entity->id());
+        \assert($entity instanceof ContentEntityInterface);
+        // The unchanged copy is used both to detect which fields changed and to
+        // determine whether the entity is still considered a draft (which keys
+        // off the stored, pre-edit title).
+        $original_entity = clone $entity;
+        // The auto-save snapshot belongs to a specific translation. Apply the
+        // changes onto that same translation of the stored entity, so editing
+        // (and publishing) a non-default translation never clobbers the others.
+        // Setting a non-translatable field via a non-default translation writes
+        // to the shared (default) value, which is exactly what we want for
+        // symmetric columns.
+        // @see \Drupal\Core\Entity\ContentEntityBase::getTranslatedField()
+        $langcode = $auto_save_entity->language()->getId();
+        $target = $entity->hasTranslation($langcode) ? $entity->getTranslation($langcode) : $entity->addTranslation($langcode);
+        $original_target = $original_entity->hasTranslation($langcode) ? $original_entity->getTranslation($langcode) : $original_entity;
         foreach ($fields as $field_name => $field) {
-          $field_access = $entity->get($field_name)->access(operation: 'edit', return_as_object: TRUE);
-          $original_field = $original_entity->get($field_name);
+          $field_access = $auto_save_entity->get($field_name)->access(operation: 'edit', return_as_object: TRUE);
+          $original_field = $original_target->get($field_name);
 
           // We ignore those fields that didn't change. We also need to ignore
           // field access for computed fields, because there
@@ -278,7 +303,11 @@ final class ApiAutoSaveController extends ApiControllerBase {
           // We are protected because the entity validation will trigger errors
           // if those were changed in an unexpected way.
           // Status and published will be TRUE when publishing.
-          $ignore_field = $field->isComputed() || $original_field->equals($entity->get($field_name));
+          // TRICKY: some computed fields (`path`, `moderation_state`) are
+          // user-editable and persisted on save, so they must still be
+          // carried over.
+          // @see \Drupal\canvas\AutoSave\AutoSaveManager::isPersistedComputedField()
+          $ignore_field = ($field->isComputed() && !AutoSaveManager::isPersistedComputedField($field)) || $original_field->equals($auto_save_entity->get($field_name));
           $keys = ['id', 'revision_id', 'uuid', 'langcode', 'status', 'published'];
           $revision_keys = ['revision_created', 'revision_user'];
           foreach ($keys as $key) {
@@ -287,31 +316,39 @@ final class ApiAutoSaveController extends ApiControllerBase {
           foreach ($revision_keys as $revision_key) {
             $ignore_field |= $field_name === $entity_definition->getRevisionMetadataKey($revision_key);
           }
-          if (!$ignore_field && $field_access->isForbidden()) {
+          if ($ignore_field) {
+            continue;
+          }
+          if ($field_access->isForbidden()) {
             throw new CacheableAccessDeniedHttpException(
               (new CacheableMetadata())->addCacheableDependency($field_access),
-              \sprintf('Unable to update field %s for entity "%s".', $field_name, $entity->label()),
+              \sprintf('Unable to update field %s for entity "%s".', $field_name, $auto_save_entity->label()),
             );
           }
-        }
-        // Preserve non-default language translations from the original entity,
-        // since the auto-save data only contains the default translation.
-        foreach ($original_entity->getTranslationLanguages(FALSE) as $langcode => $language) {
-          if (!$entity->hasTranslation($langcode)) {
-            $entity->addTranslation($langcode, $original_entity->getTranslation($langcode)->toArray());
-          }
+          // Apply the changed value from the auto-save snapshot onto the edited
+          // translation of the stored entity.
+          $target->set($field_name, $auto_save_entity->get($field_name)->getValue());
         }
 
         $is_draft = AutoSaveManager::entityIsConsideredNew($original_entity);
 
+        // The published status is an entity key and therefore excluded from the
+        // field copy above, so carry it over explicitly onto the edited
+        // translation.
         // For draft entities automatically publish them when publishing
         // changes.
-        // For non-draft unpublished entities, preserve the published status
-        // from the autosaved entity to allow unpublishing to work correctly.
-        if ($is_draft && $entity instanceof EntityPublishedInterface) {
-          $entity->setPublished();
+        // For non-draft entities, preserve the published status from the
+        // auto-saved entity to allow unpublishing to work correctly.
+        if ($target instanceof EntityPublishedInterface) {
+          \assert($auto_save_entity instanceof EntityPublishedInterface);
+          if ($is_draft || $auto_save_entity->isPublished()) {
+            $target->setPublished();
+          }
+          else {
+            $target->setUnpublished();
+          }
         }
-        // If the entity is new, the autosaved data is considered to be part
+        // If the entity is new, the auto-saved data is considered to be part
         // of the first revision. Therefore, do not create a new revision
         // for new entities.
         if ($is_draft) {

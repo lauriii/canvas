@@ -19,6 +19,7 @@ use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\RevisionableStorageInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Session\AccountInterface;
@@ -38,6 +39,7 @@ use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
+use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Drupal\user\UserInterface;
@@ -63,6 +65,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
   use AutoSaveManagerTestTrait;
   use AutoSaveRequestTestTrait;
+  use ContentModerationTestTrait;
   use ConstraintViolationsTestTrait;
   use UserCreationTrait;
   use OpenApiSpecTrait;
@@ -1046,6 +1049,12 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertSame('The updated title.', $page->label());
     $this->assertSame($page->getRevisionUserId(), $user->id());
 
+    // The `path` field is computed (aliases are persisted as `path_alias`
+    // entities), but the auto-saved alias must still be published.
+    $node2_reloaded = $entity_type_manager->getStorage('node')->loadUnchanged((string) $node2->id());
+    \assert($node2_reloaded instanceof Node);
+    $this->assertSame('/llama', $node2_reloaded->get('path')->first()?->getValue()['alias']);
+
     $this->assertNotNull($template->id());
     $template = $content_template_storage->loadUnchanged($template->id());
     \assert($template instanceof ContentTemplate);
@@ -1362,6 +1371,59 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ],
       ], $json);
     }
+  }
+
+  /**
+   * Tests that publishing carries over the auto-saved moderation state.
+   */
+  public function testPublishModeratedEntity(): void {
+    $this->container->get(ModuleInstallerInterface::class)->install(['content_moderation']);
+    $workflow = $this->createEditorialWorkflow();
+    $this->addEntityTypeAndBundleToWorkflow($workflow, 'node', 'article');
+
+    $this->setUpCurrentUser(permissions: [
+      'access content',
+      'view own unpublished content',
+      'edit any article content',
+      AutoSaveManager::PUBLISH_PERMISSION,
+      'use editorial transition create_new_draft',
+      'use editorial transition publish',
+    ]);
+
+    $node = Node::create([
+      'type' => 'article',
+      'title' => 'Moderated node',
+      'moderation_state' => 'published',
+    ]);
+    self::assertSame(SAVED_NEW, $node->save());
+    self::assertTrue($node->isPublished());
+
+    /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
+    $autoSave = \Drupal::service(AutoSaveManager::class);
+    $node->set('moderation_state', 'draft');
+    $autoSave->saveEntity($node);
+
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+    $auto_save_key = $autoSave->getAutoSaveKey($node);
+    $response = $this->makePublishAllRequest([$auto_save_key => $auto_save_data[$auto_save_key]]);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    self::assertEquals(['message' => 'Successfully published 1 item.'], json_decode($response->getContent() ?: '', TRUE));
+
+    // The `moderation_state` field is computed (states are persisted as
+    // `content_moderation_state` entities), but the auto-saved state must
+    // still be published: the latest revision must be a draft, while the
+    // default revision remains published.
+    $node_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node');
+    \assert($node_storage instanceof RevisionableStorageInterface);
+    $latest_revision_id = $node_storage->getLatestRevisionId((int) $node->id());
+    self::assertNotNull($latest_revision_id);
+    $latest_revision = $node_storage->loadRevision($latest_revision_id);
+    \assert($latest_revision instanceof Node);
+    self::assertSame('draft', $latest_revision->get('moderation_state')->value);
+    self::assertFalse($latest_revision->isPublished());
+    $default_revision = $node_storage->loadUnchanged((string) $node->id());
+    \assert($default_revision instanceof Node);
+    self::assertTrue($default_revision->isPublished());
   }
 
   /**

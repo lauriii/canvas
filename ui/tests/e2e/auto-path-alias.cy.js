@@ -120,7 +120,12 @@ describe('Auto path alias generation', () => {
       cy.findByTestId('canvas-navigation-new-button').click();
       cy.findByTestId('canvas-navigation-new-page-button').click();
       cy.url().should('not.contain', '/canvas/editor/canvas_page/1');
-      cy.url().should('contain', '/canvas/editor/canvas_page/5');
+      // Capture the actual page ID from the URL instead of hardcoding it
+      cy.url().then((url) => {
+        const pageIdMatch = url.match(/canvas_page\/(\d+)/);
+        expect(pageIdMatch).to.exist;
+        cy.wrap(pageIdMatch[1]).as('pageId');
+      });
       cy.findByTestId('canvas-topbar').findByText('Draft');
 
       // Set the title and make sure that the path alias is generated automatically.
