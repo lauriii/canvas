@@ -8,14 +8,14 @@ import type { JsonApiClientOptions } from '@drupal-api-client/json-api-client';
 
 class CanvasJsonApiClient extends JsonApiClient {
   constructor(baseUrl?: BaseUrl, options?: JsonApiClientOptions) {
-    if (window.drupalSettings?.canvasData?.v0?.jsonapiSettings === null) {
+    if (globalThis?.drupalSettings?.canvasData?.v0?.jsonapiSettings === null) {
       throw new Error(
         'The JSON:API module is not installed. Please install it to use JsonApiClient.',
       );
     }
 
     const clientBaseUrl =
-      baseUrl || window.drupalSettings?.canvasData?.v0?.baseUrl;
+      baseUrl || globalThis?.drupalSettings?.canvasData?.v0?.baseUrl;
 
     if (!baseUrl && !clientBaseUrl) {
       throw new Error(
@@ -27,7 +27,7 @@ class CanvasJsonApiClient extends JsonApiClient {
 
     const clientOptions = {
       apiPrefix:
-        window.drupalSettings?.canvasData?.v0?.jsonapiSettings?.apiPrefix,
+        globalThis?.drupalSettings?.canvasData?.v0?.jsonapiSettings?.apiPrefix,
       serializer: new DefaultSerializer(),
       ...options,
     };

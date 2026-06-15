@@ -7,7 +7,7 @@ export default function canvasUseSwr(key: any, fetcher: any, options: any) {
       const id = decodeURIComponent(JSON.stringify(key));
 
       if (swr.data !== undefined && !swr.isLoading) {
-        window.parent.postMessage({
+        globalThis?.window?.parent.postMessage({
           type: '_canvas_useswr_data_fetch',
           id,
           data: swr.data,
@@ -15,7 +15,7 @@ export default function canvasUseSwr(key: any, fetcher: any, options: any) {
       }
 
       if (swr.error) {
-        window.parent.postMessage({
+        globalThis?.window?.parent.postMessage({
           type: '_canvas_useswr_error',
           id,
           data: swr.error,
