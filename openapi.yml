@@ -2703,6 +2703,279 @@ paths:
                     examples:
                       - Missing data
                       - Missing clientInstanceId
+  /canvas/api/v0/ui/content-entity-reference:
+    get:
+      summary: Lists fieldable content entity types and their bundles the current user can view.
+      responses:
+        '200':
+          description: Map of entity type IDs to labels and accessible bundles.
+          content:
+            application/json:
+              schema:
+                title: Content entity types and bundles
+                type: object
+                required:
+                  - data
+                additionalProperties: false
+                properties:
+                  data:
+                    type: object
+                    minProperties: 0
+                    additionalProperties:
+                      type: object
+                      required:
+                        - label
+                        - bundles
+                      additionalProperties: false
+                      properties:
+                        label:
+                          type: string
+                          description: Human-readable label of the entity type.
+                        bundles:
+                          type: object
+                          minProperties: 1
+                          additionalProperties:
+                            type: object
+                            required:
+                              - label
+                              - links
+                            additionalProperties: false
+                            properties:
+                              label:
+                                type: string
+                                description: Human-readable label of the bundle.
+                              links:
+                                type: object
+                                required:
+                                  - https://drupal.org/project/canvas#link-rel-typed-data-browser
+                                additionalProperties: false
+                                properties:
+                                  https://drupal.org/project/canvas#link-rel-typed-data-browser:
+                                    type: object
+                                    required:
+                                      - href
+                                    additionalProperties: false
+                                    properties:
+                                      href:
+                                        type: string
+                                        description: URL to the fields endpoint for this entity type + bundle.
+              examples:
+                types-and-bundles:
+                  summary: Fieldable content entity types and accessible bundles
+                  value:
+                    data:
+                      node:
+                        label: Content
+                        bundles:
+                          article:
+                            label: Article
+                            links:
+                              https://drupal.org/project/canvas#link-rel-typed-data-browser:
+                                href: /canvas/api/v0/ui/content-entity-reference/node/article
+                          page:
+                            label: Basic page
+                            links:
+                              https://drupal.org/project/canvas#link-rel-typed-data-browser:
+                                href: /canvas/api/v0/ui/content-entity-reference/node/page
+                      user:
+                        label: User
+                        bundles:
+                          user:
+                            label: User
+                            links:
+                              https://drupal.org/project/canvas#link-rel-typed-data-browser:
+                                href: /canvas/api/v0/ui/content-entity-reference/user/user
+        '401':
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+  /canvas/api/v0/ui/content-entity-reference/{entityType}/{bundle}:
+    get:
+      summary: Lists fields with derivable prop expressions on an entity type + bundle.
+      parameters:
+        - in: path
+          name: entityType
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: bundle
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: parent
+          required: false
+          schema:
+            type: string
+          description: >
+            URL-encoded expression representing a reference chain up to the
+            current navigation point. When provided, the server builds complete
+            expression strings rooted at the original entity.
+      responses:
+        '200':
+          description: Array of field descriptors, each with its pickable properties. Internal and multi-valued fields are omitted.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                additionalProperties: false
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - name
+                        - label
+                        - hasChildren
+                        - properties
+                      additionalProperties: false
+                      properties:
+                        name:
+                          type: string
+                        label:
+                          type: string
+                        hasChildren:
+                          type: boolean
+                          description: True for reference fields with at least one resolved target bundle; false otherwise.
+                        targetEntityType:
+                          type: string
+                          description: Present only when hasChildren is true.
+                        targetBundles:
+                          type: object
+                          description: >
+                            Present only when hasChildren is true. Keyed by bundle ID;
+                            each value provides a label, reference expression and
+                            browse link for that bundle. Contains one entry for
+                            single-bundle targets, multiple for multi-bundle targets.
+                          additionalProperties:
+                            type: object
+                            required:
+                              - label
+                              - labelExpression
+                              - links
+                            additionalProperties: false
+                            properties:
+                              label:
+                                type: string
+                              labelExpression:
+                                type: string
+                                description: >
+                                  Expression that resolves to the referenced entity's
+                                  label for this bundle (the reference field followed to
+                                  the target bundle's label property). Use it to display
+                                  the picked entity's label. It also doubles as the
+                                  `?parent=` value when descending into this bundle.
+                              links:
+                                type: object
+                                properties:
+                                  https://drupal.org/project/canvas#link-rel-typed-data-browser:
+                                    type: object
+                                    required:
+                                      - href
+                                    additionalProperties: false
+                                    properties:
+                                      href:
+                                        type: string
+                                        description: URL to descend into the target entity type + bundle, with `?parent=` pre-filled.
+                        properties:
+                          type: array
+                          description: >
+                            Non-internal typed-data properties of the field, each with a
+                            pre-built FieldPropExpression string. For reference fields the
+                            `entity` typed-data property is omitted (it's the descend path,
+                            encoded by `hasChildren`/`targetEntityType`/`targetBundles`).
+                          items:
+                            type: object
+                            required:
+                              - name
+                              - label
+                              - expression
+                            additionalProperties: false
+                            properties:
+                              name:
+                                type: string
+                              label:
+                                type: string
+                              expression:
+                                type: string
+              examples:
+                node-article-fields:
+                  summary: Fields on node/article (root level, no parent)
+                  value:
+                    data:
+                      - name: title
+                        label: Title
+                        hasChildren: false
+                        properties:
+                          - name: value
+                            label: Text value
+                            expression: "ℹ︎␜entity:node:article␝title␞␟value"
+                      - name: uid
+                        label: Authored by
+                        hasChildren: true
+                        targetEntityType: user
+                        targetBundles:
+                          user:
+                            label: User
+                            labelExpression: "ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user:user␝name␞␟value"
+                            links:
+                              https://drupal.org/project/canvas#link-rel-typed-data-browser:
+                                # cspell:disable-next-line
+                                href: "/canvas/api/v0/ui/content-entity-reference/user/user?parent=%E2%84%B9%EF%B8%8E%E2%90%9Centity%3Anode%3Aarticle%E2%90%9Duid%E2%90%9E%E2%90%9Fentity%E2%90%9C%E2%90%9Centity%3Auser%3Auser%E2%90%9Dname%E2%90%9E%E2%90%9Fvalue"
+                        properties:
+                          - name: target_id
+                            label: User ID
+                            expression: "ℹ︎␜entity:node:article␝uid␞␟target_id"
+                      - name: field_image
+                        label: Image
+                        hasChildren: false
+                        properties:
+                          - name: target_id
+                            label: File ID
+                            expression: "ℹ︎␜entity:node:article␝field_image␞␟target_id"
+                          - name: alt
+                            label: Alternative text
+                            expression: "ℹ︎␜entity:node:article␝field_image␞␟alt"
+                          - name: title
+                            label: Title
+                            expression: "ℹ︎␜entity:node:article␝field_image␞␟title"
+                          - name: width
+                            label: Width
+                            expression: "ℹ︎␜entity:node:article␝field_image␞␟width"
+                          - name: height
+                            label: Height
+                            expression: "ℹ︎␜entity:node:article␝field_image␞␟height"
+                          - name: src_with_alternate_widths
+                            label: URL with alternate widths
+                            expression: "ℹ︎␜entity:node:article␝field_image␞␟src_with_alternate_widths"
+                user-fields-via-parent:
+                  summary: Fields on user (navigated via node.article.uid reference)
+                  value:
+                    data:
+                      - name: name
+                        label: Name
+                        hasChildren: false
+                        properties:
+                          - name: value
+                            label: Text value
+                            expression: "ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value"
+                      - name: mail
+                        label: Email
+                        hasChildren: false
+                        properties:
+                          - name: value
+                            label: Text value
+                            expression: "ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝mail␞␟value"
+        '401':
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '403':
+          description: Current user cannot access the entity type/bundle, or any hop in the parent chain.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '404':
+          description: Non-existent entity type or bundle, or invalid parent expression.
+          $ref: '#/components/responses/ClientErrorResponse'
   /canvas/api/v0/ui/content_template/suggestions/preview/{entityTypeId}/{bundle}:
     description: Provides content that can be used for previewing content template targeting the specified entity type and bundle.
     get:

@@ -76,4 +76,21 @@ interface EntityFieldBasedPropExpressionInterface extends StructuredDataPropExpr
    */
   public function getStartingPointKey(): string;
 
+  /**
+   * Computes the canonical developer-facing key for this expression's field.
+   *
+   * The expression's field name, normalized to the entity key it implements
+   * when there is one: e.g. node's `title` field implements the `label`
+   * entity key, so the key is `label`; a configurable `field_image` field
+   * implements no entity key, so the key is `field_image`. This yields keys
+   * that are stable across entity types. For reference expressions, the
+   * referencer's field name is used.
+   *
+   * @return string
+   *   The developer-facing key, e.g. `label` or `field_image`.
+   *
+   * @internal
+   */
+  public function getDeveloperFacingKey(): string;
+
 }

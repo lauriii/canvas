@@ -1034,4 +1034,65 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
     self::assertInstanceOf(EntityFieldPropSource::class, $prop_source);
   }
 
+  /**
+   * A broken reference (deleted target entity) contributes the target's tag.
+   *
+   * When a referenced entity is deleted, the field still stores its ID but
+   * EntityReference::getValue() returns NULL. The cached NULL result must
+   * carry the former target's cache tag so that a new entity written at the
+   * same ID correctly busts any cached output.
+   *
+   * @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::doEvaluate()
+   */
+  public function testBrokenReferenceContributesCacheTag(): void {
+    $this->installEntitySchema('node');
+    $this->installEntitySchema('user');
+    NodeType::create(['type' => 'page', 'name' => 'Page'])->save();
+    FieldStorageConfig::create([
+      'field_name' => 'field_ref',
+      'entity_type' => 'node',
+      'type' => 'entity_reference',
+      'settings' => ['target_type' => 'user'],
+      'cardinality' => 1,
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'field_ref',
+      'entity_type' => 'node',
+      'bundle' => 'page',
+      'label' => 'Ref',
+      'settings' => [
+        'handler' => 'default:user',
+        'handler_settings' => [],
+      ],
+    ])->save();
+
+    $target_user = User::create(['name' => 'Soon deleted', 'status' => 1]);
+    $target_user->save();
+    $target_uid = $target_user->id();
+
+    $node = $this->createNode([
+      'type' => 'page',
+      'field_ref' => $target_uid,
+    ]);
+
+    // Delete the target; the node still stores the ID.
+    $target_user->delete();
+
+    $this->setUpCurrentUser(permissions: ['access content', 'access user profiles']);
+
+    $prop_source = EntityFieldPropSource::parse([
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => 'ℹ︎␜entity:node:page␝field_ref␞␟entity␜␜entity:user␝name␞␟value',
+    ]);
+
+    $result = $prop_source->evaluate($node, is_required: FALSE);
+
+    // The referenced entity is gone; the result is NULL.
+    self::assertNull($result->value);
+
+    // The deleted entity's cache tag must be present so that if the entity is
+    // recreated (or otherwise written at that ID), the cached NULL invalidates.
+    self::assertContains('user:' . $target_uid, $result->getCacheTags());
+  }
+
 }

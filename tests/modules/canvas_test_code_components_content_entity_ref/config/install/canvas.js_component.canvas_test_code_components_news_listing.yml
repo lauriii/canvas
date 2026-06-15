@@ -2,45 +2,138 @@ uuid: 8b4f2d9e-3c1a-4e5f-9d8c-7a2b6e1f0c4d
 langcode: en
 status: true
 dependencies:
-  enforced: {  }
+  config:
+    - field.field.node.news_item.body
+    - field.field.user.user.user_picture
+    - image.style.canvas_parametrized_width
+    - node.type.news_item
+  module:
+    - file
+    - node
+    - user
 machineName: canvas_test_code_components_news_listing
 name: 'News listing'
 required: {  }
 props:
   heading:
-    title: Heading
     type: string
+    title: Heading
     examples:
       - 'Latest news'
-  featured_news:
-    title: 'Featured news'
+  featuredNews:
     type: object
     $ref: 'json-schema-definitions://canvas.module/content-entity-reference'
+    title: 'Featured news'
 slots: {  }
 js:
   original: |-
-    const NewsListing = ({heading, featured_news}) =>
-      (<section>
-        <h2>{heading}</h2>
-        <a href={featured_news?.url}>{featured_news?.title}</a>
-      </section>);
-    export default NewsListing;
+      import { Image, FormattedText } from 'drupal-canvas';
+
+      const NewsListing = ({ heading, featuredNews }) => {
+        const {
+          label,
+          body,
+          path,
+          owner: { name: authorName, user_picture: authorPicture } = {},
+        } = featuredNews ?? {};
+
+        return (
+          <section>
+            <h2>{heading}</h2>
+            <article>
+              <h3>
+                <a href={path}>{label}</a>
+              </h3>
+              <div className="flex items-center gap-2">
+                {authorPicture?.src_with_alternate_widths && (
+                  <Image
+                    src={authorPicture.src_with_alternate_widths}
+                    alt={authorPicture.alt ?? ''}
+                    width={authorPicture.width}
+                    height={authorPicture.height}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                )}
+                <span>By {authorName}</span>
+              </div>
+              {body && (
+                <FormattedText as="div" className="prose">
+                  {body}
+                </FormattedText>
+              )}
+            </article>
+          </section>
+        );
+      };
+      export default NewsListing;
   compiled: |
-    import { jsxs as _jsxs, jsx as _jsx } from "react/jsx-runtime";
-    const NewsListing = ({ heading, featured_news }) => /*#__PURE__*/ _jsxs("section", {
-      children: [
-        /*#__PURE__*/ _jsx("h2", { children: heading }),
-        /*#__PURE__*/ _jsx("a", {
-          href: featured_news == null ? void 0 : featured_news.url,
-          children: featured_news == null ? void 0 : featured_news.title
-        })
-      ]
-    });
+    import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+    import { Image, FormattedText } from 'drupal-canvas';
+    const NewsListing = ({ heading, featuredNews })=>{
+        var _authorPicture_alt;
+        const { label, body, path, owner } = featuredNews !== null && featuredNews !== void 0 ? featuredNews : {};
+        const { name: authorName, user_picture: authorPicture } = owner !== null && owner !== void 0 ? owner : {};
+        return /*#__PURE__*/ _jsxs("section", {
+            children: [
+                /*#__PURE__*/ _jsx("h2", {
+                    children: heading
+                }),
+                /*#__PURE__*/ _jsxs("article", {
+                    children: [
+                        /*#__PURE__*/ _jsx("h3", {
+                            children: /*#__PURE__*/ _jsx("a", {
+                                href: path,
+                                children: label
+                            })
+                        }),
+                        /*#__PURE__*/ _jsxs("div", {
+                            className: "flex items-center gap-2",
+                            children: [
+                                (authorPicture === null || authorPicture === void 0 ? void 0 : authorPicture.src_with_alternate_widths) && /*#__PURE__*/ _jsx(Image, {
+                                    src: authorPicture.src_with_alternate_widths,
+                                    alt: (_authorPicture_alt = authorPicture.alt) !== null && _authorPicture_alt !== void 0 ? _authorPicture_alt : '',
+                                    width: authorPicture.width,
+                                    height: authorPicture.height,
+                                    style: {
+                                        width: 40,
+                                        height: 40,
+                                        borderRadius: '50%',
+                                        objectFit: 'cover'
+                                    }
+                                }),
+                                /*#__PURE__*/ _jsxs("span", {
+                                    children: [
+                                        "By ",
+                                        authorName
+                                    ]
+                                })
+                            ]
+                        }),
+                        body && /*#__PURE__*/ _jsx(FormattedText, {
+                            as: "div",
+                            className: "prose",
+                            children: body
+                        })
+                    ]
+                })
+            ]
+        });
+    };
     export default NewsListing;
 css:
   original: ''
-  compiled: ''
+  compiled: |
+    /*! tailwindcss v4.1.13 | MIT License | https://tailwindcss.com */
 dataDependencies:
   entityFields:
-    featured_news:
+    featuredNews:
+      - 'ℹ︎␜entity:node:news_item␝body␞␟processed'
+      - 'ℹ︎␜entity:node:news_item␝path␞␟alias'
       - 'ℹ︎␜entity:node:news_item␝title␞␟value'
+      - 'ℹ︎␜entity:node:news_item␝uid␞␟entity␜␜entity:user␝name␞␟value'
+      - 'ℹ︎␜entity:node:news_item␝uid␞␟entity␜␜entity:user␝user_picture␞␟{alt↠alt,height↠height,src_with_alternate_widths↠src_with_alternate_widths,width↠width}'

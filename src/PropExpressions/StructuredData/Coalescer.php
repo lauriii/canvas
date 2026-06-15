@@ -19,9 +19,21 @@ use Drupal\Component\Assertion\Inspector;
  * collides whenever multiple sub-property expressions share that starting
  * point, and silently loses all but one of them.
  *
- * Two coalescing flavors are performed:
+ * Three coalescing flavors are performed:
  * - Expressions overlapping at the field-item (delta) point but pointing to
- *   different field properties merge into a `FieldObjectPropsExpression`.
+ *   different non-reference field properties (`FieldPropExpression`) or descend
+ *   into a reference field property (`ReferenceFieldPropExpression`) are merged
+ *   into a single `FieldObjectPropsExpression`.
+ *   Non-reference field properties are leaves that can be evaluated (`↠` in the
+ *   string representation for the object expression), but reference field
+ *   properties aren't (`↝`).
+ *   Note that after following a reference, multiple field properties can be
+ *   picked there, which means one `FieldObjectPropsExpression` can contain
+ *   another `FieldObjectPropsExpression` via a reference.
+ * - Reference expressions (`ReferenceFieldPropExpression`s) that share the same
+ *   ancestry (same starting point, then overlapping reference chains up to some
+ *   point) are coalesced into a `ReferenceFieldPropExpression` with a
+ *   `FieldObjectPropsExpression` final target.
  * - Single-bundle reference expressions sharing a reference chain but
  *   targeting different bundles merge into a `ReferenceFieldPropExpression`
  *   whose `referenced` is a `ReferencedBundleSpecificBranches`.
@@ -34,24 +46,45 @@ final class Coalescer {
    * Coalesces a list of scalar prop-expression strings.
    *
    * Three flavors of coalescing are performed:
-   * - Loose `FieldPropExpression`/`FieldObjectPropsExpression` entries that
-   *   share `(host, field, delta)` merge into a single
-   *   `FieldObjectPropsExpression`.
-   * - `ReferenceFieldPropExpression` entries that share both their full
-   *   reference chain AND their final target field merge into a single
-   *   `ReferenceFieldPropExpression` whose final target is a
-   *   `FieldObjectPropsExpression`. Without this, multiple reference-chain
-   *   sub-property expressions on the same field share a starting point and
-   *   collide (e.g. `uid → user.user_picture.{alt,width,height,src}` would
-   *   yield four entries with the same starting point, losing three of them).
-   * - Single-bundle `ReferenceFieldPropExpression` entries that share the
-   *   same referencer but target different bundles merge into a single
-   *   `ReferenceFieldPropExpression` with `ReferencedBundleSpecificBranches`.
-   *   The constructor validates that all branches evaluate to the same shape;
-   *   on failure the entries pass through for the constraint validators.
+   * - `FieldPropExpression` + `FieldPropExpression` (or +
+   *   `ReferenceFieldPropExpression`, whose "referencer" also is just another
+   *   `FieldPropExpression`) sharing `(host, field, delta)` →
+   *   `FieldObjectPropsExpression`:
+   *   @code
+   *   // IN:
+   *   ℹ︎␜entity:node:article␝uid␞␟url
+   *   ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value
+   *   // OUT:
+   *   ℹ︎␜entity:node:article␝uid␞␟{name↝entity␜␜entity:user␝name␞␟value,url↠url}
+   *   @endcode
+   * - `ReferenceFieldPropExpression` + `ReferenceFieldPropExpression` sharing
+   *   the same full reference chain and final target field →
+   *   `ReferenceFieldPropExpression` with a `FieldObjectPropsExpression` final
+   *   target:
+   *   @code
+   *   // IN:
+   *   ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟width
+   *   ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟height
+   *   // OUT:
+   *   ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟{height↠height,width↠width}
+   *   @endcode
+   * - Single-bundle `ReferenceFieldPropExpression` + single-bundle
+   *   `ReferenceFieldPropExpression` sharing the same referencer but targeting
+   *   different bundles → `ReferenceFieldPropExpression` with a
+   *   `ReferencedBundleSpecificBranches` `referenced`:
+   *   @code
+   *   // IN:
+   *   ℹ︎␜entity:node:article␝field_media␞␟entity␜␜entity:media:image␝name␞␟value
+   *   ℹ︎␜entity:node:article␝field_media␞␟entity␜␜entity:media:video␝name␞␟value
+   *   // OUT:
+   *   ℹ︎␜entity:node:article␝field_media␞␟entity␜[␜entity:media:image␝name␞␟value][␜entity:media:video␝name␞␟value]
+   *   @endcode
+   *   The `ReferencedBundleSpecificBranches` constructor validates that all
+   *   branches evaluate to the same shape; entries that fail pass through
+   *   unchanged for constraint validators to report.
    *
-   * Multi-bundle `ReferenceFieldPropExpression` entries that arrive already
-   * coalesced are passed through unchanged.
+   * Already-coalesced multi-bundle `ReferenceFieldPropExpression` entries pass
+   * through unchanged.
    *
    * @param list<string> $expression_strings
    *   The scalar expression strings to coalesce, each targeting a single field
@@ -73,12 +106,13 @@ final class Coalescer {
 
     // Buckets:
     // - $host_groups: loose host-entity field expressions grouped by
-    //   host+field.
+    //   host+field. Coalesced references descending through a field that also
+    //   has a loose bucket are folded in later.
     // - $ref_groups:  reference expressions grouped by full chain + final
     //   field.
     // - $passthrough: anything we deliberately do not try to coalesce
     //   (multi-bundle references, today).
-    /** @var array<string, list<FieldPropExpression|FieldObjectPropsExpression>> $host_groups */
+    /** @var array<string, list<FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression>> $host_groups */
     $host_groups = [];
     /** @var array<string, list<ReferenceFieldPropExpression>> $ref_groups */
     $ref_groups = [];
@@ -101,23 +135,10 @@ final class Coalescer {
 
     $coalesced = \array_map(static fn (object $expression): string => (string) $expression, $passthrough);
 
-    // Coalesce loose host-entity field groups.
-    foreach ($host_groups as $group_expressions) {
-      $coalesced_one = self::coalesceSameFieldGroup($group_expressions);
-      if ($coalesced_one === NULL) {
-        // Pass un-coalescable entries through verbatim — the validator will
-        // flag them as duplicates on the same field.
-        foreach ($group_expressions as $expression) {
-          $coalesced[] = (string) $expression;
-        }
-        continue;
-      }
-      $coalesced[] = (string) $coalesced_one;
-    }
-
     // Coalesce reference groups: same chain + same final field → one
     // ReferenceFieldPropExpression with a FieldObjectPropsExpression as final
-    // target. Collect results as objects for the subsequent branch pass.
+    // target. Collect results as objects for the subsequent folding and
+    // branch passes.
     /** @var list<ReferenceFieldPropExpression> $coalesced_refs */
     $coalesced_refs = [];
     foreach ($ref_groups as $group_expressions) {
@@ -149,10 +170,40 @@ final class Coalescer {
       $coalesced_refs[] = $group_expressions[0]->withFinalTargetReplaced($coalesced_target);
     }
 
+    // Fold coalesced references into the loose bucket on their referencer
+    // field, when one exists. A loose expression and a reference descending
+    // through the same field share a starting point, so any consumer keying
+    // by starting point would silently lose one of them. The reference becomes
+    // a follow-reference (`↝`) object entry, named by its final target's
+    // developer-facing key.
+    $standalone_refs = [];
+    foreach ($coalesced_refs as $ref) {
+      $referencer_key = $ref->getStartingPointKey();
+      if (\array_key_exists($referencer_key, $host_groups)) {
+        $host_groups[$referencer_key][] = $ref;
+        continue;
+      }
+      $standalone_refs[] = $ref;
+    }
+
+    // Coalesce loose host-entity field groups (including folded references).
+    foreach ($host_groups as $group_expressions) {
+      $coalesced_one = self::coalesceSameFieldGroup($group_expressions);
+      if ($coalesced_one === NULL) {
+        // Pass un-coalescable entries through verbatim — the validator will
+        // flag them as duplicates on the same field.
+        foreach ($group_expressions as $expression) {
+          $coalesced[] = (string) $expression;
+        }
+        continue;
+      }
+      $coalesced[] = (string) $coalesced_one;
+    }
+
     // Coalesce branches: single-bundle reference expressions that share the
     // same referencer but target different bundles merge into one
     // ReferenceFieldPropExpression with ReferencedBundleSpecificBranches.
-    $coalesced = [...$coalesced, ...self::coalesceBranches($coalesced_refs)];
+    $coalesced = [...$coalesced, ...self::coalesceBranches($standalone_refs)];
 
     return $coalesced;
   }
@@ -165,6 +216,12 @@ final class Coalescer {
    * `FieldPropExpression` final target) per reference-chain leaf. Being the
    * exact inverse of `::coalesce()` means callers never have to parse or
    * assemble expression strings themselves.
+   *
+   * Expanding drops object-prop names (the atomic form has none). For
+   * canonically-named objects — all `::coalesce()` produces — re-coalescing
+   * restores them from each leaf's developer-facing key, so
+   * `coalesce(expand())` is the identity. Custom-named objects do not
+   * round-trip this way.
    *
    * @param list<string> $expression_strings
    *
@@ -200,8 +257,10 @@ final class Coalescer {
    * reference-chain expressions (in which case the caller re-wraps the result
    * via `ReferenceFieldPropExpression::withFinalTargetReplaced()`).
    *
-   * @param list<FieldPropExpression|FieldObjectPropsExpression> $group_expressions
-   *   All expressions on the same `(host, field, delta)` field item.
+   * @param list<FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression> $group_expressions
+   *   All expressions on the same `(host, field, delta)` field item. A
+   *   ReferenceFieldPropExpression entry descends through that field item; it
+   *   is folded in as a follow-reference (`↝`) object entry.
    *
    * @return \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression|null
    *   The combined expression — a `FieldPropExpression` when only one leaf
@@ -223,6 +282,17 @@ final class Coalescer {
         $flat[$leaf_name] = $expression;
         continue;
       }
+      if ($expression instanceof ReferenceFieldPropExpression) {
+        // Name the follow-reference entry by its final target's developer-
+        // facing key. That allows the coalesced result to losslessly be
+        // expanded and re-coalesced.
+        $leaf_name = $expression->getFinalTargetExpression()->getDeveloperFacingKey();
+        if (\array_key_exists($leaf_name, $flat)) {
+          return NULL;
+        }
+        $flat[$leaf_name] = $expression;
+        continue;
+      }
       foreach ($expression->objectPropsToFieldProps as $object_prop_name => $leaf_expression) {
         if (\array_key_exists($object_prop_name, $flat)) {
           return NULL;
@@ -233,8 +303,12 @@ final class Coalescer {
     \assert($flat !== [], 'coalesceSameFieldGroup() must be called with at least one expression.');
     if (\count($flat) === 1) {
       $single = \reset($flat);
-      \assert($single instanceof FieldPropExpression);
-      return $single;
+      if ($single instanceof FieldPropExpression) {
+        return $single;
+      }
+      // A lone follow-reference entry stays wrapped in its object expression:
+      // unwrapping it to a bare reference would change the evaluation result
+      // (inline mapped value vs nested entity object).
     }
     \ksort($flat);
     $first = $group_expressions[0];
@@ -322,16 +396,24 @@ final class Coalescer {
    *   One or more expressions, each targeting a single field property.
    */
   private static function toLeafExpressions(FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $expression): array {
+    // Object: expand every entry. A `↠` entry is already a FieldPropExpression
+    // leaf; a `↝` entry is a reference that expands further. Object-prop names
+    // are NOT preserved — the atomic form has no names. Only objects whose
+    // names equal each leaf's developer-facing key survive `coalesce(expand())`
+    // unchanged; for the rest, re-coalescing derives different names.
     if ($expression instanceof FieldObjectPropsExpression) {
       $leaves = [];
       foreach ($expression->objectPropsToFieldProps as $entry) {
-        if (!$entry instanceof FieldPropExpression) {
-          return [$expression];
+        // An object entry is a `↠` leaf (FieldPropExpression) or a `↝`
+        // reference (ReferenceFieldPropExpression).
+        \assert($entry instanceof FieldPropExpression || $entry instanceof ReferenceFieldPropExpression);
+        foreach (self::toLeafExpressions($entry) as $leaf) {
+          $leaves[] = $leaf;
         }
-        $leaves[] = $entry;
       }
       return $leaves;
     }
+    // Multi-bundle reference: expand each bundle branch in its own context.
     if ($expression instanceof ReferenceFieldPropExpression && $expression->targetsMultipleBundles()) {
       \assert($expression->referenced instanceof ReferencedBundleSpecificBranches);
       $leaves = [];
@@ -343,21 +425,15 @@ final class Coalescer {
       }
       return $leaves;
     }
+    // Single-bundle reference: expand the referenced expression and re-wrap
+    // each leaf in the referencer, reconstructing the chain one leaf at a time.
     if ($expression instanceof ReferenceFieldPropExpression) {
-      $final = $expression->getFinalTargetExpression();
-      if ($final instanceof FieldObjectPropsExpression) {
-        $inner_leaves = [];
-        foreach ($final->objectPropsToFieldProps as $entry) {
-          if (!$entry instanceof FieldPropExpression) {
-            return [$expression];
-          }
-          $inner_leaves[] = $entry;
-        }
-        return \array_map(
-          fn (FieldPropExpression $leaf): ReferenceFieldPropExpression => $expression->withFinalTargetReplaced($leaf),
-          $inner_leaves,
-        );
-      }
+      $referenced = $expression->referenced;
+      \assert($referenced instanceof FieldPropExpression || $referenced instanceof FieldObjectPropsExpression || $referenced instanceof ReferenceFieldPropExpression);
+      return \array_map(
+        fn (FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $leaf): ReferenceFieldPropExpression => new ReferenceFieldPropExpression($expression->referencer, $leaf),
+        self::toLeafExpressions($referenced),
+      );
     }
     return [$expression];
   }

@@ -7,3 +7,9 @@ type: module
 package: Testing
 dependencies:
   - canvas:canvas
+  - drupal:node
+  - drupal:user
+  - drupal:text
+  - drupal:image
+  - drupal:file
+  - drupal:path

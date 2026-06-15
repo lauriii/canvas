@@ -258,6 +258,14 @@ canvas.js_component.*:
                 message: 'There must be >=1 entity field expression; otherwise the content-entity-reference prop should be deleted.'
               # All expressions must target the same entity type and bundle.
               EntityFieldExpressionsSameTarget: ~
+              # All expressions targeting the same field must be coalesced into a single
+              # FieldObjectPropsExpression.
+              # @see \Drupal\canvas\PropExpressions\StructuredData\Coalescer::coalesce()
+              EntityFieldExpressionsSameFieldMustBeCoalesced: ~
+              # Every expression must survive the content selection UI's
+              # expand → edit → coalesce round trip without losing data.
+              # @see \Drupal\canvas\PropExpressions\StructuredData\Coalescer::expand()
+              EntityFieldExpressionsMustBeIdempotent: ~
             sequence:
               type: string
               label: 'Entity field prop expression'
@@ -273,6 +281,16 @@ canvas.js_component.*:
                   message: 'The expression is valid, but not one of the allowed types: %choices.'
                 # Validate that the expression targets an existing entity type and bundle.
                 ExpressionTargetEntityBundleExists: ~
+                # Reject references targeting multiple bundles: resolving them at
+                # render time is not yet supported.
+                # @todo https://git.drupalcode.org/project/canvas/-/work_items/3591656
+                MultiTargetBundleReferenceNotSupported: ~
+                # Reject expressions on multi-valued fields: resolving them at
+                # render time is not yet supported.
+                # @todo https://git.drupalcode.org/project/canvas/-/work_items/3589536
+                MultiValuedFieldNotSupported: ~
+                # Reject expressions targeting an internal field or field property.
+                EntityFieldExpressionMustNotTargetInternalProperty: ~
 
 canvas.page_region.*:
   type: config_entity

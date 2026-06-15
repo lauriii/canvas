@@ -16,10 +16,9 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
-use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
-use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
@@ -54,13 +53,6 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
 
   public const EXAMPLE_VIDEO_HORIZONTAL = '/ui/assets/videos/mountain_wide.mp4';
   public const EXAMPLE_VIDEO_VERTICAL = '/ui/assets/videos/bird_vertical.mp4';
-
-  /**
-   * Separator between segments of a content-entity-reference prop payload key.
-   *
-   * @see ::generateKeyForExpression()
-   */
-  public const CONTENT_ENTITY_REFERENCE_KEY_SEPARATOR = '$';
 
   protected ExtensionPathResolver $extensionPathResolver;
   protected AutoSaveManager $autoSaveManager;
@@ -195,82 +187,111 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     // EvaluationResults instead of re-parsing and re-evaluating here.
     foreach ($populated_content_entity_reference_props as $prop_name) {
       \assert(isset($explicit_input['resolved']) && \is_array($explicit_input['resolved']));
-      $referenced_result = $explicit_input['resolved'][$prop_name] ?? NULL;
-      $referenced_entity = $referenced_result?->value;
-      if (!$referenced_entity instanceof FieldableEntityInterface) {
-        // Dangling reference (target entity deleted, or the referencing field
-        // on the host is empty), or the parent could not resolve the source —
-        // nothing to evaluate against, skip.
-        continue;
-      }
+      $referenced_entity = $explicit_input['resolved'][$prop_name] ?? NULL;
 
       // Evaluate every entity field expression declared for this prop against
-      // the resolved entity, and assemble a payload keyed by a developer-facing
-      // name derived from the terminal field/prop name of each expression.
+      // the resolved entity, and assemble a nested payload that mirrors the
+      // reference structure of the expressions.
       $expression_strings = $js_component->getEntityFieldExpressions($prop_name);
       if (empty($expression_strings)) {
         continue;
       }
-      $payload = [];
-      foreach ($expression_strings as $expression_string) {
+      // Entity field expressions for content-entity-reference props must be
+      // entity-field-based (validated at save time): the schema restricts
+      // `entityFields.*.*` to a FieldPropExpression, a
+      // FieldObjectPropsExpression, or a ReferenceFieldPropExpression.
+      // @see canvas.schema.yml (canvas.js_component.*: dataDependencies.entityFields)
+      // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidStructuredDataPropExpressionConstraintValidator
+      $expressions = \array_map(function (string $expression_string): EntityFieldBasedPropExpressionInterface {
         $expression = StructuredDataPropExpression::fromString($expression_string);
-        // Entity field expressions for content-entity-reference props must be
-        // entity-field-based (validated at save time): the config schema
-        // restricts `entityFields.*.*` to FieldPropExpression /
-        // FieldObjectPropsExpression / ReferenceFieldPropExpression.
-        // @see canvas.schema.yml (canvas.js_component.*: dataDependencies.entityFields)
-        // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidStructuredDataPropExpressionConstraintValidator
         \assert($expression instanceof EntityFieldBasedPropExpressionInterface);
-        $key = self::generateKeyForExpression($expression);
-        $payload[$key] = Evaluator::evaluate($referenced_entity, $expression, is_required: FALSE);
-      }
+        return $expression;
+      }, $expression_strings);
 
-      // Wrap the payload in a single EvaluationResult, carrying the resolved
-      // entity's cacheability so it is merged into the rendered component
-      // instance's cacheability downstream.
+      // buildReferencePayload() returns an EvaluationResult whose cacheability
+      // is composed (by EvaluationResult) from every entity it traverses into.
+      // Add the prop source's cacheability: the host entity and reference field
+      // that resolved $referenced_entity.
       \assert(isset($explicit_input['resolved']) && \is_array($explicit_input['resolved']));
-      $explicit_input['resolved'][$prop_name] = new EvaluationResult(
-        $payload,
-        CacheableMetadata::createFromObject($referenced_result)
-          ->addCacheableDependency($referenced_entity),
-      );
+      $explicit_input['resolved'][$prop_name] = self::buildReferencePayload($referenced_entity, $expressions);
     }
 
     return $explicit_input;
   }
 
   /**
-   * Computes a developer-facing key for a content-entity-reference payload.
+   * Builds the nested developer-facing payload for one resolved entity.
    *
-   * When a code component declares a content-entity-reference prop, the payload
-   * it receives contains one entry per declared entity field expression. This
-   * method derives the developer-facing key for each expression: an entity key
-   * (e.g. `label`) when the expression targets one, otherwise the raw field
-   * name. Reference expressions are rendered as `key$target_key`.
+   * Each entity field expression declared for a content-entity-reference
+   * prop is placed into a JSON object mirroring the expression's reference
+   * structure:
+   * - scalar/object leaves become a key on the current entity object (keyed
+   *   by the field/entity-key name, e.g. `label` or `title`);
+   * - reference expressions descend into the referenced entity, producing a
+   *   nested object (expressions sharing a referencer field are merged);
+   * - every entity object carries a `__type` set to the resolved entity's
+   *   bundle, so code components can branch on it (including for
+   *   multi-target-bundle references, where the bundle is only known at
+   *   runtime).
    *
-   * The `$` separator is used because:
-   * - it is not valid in a Drupal field machine name, so a flat field named
-   *   `prop__body` can never collide with a reference expression `prop` →
-   *   `body`;
-   * - it IS a valid JavaScript/TypeScript identifier character, so consumers
-   *   can use dot access like `payload.prop$body`.
+   * @param \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult $resolved_entity
+   *   The resolved entity to evaluate the expressions against, wrapped in an
+   *   EvaluationResult to carry the cacheability describing how this entity was
+   *   loaded.
+   * @param array<\Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface> $expressions
+   *   The entity field expressions, relative to $entity.
    *
-   * @see ::CONTENT_ENTITY_REFERENCE_KEY_SEPARATOR
+   * @return \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult
+   *   The payload object (always containing a `__type` key), wrapped in an
+   *   EvaluationResult that carries the cacheability of every traversed entity.
+   *
    * @see ::getExplicitInput()
+   * @see \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult
    */
-  public static function generateKeyForExpression(EntityFieldBasedPropExpressionInterface $expr): string {
-    $entity_type_and_bundle = $expr->getHostEntityDataDefinition();
-    \assert($entity_type_and_bundle instanceof BetterEntityDataDefinition);
-    $field_names_to_entity_keys = \array_flip(
-      $entity_type_and_bundle->getEntityType()->getKeys(),
-    );
-    $field_name = $expr->getFieldName();
-    $key = $field_names_to_entity_keys[$field_name] ?? $field_name;
-    if ($expr instanceof ReferencePropExpressionInterface) {
-      $key .= self::CONTENT_ENTITY_REFERENCE_KEY_SEPARATOR . self::generateKeyForExpression($expr->getTargetExpression());
+  private static function buildReferencePayload(EvaluationResult $resolved_entity, array $expressions): EvaluationResult {
+    if (!$resolved_entity->value instanceof FieldableEntityInterface) {
+      if ($resolved_entity->value === NULL) {
+        // Either:
+        // - no entity was selected
+        // - the selected entity has been deleted
+        // The payload must hence be NULL, while retaining cacheability.
+        return new EvaluationResult(NULL, CacheableMetadata::createFromObject($resolved_entity));
+      }
+      throw new \LogicException('Expected a fieldable entity wrapped in an EvaluationResult to convey how this entity was retrieved.');
     }
-    \assert(\preg_match('/^[a-z]+[a-z0-9_\$]*$/', $key) === 1);
-    return $key;
+    $entity = $resolved_entity->value;
+
+    $payload = ['__type' => $entity->bundle()];
+    // The resulting payload must still describe the cacheability of how
+    // $resolved_entity was loaded.
+    $payload_cacheability = CacheableMetadata::createFromObject($resolved_entity);
+
+    // References sharing a referencer field are descended into once, with
+    // their target sub-expressions merged into a single nested object.
+    $reference_groups = [];
+    foreach ($expressions as $expression) {
+      if ($expression instanceof ReferenceFieldPropExpression) {
+        // @todo Multi-target-bundle references (a `ReferencedBundleSpecificBranches` target) are deferred; add support in https://git.drupalcode.org/project/canvas/-/work_items/3591656.
+        if (!$expression->referenced instanceof EntityFieldBasedPropExpressionInterface) {
+          throw new \LogicException(\sprintf('Multi-target-bundle content entity references are not yet supported, but the expression `%s` targets bundle-specific branches.', (string) $expression));
+        }
+        $key = $expression->referencer->getDeveloperFacingKey();
+        $reference_groups[$key]['referencer'] ??= $expression->referencer;
+        $reference_groups[$key]['targets'][] = $expression->referenced;
+        continue;
+      }
+      // Scalar or object leaf: its EvaluationResult (value + cacheability) is
+      // hoisted by the EvaluationResult returned below.
+      $payload[$expression->getDeveloperFacingKey()] = Evaluator::evaluate($entity, $expression, is_required: FALSE);
+    }
+
+    // Call recursively for each expression that follows a reference.
+    foreach ($reference_groups as $key => $group) {
+      $referenced = Evaluator::evaluate($entity, $group['referencer'], is_required: FALSE);
+      $payload[$key] = self::buildReferencePayload($referenced, $group['targets']);
+    }
+
+    return new EvaluationResult($payload, $payload_cacheability);
   }
 
   /**

@@ -2,25 +2,30 @@ uuid: 5a8e1c3b-7f2d-4a1e-9c6b-1f8e9d0a5b21
 langcode: en
 status: true
 dependencies:
-  enforced: {  }
+  config:
+    - field.field.user.user.user_picture
+    - image.style.canvas_parametrized_width
+  module:
+    - file
+    - user
 machineName: canvas_test_code_components_article
 name: Article
 required: {  }
 props:
   title:
-    title: Title
     type: string
+    title: Title
     examples:
       - 'How to bake a cake'
   body:
-    title: Body
     type: string
+    title: Body
     examples:
       - 'First, preheat the oven…'
   author:
-    title: Author
     type: object
     $ref: 'json-schema-definitions://canvas.module/content-entity-reference'
+    title: Author
 slots: {  }
 js:
   original: |-
@@ -28,25 +33,44 @@ js:
       (<article>
         <h1>{title}</h1>
         <div>{body}</div>
-        <footer>By {author?.label}</footer>
+        <footer>By {author?.name}
+            <img src={author?.user_picture?.src_with_alternate_widths} alt={author?.user_picture?.alt ?? ''} />
+        </footer>
       </article>);
     export default Article;
   compiled: |
-    import { jsxs as _jsxs, jsx as _jsx } from "react/jsx-runtime";
-    const Article = ({ title, body, author }) => /*#__PURE__*/ _jsxs("article", {
-      children: [
-        /*#__PURE__*/ _jsx("h1", { children: title }),
-        /*#__PURE__*/ _jsx("div", { children: body }),
-        /*#__PURE__*/ _jsxs("footer", {
-          children: ["By ", author == null ? void 0 : author.label]
-        })
-      ]
-    });
+    import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+    const Article = ({ title, body, author })=>{
+        var _ref;
+        var _author_user_picture, _author_user_picture1;
+        return /*#__PURE__*/ _jsxs("article", {
+            children: [
+                /*#__PURE__*/ _jsx("h1", {
+                    children: title
+                }),
+                /*#__PURE__*/ _jsx("div", {
+                    children: body
+                }),
+                /*#__PURE__*/ _jsxs("footer", {
+                    children: [
+                        "By ",
+                        author === null || author === void 0 ? void 0 : author.name,
+                        /*#__PURE__*/ _jsx("img", {
+                            src: author === null || author === void 0 ? void 0 : (_author_user_picture = author.user_picture) === null || _author_user_picture === void 0 ? void 0 : _author_user_picture.src_with_alternate_widths,
+                            alt: (_ref = author === null || author === void 0 ? void 0 : (_author_user_picture1 = author.user_picture) === null || _author_user_picture1 === void 0 ? void 0 : _author_user_picture1.alt) !== null && _ref !== void 0 ? _ref : ''
+                        })
+                    ]
+                })
+            ]
+        });
+    };
     export default Article;
 css:
   original: ''
-  compiled: ''
+  compiled: |
+    /*! tailwindcss v4.1.13 | MIT License | https://tailwindcss.com */
 dataDependencies:
   entityFields:
     author:
       - 'ℹ︎␜entity:user␝name␞␟value'
+      - 'ℹ︎␜entity:user␝user_picture␞␟{alt↠alt,height↠height,src_with_alternate_widths↠src_with_alternate_widths,title↠title,width↠width}'

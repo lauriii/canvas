@@ -1,0 +1,8 @@
+# Reuse the string field type's schema; this field type extends StringItem.
+field.storage_settings.canvas_test_internal_property:
+  type: field.storage_settings.string
+  label: 'Canvas test: internal property settings'
+
+field.value.canvas_test_internal_property:
+  type: field.value.string
+  label: 'Default value'

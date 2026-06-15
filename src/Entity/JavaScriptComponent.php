@@ -16,6 +16,7 @@ use Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessCont
 use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\PropExpressions\StructuredData\Coalescer;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
@@ -23,6 +24,7 @@ use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\Resource\CanvasResourceLink;
 use Drupal\canvas\Resource\CanvasResourceLinkCollection;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
+use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\Cache;
@@ -187,7 +189,12 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
         'sourceCodeCss' => $this->css['original'] ?? '',
         'compiledJs' => $this->js['compiled'] ?? '',
         'compiledCss' => $this->css['compiled'] ?? '',
-        'dataDependencies' => $this->dataDependencies,
+        // The UI should not need to have any knowledge/understanding of "field
+        // prop expressions" per ADR #5. To the UI, these should simply be
+        // opaque strings that are associated with some checkbox that can be
+        // picked by a Code Component Developer.
+        // @see ::updateFromClientSide()
+        'dataDependencies' => self::expandEntityFields($this->dataDependencies ?? []),
         // @see https://jsonapi.org/format/#document-links
         'links' => $linkCollection->asArray(),
       ],
@@ -320,6 +327,16 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
    * @see docs/adr/0005-Keep-the-front-end-simple.md
    */
   public function updateFromClientSide(array $data): void {
+    // Coalesce loose FieldPropExpression entries sharing the same host+field
+    // into one FieldObjectPropsExpression — server is the source of truth for
+    // the "one entry per host entity field" invariant.
+    // This ensures the client side does not need to incorporate an
+    // understanding of these expressions: it can just pass the leaf nodes the
+    // Code Component Developer picks in the UI, this coalesces them as needed.
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\EntityFieldExpressionsSameFieldMustBeCoalescedConstraint
+    if (isset($data['dataDependencies']) && \is_array($data['dataDependencies'])) {
+      $data['dataDependencies'] = self::coalesceEntityFields($data['dataDependencies']);
+    }
     foreach (array_intersect_key($data, array_flip([
       'machineName',
       'name',
@@ -392,6 +409,66 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
         'compiled' => $data['compiledJs'] ?? '',
       ]);
     }
+  }
+
+  /**
+   * Coalesces same-field entries in `dataDependencies.entityFields` into one.
+   *
+   * Groups entries by `(host data type, fieldName, delta)` and merges them into
+   * a single `FieldObjectPropsExpression`. Single-leaf groups are stored as the
+   * lone `FieldPropExpression`.
+   *
+   * @param array<string, mixed> $dataDependencies
+   *
+   * @return array<string, mixed>
+   *
+   * @see \Drupal\canvas\PropExpressions\StructuredData\Coalescer::coalesce()
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\EntityFieldExpressionsSameFieldMustBeCoalescedConstraint
+   */
+  private static function coalesceEntityFields(array $dataDependencies): array {
+    if (!isset($dataDependencies['entityFields']) || !\is_array($dataDependencies['entityFields'])) {
+      return $dataDependencies;
+    }
+    foreach ($dataDependencies['entityFields'] as $prop_name => $expression_strings) {
+      if (!\is_array($expression_strings)) {
+        continue;
+      }
+      \assert(\array_is_list($expression_strings));
+      \assert(Inspector::assertAllStrings($expression_strings));
+      $dataDependencies['entityFields'][$prop_name] = Coalescer::coalesce($expression_strings);
+    }
+    return $dataDependencies;
+  }
+
+  /**
+   * Inverse of coalesceEntityFields(): expand coalesced entries to leaves.
+   *
+   * The wire format the client sees is always per-property entries: one
+   * `FieldPropExpression` per simple field property, one
+   * `ReferenceFieldPropExpression` (with a `FieldPropExpression` final target)
+   * per reference-chain pick.
+   * The symmetry with `coalesceEntityFields()` keeps the client out of
+   * expression-string parsing.
+   *
+   * @param array<string, mixed> $dataDependencies
+   *
+   * @return array<string, mixed>
+   *
+   * @see \Drupal\canvas\PropExpressions\StructuredData\Coalescer::expand()
+   */
+  private static function expandEntityFields(array $dataDependencies): array {
+    if (!isset($dataDependencies['entityFields']) || !\is_array($dataDependencies['entityFields'])) {
+      return $dataDependencies;
+    }
+    foreach ($dataDependencies['entityFields'] as $prop_name => $expression_strings) {
+      if (!\is_array($expression_strings)) {
+        continue;
+      }
+      \assert(\array_is_list($expression_strings));
+      \assert(Inspector::assertAllStrings($expression_strings));
+      $dataDependencies['entityFields'][$prop_name] = Coalescer::expand($expression_strings);
+    }
+    return $dataDependencies;
   }
 
   /**

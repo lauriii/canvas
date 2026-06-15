@@ -11,11 +11,14 @@ use Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranche
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use Prophecy\Argument;
 
 #[CoversClass(Coalescer::class)]
 #[Group('canvas')]
@@ -27,6 +30,22 @@ final class CoalescerTest extends UnitTestCase {
     parent::setUp();
     $container = new ContainerBuilder();
     $container->set('typed_data_manager', $this->prophesize(TypedDataManagerInterface::class)->reveal());
+    // Folding a reference into a loose group names the follow-reference entry
+    // by its final target's developer-facing key, which needs the target
+    // entity type's entity keys.
+    // @see \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedExpressionTrait::getDeveloperFacingKey()
+    $node_entity_type = $this->prophesize(EntityTypeInterface::class);
+    $node_entity_type->getKeys()->willReturn(['id' => 'nid', 'label' => 'title', 'bundle' => 'type', 'uuid' => 'uuid']);
+    $user_entity_type = $this->prophesize(EntityTypeInterface::class);
+    $user_entity_type->getKeys()->willReturn(['id' => 'uid', 'uuid' => 'uuid']);
+    $entity_type_manager = $this->prophesize(EntityTypeManagerInterface::class);
+    $entity_type_manager->getDefinition('node')->willReturn($node_entity_type->reveal());
+    $entity_type_manager->getDefinition('user')->willReturn($user_entity_type->reveal());
+    // Expression constructors consult ::hasDefinition() for optional
+    // validation when the service exists; FALSE skips it, like the absent
+    // service did before.
+    $entity_type_manager->hasDefinition(Argument::any())->willReturn(FALSE);
+    $container->set('entity_type.manager', $entity_type_manager->reveal());
     \Drupal::setContainer($container);
   }
 
@@ -211,6 +230,118 @@ final class CoalescerTest extends UnitTestCase {
     $empty = static fn (): array => [];
     yield 'empty list → empty list' => [$empty, $empty];
 
+    // A loose pick and a reference descending through the same field key
+    // must be coalesced into one FieldObjectPropsExpression whose reference-
+    // derived entry follows the reference (`↝`).
+    yield 'loose pick and reference descending through the same field → one object expression' => [
+      static function (): array {
+        $node = BetterEntityDataDefinition::create('node', 'article');
+        $user = BetterEntityDataDefinition::create('user');
+        return [
+          new FieldPropExpression($node, 'uid', NULL, 'target_id'),
+          new ReferenceFieldPropExpression(
+            referencer: new FieldPropExpression($node, 'uid', NULL, 'entity'),
+            referenced: new FieldPropExpression($user, 'name', NULL, 'value'),
+          ),
+        ];
+      },
+      static function (): array {
+        $node = BetterEntityDataDefinition::create('node', 'article');
+        $user = BetterEntityDataDefinition::create('user');
+        return [
+          new FieldObjectPropsExpression($node, 'uid', NULL, [
+            'name' => new ReferenceFieldPropExpression(
+              referencer: new FieldPropExpression($node, 'uid', NULL, 'entity'),
+              referenced: new FieldPropExpression($user, 'name', NULL, 'value'),
+            ),
+            'target_id' => new FieldPropExpression($node, 'uid', NULL, 'target_id'),
+          ]),
+        ];
+      },
+    ];
+
+    // The folded entry is named by the final target's developer-facing key:
+    // node's `title` field maps to the `label` entity key.
+    yield 'folded reference is named by its final target entity key' => [
+      static function (): array {
+        $article = BetterEntityDataDefinition::create('node', 'article');
+        $page = BetterEntityDataDefinition::create('node', 'page');
+        return [
+          new FieldPropExpression($article, 'field_related', NULL, 'target_id'),
+          new ReferenceFieldPropExpression(
+            referencer: new FieldPropExpression($article, 'field_related', NULL, 'entity'),
+            referenced: new FieldPropExpression($page, 'title', NULL, 'value'),
+          ),
+        ];
+      },
+      static function (): array {
+        $article = BetterEntityDataDefinition::create('node', 'article');
+        $page = BetterEntityDataDefinition::create('node', 'page');
+        return [
+          new FieldObjectPropsExpression($article, 'field_related', NULL, [
+            'label' => new ReferenceFieldPropExpression(
+              referencer: new FieldPropExpression($article, 'field_related', NULL, 'entity'),
+              referenced: new FieldPropExpression($page, 'title', NULL, 'value'),
+            ),
+            'target_id' => new FieldPropExpression($article, 'field_related', NULL, 'target_id'),
+          ]),
+        ];
+      },
+    ];
+
+    // Same-chain same-final-field references first coalesce into one reference
+    // with an object final target, then fold as a single `↝` entry.
+    yield 'loose pick and multi-property descend through the same field → one object expression' => [
+      static function (): array {
+        $node = BetterEntityDataDefinition::create('node', 'article');
+        $user = BetterEntityDataDefinition::create('user');
+        $referencer = new FieldPropExpression($node, 'uid', NULL, 'entity');
+        return [
+          new FieldPropExpression($node, 'uid', NULL, 'target_id'),
+          new ReferenceFieldPropExpression(
+            referencer: $referencer,
+            referenced: new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
+          ),
+          new ReferenceFieldPropExpression(
+            referencer: $referencer,
+            referenced: new FieldPropExpression($user, 'user_picture', NULL, 'width'),
+          ),
+        ];
+      },
+      static function (): array {
+        $node = BetterEntityDataDefinition::create('node', 'article');
+        $user = BetterEntityDataDefinition::create('user');
+        return [
+          new FieldObjectPropsExpression($node, 'uid', NULL, [
+            'target_id' => new FieldPropExpression($node, 'uid', NULL, 'target_id'),
+            'user_picture' => new ReferenceFieldPropExpression(
+              referencer: new FieldPropExpression($node, 'uid', NULL, 'entity'),
+              referenced: new FieldObjectPropsExpression($user, 'user_picture', NULL, [
+                'alt' => new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
+                'width' => new FieldPropExpression($user, 'user_picture', NULL, 'width'),
+              ]),
+            ),
+          ]),
+        ];
+      },
+    ];
+
+    // The Coalescer cannot merge a loose pick with a folded reference deriving
+    // the same name, so it leaves all entries in the output for the (separate)
+    // validation layer to reject as a duplicate.
+    $name_collision = static function (): array {
+      $node = BetterEntityDataDefinition::create('node', 'article');
+      $user = BetterEntityDataDefinition::create('user');
+      return [
+        new FieldPropExpression($node, 'uid', NULL, 'name'),
+        new ReferenceFieldPropExpression(
+          referencer: new FieldPropExpression($node, 'uid', NULL, 'entity'),
+          referenced: new FieldPropExpression($user, 'name', NULL, 'value'),
+        ),
+      ];
+    };
+    yield 'loose pick colliding with a folded reference name → left unchanged' => [$name_collision, $name_collision];
+
     yield 'mix of all flavors with a lone expression' => [
       static function (): array {
         $node = BetterEntityDataDefinition::create('node', 'article');
@@ -355,6 +486,46 @@ final class CoalescerTest extends UnitTestCase {
       },
     ];
 
+    // An object with a follow-reference (`↝`) entry expands fully: the `↝`
+    // entry becomes per-leaf reference expressions, alongside the loose leaf.
+    // Object-prop names are dropped; here they are canonical (`user_picture`
+    // is the reference's developer-facing key, `target_id` the property name),
+    // so coalesce(expand(X)) === X — the round trip is lossless.
+    yield 'object with a follow-reference entry → atomic leaves' => [
+      static function (): array {
+        $node = BetterEntityDataDefinition::create('node', 'article');
+        $user = BetterEntityDataDefinition::create('user');
+        return [
+          new FieldObjectPropsExpression($node, 'uid', NULL, [
+            'target_id' => new FieldPropExpression($node, 'uid', NULL, 'target_id'),
+            'user_picture' => new ReferenceFieldPropExpression(
+              referencer: new FieldPropExpression($node, 'uid', NULL, 'entity'),
+              referenced: new FieldObjectPropsExpression($user, 'user_picture', NULL, [
+                'alt' => new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
+                'width' => new FieldPropExpression($user, 'user_picture', NULL, 'width'),
+              ]),
+            ),
+          ]),
+        ];
+      },
+      static function (): array {
+        $node = BetterEntityDataDefinition::create('node', 'article');
+        $user = BetterEntityDataDefinition::create('user');
+        $referencer = new FieldPropExpression($node, 'uid', NULL, 'entity');
+        return [
+          new FieldPropExpression($node, 'uid', NULL, 'target_id'),
+          new ReferenceFieldPropExpression(
+            referencer: $referencer,
+            referenced: new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
+          ),
+          new ReferenceFieldPropExpression(
+            referencer: $referencer,
+            referenced: new FieldPropExpression($user, 'user_picture', NULL, 'width'),
+          ),
+        ];
+      },
+    ];
+
     $lone = static function (): array {
       $node = BetterEntityDataDefinition::create('node', 'article');
       return [new FieldPropExpression($node, 'title', 0, 'value')];
@@ -406,6 +577,9 @@ final class CoalescerTest extends UnitTestCase {
     $entries = [
       (string) new FieldPropExpression($node, 'field_image', 0, 'alt'),
       (string) new FieldPropExpression($node, 'field_image', 0, 'target_id'),
+      // This loose pick shares the `uid` field with the reference below: both
+      // fold into one FieldObjectPropsExpression with a `↝` entry.
+      (string) new FieldPropExpression($node, 'uid', NULL, 'target_id'),
       (string) new ReferenceFieldPropExpression(
         referencer: new FieldPropExpression($node, 'uid', NULL, 'entity'),
         referenced: new FieldPropExpression($user, 'user_picture', NULL, 'alt'),

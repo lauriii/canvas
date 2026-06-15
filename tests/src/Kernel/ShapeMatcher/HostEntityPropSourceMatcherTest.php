@@ -9,7 +9,6 @@ use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropSource\HostEntityPropSource;
 use Drupal\canvas\ShapeMatcher\HostEntityPropSourceMatcher;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
-use Drupal\node\Entity\NodeType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -27,6 +26,7 @@ class HostEntityPropSourceMatcherTest extends PropSourceMatcherTestBase {
   protected static $modules = [
     ...self::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
     'sdc_test_all_props',
+    'field',
     'node',
     // @todo Merge these components into canvas_test_code_components once the
     //   entity_reference_autocomplete field-widget client-side transform lands
@@ -65,11 +65,7 @@ class HostEntityPropSourceMatcherTest extends PropSourceMatcherTestBase {
     parent::setUp();
     $this->installEntitySchema('user');
     $this->installEntitySchema('node');
-    // The `News listing` fixture's `dataDependencies.entityFields` references
-    // `entity:node:news_item`, which is validated against the entity type
-    // manager during config install — the bundle must exist beforehand.
-    NodeType::create(['type' => 'news_item', 'name' => 'News item'])->save();
-    $this->installConfig(['canvas_test_code_components_content_entity_ref']);
+    $this->installConfig(['node', 'canvas_test_code_components_content_entity_ref']);
   }
 
   /**
@@ -117,7 +113,7 @@ class HostEntityPropSourceMatcherTest extends PropSourceMatcherTestBase {
         ],
       ],
     ];
-    // News listing's `featured_news` content-entity-reference targets `node:news_item` — matches.
+    // News listing's `featuredNews` content-entity-reference targets `node:news_item` — matches.
     yield 'host=node/news_item (matches News listing)' => [
       'node',
       'news_item',

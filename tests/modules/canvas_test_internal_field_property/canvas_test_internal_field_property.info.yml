@@ -1,0 +1,5 @@
+name: 'Canvas test: internal field property'
+type: module
+package: Testing
+dependencies:
+  - drupal:field

@@ -347,4 +347,20 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
     return $this->referenced instanceof ReferencedBundleSpecificBranches;
   }
 
+  /**
+   * Finds the first reference in the chain that targets multiple bundles.
+   *
+   * Walks the whole reference chain, because a multi-target-bundle reference
+   * can be nested inside an otherwise single-bundle chain.
+   */
+  public function findMultiTargetBundleReference(): ?self {
+    if ($this->targetsMultipleBundles()) {
+      return $this;
+    }
+    if ($this->referenced instanceof self) {
+      return $this->referenced->findMultiTargetBundleReference();
+    }
+    return NULL;
+  }
+
 }

@@ -1,0 +1,11 @@
+uuid: 6ecd3de9-2617-4845-bd3d-7b5d14305fb2
+langcode: en
+status: true
+dependencies: {  }
+name: 'News Item'
+type: news_item
+description: 'A news item.'
+help: null
+new_revision: true
+preview_mode: 1
+display_submitted: true

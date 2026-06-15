@@ -129,6 +129,34 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
+   * Follow-reference entries may contain commas and `↠` in nested expressions.
+   *
+   * A `↝` entry whose referenced expression is a FieldObjectPropsExpression
+   * uses commas and `↠` internally: only top-level commas separate entries,
+   * and an entry's own mapping symbol is the first one in it.
+   *
+   * @see \Drupal\canvas\PropExpressions\StructuredData\Coalescer::coalesce()
+   */
+  public function testFieldObjectPropsExpressionWithNestedObjectRoundTrips(): void {
+    $node = BetterEntityDataDefinition::create('node', 'article');
+    $user = BetterEntityDataDefinition::create('user');
+    $expression = new FieldObjectPropsExpression($node, 'uid', NULL, [
+      'target_id' => new FieldPropExpression($node, 'uid', NULL, 'target_id'),
+      'user_picture' => new ReferenceFieldPropExpression(
+        referencer: new FieldPropExpression($node, 'uid', NULL, 'entity'),
+        referenced: new FieldObjectPropsExpression($user, 'user_picture', NULL, [
+          'alt' => new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
+          'width' => new FieldPropExpression($user, 'user_picture', NULL, 'width'),
+        ]),
+      ),
+    ]);
+    $string_representation = 'ℹ︎␜entity:node:article␝uid␞␟{target_id↠target_id,user_picture↝entity␜␜entity:user␝user_picture␞␟{alt↠alt,width↠width}}';
+    self::assertSame($string_representation, (string) $expression);
+    self::assertEquals($expression, FieldObjectPropsExpression::fromString($string_representation));
+    self::assertEquals($expression, StructuredDataPropExpression::fromString($string_representation));
+  }
+
+  /**
    * Tests get reference chain prefixes.
    *
    * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression::getReferenceChainPrefixes
