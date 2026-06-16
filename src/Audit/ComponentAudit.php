@@ -151,7 +151,7 @@ final class ComponentAudit {
       throw new \LogicException('not yet implemented');
     }
     $dependencies = [];
-    foreach ($this->autoSaveManager->getAllAutoSaveList(TRUE) as $autoSave) {
+    foreach ($this->autoSaveManager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: FALSE) as $autoSave) {
       $entity = $autoSave['entity'];
       \assert(!\is_null($entity));
       if (!$entity instanceof ComponentTreeEntityInterface) {

@@ -550,7 +550,7 @@ final class ApiContentControllers extends ApiControllerBase {
    */
   private function getMatchingAutoSavedEntityIds(string $entity_type_id, string $search, RefinableCacheableDependencyInterface $cacheability): array {
     $cacheability->addCacheTags([AutoSaveManager::CACHE_TAG]);
-    $auto_saved_entities_of_type = \array_filter($this->autoSaveManager->getAllAutoSaveList(TRUE), static fn (array $entry): bool => $entry['entity_type'] === $entity_type_id);
+    $auto_saved_entities_of_type = \array_filter($this->autoSaveManager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: FALSE), static fn (array $entry): bool => $entry['entity_type'] === $entity_type_id);
 
     // Transliterate the search term using the negotiated content language.
     $cacheability->addCacheContexts(['languages:' . LanguageInterface::TYPE_CONTENT]);

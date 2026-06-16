@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Component\Datetime\TimeInterface;
@@ -62,6 +63,22 @@ class AutoSaveManager implements EventSubscriberInterface {
   public const string FORM_VIOLATIONS_STORE = 'canvas.form_violations';
   public const string COMPONENT_INSTANCE_FORM_VIOLATIONS_STORE = 'canvas.component_instance_form_violations';
 
+  /**
+   * Various internal auto-save properties that are not used client side.
+   *
+   * The 'client_id' is only used to determine if the client has the latest
+   * changes when editing an entity in Drupal Canvas and not needed for the
+   * publishing process.
+   *
+   * The 'conflict_id' is used to store conflict id when it is resolved.
+   */
+  public const array AUTO_SAVE_INTERNAL_PROPERTIES = [
+    'data',
+    'client_id',
+    'entity',
+    'original_hash',
+    'conflict_id',
+  ];
   const ENTITY_DUPLICATE_SUFFIX = ' (Copy)';
 
   private KeyValueStoreInterface $autoSaveStore;
@@ -169,12 +186,23 @@ class AutoSaveManager implements EventSubscriberInterface {
       'entity_id' => $entity->id(),
       'data' => self::toStorableArray($entity),
       'langcode' => $entity->language()->getId(),
-      'label' => $entity->label(),
+      'label' => (string) $entity->label(),
+      'original_hash' => $original_hash,
       'data_hash' => $data_hash,
       'client_id' => $clientId,
       'owner' => (int) $this->currentUser->id(),
       'updated' => $this->time->getRequestTime(),
     ];
+    \assert(!\is_null($auto_save_data['entity_id']));
+    // Check for conflicts.
+    if ($unresolved_conflict = $this->getUnresolvedConflict($auto_save_data)) {
+      $previous_auto_save_data = $this->autoSaveStore->get($key);
+      // If it's a conflict that has been resolved before, retain conflict_id.
+      if (isset($previous_auto_save_data['conflict_id']) && $previous_auto_save_data['conflict_id'] === $unresolved_conflict) {
+        $auto_save_data['conflict_id'] = $previous_auto_save_data['conflict_id'];
+      }
+    }
+
     $this->autoSaveStore->set($key, $auto_save_data);
     $this->cache->delete($key);
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
@@ -372,14 +400,22 @@ class AutoSaveManager implements EventSubscriberInterface {
   /**
    * Gets all auto-save data.
    *
-   * @return array<string, array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, data_hash: string, client_id: ?string, langcode: ?string, entity: ?EntityInterface}>
+   * @param bool $with_entities
+   *   Whether the auto-save items should contain entity instances in 'entity'.
+   * @param bool $with_conflicts
+   *   Whether the auto-save items contain 'conflict_id' for items with detected
+   *   unresolved conflicts due to external updates to the entity on which the
+   *   auto-save item was based.
+   *
+   * @return array<string, array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, original_hash: string, data_hash: string, client_id: ?string, langcode: ?string, entity: ?EntityInterface, conflict_id?: string}>
    *   All auto-save data entries.
    */
-  public function getAllAutoSaveList(bool $with_entities = FALSE): array {
+  public function getAllAutoSaveList(bool $with_entities, bool $with_conflicts): array {
     $entries = $this->autoSaveStore->getAll();
+
     // Sort by key to ensure consistent ordering.
     \ksort($entries);
-    /** @var array<string, array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, data_hash: string, client_id: ?string, langcode: ?string, entity: ?EntityInterface}> $result */
+    /** @var array<string, array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, original_hash: string, data_hash: string, client_id: ?string, langcode: ?string, entity: ?EntityInterface, conflict_id?: string}> $result */
     $result = \array_map(fn (array $entry) => $entry +
     // Append the owner and updated data into each entry, and an entity object
     // upon request.
@@ -388,7 +424,95 @@ class AutoSaveManager implements EventSubscriberInterface {
       'owner' => \is_numeric($entry['owner']) ? (int) $entry['owner'] : 0,
       'entity' => $with_entities ? $this->entityTypeManager->getStorage($entry['entity_type'])->create($entry['data'])->enforceIsNew(FALSE) : NULL,
     ], $entries);
+
+    if ($with_conflicts) {
+      // Add conflict_id property only for Page entities with unresolved
+      // conflicts.
+      // @todo Expand to other entities in https://www.drupal.org/project/canvas/issues/3591544
+      $result = \array_map(
+        function (array $entry): array {
+          $unresolved_conflict = $this->getUnresolvedConflict($entry);
+          unset($entry['conflict_id']);
+          if ($entry['entity_type'] === Page::ENTITY_TYPE_ID && $unresolved_conflict) {
+            $entry['conflict_id'] = $unresolved_conflict;
+          }
+          return $entry;
+        },
+        $result,
+      );
+    }
+    else {
+      $result = \array_map(fn (array $entry) =>
+        \array_diff_key($entry, \array_flip(['conflict_id'])),
+        $result
+      );
+    }
+
+    /** @var array<string, array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, original_hash: string, data_hash: string, client_id: ?string, langcode: ?string, entity: ?EntityInterface, conflict_id?: string}> $result */
     return $result;
+  }
+
+  /**
+   * Checks if there is an unresolved conflict and returns its id.
+   *
+   * This method only handles conflicts in scenarios where an entity on which
+   * the auto-save entry was based on is updated externally, e.g. using config
+   * syncing, entity saves performed by Drush scripts, or even just using an
+   * entity's canonical edit form.
+   *
+   * Such conflicts are detected by storing the 'original_hash' of the entity
+   * during the ::saveEntity() and comparing it to the current version of the
+   * entity in the entity storage.
+   *
+   * Auto-save entry saves 'conflict_id' only when the conflict is being marked
+   * as resolved. This method assumes that if there is a 'conflict_id' property
+   * in the $entry passed as an argument it's used for marking that conflict as
+   * resolved.
+   *
+   * @param array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, original_hash: ?string, data_hash: string, client_id: ?string, langcode: ?string, entity?: ?EntityInterface, conflict_id?: string} $entry
+   *
+   * @return string|null
+   */
+  private function getUnresolvedConflict(array $entry): string|null {
+    // For now, only Page entities supported.
+    // @todo Expand in https://www.drupal.org/project/canvas/issues/3591544
+    if ($entry['entity_type'] !== Page::ENTITY_TYPE_ID) {
+      return NULL;
+    }
+
+    if (!\array_key_exists('original_hash', $entry)) {
+      // If there is no original hash, we have no basis to determine if there is
+      // a conflict, so we assume there isn't one. This can only occur for auto-
+      // save entries created before https://git.drupalcode.org/project/canvas/-/commit/e31e9442e857c3a61d87a0eba8b626962a38208c
+      // @todo Remove this in Canvas 2.0.
+      return NULL;
+    }
+
+    $entity = $this->entityTypeManager->getStorage($entry['entity_type'])->loadUnchanged($entry['entity_id']);
+    \assert(!\is_null($entity));
+
+    // Compare the original_hash in auto-save entry vs latest entity hash.
+    if ($entry['original_hash'] === $this->getUnchangedHash($entity)) {
+      // Hashes are matching - no conflict
+      return NULL;
+    }
+
+    // Hashes are not matching - conflict detected.
+    $active_conflict = self::getConflictId($entity);
+
+    // This conflict is already stored in the entry and therefore is resolved.
+    if (isset($entry['conflict_id']) && $entry['conflict_id'] === $active_conflict) {
+      return NULL;
+    }
+
+    return $active_conflict;
+  }
+
+  /**
+   * @todo Refactor to support config entities in https://www.drupal.org/project/canvas/issues/3591544
+   */
+  public static function getConflictId(EntityInterface $entity): string {
+    return $entity instanceof Page ? (string) $entity->getLoadedRevisionId() : '';
   }
 
   /**
@@ -511,7 +635,7 @@ class AutoSaveManager implements EventSubscriberInterface {
   }
 
   public function onCanvasConfigDelete(ConfigCrudEvent $event): void {
-    $autoSaveEntities = $this->getAllAutoSaveList(TRUE);
+    $autoSaveEntities = $this->getAllAutoSaveList(with_entities: TRUE, with_conflicts: FALSE);
     $autoSaveEntities = array_filter($autoSaveEntities, fn($entityData) => $entityData['entity'] instanceof StagedConfigUpdate);
     foreach ($autoSaveEntities as $autoSaveEntity) {
       $staged_config_update = $autoSaveEntity['entity'];

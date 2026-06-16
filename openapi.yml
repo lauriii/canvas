@@ -217,6 +217,107 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/AutoSaveCollection'
+        '409':
+          description: 'Returned if at least one of the auto-save entries has the entity it is based on updated outside of Canvas. Response contains both "errors" and "data" top level properties.'
+          content:
+            application/json:
+              examples:
+                multipleEntries:
+                  value:
+                    errors:
+                      - detail: Conflict detected
+                        source:
+                          pointer: canvas_page:1:en
+                        code: 4
+                        meta:
+                          entity_type: canvas_page
+                          entity_id: "1"
+                          label: Demo Canvas Page
+                          api_auto_save_key : canvas_page:1:en
+                          conflict_id: "2"
+                      - detail: Conflict detected
+                        source:
+                          pointer: canvas_page:7:en
+                        code: 4
+                        meta:
+                          entity_type: canvas_page
+                          entity_id: "7"
+                          label: Demo Canvas Page
+                          api_auto_save_key: canvas_page:7:en
+                          conflict_id: '7'
+                    data:
+                      canvas_page:1:en:
+                        owner:
+                          name: Garrett Bobby Ferguson, Jr
+                          avatar: /sites/default/files/user-pictures/garrett.jpg
+                          uri: /user/12
+                          id: 12
+                        updated: 1732763679
+                        entity_type: canvas_page
+                        langcode: en
+                        data_hash: 4711efecf75d2d1a
+                        entity_id: 1
+                        label: First Canvas page
+                      canvas_page:7:en:
+                        owner:
+                          name: Garrett Bobby Ferguson, Jr
+                          avatar: /sites/default/files/user-pictures/garrett.jpg
+                          uri: /user/12
+                          id: 12
+                        updated: 1732764679
+                        entity_type: canvas_page
+                        langcode: en
+                        data_hash: 4711efecf75d2d1a
+                        entity_id: 7
+                        label: Second Canvas page
+                      asset_library:global:
+                        owner:
+                          name: Gracie Dog
+                          avatar: /sites/default/files/user-pictures/good-dog.jpg
+                          uri: /user/13
+                          id: 13
+                        updated: 1732763680
+                        entity_type: asset_library
+                        langcode: NULL
+                        data_hash: 4711efecf75d2d1b
+                        entity_id: global
+                        label: Global asset library
+                      js_component:hero:
+                        owner:
+                          name: Mark Scout
+                          avatar: /sites/default/files/user-pictures/severed.jpg
+                          uri: /user/16
+                          id: 16
+                        updated: 1732763680
+                        entity_type: js_component
+                        langcode: NULL
+                        data_hash: 4711efecf75d2d1b
+                        entity_id: hero
+                        label: Hero component
+                      segment:test_segment:
+                        owner:
+                          name: Mark Scout
+                          avatar: /sites/default/files/user-pictures/severed.jpg
+                          uri: /user/16
+                          id: 16
+                        updated: 1732763680
+                        entity_type: test_segment
+                        langcode: NULL
+                        data_hash: a95cf01fd2e9c59e
+                        entity_id: test_segment
+                        label: Test segment
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    description: Error items
+                    items:
+                      $ref: '#/components/schemas/Error'
+                  data:
+                    $ref: '#/components/schemas/AutoSaveCollection'
   /canvas/api/v0/auto-saves/publish:
     description: TODO
     post:
@@ -4109,6 +4210,9 @@ components:
               examples:
                 - 'node:4:en'
               title: The corresponding key in the pending changes API
+            conflict_id:
+              type: string
+              description: Only available in HTTP 409 responses. Contains the id of the conflict detected due to external updates to the entity on which the auto-save item was based.
           additionalProperties: false
     Model:
       title: model
