@@ -17,6 +17,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\PropShape\PersistentPropShapeRepository;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Serialization\Json;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
@@ -568,6 +569,91 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     $component = Component::load('js.test');
     self::assertNotNull($component);
     $this->assertSame($component->getActiveVersion(), $component_instance->getComponentVersion());
+  }
+
+  /**
+   * Tests that update() never truncates a single-value prop's input.
+   *
+   * The updater truncates multi-value inputs that exceed a tightened
+   * cardinality. A single-value prop's input is never a list of values, so it
+   * must be preserved as-is. Two shapes reach update() that the original guard
+   * wrongly sliced (each an associative array with >1 keys, default
+   * cardinality 1):
+   * - An uncollapsed dynamic `entity-field` source (only content templates
+   *   allow it), stored as `['sourceType' => …, 'expression' => …]`. Slicing
+   *   it dropped `expression`, which then threw
+   *   `LogicException: Missing the keys expression.` from
+   *   `EntityFieldPropSource::parse()`.
+   * - A collapsed static value for a prop backed by a multi-property field
+   *   type (for example a raw image field, with `target_id`, `alt`, `title`,
+   *   `width` and `height`), stored as a multi-key associative array.
+   *
+   * @see \Drupal\canvas\PropSource\StaticPropSource::denormalizeValue()
+   * @see https://www.drupal.org/i/3591642
+   *
+   * Both are associative arrays (never lists), so neither can use
+   * providerUpdate(), whose testUpdate() validates the tree (a dynamic source
+   * is rejected outside a content template). This exercises update() directly
+   * on a dangling tree instead.
+   */
+  #[DataProvider('providerUpdatePreservesSingleValueInput')]
+  public function testUpdatePreservesSingleValueInput(array $inputs, string $prop_name): void {
+    $sut = new JsonSchemaPropsComponentInstanceUpdater();
+    $component_tree_value = [
+      [
+        'uuid' => self::COMPONENT_INSTANCE_UUID,
+        'component_id' => 'js.test',
+        'component_version' => self::ORIGINAL_VERSION_HASH,
+        'parent_uuid' => NULL,
+        'inputs' => $inputs,
+      ],
+    ];
+
+    // Bump the component version so the updater runs its input projection.
+    $this->addOptionalProp();
+
+    // Skip tree validation: a dynamic source is only valid on a content
+    // template, and the multi-property value models a field this dangling tree
+    // is not bound to. The updater's slicing logic is field-agnostic.
+    $component_tree = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
+    $component_tree->setValue($component_tree_value);
+    $component_instance = $component_tree->getComponentTreeItemByUuid(self::COMPONENT_INSTANCE_UUID);
+    self::assertNotNull($component_instance);
+
+    self::assertSame(ComponentInstanceUpdateAttemptResult::Latest, $sut->update($component_instance));
+
+    // The single-value input must survive the update untouched.
+    $updated_inputs = $component_instance->getInputs() ?? [];
+    self::assertSame($inputs[$prop_name], $updated_inputs[$prop_name]);
+  }
+
+  public static function providerUpdatePreservesSingleValueInput(): \Generator {
+    // A single-value prop bound to an entity field, as only content templates
+    // allow. Stored uncollapsed, carrying `sourceType` and `expression`.
+    yield "uncollapsed dynamic entity-field source" => [
+      [
+        'required_text' => [
+          'sourceType' => PropSource::EntityField->value,
+          'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+        ],
+      ],
+      'required_text',
+    ];
+    // A single-value prop backed by a multi-property field type collapses to a
+    // multi-key associative array, with no `sourceType` key.
+    yield "collapsed multi-property static value" => [
+      [
+        'required_text' => 'Canvas is large and in charge!',
+        'background' => [
+          'target_id' => 1,
+          'alt' => 'Example image',
+          'title' => '',
+          'width' => 1200,
+          'height' => 900,
+        ],
+      ],
+      'background',
+    ];
   }
 
   protected function decreaseArrayPropCardinality(): void {

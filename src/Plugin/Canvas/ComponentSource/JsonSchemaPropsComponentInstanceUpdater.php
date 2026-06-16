@@ -158,10 +158,17 @@ final class JsonSchemaPropsComponentInstanceUpdater implements ComponentInstance
       if ($new_cardinality === FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED) {
         continue;
       }
-      // Skip if prop is absent, not an array, or already within the new limit.
+      // Only truncate a list of stored values. Any other array is a single
+      // prop source: either a collapsed static object value or an uncollapsed
+      // dynamic (entity-field) source, both stored as associative arrays that
+      // must be preserved as-is. Slicing one drops keys (e.g. `expression`),
+      // corrupting it — which later throws
+      // `LogicException: Missing the keys expression.`.
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::collapse()
       if (
         !isset($inputs[$prop_name]) ||
         !\is_array($inputs[$prop_name]) ||
+        !\array_is_list($inputs[$prop_name]) ||
         \count($inputs[$prop_name]) <= $new_cardinality
       ) {
         continue;
