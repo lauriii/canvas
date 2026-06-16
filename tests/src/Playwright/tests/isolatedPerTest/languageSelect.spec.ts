@@ -363,6 +363,59 @@ test.describe('Language Select', () => {
       .click();
     expect(popupOpened).toBe(false);
 
+    // Clicking delete opens a confirmation dialog instead of deleting immediately.
+    const deleteDialog = page.getByRole('dialog');
+    await expect(deleteDialog).toBeVisible();
+
+    // Clicking Cancel closes the dialog without performing the deletion.
+    await deleteDialog.getByRole('button', { name: 'Cancel' }).click();
+    await expect(deleteDialog).not.toBeVisible();
+
+    // The dropdown must still be open and the French translation still intact.
+    await expect(
+      page.locator('[data-state="open"][role="menu"]'),
+    ).toBeAttached();
+    await expect(
+      page.locator('[aria-label="More options for French"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator(
+        '[data-testid="language-option-fr"] [data-canvas-has-translation="true"]',
+      ),
+    ).toBeVisible();
+
+    // Proceed with actual deletion.
+    await openPopover();
+    await page
+      .locator('[data-testid="language-options-delete"]')
+      .first()
+      .click();
+    await expect(deleteDialog).toBeVisible();
+
+    // The "Delete Translation" button must be disabled until the user types
+    // the exact confirmation word.
+    const confirmButton = deleteDialog.getByRole('button', {
+      name: 'Delete Translation',
+    });
+    await expect(confirmButton).toBeDisabled();
+
+    // Typing the confirmation word in lowercase must NOT enable the button
+    // (the match is case-sensitive).
+    await page
+      .locator('[data-testid="delete-translation-confirm-input"]')
+      .fill('delete');
+    await expect(confirmButton).toBeDisabled();
+
+    // Typing the exact required word (uppercase) enables the confirm button.
+    await page
+      .locator('[data-testid="delete-translation-confirm-input"]')
+      .fill('DELETE');
+    await expect(confirmButton).toBeEnabled();
+
+    // Confirming the dialog triggers the actual in-app deletion.
+    await confirmButton.click();
+    await expect(deleteDialog).not.toBeVisible();
+
     // The in-app delete drops French's options trigger (and with it the
     // popover) once the request resolves. Wait for that before reopening so
     // the dropdown - not a still-open popover - receives the Escape key.
