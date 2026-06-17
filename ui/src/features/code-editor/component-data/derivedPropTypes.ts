@@ -149,6 +149,18 @@ const derivedPropTypes = [
       enum: [],
     },
   },
+  {
+    type: 'contentEntityReference' as const,
+    displayName: 'Content entity reference',
+    derive: (prop: CodeComponentPropSerialized) =>
+      prop.type === 'object' &&
+      prop.$ref ===
+        'json-schema-definitions://canvas.module/content-entity-reference',
+    init: {
+      type: 'object',
+      $ref: 'json-schema-definitions://canvas.module/content-entity-reference',
+    },
+  },
 ];
 
 export default derivedPropTypes;

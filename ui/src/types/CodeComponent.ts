@@ -27,6 +27,7 @@ export interface CodeComponent {
 export interface DataDependencies {
   drupalSettings?: Array<string>;
   urls?: Array<string>;
+  entityFields?: Record<string, string[]>;
 }
 
 export interface CodeComponentSerialized extends Omit<
@@ -76,6 +77,8 @@ export interface CodeComponentProp {
   derivedType: (typeof derivedPropTypes)[number]['type'] | null;
   contentMediaType?: string;
   'x-formatting-context'?: string;
+  'x-allowed-entity-type-id'?: string;
+  'x-allowed-bundle'?: string;
   allowMultiple?: boolean;
   valueMode?: ValueMode;
   limitedCount?: number;
@@ -84,6 +87,8 @@ export interface CodeComponentProp {
     format?: string;
     contentMediaType?: string;
     'x-formatting-context'?: string;
+    'x-allowed-entity-type-id'?: string;
+    'x-allowed-bundle'?: string;
     $ref?: string;
     enum?: (string | number)[];
     'meta:enum'?: Record<
@@ -91,6 +96,7 @@ export interface CodeComponentProp {
       CodeComponentPropEnumItem['label']
     >;
   };
+  entityFieldExpressions?: string[];
 }
 
 export interface CodeComponentPropImageExample {
@@ -123,12 +129,16 @@ export interface CodeComponentPropSerialized {
   format?: string;
   contentMediaType?: string;
   'x-formatting-context'?: string;
+  'x-allowed-entity-type-id'?: string;
+  'x-allowed-bundle'?: string;
   maxItems?: number;
   items?: {
     type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
     format?: string;
     contentMediaType?: string;
     'x-formatting-context'?: string;
+    'x-allowed-entity-type-id'?: string;
+    'x-allowed-bundle'?: string;
     $ref?: string;
     enum?: (string | number)[];
     'meta:enum'?: Record<

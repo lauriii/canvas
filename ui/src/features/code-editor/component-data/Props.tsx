@@ -30,6 +30,7 @@ import {
 } from '@/features/code-editor/component-data/FormElement';
 import FormPropTypeArray from '@/features/code-editor/component-data/forms/FormPropTypeArray';
 import FormPropTypeBoolean from '@/features/code-editor/component-data/forms/FormPropTypeBoolean';
+import FormPropTypeContentEntityReference from '@/features/code-editor/component-data/forms/FormPropTypeContentEntityReference';
 import FormPropTypeDate from '@/features/code-editor/component-data/forms/FormPropTypeDate';
 import FormPropTypeEnum from '@/features/code-editor/component-data/forms/FormPropTypeEnum';
 import FormPropTypeFormattedText from '@/features/code-editor/component-data/forms/FormPropTypeFormattedText';
@@ -204,11 +205,13 @@ export default function Props() {
                     const isRequired = required.includes(propName);
                     const isImageOrVideo =
                       value === 'image' || value === 'video';
+                    const isContentEntityReference =
+                      value === 'contentEntityReference';
                     // Default examples for image and video are handled in their own components
                     // regardless of required or not.
                     // @see FormPropTypeImage and FormPropTypeVideo
                     const defaultExample =
-                      isRequired && !isImageOrVideo
+                      isRequired && !isImageOrVideo && !isContentEntityReference
                         ? DEFAULT_EXAMPLES[value]
                         : '';
                     dispatch(
@@ -225,6 +228,9 @@ export default function Props() {
                           // when switching away from that type.
                           contentMediaType: undefined,
                           'x-formatting-context': undefined,
+                          'x-allowed-entity-type-id': undefined,
+                          'x-allowed-bundle': undefined,
+                          entityFieldExpressions: undefined,
                           example: defaultExample,
                           allowMultiple: false,
                           items: undefined,
@@ -240,6 +246,9 @@ export default function Props() {
                         } as Partial<CodeComponentProp>,
                       }),
                     );
+                    if (isRequired && isContentEntityReference) {
+                      dispatch(toggleRequired({ propId: prop.id }));
+                    }
                   }
                 }}
                 // Disable changing type if component is exposed and prop existed when loaded.
@@ -257,22 +266,24 @@ export default function Props() {
             </FormElement>
           </Box>
 
-          <Flex direction="column" gap="2">
-            <Label htmlFor={`prop-required-${prop.id}`}>Required</Label>
-            <Switch
-              id={`prop-required-${prop.id}`}
-              checked={required.includes(propName)}
-              size="1"
-              mb="1"
-              onCheckedChange={() =>
-                dispatch(
-                  toggleRequired({
-                    propId: prop.id,
-                  }),
-                )
-              }
-            />
-          </Flex>
+          {prop.derivedType !== 'contentEntityReference' && (
+            <Flex direction="column" gap="2">
+              <Label htmlFor={`prop-required-${prop.id}`}>Required</Label>
+              <Switch
+                id={`prop-required-${prop.id}`}
+                checked={required.includes(propName)}
+                size="1"
+                mb="1"
+                onCheckedChange={() =>
+                  dispatch(
+                    toggleRequired({
+                      propId: prop.id,
+                    }),
+                  )
+                }
+              />
+            </Flex>
+          )}
         </Flex>
 
         {(() => {
@@ -379,6 +390,16 @@ export default function Props() {
                   allowMultiple={prop.allowMultiple}
                   valueMode={prop.valueMode}
                   limitedCount={prop.limitedCount}
+                />
+              );
+            case 'contentEntityReference':
+              return (
+                <FormPropTypeContentEntityReference
+                  id={prop.id}
+                  expressions={prop.entityFieldExpressions ?? []}
+                  targetEntityType={prop['x-allowed-entity-type-id'] ?? null}
+                  targetBundle={prop['x-allowed-bundle'] ?? null}
+                  isDisabled={disabledPropIds.has(prop.id)}
                 />
               );
             case 'date':

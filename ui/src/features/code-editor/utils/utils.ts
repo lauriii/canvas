@@ -15,10 +15,37 @@ import type {
   CodeComponentSerialized,
   CodeComponentSlot,
   CodeComponentSlotSerialized,
+  DataDependencies,
 } from '@/types/CodeComponent';
 
 export function getPropMachineName(name: string) {
   return camelCase(name);
+}
+
+/**
+ * Builds the `dataDependencies` for a serialized payload: the AST-derived
+ * dependencies (drupalSettings, urls) plus the prop-derived `entityFields`.
+ */
+export function serializeDataDependencies(
+  props: CodeComponentProp[],
+  dataDependencies: DataDependencies,
+): DataDependencies {
+  const entityFields: Record<string, string[]> = {};
+  for (const prop of props) {
+    if (
+      prop.name &&
+      prop.derivedType === 'contentEntityReference' &&
+      prop.entityFieldExpressions?.length
+    ) {
+      entityFields[getPropMachineName(prop.name)] = prop.entityFieldExpressions;
+    }
+  }
+  const serialized: DataDependencies = { ...dataDependencies };
+  delete serialized.entityFields;
+  if (Object.keys(entityFields).length > 0) {
+    serialized.entityFields = entityFields;
+  }
+  return serialized;
 }
 
 /**
@@ -290,6 +317,8 @@ export function deserializeProps(
       format,
       contentMediaType,
       'x-formatting-context': xFormattingContext,
+      'x-allowed-entity-type-id': xAllowedEntityTypeId,
+      'x-allowed-bundle': xAllowedBundle,
       items,
       maxItems,
     } = prop;
@@ -311,6 +340,12 @@ export function deserializeProps(
     const actualXFormattingContext = allowMultiple
       ? items?.['x-formatting-context']
       : xFormattingContext;
+    const actualXAllowedEntityTypeId = allowMultiple
+      ? items?.['x-allowed-entity-type-id']
+      : xAllowedEntityTypeId;
+    const actualXAllowedBundle = allowMultiple
+      ? items?.['x-allowed-bundle']
+      : xAllowedBundle;
 
     const isNumberType = ['integer', 'number'].includes(actualType);
     let example: CodeComponentProp['example'] = allowMultiple ? [] : '';
@@ -326,6 +361,8 @@ export function deserializeProps(
             format: items.format,
             contentMediaType: items.contentMediaType,
             'x-formatting-context': items['x-formatting-context'],
+            'x-allowed-entity-type-id': items['x-allowed-entity-type-id'],
+            'x-allowed-bundle': items['x-allowed-bundle'],
             enum: items.enum,
             'meta:enum': items['meta:enum'],
           }
@@ -382,6 +419,12 @@ export function deserializeProps(
       }),
       ...(actualXFormattingContext && {
         'x-formatting-context': actualXFormattingContext,
+      }),
+      ...(actualXAllowedEntityTypeId && {
+        'x-allowed-entity-type-id': actualXAllowedEntityTypeId,
+      }),
+      ...(actualXAllowedBundle && {
+        'x-allowed-bundle': actualXAllowedBundle,
       }),
       derivedType,
       ...(allowMultiple && { allowMultiple: true, items }),
@@ -488,11 +531,26 @@ export function deserializeSlots(
 export function deserializeCodeComponent(
   codeComponent: CodeComponentSerialized,
 ): CodeComponent {
+  const props = deserializeProps(codeComponent.props);
+  // Lift the persisted `entityFields` onto the props editing state.
+  // @see serializeDataDependencies
+  const { entityFields, ...dataDependencies } = codeComponent.dataDependencies;
+  if (entityFields) {
+    for (const prop of props) {
+      const expressions = prop.name
+        ? entityFields[getPropMachineName(prop.name)]
+        : undefined;
+      if (expressions?.length) {
+        prop.entityFieldExpressions = expressions;
+      }
+    }
+  }
   return {
     ...codeComponent,
-    props: deserializeProps(codeComponent.props),
+    props,
     slots: deserializeSlots(codeComponent.slots),
     dataFetches: {},
+    dataDependencies,
   };
 }
 

@@ -3,6 +3,7 @@ import { createSelector, createSlice } from '@reduxjs/toolkit';
 
 import {
   getPropMachineName,
+  serializeDataDependencies,
   serializeProps,
   serializeSlots,
 } from '@/features/code-editor/utils/utils';
@@ -274,6 +275,26 @@ export const codeEditorSlice = createSlice({
       state.status.needsAutoSave = true;
     },
 
+    setEntityFieldExpressions: (
+      state,
+      action: PayloadAction<{
+        propId: string;
+        expressions: string[];
+      }>,
+    ) => {
+      const { propId, expressions } = action.payload;
+      const prop = state.codeComponent.props.find((p) => p.id === propId);
+      if (!prop) {
+        return;
+      }
+      if (expressions.length === 0) {
+        delete prop.entityFieldExpressions;
+      } else {
+        prop.entityFieldExpressions = expressions;
+      }
+      state.status.needsAutoSave = true;
+    },
+
     addSlot: (state) => {
       state.codeComponent.slots.push({
         id: uuidv4(),
@@ -460,7 +481,10 @@ export const selectCodeComponentSerialized = createSelector(
     compiledJs: codeComponent.compiledJs,
     compiledCss: codeComponent.compiledCss,
     importedJsComponents: codeComponent.importedJsComponents,
-    dataDependencies: codeComponent.dataDependencies,
+    dataDependencies: serializeDataDependencies(
+      codeComponent.props,
+      codeComponent.dataDependencies,
+    ),
   }),
 );
 
@@ -527,6 +551,7 @@ export const {
   removeProp,
   reorderProps,
   toggleRequired,
+  setEntityFieldExpressions,
   addSlot,
   updateSlot,
   removeSlot,

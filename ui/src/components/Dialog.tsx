@@ -29,6 +29,7 @@ export interface DialogProps {
     onReset?: () => void;
   };
   headerClose?: boolean;
+  width?: string;
   footer?: {
     cancelText?: string;
     confirmText?: string;
@@ -41,10 +42,17 @@ export interface DialogProps {
   };
 }
 
-const DialogWrap = ({ open, handleOpenChange, children, description }: any) => (
+const DialogWrap = ({
+  open,
+  handleOpenChange,
+  children,
+  description,
+  width,
+}: any) => (
   <ThemedDialog.Root open={open} onOpenChange={handleOpenChange}>
     <ThemedDialog.Content
-      width="287px"
+      width={width ?? '287px'}
+      maxWidth={width}
       className={styles.dialogContent}
       {...(!description && { 'aria-describedby': undefined })}
     >
@@ -77,6 +85,7 @@ const Dialog = ({
   error,
   headerClose,
   modal = true,
+  width,
   footer = {
     cancelText: 'Cancel',
     confirmText: 'Confirm',
@@ -93,6 +102,7 @@ const Dialog = ({
       open={open}
       handleOpenChange={handleOpenChange}
       description={description}
+      width={width}
     >
       {headerClose && (
         <Box className={styles.headerCloseButton}>
@@ -122,51 +132,50 @@ const Dialog = ({
           </ThemedDialog.Description>
         )}
 
-        <Flex direction="column" gap="2">
-          <Flex direction="column" gap="1">
-            {children}
-          </Flex>
+        <Flex direction="column" gap="1">
+          {children}
+        </Flex>
 
-          {error && (
-            <ErrorCard
-              title={error.title}
-              error={error.message}
-              resetButtonText={error.resetButtonText}
-              resetErrorBoundary={error.onReset}
-            />
-          )}
-          {footer.hidden ? null : (
-            <Flex gap="2" justify="end">
-              <ThemedDialog.Close>
-                <Button
-                  variant="outline"
-                  size="1"
-                  onClick={() => {
-                    if (footer?.onCancel) {
-                      footer.onCancel();
-                    } else {
-                      handleOpenChange(false);
-                    }
-                  }}
-                >
-                  {footer.cancelText}
-                </Button>
-              </ThemedDialog.Close>
-              {footer.onConfirm && (
-                <Button
-                  onClick={footer.onConfirm}
-                  disabled={footer.isConfirmDisabled}
-                  loading={footer.isConfirmLoading}
-                  size="1"
-                  color={footer.isDanger ? 'red' : 'blue'}
-                >
-                  {footer.confirmText}
-                </Button>
-              )}
-            </Flex>
+        {error && (
+          <ErrorCard
+            title={error.title}
+            error={error.message}
+            resetButtonText={error.resetButtonText}
+            resetErrorBoundary={error.onReset}
+          />
+        )}
+      </Box>
+
+      {footer.hidden ? null : (
+        <Flex gap="2" justify="end" mt="3">
+          <ThemedDialog.Close>
+            <Button
+              variant="outline"
+              size="1"
+              onClick={() => {
+                if (footer?.onCancel) {
+                  footer.onCancel();
+                } else {
+                  handleOpenChange(false);
+                }
+              }}
+            >
+              {footer.cancelText}
+            </Button>
+          </ThemedDialog.Close>
+          {footer.onConfirm && (
+            <Button
+              onClick={footer.onConfirm}
+              disabled={footer.isConfirmDisabled}
+              loading={footer.isConfirmLoading}
+              size="1"
+              color={footer.isDanger ? 'red' : 'blue'}
+            >
+              {footer.confirmText}
+            </Button>
           )}
         </Flex>
-      </Box>
+      )}
     </Wrapper>
   );
 };

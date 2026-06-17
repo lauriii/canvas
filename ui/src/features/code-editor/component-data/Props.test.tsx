@@ -18,6 +18,7 @@ import { makeStore } from '@/app/store';
 import {
   initialState,
   selectCodeComponentProperty,
+  updateProp,
 } from '@/features/code-editor/codeEditorSlice';
 import { createDisplayArray } from '@/features/code-editor/utils/arrayPropUtils';
 import {
@@ -198,6 +199,64 @@ describe('props in code editor', () => {
         selectCodeComponentProperty('props')(store.getState())[0].example,
       ).toEqual('');
     });
+
+    it('clears required when changing type to content entity reference', async () => {
+      await addProp('Text', 'Author');
+      await userEvent.click(screen.getByRole('switch', { name: 'Required' }));
+      expect(selectCodeComponentProperty('required')(store.getState())).toEqual(
+        ['author'],
+      );
+
+      await userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+      await userEvent.click(
+        screen.getByRole('option', { name: 'Content entity reference' }),
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('switch', { name: 'Required' }),
+        ).not.toBeInTheDocument();
+      });
+      expect(selectCodeComponentProperty('required')(store.getState())).toEqual(
+        [],
+      );
+    });
+
+    it('clears content entity reference target data when changing type', async () => {
+      await addProp('Content entity reference', 'Author');
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+      store.dispatch(
+        updateProp({
+          id: propId,
+          updates: {
+            'x-allowed-entity-type-id': 'node',
+            'x-allowed-bundle': 'article',
+            entityFieldExpressions: ['field_author.entity.name'],
+          },
+        }),
+      );
+
+      await userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+      await userEvent.click(screen.getByRole('option', { name: 'Text' }));
+
+      const prop = selectCodeComponentProperty('props')(store.getState())[0];
+      expect(prop['x-allowed-entity-type-id']).toBeUndefined();
+      expect(prop['x-allowed-bundle']).toBeUndefined();
+      expect(prop.entityFieldExpressions).toBeUndefined();
+
+      await userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+      await userEvent.click(
+        screen.getByRole('option', { name: 'Content entity reference' }),
+      );
+
+      const revertedProp = selectCodeComponentProperty('props')(
+        store.getState(),
+      )[0];
+      expect(revertedProp['x-allowed-entity-type-id']).toBeUndefined();
+      expect(revertedProp['x-allowed-bundle']).toBeUndefined();
+    });
+
     it('reorders props', async () => {
       await addProp('Text', 'Alpha');
       await addProp('Text', 'Beta');

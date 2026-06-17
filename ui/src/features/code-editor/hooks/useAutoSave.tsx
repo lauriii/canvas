@@ -14,6 +14,7 @@ import {
   setStatus,
 } from '@/features/code-editor/codeEditorSlice';
 import {
+  serializeDataDependencies,
   serializeProps,
   serializeSlots,
 } from '@/features/code-editor/utils/utils';
@@ -143,7 +144,7 @@ const useAutoSave = (requestedComponentId: string): void => {
           slots: serializeSlots(slots),
           required,
           importedJsComponents: importedJsComponentsRef.current,
-          dataDependencies,
+          dataDependencies: serializeDataDependencies(props, dataDependencies),
         },
       });
     }, 1000);

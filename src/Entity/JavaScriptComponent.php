@@ -182,7 +182,9 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
         'machineName' => $this->id(),
         'name' => (string) $this->label(),
         'status' => $this->status(),
-        'props' => $this->props,
+        // Provide props with projected `x-allowed-entity-type-id` and
+        // `x-allowed-bundle` (for `content-entity-reference` props).
+        'props' => $this->toSdcDefinition()['props']['properties'] ?? $this->props,
         'required' => $this->required,
         'slots' => $this->slots,
         'sourceCodeJs' => $this->js['original'] ?? '',

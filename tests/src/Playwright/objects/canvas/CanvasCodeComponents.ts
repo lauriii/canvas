@@ -79,20 +79,22 @@ export function CanvasCodeComponentsMixin<
         .getByRole('option', { name: propType, exact: true })
         .click();
       await expect(propForm.locator('[id^="prop-type-"]')).toHaveText(propType);
-      const requiredChecked = await propForm
-        .locator('[id^="prop-required-"]')
-        .getAttribute('data-state');
-      if (required && requiredChecked === 'unchecked') {
-        await propForm.locator('[id^="prop-required-"]').click();
+      const requiredToggle = propForm.locator('[id^="prop-required-"]');
+      const hasRequiredToggle = (await requiredToggle.count()) > 0;
+      if (required && !hasRequiredToggle) {
+        throw new Error(
+          `Prop type "${propType}" has no required toggle and cannot be required.`,
+        );
       }
-      if (required) {
-        await expect(
-          propForm.locator('[id^="prop-required-"]'),
-        ).toHaveAttribute('data-state', 'checked');
-      } else {
-        await expect(
-          propForm.locator('[id^="prop-required-"]'),
-        ).toHaveAttribute('data-state', 'unchecked');
+      if (hasRequiredToggle) {
+        const requiredChecked = await requiredToggle.getAttribute('data-state');
+        if (required && requiredChecked === 'unchecked') {
+          await requiredToggle.click();
+        }
+        await expect(requiredToggle).toHaveAttribute(
+          'data-state',
+          required ? 'checked' : 'unchecked',
+        );
       }
       for (const { label, value, type } of example) {
         switch (type) {
@@ -133,6 +135,8 @@ export function CanvasCodeComponentsMixin<
       );
 
       await expect(this.getCodePreviewFrame()).toBeVisible();
+
+      return propForm;
     }
 
     async saveCodeComponent(componentName: string) {
