@@ -24,6 +24,11 @@ use ShipMonk\PHPStan\DeadCode\Provider\VirtualUsageData;
  * 2. TMGMT Config Processor plugins: canvas classes in Drupal\canvas\Tmgmt\
  *    registered via `tmgmt_config_processor` in config schema definitions;
  *    tmgmt_config calls extractTranslatables() via plugin dispatch.
+ *
+ * 3. TMGMT Content Field Processor plugins: canvas classes in
+ *    Drupal\canvas\Tmgmt\ registered via `tmgmt_field_processor` in
+ *    hook_field_info_alter(); tmgmt_content calls extractTranslatableData()
+ *    and setTranslations() via plugin dispatch.
  */
 final class ContribPluginsUsageProvider extends ReflectionBasedMemberUsageProvider {
 
@@ -43,6 +48,14 @@ final class ContribPluginsUsageProvider extends ReflectionBasedMemberUsageProvid
     ) {
       return VirtualUsageData::withNote(
         \sprintf('Called by tmgmt_config plugin dispatch via tmgmt_config_processor config schema key: %s::extractTranslatables().', $method->getDeclaringClass()->getShortName()),
+      );
+    }
+
+    if (\in_array($method->getName(), ['extractTranslatableData', 'setTranslations'], TRUE)
+      && str_starts_with($method->getDeclaringClass()->getName(), 'Drupal\\canvas\\Tmgmt\\')
+    ) {
+      return VirtualUsageData::withNote(
+        \sprintf('Called by tmgmt_content field processor dispatch via tmgmt_field_processor field info key: %s::%s().', $method->getDeclaringClass()->getShortName(), $method->getName()),
       );
     }
 

@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-// cspell:ignore Bienvenue savoir Découvrez Identité visuelle
+// cspell:ignore Bienvenue savoir Découvrez Identité visuelle Gitane
 
+use Behat\Mink\Element\NodeElement;
 use Drupal\canvas\ConfigTranslation\CanvasStaticPropSourceFieldWidget;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -46,47 +47,65 @@ class ConfigWithComponentTreeConfigTranslationUiTest extends ConfigWithComponent
     $assert_session = $this->assertSession();
     $assert_session->statusCodeEquals(200);
 
-    // 3. ASSERTIONS: verify rendered translatable/non-translatable fields.
-    // Banner: rich text fields exist.
-    $assert_session->fieldExists($field('[' . self::UUID_BANNER . '][inputs][heading][0][value]'));
-    $assert_session->fieldExists($field('[' . self::UUID_BANNER . '][inputs][text][0][value]'));
+    // Explicitly assert all the form fields that exist per component instance,
+    // to prove the generated UI matches expectations.
+    self::assertSame([
+      // `tags`: each item in the sequence renders as a separate text field.
+      self::UUID_TAGS => [
+        $field('[' . self::UUID_TAGS . '][inputs][tags][0][value]'),
+        $field('[' . self::UUID_TAGS . '][inputs][tags][1][value]'),
+        $field('[' . self::UUID_TAGS . '][inputs][tags][2][value]'),
+      ],
+      self::UUID_MY_HERO => [
+        // SDC props populated by StaticPropSources are translatable.
+        $field('[' . self::UUID_MY_HERO . '][inputs][heading][0][value]'),
+
+        // Optional prop NOT populated in default is translatable: a translation
+        // may opt to populate it even when the default translation leaves it
+        // empty.
+        // @see \Drupal\canvas\ConfigTranslation\CanvasComponentTreeItemInputsMappingFormElement::ensureOmittedOptionalInputsAreTranslatable()
+        $field('[' . self::UUID_MY_HERO . '][inputs][subheading][0][value]'),
+
+        // ⚠️ SDC prop populated by EntityFieldPropSource is NOT translatable:
+        // that would have listed `…[inputs][cta1][0][value]`, too.
+
+        // ⚠️ SDC prop populated by HostEntityUrlPropSource is NOT translatable:
+        // that would have listed `…[inputs][cta1href][0][uri]`, too.
+
+        // SDC props populated by StaticPropSources are translatable.
+        $field('[' . self::UUID_MY_HERO . '][inputs][cta2][0][value]'),
+      ],
+      // `my-cta`: text and href.uri are translatable.
+      self::UUID_MY_CTA => [
+        $field('[' . self::UUID_MY_CTA . '][inputs][text][0][value]'),
+        $field('[' . self::UUID_MY_CTA . '][inputs][href][0][uri]'),
+      ],
+      self::UUID_BANNER => [
+        $field('[' . self::UUID_BANNER . '][inputs][heading][0][value]'),
+        $field('[' . self::UUID_BANNER . '][inputs][text][0][value]'),
+        // Text format is present to load CKEditor 5, but is immutable because
+        // it is an `input[type=hidden]`. See the next assertion.
+        $field('[' . self::UUID_BANNER . '][inputs][text][0][format]'),
+      ],
+      // Branding block: only `label` is translatable.
+      self::UUID_BRANDING => [
+        $field('[' . self::UUID_BRANDING . '][inputs][label]'),
+      ],
+      // Translatability test block: only `label` and the deeply nested `bar`
+      // are translatable.
+      self::UUID_BLOCK_DEEP_TRANSLATABLE => [
+        $field('[' . self::UUID_BLOCK_DEEP_TRANSLATABLE . '][inputs][label]'),
+        $field('[' . self::UUID_BLOCK_DEEP_TRANSLATABLE . '][inputs][deeply_nested_translatable][0][bar]'),
+      ],
+    ], $this->getConfigTranslationUiFormElementsForComponentInstances());
+    // The "format" input exists (to load CKEditor) but is hidden, so it cannot
+    // be changed.
     $assert_session->elementExists(
       'css',
       'input[type="hidden"][name="' . $field('[' . self::UUID_BANNER . '][inputs][text][0][format]') . '"][value="canvas_html_block"]',
     );
 
-    // SDC props populated by StaticPropSources are translatable.
-    $assert_session->fieldExists($field('[' . self::UUID_MY_HERO . '][inputs][heading][0][value]'));
-    $assert_session->fieldExists($field('[' . self::UUID_MY_HERO . '][inputs][cta2][0][value]'));
-    // SDC prop populated by EntityFieldPropSource is NOT translatable.
-    $assert_session->fieldNotExists($field('[' . self::UUID_MY_HERO . '][inputs][cta1]'));
-    $assert_session->fieldNotExists($field('[' . self::UUID_MY_HERO . '][inputs][cta1][0][value]'));
-    // SDC prop populated by HostEntityUrlPropSource is NOT translatable.
-    $assert_session->fieldNotExists($field('[' . self::UUID_MY_HERO . '][inputs][cta1href]'));
-    $assert_session->fieldNotExists($field('[' . self::UUID_MY_HERO . '][inputs][cta1href][0][uri]'));
-
-    // Optional prop NOT populated in default is translatable: a translation may
-    // opt to populate it even when the default translation leaves it empty.
-    // @see \Drupal\canvas\ConfigTranslation\CanvasComponentTreeItemInputsMappingFormElement::ensureOmittedOptionalInputsAreTranslatable()
-    $assert_session->fieldExists($field('[' . self::UUID_MY_HERO . '][inputs][subheading][0][value]'));
-
-    // Tags: each item in the sequence renders as a separate text field.
-    $assert_session->fieldExists($field('[' . self::UUID_TAGS . '][inputs][tags][0][value]'));
-    $assert_session->fieldExists($field('[' . self::UUID_TAGS . '][inputs][tags][1][value]'));
-    $assert_session->fieldExists($field('[' . self::UUID_TAGS . '][inputs][tags][2][value]'));
-
-    // My-cta: text and href.uri are translatable.
-    $assert_session->fieldExists($field('[' . self::UUID_MY_CTA . '][inputs][text][0][value]'));
-    $assert_session->fieldExists($field('[' . self::UUID_MY_CTA . '][inputs][href][0][uri]'));
-
-    // Branding: only `label` is translatable.
-    $assert_session->fieldExists($field('[' . self::UUID_BRANDING . '][inputs][label]'));
-    $assert_session->fieldNotExists($field('[' . self::UUID_BRANDING . '][inputs][label_display]'));
-    $assert_session->fieldNotExists($field('[' . self::UUID_BRANDING . '][inputs][use_site_logo]'));
-    $assert_session->fieldNotExists($field('[' . self::UUID_BRANDING . '][inputs][use_site_name]'));
-    $assert_session->fieldNotExists($field('[' . self::UUID_BRANDING . '][inputs][use_site_slogan]'));
-
-    // 4. SUBMIT: provide French translations for all 5 component instances.
+    // Provide French translations for all 6 component instances.
     $this->submitForm([
       $field('[' . self::UUID_TAGS . '][inputs][tags][0][value]') => 'fr: baz',
       $field('[' . self::UUID_TAGS . '][inputs][tags][1][value]') => 'fr: bar',
@@ -99,10 +118,25 @@ class ConfigWithComponentTreeConfigTranslationUiTest extends ConfigWithComponent
       $field('[' . self::UUID_MY_HERO . '][inputs][cta2][0][value]') => 'En savoir plus',
       $field('[' . self::UUID_MY_HERO . '][inputs][subheading][0][value]') => 'Découvrez Canvas',
       $field('[' . self::UUID_BRANDING . '][inputs][label]') => 'Identité visuelle',
+      $field('[' . self::UUID_BLOCK_DEEP_TRANSLATABLE . '][inputs][label]') => 'fr: Canvas Test Block for testing input translatability',
+      $field('[' . self::UUID_BLOCK_DEEP_TRANSLATABLE . '][inputs][deeply_nested_translatable][0][bar]') => 'fr: Gitane',
     ], 'Save translation');
     $assert_session->pageTextContains('Successfully saved French translation');
 
     $this->assertTranslatedConfigComponentTree();
+  }
+
+  private function getConfigTranslationUiFormElementsForComponentInstances(): array {
+    $page = $this->getSession()->getPage();
+
+    $form_field_names = [];
+    foreach (\array_keys(self::COMPONENT_DELTA) as $component_instance_uuid) {
+      $form_field_names[$component_instance_uuid] = \array_map(
+        fn(NodeElement $n) => $n->getAttribute('name'),
+        $page->findAll('css', "[name^='translation['][name*='[$component_instance_uuid][inputs]']:not([name$='[_weight]'])"),
+      );
+    }
+    return $form_field_names;
   }
 
 }

@@ -81,6 +81,7 @@ services:
   Drupal\canvas\CanvasConfigUpdater: ~
   Drupal\canvas\ComponentTreeInputExtractor: {}
   Drupal\canvas\GlobalImports: {}
+  Drupal\canvas\Tmgmt\ComponentInputsTranslatablesExtractor: ~
 
   # Cache contexts.
   cache_context.route.name.is_canvas_editor_ui:

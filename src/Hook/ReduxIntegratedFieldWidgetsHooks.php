@@ -371,6 +371,7 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
       ComponentInstanceForm::FORM_ID,
       'config_translation_add_form',
       'config_translation_edit_form',
+      'tmgmt_job_item_edit_form',
     ];
     if (!\in_array($form_id, $forms_with_static_prop_sources, TRUE)) {
       // @see config/install/filter.format.canvas_html_block.yml

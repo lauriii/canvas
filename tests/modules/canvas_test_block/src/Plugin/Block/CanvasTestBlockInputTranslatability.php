@@ -8,6 +8,7 @@ namespace Drupal\canvas_test_block\Plugin\Block;
 
 use Drupal\Core\Block\Attribute\Block;
 use Drupal\Core\Block\BlockBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 #[Block(
@@ -36,6 +37,23 @@ final class CanvasTestBlockInputTranslatability extends BlockBase {
    */
   public function defaultConfiguration(): array {
     return self::DEFAULT_CONFIGURATION;
+  }
+
+  public function blockForm($form, FormStateInterface $form_state) {
+    $form['bar'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Favorite bar'),
+      '#required' => TRUE,
+      '#default_value' => $this->configuration['deeply_nested_translatable'][0]['bar'],
+    ];
+    return $form;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function blockSubmit($form, FormStateInterface $form_state) : void {
+    $this->configuration['deeply_nested_translatable'][0]['bar'] = $form_state->getValue('bar');
   }
 
   /**

@@ -6,17 +6,24 @@ namespace Drupal\Tests\canvas\Functional;
 
 // cspell:ignore Bienvenue savoir Découvrez Identité visuelle
 
+use Behat\Mink\Element\NodeElement;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Hook\TmgmtHooks;
 use Drupal\canvas\Tmgmt\ComponentInputsConfigProcessor;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Tests\tmgmt\Functional\TmgmtTestTrait;
 use Drupal\tmgmt\Entity\Job;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Group;
 
+/**
+ * @see \Drupal\Tests\canvas\Functional\ContentWithComponentTreeTmgmtUiTest
+ */
 #[Group('canvas')]
 #[Group('canvas_translation')]
 #[CoversClass(ComponentInputsConfigProcessor::class)]
+#[CoversMethod(TmgmtHooks::class, 'configSchemaInfoAlter')]
 class ConfigWithComponentTreeTmgmtUiTest extends ConfigWithComponentTreeTranslationTestBase {
 
   use TmgmtTestTrait;
@@ -69,17 +76,60 @@ class ConfigWithComponentTreeTmgmtUiTest extends ConfigWithComponentTreeTranslat
     $assert->pageTextContains('fr: https://www.drupal.org');
     $assert->pageTextContains('fr: A heading element! :)');
 
-    // SDC props populated by StaticPropSources are translatable.
-    $assert->fieldExists('component_tree|' . self::UUID_MY_HERO . '|inputs|heading[translation]');
-    $assert->fieldExists('component_tree|' . self::UUID_MY_HERO . '|inputs|cta2[translation]');
-    // SDC prop populated by EntityFieldPropSource is NOT translatable.
-    $assert->fieldNotExists('component_tree|' . self::UUID_MY_HERO . '|inputs|cta1[translation]');
-    // SDC prop populated by HostEntityUrlPropSource is NOT translatable.
-    $assert->fieldNotExists('component_tree|' . self::UUID_MY_HERO . '|inputs|cta1href[translation]');
-    // Optional prop NOT populated in default is translatable: a translation may
-    // opt to populate it even when the default translation leaves it empty.
-    // @see \Drupal\canvas\Tmgmt\ComponentInputsConfigProcessor::extractTranslatablesIncludingEmpty()
-    $assert->fieldExists('component_tree|' . self::UUID_MY_HERO . '|inputs|subheading[translation]');
+    // Explicitly assert all the form fields that exist per component instance,
+    // to prove the generated UI matches expectations.
+    self::assertSame([
+      self::UUID_TAGS => [
+        'component_tree|' . self::UUID_TAGS . '|inputs|tags|0[translation]',
+        'component_tree|' . self::UUID_TAGS . '|inputs|tags|1[translation]',
+        'component_tree|' . self::UUID_TAGS . '|inputs|tags|2[translation]',
+      ],
+      // @todo Consider respecting the defined order of props; the config_translation UI does support that.
+      self::UUID_MY_HERO => [
+        // SDC props populated by StaticPropSources are translatable.
+        'component_tree|' . self::UUID_MY_HERO . '|inputs|heading[translation]',
+        'component_tree|' . self::UUID_MY_HERO . '|inputs|cta2[translation]',
+
+        // ⚠️ SDC prop populated by EntityFieldPropSource is NOT translatable:
+        // that would have listed `…|inputs|cta1[translation]`, too.
+
+        // ⚠️ SDC prop populated by HostEntityUrlPropSource is NOT translatable:
+        // that would have listed `…|inputs|cta1href[translation]`, too.
+
+        // Optional prop NOT populated in default is translatable: a translation
+        // may opt to populate it even when the default translation leaves it
+        // empty.
+        // @see \Drupal\canvas\Tmgmt\ComponentInputsConfigProcessor::extractTranslatablesIncludingEmpty()
+        'component_tree|' . self::UUID_MY_HERO . '|inputs|subheading[translation]',
+      ],
+      self::UUID_MY_CTA => [
+        'component_tree|' . self::UUID_MY_CTA . '|inputs|text[translation]',
+        'component_tree|' . self::UUID_MY_CTA . '|inputs|href|uri[translation]',
+      ],
+      self::UUID_BANNER => [
+        'component_tree|' . self::UUID_BANNER . '|inputs|heading[translation]',
+        'component_tree|' . self::UUID_BANNER . '|inputs|text|value[translation][value]',
+        // Text format is present to load CKEditor 5, but is immutable because
+        // it is an `input[type=hidden]`. See the next assertion.
+        'component_tree|' . self::UUID_BANNER . '|inputs|text|value[translation][format]',
+      ],
+      // Branding block: only `label` is translatable.
+      self::UUID_BRANDING => [
+        'component_tree|' . self::UUID_BRANDING . '|inputs|label[translation]',
+      ],
+      // Translatability test block: only `label` and the deeply nested `bar`
+      // are translatable.
+      self::UUID_BLOCK_DEEP_TRANSLATABLE => [
+        'component_tree|' . self::UUID_BLOCK_DEEP_TRANSLATABLE . '|inputs|label[translation]',
+        'component_tree|' . self::UUID_BLOCK_DEEP_TRANSLATABLE . '|inputs|deeply_nested_translatable|0|bar[translation]',
+      ],
+    ], $this->getTmgmtFormElementsForComponentInstances());
+    // The "format" input exists (to load CKEditor) but is hidden, so it cannot
+    // be changed.
+    $assert->elementExists(
+      'css',
+      'input[type="hidden"][name="component_tree|' . self::UUID_BANNER . '|inputs|text|value[translation][format]"]',
+    );
 
     // Note: all other translatables get a `fr: ` prefix by the test translator.
     $this->submitForm([
@@ -92,6 +142,19 @@ class ConfigWithComponentTreeTmgmtUiTest extends ConfigWithComponentTreeTranslat
     $assert->pageTextContains('has been accepted');
 
     $this->assertTranslatedConfigComponentTree();
+  }
+
+  private function getTmgmtFormElementsForComponentInstances(): array {
+    $page = $this->getSession()->getPage();
+
+    $form_field_names = [];
+    foreach (\array_keys(self::COMPONENT_DELTA) as $component_instance_uuid) {
+      $form_field_names[$component_instance_uuid] = \array_map(
+        fn(NodeElement $n) => $n->getAttribute('name'),
+        $page->findAll('css', "[name*='component_tree|$component_instance_uuid|inputs'][name*='[translation]']"),
+      );
+    }
+    return $form_field_names;
   }
 
 }
