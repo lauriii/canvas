@@ -54,7 +54,7 @@
     "chalk": "^5.4.1",
     "commander": "^14.0.0",
     "dotenv": "^16.5.0",
-    "drupal-canvas": "^0.4.1",
+    "drupal-canvas": "^0.4.2",
     "eslint": "^9.22.0",
     "js-yaml": "^4.1.0",
     "lightningcss": "^1.30.1",
