@@ -7,7 +7,9 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 // cspell:ignore Aangedreven Holle daar staan voor Hallo wereld
 
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\canvas\PropSource\PropSource;
@@ -335,6 +337,122 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
     // via the UI and appears for end users.
     // @see \Drupal\Tests\canvas\Functional\TranslationTest::testContentTemplateConfigTranslationUi()
     // @see \Drupal\Tests\canvas\Functional\TranslationTest::testContentTemplateTranslationRendered()
+  }
+
+  /**
+   * Tests that a translated content template stays valid after a Fallback.
+   *
+   * When a component's source becomes unavailable its instances switch to the
+   * Fallback source, whose `inputs` config schema mapping is empty; without
+   * accepting the instance's actual input keys, validation rejects them as
+   * unsupported. Beyond the per-entity coverage in
+   * FallbackComponentTreeConfigValidationTestTrait, this exercises the
+   * translation path: a content template translated (config override) while its
+   * source was available must still validate once the component falls back —
+   * including when loaded in the translation's language, where the validator
+   * sees the translated input values.
+   *
+   * @see \Drupal\canvas\ComponentSource\FallbackComponentInstanceInputsConfigSchemaGenerator::refineForInstance()
+   */
+  public function testFallbackComponentTranslationRemainsValid(): void {
+    $this->enableModules(['language', 'config_translation']);
+    $this->generateComponentConfig();
+    $language_manager = $this->container->get(LanguageManagerInterface::class);
+    \assert($language_manager instanceof ConfigurableLanguageManagerInterface);
+    ConfigurableLanguage::createFromLangcode('nl')->save();
+
+    // Create a code component whose instance will be translated and then forced
+    // to the Fallback source by deleting the config it depends on.
+    $js_component = JavaScriptComponent::create([
+      'machineName' => 'fallback_test_cta',
+      'name' => 'Fallback Test CTA',
+      'status' => TRUE,
+      'props' => [
+        'text' => [
+          'type' => 'string',
+          'title' => 'Text',
+          'examples' => ['Powered by Drupal Canvas'],
+        ],
+        'href' => [
+          'type' => 'string',
+          'format' => 'uri',
+          'title' => 'URL',
+          'examples' => ['https://drupal.org'],
+        ],
+      ],
+      'required' => [],
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
+    ]);
+    $js_component->save();
+    $component = Component::load('js.fallback_test_cta');
+    \assert($component instanceof ComponentInterface);
+
+    $uuid = '435d1d20-a697-4d36-9892-9d61c825c99c';
+    $template = ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'helpful',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [
+        [
+          'uuid' => $uuid,
+          'component_id' => 'js.fallback_test_cta',
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => [
+            'text' => 'Powered by Drupal Canvas',
+            'href' => ['uri' => 'https://drupal.org/project/canvas', 'options' => []],
+          ],
+        ],
+      ],
+    ]);
+    self::assertEntityIsValid($template);
+    $template->save();
+
+    // Translate the `text` input to Dutch (a config translation override).
+    $nl_values = $template->toArray();
+    NestedArray::setValue($nl_values, ['component_tree', $uuid, 'inputs', 'text'], [0 => ['value' => 'Aangedreven door Drupal Canvas']]);
+    NestedArray::setValue($nl_values, ['component_tree', $uuid, 'inputs', 'href'], [0 => ['uri' => 'https://drupal.org/project/canvas']]);
+    $this->saveConfigEntityTranslation($template, 'nl', $nl_values);
+    $override = $language_manager->getLanguageConfigOverride('nl', $template->getConfigDependencyName());
+    self::assertFalse($override->isNew());
+    self::assertSame(
+      ['component_tree' => [$uuid => ['inputs' => ['text' => 'Aangedreven door Drupal Canvas']]]],
+      $override->get(),
+    );
+
+    // Delete the code component the instance depends on. Because the template is
+    // saved (a usage exists), Component::onDependencyRemoval() converts the
+    // Component to the Fallback source through its real code path instead of
+    // deleting it — the same strategy as
+    // \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\FallbackInputTest::testFallbackInputCanBeRecovered,
+    // which triggers a fallback by deleting the config the component depends on.
+    $js_component->delete();
+    self::assertSame(
+      ComponentInterface::FALLBACK_VERSION,
+      Component::load('js.fallback_test_cta')?->getComponentSource()->getPluginId(),
+    );
+
+    // Loading the template in the Dutch context applies the override, so the
+    // tree carries the translated `text`.
+    $nl = ConfigurableLanguage::load('nl');
+    \assert($nl instanceof ConfigurableLanguage);
+    $language_manager->setConfigOverrideLanguage($nl);
+    $nl_reloaded = ContentTemplate::load($template->id());
+    \assert($nl_reloaded instanceof ContentTemplate);
+    self::assertSame('Aangedreven door Drupal Canvas', $nl_reloaded->get('component_tree')[$uuid]['inputs']['text']);
+
+    // The translated tree must validate against the now-empty fallback config
+    // schema mapping. The validator sees the instance's actual (translated)
+    // inputs — `text` and `href` — so without accepting them they are rejected
+    // as "'text'/'href' is not a supported key".
+    self::assertEntityIsValid($nl_reloaded);
+    $language_manager->setConfigOverrideLanguage($language_manager->getDefaultLanguage());
+
+    // The base config entity validates too.
+    $reloaded = ContentTemplate::load($template->id());
+    \assert($reloaded instanceof ContentTemplate);
+    self::assertEntityIsValid($reloaded);
   }
 
   public function testAbsentContentTemplateKeepsCacheMetadata(): void {

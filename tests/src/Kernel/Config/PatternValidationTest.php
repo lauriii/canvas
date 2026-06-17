@@ -15,6 +15,7 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
+use Drupal\Tests\canvas\Traits\FallbackComponentTreeConfigValidationTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -36,6 +37,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
   use GenerateComponentConfigTrait;
   use ConstraintViolationsTestTrait;
   use UserCreationTrait;
+  use FallbackComponentTreeConfigValidationTestTrait;
 
   /**
    * {@inheritdoc}

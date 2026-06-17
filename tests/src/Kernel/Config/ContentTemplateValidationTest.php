@@ -16,6 +16,7 @@ use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
+use Drupal\Tests\canvas\Traits\FallbackComponentTreeConfigValidationTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\TestTools\Random;
@@ -36,6 +37,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   use ContentTypeCreationTrait;
   use ContribStrictConfigSchemaTestTrait;
   use CreateTestJsComponentTrait;
+  use FallbackComponentTreeConfigValidationTestTrait;
   use GenerateComponentConfigTrait;
 
   /**

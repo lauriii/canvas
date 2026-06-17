@@ -12,6 +12,7 @@ use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
+use Drupal\Tests\canvas\Traits\FallbackComponentTreeConfigValidationTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\TestTools\Random;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -28,6 +29,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
   use BetterConfigDependencyManagerTrait;
   use GenerateComponentConfigTrait;
   use ConstraintViolationsTestTrait;
+  use FallbackComponentTreeConfigValidationTestTrait;
 
   /**
    * {@inheritdoc}

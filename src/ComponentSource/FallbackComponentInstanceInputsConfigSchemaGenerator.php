@@ -42,8 +42,17 @@ final readonly class FallbackComponentInstanceInputsConfigSchemaGenerator implem
    * {@inheritdoc}
    */
   public function refineForInstance(array $mapping, array $actual_inputs, string $component_id, string $component_version): array {
-    // The Fallback generates only `type: ignore` with no `translatable` or
-    // `form_element_class`, so no instance-level refinement is needed.
+    // Since the component is in fallback state, its original definition is
+    // unavailable. Map any actually provided input keys to `type: ignore` to
+    // prevent config validation errors.
+    foreach (\array_keys($actual_inputs) as $key) {
+      if (!isset($mapping[$key])) {
+        $mapping[$key] = [
+          'type' => 'ignore',
+          'requiredKey' => FALSE,
+        ];
+      }
+    }
     return $mapping;
   }
 
