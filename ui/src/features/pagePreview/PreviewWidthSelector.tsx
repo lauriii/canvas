@@ -5,6 +5,7 @@ import { WidthIcon } from '@radix-ui/react-icons';
 import { Button, DropdownMenu } from '@radix-ui/themes';
 
 import BreakpointIcon from '@/components/BreakpointIcon';
+import { useTemplateRef } from '@/hooks/useTemplateRef';
 import { getViewportSizes } from '@/utils/viewports';
 
 import type React from 'react';
@@ -18,9 +19,16 @@ const PreviewWidthSelector: React.FC<PreviewWidthSelectorProps> = (props) => {
   const currentWidth = params.width || 'full';
   // Get viewport sizes (supports theme-level customization).
   const viewportSizes = useMemo(() => getViewportSizes(), []);
+  const { isTemplatePreviewRoute } = useTemplateRef();
 
   const handlePreviewWidthChange = (val: string) => {
-    navigate(`/preview/${params.entityType}/${params.entityId}/${val}`);
+    if (isTemplatePreviewRoute) {
+      navigate(
+        `/preview/template/${params.entityType}/${params.bundle}/${params.entityId}/${params.viewMode}/${val}`,
+      );
+    } else {
+      navigate(`/preview/${params.entityType}/${params.entityId}/${val}`);
+    }
   };
 
   const getCurrentViewport = (): viewportSize | null => {

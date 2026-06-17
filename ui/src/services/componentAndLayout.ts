@@ -6,7 +6,7 @@ import {
   setInitialPageData,
   setPageData,
 } from '@/features/pageData/pageDataSlice';
-import { setHtml } from '@/features/pagePreview/previewSlice';
+import { setHtml, setSnapshotHTML } from '@/features/pagePreview/previewSlice';
 import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
@@ -192,6 +192,9 @@ export const componentAndLayoutApi = createApi({
             meta,
           } = await queryFulfilled;
           dispatch(setInitialPageData(entity_form_fields));
+          // Clear any stale snapshot (e.g. from a prior template preview) so
+          // selectPreviewHtml returns the fresh html.
+          dispatch(setSnapshotHTML(''));
           dispatch(setHtml(html));
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         } catch (err) {

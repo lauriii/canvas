@@ -47,15 +47,20 @@ const PagePreview = () => {
   const language = searchParams.get('language') ?? '';
 
   // Determine template context from the URL path.
-  const isTemplate = location.pathname.includes('/preview/template');
+  const isContentTemplate = location.pathname.includes('/preview/template');
 
   // Only fetch the language preview when we are on a preview route.
-  const isPreview = isTemplate || location.pathname.includes('/preview');
+  const isPreview = isContentTemplate || location.pathname.includes('/preview');
 
   // Always fetch the default-language layout so page data (title etc.) is
-  // seeded correctly on a fresh page load at a language preview URL.
+  // seeded correctly on a fresh page load at a language preview URL. This hits
+  // the generic /layout route, which only supports canvas_page entities, so it
+  // is skipped for templates (their preview entity is rendered via the
+  // snapshot query below).
   useGetPageLayoutQuery(
-    entityId && entityType ? { entityId, entityType } : skipToken,
+    entityId && entityType && !isContentTemplate
+      ? { entityId, entityType }
+      : skipToken,
   );
 
   // Language preview: auto-fetch whenever language/entity changes.
@@ -64,12 +69,15 @@ const PagePreview = () => {
       entityType: entityType!,
       entityId: entityId!,
       language,
-      isTemplate,
+      isTemplate: isContentTemplate,
       templateInfo: { bundle, viewMode },
     },
     {
       skip:
-        !isPreview || (!language && !isTemplate) || !entityType || !entityId,
+        !isPreview ||
+        (!language && !isContentTemplate) ||
+        !entityType ||
+        !entityId,
       refetchOnMountOrArgChange: true,
     },
   );
@@ -87,7 +95,11 @@ const PagePreview = () => {
 
   useEffect(() => {
     const sendPreviewRequest = async () => {
-      if (!entityType || !entityId) {
+      // Template previews are rendered by the snapshot query against the
+      // content-template route. This POST hits the generic /layout route, which
+      // only supports canvas_page entities; skip it for a content template's
+      // preview.
+      if (isContentTemplate || !entityType || !entityId) {
         return;
       }
       try {
@@ -112,6 +124,7 @@ const PagePreview = () => {
     entity_form_fields,
     entityId,
     entityType,
+    isContentTemplate,
     updatePreview,
     showBoundary,
   ]);
