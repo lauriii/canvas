@@ -147,7 +147,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
       if ($field_definition->getType() !== ComponentTreeItem::PLUGIN_ID) {
         continue;
       }
-      if (!$this->isTreeSynced($field_definition) || $this->isInputsSynced($field_definition)) {
+      if (!self::isSymmetricallyTranslated($this->decorated, $field_definition)) {
         continue;
       }
 
@@ -162,12 +162,35 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
     }
   }
 
-  private function isTreeSynced(FieldDefinitionInterface $field_definition): bool {
-    return \in_array('uuid', $this->decorated->getFieldSynchronizedProperties($field_definition), TRUE);
+  public static function isTreeSynced(FieldTranslationSynchronizerInterface $synchronizer, FieldDefinitionInterface $field_definition): bool {
+    return \in_array('uuid', $synchronizer->getFieldSynchronizedProperties($field_definition), TRUE);
   }
 
-  private function isInputsSynced(FieldDefinitionInterface $field_definition): bool {
-    return \in_array('inputs', $this->decorated->getFieldSynchronizedProperties($field_definition), TRUE);
+  public static function isInputsSynced(FieldTranslationSynchronizerInterface $synchronizer, FieldDefinitionInterface $field_definition): bool {
+    return \in_array('inputs', $synchronizer->getFieldSynchronizedProperties($field_definition), TRUE);
+  }
+
+  /**
+   * Returns TRUE if the field is in symmetrical translation mode.
+   *
+   * Symmetrical mode: tree structure synced, inputs translatable.
+   *
+   * @see \Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer::isAsymmetricallyTranslated()
+   */
+  public static function isSymmetricallyTranslated(FieldTranslationSynchronizerInterface $synchronizer, FieldDefinitionInterface $field_definition): bool {
+    return self::isTreeSynced($synchronizer, $field_definition) && !self::isInputsSynced($synchronizer, $field_definition);
+  }
+
+  /**
+   * Returns TRUE if the field is in asymmetrical translation mode.
+   *
+   * Asymmetrical mode: both tree structure and inputs are translatable
+   * (nothing synced).
+   *
+   * @see \Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer::isSymmetricallyTranslated()
+   */
+  public static function isAsymmetricallyTranslated(FieldTranslationSynchronizerInterface $synchronizer, FieldDefinitionInterface $field_definition): bool {
+    return !self::isTreeSynced($synchronizer, $field_definition) && !self::isInputsSynced($synchronizer, $field_definition);
   }
 
 }

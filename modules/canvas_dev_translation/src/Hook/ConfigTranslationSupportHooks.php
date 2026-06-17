@@ -49,10 +49,19 @@ readonly final class ConfigTranslationSupportHooks {
     // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat::isUriEsque()
     // @see link.schema.yml: field.value.link
     if (isset($definitions['field.value.link']['mapping']['uri'])) {
-      $definitions['field.value.link']['mapping']['uri']['type'] = 'translatable_uri';
+      \assert($definitions['field.value.link']['mapping']['uri']['type'] === 'string');
+      // Use `label` (type: string + translatable: true) rather than
+      // `translatable_uri` (type: uri + translatable: true). `translatable_uri`
+      // inherits the Uri typed-data class, which validates absolute URI syntax
+      // and rejects relative paths. `link` fields can hold relative URIs
+      // (e.g. `/about`), so the Uri class would produce a false
+      // "wrong primitive type" schema error for those values.
+      $definitions['field.value.link']['mapping']['uri']['type'] = 'label';
     }
     // @see core.data_types.schema.yml: field.value.uri
     if (isset($definitions['field.value.uri']['mapping']['value'])) {
+      // Core should have used `type: uri` at least, but did not.
+      \assert($definitions['field.value.uri']['mapping']['value']['type'] === 'string');
       $definitions['field.value.uri']['mapping']['value']['type'] = 'translatable_uri';
     }
 

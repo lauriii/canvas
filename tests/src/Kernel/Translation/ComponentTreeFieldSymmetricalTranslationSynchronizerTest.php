@@ -7,20 +7,12 @@ namespace Drupal\Tests\canvas\Kernel\Translation;
 // cspell:ignore Cliquez
 
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
-use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
-use Drupal\Core\Field\Entity\BaseFieldOverride;
-use Drupal\field\Entity\FieldConfig;
-use Drupal\language\Entity\ConfigurableLanguage;
-use Drupal\node\Entity\NodeType;
-use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
-use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
-use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -51,51 +43,9 @@ use PHPUnit\Framework\Attributes\TestWith;
 #[Group('canvas_data_model')]
 #[Group('canvas_translation')]
 #[RunTestsInSeparateProcesses]
-final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends CanvasKernelTestBase {
+final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends ContentComponentTreeSymmetricalTranslationTestBase {
 
-  use CanvasFieldCreationTrait;
-  use ContentTranslationTestTrait;
-  use GenerateComponentConfigTrait;
-
-  /**
-   * {@inheritdoc}
-   */
-  protected static $modules = [
-    ...CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
-    'canvas_test_sdc',
-    'content_translation',
-    'field',
-    'language',
-    'node',
-  ];
-
-  /**
-   * @var string
-   * @todo if this ever needs to use multiple different components, drop this in favor of DataProviderWithComponentTreeTrait.
-   */
-  private string $version;
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function setUp(): void {
-    parent::setUp();
-
-    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
-    $this->installEntitySchema('node');
-    $this->installEntitySchema('path_alias');
-    $this->installEntitySchema('user');
-    $this->installSchema('node', ['node_access']);
-    $this->installConfig(['field', 'language', 'node']);
-
-    $this->generateComponentConfig();
-    NodeType::create(['type' => 'article', 'name' => 'Article'])->save();
-    ConfigurableLanguage::createFromLangcode('fr')->save();
-
-    $component = Component::load('sdc.canvas_test_sdc.my-cta');
-    self::assertNotNull($component);
-    $this->version = $component->getActiveVersion();
-  }
+  use ConstraintViolationsTestTrait;
 
   #[TestWith(['node', 'article', 'field_canvas_test'], 'bundle field (FieldConfig)')]
   #[TestWith([Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components'], 'base field (BaseFieldOverride)')]
@@ -104,31 +54,21 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Can
     $entity_storage = $this->container->get('entity_type.manager')->getStorage($entity_type_id);
 
     // Create either content entity, with an initial default translation.
-    $cta_uuid = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+    $cta_uuid = self::CTA_UUID;
     $cta_instance_raw = [
       'uuid' => $cta_uuid,
       'component_id' => 'sdc.canvas_test_sdc.my-cta',
-      'component_version' => $this->version,
+      'component_version' => '::ACTIVE_VERSION_IN_SUT::',
       'inputs' => [
         'text' => 'Click here',
         'href' => 'https://drupal.org',
         'target' => '_self',
       ],
     ];
-    $initial_component_tree_raw = [$cta_instance_raw];
-    $entity = $entity_storage->create(match ($entity_type_id) {
-      'node' => [
-        'type' => $bundle,
-        'title' => 'Test entity',
-        $field_name => $initial_component_tree_raw,
-      ],
-      Page::ENTITY_TYPE_ID => [
-        'title' => 'Test entity',
-        $field_name => $initial_component_tree_raw,
-      ],
-      default => throw new \OutOfRangeException(),
-    });
-    \assert($entity instanceof ContentEntityInterface);
+    $target_violation = [
+      '' => "Non-translatable component input key '<em class=\"placeholder\">target</em>' in component '<em class=\"placeholder\">$cta_uuid</em>' differs from the default translation in the '<em class=\"placeholder\">fr</em>' translation.",
+    ];
+    $entity = $this->createEntityWithDefaultTranslation($entity_type_id, $bundle, $field_name, $entity_storage, [$cta_instance_raw]);
     self::assertEntityIsValid($entity);
     self::assertTrue($entity->isDefaultTranslation());
     self::assertSame('en', $entity->language()->getId());
@@ -162,11 +102,11 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Can
     $this->container->get('content_translation.manager')
       ->getTranslationMetadata($translation)
       ->setSource($entity->language()->getId());
-    $translation->set('title', 'French title')->set($field_name, [
+    $translation->set('title', 'French title')->set($field_name, self::populateActiveComponentVersionPlaceholders([
       [
         'uuid' => $cta_uuid,
         'component_id' => 'sdc.canvas_test_sdc.my-cta',
-        'component_version' => $this->version,
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'inputs' => [
           'text' => 'Cliquez ici',
           'href' => 'https://drupal.fr',
@@ -174,9 +114,12 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Can
           'target' => '_blank',
         ],
       ],
-    ]);
-    self::assertEntityIsValid($translation);
+    ]));
+    // The constraint fires before save — the synchronizer corrects it on save.
+    self::assertSame($target_violation, self::violationsToArray($translation->validate()));
     $translation->save();
+    // After save, the synchronizer corrected 'target' — entity is now valid.
+    self::assertEntityIsValid($translation);
     foreach ($memory_and_stored() as $either) {
       $fr_list = $either->getTranslation('fr')->get($field_name);
       \assert($fr_list instanceof ComponentTreeItemList);
@@ -192,9 +135,12 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Can
     // 2. Change non-translatable key in default translation. Must propagate.
     $cta_with_blank = $cta_instance_raw;
     $cta_with_blank['inputs']['target'] = '_blank';
-    $entity->set($field_name, [$cta_with_blank]);
-    self::assertEntityIsValid($entity);
+    $entity->set($field_name, self::populateActiveComponentVersionPlaceholders([$cta_with_blank]));
+    // The constraint fires before save — FR is stale; synchronizer corrects on save.
+    self::assertSame($target_violation, self::violationsToArray($entity->validate()));
     $entity->save();
+    // After save, the synchronizer propagated 'target' to FR — entity is now valid.
+    self::assertEntityIsValid($entity);
     foreach ($memory_and_stored() as $either) {
       $fr_list = $either->getTranslation('fr')->get($field_name);
       \assert($fr_list instanceof ComponentTreeItemList);
@@ -210,11 +156,11 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Can
     // 3. Non-translatable key changed in non-default translation is corrected
     // on save — the synchronizer restores the default translation's value.
     $fr_translation = $entity->getTranslation('fr');
-    $fr_translation->set($field_name, [
+    $fr_translation->set($field_name, self::populateActiveComponentVersionPlaceholders([
       [
         'uuid' => $cta_uuid,
         'component_id' => 'sdc.canvas_test_sdc.my-cta',
-        'component_version' => $this->version,
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'inputs' => [
           'text' => 'Cliquez ici',
           'href' => 'https://drupal.fr',
@@ -222,9 +168,12 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Can
           'target' => '_self',
         ],
       ],
-    ]);
-    self::assertEntityIsValid($fr_translation);
+    ]));
+    // The constraint fires before save; synchronizer corrects on save.
+    self::assertSame($target_violation, self::violationsToArray($fr_translation->validate()));
     $fr_translation->save();
+    // After save, the synchronizer restored the default value — entity is now valid.
+    self::assertEntityIsValid($fr_translation);
     foreach ($memory_and_stored() as $either) {
       $fr_list = $either->getTranslation('fr')->get($field_name);
       \assert($fr_list instanceof ComponentTreeItemList);
@@ -239,20 +188,23 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Can
 
     // 4. Omitting an optional non-translatable key in a non-default translation
     // is corrected on save: the synchronizer adds it from default.
-    $fr_translation->set($field_name, [
+    $fr_translation->set($field_name, self::populateActiveComponentVersionPlaceholders([
       [
         'uuid' => $cta_uuid,
         'component_id' => 'sdc.canvas_test_sdc.my-cta',
-        'component_version' => $this->version,
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'inputs' => [
           'text' => 'Cliquez ici',
           'href' => 'https://drupal.fr',
           // 'target' intentionally omitted.
         ],
       ],
-    ]);
-    self::assertEntityIsValid($fr_translation);
+    ]));
+    // The constraint fires before save; synchronizer adds the key on save.
+    self::assertSame($target_violation, self::violationsToArray($fr_translation->validate()));
     $fr_translation->save();
+    // After save, the synchronizer added the missing key — entity is now valid.
+    self::assertEntityIsValid($fr_translation);
     foreach ($memory_and_stored() as $either) {
       $fr_list = $either->getTranslation('fr')->get($field_name);
       \assert($fr_list instanceof ComponentTreeItemList);
@@ -273,14 +225,14 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Can
     $new_instance_raw = [
       'uuid' => $new_uuid,
       'component_id' => 'sdc.canvas_test_sdc.my-cta',
-      'component_version' => $this->version,
+      'component_version' => '::ACTIVE_VERSION_IN_SUT::',
       'inputs' => [
         'text' => 'New link',
         'href' => 'https://new.example.com',
         'target' => '_self',
       ],
     ];
-    $entity->set($field_name, [$cta_with_blank, $new_instance_raw]);
+    $entity->set($field_name, self::populateActiveComponentVersionPlaceholders([$cta_with_blank, $new_instance_raw]));
     self::assertEntityIsValid($entity);
     $entity->save();
     foreach ($memory_and_stored() as $either) {
@@ -301,7 +253,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Can
     // 6. Reorder instances in default translation — order propagates to all
     // non-default translations. Non-translatable keys follow the UUID, not
     // the delta position.
-    $entity->set($field_name, [$new_instance_raw, $cta_with_blank]);
+    $entity->set($field_name, self::populateActiveComponentVersionPlaceholders([$new_instance_raw, $cta_with_blank]));
     self::assertEntityIsValid($entity);
     $entity->save();
     foreach ($memory_and_stored() as $either) {
@@ -327,9 +279,12 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Can
 
     // 7. Reorder instances in default translation AND modify an input key (undo
     // what step 2 did: `target: _blank` -> `target: _self`).
-    $entity->set($field_name, [$cta_instance_raw, $new_instance_raw]);
-    self::assertEntityIsValid($entity);
+    $entity->set($field_name, self::populateActiveComponentVersionPlaceholders([$cta_instance_raw, $new_instance_raw]));
+    // The constraint fires before save — FR is stale; synchronizer corrects on save.
+    self::assertSame($target_violation, self::violationsToArray($entity->validate()));
     $entity->save();
+    // After save, the synchronizer fixed 'target' in FR — entity is now valid.
+    self::assertEntityIsValid($entity);
     foreach ($memory_and_stored() as $either) {
       $fr_list = $either->getTranslation('fr')->get($field_name);
       \assert($fr_list instanceof ComponentTreeItemList);
@@ -356,14 +311,14 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Can
     $new_prepended_instance_raw = [
       'uuid' => $new_prepended_uuid,
       'component_id' => 'sdc.canvas_test_sdc.my-cta',
-      'component_version' => $this->version,
+      'component_version' => '::ACTIVE_VERSION_IN_SUT::',
       'inputs' => [
         'text' => 'Prepended link',
         'href' => 'https://prepended.example.com',
         'target' => '_blank',
       ],
     ];
-    $entity->set($field_name, [$new_prepended_instance_raw, $cta_instance_raw, $new_instance_raw]);
+    $entity->set($field_name, self::populateActiveComponentVersionPlaceholders([$new_prepended_instance_raw, $cta_instance_raw, $new_instance_raw]));
     self::assertEntityIsValid($entity);
     $entity->save();
     foreach ($memory_and_stored() as $either) {
@@ -406,7 +361,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Can
 
     // 8. Delete instance from default — removed from all non-default
     // translations.
-    $entity->set($field_name, [$new_prepended_instance_raw, $cta_instance_raw]);
+    $entity->set($field_name, self::populateActiveComponentVersionPlaceholders([$new_prepended_instance_raw, $cta_instance_raw]));
     self::assertEntityIsValid($entity);
     $entity->save();
     foreach ($memory_and_stored() as $either) {
@@ -426,9 +381,12 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Can
     self::assertNotNull($old_revision_id);
 
     $entity->setNewRevision(TRUE);
-    $entity->set($field_name, [$cta_with_blank]);
-    self::assertEntityIsValid($entity);
+    $entity->set($field_name, self::populateActiveComponentVersionPlaceholders([$cta_with_blank]));
+    // The constraint fires before save — FR is stale; synchronizer corrects on save.
+    self::assertSame($target_violation, self::violationsToArray($entity->validate()));
     $entity->save();
+    // After save, the synchronizer synced 'target' to the new revision's FR — entity is now valid.
+    self::assertEntityIsValid($entity);
 
     $new_revision_id = $entity->getRevisionId();
     self::assertNotSame($old_revision_id, $new_revision_id, 'A new revision must have been created.');
@@ -472,50 +430,6 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Can
       \array_map(fn (ComponentTreeItem $i) => $i->getInputs(), $instances),
       \array_map(fn (ComponentTreeItem $i) => $i->get('inputs_resolved')->getValue(), $instances),
     );
-  }
-
-  /**
-   * Sets up translation sync for the given entity type + field.
-   *
-   * For configurable fields (node): uses FieldConfig third-party settings.
-   * For base fields (canvas_page): uses BaseFieldOverride third-party settings.
-   * BaseFieldOverride implements ThirdPartySettingsInterface, which is what
-   * FieldTranslationSynchronizer::getFieldSynchronizationSettings() checks.
-   */
-  private function setUpSymmetricalContentTranslation(string $entity_type_id, string $bundle, string $field_name): void {
-    if ($entity_type_id === 'node') {
-      $this->createComponentTreeField('node', 'article', $field_name);
-      $this->enableContentTranslation('node', 'article');
-      $field_config = FieldConfig::loadByName('node', 'article', $field_name);
-      \assert($field_config instanceof FieldConfig);
-      $field_config->setTranslatable(TRUE);
-      $field_config->setThirdPartySetting('content_translation', 'translation_sync', [
-        'inputs' => 'inputs',
-        'tree' => 0,
-      ]);
-      self::assertEntityIsValid($field_config);
-      $field_config->save();
-    }
-    else {
-      // canvas_page uses the 'components' base field (already translatable).
-      // Create a BaseFieldOverride to store the translation_sync setting.
-      // BaseFieldOverride implements ThirdPartySettingsInterface, which is what
-      // FieldTranslationSynchronizer::getFieldSynchronizationSettings() checks.
-      $this->enableContentTranslation($entity_type_id, $bundle);
-      $override = BaseFieldOverride::createFromBaseFieldDefinition(
-        // @todo Remove this ignore once core's getBaseFieldDefinitions() return type is fixed.
-        // @phpstan-ignore-next-line argument.type
-        $this->container->get('entity_field.manager')
-          ->getBaseFieldDefinitions($entity_type_id)[$field_name],
-        $bundle,
-      );
-      $override->setThirdPartySetting('content_translation', 'translation_sync', [
-        'inputs' => 'inputs',
-        'tree' => 0,
-      ]);
-      self::assertEntityIsValid($override);
-      $override->save();
-    }
   }
 
 }
