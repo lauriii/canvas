@@ -324,6 +324,11 @@ test.describe('Language Select', () => {
         page.locator('[data-state="open"][role="menu"]'),
       ).not.toBeAttached();
       await languageButton.click();
+      // Wait for the menu to finish opening; Radix re-mounts collection items
+      // mid-animation, so clicking immediately detaches the target.
+      await expect(
+        page.locator('[data-state="open"][role="menu"]'),
+      ).toBeVisible();
       await page
         .locator(`[aria-label="More options for ${language}"]`)
         .first()

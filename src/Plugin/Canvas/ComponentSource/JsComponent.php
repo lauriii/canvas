@@ -16,6 +16,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
+use Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
@@ -282,12 +283,18 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
       }
       // Scalar or object leaf: its EvaluationResult (value + cacheability) is
       // hoisted by the EvaluationResult returned below.
-      $payload[$expression->getDeveloperFacingKey()] = Evaluator::evaluate($entity, $expression, is_required: FALSE);
+      $payload[$expression->getDeveloperFacingKey()] = Evaluator::evaluate($entity, $expression,
+        is_required: FALSE,
+        language: NegotiatedLanguage::matchEntity($entity),
+      );
     }
 
     // Call recursively for each expression that follows a reference.
     foreach ($reference_groups as $key => $group) {
-      $referenced = Evaluator::evaluate($entity, $group['referencer'], is_required: FALSE);
+      $referenced = Evaluator::evaluate($entity, $group['referencer'],
+        is_required: FALSE,
+        language: NegotiatedLanguage::matchEntity($entity),
+      );
       $payload[$key] = self::buildReferencePayload($referenced, $group['targets']);
     }
 

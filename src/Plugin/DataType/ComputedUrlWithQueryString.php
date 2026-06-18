@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\DataType;
 
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
+use Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
@@ -69,9 +70,16 @@ class ComputedUrlWithQueryString extends Uri implements DependentPluginInterface
 
     $url_with_query_string = new GeneratedUrl();
 
+    $field_item_language = \Drupal::languageManager()->getLanguage($field_item->getLangcode());
+    \assert($field_item_language !== NULL);
+
     // Compute the URL and query string from the provided instructions.
     $this->cacheability = new CacheableMetadata();
-    $url = Evaluator::evaluate($field_item, $url_prop_expression, is_required: TRUE);
+    $url = Evaluator::evaluate($field_item, $url_prop_expression,
+      is_required: TRUE,
+      // @todo Use `NegotiatedLanguage::matchEntity($field_item->getRoot()->getEntity())` in https://git.drupalcode.org/project/canvas/-/work_items/3571785 — the `new CacheableMetadata()` here loses the host entity's cache tags.
+      language: new NegotiatedLanguage($field_item_language, new CacheableMetadata()),
+    );
     $url_with_query_string->addCacheableDependency($url);
     \assert(\is_string($url->value));
     $url_components = UrlHelper::parse($url->value);
@@ -80,6 +88,8 @@ class ComputedUrlWithQueryString extends Uri implements DependentPluginInterface
         $field_item,
         StructuredDataPropExpression::fromString($query_parameter_instruction),
         is_required: TRUE,
+        // @todo Use `NegotiatedLanguage::matchEntity($field_item->getRoot()->getEntity())` in https://git.drupalcode.org/project/canvas/-/work_items/3571785 — the `new CacheableMetadata()` here loses the host entity's cache tags.
+        language: new NegotiatedLanguage($field_item_language, new CacheableMetadata()),
       );
       $url_with_query_string->addCacheableDependency($query_parameter);
       $url_components['query'][$query_parameter_name] = $query_parameter->value;

@@ -19,6 +19,7 @@ use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\NodeType;
@@ -36,10 +37,11 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('canvas')]
 #[Group('canvas_data_model')]
 #[Group('canvas_data_model__prop_expressions')]
+#[Group('#slow')]
 #[RunTestsInSeparateProcesses]
 class EntityFieldPropSourceTest extends PropSourceTestBase {
 
-  #[DataProvider('providerTest')]
+  #[DataProvider('provider')]
   public function test(
     array $permissions,
     string $expression,
@@ -53,7 +55,12 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
     ?array $expected_node_access_denied_message,
     array $expected_dependencies_expression_only,
     array $expected_dependencies_with_host_entity,
+    ?string $langcode,
   ): void {
+    if ($langcode !== NULL) {
+      $this->setupContentTranslation();
+      $this->switchContentLanguage($langcode);
+    }
     // Evaluating entity field props requires entity and field access of the
     // data being accessed.
 
@@ -242,6 +249,60 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
       default => throw new \LogicException(),
     };
     $this->assertSame($expected_dependencies_with_host_entity, $parsed->calculateDependencies($correct_host_entity));
+  }
+
+  /**
+   * Cross-product of providerTest() scenarios and langcodes.
+   *
+   * @see \Drupal\Tests\canvas\Kernel\PropSource\PropSourceTestBase::langcodes()
+   */
+  public static function provider(): \Generator {
+    $list_string_key = "simple: FieldPropExpression, but for a `list_string` field type's Canvas-specific computed `label` property";
+    foreach (self::providerTest() as $scenario_key => $scenario) {
+      // All scenarios must be tested in a monolingual context.
+      yield $scenario_key => [...$scenario, 'langcode' => NULL];
+
+      // For expressions that do not follow a reference, there's no point in
+      // generating multilingual scenarios: if there's no references being
+      // followed, there also cannot be any translation impact.
+      if (!\str_contains($scenario['expression'], '␜␜')) {
+        // The one exception to the above rule: the test scenario with the
+        // `list_string` field type, which has a very special way of generating
+        // labels, and hence a special multilingual impact worth testing.
+        if ($scenario_key !== $list_string_key) {
+          continue;
+        }
+      }
+
+      // In a multilingual context, loading the FieldStorageConfig entity via
+      // ConfigFactory triggers LanguageConfigFactoryOverride, which adds
+      // languages:language_interface to the bubbled cacheability. This happens
+      // in ListStringItemLabel::computeValue() via addCacheableDependency() on
+      // the field storage definition. On a monolingual site the override
+      // machinery is inactive, so the context is absent.
+      // @see \Drupal\canvas\Plugin\DataType\ListStringItemLabel::computeValue()
+      // @see \Drupal\language\Config\LanguageConfigFactoryOverride::getCacheableMetadata()
+      if ($scenario_key === $list_string_key) {
+        $evaluation = $scenario['expected_evaluation_with_node_host_entity'];
+        \assert($evaluation instanceof EvaluationResult);
+        $scenario['expected_evaluation_with_node_host_entity'] = new EvaluationResult(
+          $evaluation->value,
+          (new CacheableMetadata())
+            ->setCacheTags($evaluation->getCacheTags())
+            ->setCacheContexts([
+              ...$evaluation->getCacheContexts(),
+              'languages:' . LanguageInterface::TYPE_INTERFACE,
+            ])
+            ->setCacheMaxAge($evaluation->getCacheMaxAge()),
+        );
+      }
+      foreach (self::langcodes() as $langcode) {
+        yield "[$langcode] $scenario_key" => [
+          'langcode' => $langcode,
+          ...$scenario,
+        ];
+      }
+    }
   }
 
   public static function providerTest(): \Generator {
@@ -1093,6 +1154,64 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
     // The deleted entity's cache tag must be present so that if the entity is
     // recreated (or otherwise written at that ID), the cached NULL invalidates.
     self::assertContains('user:' . $target_uid, $result->getCacheTags());
+  }
+
+  /**
+   * Tests that an EntityFieldPropSource resolves references in the host language.
+   *
+   * Verifies that when a node's entity reference field points to a translated
+   * Media image entity, evaluating the prop expression via EntityFieldPropSource
+   * returns the alt text matching the host entity's own language. The host node
+   * is translated, and each case evaluates the node translation for $langcode;
+   * the referenced Media resolves in that same language.
+   *
+   * Also verifies language fallback: the node has a French translation but the
+   * Media does not, so the French case falls back to the default language.
+   *
+   * @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::doEvaluate()
+   * @see \Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage::matchEntity()
+   */
+  public function testTranslatedEntityReference(): void {
+    $this->setupContentTranslation();
+    $this->installEntitySchema('node');
+    NodeType::create(['type' => 'page', 'name' => 'page'])->save();
+    \Drupal::service('content_translation.manager')
+      ->setEnabled('node', 'page', TRUE);
+    $this->createEntityReferenceField('node', 'page', 'field_hero_image', 'Hero Image', 'media',
+      selection_handler_settings: ['target_bundles' => ['image' => 'image']],
+    );
+
+    $this->setUpCurrentUser(permissions: ['access content', 'view media']);
+    $media = $this->createTranslatedMediaFixture();
+
+    $node = $this->createNode([
+      'type' => 'page',
+      'langcode' => 'en',
+      'field_hero_image' => ['target_id' => $media->id()],
+    ]);
+    $node->addTranslation('es', [
+      'title' => 'Spanish title',
+      'field_hero_image' => ['target_id' => $media->id()],
+    ]);
+    $node->addTranslation('fr', [
+      'title' => 'French title',
+      'field_hero_image' => ['target_id' => $media->id()],
+    ]);
+
+    // Expression: node:page → field_hero_image → entity → media:image →
+    // field_media_image → alt.
+    $expression = 'ℹ︎␜entity:node:page␝field_hero_image␞␟entity␜␜entity:media:image␝field_media_image␞␟alt';
+    $prop_source = EntityFieldPropSource::parse([
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => $expression,
+    ]);
+
+    foreach (self::providerTranslatedReferencedMedia() as $scenario_name => ['langcode' => $langcode, 'expected_alt' => $expected_alt]) {
+      $host_entity = $node->getTranslation($langcode);
+      $result = $prop_source->evaluate(clone $host_entity, is_required: TRUE);
+      self::assertSame($expected_alt, $result->value, $scenario_name);
+      self::assertNotContains('languages:' . LanguageInterface::TYPE_CONTENT, $result->getCacheContexts(), $scenario_name);
+    }
   }
 
 }

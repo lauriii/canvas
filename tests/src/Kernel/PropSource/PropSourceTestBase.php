@@ -5,9 +5,16 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\PropSource;
 
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\TranslatableInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\File\FileExists;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\file\Entity\File;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\media\Entity\Media;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
@@ -161,6 +168,138 @@ abstract class PropSourceTestBase extends CanvasKernelTestBase {
       array_values($string_replacements),
       $value
     );
+  }
+
+  /**
+   * Switches the active content language if it differs from the site default.
+   */
+  protected function switchContentLanguage(string $langcode): void {
+    $default_langcode = \Drupal::languageManager()->getDefaultLanguage()->getId();
+    if ($langcode !== $default_langcode) {
+      $language = \Drupal::languageManager()->getLanguage($langcode);
+      \assert($language !== NULL);
+      \Drupal::service('language.default')->set($language);
+      \Drupal::languageManager()->reset();
+    }
+  }
+
+  /**
+   * Enables language and content_translation modules and creates two languages.
+   *
+   * ConfigurableLanguage::postSave() calls language_negotiation_url_prefixes_update(),
+   * so after this call language.negotiation config has prefixes `es` and `fr`
+   * set. Callers that need URL generation to reflect those prefixes must call
+   * \Drupal::service('kernel')->rebuildContainer() themselves — it is not done
+   * here to avoid penalizing tests that do not generate URLs.
+   */
+  protected function setupContentTranslation(): void {
+    $this->container->get(ModuleInstallerInterface::class)->install(['language', 'content_translation']);
+    $this->installConfig(['language']);
+
+    self::assertNull($this->config('language.negotiation')->get('url.prefixes.es'));
+    ConfigurableLanguage::createFromLangcode('es')->save();
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    // ConfigurableLanguage::postSave() auto-configured the URL prefix.
+    self::assertSame('es', $this->config('language.negotiation')->get('url.prefixes.es'));
+  }
+
+  /**
+   * Creates a translated image Media fixture for use in translation tests.
+   *
+   * Requires setupContentTranslation() to have been called first.
+   *
+   * @return \Drupal\media\Entity\Media
+   *   The saved EN media entity (with ES translation attached).
+   */
+  protected function createTranslatedMediaFixture(): Media {
+    \Drupal::service('content_translation.manager')
+      ->setEnabled('media', 'image', TRUE);
+
+    $media = Media::create([
+      'bundle' => 'image',
+      'name' => 'English Image',
+      'langcode' => 'en',
+      'field_media_image' => [
+        'target_id' => 1,
+        'alt' => 'Media Alt EN',
+      ],
+    ]);
+    self::assertEntityIsValid($media);
+    $media->save();
+    $media->addTranslation('es', [
+      'name' => 'Spanish Image',
+      'field_media_image' => [
+        'target_id' => 1,
+        'alt' => 'Media Alt ES',
+      ],
+    ]);
+    self::assertEntityIsValid($media->getTranslation('es'));
+    $media->save();
+    return $media;
+  }
+
+  /**
+   * Data provider for translated-entity-reference scenarios.
+   *
+   * @see ::createTranslatedMediaFixture()
+   */
+  public static function providerTranslatedReferencedMedia(): \Generator {
+    yield 'English (default language)' => [
+      'langcode' => 'en',
+      'expected_alt' => 'Media Alt EN',
+    ];
+    yield 'Spanish (translated)' => [
+      'langcode' => 'es',
+      'expected_alt' => 'Media Alt ES',
+    ];
+    // Language fallback: no FR translation exists, should return EN default.
+    yield 'French (fallback to default)' => [
+      'langcode' => 'fr',
+      'expected_alt' => 'Media Alt EN',
+    ];
+  }
+
+  /**
+   * Langcodes covered by multilingual scenarios.
+   *
+   * - `en`: site default, no translation lookup.
+   * - `es`: non-default content language.
+   * - `fr`: non-default content language with no translation (fallback path).
+   *
+   * @return string[]
+   */
+  protected static function langcodes(): array {
+    return ['en', 'es', 'fr'];
+  }
+
+  /**
+   * Creates a mock fieldable, translatable entity with the given language code.
+   *
+   * @param string $langcode
+   *   The language code.
+   *
+   * @return \Drupal\Core\Entity\FieldableEntityInterface&\Drupal\Core\Entity\TranslatableInterface
+   *   A mocked entity whose language() returns a LanguageInterface with the
+   *   given langcode, and whose isTranslatable() returns TRUE.
+   */
+  protected function createEntityWithLangcode(string $langcode): FieldableEntityInterface&TranslatableInterface {
+    $language = $this->createMock(LanguageInterface::class);
+    $language->method('getId')
+      ->willReturn($langcode);
+
+    $entity = $this->createMock(ContentEntityInterface::class);
+    $entity->method('isTranslatable')
+      ->willReturn(TRUE);
+    $entity->method('language')
+      ->willReturn($language);
+    $entity->method('getCacheTags')
+      ->willReturn([]);
+    $entity->method('getCacheContexts')
+      ->willReturn([]);
+    $entity->method('getCacheMaxAge')
+      ->willReturn(Cache::PERMANENT);
+
+    return $entity;
   }
 
 }

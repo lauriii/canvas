@@ -132,4 +132,33 @@ class HostEntityUrlPropSourceTest extends PropSourceTestBase {
     self::assertSame($expected_url, $source->evaluate($entity, TRUE)->value);
   }
 
+  /**
+   * Tests that evaluating a translated entity yields the language-prefixed URL.
+   *
+   * Passing the ES translation of a node to evaluate() must return /es/node/1,
+   * not /node/1. The URL language comes from the entity object's own language,
+   * not from the site's active negotiated language.
+   */
+  public function testMultilingual(): void {
+    $this->installConfig('node');
+    $this->installEntitySchema('node');
+    $this->installSchema('node', ['node_access']);
+    $this->createContentType(['type' => 'page']);
+
+    $this->setupContentTranslation();
+    // Rebuild so the outbound URL processor picks up the new language prefixes.
+    \Drupal::service('kernel')->rebuildContainer();
+
+    $node = $this->createNode(['type' => 'page', 'langcode' => 'en']);
+    $node->addTranslation('es', ['title' => 'Spanish title'])->save();
+
+    $source = HostEntityUrlPropSource::parse([
+      'sourceType' => PropSource::HostEntityUrl->value,
+      'absolute' => FALSE,
+    ]);
+
+    self::assertSame('/node/1', $source->evaluate($node, TRUE)->value);
+    self::assertSame('/es/node/1', $source->evaluate($node->getTranslation('es'), TRUE)->value);
+  }
+
 }

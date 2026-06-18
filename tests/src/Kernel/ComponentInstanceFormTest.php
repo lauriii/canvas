@@ -14,6 +14,7 @@ use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
+use Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -381,10 +382,19 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     // - `subheading` CAN be NULL, and currently evaluates to NULL
     // @phpstan-ignore-next-line method.nonObject
     self::assertTrue($node->getFieldDefinition('title')->isRequired());
-    self::assertSame('Test node', Evaluator::evaluate($node, expr: StructuredDataPropExpression::fromString($form_canvas_props['source']['heading']['expression']), is_required: FALSE)->value);
+    self::assertSame('Test node', Evaluator::evaluate($node,
+      expr: StructuredDataPropExpression::fromString($form_canvas_props['source']['heading']['expression']),
+      is_required: FALSE,
+      language: NegotiatedLanguage::matchEntity($node),
+    )->value);
     // @phpstan-ignore-next-line method.nonObject
     self::assertFalse($node->getFieldDefinition('media_image_field')->isRequired());
-    self::assertNull(Evaluator::evaluate($node, expr: StructuredDataPropExpression::fromString($form_canvas_props['source']['subheading']['expression']), is_required: FALSE)->value);
+    self::assertNull(Evaluator::evaluate(
+      entity_or_field: $node,
+      expr: StructuredDataPropExpression::fromString($form_canvas_props['source']['subheading']['expression']),
+      is_required: FALSE,
+      language: NegotiatedLanguage::matchEntity($node),
+    )->value);
     $crawler = $this->getCrawlerForFormRequest($form_url, $component_entity, $form_canvas_props);
     // Confirm the linked prop fields are rendered.
     self::assertCount(1, $crawler->filter('.canvas-linked-prop-label-wrapper[data-drupal-selector*="-heading-"]'));

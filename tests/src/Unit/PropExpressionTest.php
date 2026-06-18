@@ -839,7 +839,10 @@ class PropExpressionTest extends UnitTestCase {
         ),
         self::EXPECT_NO_DEPRECATION,
         'Authored by␞124th item␜User␝Name',
-        new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.'),
+        [
+          'module' => ['node', 'user'],
+          'content' => [],
+        ],
         ['ℹ︎␜entity:node␝uid␞123␟entity␜'],
       ],
       [
@@ -855,7 +858,10 @@ class PropExpressionTest extends UnitTestCase {
         ),
         self::EXPECT_NO_DEPRECATION,
         'Authored by␞124th item␜User␝Name␞1st item',
-        new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.'),
+        [
+          'module' => ['node', 'user'],
+          'content' => [],
+        ],
         ['ℹ︎␜entity:node␝uid␞123␟entity␜'],
       ],
       [
@@ -871,7 +877,10 @@ class PropExpressionTest extends UnitTestCase {
         ),
         self::EXPECT_NO_DEPRECATION,
         'Authored by␞124th item␜User␝Name␞100th item',
-        new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.'),
+        [
+          'module' => ['node', 'user'],
+          'content' => [],
+        ],
         ['ℹ︎␜entity:node␝uid␞123␟entity␜'],
       ],
     ];

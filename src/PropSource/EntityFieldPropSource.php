@@ -11,6 +11,7 @@ use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionI
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
+use Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\Component\Plugin\Definition\PluginDefinitionInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -111,12 +112,12 @@ final class EntityFieldPropSource extends PropSourceBase implements LinkableProp
     if ($host_entity === NULL) {
       throw new MissingHostEntityException();
     }
-    $raw_result = Evaluator::evaluate($host_entity, $this->expression, $is_required);
+    $raw_result = Evaluator::evaluate($host_entity, $this->expression, $is_required, NegotiatedLanguage::matchEntity($host_entity));
 
     // Only adapt non-empty results.
     if ($this->adapter && $raw_result->value !== NULL) {
       // Only adapter plugins with a single input are accepted, which is how
-      // this is able to remain much simpler than AdaptedPropSource
+      // this is able to remain much simpler than AdaptedPropSource.
       // @see ::__construct()
       // @see \Drupal\canvas\PropSource\AdaptedPropSource
       $sole_input_name = \array_keys($this->adapter->getInputs())[0];

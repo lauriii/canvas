@@ -7,6 +7,7 @@ namespace Drupal\canvas\PropSource;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
@@ -25,6 +26,7 @@ use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\DataDefinitionInterface;
+use Drupal\Core\TypedData\TranslatableInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 
 /**
@@ -410,9 +412,13 @@ final class StaticPropSource extends PropSourceBase {
    * {@inheritdoc}
    */
   public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): EvaluationResult {
+    // @todo Use `NegotiatedLanguage::matchEntity($this->>fieldItemList->getRoot()->getEntity())` in https://git.drupalcode.org/project/canvas/-/work_items/3571785, and drop this conditional.
+    $language = $host_entity instanceof TranslatableInterface && $host_entity->isTranslatable()
+      ? NegotiatedLanguage::matchEntity($host_entity)
+      : NegotiatedLanguage::negotiateFromConfigAndContext();
     return match ($this->getCardinality()) {
-      1 => Evaluator::evaluate($this->fieldItemList->first(), $this->expression, $is_required),
-      default => Evaluator::evaluate($this->fieldItemList, $this->expression, $is_required)
+      1 => Evaluator::evaluate($this->fieldItemList->first(), $this->expression, $is_required, $language),
+      default => Evaluator::evaluate($this->fieldItemList, $this->expression, $is_required, $language)
     };
   }
 

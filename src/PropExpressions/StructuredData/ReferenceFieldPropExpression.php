@@ -9,6 +9,7 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
+use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
@@ -158,17 +159,15 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
       $dependencies = NestedArray::mergeDeep($dependencies, $this->referenced->calculateDependencies());
     }
     else {
-      // ⚠️ Do not require values while calculating dependencies: this MUST not
-      // fail.
-      $referenced_content_entities = Evaluator::evaluate($host_entity, $this->referencer, is_required: FALSE)->value;
-      $referenced_content_entities = match (gettype($referenced_content_entities)) {
-        // Reference field containing nothing.
-        'NULL' => [],
-        // Reference field containing multiple references.
-        'array' => $referenced_content_entities,
-        // Reference field containing a single reference.
-        default => [$referenced_content_entities],
-      };
+      $reference_field = $host_entity->get($this->referencer->getFieldName());
+      \assert($reference_field instanceof EntityReferenceFieldItemListInterface);
+      $referenced_content_entities = $reference_field->referencedEntities();
+      if ($this->referencer->delta !== NULL) {
+        $referenced_content_entities = \array_intersect_key(
+          $referenced_content_entities,
+          \array_flip([$this->referencer->delta]),
+        );
+      }
       \assert(Inspector::assertAllObjects($referenced_content_entities, FieldableEntityInterface::class));
       $dependencies['content'] = [
         ...$dependencies['content'] ?? [],

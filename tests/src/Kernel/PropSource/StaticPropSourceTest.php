@@ -20,9 +20,11 @@ use Drupal\Core\Field\Plugin\Field\FieldWidget\EntityReferenceAutocompleteWidget
 use Drupal\Core\Field\Plugin\Field\FieldWidget\NumberWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDatelistWidget;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDefaultWidget;
 use Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget;
+use Drupal\node\Entity\NodeType;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -60,7 +62,7 @@ class StaticPropSourceTest extends PropSourceTestBase {
     // First, get the string representation and parse it back, to prove
     // serialization and deserialization works.
     $json_representation = (string) $prop_source_example;
-    $decoded_representation = json_decode($json_representation, TRUE);
+    $decoded_representation = \json_decode($json_representation, TRUE, flags: \JSON_THROW_ON_ERROR);
     $this->assertSame($expected_array_representation, $decoded_representation);
     // @phpstan-ignore argument.type
     $prop_source_example = PropSource::parse($decoded_representation);
@@ -655,6 +657,150 @@ class StaticPropSourceTest extends PropSourceTestBase {
       ],
       'permissions' => ['view media', 'access content'],
     ];
+  }
+
+  /**
+   * Tests that a static entity reference resolves to the correct translation.
+   *
+   * Verifies that when a StaticPropSource contains an entity reference to a
+   * translated Media image entity, evaluating the prop expression returns the
+   * alt text matching the active content language. The Evaluator calls
+   * getTranslationFromContext() on the referenced entity, which picks the
+   * translation based on the current content language.
+   *
+   * Also verifies language fallback: evaluating in a language for which the
+   * entity has no translation falls back to the default language.
+   *
+   * @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::doEvaluate()
+   */
+  public function testTranslatedEntityReference(): void {
+    $this->setupContentTranslation();
+    $this->setUpCurrentUser(permissions: ['access content', 'view media']);
+    $media = $this->createTranslatedMediaFixture();
+
+    // Expression: entity_reference → entity → media:image →
+    // field_media_image → alt.
+    $prop_source_array = [
+      'sourceType' => 'static:field_item:entity_reference',
+      'value' => ['target_id' => $media->id()],
+      'expression' => 'ℹ︎entity_reference␟entity␜␜entity:media:image␝field_media_image␞␟alt',
+      'sourceTypeSettings' => [
+        'storage' => ['target_type' => 'media'],
+        'instance' => [
+          'handler' => 'default:media',
+          'handler_settings' => [
+            'target_bundles' => ['image' => 'image'],
+          ],
+        ],
+      ],
+    ];
+
+    foreach (self::providerTranslatedReferencedMedia() as $scenario_name => ['langcode' => $langcode, 'expected_alt' => $expected_alt]) {
+      // The null-host evaluate() path mutates the loaded entity object by adding
+      // languages:language_content to it via addCacheableDependency(). Without
+      // this reset, the next scenario's host-entity path gets that mutated
+      // object from the static cache, leaking the cache context into its result.
+      \Drupal::entityTypeManager()->getStorage('media')->resetCache();
+
+      // ⚠️ When evaluating with a given host entity, that host entity language
+      // is used and the active negotiated content language has no impact.
+      // Note:
+      // - host_entity IS set
+      // - the content language cache context is NEVER present
+      foreach (self::langcodes() as $active_content_langcode) {
+        $this->switchContentLanguage($active_content_langcode);
+        $result = StaticPropSource::parse($prop_source_array)->evaluate(
+          host_entity: $this->createEntityWithLangcode($langcode),
+          is_required: TRUE,
+        );
+        self::assertSame($expected_alt, $result->value, "$active_content_langcode active, $scenario_name");
+        self::assertNotContains('languages:' . LanguageInterface::TYPE_CONTENT, $result->getCacheContexts(), "$active_content_langcode active, $scenario_name");
+      }
+
+      // ⚠️ When evaluating without a host entity, the active negotiated content
+      // language is used to decide which translation of the referenced Media
+      // entity to load.
+      // Note:
+      // - host_entity IS NOT set
+      // - the content language cache context is ALWAYS present
+      // @todo Change this expectation in https://git.drupalcode.org/project/canvas/-/work_items/3571785: it should no longer be adding the language cache context then
+      $this->switchContentLanguage($langcode);
+      $result = StaticPropSource::parse($prop_source_array)->evaluate(
+        host_entity: NULL,
+        is_required: TRUE,
+      );
+      self::assertSame($expected_alt, $result->value, $scenario_name);
+      self::assertContains('languages:' . LanguageInterface::TYPE_CONTENT, $result->getCacheContexts(), $scenario_name);
+    }
+  }
+
+  /**
+   * Tests that a static image prop source is language-independent.
+   *
+   * A StaticPropSource's FieldItemList is conjured without a host entity, so it
+   * carries `und`. Evaluating the full image expression (inline scalars + the
+   * non-translatable File reference) must yield an identical result for every
+   * host translation: the `und` langcode never leaks in as the negotiated
+   * language, and static values do not vary by language.
+   *
+   * @see \Drupal\canvas\PropSource\StaticPropSource::conjureFieldItemList()
+   * @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::resolveTranslation()
+   * @todo Refactor or remove this test coverage in https://git.drupalcode.org/project/canvas/-/work_items/3571785
+   */
+  public function testStaticImageIsLanguageIndependent(): void {
+    $this->setupContentTranslation();
+    $this->installEntitySchema('node');
+    NodeType::create(['type' => 'page', 'name' => 'page'])->save();
+    \Drupal::service('content_translation.manager')
+      ->setEnabled('node', 'page', TRUE);
+    $this->setUpCurrentUser(permissions: ['access content']);
+
+    $prop_source = StaticPropSource::parse([
+      'sourceType' => 'static:field_item:image',
+      'value' => ['target_id' => 1, 'alt' => 'Inline alt text', 'width' => 80, 'height' => 60],
+      'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+    ]);
+
+    // The conjured list has no host entity, so the langcode is `und`.
+    self::assertSame(
+      LanguageInterface::LANGCODE_NOT_SPECIFIED,
+      $prop_source->fieldItemList->getLangcode(),
+    );
+
+    // A translatable host node with a non-default translation.
+    $node = $this->createNode(['type' => 'page', 'langcode' => 'en']);
+    $node->addTranslation('es', ['title' => 'Spanish title']);
+
+    // Evaluate against the English host (active content language: en).
+    $en_result = $prop_source->evaluate(clone $node->getTranslation('en'), is_required: TRUE);
+    // Evaluate against the Spanish host, with the active content language also
+    // switched to Spanish — neither must change the static result.
+    $this->switchContentLanguage('es');
+    $es_result = $prop_source->evaluate(clone $node->getTranslation('es'), is_required: TRUE);
+    // And even with no host entity, the prop should still unchanged
+    $no_host_result = $prop_source->evaluate(NULL, is_required: TRUE);
+
+    // The File reference resolved through the `und` conjured list: `src` is a
+    // non-empty URL string. Inline scalars are returned verbatim.
+    self::assertSame([
+      'src' => str_replace(
+        ['::SITE_DIR_BASE_URL::', UrlHelper::encodePath('::SITE_DIR_BASE_URL::')],
+        [\base_path() . $this->siteDirectory, UrlHelper::encodePath(\base_path() . $this->siteDirectory)],
+        '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--{width}/public/image-2.jpg.avif?itok=IeQvQSDi'),
+      ),
+      'alt' => 'Inline alt text',
+      'width' => 80,
+      'height' => 60,
+    ], $en_result->value);
+
+    // Check that the evaluation result is the same in all languages.
+    self::assertSame($en_result->value, $es_result->value);
+    self::assertSame($en_result->value, $no_host_result->value);
+
+    // The content language cache context is never added.
+    self::assertNotContains('languages:' . LanguageInterface::TYPE_CONTENT, $en_result->getCacheContexts());
+    self::assertNotContains('languages:' . LanguageInterface::TYPE_CONTENT, $es_result->getCacheContexts());
+    self::assertNotContains('languages:' . LanguageInterface::TYPE_CONTENT, $no_host_result->getCacheContexts());
   }
 
 }

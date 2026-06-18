@@ -10,6 +10,7 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
+use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
@@ -196,17 +197,8 @@ final class ReferenceFieldTypePropExpression implements FieldTypeBasedPropExpres
       $dependencies = NestedArray::mergeDeep($dependencies, $this->referenced->calculateDependencies());
     }
     else {
-      // ⚠️ Do not require values while calculating dependencies: this MUST not
-      // fail.
-      $referenced_content_entities = Evaluator::evaluate($field_item_list, $this->referencer, is_required: FALSE)->value;
-      $referenced_content_entities = match (gettype($referenced_content_entities)) {
-        // Reference field containing nothing.
-        'null' => [],
-        // Reference field containing multiple references.
-        'array' => $referenced_content_entities,
-        // Reference field containing a single reference.
-        default => [$referenced_content_entities],
-      };
+      \assert($field_item_list instanceof EntityReferenceFieldItemListInterface);
+      $referenced_content_entities = $field_item_list->referencedEntities();
       \assert(Inspector::assertAllObjects($referenced_content_entities, FieldableEntityInterface::class));
       $dependencies['content'] = [
         ...$dependencies['content'] ?? [],

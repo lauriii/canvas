@@ -10,6 +10,7 @@ use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
+use Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage;
 use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
@@ -574,11 +575,11 @@ class PropExpressionKernelTest extends CanvasKernelTestBase {
     if ($expected_exception_message !== NULL) {
       self::expectException(\OutOfRangeException::class);
       self::expectExceptionMessage($expected_exception_message);
-      Evaluator::evaluate($node, $expr, is_required: $is_required);
+      Evaluator::evaluate($node, $expr, is_required: $is_required, language: NegotiatedLanguage::matchEntity($node));
       return;
     }
 
-    $result = Evaluator::evaluate($node, $expr, is_required: $is_required);
+    $result = Evaluator::evaluate($node, $expr, is_required: $is_required, language: NegotiatedLanguage::matchEntity($node));
     // Delta 1 (remote_image) is omitted — only deltas 0 and 2 remain.
     self::assertSame($expected_value, $result->value);
   }

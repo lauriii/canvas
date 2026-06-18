@@ -88,6 +88,8 @@ final class Layers {
         Selector::inNamespace('Drupal\Core\Http\Exception'),
         Selector::inNamespace('Drupal\Core\TypedData'),
         Selector::inNamespace('Drupal\Core\StringTranslation'),
+        // For the NegotiatedLanguage value object.
+        Selector::inNamespace('Drupal\Core\Language'),
         // For the Labeler & Evaluator to get the container.
         Selector::classname(\Drupal::class),
         // Special case in the Evaluator: datetime fields.

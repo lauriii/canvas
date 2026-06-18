@@ -9,8 +9,10 @@ use Drupal\Core\Access\AccessResultReasonInterface;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityReference;
+use Drupal\Core\Entity\TranslatableInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -48,8 +50,55 @@ final class Evaluator {
     return new CacheableMetadata();
   }
 
-  public static function evaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr, bool $is_required): EvaluationResult {
-    $result = self::doEvaluate($entity_or_field, $expr, $is_required);
+  /**
+   * Resolves an entity to its translation if available.
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity to resolve.
+   * @param \Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage $language
+   *   The language code to resolve to.
+   *
+   * @return \Drupal\Core\Entity\FieldableEntityInterface
+   *   The translated entity if available, otherwise the original entity.
+   *
+   * @throws \LogicException
+   *   When requesting a translation for a locked language, like `und` etc. This
+   *   should be impossible, but err on the side of caution.
+   *
+   * @see \Drupal\Core\Language\LanguageInterface::LANGCODE_NOT_SPECIFIED
+   * @see \Drupal\Core\Language\LanguageInterface::LANGCODE_NOT_APPLICABLE
+   * @see \Drupal\Core\Language\LanguageInterface::LANGCODE_DEFAULT
+   * @see \Drupal\Core\Language\LanguageInterface::LANGCODE_SITE_DEFAULT
+   * @see \Drupal\Core\Language\LanguageInterface::LANGCODE_SYSTEM
+   */
+  private static function resolveTranslation(FieldableEntityInterface $entity, NegotiatedLanguage $language): FieldableEntityInterface {
+    if ($language->language->isLocked()) {
+      // TRICKY: the ::isTranslatable() check is only necessary to allow e.g.
+      // prop expressions pointing to a non-translatable entity type (e.g. File)
+      // to not require a language to be specified.
+      // @todo Remove this early return in https://git.drupalcode.org/project/canvas/-/work_items/3571785
+      if ($entity instanceof TranslatableInterface && !$entity->isTranslatable()) {
+        // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
+        @trigger_error(\sprintf('Requested the %s translation for a %s entity object in the %s language.', $language->language->getId(), $entity->getEntityTypeId(), $entity->language()->getId()), E_USER_DEPRECATED);
+        return $entity;
+      }
+      throw new \LogicException('Entities cannot have a translation for a locked language.');
+    }
+    // TRICKY: EntityRepositoryInterface::getTranslationFromContext() claims to
+    // return either an entity object or NULL if the translation is "missing,
+    // forbidden or unavailable", but the implementation actually guarantees an
+    // entity object is returned *or* throws an \InvalidArgumentException.
+    return \Drupal::service(EntityRepositoryInterface::class)
+      // TRICKY: ::getTranslationFromContext() would add the necessary cache
+      // context only if the entity actually has a translation. Canvas always
+      // adds the necessary cache context, as soon as there's >=2 languages on
+      // this site.
+      ->getTranslationFromContext($entity, $language->language->getId())
+      ->addCacheableDependency($language);
+  }
+
+  public static function evaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr, bool $is_required, NegotiatedLanguage $language): EvaluationResult {
+    $result = self::doEvaluate($entity_or_field, $expr, $is_required, $language);
     // Compensate for DateTimeItemInterface::DATETIME_STORAGE_FORMAT not
     // including the trailing `Z`. In theory, this should always use an adapter.
     // But is the storage and complexity overhead of doing that worth that
@@ -81,7 +130,7 @@ final class Evaluator {
     );
   }
 
-  private static function doEvaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr, bool $is_required): EvaluationResult {
+  private static function doEvaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr, bool $is_required, NegotiatedLanguage $language): EvaluationResult {
     $permanent_cacheability = new CacheableMetadata();
     // Evaluating an expression when the evaluation context is NULL is
     // impossible.
@@ -113,7 +162,7 @@ final class Evaluator {
     if ($entity_or_field instanceof FieldItemListInterface) {
       return new EvaluationResult(
         \array_map(
-          fn (FieldItemInterface $item) => self::evaluate($item, $expr, $is_required),
+          fn (FieldItemInterface $item) => self::evaluate($item, $expr, $is_required, $language),
           iterator_to_array($entity_or_field),
         ),
         $permanent_cacheability
@@ -138,10 +187,10 @@ final class Evaluator {
           );
         })(),
         FieldTypeObjectPropsExpression::class => \array_map(
-          fn ((ScalarPropExpressionInterface&FieldTypeBasedPropExpressionInterface)|(ReferencePropExpressionInterface&FieldTypeBasedPropExpressionInterface) $sub_expr) => self::evaluate($field, $sub_expr, $is_required),
+          fn ((ScalarPropExpressionInterface&FieldTypeBasedPropExpressionInterface)|(ReferencePropExpressionInterface&FieldTypeBasedPropExpressionInterface) $sub_expr) => self::evaluate($field, $sub_expr, $is_required, $language),
           $expr->getObjectExpressions(),
         ),
-        ReferenceFieldTypePropExpression::class => (function () use ($field, $expr, $is_required) {
+        ReferenceFieldTypePropExpression::class => (function () use ($field, $expr, $is_required, $language) {
           $reference_property = $field->get($expr->referencer->propName);
           \assert($reference_property instanceof DataReferenceInterface);
           \assert($reference_property instanceof EntityReference);
@@ -162,6 +211,9 @@ final class Evaluator {
             return NULL;
           }
 
+          // Resolve the referenced entity to its translation if available.
+          $referenced_entity = self::resolveTranslation($referenced_entity, $language);
+
           $referenced_expression = $expr->getTargetExpression(
             $expr->targetsMultipleBundles() ? $referenced_entity : NULL
           );
@@ -169,6 +221,7 @@ final class Evaluator {
             $referenced_entity,
             $referenced_expression,
             $is_required,
+            $language,
           );
         })(),
         default => throw new \LogicException('Unhandled expression type. ' . (string) $expr),
@@ -311,14 +364,14 @@ final class Evaluator {
             )
           );
         })(),
-        ReferenceFieldPropExpression::class => (function () use ($entity, $field_item_list, $expr, $is_required, $cardinality) {
+        ReferenceFieldPropExpression::class => (function () use ($entity, $field_item_list, $expr, $is_required, $cardinality, $language) {
           \assert($field_item_list->getName() === $expr->referencer->getFieldName());
           // Step 1: evaluate the referencer expression to get the referenced
           // entities. This always is a FieldPropExpression, which also handles
           // respecting the delta in the expression.
           // Note: this EvaluationResult object carries cacheability (for e.g.
           // entity access).
-          $referencer_result = self::evaluate($entity, $expr->referencer, $is_required);
+          $referencer_result = self::evaluate($entity, $expr->referencer, $is_required, $language);
 
           // Step 2A: single-cardinality or single delta: result is a single
           // value, not an array.
@@ -335,10 +388,12 @@ final class Evaluator {
             if (self::shouldOmitUnmatchedBundle($expr, $referenced_entity, $is_required)) {
               return new EvaluationResult(NULL, $referencer_result);
             }
+            // Resolve the referenced entity to its translation if available.
+            $referenced_entity = self::resolveTranslation($referenced_entity, $language);
             $referenced_expression = $expr->getTargetExpression(
               $expr->targetsMultipleBundles() ? $referenced_entity : NULL
             );
-            return self::evaluate($referenced_entity, $referenced_expression, $is_required);
+            return self::evaluate($referenced_entity, $referenced_expression, $is_required, $language);
           }
 
           // Step 2B: multiple-cardinality, no delta: result is an array of
@@ -354,15 +409,17 @@ final class Evaluator {
             if (self::shouldOmitUnmatchedBundle($expr, $referenced_entity, $is_required)) {
               continue;
             }
+            // Resolve the referenced entity to its translation if available.
+            $referenced_entity = self::resolveTranslation($referenced_entity, $language);
             $referenced_expression = $expr->getTargetExpression(
               $expr->targetsMultipleBundles() ? $referenced_entity : NULL
             );
-            $evaluated_references[$delta] = self::evaluate($referenced_entity, $referenced_expression, $is_required);
+            $evaluated_references[$delta] = self::evaluate($referenced_entity, $referenced_expression, $is_required, $language);
           }
           return new EvaluationResult($evaluated_references, $referencer_result);
         })(),
         FieldObjectPropsExpression::class => \array_map(
-          fn((ScalarPropExpressionInterface&EntityFieldBasedPropExpressionInterface)|(ReferencePropExpressionInterface&EntityFieldBasedPropExpressionInterface) $sub_expr): EvaluationResult => self::evaluate($entity_or_field, $sub_expr, $is_required),
+          fn((ScalarPropExpressionInterface&EntityFieldBasedPropExpressionInterface)|(ReferencePropExpressionInterface&EntityFieldBasedPropExpressionInterface) $sub_expr): EvaluationResult => self::evaluate($entity_or_field, $sub_expr, $is_required, $language),
           $expr->getObjectExpressions(),
         ),
         default => throw new \LogicException('Unhandled expression type.'),
