@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
-// cspell:ignore Aangedreven Holle daar staan voor Hallo wereld
+// cspell:ignore Aangedreven Holle daar staan voor Hallo wereld Ceci
 
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
@@ -14,6 +14,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Config\ConfigException;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -22,6 +23,7 @@ use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -40,6 +42,7 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
 
   use ContentTypeCreationTrait;
   use GenerateComponentConfigTrait;
+  use ConstraintViolationsTestTrait;
 
   private const UUID_SDC_UNSTRUCTURED_DATA = '435d1d20-a697-4d36-9892-9d61c825c99c';
   private const UUID_SDC_STRUCTURED_DATA = '57afe4ed-c593-4457-a741-2ac5053be928';
@@ -126,6 +129,14 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
       // translatable subsets.
       // @see ::saveConfigEntityTranslation()
       'config_translation',
+      // To formally enable config translation support for Canvas' config entity
+      // types.
+      // @see \Drupal\canvas_dev_translation\Hook\ConfigTranslationSupportHooks::entityTypeAlter()
+      // Attaches CanvasConfigEntityTranslationsAreValidConstraint to Canvas
+      // config entity types, so invalid overrides are caught by entity
+      // validation.
+      // @see \Drupal\canvas\Plugin\Validation\Constraint\CanvasConfigEntityTranslationsAreValidConstraint
+      'canvas_dev_translation',
     ]);
     $this->generateComponentConfig();
 
@@ -332,6 +343,45 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
     self::assertNotSame($override_hash_original, $override_hash_after_deletion);
     self::assertTrue($override->isNew());
     self::assertSame([], $override->getRawData());
+
+    // Verify that saving a LanguageConfigOverride with an invalid value throws
+    // a ConfigException (in tests), after it's been saved. This ensures tests
+    // cannot possibly unwittingly introduce such regressions.
+    // @see \Drupal\canvas\EventSubscriber\LanguageConfigOverrideSchemaChecker
+    //
+    // Restore the component instance with a translatable `href` prop (a
+    // `type: string, format: uri` SDC prop backed by a link field) so that an
+    // invalid URI override can be attempted.
+    $template->setComponentTree(\array_reverse($component_instances))->save();
+    self::assertEntityIsValid($template);
+    $nl_invalid_href_values = $template->toArray();
+    NestedArray::setValue(
+      $nl_invalid_href_values,
+      parents: ['component_tree', self::UUID_SDC_UNSTRUCTURED_DATA, 'inputs', 'href'],
+      // Override the `href` prop of UUID_SDC_UNSTRUCTURED_DATA with a value
+      // that is not a valid URI — this must be rejected at save time.
+      value: [0 => ['uri' => "Ceci n'est pas une URL"]],
+    );
+    try {
+      $this->saveConfigEntityTranslation($template, 'nl', $nl_invalid_href_values);
+      $this->fail('LanguageConfigOverrideSchemaChecker should have detected an invalid save.');
+    }
+    catch (ConfigException $e) {
+      // @see \Drupal\canvas\EventSubscriber\LanguageConfigOverrideSchemaChecker
+      self::assertSame(
+        'Validation of the "canvas.content_template.node.helpful.full" LanguageConfigOverride failed: [component_tree.435d1d20-a697-4d36-9892-9d61c825c99c.inputs.435d1d20-a697-4d36-9892-9d61c825c99c.href] Invalid URL format. The provided value is: "Ceci n\'est pas une URL".',
+        $e->getMessage(),
+      );
+    }
+
+    // On production sites, LanguageConfigOverrideSchemaChecker won't be
+    // installed to throw a ConfigException (that'd trigger a 500 response). But
+    // validation would still catch it after the fact. Prove that once all UIs
+    // perform validation, the relevant validation error would be surfaced.
+    // @todo Ensure that the Config Translation and TMGMT UIs perform validation before saving: https://git.drupalcode.org/project/canvas/-/work_items/3591690
+    self::assertSame([
+      '' => '[<em class="placeholder">nl</em>] [<em class="placeholder">component_tree.435d1d20-a697-4d36-9892-9d61c825c99c.inputs.435d1d20-a697-4d36-9892-9d61c825c99c.href</em>] <em class="placeholder">Invalid URL format. The provided value is: &quot;Ceci n&#039;est pas une URL&quot;.</em>',
+    ], self::violationsToArray($template->getTypedData()->validate()));
 
     // See also the integration tests that prove the translation can be created
     // via the UI and appears for end users.

@@ -37,6 +37,10 @@ final readonly class ContentTranslationHooks {
     if (!$this->moduleHandler->moduleExists('content_translation') || !$this->moduleHandler->moduleExists('canvas_dev_translation')) {
       return;
     }
+
+    // A sibling exists for config-defined component trees.
+    // @see \Drupal\canvas_dev_translation\Hook\ConfigTranslationSupportHooks::entityTypeAlter()
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\CanvasConfigEntityTranslationsAreValidConstraint
     foreach ($entity_types as $entity_type) {
       if ($entity_type instanceof ContentEntityTypeInterface && $entity_type->isTranslatable()) {
         $entity_type->addConstraint(ComponentTreeSymmetricalTranslationConstraint::PLUGIN_ID);

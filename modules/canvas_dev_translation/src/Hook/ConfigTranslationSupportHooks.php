@@ -6,6 +6,8 @@ namespace Drupal\canvas_dev_translation\Hook;
 
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Plugin\Validation\Constraint\CanvasConfigEntityTranslationsAreValidConstraint;
+use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Hook\Order\OrderBefore;
@@ -14,6 +16,16 @@ use Drupal\Core\Hook\Order\OrderBefore;
  * Makes Canvas config entities compatible with config_translation.
  */
 readonly final class ConfigTranslationSupportHooks {
+
+  /**
+   * Canvas config entity type IDs that support translation.
+   *
+   * @var string[]
+   */
+  public const array TRANSLATABLE_ENTITY_TYPE_IDS = [
+    ContentTemplate::ENTITY_TYPE_ID,
+    PageRegion::ENTITY_TYPE_ID,
+  ];
 
   /**
    * Implements hook_entity_type_alter.
@@ -31,6 +43,16 @@ readonly final class ConfigTranslationSupportHooks {
         // a `config-translation-overview` link template.
         // @see \Drupal\config_translation\Hook\ConfigTranslationHooks::entityTypeAlter()
         $definitions[$entity_type]->setLinkTemplate('edit-form', $edit_link);
+      }
+    }
+
+    // A sibling exists for content-defined component trees.
+    // @see \Drupal\canvas\Hook\ContentTranslationHooks::entityTypeAlter()
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeSymmetricalTranslationConstraint
+    foreach (self::TRANSLATABLE_ENTITY_TYPE_IDS as $entity_type_id) {
+      if (isset($definitions[$entity_type_id])) {
+        \assert($definitions[$entity_type_id] instanceof ConfigEntityTypeInterface);
+        $definitions[$entity_type_id]->addConstraint(CanvasConfigEntityTranslationsAreValidConstraint::PLUGIN_ID);
       }
     }
   }

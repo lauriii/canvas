@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
+use Drupal\canvas\EventSubscriber\LanguageConfigOverrideSchemaChecker;
 use Drupal\config_translation\Form\ConfigTranslationFormBase;
 use Drupal\config_translation\FormElement\ElementInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -16,6 +17,7 @@ use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
+use Symfony\Component\DependencyInjection\Reference;
 
 /**
  * Base class for Canvas kernel tests.
@@ -119,6 +121,16 @@ abstract class CanvasKernelTestBase extends KernelTestBase {
     if ($this->strictConfigSchema) {
       // Opt in to config validation, despite this being contrib.
       $container->getDefinition('testing.config_schema_checker')->setArgument(2, TRUE);
+
+      // Analogous to testing.config_schema_checker: validate LanguageConfigOverride
+      // saves for Canvas config entities. Only fires when the `language` module is
+      // installed, so safe to register unconditionally.
+      // @see \Drupal\Core\Config\Development\ConfigSchemaChecker
+      $container
+        ->register('canvas.testing.language_config_override_schema_checker', LanguageConfigOverrideSchemaChecker::class)
+        ->addArgument(new Reference('config.typed'))
+        ->addArgument(new Reference('config.factory'))
+        ->addTag('event_subscriber');
     }
   }
 

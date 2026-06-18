@@ -49,6 +49,11 @@ parameters:
     - identifier: varTag.type
     # All of the ignores below are for missing parameter or return types that are imposed by upstream implementations.
     -
+      message: '#^Method Drupal\\Tests\\canvas\\Functional\\FunctionalTestBase\:\:prepareSettings\(\) has no return type specified\.$#'
+      identifier: missingType.return
+      count: 1
+      path: tests/src/Functional/FunctionalTestBase.php
+    -
       message: '#^Method Drupal\\canvas\\Plugin\\Field\\FieldType\\ComponentTreeItemList\:\:get\(\) has parameter \$index with no type specified\.$#'
       identifier: missingType.parameter
       count: 1

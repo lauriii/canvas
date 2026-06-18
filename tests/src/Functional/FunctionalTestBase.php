@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use Drupal\canvas\EventSubscriber\LanguageConfigOverrideSchemaChecker;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\node\Entity\Node;
@@ -11,6 +12,7 @@ use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
 use Drupal\Tests\TestFileCreationTrait;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Base class for functional tests of Canvas, ensures OpenAPI validation is active.
@@ -22,6 +24,33 @@ abstract class FunctionalTestBase extends BrowserTestBase {
 
   use TestFileCreationTrait;
   use CanvasFieldCreationTrait;
+
+  /**
+   * {@inheritdoc}
+   *
+   * Registers LanguageConfigOverrideSchemaChecker analogously to how
+   * FunctionalTestSetupTrait::prepareSettings() registers ConfigSchemaChecker:
+   * by injecting it into the test site's services.yml.
+   *
+   * @see \Drupal\Core\Config\Development\ConfigSchemaChecker
+   * @see \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings()
+   */
+  protected function prepareSettings() {
+    parent::prepareSettings();
+
+    if ($this->strictConfigSchema) {
+      $filename = $this->siteDirectory . '/services.yml';
+      $services = Yaml::parse((string) file_get_contents($filename));
+      // Only fires when the `language` module is installed, so safe to register
+      // unconditionally (analogous to how ConfigSchemaChecker is registered).
+      $services['services']['canvas.testing.language_config_override_schema_checker'] = [
+        'class' => LanguageConfigOverrideSchemaChecker::class,
+        'arguments' => ['@config.typed', '@config.factory'],
+        'tags' => [['name' => 'event_subscriber']],
+      ];
+      file_put_contents($filename, Yaml::dump($services));
+    }
+  }
 
   protected function setUp(): void {
     parent::setUp();
