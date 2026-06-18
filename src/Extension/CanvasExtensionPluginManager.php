@@ -36,6 +36,7 @@ final class CanvasExtensionPluginManager extends DefaultPluginManager implements
   protected $defaults = [
     'icon' => '',
     'type' => CanvasExtensionTypeEnum::Canvas->value,
+    'permissions' => [],
   ];
 
   /**

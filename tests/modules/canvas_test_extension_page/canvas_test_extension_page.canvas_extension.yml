@@ -1,0 +1,17 @@
+canvas_test_page:
+  name: Test Page Extension
+  description: A full-page extension for testing the page extension type
+  url: index.html
+  icon: icon.svg
+  type: 'page'
+  api_version: "1.0"
+  permissions:
+    - access content
+
+canvas_test_page_no_permissions:
+  name: Page Extension Without Permissions
+  description: A full-page extension that declares no permissions, available to any user who can edit in Canvas
+  url: index.html
+  icon: icon.svg
+  type: 'page'
+  api_version: "1.0"

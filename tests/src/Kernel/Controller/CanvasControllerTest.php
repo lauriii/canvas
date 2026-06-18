@@ -419,6 +419,141 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
 
   }
 
+  /**
+   * Tests access to the page extension route and the exposed settings.
+   */
+  public function testPageExtensionRouteAccess(): void {
+    $this->enableModules(['canvas_test_extension_page']);
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+
+    // The canvas_test_page extension declares the 'access content'
+    // permission.
+    $this->setUpCurrentUser([], [
+      'access content',
+      Page::CREATE_PERMISSION,
+      Page::EDIT_PERMISSION,
+    ]);
+
+    $response = $this->request(Request::create('/canvas/app/canvas_test_page'));
+    self::assertSame(200, $response->getStatusCode());
+    $this->assertCanvasMount();
+    $extensions_by_id = \array_column($this->drupalSettings['canvas']['pageExtensions'], NULL, 'id');
+    // This user can edit in Canvas and has 'access content', so both the
+    // extension that declares 'access content' and the one declaring no
+    // permissions are exposed.
+    self::assertArrayHasKey('canvas_test_page', $extensions_by_id);
+    self::assertArrayHasKey('canvas_test_page_no_permissions', $extensions_by_id);
+    self::assertSame('/canvas/app/canvas_test_page', $extensions_by_id['canvas_test_page']['url']);
+
+    // Deep links into the extension's own client-side routes must survive a
+    // full page load.
+    $response = $this->request(Request::create('/canvas/app/canvas_test_page/reports/weekly'));
+    self::assertSame(200, $response->getStatusCode());
+  }
+
+  /**
+   * Tests that inaccessible page extensions are not exposed in settings.
+   */
+  public function testPageExtensionsFilteredByPermission(): void {
+    $this->enableModules(['canvas_test_extension_page']);
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+
+    // This user can edit in Canvas but lacks the 'access content' permission the
+    // canvas_test_page extension declares.
+    $this->setUpCurrentUser([], [
+      Page::CREATE_PERMISSION,
+      Page::EDIT_PERMISSION,
+    ]);
+
+    $this->request(Request::create('/canvas'));
+    $ids = \array_column($this->drupalSettings['canvas']['pageExtensions'], 'id');
+    // The extension that declares 'access content' is filtered out, but the
+    // extension that declares no permissions remains available to anyone who
+    // can edit in Canvas.
+    self::assertNotContains('canvas_test_page', $ids);
+    self::assertContains('canvas_test_page_no_permissions', $ids);
+  }
+
+  /**
+   * Tests a no-permission page extension is reachable by Canvas editors.
+   */
+  public function testPageExtensionWithoutPermissionsAccessibleToCanvasEditors(): void {
+    $this->enableModules(['canvas_test_extension_page']);
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+
+    // A user who can edit in Canvas (passes _canvas_ui_access) but holds no
+    // other permissions can load a page extension that declares none.
+    $this->setUpCurrentUser([], [
+      Page::CREATE_PERMISSION,
+      Page::EDIT_PERMISSION,
+    ]);
+
+    $response = $this->request(Request::create('/canvas/app/canvas_test_page_no_permissions'));
+    self::assertSame(200, $response->getStatusCode());
+  }
+
+  /**
+   * Tests a no-permission page extension still requires Canvas edit access.
+   */
+  public function testPageExtensionWithoutPermissionsRequiresCanvasEditAccess(): void {
+    $this->enableModules(['canvas_test_extension_page']);
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+
+    // A user who cannot edit in Canvas (no _canvas_ui_access) is denied even
+    // though the extension declares no permissions: the route's base gate still
+    // requires Canvas edit access, so it is not open to everyone.
+    $this->setUpCurrentUser([], ['access content']);
+
+    $this->expectException(CacheableAccessDeniedHttpException::class);
+    $this->request(Request::create('/canvas/app/canvas_test_page_no_permissions'));
+  }
+
+  /**
+   * Tests page extension route access denial.
+   *
+   * @param array $permissions
+   *   The permissions.
+   * @param string $path
+   *   The path to request.
+   * @param string $expected_exception_message
+   *   The expected access denial reason.
+   */
+  #[DataProvider('pageExtensionAccessDeniedData')]
+  public function testPageExtensionRouteAccessDenied(array $permissions, string $path, string $expected_exception_message): void {
+    $this->enableModules(['canvas_test_extension', 'canvas_test_extension_page']);
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+
+    $this->setUpCurrentUser([], $permissions);
+
+    $this->expectException(CacheableAccessDeniedHttpException::class);
+    $this->expectExceptionMessage($expected_exception_message);
+    $this->request(Request::create($path));
+  }
+
+  public static function pageExtensionAccessDeniedData(): array {
+    $canvas_ui_permissions = [
+      Page::CREATE_PERMISSION,
+      Page::EDIT_PERMISSION,
+    ];
+    return [
+      'missing declared permission' => [
+        $canvas_ui_permissions,
+        '/canvas/app/canvas_test_page',
+        "The 'access content' permission is required.",
+      ],
+      'not a page extension' => [
+        ['access content', ...$canvas_ui_permissions],
+        '/canvas/app/canvas_test_extension',
+        "There is no page extension with the ID 'canvas_test_extension'.",
+      ],
+      'unknown extension' => [
+        ['access content', ...$canvas_ui_permissions],
+        '/canvas/app/does_not_exist',
+        "There is no page extension with the ID 'does_not_exist'.",
+      ],
+    ];
+  }
+
   public static function featureFlagsData(): \Generator {
     yield 'none' => [
       [],

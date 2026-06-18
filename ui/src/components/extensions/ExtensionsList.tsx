@@ -45,17 +45,20 @@ const ExtensionsList: React.FC<ExtensionsPopoverProps> = () => {
     );
   }
 
-  // Get extensions.
+  // Get extensions, excluding page-type extensions (those render as standalone
+  // routes, not inside the extensions panel).
   const extensions = extensionsData
-    ? extensionsData.map((extension: Extension) => {
-        const { icon } = extension;
-        return {
-          ...extension,
-          icon:
-            icon ||
-            `${baseUrl}${canvasSettings.canvasModulePath}/ui/assets/icons/extension-default.svg`,
-        };
-      })
+    ? extensionsData
+        .filter((extension: Extension) => extension.type !== 'page')
+        .map((extension: Extension) => {
+          const { icon } = extension;
+          return {
+            ...extension,
+            icon:
+              icon ||
+              `${baseUrl}${canvasSettings.canvasModulePath}/ui/assets/icons/extension-default.svg`,
+          };
+        })
     : [];
 
   // Merge both sources and sort alphabetically by name.

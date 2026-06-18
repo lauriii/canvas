@@ -12,6 +12,7 @@ import ComponentInstanceForm from '@/components/ComponentInstanceForm';
 import { RouteErrorBoundary } from '@/components/error/ErrorBoundary';
 import ErrorCard from '@/components/error/ErrorCard';
 import ExtensionDialog from '@/components/extensions/ExtensionDialog';
+import ExtensionPage from '@/components/extensions/ExtensionPage';
 import PermissionCheck from '@/components/PermissionCheck';
 import SideMenu from '@/components/sideMenu/SideMenu';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
@@ -187,6 +188,14 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             // Opens the code editor for an item under 'Components'.
             path: '/code-editor/component/:codeComponentId',
             element: CodeEditorUi,
+          },
+          {
+            path: '/app/:extensionId/*',
+            element: (
+              <UiShell>
+                <ExtensionPage />
+              </UiShell>
+            ),
           },
           {
             // Personalization

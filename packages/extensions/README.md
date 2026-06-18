@@ -8,6 +8,7 @@ Drupal Canvas app in real-time.
 - [Installation](#installation)
 - [Getting started](#getting-started)
 - [Example](#example)
+- [Sandboxing model](#sandboxing-model)
 - [API](#api)
   - [`getPreviewHtml()`](#getpreviewhtml)
   - [`subscribeToPreviewHtml(callback)`](#subscribetopreviewhtmlcallback)
@@ -34,14 +35,68 @@ canvas_test_extension: # ID of your extension. You can specify multiple extensio
   description: A brief description of what your example does.
   url: index.html # Path to local HTML file shipped in your module's codebase, or a remote URL.
   icon: icon.svg # Path to local SVG file shipped in your module's codebase.
+  type: canvas # Optional. Defaults to canvas. Other options: page, code-editor.
   api_version: 1.0
+  permissions: # Optional. The user must have all listed permissions.
+    - access content
 ```
+
+Extension types determine where the extension appears in Canvas:
+
+- `canvas`: Opens from the Extensions panel while editing Canvas content. This
+  is the default when `type` is omitted.
+- `page`: Opens as a full-page Canvas route at `/canvas/app/{extension_id}` and
+  appears as a dedicated side menu link. Page extensions do not appear in the
+  Extensions panel.
+- `code-editor`: Opens from the code editor.
+
+Permissions are optional. When permissions are listed, users must have all of
+those permissions to access the extension. Page extensions without permissions
+are available to any user who can access the Canvas UI.
+
+### Page extension routing
+
+Page extensions are hosted at `/canvas/app/{extension_id}`. They can also be
+opened with a deeper path, such as `/canvas/app/{extension_id}/reports/weekly`.
+Canvas forwards the deeper path to the extension iframe as a hash route:
+`{extension_url}#/reports/weekly`.
+
+A page extension can update the parent Canvas URL when its internal route
+changes by sending a navigation message to the parent window:
+
+```js
+window.parent.postMessage(
+  {
+    type: 'canvas:navigate',
+    subPath: 'reports/weekly',
+  },
+  window.location.origin,
+);
+```
+
+Canvas accepts navigation messages only from the active page extension iframe.
+The parent URL is updated without adding a new Canvas history entry, so Canvas
+back navigation returns to the previous Canvas screen instead of stepping
+through the extension's internal routes.
 
 ## Example
 
 For a full example, see the
 [`canvas_test_extension` test module](https://git.drupalcode.org/project/canvas/-/tree/1.x/tests/modules/canvas_test_extension?ref_type=heads)
 in the Drupal Canvas codebase.
+
+## Sandboxing model
+
+Canvas extensions run in iframes with
+`sandbox="allow-scripts allow-same-origin"` for dialog extensions and
+`sandbox="allow-scripts allow-same-origin allow-downloads"` for page extensions.
+Because `allow-same-origin` is enabled, this is not a strong security boundary
+for extension code.
+
+Installing an extension currently means installing the Drupal module that
+provides it, so site owners should treat extensions as trusted code. This model
+may change if Canvas supports registering extensions dynamically from arbitrary
+URLs in the future.
 
 ## API
 

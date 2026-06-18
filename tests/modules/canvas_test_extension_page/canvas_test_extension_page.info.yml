@@ -1,0 +1,7 @@
+name: Drupal Canvas Test Page Extension
+type: module
+description: 'Test page extension functionality'
+package: Testing
+core_version_requirement: ^10 | ^11
+dependencies:
+  - canvas:canvas

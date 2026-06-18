@@ -28,6 +28,15 @@ class CanvasPathProcessor implements InboundPathProcessorInterface {
     // when the redirect module is enabled.
     // @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::preventRouteNormalization.
     if (str_starts_with($path, '/canvas/') && !str_starts_with($path, '/canvas/api')) {
+      // Page extension paths must reach their own route so per-extension
+      // access checking applies. Strip any extension-internal subpath
+      // (/canvas/app/foo/some/page → /canvas/app/foo): Drupal's router cannot
+      // match multi-segment parameters, and the React app reads the full path
+      // from the browser URL anyway.
+      // @see \Drupal\canvas\Access\ExtensionPageAccessCheck
+      if (str_starts_with($path, '/canvas/app/')) {
+        return implode('/', array_slice(explode('/', $path), 0, 4));
+      }
       return '/canvas';
     }
     return $path;

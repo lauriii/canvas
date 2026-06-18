@@ -81,6 +81,25 @@ class CanvasExtensionPluginManagerTest extends CanvasKernelTestBase {
     self::assertSame('0.1', $second_extension->getApiVersion());
   }
 
+  public function testPageExtensionType(): void {
+    $this->enableModules(['canvas_test_extension_page']);
+
+    /** @var \Drupal\canvas\Extension\CanvasExtensionPluginManager $extension_manager */
+    $extension_manager = $this->container->get(CanvasExtensionPluginManager::class);
+    $definitions = $extension_manager->getDefinitions();
+    $this->assertArrayHasKey('canvas_test_page', $definitions);
+
+    $module_location = $this->getModulePath('canvas_test_extension_page');
+    /** @var \Drupal\canvas\Extension\CanvasExtensionInterface $page_extension */
+    $page_extension = $definitions['canvas_test_page'];
+    self::assertSame('Test Page Extension', $page_extension->label());
+    self::assertSame('A full-page extension for testing the page extension type', $page_extension->getDescription());
+    self::assertSame(CanvasExtensionTypeEnum::Page, $page_extension->getType());
+    self::assertSame('/' . $module_location . '/index.html', $page_extension->getUrl());
+    self::assertSame('/' . $module_location . '/icon.svg', $page_extension->getIcon());
+    self::assertSame('1.0', $page_extension->getApiVersion());
+  }
+
   #[DataProvider('providerInvalidDefinitions')]
   public function testInvalidDefinitions(string $module, string $exceptionMessage): void {
     $this->enableModules([$module]);

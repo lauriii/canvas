@@ -12,7 +12,7 @@ export interface Extension {
   description: string;
   icon?: string;
   url: string;
-  type?: 'canvas' | 'code-editor';
+  type?: 'canvas' | 'code-editor' | 'page';
   api_version: string;
   permissions?: string[];
 }

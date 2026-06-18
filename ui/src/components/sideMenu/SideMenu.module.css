@@ -39,6 +39,16 @@
   border: none;
   border-bottom: 1px solid var(--gray-5);
 }
+.maskIcon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+}
+
 .menuItem.disabled {
   cursor: default;
   pointer-events: none;

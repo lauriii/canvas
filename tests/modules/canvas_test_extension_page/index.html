@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Page Extension</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        margin: 0;
+        padding: 24px;
+      }
+      h1 { font-size: 20px; margin: 0 0 16px; }
+      .status { padding: 12px; background: #f0f9f0; border: 1px solid #c6e6c6; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <h1>Test Page Extension</h1>
+    <div class="status">
+      <p>Page extension is working.</p>
+      <p>Extension ID: <code>canvas_test_page</code></p>
+      <p>Type: <code>page</code></p>
+      <p>Inner route: <code id="inner-route">(none)</code></p>
+    </div>
+    <script>
+      // Surface the hash-based inner route so tests can assert that
+      // deep-linking into a subpath reaches the right inner view.
+      function renderInnerRoute() {
+        document.getElementById('inner-route').textContent =
+          window.location.hash || '(none)';
+      }
+      window.addEventListener('hashchange', renderInnerRoute);
+      renderInnerRoute();
+    </script>
+  </body>
+</html>

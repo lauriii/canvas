@@ -35,7 +35,7 @@ export default function useExtensions() {
   // Listen for data requests and subscription requests from extensions.
   const handleMessage = useCallback(
     (event: MessageEvent) => {
-      if (!activeExtension) return;
+      if (!activeExtension || activeExtension.type === 'page') return;
 
       // Validate origin.
       let expectedOrigin = window.location.origin;
@@ -97,7 +97,11 @@ export default function useExtensions() {
 
   // Send subscription data to the active extension iframe when data changes.
   useEffect(() => {
-    if (!activeExtension || subscriptions.length === 0) {
+    if (
+      !activeExtension ||
+      activeExtension.type === 'page' ||
+      subscriptions.length === 0
+    ) {
       return;
     }
 

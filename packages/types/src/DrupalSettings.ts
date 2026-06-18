@@ -8,6 +8,16 @@ export type Language = {
   isDefault: boolean;
 };
 
+export interface PageExtension {
+  id: string;
+  name: string;
+  // The Canvas route that hosts the extension (/canvas/app/{id}).
+  url: string;
+  // The extension's own entry point, loaded inside the hosting page's iframe.
+  extension_url: string;
+  icon: string;
+}
+
 export interface DrupalSettings {
   canvas: {
     base: string;
@@ -44,6 +54,7 @@ export interface DrupalSettings {
     languages: Language[];
     dialogCss: string[];
     extensionsAvailable: boolean;
+    pageExtensions: PageExtension[];
     // ⚠️ This is highly experimental and *will* be refactored.
     aiExtensionAvailable: boolean;
     loginUrl: string;

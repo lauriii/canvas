@@ -769,6 +769,26 @@ canvas.api.usage.component.list:
     _format: 'json'
   methods: [GET]
 
+canvas.boot.app:
+  # Deep links into an extension's own client-side routes
+  # (e.g. /canvas/app/foo/reports) also boot this route: the inbound path
+  # processor strips the extension-internal subpath, and the React app
+  # forwards it to the extension iframe.
+  # @see \Drupal\canvas\PathProcessor\CanvasPathProcessor
+  # @see ui/src/components/extensions/ExtensionPage.tsx
+  path: '/canvas/app/{extension_id}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\CanvasController'
+    _title: 'Drupal Canvas'
+    entity_type: NULL
+    entity: NULL
+  requirements:
+    _canvas_ui_access: 'TRUE'
+    _canvas_extension_page_access: 'TRUE'
+    extension_id: '[a-z][a-z0-9_]*'
+  options:
+    _format: 'json'
+
 canvas.boot.empty:
   path: '/canvas'
   defaults:

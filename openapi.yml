@@ -4522,6 +4522,7 @@ components:
           enum:
             - canvas
             - code-editor
+            - page
         api_version:
           type: string
           description: Canvas Extension API version

@@ -16,6 +16,7 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Extension\CanvasExtensionPluginManager;
+use Drupal\canvas\Extension\CanvasExtensionTypeEnum;
 use Drupal\canvas\GlobalImports;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Resource\CanvasResourceLink;
@@ -147,6 +148,30 @@ HTML;
     }
     $extensions = $this->extensionPluginManager->getDefinitions();
 
+    // Build the page-extensions list: any extension that declares type=page
+    // in its .canvas_extension.yml is automatically promoted to a full-page
+    // Canvas app. Extensions self-promote; no allowlist in core is required.
+    $page_extensions = [];
+    foreach ($extensions as $ext) {
+      /** @var \Drupal\canvas\Extension\CanvasExtensionInterface $ext */
+      if ($ext->getType() === CanvasExtensionTypeEnum::Page) {
+        // Hide page extensions the current user cannot access. The same
+        // permissions are enforced on the canvas.boot.app route.
+        // @see \Drupal\canvas\Access\ExtensionPageAccessCheck
+        $missing_permissions = \array_filter($ext->getPermissions(), fn (string $permission): bool => !$this->currentUser->hasPermission($permission));
+        if ($missing_permissions !== []) {
+          continue;
+        }
+        $page_extensions[] = [
+          'id' => $ext->id(),
+          'name' => (string) $ext->label(),
+          'url' => Url::fromRoute('canvas.boot.app', ['extension_id' => $ext->id()])->toString(),
+          'extension_url' => $ext->getUrl(),
+          'icon' => $ext->getIcon(),
+        ];
+      }
+    }
+
     // Get theme-level Canvas settings from the default theme.
     $theme_config = $this->configFactory->get('system.theme');
     $default_theme_name = $theme_config->get('default');
@@ -211,6 +236,7 @@ HTML;
             'configTranslationEnabled' => $config_translation_enabled,
             'languages' => $languages_data,
             'extensionsAvailable' => count($extensions) > 0,
+            'pageExtensions' => $page_extensions,
             'aiExtensionAvailable' => $ai_extension_available,
             'personalizationExtensionAvailable' => $personalization_extension_available,
           // Allow for perfect component previews, by letting the client side
