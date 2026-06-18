@@ -9,6 +9,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 use Drupal\canvas\ConfigTranslation\CanvasStaticPropSourceFieldWidget;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
+use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropSource\PropSource;
 
@@ -62,6 +63,16 @@ final readonly class JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator
           && \array_key_exists('format', $prop_shape)
           && JsonSchemaStringFormat::tryFrom($prop_shape['format'])?->isUriEsque()
         );
+      // A translatable shape may still be backed by an entity reference — e.g.
+      // an image `src` stored as `['target_id' => 1]`, whose field type prop
+      // expression is a reference expression. A reference is not author-entered
+      // text: there is nothing to translate, config translations may only hold
+      // translatable strings (see ADR 0010), and storing a (necessarily empty)
+      // translation breaks rendering. (A literal URL `src` is not a reference,
+      // so it remains translatable.)
+      if ($translatable && self::isReferenceBackedProp($component_source, $prop_name)) {
+        $translatable = FALSE;
+      }
       if ($translatable) {
         \assert(\array_key_exists('type', $mapping_definition[$prop_name]));
         $mapping_definition[$prop_name]['translatable'] = TRUE;
@@ -76,6 +87,33 @@ final readonly class JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator
     }
 
     return $mapping_definition;
+  }
+
+  /**
+   * Whether a prop is populated by an entity reference.
+   *
+   * Determined from the prop's field type prop expression — i.e. the
+   * component's field definition for the prop, not any instance's resolved
+   * inputs. An entity reference (`entity_reference`, `image`, `file`, media
+   * reference) yields a reference expression.
+   *
+   * A reference's value is structured data, not author-entered text, so it is
+   * not a translatable input — regardless of how translatable its JSON Schema
+   * shape looks (e.g. a URI-reference string), and for both config and content
+   * translation. (Translating the referenced entity itself is a separate
+   * concern, handled on that entity, not on this prop.)
+   */
+  private static function isReferenceBackedProp(JsonSchemaPropsComponentSourceBase $component_source, string $prop_name): bool {
+    try {
+      $static_prop_source = $component_source->getDefaultStaticPropSource($prop_name, FALSE);
+    }
+    catch (\OutOfRangeException) {
+      // This prop has no field definition in this component version, so it
+      // cannot be populated by a StaticPropSource; the shape-based
+      // translatability stands.
+      return FALSE;
+    }
+    return $static_prop_source->expression instanceof ReferencePropExpressionInterface;
   }
 
   /**

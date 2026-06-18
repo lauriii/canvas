@@ -100,6 +100,30 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
   }
 
   /**
+   * {@inheritdoc}
+   *
+   * Overridden to create the public file (fid 1) referenced by the image `src`
+   * in the entity-reference scenario; see
+   * ::providerSymmetricallyTranslatableComponentInstanceScenarios().
+   */
+  #[DataProvider('providerGetTranslatableInputKeys')]
+  public function testGetTranslatableInputKeys(string $host_entity_type_id, array $host_entity_values, string $component_id, array $inputs, array $expected_translatable_inputs): void {
+    // Validating the image `src` evaluates its computed file URI, which checks
+    // the 'access content' permission.
+    $this->setUpCurrentUser(permissions: ['access content']);
+    $file = File::create([
+      'fid' => 1,
+      'uri' => 'public://balloons.png',
+      'filename' => 'balloons.png',
+      'status' => 1,
+    ]);
+    $file->enforceIsNew();
+    $file->setPermanent();
+    $file->save();
+    parent::testGetTranslatableInputKeys($host_entity_type_id, $host_entity_values, $component_id, $inputs, $expected_translatable_inputs);
+  }
+
+  /**
  * Tests get client side info.
  */
   #[Depends('testDiscovery')]
@@ -7695,6 +7719,27 @@ HTML
       // `target` is not translatable because its prop shape (an `enum`) is not
       // considered translatable.
       ['text', 'href'],
+    ];
+
+    // An image `src` is a StaticPropSource backed by an entity reference. Its
+    // shape is a translatable URI-reference string, but a reference is not
+    // author-entered text, so it must NOT be translatable: storing a
+    // translation for it yields an empty value that breaks rendering of the
+    // translated component. The referenced public file (fid 1) is created in
+    // ::testGetTranslatableInputKeys().
+    yield 'Single-cardinality; entity-reference (image) input is not translatable despite a URI-reference shape' => [
+      'sdc.canvas_test_sdc.card-with-stream-wrapper-image',
+      [
+        'heading' => 'A heading',
+        'content' => 'Some content',
+        'footer' => 'A footer',
+        'src' => ['target_id' => 1],
+        'alt' => 'Alt text',
+        'loading' => 'lazy',
+      ],
+      // `src` is excluded (entity reference); `loading` is excluded (its `enum`
+      // shape is not translatable).
+      ['heading', 'content', 'footer', 'alt'],
     ];
 
     // Only the ContentTemplate config entity type allows using structured data
