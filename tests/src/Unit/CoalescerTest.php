@@ -182,6 +182,43 @@ final class CoalescerTest extends UnitTestCase {
       },
     ];
 
+    // No loose pick on `uid`: two references descend through it into the same
+    // bundle but pick different final fields, so they merge into one object.
+    yield 'reference field consumed only through nested objects → one object expression' => [
+      static function (): array {
+        $node = BetterEntityDataDefinition::create('node', 'article');
+        $user = BetterEntityDataDefinition::create('user');
+        $referencer = new FieldPropExpression($node, 'uid', NULL, 'entity');
+        return [
+          new ReferenceFieldPropExpression(
+            referencer: $referencer,
+            referenced: new FieldPropExpression($user, 'name', NULL, 'value'),
+          ),
+          new ReferenceFieldPropExpression(
+            referencer: $referencer,
+            referenced: new FieldPropExpression($user, 'mail', NULL, 'value'),
+          ),
+        ];
+      },
+      static function (): array {
+        $node = BetterEntityDataDefinition::create('node', 'article');
+        $user = BetterEntityDataDefinition::create('user');
+        $referencer = new FieldPropExpression($node, 'uid', NULL, 'entity');
+        return [
+          new FieldObjectPropsExpression($node, 'uid', NULL, [
+            'mail' => new ReferenceFieldPropExpression(
+              referencer: $referencer,
+              referenced: new FieldPropExpression($user, 'mail', NULL, 'value'),
+            ),
+            'name' => new ReferenceFieldPropExpression(
+              referencer: $referencer,
+              referenced: new FieldPropExpression($user, 'name', NULL, 'value'),
+            ),
+          ]),
+        ];
+      },
+    ];
+
     yield 'reference chain, different bundles → bundle-specific branches' => [
       static function (): array {
         $node = BetterEntityDataDefinition::create('node', 'article');

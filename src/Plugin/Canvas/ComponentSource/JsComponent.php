@@ -16,6 +16,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
+use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
@@ -226,10 +227,12 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
    * Each entity field expression declared for a content-entity-reference
    * prop is placed into a JSON object mirroring the expression's reference
    * structure:
-   * - scalar/object leaves become a key on the current entity object (keyed
-   *   by the field/entity-key name, e.g. `label` or `title`);
-   * - reference expressions descend into the referenced entity, producing a
-   *   nested object (expressions sharing a referencer field are merged);
+   * - scalar leaves, and mixed objects (a directly-picked `↠` leaf alongside
+   *   any follow-reference entries), become a key on the current entity object
+   *   (keyed by the field/entity-key name, e.g. `label` or `title`);
+   * - reference expressions — and reference-only objects, the coalesced form of
+   *   several references through one field — descend into the referenced
+   *   entity, producing a nested object (those sharing a referencer merge);
    * - every entity object carries a `__type` set to the resolved entity's
    *   bundle, so code components can branch on it (including for
    *   multi-target-bundle references, where the bundle is only known at
@@ -271,14 +274,27 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     // their target sub-expressions merged into a single nested object.
     $reference_groups = [];
     foreach ($expressions as $expression) {
-      if ($expression instanceof ReferenceFieldPropExpression) {
-        // @todo Multi-target-bundle references (a `ReferencedBundleSpecificBranches` target) are deferred; add support in https://git.drupalcode.org/project/canvas/-/work_items/3591656.
-        if (!$expression->referenced instanceof EntityFieldBasedPropExpressionInterface) {
-          throw new \LogicException(\sprintf('Multi-target-bundle content entity references are not yet supported, but the expression `%s` targets bundle-specific branches.', (string) $expression));
+      // A reference, or its coalesced form (a FieldObjectPropsExpression whose
+      // entries are all follow-references), descends into a referenced entity:
+      // decompose the object into the same reference groups as the equivalent
+      // separate references so it yields an identical nested object (`__type`).
+      // A mixed object (any `↠` leaf) stays a flat object leaf below.
+      $reference_entries = match (TRUE) {
+        $expression instanceof ReferenceFieldPropExpression => [$expression],
+        $expression instanceof FieldObjectPropsExpression && $expression->isReferenceOnly() => \array_values($expression->objectPropsToFieldProps),
+        default => NULL,
+      };
+      if ($reference_entries !== NULL) {
+        foreach ($reference_entries as $reference) {
+          \assert($reference instanceof ReferenceFieldPropExpression);
+          // @todo Multi-target-bundle references (a `ReferencedBundleSpecificBranches` target) are deferred; add support in https://git.drupalcode.org/project/canvas/-/work_items/3591656.
+          if (!$reference->referenced instanceof EntityFieldBasedPropExpressionInterface) {
+            throw new \LogicException(\sprintf('Multi-target-bundle content entity references are not yet supported, but the expression `%s` targets bundle-specific branches.', (string) $reference));
+          }
+          $key = $reference->referencer->getDeveloperFacingKey();
+          $reference_groups[$key]['referencer'] ??= $reference->referencer;
+          $reference_groups[$key]['targets'][] = $reference->referenced;
         }
-        $key = $expression->referencer->getDeveloperFacingKey();
-        $reference_groups[$key]['referencer'] ??= $expression->referencer;
-        $reference_groups[$key]['targets'][] = $expression->referenced;
         continue;
       }
       // Scalar or object leaf: its EvaluationResult (value + cacheability) is

@@ -108,16 +108,14 @@ final class JavaScriptComponentUpdateFromClientSideTest extends CanvasKernelTest
       ['ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟{alt↠alt,width↠width}'],
     ];
 
-    // Two reference-chain picks on different final fields stay separate.
-    yield 'reference-chain picks on different final fields stay separate' => [
+    // Two reference-chain picks on different final fields of the same bundle,
+    // with no loose pick on that field, combine into one object.
+    yield 'reference-chain picks on different final fields combine into one object' => [
       [
         'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value',
         'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝mail␞␟value',
       ],
-      [
-        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value',
-        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝mail␞␟value',
-      ],
+      ['ℹ︎␜entity:node:article␝uid␞␟{mail↝entity␜␜entity:user␝mail␞␟value,name↝entity␜␜entity:user␝name␞␟value}'],
     ];
 
     // An existing combined reference-chain target + a loose reference on the
@@ -215,11 +213,16 @@ final class JavaScriptComponentUpdateFromClientSideTest extends CanvasKernelTest
         'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
         'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
       ],
-      ['dataDependencies.entityFields.article_ref' => "Multiple expressions on the same field 'entity:user.user_picture' must be coalesced into a single FieldObjectPropsExpression."],
+      ['dataDependencies.entityFields.article_ref' => "Multiple expressions on the same field 'entity:node:article.uid' must be coalesced into a single FieldObjectPropsExpression."],
     ];
 
     // Branch coalescing leaves bundles whose leaf shapes differ (object vs
     // scalar) un-combined; no shape-match constraint is forced.
+    // @todo This situation was tested before, but cannot occur: the UI does not offer it, the back end does not accept it; support will be added in https://git.drupalcode.org/project/canvas/-/work_items/3591656
+    // @see \Drupal\Tests\canvas\Kernel\Controller\ApiUiContentEntityReferenceControllersTest::testFieldsEndpointMultiTargetBundleReferenceField
+    // @see \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\JsComponentTest::testMultiTargetBundleReferenceThrows
+    // @phpcs:disable
+    /*
     yield 'shape mismatch across bundles is not rejected' => [
       [
         'ℹ︎␜entity:node:article␝field_media␞␟entity␜␜entity:media:image␝thumbnail␞␟alt',
@@ -233,6 +236,8 @@ final class JavaScriptComponentUpdateFromClientSideTest extends CanvasKernelTest
       // No coalescing violation: the differing leaf shapes are left un-combined.
       ['dataDependencies.entityFields.article_ref' => NULL],
     ];
+    */
+    // @phpcs:enable
 
     // A coalesced multi-bundle branch reference is rejected at render time.
     yield 'multi-bundle branch reference is rejected' => [

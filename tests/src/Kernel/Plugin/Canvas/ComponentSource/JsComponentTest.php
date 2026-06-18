@@ -3040,9 +3040,12 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
    * A flat field is a top-level key, while a reference descends into its own
    * object — so a flat field named `prop__body` and a reference `prop` → `body`
    * can never collide (they are `prop__body` and `prop: {body: …}`). Every entity
-   * object carries its bundle as `__type`, including for nested references.
+   * object carries its bundle as `__type`, including for nested references and
+   * for a reference-only object — the coalesced form of several references
+   * through one field, here `field_related_news` picking `title` and `created`.
    *
    * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::buildReferencePayload()
+   * @see \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::isReferenceOnly()
    */
   public function testContentEntityReferencePayloadNestsReferences(): void {
     $fixtures = $this->setUpContentEntityReferenceFixtures();
@@ -3052,6 +3055,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     $deep_news = Node::create([
       'type' => 'news_item',
       'title' => 'The deeply referenced news item',
+      'created' => 1700000000,
       'status' => 1,
     ]);
     self::assertEntityIsValid($deep_news);
@@ -3059,13 +3063,15 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     $fixtures['referenced_news']->set('field_related_news', $deep_news->id());
     $fixtures['referenced_news']->save();
 
-    // Declare a reference-chain entity field alongside a flat leaf.
+    // A flat leaf alongside a reference-only object on `field_related_news`: the
+    // coalesced form of two references descending through that field into
+    // `deep_news` on different final fields (`title` and `created`).
     $js_component = JavaScriptComponent::load('content_entity_reference_test_component');
     self::assertInstanceOf(JavaScriptComponent::class, $js_component);
     $data_dependencies = $js_component->get('dataDependencies');
     $data_dependencies['entityFields']['news_item_reference'] = [
       'ℹ︎␜entity:node:news_item␝title␞␟value',
-      'ℹ︎␜entity:node:news_item␝field_related_news␞␟entity␜␜entity:node:news_item␝title␞␟value',
+      'ℹ︎␜entity:node:news_item␝field_related_news␞␟{created↝entity␜␜entity:node:news_item␝created␞␟value,label↝entity␜␜entity:node:news_item␝title␞␟value}',
     ];
     $js_component->set('dataDependencies', $data_dependencies);
     self::assertEntityIsValid($js_component);
@@ -3086,7 +3092,8 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       $rooted_item,
     );
 
-    // `field_related_news` nests into its own object with its own `__type`;
+    // `field_related_news` nests into its own object with its own `__type`,
+    // even though it is consumed only through nested objects (no direct pick);
     // `title` maps to the `label` entity key at each level.
     self::assertSame(
       [
@@ -3094,6 +3101,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         'label' => 'The referenced news item',
         'field_related_news' => [
           '__type' => 'news_item',
+          'created' => 1700000000,
           'label' => 'The deeply referenced news item',
         ],
       ],

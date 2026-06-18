@@ -20,16 +20,10 @@ use Drupal\Component\Assertion\Inspector;
  * point, and silently loses all but one of them.
  *
  * Three coalescing flavors are performed:
- * - Expressions overlapping at the field-item (delta) point but pointing to
- *   different non-reference field properties (`FieldPropExpression`) or descend
- *   into a reference field property (`ReferenceFieldPropExpression`) are merged
- *   into a single `FieldObjectPropsExpression`.
- *   Non-reference field properties are leaves that can be evaluated (`↠` in the
- *   string representation for the object expression), but reference field
- *   properties aren't (`↝`).
- *   Note that after following a reference, multiple field properties can be
- *   picked there, which means one `FieldObjectPropsExpression` can contain
- *   another `FieldObjectPropsExpression` via a reference.
+ * - Any combination of `FieldPropExpression` and `ReferenceFieldPropExpression`
+ *   entries sharing the same `(host, field, delta)` starting point merge into
+ *   a single `FieldObjectPropsExpression`. Leaf picks become `↠` entries;
+ *   reference picks become `↝` entries.
  * - Reference expressions (`ReferenceFieldPropExpression`s) that share the same
  *   ancestry (same starting point, then overlapping reference chains up to some
  *   point) are coalesced into a `ReferenceFieldPropExpression` with a
@@ -46,9 +40,8 @@ final class Coalescer {
    * Coalesces a list of scalar prop-expression strings.
    *
    * Three flavors of coalescing are performed:
-   * - `FieldPropExpression` + `FieldPropExpression` (or +
-   *   `ReferenceFieldPropExpression`, whose "referencer" also is just another
-   *   `FieldPropExpression`) sharing `(host, field, delta)` →
+   * - Any combination of `FieldPropExpression` and
+   *   `ReferenceFieldPropExpression` entries sharing `(host, field, delta)` →
    *   `FieldObjectPropsExpression`:
    *   @code
    *   // IN:
@@ -56,6 +49,13 @@ final class Coalescer {
    *   ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value
    *   // OUT:
    *   ℹ︎␜entity:node:article␝uid␞␟{name↝entity␜␜entity:user␝name␞␟value,url↠url}
+   *   @endcode
+   *   @code
+   *   // IN (references only, no loose pick):
+   *   ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value
+   *   ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝mail␞␟value
+   *   // OUT:
+   *   ℹ︎␜entity:node:article␝uid␞␟{mail↝entity␜␜entity:user␝mail␞␟value,name↝entity␜␜entity:user␝name␞␟value}
    *   @endcode
    * - `ReferenceFieldPropExpression` + `ReferenceFieldPropExpression` sharing
    *   the same full reference chain and final target field →
@@ -200,10 +200,41 @@ final class Coalescer {
       $coalesced[] = (string) $coalesced_one;
     }
 
+    // Coalesce reference fields consumed only through nested objects (4th
+    // flavor in the class docblock): group standalone references by referencer
+    // field item + referenced bundle, then merge each group of 2+ into one
+    // FieldObjectPropsExpression. The referenced bundle in the key keeps
+    // different-bundle references apart for branch coalescing below.
+    $branch_candidates = [];
+    /** @var array<string, list<ReferenceFieldPropExpression>> $nested_object_groups */
+    $nested_object_groups = [];
+    foreach ($standalone_refs as $ref) {
+      $referenced = $ref->referenced;
+      if ($referenced instanceof FieldPropExpression || $referenced instanceof FieldObjectPropsExpression) {
+        $group_key = $ref->getStartingPointKey() . '|' . $referenced->getHostEntityDataDefinition()->getDataType();
+        $nested_object_groups[$group_key][] = $ref;
+        continue;
+      }
+      $branch_candidates[] = $ref;
+    }
+    foreach ($nested_object_groups as $group) {
+      if (\count($group) >= 2) {
+        $coalesced_object = self::coalesceSameFieldGroup($group);
+        if ($coalesced_object !== NULL) {
+          $coalesced[] = (string) $coalesced_object;
+          continue;
+        }
+      }
+      // A lone reference, or a same-key collision object-coalescing cannot
+      // merge: leave it to branch coalescing (single-bundle references on
+      // different bundles merge there; everything else passes through).
+      $branch_candidates = [...$branch_candidates, ...$group];
+    }
+
     // Coalesce branches: single-bundle reference expressions that share the
     // same referencer but target different bundles merge into one
     // ReferenceFieldPropExpression with ReferencedBundleSpecificBranches.
-    $coalesced = [...$coalesced, ...self::coalesceBranches($standalone_refs)];
+    $coalesced = [...$coalesced, ...self::coalesceBranches($branch_candidates)];
 
     return $coalesced;
   }

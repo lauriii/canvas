@@ -213,4 +213,16 @@ final class FieldObjectPropsExpression implements EntityFieldBasedPropExpression
     return $this->objectPropsToFieldProps;
   }
 
+  /**
+   * Whether every object expression is a reference.
+   *
+   * (In string representation terms: only `↝`, no `↠`.)
+   */
+  public function isReferenceOnly(): bool {
+    return \array_all(
+      $this->objectPropsToFieldProps,
+      fn (EntityFieldBasedPropExpressionInterface $expr) => $expr instanceof ReferencePropExpressionInterface,
+    );
+  }
+
 }

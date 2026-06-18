@@ -135,5 +135,4 @@ dataDependencies:
       - 'ℹ︎␜entity:node:news_item␝body␞␟processed'
       - 'ℹ︎␜entity:node:news_item␝path␞␟alias'
       - 'ℹ︎␜entity:node:news_item␝title␞␟value'
-      - 'ℹ︎␜entity:node:news_item␝uid␞␟entity␜␜entity:user␝name␞␟value'
-      - 'ℹ︎␜entity:node:news_item␝uid␞␟entity␜␜entity:user␝user_picture␞␟{alt↠alt,height↠height,src_with_alternate_widths↠src_with_alternate_widths,width↠width}'
+      - 'ℹ︎␜entity:node:news_item␝uid␞␟{name↝entity␜␜entity:user␝name␞␟value,user_picture↝entity␜␜entity:user␝user_picture␞␟{alt↠alt,height↠height,src_with_alternate_widths↠src_with_alternate_widths,width↠width}}'

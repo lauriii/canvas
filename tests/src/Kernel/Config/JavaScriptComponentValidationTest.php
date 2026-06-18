@@ -1641,14 +1641,17 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     ];
 
     // Two ReferenceFieldPropExpressions starting on the same field (here `uid`
-    // → user) are a legitimate pattern when their final targets are DIFFERENT
-    // fields: each ref nests into a distinct key (`name`, `mail`) within the
-    // referenced object, so they don't collide and cannot be combined
-    // into a single FieldObjectPropsExpression.
+    // → user) into the same bundle but targeting DIFFERENT final fields are
+    // consumed only through a nested object — with no loose pick on `uid`, none
+    // of its values are picked directly. JsComponent::buildReferencePayload()
+    // keys the referenced object by the referencer, so they must be coalesced
+    // into a single FieldObjectPropsExpression on `uid` whose entries follow
+    // the reference (`↝`).
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::buildReferencePayload()
-    yield 'entityFields same field ReferenceFieldPropExpressions on different final fields are allowed' => [
+    // @see \Drupal\canvas\PropExpressions\StructuredData\Coalescer::coalesce()
+    yield 'entityFields same field ReferenceFieldPropExpressions on different final fields must be combined' => [
       ['entityFields' => ['my_reference' => ['ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value', 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝mail␞␟value']]],
-      [],
+      ['dataDependencies.entityFields.my_reference' => "Multiple expressions on the same field 'entity:node:article.uid' must be coalesced into a single FieldObjectPropsExpression."],
       [],
     ];
 
@@ -1662,7 +1665,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     // @see \Drupal\canvas\Entity\JavaScriptComponent::coalesceEntityFields()
     yield 'entityFields duplicate ReferenceFieldPropExpression on same final field+property is rejected' => [
       ['entityFields' => ['my_reference' => ['ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟alt', 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟alt']]],
-      ['dataDependencies.entityFields.my_reference' => "Multiple expressions on the same field 'entity:user.user_picture' must be coalesced into a single FieldObjectPropsExpression."],
+      ['dataDependencies.entityFields.my_reference' => "Multiple expressions on the same field 'entity:node:article.uid' must be coalesced into a single FieldObjectPropsExpression."],
       [],
     ];
 
