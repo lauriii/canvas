@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EventSubscriber;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -26,6 +27,7 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
   public function __construct(
     private readonly RouteMatchInterface $routeMatch,
     private readonly LanguageManagerInterface $languageManager,
+    private readonly ConfigFactoryInterface $configFactory,
   ) {}
 
   public function redirectCanvasToDefaultLanguage(RequestEvent $event): void {
@@ -49,8 +51,17 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
     $current_langcode = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_URL)->getId();
     if ($current_langcode !== $default_langcode) {
       $base_path = $request->getBasePath();
-      $canvas_path = preg_replace('#^/' . preg_quote($current_langcode, '#') . '/#', '/', $path);
-      $event->setResponse(new LocalRedirectResponse($base_path . $canvas_path, 302));
+      // Fetch the actual prefix configured for this language in Drupal's
+      // URL language negotiation settings, falling back to the langcode.
+      $config = $this->configFactory->get('language.negotiation');
+      $url_settings = $config->get('url');
+      $prefixes = $url_settings['prefixes'] ?? [];
+      $prefix = $prefixes[$current_langcode] ?? $current_langcode;
+      $prefix_path = "/$prefix/";
+      if (\str_starts_with($path, $prefix_path)) {
+        $canvas_path = substr_replace($path, '/', 0, strlen($prefix_path));
+        $event->setResponse(new LocalRedirectResponse($base_path . $canvas_path, 302));
+      }
     }
   }
 

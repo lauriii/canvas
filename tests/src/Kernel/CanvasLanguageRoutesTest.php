@@ -103,4 +103,37 @@ final class CanvasLanguageRoutesTest extends CanvasKernelTestBase {
     );
   }
 
+  /**
+   * Verifies redirect safety for languages with custom URL prefixes.
+   *
+   * @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::redirectCanvasToDefaultLanguage()
+   */
+  public function testLanguageWithCustomPrefixDoesNotCauseRedirectLoop(): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+
+    // Setting up a configurable language uses the langcode as the prefix by
+    // default. This works fine.
+    $negotiation_config = $this->config('language.negotiation');
+    self::assertSame('fr', $negotiation_config->get('url.prefixes.fr'));
+
+    // Customizing the prefix to not match the langcode is what causes problems.
+    $negotiation_config->set('url.prefixes.fr', 'francais')->save();
+    self::assertSame('francais', $negotiation_config->get('url.prefixes.fr'));
+    $this->container->get('kernel')->rebuildContainer();
+
+    $this->setUpCurrentUser([], [Page::EDIT_PERMISSION]);
+    $response = $this->request(Request::create('/francais/canvas'));
+
+    self::assertSame(
+      302,
+      $response->getStatusCode(),
+      'A language-prefixed /canvas URL must trigger a 302 redirect.',
+    );
+    self::assertSame(
+      '/canvas',
+      $response->headers->get('Location'),
+      'The redirect must point to /canvas, not back to /francais/canvas.',
+    );
+  }
+
 }
