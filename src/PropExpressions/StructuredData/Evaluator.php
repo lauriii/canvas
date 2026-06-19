@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropExpressions\StructuredData;
 
+use Drupal\canvas\Utility\TypedDataHelper;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Access\AccessResultReasonInterface;
 use Drupal\Core\Cache\CacheableDependencyInterface;
@@ -279,20 +280,8 @@ final class Evaluator {
                 $result_cacheability->addCacheableDependency($prop);
               }
               $raw_result[$delta] = $prop->getValue();
-              // An entity reference field item whose target was deleted still
-              // stores the target ID, but getValue() returns NULL because the
-              // entity no longer loads. The cached NULL result must invalidate
-              // if that ID is ever written again (e.g. entity recreated with
-              // the same ID), so add the cache tag now while the ID is still
-              // reachable via getTargetIdentifier().
-              if ($prop instanceof EntityReference
-                && $raw_result[$delta] === NULL
-                && ($target_id = $prop->getTargetIdentifier()) !== NULL
-                && ($target_entity_type_id = $prop->getTargetDefinition()->getEntityTypeId()) !== NULL
-              ) {
-                // TRICKY: imperfect, but the default for most entity types.
-                // @see \Drupal\Core\Entity\EntityBase::getCacheTagsToInvalidate
-                $result_cacheability->addCacheTags([$target_entity_type_id . ':' . $target_id]);
+              if ($raw_result[$delta] === NULL && $prop instanceof EntityReference) {
+                $result_cacheability->addCacheableDependency(TypedDataHelper::getDeletedReferencedEntityCacheability($prop));
               }
               $result[$delta] = $prop instanceof PrimitiveInterface
                 ? $prop->getCastedValue()
