@@ -1,7 +1,7 @@
 name: 'Canvas Stark'
 type: theme
 description: 'A theme for rendering forms in the Drupal Canvas UI. It includes logic that can bridges Drupal-rendered markup to React components.'
-core_version_requirement: ^10.4 || ^11
+core_version_requirement: ^11.2
 base theme: false
 hidden: true
 
