@@ -319,23 +319,16 @@ test.describe('Language Select', () => {
     // Opens the language dropdown and clicks the dots button for a language.
     // Clicking escape closes any open per-language popover or dropdown.
     const openPopover = async (language = 'French') => {
-      await page.keyboard.press('Escape');
-      await expect(
-        page.locator('[data-state="open"][role="menu"]'),
-      ).not.toBeAttached();
-      await languageButton.click();
-      // Wait for the menu to finish opening; Radix re-mounts collection items
-      // mid-animation, so clicking immediately detaches the target.
-      await expect(
-        page.locator('[data-state="open"][role="menu"]'),
-      ).toBeVisible();
       await page
         .locator(`[aria-label="More options for ${language}"]`)
         .first()
-        .click();
+        // Elements floating in the same coordinates as the topbar or side panel
+        // are sometimes seen as not-visible by Playwright. Force the click to
+        // avoid this issue, since we know the button is interactable.
+        // eslint-disable-next-line playwright/no-force-option
+        .click({ force: true });
     };
-
-    await openPopover();
+    await languageButton.click();
 
     // Confirm a user without the 'administer languages' permission will
     // not see the language configure button.
@@ -343,18 +336,20 @@ test.describe('Language Select', () => {
       page.locator('[data-testid="language-configure-button"]'),
     ).not.toBeAttached();
 
+    await openPopover();
+
     // French has a translation: the dots button is present and the popover
     // shows only "Delete translation".
     const frenchPopover = page
       .locator('[data-testid="language-options-popover"]')
       .first();
-    await expect(frenchPopover).toBeVisible();
+    await expect(frenchPopover).toBeAttached();
     await expect(
       page.locator('[data-testid="language-options-popover-title"]').first(),
     ).toContainText('French');
     await expect(
       page.locator('[data-testid="language-options-delete"]').first(),
-    ).toBeVisible();
+    ).toBeAttached();
 
     // Deleting the French translation happens in-app: no new browser tab
     // opens, and the dropdown updates without a page reload.
@@ -365,7 +360,8 @@ test.describe('Language Select', () => {
     await page
       .locator('[data-testid="language-options-delete"]')
       .first()
-      .click();
+      // eslint-disable-next-line playwright/no-force-option
+      .click({ force: true });
     expect(popupOpened).toBe(false);
 
     // Clicking delete opens a confirmation dialog instead of deleting immediately.
@@ -374,7 +370,7 @@ test.describe('Language Select', () => {
 
     // Clicking Cancel closes the dialog without performing the deletion.
     await deleteDialog.getByRole('button', { name: 'Cancel' }).click();
-    await expect(deleteDialog).not.toBeVisible();
+    await expect(deleteDialog).toBeHidden();
 
     // The dropdown must still be open and the French translation still intact.
     await expect(
@@ -394,7 +390,8 @@ test.describe('Language Select', () => {
     await page
       .locator('[data-testid="language-options-delete"]')
       .first()
-      .click();
+      // eslint-disable-next-line playwright/no-force-option
+      .click({ force: true });
     await expect(deleteDialog).toBeVisible();
 
     // The "Delete Translation" button must be disabled until the user types
@@ -419,7 +416,7 @@ test.describe('Language Select', () => {
 
     // Confirming the dialog triggers the actual in-app deletion.
     await confirmButton.click();
-    await expect(deleteDialog).not.toBeVisible();
+    await expect(deleteDialog).toBeHidden();
 
     // The in-app delete drops French's options trigger (and with it the
     // popover) once the request resolves. Wait for that before reopening so

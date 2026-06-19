@@ -283,7 +283,14 @@ const LanguageSelect = () => {
                           data-testid="language-options-popover-trigger"
                           className={styles.dotsButton}
                           aria-label={`More options for ${language.name}`}
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handlePopoverOpenChange(
+                              language.id,
+                              openPopoverId !== language.id,
+                            );
+                          }}
                         >
                           <DotsVerticalIcon width="14" height="14" />
                         </button>
