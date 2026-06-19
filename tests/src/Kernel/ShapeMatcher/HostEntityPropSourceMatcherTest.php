@@ -9,6 +9,7 @@ use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropSource\HostEntityPropSource;
 use Drupal\canvas\ShapeMatcher\HostEntityPropSourceMatcher;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\field\Entity\FieldStorageConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -65,7 +66,22 @@ class HostEntityPropSourceMatcherTest extends PropSourceMatcherTestBase {
     parent::setUp();
     $this->installEntitySchema('user');
     $this->installEntitySchema('node');
-    $this->installConfig(['node', 'canvas_test_code_components_content_entity_ref']);
+    $this->installConfig(['node']);
+    // The canvas_test_code_components_content_entity_ref module references the
+    // default node body field storage. Drupal core 11.2 ships it with the node
+    // module; 11.3 moved it into the deprecated node_storage_body_field
+    // submodule. Create it directly when absent so the test keeps working
+    // regardless of which core version ships it, and once that submodule is
+    // removed.
+    // @todo Do this unconditionally and remove this comment once Canvas requires >11.2.
+    if (!FieldStorageConfig::loadByName('node', 'body')) {
+      FieldStorageConfig::create([
+        'entity_type' => 'node',
+        'field_name' => 'body',
+        'type' => 'text_with_summary',
+      ])->save();
+    }
+    $this->installConfig(['canvas_test_code_components_content_entity_ref']);
   }
 
   /**

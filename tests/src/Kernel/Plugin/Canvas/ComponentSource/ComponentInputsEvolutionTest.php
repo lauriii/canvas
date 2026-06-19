@@ -405,7 +405,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     // above. So we need to hardcode these per version.
     $active_version = match(TRUE) {
       // The 11.3.x version.
-      version_compare(\Drupal::VERSION, "11.3", '>=') => "ecbfb3dfb7ce5717",
+      version_compare(\Drupal::VERSION, "11.3", '>=') => "0b5af0d270d99618",
       // The 11.2.10 version, for the original implementation + schema of the
       // block being tested, because:
       // - no new version should be generated thanks to the Block
