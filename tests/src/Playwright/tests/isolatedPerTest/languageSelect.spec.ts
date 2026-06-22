@@ -316,17 +316,14 @@ test.describe('Language Select', () => {
       '[data-testid="canvas-topbar"] [data-testid="language-select-trigger"][data-state="closed"]',
     );
 
-    // Opens the language dropdown and clicks the dots button for a language.
-    // Clicking escape closes any open per-language popover or dropdown.
+    // Opens a language's options popover from its dots trigger.
     const openPopover = async (language = 'French') => {
-      await page
+      const popoverTrigger = page
+        .locator('[data-state="open"][role="menu"]')
         .locator(`[aria-label="More options for ${language}"]`)
-        .first()
-        // Elements floating in the same coordinates as the topbar or side panel
-        // are sometimes seen as not-visible by Playwright. Force the click to
-        // avoid this issue, since we know the button is interactable.
-        // eslint-disable-next-line playwright/no-force-option
-        .click({ force: true });
+        .first();
+      await expect(popoverTrigger).toBeAttached();
+      await popoverTrigger.click();
     };
     await languageButton.click();
 
@@ -357,19 +354,24 @@ test.describe('Language Select', () => {
     page.on('popup', () => {
       popupOpened = true;
     });
-    await page
+    await frenchPopover
       .locator('[data-testid="language-options-delete"]')
-      .first()
-      // eslint-disable-next-line playwright/no-force-option
-      .click({ force: true });
+      .click();
     expect(popupOpened).toBe(false);
 
     // Clicking delete opens a confirmation dialog instead of deleting immediately.
-    const deleteDialog = page.getByRole('dialog');
+    const deleteDialog = page
+      .locator('[role="dialog"][data-state="open"]')
+      .filter({
+        has: page.locator('h1', { hasText: 'Delete translation' }),
+      })
+      .first();
     await expect(deleteDialog).toBeVisible();
 
+    const cancelButton = deleteDialog.getByRole('button', { name: 'Cancel' });
+    await expect(cancelButton).toBeAttached();
     // Clicking Cancel closes the dialog without performing the deletion.
-    await deleteDialog.getByRole('button', { name: 'Cancel' }).click();
+    await cancelButton.click();
     await expect(deleteDialog).toBeHidden();
 
     // The dropdown must still be open and the French translation still intact.
@@ -387,11 +389,9 @@ test.describe('Language Select', () => {
 
     // Proceed with actual deletion.
     await openPopover();
-    await page
+    await frenchPopover
       .locator('[data-testid="language-options-delete"]')
-      .first()
-      // eslint-disable-next-line playwright/no-force-option
-      .click({ force: true });
+      .click();
     await expect(deleteDialog).toBeVisible();
 
     // The "Delete Translation" button must be disabled until the user types
@@ -428,10 +428,16 @@ test.describe('Language Select', () => {
     // Reopen the dropdown: French is still listed but, with its translation
     // gone, it no longer shows a check mark or an options trigger - confirming
     // the list refreshed without a page reload.
-    await page.keyboard.press('Escape');
-    await expect(
-      page.locator('[data-state="open"][role="menu"]'),
-    ).not.toBeAttached();
+    await expect(async () => {
+      // Click an element outside the language select to ensure it fully closes,
+      // regardless of submenus.
+      await page.locator('[data-testid="scale-to-fit"]').click();
+      await expect(
+        page.locator(
+          '[data-state="open"][data-testid="language-select-trigger"]',
+        ),
+      ).not.toBeAttached();
+    }).toPass({ timeout: 10000 });
     await languageButton.click();
     await expect(
       page.locator('[data-testid="language-option-fr"]'),

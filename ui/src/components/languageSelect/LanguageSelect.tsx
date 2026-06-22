@@ -284,12 +284,8 @@ const LanguageSelect = () => {
                           className={styles.dotsButton}
                           aria-label={`More options for ${language.name}`}
                           onClick={(e) => {
-                            e.preventDefault();
                             e.stopPropagation();
-                            handlePopoverOpenChange(
-                              language.id,
-                              openPopoverId !== language.id,
-                            );
+                            handlePopoverOpenChange(language.id, true);
                           }}
                         >
                           <DotsVerticalIcon width="14" height="14" />
