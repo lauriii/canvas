@@ -30,21 +30,40 @@ trait RequestTrait {
     // to work. We also need to reset the request stack every time we make a
     // request.
     $request_stack = $this->container->get('request_stack');
+    $previous_requests = [];
     while ($request_stack->getCurrentRequest() !== NULL) {
-      $request_stack->pop();
+      $previous_requests[] = $request_stack->pop();
     }
 
     $http_kernel = $this->container->get('http_kernel');
     self::assertInstanceOf(HttpKernelInterface::class, $http_kernel);
-    $response = $http_kernel->handle($request, HttpKernelInterface::MAIN_REQUEST, FALSE);
-    $content = $response->getContent();
-    self::assertNotFalse($content);
-    $this->setRawContent($content);
 
-    self::assertInstanceOf(TerminableInterface::class, $http_kernel);
-    $http_kernel->terminate($request, $response);
+    try {
+      $response = $http_kernel->handle($request, HttpKernelInterface::MAIN_REQUEST, FALSE);
+      $content = $response->getContent();
+      self::assertNotFalse($content);
+      $this->setRawContent($content);
 
-    return $response;
+      self::assertInstanceOf(TerminableInterface::class, $http_kernel);
+      $http_kernel->terminate($request, $response);
+
+      return $response;
+    } finally {
+      // Always clean up the request stack, even if an exception was thrown.
+      // Drupal's kernel middleware (KernelPreHandle) and Symfony's HttpKernel
+      // both push the request onto the stack. We need to remove any lingering
+      // requests left after the request handling completes or fails.
+      while ($request_stack->getCurrentRequest() !== NULL) {
+        $request_stack->pop();
+      }
+
+      // Restore the previous request stack state that existed before this
+      // request was processed.
+      foreach ($previous_requests as $previous_request) {
+        \assert($previous_request instanceof Request);
+        $request_stack->push($previous_request);
+      }
+    }
   }
 
   protected static function decodeResponse(Response $response): array {
