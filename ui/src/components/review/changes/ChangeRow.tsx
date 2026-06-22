@@ -1,5 +1,9 @@
 import { useCallback, useMemo } from 'react';
-import { ClockIcon, DotsVerticalIcon } from '@radix-ui/react-icons';
+import {
+  ClockIcon,
+  DotsVerticalIcon,
+  ExclamationTriangleIcon,
+} from '@radix-ui/react-icons';
 import {
   Avatar,
   Badge,
@@ -11,6 +15,8 @@ import {
   Text,
   Tooltip,
 } from '@radix-ui/themes';
+
+import { isConflictUxEnabled } from '@/features/conflict/conflictUtils';
 
 import { getAvatarInitialColor, getChangeLabel, getTimeAgo } from '../utils';
 import ChangeIcon from './ChangeIcon';
@@ -26,6 +32,7 @@ interface ChangeRowProps {
   setSelectedChanges: (changes: UnpublishedChange[]) => void;
   onDiscardClick: (change: UnpublishedChange) => void;
   onViewClick?: (change: UnpublishedChange) => void;
+  onResolveConflict?: (change: UnpublishedChange) => void;
   pageStatusMap?: Record<
     string,
     { status: boolean; isNew?: boolean; hasUnsavedStatusChange?: boolean }
@@ -39,14 +46,17 @@ const ChangeRow = ({
   setSelectedChanges,
   onDiscardClick,
   onViewClick,
+  onResolveConflict,
   pageStatusMap,
 }: ChangeRowProps) => {
   const changeLabel = getChangeLabel(change);
   const initial = change.owner.name.trim().charAt(0).toUpperCase();
   const avatarColor = getAvatarInitialColor(change.owner.id);
   const date = new Date(change.updated * 1000);
-  const color = change.hasConflict ? 'red' : undefined;
-  const weight = change.hasConflict ? 'bold' : 'regular';
+  const conflictUxEnabled = isConflictUxEnabled();
+  const hasConflict = conflictUxEnabled && !!change.hasConflict;
+  const color = hasConflict ? 'red' : undefined;
+  const weight = 'regular';
 
   const isSelected = useMemo(() => {
     return selectedChanges.some((c) => c.pointer === change.pointer);
@@ -77,6 +87,9 @@ const ChangeRow = ({
 
   const handleChangeSelection = useCallback(
     (checked: boolean) => {
+      if (hasConflict) {
+        return;
+      }
       if (checked) {
         setSelectedChanges([...selectedChanges, change]);
       } else {
@@ -85,7 +98,7 @@ const ChangeRow = ({
         );
       }
     },
-    [change, selectedChanges, setSelectedChanges],
+    [change, hasConflict, selectedChanges, setSelectedChanges],
   );
 
   return (
@@ -95,16 +108,25 @@ const ChangeRow = ({
           <Flex as="div" direction="row" align="start" gap="2" pt="1">
             <Checkbox
               size="1"
-              disabled={isBusy}
+              disabled={isBusy || hasConflict}
               aria-label={`Select change ${changeLabel}`}
               onCheckedChange={handleChangeSelection}
               checked={isSelected}
             />
             <Flex height="16px" align="center">
-              <ChangeIcon
-                entityType={change.entity_type}
-                entityId={change.entity_id}
-              />
+              {hasConflict ? (
+                <Tooltip content="This change has a conflict">
+                  <ExclamationTriangleIcon
+                    className={styles.conflictIcon}
+                    data-testid="change-conflict-icon"
+                  />
+                </Tooltip>
+              ) : (
+                <ChangeIcon
+                  entityType={change.entity_type}
+                  entityId={change.entity_id}
+                />
+              )}
             </Flex>
             {changeLabel}
           </Flex>
@@ -177,7 +199,14 @@ const ChangeRow = ({
                 </IconButton>
               </DropdownMenu.Trigger>
               <DropdownMenu.Content>
-                {onViewClick && (
+                {conflictUxEnabled && hasConflict && onResolveConflict && (
+                  <DropdownMenu.Item
+                    onSelect={() => onResolveConflict?.(change)}
+                  >
+                    Resolve conflict
+                  </DropdownMenu.Item>
+                )}
+                {onViewClick && !hasConflict && (
                   <DropdownMenu.Item onSelect={() => onViewClick(change)}>
                     View changes
                   </DropdownMenu.Item>

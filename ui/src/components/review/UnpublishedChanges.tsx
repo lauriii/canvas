@@ -9,12 +9,12 @@ import {
   selectErrors,
   selectPreviousPendingChanges,
   setConflicts,
-  setPreviousPendingChanges,
 } from '@/components/review/PublishReview.slice';
 import {
   resetCodeEditor,
   setForceRefresh,
 } from '@/features/code-editor/codeEditorSlice';
+import { isConflictUxEnabled } from '@/features/conflict/conflictUtils';
 import { FORM_TYPES } from '@/features/form/constants';
 import { clearFieldValues } from '@/features/form/formStateSlice';
 import {
@@ -33,8 +33,6 @@ import { brandKitApi } from '@/services/brandKit';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { contentApi, useGetContentListQuery } from '@/services/content';
 import {
-  CONFLICT_CODE,
-  pendingChangesApi,
   useDiscardPendingChangeMutation,
   useGetAllPendingChangesQuery,
   usePublishAllPendingChangesMutation,
@@ -85,6 +83,7 @@ const UnpublishedChanges = () => {
     entityType: 'canvas_page',
   });
   const pageItems = contentListData?.items;
+  const conflictUxEnabled = isConflictUxEnabled();
 
   // If either the selected component or the preview layout is being updated, disable the Publish button.
   const isUpdating = isUpdatingComponent || isUpdatingPreview;
@@ -112,9 +111,8 @@ const UnpublishedChanges = () => {
 
   const onOpenChangeHandler = (open: boolean): void => {
     if (open) {
-      refetch().then(() => {
-        setPollingInterval(0);
-      });
+      setPollingInterval(0);
+      refetch();
     } else {
       setPollingInterval(REFETCH_INTERVAL_MS);
     }
@@ -228,6 +226,14 @@ const UnpublishedChanges = () => {
 
     try {
       await discardChange(selectedChange).unwrap();
+      const remainingConflicts = conflicts?.filter(
+        (conflict) => conflict.source.pointer !== selectedChange.pointer,
+      );
+      dispatch(
+        setConflicts(
+          remainingConflicts?.length ? remainingConflicts : undefined,
+        ),
+      );
       // After discarding, refresh the editor state from canonical server data.
       dispatch(componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]));
       dispatch(
@@ -280,43 +286,13 @@ const UnpublishedChanges = () => {
     }
   };
 
-  if (!isFetching && conflicts && conflicts.length) {
-    window.setTimeout(() => {
-      conflicts.forEach((conflict) => {
-        if (conflict.code === CONFLICT_CODE.UNEXPECTED) {
-          dispatch(
-            pendingChangesApi.util.updateQueryData(
-              'getAllPendingChanges',
-              undefined,
-              (draft) => {
-                if (previousPendingChanges) {
-                  draft[conflict.source.pointer] = {
-                    ...previousPendingChanges[conflict.source.pointer],
-                    hasConflict: true,
-                  };
-                }
-              },
-            ),
-          );
-        }
-        if (conflict.code === CONFLICT_CODE.EXPECTED) {
-          dispatch(
-            pendingChangesApi.util.updateQueryData(
-              'getAllPendingChanges',
-              undefined,
-              (draft) => {
-                if (draft[conflict.source.pointer]) {
-                  draft[conflict.source.pointer].hasConflict = true;
-                }
-              },
-            ),
-          );
-        }
-      });
-      dispatch(setConflicts());
-      dispatch(setPreviousPendingChanges());
-    }, 100);
-  }
+  const conflictCount = useMemo(
+    () =>
+      conflictUxEnabled
+        ? unpublishedChanges.filter((change) => change.hasConflict).length
+        : 0,
+    [conflictUxEnabled, unpublishedChanges],
+  );
 
   // Create a map of entity_id -> { status, isNew, hasUnsavedStatusChange } for quick lookup
   const pageStatusMap = useMemo(() => {
@@ -340,10 +316,16 @@ const UnpublishedChanges = () => {
       isUpdating={isUpdating}
       isFetching={isFetching}
       changes={unpublishedChanges}
+      conflictCount={conflictCount}
       errors={errorResponse}
       onOpenChangeCallback={onOpenChangeHandler}
       onPublishClick={onPublishClick}
       onDiscardClick={onDiscardClick}
+      onResolveConflict={() => {
+        // @todo Replace this refresh with the conflict resolution UI in
+        //   https://git.drupalcode.org/project/canvas/-/work_items/3591601.
+        refetch();
+      }}
       isPublishing={isPublishing}
       isDiscarding={isDiscarding}
       pageStatusMap={pageStatusMap}

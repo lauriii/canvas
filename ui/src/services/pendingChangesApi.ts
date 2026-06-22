@@ -25,6 +25,7 @@ export interface PendingChange {
   label: string;
   updated: number;
   hasConflict?: boolean;
+  conflict_id?: string;
 }
 
 export type PendingChanges = {
@@ -36,16 +37,20 @@ interface SuccessResponse {
 }
 
 export interface ConflictError {
-  code: number;
+  code?: number;
   detail: string;
   source: {
     pointer: string;
   };
-  meta?: {
-    entity_type: string;
-    entity_id: string | number;
-    label: string;
-  };
+  meta?: ConflictErrorMeta;
+}
+
+export interface ConflictErrorMeta {
+  entity_type?: string;
+  entity_id?: string | number;
+  label?: string;
+  api_auto_save_key?: string;
+  conflict_id?: string;
 }
 
 export interface ErrorResponse {
@@ -64,7 +69,73 @@ export enum STATUS_CODE {
 export enum CONFLICT_CODE {
   UNEXPECTED = 1,
   EXPECTED = 2,
+  DETECTED = 4,
 }
+
+export interface PendingChangesResponse {
+  data: PendingChanges;
+  errors?: ConflictError[];
+}
+
+type PendingChangesApiResponse = PendingChanges | PendingChangesResponse;
+
+const isPendingChangesResponse = (
+  response: PendingChangesApiResponse,
+): response is PendingChangesResponse => {
+  const asWrapped = response as { data?: unknown };
+  return typeof asWrapped.data === 'object' && asWrapped.data !== null;
+};
+
+export const getAutoSaveKeyFromError = (
+  error: ConflictError,
+): string | undefined => error.meta?.api_auto_save_key ?? error.source.pointer;
+
+const isResolvableConflictError = (error?: ConflictError): boolean =>
+  error?.code === CONFLICT_CODE.DETECTED;
+
+const normalizePendingChangesResponse = (
+  response: PendingChangesApiResponse,
+): PendingChangesResponse => {
+  if (isPendingChangesResponse(response)) {
+    return response;
+  }
+
+  return {
+    data: response as PendingChanges,
+  };
+};
+
+export const applyConflictStateFromResponse = (
+  response: PendingChangesApiResponse,
+): PendingChanges => {
+  const normalizedResponse = normalizePendingChangesResponse(response);
+  const errorsByPointer = new Map<string, ConflictError>();
+  for (const error of normalizedResponse.errors ?? []) {
+    const pointer = getAutoSaveKeyFromError(error);
+    if (pointer) {
+      errorsByPointer.set(pointer, error);
+    }
+  }
+
+  return Object.fromEntries(
+    Object.entries(normalizedResponse.data ?? {}).map(([pointer, change]) => {
+      const conflictError = errorsByPointer.get(pointer);
+      const hasConflict = isResolvableConflictError(conflictError);
+      const conflictId = hasConflict
+        ? conflictError?.meta?.conflict_id
+        : undefined;
+
+      return [
+        pointer,
+        {
+          ...change,
+          hasConflict,
+          conflict_id: conflictId,
+        },
+      ];
+    }),
+  );
+};
 
 // Define a service using a base URL and expected endpoints
 export const pendingChangesApi = createApi({
@@ -73,8 +144,13 @@ export const pendingChangesApi = createApi({
   tagTypes: ['PendingChanges'],
   endpoints: (builder) => ({
     getAllPendingChanges: builder.query<PendingChanges, void>({
-      query: () => `/canvas/api/v0/auto-saves/pending`,
-      transformResponse: (response: { data: PendingChanges }) => response.data,
+      query: () => ({
+        url: `/canvas/api/v0/auto-saves/pending`,
+        validateStatus: (response) =>
+          response.status === STATUS_CODE.CONFLICT || response.status === 200,
+      }),
+      transformResponse: (response: PendingChangesApiResponse) =>
+        applyConflictStateFromResponse(response),
       providesTags: () => [{ type: 'PendingChanges', id: 'LIST' }],
     }),
     publishAllPendingChanges: builder.mutation<
@@ -170,7 +246,11 @@ export const pendingChangesApi = createApi({
                     error?.error?.data?.message ??
                     'Failed to discard pending change',
                   source: { pointer: '' },
-                  meta: change,
+                  meta: {
+                    entity_type: change.entity_type,
+                    entity_id: change.entity_id,
+                    label: change.label,
+                  },
                 },
               ],
             }),

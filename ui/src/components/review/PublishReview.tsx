@@ -17,8 +17,10 @@ import PermissionCheck from '@/components/PermissionCheck';
 import ReviewErrors from '@/components/review/ReviewErrors';
 import { getReviewGroupKey } from '@/components/review/utils';
 import { Divider } from '@/features/code-editor/component-data/FormElement';
+import { isConflictUxEnabled } from '@/features/conflict/conflictUtils';
 
 import ChangeList from './changes/ChangeList';
+import ConflictBanner from './ConflictBanner';
 
 import type { ErrorResponse } from '@/services/pendingChangesApi';
 import type {
@@ -37,11 +39,13 @@ interface PublishReviewProps {
   onPublishClick: (selectedChanges: UnpublishedChange[]) => void;
   onDiscardClick: (selectedChange: UnpublishedChange) => void;
   onViewClick?: (change: UnpublishedChange) => void;
+  onResolveConflict?: (change?: UnpublishedChange) => void;
   onOpenChangeCallback: (open: boolean) => void;
   isPublishing: boolean;
   isDiscarding: boolean;
-  isFetching: boolean; // indicates if the list of autosaved changes is being fetched
   isUpdating: boolean; // indicates if the preview is being updated
+  isFetching?: boolean;
+  conflictCount?: number;
   pageStatusMap?: Record<
     string,
     { status: boolean; isNew?: boolean; hasUnsavedStatusChange?: boolean }
@@ -55,13 +59,16 @@ const PublishReview: React.FC<PublishReviewProps> = ({
   onPublishClick,
   onDiscardClick,
   onViewClick,
+  onResolveConflict,
   onOpenChangeCallback,
   isPublishing = false,
   isDiscarding = false,
-  isFetching = false,
   isUpdating = false,
+  isFetching = false,
+  conflictCount = 0,
   pageStatusMap,
 }) => {
+  const conflictUxEnabled = isConflictUxEnabled();
   // State to manage the open/close state of the popover
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
@@ -74,24 +81,59 @@ const PublishReview: React.FC<PublishReviewProps> = ({
   );
 
   // Memoize the selected changes to avoid unnecessary re-renders
+  const selectableChanges = useMemo(
+    () =>
+      conflictUxEnabled
+        ? changes.filter((change) => !change.hasConflict)
+        : changes,
+    [changes, conflictUxEnabled],
+  );
+
   const allSelected = useMemo(() => {
-    if (!changes?.length) return false;
-    return selectedChanges?.length === changes?.length ? true : 'indeterminate';
-  }, [changes, selectedChanges]);
+    if (!selectableChanges?.length) return false;
+    return selectedChanges?.length === selectableChanges?.length
+      ? true
+      : 'indeterminate';
+  }, [selectableChanges, selectedChanges]);
 
   // Used to display the `Published` state, which resets on new selections
   const [hasPublished, setHasPublished] = useState<boolean>(false);
+
   useEffect(() => {
-    if (!isPublishing && !errors?.errors?.length) {
+    if (isPublishing || errors?.errors?.length || !selectedChanges?.length) {
+      return;
+    }
+
+    const pendingPointers = new Set(changes.map((change) => change.pointer));
+    if (
+      selectedChanges.every((change) => !pendingPointers.has(change.pointer))
+    ) {
       setHasPublished(true);
       setSelectedChanges([]);
     }
-  }, [isPublishing, errors]);
+  }, [changes, errors?.errors?.length, isPublishing, selectedChanges]);
   useEffect(() => {
     if (selectedChanges.length > 0) {
       setHasPublished(false);
     }
   }, [selectedChanges.length]);
+
+  useEffect(() => {
+    if (!conflictUxEnabled) {
+      return;
+    }
+    const conflictedPointers = new Set(
+      changes
+        .filter((change) => change.hasConflict)
+        .map((change) => change.pointer),
+    );
+    if (!conflictedPointers.size) {
+      return;
+    }
+    setSelectedChanges((existing) =>
+      existing.filter((change) => !conflictedPointers.has(change.pointer)),
+    );
+  }, [changes, conflictUxEnabled]);
 
   // The trigger button text changes based on the pending changes
   const triggerButtonText = useMemo(() => {
@@ -128,7 +170,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
     if (allSelected === true) {
       setSelectedChanges([]);
     } else {
-      setSelectedChanges(changes);
+      setSelectedChanges(selectableChanges);
     }
   };
 
@@ -147,10 +189,13 @@ const PublishReview: React.FC<PublishReviewProps> = ({
   };
 
   const onOpenChangeHandler = (open: boolean): void => {
-    if (isFetching) return;
     setHasPublished(false);
     setIsOpen(open);
     onOpenChangeCallback(open);
+  };
+
+  const handleResolveConflict = () => {
+    onResolveConflict?.();
   };
 
   return (
@@ -196,7 +241,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
               <Flex align="center" gap="2">
                 <Checkbox
                   id="select-all-changes"
-                  disabled={isBusy}
+                  disabled={isBusy || selectableChanges.length === 0}
                   checked={allSelected === true}
                   onCheckedChange={handleSelectAll}
                   size="1"
@@ -221,6 +266,15 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                     : 'All changes published!'}
                 </Text>
               </Box>
+              {conflictUxEnabled && conflictCount > 0 && (
+                <Box px="4" pt="4">
+                  <ConflictBanner
+                    conflictCount={conflictCount}
+                    onResolveClick={handleResolveConflict}
+                    disabled={isBusy}
+                  />
+                </Box>
+              )}
               <Box px="4" pt="4">
                 {changes?.length > 0 && (
                   <>
@@ -231,6 +285,9 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                       setSelectedChanges={setSelectedChanges}
                       onDiscardClick={handleDiscardClick}
                       onViewClick={onViewClick}
+                      onResolveConflict={(change) =>
+                        onResolveConflict?.(change)
+                      }
                       pageStatusMap={pageStatusMap}
                     />
                   </>

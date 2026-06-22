@@ -1,0 +1,40 @@
+.conflictBanner {
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
+  background-color: var(--yellow-2);
+}
+
+.warningIcon {
+  width: 16px;
+  height: 16px;
+  color: var(--red-9);
+}
+
+.conflictText {
+  color: var(--gray-12);
+  font-weight: var(--font-weight-regular);
+}
+
+.conflictSubtext {
+  margin-left: calc(16px + var(--space-2));
+  color: var(--red-9);
+  font-weight: var(--font-weight-regular);
+}
+
+.conflictBanner .resolveButton {
+  width: 100%;
+  cursor: pointer;
+  color: var(--red-11);
+  background-color: var(--red-3);
+  font-weight: var(--font-weight-medium);
+}
+
+.conflictBanner .resolveButton:hover:not(:disabled) {
+  background-color: var(--red-4);
+}
+
+.conflictBanner .resolveButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
