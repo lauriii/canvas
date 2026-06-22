@@ -6,10 +6,9 @@ namespace Drupal\Tests\canvas\Unit;
 
 use Drupal\canvas\PropExpressions\StructuredData\Coalescer;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
-use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -58,472 +57,211 @@ final class CoalescerTest extends UnitTestCase {
    *
    * @param \Closure(list<EntityFieldBasedPropExpressionInterface>): list<EntityFieldBasedPropExpressionInterface> $transform
    *   Coalescer::coalesce(...) or Coalescer::expand(...).
-   * @param \Closure(): list<EntityFieldBasedPropExpressionInterface> $input
-   *   Builds the input expressions. A closure because data providers run
-   *   before setUp(), so the container is not yet available.
-   * @param \Closure(): list<EntityFieldBasedPropExpressionInterface> $expected
-   *   Builds the expressions the input is expected to map to.
+   * @param list<string> $input
+   *   The string representations of the input expressions.
+   * @param list<string> $expected
+   *   The string representations the input is expected to map to.
    */
-  private static function assertTransform(\Closure $transform, \Closure $input, \Closure $expected): void {
+  private static function assertTransform(\Closure $transform, array $input, array $expected): void {
+    // fromString() returns the broad StructuredDataPropExpressionInterface;
+    // narrow it to the EntityFieldBasedPropExpressionInterface that the
+    // Coalescer operates on. Every expression in these tests is field-based.
+    $from_string = static function (string $representation): EntityFieldBasedPropExpressionInterface {
+      $expression = StructuredDataPropExpression::fromString($representation);
+      \assert($expression instanceof EntityFieldBasedPropExpressionInterface);
+      return $expression;
+    };
     $to_string = static fn (EntityFieldBasedPropExpressionInterface $expression): string => (string) $expression;
-    // Coalescer transforms objects into objects; comparing their string
-    // representations keeps the assertions readable.
-    $actual = \array_map($to_string, $transform($input()));
-    $expected_strings = \array_map($to_string, $expected());
+    $actual = \array_map($to_string, $transform(\array_map($from_string, $input)));
     \sort($actual);
-    \sort($expected_strings);
-    self::assertSame($expected_strings, $actual);
+    \sort($expected);
+    self::assertSame($expected, $actual);
   }
 
   /**
    * Tests coalescing a list of scalar expressions into its compact form.
    *
-   * @param \Closure(): list<EntityFieldBasedPropExpressionInterface> $input
-   *   Builds the atomic expressions to coalesce.
-   * @param \Closure(): list<EntityFieldBasedPropExpressionInterface> $expected
-   *   Builds the expressions the input is expected to coalesce into.
+   * @param list<string> $input
+   *   The string representations of the atomic expressions to coalesce.
+   * @param list<string> $expected
+   *   The string representations the input is expected to coalesce into.
    */
   #[DataProvider('providerCoalesce')]
-  public function testCoalesce(\Closure $input, \Closure $expected): void {
+  public function testCoalesce(array $input, array $expected): void {
     self::assertTransform(Coalescer::coalesce(...), $input, $expected);
   }
 
   /**
    * Provides coalescing scenarios, keyed by the pattern under test.
    *
-   * @return iterable<string, array{\Closure, \Closure}>
+   * @return iterable<string, array{list<string>, list<string>}>
    */
   public static function providerCoalesce(): iterable {
     yield 'different properties of the same field item → one expression' => [
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        return [
-          new FieldPropExpression($node, 'field_image', 0, 'alt'),
-          new FieldPropExpression($node, 'field_image', 0, 'target_id'),
-        ];
-      },
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        return [
-          new FieldObjectPropsExpression($node, 'field_image', 0, [
-            'alt' => new FieldPropExpression($node, 'field_image', 0, 'alt'),
-            'target_id' => new FieldPropExpression($node, 'field_image', 0, 'target_id'),
-          ]),
-        ];
-      },
+      [
+        'ℹ︎␜entity:node:article␝field_image␞0␟alt',
+        'ℹ︎␜entity:node:article␝field_image␞0␟target_id',
+      ],
+      ['ℹ︎␜entity:node:article␝field_image␞0␟{alt↠alt,target_id↠target_id}'],
     ];
 
     // coalesce() emits a canonical, key-sorted form, so the same set of
     // properties yields the same string regardless of input order. Feeding the
     // properties in reverse is what actually exercises that sort.
     yield 'properties arriving out of order → key-sorted output' => [
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        return [
-          new FieldPropExpression($node, 'field_image', 0, 'target_id'),
-          new FieldPropExpression($node, 'field_image', 0, 'alt'),
-        ];
-      },
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        return [
-          new FieldObjectPropsExpression($node, 'field_image', 0, [
-            'alt' => new FieldPropExpression($node, 'field_image', 0, 'alt'),
-            'target_id' => new FieldPropExpression($node, 'field_image', 0, 'target_id'),
-          ]),
-        ];
-      },
+      [
+        'ℹ︎␜entity:node:article␝field_image␞0␟target_id',
+        'ℹ︎␜entity:node:article␝field_image␞0␟alt',
+      ],
+      ['ℹ︎␜entity:node:article␝field_image␞0␟{alt↠alt,target_id↠target_id}'],
     ];
 
     // The Coalescer cannot merge a property with itself, so it leaves both
     // entries in the output for the (separate) validation layer to reject as a
     // duplicate.
-    $duplicate = static function (): array {
-      $node = BetterEntityDataDefinition::create('node', 'article');
-      return [
-        new FieldPropExpression($node, 'field_image', 0, 'alt'),
-        new FieldPropExpression($node, 'field_image', 0, 'alt'),
-      ];
-    };
+    $duplicate = [
+      'ℹ︎␜entity:node:article␝field_image␞0␟alt',
+      'ℹ︎␜entity:node:article␝field_image␞0␟alt',
+    ];
     yield 'duplicate property on the same field → left unchanged' => [$duplicate, $duplicate];
 
-    $lone = static function (): array {
-      $node = BetterEntityDataDefinition::create('node', 'article');
-      return [new FieldPropExpression($node, 'title', 0, 'value')];
-    };
+    $lone = ['ℹ︎␜entity:node:article␝title␞0␟value'];
     yield 'lone expression → unchanged' => [$lone, $lone];
 
     yield 'reference chain, same final field → one combined reference' => [
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $user = BetterEntityDataDefinition::create('user');
-        $referencer = new FieldPropExpression($node, 'uid', NULL, 'entity');
-        return [
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
-          ),
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression($user, 'user_picture', NULL, 'target_id'),
-          ),
-        ];
-      },
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $user = BetterEntityDataDefinition::create('user');
-        $referencer = new FieldPropExpression($node, 'uid', NULL, 'entity');
-        return [
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldObjectPropsExpression($user, 'user_picture', NULL, [
-              'alt' => new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
-              'target_id' => new FieldPropExpression($user, 'user_picture', NULL, 'target_id'),
-            ]),
-          ),
-        ];
-      },
+      [
+        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
+        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟target_id',
+      ],
+      ['ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟{alt↠alt,target_id↠target_id}'],
     ];
 
     // No loose pick on `uid`: two references descend through it into the same
     // bundle but pick different final fields, so they merge into one object.
     yield 'reference field consumed only through nested objects → one object expression' => [
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $user = BetterEntityDataDefinition::create('user');
-        $referencer = new FieldPropExpression($node, 'uid', NULL, 'entity');
-        return [
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression($user, 'name', NULL, 'value'),
-          ),
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression($user, 'mail', NULL, 'value'),
-          ),
-        ];
-      },
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $user = BetterEntityDataDefinition::create('user');
-        $referencer = new FieldPropExpression($node, 'uid', NULL, 'entity');
-        return [
-          new FieldObjectPropsExpression($node, 'uid', NULL, [
-            'mail' => new ReferenceFieldPropExpression(
-              referencer: $referencer,
-              referenced: new FieldPropExpression($user, 'mail', NULL, 'value'),
-            ),
-            'name' => new ReferenceFieldPropExpression(
-              referencer: $referencer,
-              referenced: new FieldPropExpression($user, 'name', NULL, 'value'),
-            ),
-          ]),
-        ];
-      },
+      [
+        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value',
+        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝mail␞␟value',
+      ],
+      ['ℹ︎␜entity:node:article␝uid␞␟{mail↝entity␜␜entity:user␝mail␞␟value,name↝entity␜␜entity:user␝name␞␟value}'],
     ];
 
     yield 'reference chain, different bundles → bundle-specific branches' => [
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $referencer = new FieldPropExpression($node, 'field_media', NULL, 'entity');
-        return [
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression(BetterEntityDataDefinition::create('media', 'image'), 'name', NULL, 'value'),
-          ),
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression(BetterEntityDataDefinition::create('media', 'video'), 'name', NULL, 'value'),
-          ),
-        ];
-      },
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $referencer = new FieldPropExpression($node, 'field_media', NULL, 'entity');
-        return [
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new ReferencedBundleSpecificBranches([
-              'entity:media:image' => new FieldPropExpression(BetterEntityDataDefinition::create('media', 'image'), 'name', NULL, 'value'),
-              'entity:media:video' => new FieldPropExpression(BetterEntityDataDefinition::create('media', 'video'), 'name', NULL, 'value'),
-            ]),
-          ),
-        ];
-      },
+      [
+        'ℹ︎␜entity:node:article␝field_media␞␟entity␜␜entity:media:image␝name␞␟value',
+        'ℹ︎␜entity:node:article␝field_media␞␟entity␜␜entity:media:video␝name␞␟value',
+      ],
+      ['ℹ︎␜entity:node:article␝field_media␞␟entity␜[␜entity:media:image␝name␞␟value][␜entity:media:video␝name␞␟value]'],
     ];
 
-    $multi_bundle = static function (): array {
-      $node = BetterEntityDataDefinition::create('node', 'article');
-      $referencer = new FieldPropExpression($node, 'field_media', NULL, 'entity');
-      return [
-        new ReferenceFieldPropExpression(
-          referencer: $referencer,
-          referenced: new ReferencedBundleSpecificBranches([
-            'entity:media:image' => new FieldPropExpression(BetterEntityDataDefinition::create('media', 'image'), 'name', NULL, 'value'),
-            'entity:media:video' => new FieldPropExpression(BetterEntityDataDefinition::create('media', 'video'), 'name', NULL, 'value'),
-          ]),
-        ),
-      ];
-    };
+    $multi_bundle = ['ℹ︎␜entity:node:article␝field_media␞␟entity␜[␜entity:media:image␝name␞␟value][␜entity:media:video␝name␞␟value]'];
     yield 'already-combined multi-bundle reference → unchanged' => [$multi_bundle, $multi_bundle];
 
-    $empty = static fn (): array => [];
+    $empty = [];
     yield 'empty list → empty list' => [$empty, $empty];
 
     // A loose pick and a reference descending through the same field key
     // must be coalesced into one FieldObjectPropsExpression whose reference-
     // derived entry follows the reference (`↝`).
     yield 'loose pick and reference descending through the same field → one object expression' => [
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $user = BetterEntityDataDefinition::create('user');
-        return [
-          new FieldPropExpression($node, 'uid', NULL, 'target_id'),
-          new ReferenceFieldPropExpression(
-            referencer: new FieldPropExpression($node, 'uid', NULL, 'entity'),
-            referenced: new FieldPropExpression($user, 'name', NULL, 'value'),
-          ),
-        ];
-      },
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $user = BetterEntityDataDefinition::create('user');
-        return [
-          new FieldObjectPropsExpression($node, 'uid', NULL, [
-            'name' => new ReferenceFieldPropExpression(
-              referencer: new FieldPropExpression($node, 'uid', NULL, 'entity'),
-              referenced: new FieldPropExpression($user, 'name', NULL, 'value'),
-            ),
-            'target_id' => new FieldPropExpression($node, 'uid', NULL, 'target_id'),
-          ]),
-        ];
-      },
+      [
+        'ℹ︎␜entity:node:article␝uid␞␟target_id',
+        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value',
+      ],
+      ['ℹ︎␜entity:node:article␝uid␞␟{name↝entity␜␜entity:user␝name␞␟value,target_id↠target_id}'],
     ];
 
     // The folded entry is named by the final target's developer-facing key:
     // node's `title` field maps to the `label` entity key.
     yield 'folded reference is named by its final target entity key' => [
-      static function (): array {
-        $article = BetterEntityDataDefinition::create('node', 'article');
-        $page = BetterEntityDataDefinition::create('node', 'page');
-        return [
-          new FieldPropExpression($article, 'field_related', NULL, 'target_id'),
-          new ReferenceFieldPropExpression(
-            referencer: new FieldPropExpression($article, 'field_related', NULL, 'entity'),
-            referenced: new FieldPropExpression($page, 'title', NULL, 'value'),
-          ),
-        ];
-      },
-      static function (): array {
-        $article = BetterEntityDataDefinition::create('node', 'article');
-        $page = BetterEntityDataDefinition::create('node', 'page');
-        return [
-          new FieldObjectPropsExpression($article, 'field_related', NULL, [
-            'label' => new ReferenceFieldPropExpression(
-              referencer: new FieldPropExpression($article, 'field_related', NULL, 'entity'),
-              referenced: new FieldPropExpression($page, 'title', NULL, 'value'),
-            ),
-            'target_id' => new FieldPropExpression($article, 'field_related', NULL, 'target_id'),
-          ]),
-        ];
-      },
+      [
+        'ℹ︎␜entity:node:article␝field_related␞␟target_id',
+        'ℹ︎␜entity:node:article␝field_related␞␟entity␜␜entity:node:page␝title␞␟value',
+      ],
+      ['ℹ︎␜entity:node:article␝field_related␞␟{label↝entity␜␜entity:node:page␝title␞␟value,target_id↠target_id}'],
     ];
 
     // Same-chain same-final-field references first coalesce into one reference
     // with an object final target, then fold as a single `↝` entry.
     yield 'loose pick and multi-property descend through the same field → one object expression' => [
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $user = BetterEntityDataDefinition::create('user');
-        $referencer = new FieldPropExpression($node, 'uid', NULL, 'entity');
-        return [
-          new FieldPropExpression($node, 'uid', NULL, 'target_id'),
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
-          ),
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression($user, 'user_picture', NULL, 'width'),
-          ),
-        ];
-      },
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $user = BetterEntityDataDefinition::create('user');
-        return [
-          new FieldObjectPropsExpression($node, 'uid', NULL, [
-            'target_id' => new FieldPropExpression($node, 'uid', NULL, 'target_id'),
-            'user_picture' => new ReferenceFieldPropExpression(
-              referencer: new FieldPropExpression($node, 'uid', NULL, 'entity'),
-              referenced: new FieldObjectPropsExpression($user, 'user_picture', NULL, [
-                'alt' => new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
-                'width' => new FieldPropExpression($user, 'user_picture', NULL, 'width'),
-              ]),
-            ),
-          ]),
-        ];
-      },
+      [
+        'ℹ︎␜entity:node:article␝uid␞␟target_id',
+        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
+        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟width',
+      ],
+      ['ℹ︎␜entity:node:article␝uid␞␟{target_id↠target_id,user_picture↝entity␜␜entity:user␝user_picture␞␟{alt↠alt,width↠width}}'],
     ];
 
     // The Coalescer cannot merge a loose pick with a folded reference deriving
     // the same name, so it leaves all entries in the output for the (separate)
     // validation layer to reject as a duplicate.
-    $name_collision = static function (): array {
-      $node = BetterEntityDataDefinition::create('node', 'article');
-      $user = BetterEntityDataDefinition::create('user');
-      return [
-        new FieldPropExpression($node, 'uid', NULL, 'name'),
-        new ReferenceFieldPropExpression(
-          referencer: new FieldPropExpression($node, 'uid', NULL, 'entity'),
-          referenced: new FieldPropExpression($user, 'name', NULL, 'value'),
-        ),
-      ];
-    };
+    $name_collision = [
+      'ℹ︎␜entity:node:article␝uid␞␟name',
+      'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value',
+    ];
     yield 'loose pick colliding with a folded reference name → left unchanged' => [$name_collision, $name_collision];
 
     yield 'mix of all flavors with a lone expression' => [
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $user = BetterEntityDataDefinition::create('user');
-        $referencer = new FieldPropExpression($node, 'uid', NULL, 'entity');
-        return [
-          // Two same-field expressions → 1 FieldObjectPropsExpression.
-          new FieldPropExpression($node, 'field_image', 0, 'alt'),
-          new FieldPropExpression($node, 'field_image', 0, 'target_id'),
-          // Two same-chain, same-final-field expressions → 1 reference.
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
-          ),
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression($user, 'user_picture', NULL, 'target_id'),
-          ),
-          // Lone expression → unchanged.
-          new FieldPropExpression($node, 'title', 0, 'value'),
-        ];
-      },
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $user = BetterEntityDataDefinition::create('user');
-        $referencer = new FieldPropExpression($node, 'uid', NULL, 'entity');
-        return [
-          new FieldObjectPropsExpression($node, 'field_image', 0, [
-            'alt' => new FieldPropExpression($node, 'field_image', 0, 'alt'),
-            'target_id' => new FieldPropExpression($node, 'field_image', 0, 'target_id'),
-          ]),
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldObjectPropsExpression($user, 'user_picture', NULL, [
-              'alt' => new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
-              'target_id' => new FieldPropExpression($user, 'user_picture', NULL, 'target_id'),
-            ]),
-          ),
-          new FieldPropExpression($node, 'title', 0, 'value'),
-        ];
-      },
+      [
+        // Two same-field expressions → 1 FieldObjectPropsExpression.
+        'ℹ︎␜entity:node:article␝field_image␞0␟alt',
+        'ℹ︎␜entity:node:article␝field_image␞0␟target_id',
+        // Two same-chain, same-final-field expressions → 1 reference.
+        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
+        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟target_id',
+        // Lone expression → unchanged.
+        'ℹ︎␜entity:node:article␝title␞0␟value',
+      ],
+      [
+        'ℹ︎␜entity:node:article␝field_image␞0␟{alt↠alt,target_id↠target_id}',
+        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟{alt↠alt,target_id↠target_id}',
+        'ℹ︎␜entity:node:article␝title␞0␟value',
+      ],
     ];
   }
 
   /**
    * Tests expanding a coalesced list back to its atomic leaf expressions.
    *
-   * @param \Closure(): list<EntityFieldBasedPropExpressionInterface> $input
-   *   Builds the coalesced expressions to expand.
-   * @param \Closure(): list<EntityFieldBasedPropExpressionInterface> $expected
-   *   Builds the atomic leaf expressions the input is expected to expand into.
+   * @param list<string> $input
+   *   The string representations of the coalesced expressions to expand.
+   * @param list<string> $expected
+   *   The string representations of the atomic leaf expressions the input is
+   *   expected to expand into.
    */
   #[DataProvider('providerExpand')]
-  public function testExpand(\Closure $input, \Closure $expected): void {
+  public function testExpand(array $input, array $expected): void {
     self::assertTransform(Coalescer::expand(...), $input, $expected);
   }
 
   /**
    * Provides expansion scenarios, keyed by the pattern under test.
    *
-   * @return iterable<string, array{\Closure, \Closure}>
+   * @return iterable<string, array{list<string>, list<string>}>
    */
   public static function providerExpand(): iterable {
     yield 'combined field expression → one leaf per property' => [
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        return [
-          new FieldObjectPropsExpression($node, 'field_image', 0, [
-            'alt' => new FieldPropExpression($node, 'field_image', 0, 'alt'),
-            'target_id' => new FieldPropExpression($node, 'field_image', 0, 'target_id'),
-          ]),
-        ];
-      },
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        return [
-          new FieldPropExpression($node, 'field_image', 0, 'alt'),
-          new FieldPropExpression($node, 'field_image', 0, 'target_id'),
-        ];
-      },
+      ['ℹ︎␜entity:node:article␝field_image␞0␟{alt↠alt,target_id↠target_id}'],
+      [
+        'ℹ︎␜entity:node:article␝field_image␞0␟alt',
+        'ℹ︎␜entity:node:article␝field_image␞0␟target_id',
+      ],
     ];
 
     yield 'combined reference → one reference leaf per property' => [
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $user = BetterEntityDataDefinition::create('user');
-        $referencer = new FieldPropExpression($node, 'uid', NULL, 'entity');
-        return [
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldObjectPropsExpression($user, 'user_picture', NULL, [
-              'alt' => new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
-              'target_id' => new FieldPropExpression($user, 'user_picture', NULL, 'target_id'),
-            ]),
-          ),
-        ];
-      },
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $user = BetterEntityDataDefinition::create('user');
-        $referencer = new FieldPropExpression($node, 'uid', NULL, 'entity');
-        return [
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
-          ),
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression($user, 'user_picture', NULL, 'target_id'),
-          ),
-        ];
-      },
+      ['ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟{alt↠alt,target_id↠target_id}'],
+      [
+        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
+        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟target_id',
+      ],
     ];
 
     yield 'multi-bundle reference → one reference leaf per bundle' => [
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $referencer = new FieldPropExpression($node, 'field_media', NULL, 'entity');
-        return [
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new ReferencedBundleSpecificBranches([
-              'entity:media:image' => new FieldPropExpression(BetterEntityDataDefinition::create('media', 'image'), 'name', NULL, 'value'),
-              'entity:media:video' => new FieldPropExpression(BetterEntityDataDefinition::create('media', 'video'), 'name', NULL, 'value'),
-            ]),
-          ),
-        ];
-      },
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $referencer = new FieldPropExpression($node, 'field_media', NULL, 'entity');
-        return [
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression(BetterEntityDataDefinition::create('media', 'image'), 'name', NULL, 'value'),
-          ),
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression(BetterEntityDataDefinition::create('media', 'video'), 'name', NULL, 'value'),
-          ),
-        ];
-      },
+      ['ℹ︎␜entity:node:article␝field_media␞␟entity␜[␜entity:media:image␝name␞␟value][␜entity:media:video␝name␞␟value]'],
+      [
+        'ℹ︎␜entity:node:article␝field_media␞␟entity␜␜entity:media:image␝name␞␟value',
+        'ℹ︎␜entity:node:article␝field_media␞␟entity␜␜entity:media:video␝name␞␟value',
+      ],
     ];
 
     // An object with a follow-reference (`↝`) entry expands fully: the `↝`
@@ -532,47 +270,18 @@ final class CoalescerTest extends UnitTestCase {
     // is the reference's developer-facing key, `target_id` the property name),
     // so coalesce(expand(X)) === X — the round trip is lossless.
     yield 'object with a follow-reference entry → atomic leaves' => [
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $user = BetterEntityDataDefinition::create('user');
-        return [
-          new FieldObjectPropsExpression($node, 'uid', NULL, [
-            'target_id' => new FieldPropExpression($node, 'uid', NULL, 'target_id'),
-            'user_picture' => new ReferenceFieldPropExpression(
-              referencer: new FieldPropExpression($node, 'uid', NULL, 'entity'),
-              referenced: new FieldObjectPropsExpression($user, 'user_picture', NULL, [
-                'alt' => new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
-                'width' => new FieldPropExpression($user, 'user_picture', NULL, 'width'),
-              ]),
-            ),
-          ]),
-        ];
-      },
-      static function (): array {
-        $node = BetterEntityDataDefinition::create('node', 'article');
-        $user = BetterEntityDataDefinition::create('user');
-        $referencer = new FieldPropExpression($node, 'uid', NULL, 'entity');
-        return [
-          new FieldPropExpression($node, 'uid', NULL, 'target_id'),
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
-          ),
-          new ReferenceFieldPropExpression(
-            referencer: $referencer,
-            referenced: new FieldPropExpression($user, 'user_picture', NULL, 'width'),
-          ),
-        ];
-      },
+      ['ℹ︎␜entity:node:article␝uid␞␟{target_id↠target_id,user_picture↝entity␜␜entity:user␝user_picture␞␟{alt↠alt,width↠width}}'],
+      [
+        'ℹ︎␜entity:node:article␝uid␞␟target_id',
+        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
+        'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟width',
+      ],
     ];
 
-    $lone = static function (): array {
-      $node = BetterEntityDataDefinition::create('node', 'article');
-      return [new FieldPropExpression($node, 'title', 0, 'value')];
-    };
+    $lone = ['ℹ︎␜entity:node:article␝title␞0␟value'];
     yield 'already-atomic expression → unchanged' => [$lone, $lone];
 
-    $empty = static fn (): array => [];
+    $empty = [];
     yield 'empty list → empty list' => [$empty, $empty];
   }
 
