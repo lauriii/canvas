@@ -437,7 +437,16 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
       }
       \assert(\array_is_list($expression_strings));
       \assert(Inspector::assertAllStrings($expression_strings));
-      $dataDependencies['entityFields'][$prop_name] = Coalescer::coalesce($expression_strings);
+      // Let parse errors propagate — the ValidStructuredDataPropExpression
+      // constraint catches invalid strings on save. The config schema restricts
+      // each entry to an entity-field-based expression.
+      // @see canvas.schema.yml (canvas.js_component.*: dataDependencies.entityFields)
+      $expressions = \array_map(StructuredDataPropExpression::fromString(...), $expression_strings);
+      \assert(Inspector::assertAllObjects($expressions, EntityFieldBasedPropExpressionInterface::class));
+      $dataDependencies['entityFields'][$prop_name] = \array_map(
+        static fn (EntityFieldBasedPropExpressionInterface $expression): string => (string) $expression,
+        Coalescer::coalesce($expressions),
+      );
     }
     return $dataDependencies;
   }
@@ -468,7 +477,12 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
       }
       \assert(\array_is_list($expression_strings));
       \assert(Inspector::assertAllStrings($expression_strings));
-      $dataDependencies['entityFields'][$prop_name] = Coalescer::expand($expression_strings);
+      $expressions = \array_map(StructuredDataPropExpression::fromString(...), $expression_strings);
+      \assert(Inspector::assertAllObjects($expressions, EntityFieldBasedPropExpressionInterface::class));
+      $dataDependencies['entityFields'][$prop_name] = \array_map(
+        static fn (EntityFieldBasedPropExpressionInterface $expression): string => (string) $expression,
+        Coalescer::expand($expressions),
+      );
     }
     return $dataDependencies;
   }

@@ -9,10 +9,15 @@ use Drupal\Component\Assertion\Inspector;
 /**
  * Coalesces and expands sets of scalar prop expressions.
  *
- * `::coalesce()` rewrites a list of scalar `PropExpression` strings into an
+ * `::coalesce()` rewrites a list of scalar `PropExpression` objects into an
  * equivalent — but more compact — list whose entries merge overlapping
  * expressions. `::expand()` is its inverse: it returns the list to the atomic
  * form, with each entry targeting a single field property.
+ *
+ * Both operate on `EntityFieldBasedPropExpressionInterface` objects; callers
+ * that hold string representations parse them at the boundary (a trivial
+ * `StructuredDataPropExpression::fromString()` per entry) and stringify the
+ * result back.
  *
  * Without coalescing, any consumer that keys an expression by its starting
  * point — its `(host, field, delta)` field item, or its reference chain —
@@ -37,7 +42,7 @@ use Drupal\Component\Assertion\Inspector;
 final class Coalescer {
 
   /**
-   * Coalesces a list of scalar prop-expression strings.
+   * Coalesces a list of scalar prop expressions.
    *
    * Three flavors of coalescing are performed:
    * - Any combination of `FieldPropExpression` and
@@ -86,23 +91,24 @@ final class Coalescer {
    * Already-coalesced multi-bundle `ReferenceFieldPropExpression` entries pass
    * through unchanged.
    *
-   * @param list<string> $expression_strings
-   *   The scalar expression strings to coalesce, each targeting a single field
+   * @param list<EntityFieldBasedPropExpressionInterface> $expressions
+   *   The scalar expressions to coalesce, each targeting a single field
    *   property.
    *
-   * @return list<string>
-   *   The coalesced list of expression strings.
+   * @return list<EntityFieldBasedPropExpressionInterface>
+   *   The coalesced list of expressions.
    */
-  public static function coalesce(array $expression_strings): array {
-    \assert(\array_is_list($expression_strings));
-    \assert(Inspector::assertAllStrings($expression_strings));
-
-    $parsed = [];
-    foreach ($expression_strings as $expression_string) {
-      // Let parse errors propagate — the ValidStructuredDataPropExpression
-      // constraint catches invalid strings on save.
-      $parsed[] = StructuredDataPropExpression::fromString($expression_string);
-    }
+  public static function coalesce(array $expressions): array {
+    \assert(\array_is_list($expressions));
+    // entityFields entries are restricted by config schema to one of these
+    // three expression types.
+    // @see canvas.schema.yml (canvas.js_component.*: dataDependencies.entityFields)
+    \assert(Inspector::assertAllObjects(
+      $expressions,
+      FieldPropExpression::class,
+      FieldObjectPropsExpression::class,
+      ReferenceFieldPropExpression::class,
+    ));
 
     // Buckets:
     // - $host_groups: loose host-entity field expressions grouped by
@@ -110,19 +116,22 @@ final class Coalescer {
     //   has a loose bucket are folded in later.
     // - $ref_groups:  reference expressions grouped by full chain + final
     //   field.
-    // - $passthrough: anything we deliberately do not try to coalesce
-    //   (multi-bundle references, today).
+    // - $coalesced:   the result accumulator. Seeded with anything we
+    //   deliberately do not try to coalesce (multi-bundle references, today),
+    //   then appended to by each coalescing pass below.
     /** @var array<string, list<FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression>> $host_groups */
     $host_groups = [];
     /** @var array<string, list<ReferenceFieldPropExpression>> $ref_groups */
     $ref_groups = [];
-    $passthrough = [];
-    foreach ($parsed as $expression) {
+    /** @var list<EntityFieldBasedPropExpressionInterface> $coalesced */
+    $coalesced = [];
+    foreach ($expressions as $expression) {
       if ($expression instanceof FieldPropExpression || $expression instanceof FieldObjectPropsExpression) {
         $host_groups[$expression->getStartingPointKey()][] = $expression;
         continue;
       }
-      if ($expression instanceof ReferenceFieldPropExpression && !$expression->targetsMultipleBundles()) {
+      // Only a ReferenceFieldPropExpression can remain here.
+      if (!$expression->targetsMultipleBundles()) {
         $final_target = $expression->getFinalTargetExpression();
         // Group by `<full reference chain>|<final target host|field|delta>` so
         // only expressions sharing the same chain AND the same final field
@@ -130,10 +139,8 @@ final class Coalescer {
         $ref_groups[$expression->getFullReferenceChain() . '|' . $final_target->getStartingPointKey()][] = $expression;
         continue;
       }
-      $passthrough[] = $expression;
+      $coalesced[] = $expression;
     }
-
-    $coalesced = \array_map(static fn (object $expression): string => (string) $expression, $passthrough);
 
     // Coalesce reference groups: same chain + same final field → one
     // ReferenceFieldPropExpression with a FieldObjectPropsExpression as final
@@ -163,7 +170,7 @@ final class Coalescer {
         // Same-property collision across the reference: pass through verbatim,
         // leaving the validation layer to flag the duplicate.
         foreach ($group_expressions as $expression) {
-          $coalesced[] = (string) $expression;
+          $coalesced[] = $expression;
         }
         continue;
       }
@@ -193,11 +200,11 @@ final class Coalescer {
         // Pass un-coalescable entries through verbatim — the validator will
         // flag them as duplicates on the same field.
         foreach ($group_expressions as $expression) {
-          $coalesced[] = (string) $expression;
+          $coalesced[] = $expression;
         }
         continue;
       }
-      $coalesced[] = (string) $coalesced_one;
+      $coalesced[] = $coalesced_one;
     }
 
     // Coalesce reference fields consumed only through nested objects (4th
@@ -221,7 +228,7 @@ final class Coalescer {
       if (\count($group) >= 2) {
         $coalesced_object = self::coalesceSameFieldGroup($group);
         if ($coalesced_object !== NULL) {
-          $coalesced[] = (string) $coalesced_object;
+          $coalesced[] = $coalesced_object;
           continue;
         }
       }
@@ -254,27 +261,26 @@ final class Coalescer {
    * `coalesce(expand())` is the identity. Custom-named objects do not
    * round-trip this way.
    *
-   * @param list<string> $expression_strings
+   * @param list<EntityFieldBasedPropExpressionInterface> $expressions
    *
-   * @return list<string>
+   * @return list<EntityFieldBasedPropExpressionInterface>
    */
-  public static function expand(array $expression_strings): array {
-    \assert(\array_is_list($expression_strings));
-    \assert(Inspector::assertAllStrings($expression_strings));
+  public static function expand(array $expressions): array {
+    \assert(\array_is_list($expressions));
+    // entityFields entries are restricted by config schema to one of these
+    // three expression types.
+    // @see canvas.schema.yml (canvas.js_component.*: dataDependencies.entityFields)
+    \assert(Inspector::assertAllObjects(
+      $expressions,
+      FieldPropExpression::class,
+      FieldObjectPropsExpression::class,
+      ReferenceFieldPropExpression::class,
+    ));
 
     $expanded = [];
-    foreach ($expression_strings as $expression_string) {
-      $parsed = StructuredDataPropExpression::fromString($expression_string);
-      // entityFields entries are restricted by config schema to one of these
-      // three expression types.
-      // @see canvas.schema.yml (canvas.js_component.*: dataDependencies.entityFields)
-      \assert(
-        $parsed instanceof FieldPropExpression
-        || $parsed instanceof FieldObjectPropsExpression
-        || $parsed instanceof ReferenceFieldPropExpression
-      );
-      foreach (self::toLeafExpressions($parsed) as $leaf) {
-        $expanded[] = (string) $leaf;
+    foreach ($expressions as $expression) {
+      foreach (self::toLeafExpressions($expression) as $leaf) {
+        $expanded[] = $leaf;
       }
     }
     return $expanded;
@@ -365,7 +371,7 @@ final class Coalescer {
    *
    * @param list<ReferenceFieldPropExpression> $refs
    *
-   * @return list<string>
+   * @return list<ReferenceFieldPropExpression>
    */
   private static function coalesceBranches(array $refs): array {
     if ($refs === []) {
@@ -380,7 +386,7 @@ final class Coalescer {
     $result = [];
     foreach ($chain_groups as $chain_refs) {
       if (\count($chain_refs) === 1) {
-        $result[] = (string) $chain_refs[0];
+        $result[] = $chain_refs[0];
         continue;
       }
 
@@ -400,7 +406,7 @@ final class Coalescer {
 
       if ($collision || \count($branches) < 2) {
         foreach ($chain_refs as $ref) {
-          $result[] = (string) $ref;
+          $result[] = $ref;
         }
         continue;
       }
@@ -408,11 +414,11 @@ final class Coalescer {
       \ksort($branches);
       try {
         $bundle_branches = new ReferencedBundleSpecificBranches($branches);
-        $result[] = (string) new ReferenceFieldPropExpression($referencer, $bundle_branches);
+        $result[] = new ReferenceFieldPropExpression($referencer, $bundle_branches);
       }
       catch (\InvalidArgumentException) {
         foreach ($chain_refs as $ref) {
-          $result[] = (string) $ref;
+          $result[] = $ref;
         }
       }
     }

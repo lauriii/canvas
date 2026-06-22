@@ -7,6 +7,9 @@ namespace Drupal\Tests\canvas\Kernel\Entity;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\PropExpressions\StructuredData\Coalescer;
+use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\Component\Assertion\Inspector;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -376,7 +379,14 @@ final class JavaScriptComponentUpdateFromClientSideTest extends CanvasKernelTest
   private static function expandEntityFields(JavaScriptComponent $component): array {
     $dataDependencies = $component->get('dataDependencies') ?? [];
     foreach ($dataDependencies['entityFields'] ?? [] as $prop_name => $expression_strings) {
-      $dataDependencies['entityFields'][$prop_name] = Coalescer::expand($expression_strings);
+      \assert(\is_array($expression_strings) && \array_is_list($expression_strings));
+      \assert(Inspector::assertAllStrings($expression_strings));
+      $expressions = \array_map(StructuredDataPropExpression::fromString(...), $expression_strings);
+      \assert(Inspector::assertAllObjects($expressions, EntityFieldBasedPropExpressionInterface::class));
+      $dataDependencies['entityFields'][$prop_name] = \array_map(
+        static fn (EntityFieldBasedPropExpressionInterface $expression): string => (string) $expression,
+        Coalescer::expand($expressions),
+      );
     }
     return $dataDependencies;
   }

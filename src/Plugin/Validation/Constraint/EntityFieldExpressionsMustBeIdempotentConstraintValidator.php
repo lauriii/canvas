@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\canvas\PropExpressions\StructuredData\Coalescer;
+use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
@@ -33,13 +35,16 @@ final class EntityFieldExpressionsMustBeIdempotentConstraintValidator extends Co
     // concern of EntityFieldExpressionsSameFieldMustBeCoalesced, so checking
     // entries individually here avoids double-reporting it.
     // @see \Drupal\canvas\PropExpressions\StructuredData\Coalescer::expand()
+    $to_string = static fn (EntityFieldBasedPropExpressionInterface $expression): string => (string) $expression;
     foreach ($value as $expression_string) {
       if (!\is_string($expression_string)) {
         continue;
       }
       try {
-        $normalized = Coalescer::coalesce([$expression_string]);
-        $round_tripped = Coalescer::coalesce(Coalescer::expand([$expression_string]));
+        $expression = StructuredDataPropExpression::fromString($expression_string);
+        \assert($expression instanceof EntityFieldBasedPropExpressionInterface);
+        $normalized = \array_map($to_string, Coalescer::coalesce([$expression]));
+        $round_tripped = \array_map($to_string, Coalescer::coalesce(Coalescer::expand([$expression])));
       }
       catch (\Throwable) {
         // Invalid expressions are handled by ValidStructuredDataPropExpression.

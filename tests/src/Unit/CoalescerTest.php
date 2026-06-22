@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Unit;
 
 use Drupal\canvas\PropExpressions\StructuredData\Coalescer;
+use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches;
@@ -55,17 +56,19 @@ final class CoalescerTest extends UnitTestCase {
    * Output order is not part of Coalescer's contract, so the two lists are
    * compared as sets.
    *
-   * @param \Closure(list<string>): list<string> $transform
+   * @param \Closure(list<EntityFieldBasedPropExpressionInterface>): list<EntityFieldBasedPropExpressionInterface> $transform
    *   Coalescer::coalesce(...) or Coalescer::expand(...).
-   * @param \Closure(): list<\Stringable> $input
+   * @param \Closure(): list<EntityFieldBasedPropExpressionInterface> $input
    *   Builds the input expressions. A closure because data providers run
    *   before setUp(), so the container is not yet available.
-   * @param \Closure(): list<\Stringable> $expected
+   * @param \Closure(): list<EntityFieldBasedPropExpressionInterface> $expected
    *   Builds the expressions the input is expected to map to.
    */
   private static function assertTransform(\Closure $transform, \Closure $input, \Closure $expected): void {
-    $to_string = static fn (\Stringable $expression): string => (string) $expression;
-    $actual = $transform(\array_map($to_string, $input()));
+    $to_string = static fn (EntityFieldBasedPropExpressionInterface $expression): string => (string) $expression;
+    // Coalescer transforms objects into objects; comparing their string
+    // representations keeps the assertions readable.
+    $actual = \array_map($to_string, $transform($input()));
     $expected_strings = \array_map($to_string, $expected());
     \sort($actual);
     \sort($expected_strings);
@@ -75,9 +78,9 @@ final class CoalescerTest extends UnitTestCase {
   /**
    * Tests coalescing a list of scalar expressions into its compact form.
    *
-   * @param \Closure(): list<\Stringable> $input
+   * @param \Closure(): list<EntityFieldBasedPropExpressionInterface> $input
    *   Builds the atomic expressions to coalesce.
-   * @param \Closure(): list<\Stringable> $expected
+   * @param \Closure(): list<EntityFieldBasedPropExpressionInterface> $expected
    *   Builds the expressions the input is expected to coalesce into.
    */
   #[DataProvider('providerCoalesce')]
@@ -426,9 +429,9 @@ final class CoalescerTest extends UnitTestCase {
   /**
    * Tests expanding a coalesced list back to its atomic leaf expressions.
    *
-   * @param \Closure(): list<\Stringable> $input
+   * @param \Closure(): list<EntityFieldBasedPropExpressionInterface> $input
    *   Builds the coalesced expressions to expand.
-   * @param \Closure(): list<\Stringable> $expected
+   * @param \Closure(): list<EntityFieldBasedPropExpressionInterface> $expected
    *   Builds the atomic leaf expressions the input is expected to expand into.
    */
   #[DataProvider('providerExpand')]
@@ -584,24 +587,26 @@ final class CoalescerTest extends UnitTestCase {
     $user = BetterEntityDataDefinition::create('user');
     $referencer = new FieldPropExpression($node, 'uid', NULL, 'entity');
     $entries = [
-      (string) new FieldPropExpression($node, 'field_image', 0, 'alt'),
-      (string) new FieldPropExpression($node, 'field_image', 0, 'target_id'),
-      (string) new ReferenceFieldPropExpression(
+      new FieldPropExpression($node, 'field_image', 0, 'alt'),
+      new FieldPropExpression($node, 'field_image', 0, 'target_id'),
+      new ReferenceFieldPropExpression(
         referencer: $referencer,
         referenced: new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
       ),
-      (string) new ReferenceFieldPropExpression(
+      new ReferenceFieldPropExpression(
         referencer: $referencer,
         referenced: new FieldPropExpression($user, 'user_picture', NULL, 'target_id'),
       ),
     ];
 
-    $roundtripped = Coalescer::expand(Coalescer::coalesce($entries));
+    $to_string = static fn (\Stringable $expression): string => (string) $expression;
+    $entry_strings = \array_map($to_string, $entries);
+    $roundtripped = \array_map($to_string, Coalescer::expand(Coalescer::coalesce($entries)));
 
     // Output order is not part of the contract, so compare as sets.
-    \sort($entries);
+    \sort($entry_strings);
     \sort($roundtripped);
-    self::assertSame($entries, $roundtripped);
+    self::assertSame($entry_strings, $roundtripped);
   }
 
   /**
@@ -612,27 +617,28 @@ final class CoalescerTest extends UnitTestCase {
     $user = BetterEntityDataDefinition::create('user');
     $referencer = new FieldPropExpression($node, 'field_media', NULL, 'entity');
     $entries = [
-      (string) new FieldPropExpression($node, 'field_image', 0, 'alt'),
-      (string) new FieldPropExpression($node, 'field_image', 0, 'target_id'),
+      new FieldPropExpression($node, 'field_image', 0, 'alt'),
+      new FieldPropExpression($node, 'field_image', 0, 'target_id'),
       // This loose pick shares the `uid` field with the reference below: both
       // fold into one FieldObjectPropsExpression with a `↝` entry.
-      (string) new FieldPropExpression($node, 'uid', NULL, 'target_id'),
-      (string) new ReferenceFieldPropExpression(
+      new FieldPropExpression($node, 'uid', NULL, 'target_id'),
+      new ReferenceFieldPropExpression(
         referencer: new FieldPropExpression($node, 'uid', NULL, 'entity'),
         referenced: new FieldPropExpression($user, 'user_picture', NULL, 'alt'),
       ),
-      (string) new ReferenceFieldPropExpression(
+      new ReferenceFieldPropExpression(
         referencer: $referencer,
         referenced: new FieldPropExpression(BetterEntityDataDefinition::create('media', 'image'), 'name', NULL, 'value'),
       ),
-      (string) new ReferenceFieldPropExpression(
+      new ReferenceFieldPropExpression(
         referencer: $referencer,
         referenced: new FieldPropExpression(BetterEntityDataDefinition::create('media', 'video'), 'name', NULL, 'value'),
       ),
     ];
 
-    $once = Coalescer::coalesce($entries);
-    $twice = Coalescer::coalesce($once);
+    $to_string = static fn (\Stringable $expression): string => (string) $expression;
+    $once = \array_map($to_string, Coalescer::coalesce($entries));
+    $twice = \array_map($to_string, Coalescer::coalesce(Coalescer::coalesce($entries)));
 
     // Output order is not part of the contract, so compare as sets.
     \sort($once);
