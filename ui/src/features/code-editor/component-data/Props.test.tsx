@@ -26,6 +26,7 @@ import {
   serializeProps,
 } from '@/features/code-editor/utils/utils';
 import { type CodeComponentPropImageExample } from '@/types/CodeComponent';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import Props, { REQUIRED_EXAMPLE_ERROR_MESSAGE } from './Props';
 
@@ -42,6 +43,13 @@ const Wrapper = ({ store }: { store: AppStore }) => (
     <Props />
   </AppWrapper>
 );
+
+const setCanvasDevEntityReference = (isPresent: boolean) => {
+  const canvasSettings = getCanvasSettings() as {
+    devEntityReferenceMode: boolean;
+  };
+  canvasSettings.devEntityReferenceMode = isPresent;
+};
 
 /**
  * Helper function to add a new prop with a specified type and name.
@@ -79,6 +87,7 @@ const addProp = async (typeDisplayName: string, propName: string) => {
 
 describe('props in code editor', () => {
   beforeEach(() => {
+    setCanvasDevEntityReference(true);
     store = makeStore({}); // Create a fresh store for each test
     render(<Wrapper store={store} />);
   });
@@ -220,6 +229,50 @@ describe('props in code editor', () => {
       expect(selectCodeComponentProperty('required')(store.getState())).toEqual(
         [],
       );
+    });
+
+    it('hides content entity reference when the dev setting is false', async () => {
+      cleanup();
+      setCanvasDevEntityReference(false);
+      store = makeStore({});
+      render(<Wrapper store={store} />);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+      await userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+
+      expect(screen.getByRole('option', { name: 'Text' })).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', { name: 'Content entity reference' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps content entity reference when the existing prop uses it', async () => {
+      cleanup();
+      setCanvasDevEntityReference(false);
+      const storeWithContentEntityReference = makeStore({
+        codeEditor: {
+          ...initialState,
+          codeComponent: {
+            ...initialState.codeComponent,
+            props: [
+              {
+                id: 'existing-content-entity-reference-prop-id',
+                name: 'Author',
+                type: 'object',
+                $ref: 'json-schema-definitions://canvas.module/content-entity-reference',
+                derivedType: 'contentEntityReference',
+              },
+            ],
+          },
+        },
+      });
+      render(<Wrapper store={storeWithContentEntityReference} />);
+
+      await userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+
+      expect(
+        screen.getByRole('option', { name: 'Content entity reference' }),
+      ).toBeInTheDocument();
     });
 
     it('clears content entity reference target data when changing type', async () => {

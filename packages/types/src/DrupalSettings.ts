@@ -49,6 +49,7 @@ export interface DrupalSettings {
     selectedComponent: string;
     devMode: boolean;
     devTranslationMode: boolean;
+    devEntityReferenceMode: boolean;
     contentTranslationEnabled: boolean;
     configTranslationEnabled: boolean;
     languages: Language[];
