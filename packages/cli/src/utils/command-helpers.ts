@@ -12,25 +12,6 @@ import {
 import type { CanvasSyncConfig } from '@drupal-canvas/discovery';
 
 /**
- * Magic string constant for "all components" selector
- */
-export const ALL_COMPONENTS_SELECTOR = '_allComponents';
-
-/**
- * Validates that --all and --components options are not used together
- */
-export function validateComponentOptions(options: {
-  components?: string;
-  all?: boolean;
-}): void {
-  if (options.components && options.all) {
-    throw new Error(
-      'Cannot use --all and --components options together. Please use either:\n   • --components to specify specific components, or\n   • --all to process everything.',
-    );
-  }
-}
-
-/**
  * Updates config with common CLI options
  */
 interface SyncCommandOptions {
@@ -98,7 +79,6 @@ export function updateConfigFromOptions(options: {
   scope?: string;
   sync?: Partial<CanvasSyncConfig>;
   includeBrandKit?: boolean;
-  all?: boolean;
   aliasBaseDir?: string;
   outputDir?: string;
 }): void {
@@ -134,7 +114,6 @@ export function updateConfigFromOptions(options: {
     });
   }
   if (options.scope) setConfig({ scope: options.scope });
-  if (options.all) setConfig({ all: options.all });
   if (options.aliasBaseDir) setConfig({ aliasBaseDir: options.aliasBaseDir });
   if (options.outputDir) setConfig({ outputDir: options.outputDir });
 }

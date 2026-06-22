@@ -3,7 +3,6 @@ import * as p from '@clack/prompts';
 import { discoverCanvasProject } from '@drupal-canvas/discovery';
 
 import { getConfig } from '../config';
-import { ensureAuthConfig } from '../services/api';
 import { buildCanvasProject } from '../utils/build-project';
 import { pluralize, updateConfigFromOptions } from '../utils/command-helpers';
 import { reportResults } from '../utils/report-results';
@@ -14,10 +13,6 @@ interface BuildOptions {
   dir?: string;
   aliasBaseDir?: string;
   outputDir?: string;
-  tailwind?: boolean;
-  clientId?: string;
-  clientSecret?: string;
-  siteUrl?: string;
   yes?: boolean;
 }
 
@@ -30,18 +25,14 @@ export function buildCommand(program: Command): void {
     .description('build local components and Tailwind CSS assets')
     .option(
       '-d, --dir <directory>',
-      'Directory to scan for components (defaults to current working directory).',
+      'Directory to scan for components (defaults to componentDir from canvas.config.json or src/components).',
     )
     .option(
       '--alias-base-dir <directory>',
       'Base directory for module resolution.',
     )
     .option('--output-dir <directory>', 'Build output directory.')
-    .option('--no-tailwind', 'Skip Tailwind CSS building')
     .option('-y, --yes', 'Skip confirmation prompts')
-    .option('--client-id <id>', 'Client ID')
-    .option('--client-secret <secret>', 'Client Secret')
-    .option('--site-url <url>', 'Site URL')
     .action(async (options: BuildOptions) => {
       try {
         p.intro(chalk.bold('Drupal Canvas CLI: build'));
@@ -50,12 +41,7 @@ export function buildCommand(program: Command): void {
         updateConfigFromOptions(options);
         const { aliasBaseDir, outputDir, componentDir } = getConfig();
 
-        const skipTailwind = !options.tailwind;
-
-        if (!skipTailwind) {
-          await ensureAuthConfig();
-        }
-        // Step 1: Discover all components
+        // Step 1: Discover local components.
         const s1 = p.spinner();
         s1.start('Discovering components');
         const discoveryResult = await discoverCanvasProject({
@@ -97,8 +83,6 @@ export function buildCommand(program: Command): void {
           outputDir,
           discoveryResult,
           cleanOutputDir: true,
-          buildTailwind: !skipTailwind,
-          useLocalGlobalCss: true,
         });
         s2.stop(
           chalk.green(`Built ${components.length} ${componentLabelPluralized}`),
@@ -135,13 +119,9 @@ export function buildCommand(program: Command): void {
           process.exit(1);
         }
 
-        if (skipTailwind) {
-          p.log.info('Skipping Tailwind CSS build');
-        } else if (buildResult.tailwindResult) {
-          reportResults([buildResult.tailwindResult], 'Built assets', 'Asset');
-          if (!buildResult.tailwindResult.success) {
-            process.exit(1);
-          }
+        reportResults([buildResult.tailwindResult], 'Built assets', 'Asset');
+        if (!buildResult.tailwindResult.success) {
+          process.exit(1);
         }
 
         p.log.info(

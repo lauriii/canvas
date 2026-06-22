@@ -5,7 +5,7 @@ import { compileCss } from 'tailwindcss-in-browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transformCss } from '../lib/transform-css';
-import { buildTailwindCss } from './build-tailwind';
+import { buildTailwindCss, getGlobalCss } from './build-tailwind';
 
 vi.mock('tailwindcss-in-browser', () => ({
   compileCss: vi.fn(async () => 'compiled css'),
@@ -18,15 +18,20 @@ vi.mock('../lib/transform-css', () => ({
 
 describe('buildTailwindCss', () => {
   let temporaryDirectory: string;
+  let originalCwd: string;
 
   beforeEach(async () => {
+    vi.clearAllMocks();
+    vi.mocked(compileCss).mockResolvedValue('compiled css');
+    vi.mocked(transformCss).mockResolvedValue('transformed css');
+    originalCwd = process.cwd();
     temporaryDirectory = await fs.mkdtemp(
       path.join(os.tmpdir(), 'canvas-build-tailwind-'),
     );
   });
 
   afterEach(async () => {
-    vi.clearAllMocks();
+    process.chdir(originalCwd);
     await fs.rm(temporaryDirectory, { recursive: true, force: true });
   });
 
@@ -54,5 +59,16 @@ describe('buildTailwindCss', () => {
     await expect(
       fs.readFile(path.join(temporaryDirectory, 'index.css'), 'utf-8'),
     ).resolves.toBe('transformed css');
+  });
+
+  it('fails clearly when the local global CSS file is missing', async () => {
+    process.chdir(temporaryDirectory);
+    const globalCssPath = path.join(process.cwd(), 'src/global.css');
+
+    await expect(getGlobalCss()).rejects.toEqual(
+      new Error(
+        `Missing local global CSS file at ${globalCssPath}. Create this file, or set "globalCssPath" in canvas.config.json to an existing CSS file.`,
+      ),
+    );
   });
 });

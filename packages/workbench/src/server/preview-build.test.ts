@@ -114,7 +114,6 @@ function makeCanvasConfig(): CanvasConfig {
     pagesDir: 'pages',
     contentTemplatesDir: 'content-templates',
     regionsDir: 'regions',
-    deprecatedComponentDir: 'components',
     globalCssPath: 'src/global.css',
     layoutPath: 'src/layout.jsx',
     sync: {

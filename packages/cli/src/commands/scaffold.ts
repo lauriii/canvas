@@ -35,7 +35,7 @@ export function scaffoldCommand(program: Command): void {
         // Update config with CLI options
         if (options.dir) setConfig({ componentDir: options.dir });
         const config = getConfig();
-        const baseDir = config.deprecatedComponentDir;
+        const baseDir = config.componentDir;
 
         // Get component name
         let componentName = options.name;

@@ -8,9 +8,7 @@ import {
   pluralize,
   pluralizeComponent,
   updateConfigFromOptions,
-  validateComponentOptions,
 } from '../utils/command-helpers';
-import { selectLocalComponents } from '../utils/component-selector.js';
 import { reportResults } from '../utils/report-results.js';
 import { validateContentTemplates } from '../utils/validate-content-template.js';
 import { validatePages } from '../utils/validate-page.js';
@@ -23,11 +21,7 @@ import type { Result } from '../types/Result.js';
 
 interface ValidateOptions {
   dir?: string;
-  all?: boolean;
-  components?: string;
-  yes?: boolean;
   fix?: boolean;
-  deprecated?: boolean;
 }
 
 /**
@@ -42,19 +36,8 @@ export function validateCommand(program: Command): void {
       'Component directory to validate the components in',
     )
     .option(
-      '-c, --components <names>',
-      'Specific component(s) to validate (comma-separated)',
-    )
-    .option('--all', 'Validate all components')
-    .option('-y, --yes', 'Skip confirmation prompts')
-    .option(
       '--fix',
       'Apply available automatic fixes for linting issues',
-      false,
-    )
-    .option(
-      '--deprecated',
-      'Validate using deprecated rules and component selection.',
       false,
     )
     .action(async (options: ValidateOptions) => {
@@ -65,48 +48,17 @@ export function validateCommand(program: Command): void {
         updateConfigFromOptions(options);
 
         let componentDirectoriesToValidate: string[] = [];
-        let discoveryResult;
-
-        if (options.deprecated) {
-          // Validate options
-          validateComponentOptions(options);
-
-          // Default to --all when --yes is used without --components
-          const allFlag =
-            options.all || (options.yes && !options.components) || false;
-
-          // Select components to validate
-          const { directories } = await selectLocalComponents({
-            all: allFlag,
-            components: options.components,
-            skipConfirmation: options.yes,
-            selectMessage: 'Select components to validate',
-          });
-          componentDirectoriesToValidate = directories;
-        } else {
-          if (options.all) {
-            p.log.warn(
-              '--all option is deprecated and ignored unless used with the --deprecated flag.',
-            );
-          }
-          if (options.components) {
-            p.log.warn(
-              '--components option is deprecated and ignored unless used with the --deprecated flag.',
-            );
-          }
-
-          const config = getConfig();
-          discoveryResult = await discoverCanvasProject({
-            componentRoot: config.componentDir,
-            pagesRoot: config.pagesDir,
-            contentTemplatesRoot: config.contentTemplatesDir,
-            regionsRoot: config.regionsDir,
-            projectRoot: process.cwd(),
-          });
-          componentDirectoriesToValidate = discoveryResult.components.map(
-            (c) => c.directory,
-          );
-        }
+        const config = getConfig();
+        const discoveryResult = await discoverCanvasProject({
+          componentRoot: config.componentDir,
+          pagesRoot: config.pagesDir,
+          contentTemplatesRoot: config.contentTemplatesDir,
+          regionsRoot: config.regionsDir,
+          projectRoot: process.cwd(),
+        });
+        componentDirectoriesToValidate = discoveryResult.components.map(
+          (c) => c.directory,
+        );
 
         const componentPluralized = pluralizeComponent(
           componentDirectoriesToValidate.length,
@@ -118,11 +70,7 @@ export function validateCommand(program: Command): void {
         s.start(`Validating ${componentPluralized}`);
 
         for (const componentDir of componentDirectoriesToValidate) {
-          const result = await validateComponent(
-            componentDir,
-            options.fix,
-            options.deprecated,
-          );
+          const result = await validateComponent(componentDir, options.fix);
           results.push({ ...result, itemType: 'Component' });
         }
 

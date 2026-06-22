@@ -507,7 +507,9 @@ export function pushCommand(program: Command): void {
         }
 
         if (components.length === 0) {
-          p.log.info('No components found. Skipping component push.');
+          p.log.info(
+            'No components found. Skipping component push, global CSS upload, and artifact sync.',
+          );
         }
 
         logIgnoredLocalResources();
@@ -700,61 +702,58 @@ export function pushCommand(program: Command): void {
 
         await apiService.signalPushStart();
 
-        // Step 2: Build components, global CSS, and manifest artifacts.
-        const s2 = p.spinner();
-        s2.start('Building project');
-        const canvasBuild = await buildCanvasProject({
-          projectRoot: process.cwd(),
-          componentDir,
-          aliasBaseDir,
-          outputDir,
-          discoveryResult,
-          cleanOutputDir: true,
-          buildTailwind: true,
-          requireJsEntries: true,
-          useLocalGlobalCss: true,
-        });
-        s2.stop(chalk.green('Built project'));
+        let componentResults: Result[] = [];
+        let includeGlobalCss = false;
+        let artifactCount = 0;
+        let fontCount = 0;
 
-        if (canvasBuild.componentResults.some((r) => !r.success)) {
-          reportResults(
-            canvasBuild.componentResults,
-            'Built components',
-            'Component',
-          );
-          throw new Error('Component build failed. Nothing was pushed.');
-        }
+        if (components.length > 0) {
+          // Step 2: Build components, global CSS, and manifest artifacts.
+          const s2 = p.spinner();
+          s2.start('Building project');
+          const canvasBuild = await buildCanvasProject({
+            projectRoot: process.cwd(),
+            componentDir,
+            aliasBaseDir,
+            outputDir,
+            discoveryResult,
+            cleanOutputDir: true,
+            requireJsEntries: true,
+          });
+          s2.stop(chalk.green('Built project'));
 
-        if (canvasBuild.tailwindResult) {
+          if (canvasBuild.componentResults.some((r) => !r.success)) {
+            reportResults(
+              canvasBuild.componentResults,
+              'Built components',
+              'Component',
+            );
+            throw new Error('Component build failed. Nothing was pushed.');
+          }
+
           reportResults([canvasBuild.tailwindResult], 'Built assets', 'Asset');
           if (!canvasBuild.tailwindResult.success) {
             throw new Error(
               'Tailwind build failed, global assets upload aborted. Nothing was pushed.',
             );
           }
-        }
 
-        if (canvasBuild.vendorImportCount > 0) {
-          p.log.info(
-            chalk.green(
-              `Bundled ${canvasBuild.vendorImportCount} vendor ${pluralize(canvasBuild.vendorImportCount, 'package')} → ${outputDir}/vendor/`,
-            ),
-          );
-        }
-        if (canvasBuild.localImportCount > 0) {
-          p.log.info(
-            chalk.green(
-              `Bundled ${canvasBuild.localImportCount} local ${pluralize(canvasBuild.localImportCount, 'import')} → ${outputDir}/local/`,
-            ),
-          );
-        }
+          if (canvasBuild.vendorImportCount > 0) {
+            p.log.info(
+              chalk.green(
+                `Bundled ${canvasBuild.vendorImportCount} vendor ${pluralize(canvasBuild.vendorImportCount, 'package')} → ${outputDir}/vendor/`,
+              ),
+            );
+          }
+          if (canvasBuild.localImportCount > 0) {
+            p.log.info(
+              chalk.green(
+                `Bundled ${canvasBuild.localImportCount} local ${pluralize(canvasBuild.localImportCount, 'import')} → ${outputDir}/local/`,
+              ),
+            );
+          }
 
-        let componentResults: Result[] = [];
-        let includeGlobalCss = false;
-        let fontCount = 0;
-
-        // Build and push components
-        if (components.length > 0) {
+          // Build and push components.
           componentResults = await pushBuiltComponents(
             canvasBuild.builtComponents,
             apiService,
@@ -765,18 +764,18 @@ export function pushCommand(program: Command): void {
             throw new Error('Component push failed. Push aborted.');
           }
           reportResults(componentResults, 'Pushed components', 'Component');
-        }
 
-        // Upload Tailwind CSS.
-        const globalCssResult = await uploadGlobalAssetLibrary(
-          apiService,
-          config.outputDir,
-        );
-        reportResults([globalCssResult], 'Pushed assets', 'Asset');
-        if (!globalCssResult.success) {
-          throw new Error('Push aborted (incomplete). Try again.');
+          // Upload Tailwind CSS.
+          const globalCssResult = await uploadGlobalAssetLibrary(
+            apiService,
+            config.outputDir,
+          );
+          reportResults([globalCssResult], 'Pushed assets', 'Asset');
+          if (!globalCssResult.success) {
+            throw new Error('Push aborted (incomplete). Try again.');
+          }
+          includeGlobalCss = true;
         }
-        includeGlobalCss = true;
 
         // Step 4b: Push fonts from canvas.brand-kit.json (when configured)
         if (includesBrandKit && config.fonts) {
@@ -825,12 +824,15 @@ export function pushCommand(program: Command): void {
           }
         }
 
-        // Step 5: Upload vendor/local artifacts and sync manifest
-        const { artifactCount } = await syncManifestArtifacts(outputDir, {
-          apiService,
-          createSpinner: () => p.spinner(),
-          logInfo: (msg) => p.log.info(msg),
-        });
+        if (components.length > 0) {
+          // Step 5: Upload vendor/local artifacts and sync manifest.
+          const manifestSyncResult = await syncManifestArtifacts(outputDir, {
+            apiService,
+            createSpinner: () => p.spinner(),
+            logInfo: (msg) => p.log.info(msg),
+          });
+          artifactCount = manifestSyncResult.artifactCount;
+        }
 
         // Validate and push pages.
         if (discoveredPages.length > 0) {

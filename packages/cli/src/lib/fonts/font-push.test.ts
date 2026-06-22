@@ -52,7 +52,6 @@ describe('pushFonts', () => {
       pagesDir: 'pages',
       contentTemplatesDir: 'content-templates',
       regionsDir: 'regions',
-      deprecatedComponentDir: tmpDir,
       globalCssPath: 'src/global.css',
       layoutPath: 'src/layout.jsx',
     };

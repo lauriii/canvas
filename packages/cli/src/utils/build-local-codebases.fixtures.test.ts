@@ -12,6 +12,10 @@ import { buildCanvasProject } from './build-project';
 
 vi.mock('tailwindcss-in-browser', () => ({
   compilePartialCss: vi.fn(async (source: string) => source),
+  compileCss: vi.fn(async (_classNameCandidates: string[], source: string) => {
+    return source;
+  }),
+  extractClassNameCandidates: vi.fn(() => []),
 }));
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
@@ -71,9 +75,7 @@ async function buildFixtureProject(fixtureName: string) {
       outputDir: 'dist',
       discoveryResult,
       cleanOutputDir: true,
-      buildTailwind: false,
       requireJsEntries: true,
-      useLocalGlobalCss: true,
     }),
   );
 

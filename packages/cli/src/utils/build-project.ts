@@ -51,7 +51,7 @@ export interface CanvasProjectBuildResult {
   artifactCount: number;
   vendorImportCount: number;
   localImportCount: number;
-  tailwindResult: Result | null;
+  tailwindResult: Result;
 }
 
 export interface CanvasProjectBuildOptions {
@@ -61,9 +61,7 @@ export interface CanvasProjectBuildOptions {
   outputDir: string;
   discoveryResult: DiscoveryResult;
   cleanOutputDir?: boolean;
-  buildTailwind?: boolean;
   requireJsEntries?: boolean;
-  useLocalGlobalCss?: boolean;
 }
 
 function getOutputBaseName(component: DiscoveredComponent): string {
@@ -299,9 +297,7 @@ export async function buildCanvasProject(
     await fs.rm(outputDir, { recursive: true, force: true });
   }
 
-  const globalSourceCodeCss = await getGlobalCss(
-    options.useLocalGlobalCss ?? true,
-  );
+  const globalSourceCodeCss = await getGlobalCss();
   const dependencyMetadata = createCanvasDependencyMetadata();
   const componentResults: Result[] = [];
   const builtComponents: BuiltComponent[] = [];
@@ -407,14 +403,10 @@ export async function buildCanvasProject(
   }
   const { manifest, manifestPath } = manifestResult;
 
-  let tailwindResult: Result | null = null;
-  if (options.buildTailwind) {
-    tailwindResult = await buildTailwindForComponents(
-      options.discoveryResult.components,
-      options.useLocalGlobalCss ?? true,
-      outputDir,
-    );
-  }
+  const tailwindResult = await buildTailwindForComponents(
+    options.discoveryResult.components,
+    outputDir,
+  );
 
   return {
     discoveryResult: options.discoveryResult,

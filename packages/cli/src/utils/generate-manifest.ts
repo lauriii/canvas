@@ -1,7 +1,9 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-import type { ImportMap } from '../lib/build-vendor';
+interface ImportMap {
+  imports: Record<string, string>;
+}
 
 /**
  * Sort an object's keys alphabetically and return a new object.
@@ -12,17 +14,6 @@ function sortObjectByKeys<T>(obj: Record<string, T>): Record<string, T> {
     sorted[key] = obj[key];
   }
   return sorted;
-}
-
-export interface ComponentManifestData {
-  /** Machine name from component.yml */
-  machineName: string;
-  /** Absolute path to the JS entry file */
-  entryPath: string;
-  /** Relative directory from scan root */
-  relativeDirectory: string;
-  /** Absolute path to the component.yml metadata file */
-  metadataPath: string;
 }
 
 export interface ManifestInput {

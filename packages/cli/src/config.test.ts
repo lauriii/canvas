@@ -46,7 +46,6 @@ describe('config', () => {
         clientSecret: '',
         componentDir: 'components',
         contentTemplatesDir: 'content-templates',
-        deprecatedComponentDir: 'components',
         fonts: undefined,
         globalCssPath: 'src/global.css',
         includePages: true,
@@ -75,7 +74,6 @@ describe('config', () => {
         clientSecret: '',
         componentDir: 'components',
         contentTemplatesDir: 'content-templates',
-        deprecatedComponentDir: 'components',
         fonts: undefined,
         globalCssPath: 'src/global.css',
         includePages: true,
@@ -277,7 +275,6 @@ describe('config', () => {
         clientSecret: 'test-secret',
         componentDir: 'src/components',
         contentTemplatesDir: 'content-templates',
-        deprecatedComponentDir: 'components',
         fonts: undefined,
         globalCssPath: 'src/global.css',
         includePages: true,
@@ -358,7 +355,6 @@ describe('config', () => {
           'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_region',
         componentDir: 'src/components',
         contentTemplatesDir: 'content-templates',
-        deprecatedComponentDir: 'components',
         fonts: undefined,
         globalCssPath: 'src/global.css',
         outputDir: 'dist',
@@ -521,7 +517,6 @@ describe('config', () => {
         componentDir: 'legacy-components',
       });
       expect(getConfig().componentDir).toBe('legacy-components');
-      expect(getConfig().deprecatedComponentDir).toBe('legacy-components');
     });
 
     it('should prompt with default when no env var set', async () => {

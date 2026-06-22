@@ -12,10 +12,3 @@ export async function fileExists(filePath: string): Promise<boolean> {
     return false;
   }
 }
-
-export async function directoryExists(dirPath: string): Promise<boolean> {
-  return await fs
-    .stat(dirPath)
-    .then(() => true)
-    .catch(() => false);
-}

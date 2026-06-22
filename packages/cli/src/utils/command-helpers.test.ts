@@ -7,7 +7,6 @@ import {
   parseBooleanOption,
   pluralizeComponent,
   updateConfigFromOptions,
-  validateComponentOptions,
 } from './command-helpers';
 
 vi.mock('@clack/prompts', () => ({
@@ -38,26 +37,6 @@ describe('command-helpers', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-  });
-
-  describe('validateComponentOptions', () => {
-    it('should allow --components flag alone', () => {
-      expect(() => {
-        validateComponentOptions({ components: 'button,card', all: false });
-      }).not.toThrow();
-    });
-
-    it('should allow --all flag alone', () => {
-      expect(() => {
-        validateComponentOptions({ all: true });
-      }).not.toThrow();
-    });
-
-    it('should error when both --components and --all are used', () => {
-      expect(() => {
-        validateComponentOptions({ components: 'button', all: true });
-      }).toThrow('Cannot use --all and --components options together');
-    });
   });
 
   describe('updateConfigFromOptions', () => {
@@ -174,24 +153,15 @@ describe('command-helpers', () => {
       expect(config.scope).toBe('custom:scope');
     });
 
-    it('should update all flag when provided', () => {
-      updateConfigFromOptions({ all: true });
-
-      const config = getConfig();
-      expect(config.all).toBe(true);
-    });
-
     it('should update multiple options at once', () => {
       updateConfigFromOptions({
         clientId: 'test-id',
         siteUrl: 'https://example.com',
-        all: true,
       });
 
       const config = getConfig();
       expect(config.clientId).toBe('test-id');
       expect(config.siteUrl).toBe('https://example.com');
-      expect(config.all).toBe(true);
     });
 
     it('should not update config when option is undefined', () => {

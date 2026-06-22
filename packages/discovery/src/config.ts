@@ -12,7 +12,6 @@ export const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
   pagesDir: 'pages',
   contentTemplatesDir: 'content-templates',
   regionsDir: 'regions',
-  deprecatedComponentDir: 'components',
   globalCssPath: 'src/global.css',
   layoutPath: 'src/layout.jsx',
   sync: {
@@ -80,8 +79,6 @@ export function resolveCanvasConfig(
       contentTemplatesDir:
         parsed.contentTemplatesDir ?? DEFAULT_CANVAS_CONFIG.contentTemplatesDir,
       regionsDir: parsed.regionsDir ?? DEFAULT_CANVAS_CONFIG.regionsDir,
-      deprecatedComponentDir:
-        parsed.componentDir ?? DEFAULT_CANVAS_CONFIG.deprecatedComponentDir,
       globalCssPath:
         parsed.globalCssPath ?? resolveDefaultGlobalCssPath(options),
       layoutPath: parsed.layoutPath ?? DEFAULT_CANVAS_CONFIG.layoutPath,

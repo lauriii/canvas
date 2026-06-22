@@ -93,7 +93,6 @@ export interface CanvasConfig {
   pagesDir: string;
   contentTemplatesDir: string;
   regionsDir: string;
-  deprecatedComponentDir: string;
   globalCssPath: string;
   layoutPath: string;
   sync: CanvasSyncConfig;

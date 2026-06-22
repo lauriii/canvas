@@ -166,7 +166,6 @@ describe('buildCanvasProject', () => {
       outputDir,
       discoveryResult,
       cleanOutputDir: true,
-      buildTailwind: true,
       requireJsEntries: true,
     });
 
@@ -194,7 +193,6 @@ describe('buildCanvasProject', () => {
     );
     expect(buildTailwindForComponents).toHaveBeenCalledWith(
       [component],
-      true,
       path.resolve(outputDir),
     );
     expect(result.componentResults).toEqual([
