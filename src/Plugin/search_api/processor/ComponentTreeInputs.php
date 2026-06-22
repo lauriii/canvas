@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\search_api\processor;
 
 use Drupal\canvas\ComponentTreeInputExtractor;
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -36,6 +38,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final class ComponentTreeInputs extends ProcessorPluginBase implements PluginFormInterface {
 
   use PluginFormTrait;
+
+  const INDEXABLE_CONTENT_TEMPLATE_VIEW_MODE = 'full';
 
   /**
    * {@inheritdoc}
@@ -103,11 +107,38 @@ final class ComponentTreeInputs extends ProcessorPluginBase implements PluginFor
    */
   public static function supportsIndex(IndexInterface $index): bool {
     foreach ($index->getDatasources() as $datasource) {
-      if ($datasource->getEntityTypeId() === Page::ENTITY_TYPE_ID) {
+      $entity_type_id = $datasource->getEntityTypeId();
+      if ($entity_type_id === NULL) {
+        continue;
+      }
+
+      if ($entity_type_id === Page::ENTITY_TYPE_ID) {
+        return TRUE;
+      }
+
+      $has_active_full_content_template = \array_any(
+        \array_keys($datasource->getBundles()),
+        static fn(string $bundle): bool => self::hasIndexableContentTemplate($entity_type_id, $bundle),
+      );
+      if ($has_active_full_content_template) {
         return TRUE;
       }
     }
     return FALSE;
+  }
+
+  private static function hasIndexableContentTemplate(string $entity_type_id, string $bundle): bool {
+    return \Drupal::entityTypeManager()
+      ->getStorage(ContentTemplate::ENTITY_TYPE_ID)
+      ->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('content_entity_type_id', $entity_type_id)
+      ->condition('content_entity_type_bundle', $bundle)
+      ->condition('content_entity_type_view_mode', self::INDEXABLE_CONTENT_TEMPLATE_VIEW_MODE)
+      ->condition('status', TRUE)
+      ->range(0, 1)
+      ->count()
+      ->execute() === 1;
   }
 
   /**
@@ -140,8 +171,26 @@ final class ComponentTreeInputs extends ProcessorPluginBase implements PluginFor
     if (!$entity instanceof FieldableEntityInterface) {
       return;
     }
+
+    $inputs = [];
     try {
-      $inputs = $this->componentTreeInputExtractor->extract($entity, $this->getConfiguration()['ignored_prop_names']);
+      $ignored_prop_names = $this->getConfiguration()['ignored_prop_names'];
+      // Keep the existing behavior for entities that own their component tree.
+      if ($entity instanceof ComponentTreeEntityInterface) {
+        $inputs = $this->componentTreeInputExtractor->extract($entity, $ignored_prop_names);
+      }
+      else {
+        // Intentionally hardcoded: index ContentTemplate output from the
+        // canonical `full` view mode.
+        $template = ContentTemplate::loadForEntity($entity, self::INDEXABLE_CONTENT_TEMPLATE_VIEW_MODE);
+        if ($template !== NULL && $template->status()) {
+          // Intentionally accepted behavior: if linked content has no
+          // translation for the indexed langcode, Drupal resolves a fallback,
+          // which can inject source-language tokens into this item.
+          $tree = $template->getComponentTree($entity);
+          $inputs = ComponentTreeInputExtractor::extractFromTree($tree, $ignored_prop_names);
+        }
+      }
     }
     catch (\LogicException) {
       return;
