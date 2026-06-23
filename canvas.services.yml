@@ -75,6 +75,15 @@ services:
     arguments: ['@asset.resolver.canvas.inner', '@library.discovery', '@library.dependency_resolver', '@module_handler', '@theme.manager', '@language_manager', '@cache.data', '@theme_handler']
   Drupal\canvas\ClientDataToEntityConverter: {}
   Drupal\canvas\AutoSave\AutoSaveManager: {}
+  # Non-serializing in-memory cache for AutoSaveManager's reconstructed entities.
+  # Bounded (LRU) like core's entity.memory_cache so it cannot grow without
+  # limit in long-running processes (e.g. FrankenPHP/RoadRunner worker mode).
+  # @see \Drupal\canvas\AutoSave\AutoSaveManager::getAutoSaveEntity()
+  canvas.auto_save.entity_memory_cache:
+    class: Drupal\Core\Cache\MemoryCache\LruMemoryCache
+    arguments: ['@datetime.time', 100]
+    tags:
+      - { name: cache.bin.memory }
   Drupal\canvas\Storage\ComponentTreeLoader: {}
   Drupal\canvas\CodeComponentDataProvider: {}
   Drupal\canvas\Version: {}

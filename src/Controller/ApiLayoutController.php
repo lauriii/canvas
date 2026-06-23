@@ -22,7 +22,6 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Render\Markup;
@@ -620,20 +619,6 @@ final class ApiLayoutController {
       if (!$autoSaveData->isEmpty()) {
         \assert($autoSaveData->entity instanceof $stored_entity);
         $stored_entity = $autoSaveData->entity;
-        // AutoSaveManager::getAutoSaveEntity calls ::create which makes the
-        // entity appear new. There are some form widgets that check if the
-        // entity is new when constructing their form element. The auto-save
-        // entity is never new so we enforce that to avoid issues with form
-        // widgets.
-        // @see \Drupal\path\Plugin\Field\FieldWidget\PathWidget::formElement
-        $stored_entity->enforceIsNew(FALSE);
-        // We also need to record the loaded revision ID as the auto-save
-        // manager does not do this for us and some widgets make use of this
-        // information to load a particular revision.
-        // @see \Drupal\content_moderation\Plugin\Field\FieldWidget\ModerationStateWidget::formElement
-        if ($stored_entity instanceof RevisionableInterface) {
-          $stored_entity->updateLoadedRevisionId();
-        }
       }
       // If keys are specified, use those (e.g. client-side IDs), otherwise re-
       // key by entity ID.

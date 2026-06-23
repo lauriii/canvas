@@ -345,12 +345,20 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     $es->set('path', '/spanish-page-edited');
     $autoSave->saveEntity($es);
 
-    $auto_save_data = $this->getAutoSaveStatesFromServer();
     $page_key = AutoSaveManager::getAutoSaveKey($es);
-    self::assertArrayHasKey($page_key, $auto_save_data, 'The auto-save entry must be keyed by the Spanish translation.');
+    // The GET endpoint hides non-default-translation entries; the es key must
+    // not appear in the pending-changes list.
+    $pending = $this->getAutoSaveStatesFromServer();
+    self::assertArrayNotHasKey($page_key, $pending, 'Non-default-translation auto-saves must be hidden from the pending-changes list.');
 
+    // The endpoint exposes only default-translation entries, but the auto-save manager
+    // verifies that the auto-save entries for other languages actually exist.
+    // @todo This can be exposed again once https://git.drupalcode.org/project/canvas/-/work_items/3591703 is fixed and
+    //   if asymmetrical translations are supported in https://git.drupalcode.org/project/canvas/-/work_items/3571130.
+    $all_auto_saves = $autoSave->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE);
+    self::assertArrayHasKey($page_key, $all_auto_saves, 'The auto-save entry must be stored for the Spanish translation.');
     $response = $this->makePublishAllRequest([
-      $page_key => $auto_save_data[$page_key],
+      $page_key => \array_diff_key($all_auto_saves[$page_key], \array_flip(AutoSaveManager::AUTO_SAVE_INTERNAL_PROPERTIES)),
     ]);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
 

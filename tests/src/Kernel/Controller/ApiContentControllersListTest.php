@@ -587,7 +587,9 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
       'canvas_page_list',
       'config:system.site',
       'test_create_access_cache_tag',
+      'canvas_page:1',
       AutoSaveManager::CACHE_TAG,
+      'canvas_page:5',
     ];
     $actual_cache_tags = $cache_metadata->getCacheTags();
     self::assertEquals($expected_cache_tags, $actual_cache_tags, 'Cache tags should match');

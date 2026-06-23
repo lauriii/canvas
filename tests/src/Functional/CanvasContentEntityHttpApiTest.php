@@ -420,6 +420,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $page_1->set('title', 'The updated title.');
     $page_1->set('path', ['alias' => "/the-updated-path"]);
     $autoSaveManager->saveEntity($page_1);
+    $expected_tags = Cache::mergeTags($expected_tags, $page_1->getCacheTags());
 
     $page_2 = Page::load(2);
     $this->assertInstanceOf(Page::class, $page_2);
@@ -461,6 +462,9 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
 
     $autoSaveManager->delete($page_1);
     $autoSaveManager->delete($page_2);
+    // With page 1's auto-save deleted, the list no longer renders its draft, so
+    // its cache tag drops out. Page 2's tag persists via system.site (homepage).
+    $expected_tags = \array_values(\array_diff($expected_tags, $page_1->getCacheTags()));
     $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
     \assert(\is_array($body));
     $this->assertEquals(
@@ -967,8 +971,9 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     \assert($page_1 instanceof Page);
     $page_1->setUnpublished();
     $autoSaveManager->saveEntity($page_1);
+    $expected_tags = Cache::mergeTags($list_cache_tags, $page_1->getCacheTags());
 
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $list_cache_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
     \assert(\is_array($body));
     $data_by_id = \array_column($body['data'], NULL, 'id');
 

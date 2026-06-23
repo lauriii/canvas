@@ -22,6 +22,7 @@ use Drupal\Core\Config\ConfigEvents;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
+use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -54,6 +55,8 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  *
  * @see \Drupal\canvas\Controller\ApiAutoSaveController::post()
  * @see \Drupal\canvas\Hook\AutoSaveHooks::entityDelete()
+ *
+ * @phpstan-type AutoSaveEntry array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, original_hash: string, data_hash: string, client_id: ?string, langcode: ?string, is_default_translation: bool, entity: ?EntityInterface, conflict_id?: string}
  */
 class AutoSaveManager implements EventSubscriberInterface {
 
@@ -78,6 +81,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     'entity',
     'original_hash',
     'conflict_id',
+    'is_default_translation',
   ];
   const ENTITY_DUPLICATE_SUFFIX = ' (Copy)';
 
@@ -97,7 +101,16 @@ class AutoSaveManager implements EventSubscriberInterface {
     private readonly ConfigManagerInterface $configManager,
     private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
     private readonly EntityTypeManagerInterface $entityTypeManager,
-    #[Autowire(service: 'cache.static')]
+    // A non-serializing in-memory cache. ::getAutoSaveEntity() caches a live
+    // entity object here; a serializing backend (e.g. cache.static) would run
+    // the entity's ::__sleep(), forcing computed fields (such as metatag's) to
+    // compute mid-cache-write. That can re-enter ::getAutoSaveEntity() — e.g.
+    // via the `[current-page:title]` token resolving the layout route's title
+    // callback (ApiLayoutController::getLabel) — and recurse infinitely.
+    // metatag only computes for non-new entities, so this surfaced once
+    // auto-save entities became non-new via ::createEntityFromAutoSaveEntry().
+    // @see \Drupal\metatag\Plugin\Field\MetatagEntityFieldItemList::computeValue()
+    #[Autowire(service: 'canvas.auto_save.entity_memory_cache')]
     private readonly CacheBackendInterface $cache,
     #[Autowire(service: 'keyvalue')]
     KeyValueFactoryInterface $keyValueFactory,
@@ -186,6 +199,12 @@ class AutoSaveManager implements EventSubscriberInterface {
       'entity_id' => $entity->id(),
       'data' => self::toStorableArray($entity),
       'langcode' => $entity->language()->getId(),
+      // 'langcode' alone is not enough to determine whether this is the default
+      // translation: an entity's default translation langcode is entity-
+      // specific and can only be known by loading the entity from storage.
+      // Storing this boolean at write time (when the real entity is available)
+      // avoids a loadUnchanged() call at read time.
+      'is_default_translation' => !($entity instanceof TranslatableInterface) || $entity->isDefaultTranslation(),
       'label' => (string) $entity->label(),
       'original_hash' => $original_hash,
       'data_hash' => $data_hash,
@@ -382,19 +401,42 @@ class AutoSaveManager implements EventSubscriberInterface {
       return AutoSaveEntity::empty();
     }
 
+    /** @var AutoSaveEntry $auto_save_data */
     \assert(\is_array($auto_save_data));
     \assert(\array_key_exists('data', $auto_save_data));
     \assert(\array_key_exists('entity_type', $auto_save_data));
     \assert(\is_array($auto_save_data['data']));
-    // Create an entity from the stored values, but don't call ::enforceIsNew on
-    // it to avoid possible issues where someone accidentally calls ::save on
-    // the entity. Calling code that needs to reflect the fact that the entity
-    // is not new should call ::enforceIsNew as required.
-    $auto_save_entity = new AutoSaveEntity($this->entityTypeManager->getStorage($auto_save_data['entity_type'])->create($auto_save_data['data']), $auto_save_data['data_hash'], $auto_save_data['client_id']);
-    // Store in static cache to avoid the overhead of calling Entity::create
-    // multiple times during layout preview rendering.
+    $entity = $this->createEntityFromAutoSaveEntry($auto_save_data);
+    $auto_save_entity = new AutoSaveEntity($entity, $auto_save_data['data_hash'], $auto_save_data['client_id']);
+    // Memoize the reconstructed entity to avoid calling ::create() repeatedly
+    // during layout preview rendering. $this->cache MUST be a non-serializing
+    // backend; see the $cache constructor parameter for why.
     $this->cache->set($key, $auto_save_entity, tags: [self::CACHE_TAG]);
     return $auto_save_entity;
+  }
+
+  /**
+   * @param AutoSaveEntry $entry
+   */
+  private function createEntityFromAutoSaveEntry(array $entry): EntityInterface {
+    $entity = $this->entityTypeManager->getStorage($entry['entity_type'])->create($entry['data']);
+    // Auto-saves can only exist for entities that have already been saved, so
+    // the reconstructed entity is never new.
+    $entity->enforceIsNew(FALSE);
+    // Record the loaded revision ID. ::create() does not set it, but some form
+    // widgets load a specific revision and fail without it.
+    // @see \Drupal\content_moderation\Plugin\Field\FieldWidget\ModerationStateWidget::formElement()
+    if ($entity instanceof RevisionableInterface) {
+      $entity->updateLoadedRevisionId();
+    }
+    // @todo Also check \Drupal\content_translation\ContentTranslationManager::isEnabled() for content entities in https://git.drupalcode.org/project/canvas/-/work_items/3571130
+    if ($entity instanceof ContentEntityBase && $entity->isTranslatable()) {
+      // Old entries predate 'is_default_translation' — they can only have been
+      // created from the default translation, so TRUE is the correct fallback.
+      // @todo Remove this fallback in Canvas 2.0.
+      $entity->setDefaultTranslationEnforced($entry['is_default_translation'] ?? TRUE);
+    }
+    return $entity;
   }
 
   /**
@@ -407,22 +449,23 @@ class AutoSaveManager implements EventSubscriberInterface {
    *   unresolved conflicts due to external updates to the entity on which the
    *   auto-save item was based.
    *
-   * @return array<string, array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, original_hash: string, data_hash: string, client_id: ?string, langcode: ?string, entity: ?EntityInterface, conflict_id?: string}>
+   * @return array<string, AutoSaveEntry>
    *   All auto-save data entries.
    */
   public function getAllAutoSaveList(bool $with_entities, bool $with_conflicts): array {
+    /** @var array<string, AutoSaveEntry> $entries */
     $entries = $this->autoSaveStore->getAll();
 
     // Sort by key to ensure consistent ordering.
     \ksort($entries);
-    /** @var array<string, array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, original_hash: string, data_hash: string, client_id: ?string, langcode: ?string, entity: ?EntityInterface, conflict_id?: string}> $result */
+    /** @var array<string, AutoSaveEntry> $result */
     $result = \array_map(fn (array $entry) => $entry +
     // Append the owner and updated data into each entry, and an entity object
     // upon request.
     [
       // Remove the unique session key for anonymous users.
       'owner' => \is_numeric($entry['owner']) ? (int) $entry['owner'] : 0,
-      'entity' => $with_entities ? $this->entityTypeManager->getStorage($entry['entity_type'])->create($entry['data'])->enforceIsNew(FALSE) : NULL,
+      'entity' => $with_entities ? $this->createEntityFromAutoSaveEntry($entry) : NULL,
     ], $entries);
 
     if ($with_conflicts) {
@@ -448,7 +491,7 @@ class AutoSaveManager implements EventSubscriberInterface {
       );
     }
 
-    /** @var array<string, array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, original_hash: string, data_hash: string, client_id: ?string, langcode: ?string, entity: ?EntityInterface, conflict_id?: string}> $result */
+    /** @var array<string, AutoSaveEntry> $result */
     return $result;
   }
 

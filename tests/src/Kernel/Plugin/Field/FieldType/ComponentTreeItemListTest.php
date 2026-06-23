@@ -55,6 +55,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[RunTestsInSeparateProcesses]
 #[CoversClass(ComponentTreeItemList::class)]
 #[Group('canvas')]
+#[Group('slow')]
 class ComponentTreeItemListTest extends CanvasKernelTestBase {
 
   use ConstraintViolationsTestTrait;

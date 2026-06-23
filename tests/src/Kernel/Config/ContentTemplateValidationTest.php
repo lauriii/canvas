@@ -30,6 +30,7 @@ use PHPUnit\Framework\Attributes\TestWith;
  */
 #[RunTestsInSeparateProcesses]
 #[Group('canvas')]
+#[Group('slow')]
 final class ContentTemplateValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;

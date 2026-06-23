@@ -59,6 +59,7 @@ use Twig\Error\SyntaxError;
 #[CoversClass(SingleDirectoryComponent::class)]
 #[Group('canvas')]
 #[Group('canvas_component_sources')]
+#[Group('slow')]
 final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
 
   use SingleDirectoryComponentTreeTestTrait;

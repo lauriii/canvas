@@ -57,6 +57,7 @@ extensionless
 fieldtext
 fvar
 folderfy
+FrankenPHP
 gerbeaud
 gesturechange
 gestureend

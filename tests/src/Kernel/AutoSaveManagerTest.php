@@ -216,6 +216,37 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Memoizes the reconstructed auto-save entity without serializing it.
+   *
+   * Repeated reads returning the same object instance proves no serialize /
+   * unserialize round-trip happens (which would recompute computed fields like
+   * metatag's and recurse).
+   *
+   * @see \Drupal\canvas\AutoSave\AutoSaveManager::getAutoSaveEntity()
+   */
+  public function testGetAutoSaveEntityCachesWithoutSerialization(): void {
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $page = Page::create([
+      'title' => 'Original title',
+      'components' => [],
+    ]);
+    self::assertSame(SAVED_NEW, $page->save());
+
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    $page->set('title', 'Changed title');
+    $autoSave->saveEntity($page);
+
+    $first = $autoSave->getAutoSaveEntity($page);
+    self::assertFalse($first->isEmpty());
+    $second = $autoSave->getAutoSaveEntity($page);
+    self::assertSame($first, $second);
+    self::assertSame($first->entity, $second->entity);
+  }
+
+  /**
    * Tests that auto-saves for different Page translations are stored independently.
    *
    * Verifies that:

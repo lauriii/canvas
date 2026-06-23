@@ -158,6 +158,11 @@ final class ApiAutoSaveController extends ApiControllerBase {
       return $access->isAllowed();
     });
 
+    // Hide non-default-translation auto-saves until langcode-aware
+    // discard land and asymmetrical translation is supported.
+    // @todo Remove this filtering in https://git.drupalcode.org/project/canvas/-/work_items/3591703.
+    $filtered = \array_filter($filtered, fn (array $item): bool => $item['is_default_translation'] ?? TRUE);
+
     $userIds = \array_column($filtered, 'owner');
     /** @var \Drupal\user\UserInterface[] $users */
     $users = $this->entityTypeManager->getStorage('user')->loadMultiple($userIds);
