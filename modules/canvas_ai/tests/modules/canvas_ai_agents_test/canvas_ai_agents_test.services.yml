@@ -1,8 +1,13 @@
 services:
+  _defaults:
+    autoconfigure: true
+    autowire: true
+
   canvas_ai_agents_test.yaml_path_helper:
     class: Drupal\canvas_ai_agents_test\Service\YamlPathHelper
 
   canvas_ai_agents_test.sub_agent_response_mock_subscriber:
     class: Drupal\canvas_ai_agents_test\EventSubscriber\SubAgentResponseMockSubscriber
-    tags:
-      - { name: event_subscriber }
+
+  canvas_ai_agents_test.layout_fixture_subscriber:
+    class: Drupal\canvas_ai_agents_test\EventSubscriber\LayoutFixtureSubscriber
