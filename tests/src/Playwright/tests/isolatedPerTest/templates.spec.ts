@@ -14,7 +14,10 @@ test.describe('Templates - General', () => {
     await drupal.applyRecipe(
       `modules/contrib/canvas/tests/fixtures/recipes/article_translation`,
     );
-    await drupal.installModules(['canvas_test_article_fields']);
+    await drupal.installModules([
+      'canvas_test_article_fields',
+      'config_translation',
+    ]);
     await drupal.addPermissions({
       role: 'editor',
       permissions: [
@@ -65,6 +68,172 @@ test.describe('Templates - General', () => {
     expect(page.url()).toContain('canvas/template/node/article/full/1');
     await canvas.openLibraryPanel();
     await canvas.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
+    await canvas.publishAllChanges();
+
+    const editorUrl = page.url();
+
+    //Translate the content template into French via the config translation.
+    await drupal.logout();
+    await drupal.loginAsAdmin();
+    await page.goto(
+      '/admin/structure/content-template/node.article.full/translate/fr/add',
+    );
+    await page
+      .locator('summary', { hasText: 'Component at position 0' })
+      .click();
+    await page
+      .locator('input[name^="translation"][name*="[heading]"]')
+      .first()
+      .fill('Hero in french');
+    await page.getByRole('button', { name: 'Save translation' }).click();
+    await expect(page.locator('[data-drupal-messages]')).toContainText(
+      'Successfully saved French translation.',
+    );
+    await page.goto(editorUrl);
+    await canvas.waitForEditorFrame();
+
+    const languageButton = page.locator(
+      '[data-testid="canvas-topbar"] [data-testid="language-select-trigger"]',
+    );
+    await languageButton.click();
+
+    // English (default) and French (config override) both carry a tick mark;
+    // Spanish has no config translation so it does not.
+    await expect(
+      page.locator(
+        '[data-testid="language-option-en"] [data-canvas-has-translation="true"]',
+      ),
+    ).toHaveAttribute('data-canvas-has-translation', 'true');
+    await expect(
+      page.locator(
+        '[data-testid="language-option-fr"] [data-canvas-has-translation="true"]',
+      ),
+    ).toHaveAttribute('data-canvas-has-translation', 'true');
+    await expect(
+      page.locator(
+        '[data-testid="language-option-es"] [data-canvas-has-translation="true"]',
+      ),
+    ).toHaveCount(0);
+
+    // The three-dots trigger appears only for French (the only config translation).
+    await expect(
+      page.locator('[aria-label="More options for French"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-testid="language-options-popover-trigger"]'),
+    ).toHaveCount(1);
+
+    const frenchOption = page.locator('[data-testid="language-option-fr"]');
+    await frenchOption.click();
+    await page.waitForURL(
+      /\/preview\/template\/node\/article\/\d+\/full\/full\?language=fr/,
+      { timeout: 10000 },
+    );
+    await expect(
+      page
+        .locator('iframe[class^="_PagePreviewIframe"]')
+        .contentFrame()
+        .locator('[data-component-id="canvas_test_sdc:my-hero"] h1'),
+    ).toHaveText('Hero in french');
+
+    await languageButton.click();
+    await page.locator('[data-testid="language-option-en"]').click();
+    await page.waitForURL(/\/canvas\/template\/node\/article\/full\/\d+/, {
+      timeout: 10000,
+    });
+    await canvas.waitForEditorFrame();
+
+    // Delete the French config translation via the in-app three-dots popover.
+    await page.keyboard.press('Escape');
+    await expect(
+      page.locator('[data-state="open"][role="menu"]'),
+    ).not.toBeAttached();
+    const closedLanguageButton = page.locator(
+      '[data-testid="canvas-topbar"] [data-testid="language-select-trigger"][data-state="closed"]',
+    );
+    await closedLanguageButton.click();
+    await page
+      .locator('[aria-label="More options for French"]')
+      .first()
+      .click();
+
+    const frenchPopover = page
+      .locator('[data-testid="language-options-popover"]')
+      .first();
+    await expect(frenchPopover).toBeVisible();
+    await expect(
+      page.locator('[data-testid="language-options-popover-title"]').first(),
+    ).toContainText('French');
+    await expect(
+      page.locator('[data-testid="language-options-delete"]').first(),
+    ).toBeVisible();
+
+    // Deleting opens a confirmation dialog – no new tab should open.
+    let popupOpened = false;
+    page.on('popup', () => {
+      popupOpened = true;
+    });
+    await page
+      .locator('[data-testid="language-options-delete"]')
+      .first()
+      .click();
+    expect(popupOpened).toBe(false);
+
+    const deleteDialog = page
+      .locator('[role="dialog"][data-state="open"]')
+      .filter({
+        has: page.locator('h1', { hasText: 'Delete translation' }),
+      })
+      .first();
+    await expect(deleteDialog).toBeVisible();
+    const confirmButton = deleteDialog.getByRole('button', {
+      name: 'Delete Translation',
+    });
+    await deleteDialog
+      .locator('[data-testid="delete-translation-confirm-input"]')
+      .fill('DELETE');
+    await expect(confirmButton).toBeEnabled();
+    await confirmButton.click();
+    await expect(deleteDialog).toBeHidden();
+    // Before confirming elements in the dialog do not exist, confirm the dialog
+    // itself is still open by asserting an element it contains.
+    await expect(
+      page.locator('[data-testid="language-option-en"]'),
+    ).toBeAttached();
+    // After deletion the three-dots trigger disappears for French.
+    await expect(
+      page.locator('[aria-label="More options for French"]'),
+    ).toHaveCount(0);
+    await expect(
+      page.locator(
+        '[data-testid="language-option-fr"] [data-canvas-has-translation="true"]',
+      ),
+    ).toHaveCount(0);
+    await expect(
+      page.locator('[data-testid="language-options-popover-trigger"]'),
+    ).toHaveCount(0);
+    await frenchOption.click();
+    await page.waitForURL(
+      /\/preview\/template\/node\/article\/\d+\/full\/full\?language=fr/,
+      { timeout: 10000 },
+    );
+    await expect(
+      page
+        .locator('iframe[class^="_PagePreviewIframe"]')
+        .contentFrame()
+        .locator('[data-component-id="canvas_test_sdc:my-hero"] h1'),
+    ).toHaveText('There goes my hero');
+
+    // Return to English editor to continue building the template.
+    await page
+      .locator('[data-testid="canvas-topbar"]')
+      .getByRole('button', { name: 'Exit Preview' })
+      .click();
+    await page.waitForURL(/\/canvas\/template\/node\/article\/full\/\d+/, {
+      timeout: 10000,
+    });
+    await canvas.waitForEditorFrame();
+    await canvas.clickPreviewComponent('sdc.canvas_test_sdc.my-hero');
 
     const defaultHeading = 'There goes my hero';
     const inputLocator = `[data-testid="canvas-contextual-panel"] [data-drupal-selector="component-instance-form"] .field--name-heading input`;
@@ -92,11 +261,12 @@ test.describe('Templates - General', () => {
     await expect(page.getByTestId('linked-field-label-heading')).toHaveText(
       'Title',
     );
-    await expect(
-      (await canvas.getActivePreviewFrame()).locator(
-        '[data-component-id="canvas_test_sdc:my-hero"] h1',
-      ),
-    ).toHaveText('Article One');
+    await canvas.testInPreviewFrame(
+      '[data-component-id="canvas_test_sdc:my-hero"] h1',
+      async (h1) => {
+        await expect(h1).toContainText('Article One');
+      },
+    );
     // Confirm that the heading is still linked after making a change to an
     // unlinked field
     await page
@@ -122,13 +292,11 @@ test.describe('Templates - General', () => {
     ).toHaveText('submarine');
 
     // Switch to the Spanish translation via the language selector.
-    const languageButton = page.locator(
-      '[data-testid="canvas-topbar"] [data-testid="language-select-trigger"]',
-    );
     await expect(languageButton).toBeVisible();
     await languageButton.click();
 
-    // Verify translation indicators are present for translated languages.
+    // Verify translation indicators: only English gets a tick mark here because
+    // the French config translation was already deleted in the block above.
     await expect(
       page.locator(
         '[data-testid="language-option-en"] [data-canvas-has-translation="true"]',
@@ -138,7 +306,7 @@ test.describe('Templates - General', () => {
       page.locator(
         '[data-testid="language-option-es"] [data-canvas-has-translation="true"]',
       ),
-    ).toHaveAttribute('data-canvas-has-translation', 'true');
+    ).toHaveCount(0);
     await expect(
       page.locator(
         '[data-testid="language-option-fr"] [data-canvas-has-translation="true"]',

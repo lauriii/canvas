@@ -24,9 +24,12 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\Markup;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\language\ConfigurableLanguageManagerInterface;
 use GuzzleHttp\Psr7\Query;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -58,6 +61,8 @@ final class ApiLayoutController {
     private readonly ComponentTreeLoader $componentTreeLoader,
     private readonly ComponentSourceManager $componentSourceManager,
     private readonly ModuleHandlerInterface $moduleHandler,
+    private readonly LanguageManagerInterface $languageManager,
+    private readonly AccountProxyInterface $currentUser,
   ) {
     $theme = $this->themeManager->getActiveTheme()->getName();
     $theme_regions = system_region_list($theme);
@@ -135,14 +140,11 @@ final class ApiLayoutController {
     ];
     $available_translations = [];
     $links = [];
-    // ContentTemplate is a config entity with no translations of its own, so
-    // fall back to $preview_entity which holds the translatable content.
-    $translation_entity = $entity instanceof ContentEntityInterface ? $entity : $preview_entity;
-    if ($translation_entity instanceof ContentEntityInterface) {
-      $available_translations = \array_keys($translation_entity->getTranslationLanguages(FALSE));
+    if ($entity instanceof ContentEntityInterface) {
+      $available_translations = \array_keys($entity->getTranslationLanguages(FALSE));
       if ($this->moduleHandler->moduleExists('content_translation')) {
         foreach ($available_translations as $langcode) {
-          $translation = $translation_entity->getTranslation($langcode);
+          $translation = $entity->getTranslation($langcode);
           // The delete route gates on update access, so emit the link to the
           // same users to avoid offering a link that would return 403.
           // @see canvas.api.content.translation.delete in canvas.routing.yml
@@ -150,7 +152,7 @@ final class ApiLayoutController {
             $links[$langcode] = [
               CanvasUriDefinitions::LINK_REL_DELETE => Url::fromRoute(
                 'canvas.api.content.translation.delete',
-                ['canvas_page' => $translation_entity->id()],
+                ['canvas_page' => $entity->id()],
                 ['language' => $translation->language()],
               )->toString(),
             ];
@@ -158,9 +160,38 @@ final class ApiLayoutController {
         }
       }
     }
+    // Also collect languages that have config language overrides for the
+    // ContentTemplate.
+    if ($entity instanceof ContentTemplate
+      && $this->moduleHandler->moduleExists('config_translation')
+      && $this->languageManager instanceof ConfigurableLanguageManagerInterface) {
+      $config_name = $entity->getConfigDependencyName();
+      foreach ($this->languageManager->getLanguages() as $langcode => $language) {
+        if ($language->isDefault() || \in_array($langcode, $available_translations, TRUE)) {
+          continue;
+        }
+        $override = $this->languageManager->getLanguageConfigOverride($langcode, $config_name);
+        if (!$override->isNew()) {
+          $available_translations[] = $langcode;
+          if (!isset($links[$langcode]) && $this->currentUser->hasPermission('translate configuration')) {
+            $delete_url = Url::fromRoute(
+              'canvas.api.config.translation.delete',
+              [
+                'canvas_config_entity_type_id' => 'content_template',
+                'config_entity' => $entity->id(),
+              ],
+              ['language' => $language],
+            );
+            $links[$langcode] = [
+              CanvasUriDefinitions::LINK_REL_DELETE => $delete_url->toString(),
+            ];
+          }
+        }
+      }
+    }
     // The client should also list the default language.
-    $default_langcode = $translation_entity instanceof ContentEntityInterface
-      ? $translation_entity->getUntranslated()->language()->getId()
+    $default_langcode = $entity instanceof ContentEntityInterface
+      ? $entity->getUntranslated()->language()->getId()
       : $entity->language()->getId();
     array_unshift($available_translations, $default_langcode);
     $data['translations'] = [
