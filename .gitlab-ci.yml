@@ -391,8 +391,8 @@ phpunit (11.2 sqlite):
         KUBERNETES_CPU_REQUEST: "4"
         DRUPAL_TEST_CONCURRENCY: '24'
       - PHPUNIT_TESTSUITE: 'PHPUnit-Kernel'
-        CI_PARALLEL_NODE_INDEX: ['1', '2', '3']
-        CI_PARALLEL_NODE_TOTAL: '3'
+        CI_PARALLEL_NODE_INDEX: ['1', '2', '3', '4']
+        CI_PARALLEL_NODE_TOTAL: '4'
         KUBERNETES_CPU_REQUEST: "10"
         DRUPAL_TEST_CONCURRENCY: '20'
       - PHPUNIT_TESTSUITE: 'PHPUnit-Functional'
