@@ -7,6 +7,9 @@
 
 declare(strict_types=1);
 
+use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\FileStorage;
 
@@ -86,7 +89,11 @@ function canvas_ai_post_update_0005_normalize_component_description_settings(): 
   }
 
   $context = $config->get('component_context') ?? [];
-  $allowed_sources = ['sdc', 'js', 'block'];
+  $allowed_sources = [
+    SingleDirectoryComponent::SOURCE_PLUGIN_ID,
+    JsComponent::SOURCE_PLUGIN_ID,
+    BlockComponent::SOURCE_PLUGIN_ID,
+  ];
   $migrated = [];
 
   // Active configuration may predate schema validation or have been imported

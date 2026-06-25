@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel;
 
+use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
@@ -31,15 +34,15 @@ final class CanvasAiComponentDescriptionSettingsSchemaTest extends CanvasKernelT
     $config = $typed_config->createFromNameAndData('canvas_ai.component_description.settings', [
       'langcode' => 'en',
       'component_context' => [
-        'sdc' => [
+        SingleDirectoryComponent::SOURCE_PLUGIN_ID => [
           'enabled' => TRUE,
           'data' => "foo: bar\n",
         ],
-        'js' => [
+        JsComponent::SOURCE_PLUGIN_ID => [
           'enabled' => FALSE,
           'data' => "foo: baz\n",
         ],
-        'block' => [
+        BlockComponent::SOURCE_PLUGIN_ID => [
           'enabled' => TRUE,
           'data' => "foo: qux\n",
         ],
@@ -82,11 +85,11 @@ final class CanvasAiComponentDescriptionSettingsSchemaTest extends CanvasKernelT
     $this->container->get('config.storage')->write('canvas_ai.component_description.settings', [
       'langcode' => 'en',
       'component_context' => [
-        'sdc' => [
+        SingleDirectoryComponent::SOURCE_PLUGIN_ID => [
           'enabled' => TRUE,
           'data' => "foo: bar\n",
         ],
-        'js' => [
+        JsComponent::SOURCE_PLUGIN_ID => [
           'enabled' => 1,
           'data' => '',
         ],
@@ -105,11 +108,11 @@ final class CanvasAiComponentDescriptionSettingsSchemaTest extends CanvasKernelT
 
     $config = $this->config('canvas_ai.component_description.settings')->get('component_context');
     self::assertSame([
-      'js' => [
+      JsComponent::SOURCE_PLUGIN_ID => [
         'enabled' => TRUE,
         'data' => "{}\n",
       ],
-      'sdc' => [
+      SingleDirectoryComponent::SOURCE_PLUGIN_ID => [
         'enabled' => TRUE,
         'data' => "foo: bar\n",
       ],
