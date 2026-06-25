@@ -120,7 +120,13 @@ final class LibraryHooks {
       $draft_css_url = \sprintf('/canvas/api/v0/auto-saves/css/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
       $libraries[$library_name . '.draft']['css']['theme'][$draft_css_url] = ['preprocess' => FALSE];
       $draft_js_url = \sprintf('/canvas/api/v0/auto-saves/js/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
-      $libraries[$library_name . '.draft']['js'][$draft_js_url] = ['preprocess' => FALSE];
+      // The draft JS is served by a controller route, not a file on disk, so
+      // it must be registered as 'external'. Otherwise locale's JS translation
+      // scan treats it as a local file and emits a file_get_contents() warning.
+      $libraries[$library_name . '.draft']['js'][$draft_js_url] = [
+        'preprocess' => FALSE,
+        'type' => 'external',
+      ];
     }
 
     // @see \Drupal\canvas\Entity\BrandKit::getAssetLibrary()
