@@ -10,6 +10,7 @@ declare(strict_types=1);
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
+use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\FileStorage;
 
@@ -47,11 +48,11 @@ function canvas_ai_post_update_0003_reimport_orchestrator_agent(): void {
   $module_path = \Drupal::service('extension.list.module')->getPath('canvas_ai');
   $source = new FileStorage($module_path . '/config/install');
   $data = $source->read('ai_agents.ai_agent.canvas_ai_orchestrator');
-  if ($data) {
-    \Drupal::configFactory()
-      ->getEditable('ai_agents.ai_agent.canvas_ai_orchestrator')
-      ->setData($data)
-      ->save(TRUE);
+  $config = \Drupal::configFactory()->getEditable('ai_agents.ai_agent.canvas_ai_orchestrator');
+  if ($data && !$config->isNew()) {
+    // Only the system prompt changed. Set just that key so the per-site uuid,
+    // _core hash, and any other fields stay intact.
+    $config->set('system_prompt', $data['system_prompt'])->save(TRUE);
 
     $message = 'The Canvas AI orchestrator agent system prompt has been updated. If you had customized it directly, those changes have been overwritten. The recommended way to extend or alter agent behavior is through the Context Control Center or custom event subscribers.';
     \Drupal::logger('canvas_ai')->warning($message);
@@ -120,4 +121,38 @@ function canvas_ai_post_update_0005_normalize_component_description_settings(): 
 
   ksort($migrated);
   $config->set('component_context', $migrated)->save(TRUE);
+}
+
+/**
+ * Restore the uuid and _core hash stripped from the orchestrator by 0003.
+ *
+ * The 1.5.0/1.5.1 release of post_update 0003 replaced the whole record via
+ * setData(), dropping the system-managed uuid and _core keys that the install
+ * file omits. So regenerate both
+ *
+ * @see https://git.drupalcode.org/project/canvas/-/work_items/3591660
+ */
+function canvas_ai_post_update_0006_restore_orchestrator_agent_uuid(): void {
+  $name = 'ai_agents.ai_agent.canvas_ai_orchestrator';
+  $config = \Drupal::configFactory()->getEditable($name);
+  if ($config->isNew()) {
+    return;
+  }
+
+  $changed = FALSE;
+  if (empty($config->get('uuid'))) {
+    $config->set('uuid', \Drupal::service('uuid')->generate());
+    $changed = TRUE;
+  }
+  if (empty($config->get('_core.default_config_hash'))) {
+    // Recompute the hash exactly as core does when installing config
+    // @see \Drupal\Core\Config\ConfigInstaller::createConfiguration()
+    $module_path = \Drupal::service('extension.list.module')->getPath('canvas_ai');
+    $install = (new FileStorage($module_path . '/config/install'))->read($name);
+    $config->set('_core.default_config_hash', Crypt::hashBase64(serialize($install)));
+    $changed = TRUE;
+  }
+  if ($changed) {
+    $config->save(TRUE);
+  }
 }
