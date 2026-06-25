@@ -345,6 +345,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   }
 
   public function testApiAutoSaveControllerGetConflictDetection(): void {
+    $this->enableModules(['canvas_dev_cd']);
     $this->installConfig(['test_user_config']);
     $permissions = [
       Page::EDIT_PERMISSION,

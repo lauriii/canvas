@@ -1,0 +1,7 @@
+name: Drupal Canvas Dev Conflict Detection
+description: 'Enables conflict detection and resolution in Canvas - feature flag until the conflict detection and resolution is fully stable.'
+core_version_requirement: ^11.2
+type: module
+package: Drupal Canvas
+dependencies:
+  - canvas:canvas

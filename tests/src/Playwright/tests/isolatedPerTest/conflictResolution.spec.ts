@@ -11,6 +11,9 @@ type PendingResponse = {
   }>;
 };
 
+const unmatchedPublishErrorMessage =
+  'An item in the publish request did not match the expected format or value. Please refresh your page and try again.';
+
 const pendingPointer = (canvasPageId: number) =>
   `canvas_page:${canvasPageId}:en`;
 
@@ -40,6 +43,33 @@ const waitForConflict = async (page: Page, canvasPageId: number) => {
       );
     })
     .toBe(true);
+};
+
+const waitForPendingChangeWithoutConflict = async (
+  page: Page,
+  canvasPageId: number,
+) => {
+  const pointer = pendingPointer(canvasPageId);
+  await expect
+    .poll(async () => {
+      const response = await page.request.get(
+        '/canvas/api/v0/auto-saves/pending',
+      );
+      const body = (await response.json()) as PendingResponse;
+
+      return {
+        status: response.status(),
+        hasPendingChange: Object.hasOwn(body.data ?? {}, pointer),
+        hasConflict:
+          body.errors?.some((error) => error.source?.pointer === pointer) ??
+          false,
+      };
+    })
+    .toEqual({
+      status: 200,
+      hasPendingChange: true,
+      hasConflict: false,
+    });
 };
 
 const updateCanvasPageTitleOutsideAutoSave = async (
@@ -95,7 +125,7 @@ const updateCanvasPageTitleOutsideAutoSave = async (
 
 test.describe('Conflict UX enabled', () => {
   test.use({
-    modules: ['canvas_dev_mode'],
+    modules: ['canvas_dev_cd'],
     enableTestExtensions: true,
   });
 
@@ -198,7 +228,7 @@ test.describe('Conflict UX disabled', () => {
     enableTestExtensions: true,
   });
 
-  test('treats detected conflicts as normal review rows', async ({
+  test('treats changes as normal review rows when conflict detection is disabled', async ({
     page,
     drupal,
     canvas,
@@ -212,7 +242,10 @@ test.describe('Conflict UX disabled', () => {
       canvasPage.entity_id,
       'Externally updated flag off page',
     );
-    await waitForConflict(page, canvasPage.entity_id);
+    // @todo Invert this again when conflict detection is no longer hidden
+    //   behind canvas_dev_cd.
+    //   https://git.drupalcode.org/project/canvas/-/work_items/3591668
+    await waitForPendingChangeWithoutConflict(page, canvasPage.entity_id);
 
     await page.getByTestId('canvas-publish-review').click();
     const review = page.getByTestId('canvas-publish-reviews-content');
@@ -225,5 +258,75 @@ test.describe('Conflict UX disabled', () => {
 
     await review.getByTestId('canvas-publish-review-select-all').click();
     await expect(review.getByText('1 of 1 changes selected')).toBeVisible();
+  });
+
+  test('shows legacy publish conflict errors without conflict detection enabled', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+
+    const canvasPage = await canvas.createCanvas({
+      title: 'Legacy publish conflict page',
+    });
+    const pointer = pendingPointer(canvasPage.entity_id);
+    await waitForPendingChange(page, canvasPage.entity_id);
+    await waitForPendingChangeWithoutConflict(page, canvasPage.entity_id);
+
+    let publishBody: Record<string, unknown> | undefined;
+    await page.route('**/canvas/api/v0/auto-saves/publish', async (route) => {
+      publishBody = route.request().postDataJSON() as Record<string, unknown>;
+      await route.fulfill({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          errors: [
+            {
+              detail: unmatchedPublishErrorMessage,
+              source: {
+                pointer,
+              },
+              code: 2,
+              meta: {
+                entity_type: 'canvas_page',
+                entity_id: canvasPage.entity_id,
+                label: 'Legacy publish conflict page',
+                api_auto_save_key: pointer,
+              },
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.getByTestId('canvas-publish-review').click();
+    const review = page.getByTestId('canvas-publish-reviews-content');
+
+    await review.getByTestId('canvas-publish-review-select-all').click();
+    await expect(review.getByText('1 of 1 changes selected')).toBeVisible();
+
+    const publishResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes('/canvas/api/v0/auto-saves/publish') &&
+        response.request().method() === 'POST',
+    );
+    await review.getByRole('button', { name: 'Publish 1 selected' }).click();
+
+    expect((await publishResponse).status()).toBe(409);
+    expect(publishBody).toBeDefined();
+    expect(Object.hasOwn(publishBody ?? {}, pointer)).toBe(true);
+
+    await expect(
+      review.getByTestId('canvas-review-publish-errors'),
+    ).toContainText(unmatchedPublishErrorMessage);
+    await expect(
+      review.getByTestId('canvas-review-publish-errors'),
+    ).toContainText('Legacy publish conflict page');
+    await expect(review.getByTestId('conflict-banner')).toBeHidden();
+    await expect(review.getByTestId('change-conflict-icon')).toBeHidden();
+    await expect(
+      review.getByRole('menuitem', { name: 'Resolve conflict' }),
+    ).toBeHidden();
   });
 });

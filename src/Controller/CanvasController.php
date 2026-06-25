@@ -126,6 +126,7 @@ HTML;
     $dev_mode = $this->moduleHandler->moduleExists('canvas_dev_mode');
     $dev_translation_mode = $this->moduleHandler->moduleExists('canvas_dev_translation');
     $dev_entity_reference = $this->moduleHandler->moduleExists('canvas_dev_er');
+    $dev_conflict_detection = $this->moduleHandler->moduleExists('canvas_dev_cd');
     $content_translation_enabled = $this->moduleHandler->moduleExists('content_translation');
     $config_translation_enabled = $this->moduleHandler->moduleExists('config_translation');
     // ⚠️ This is highly experimental and *will* be refactored.
@@ -234,6 +235,7 @@ HTML;
             'devMode' => $dev_mode,
             'devTranslationMode' => $dev_translation_mode,
             'devEntityReferenceMode' => $dev_entity_reference,
+            'devConflictDetectionMode' => $dev_conflict_detection,
             'contentTranslationEnabled' => $content_translation_enabled,
             'configTranslationEnabled' => $config_translation_enabled,
             'languages' => $languages_data,

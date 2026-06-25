@@ -50,6 +50,7 @@ export interface DrupalSettings {
     devMode: boolean;
     devTranslationMode: boolean;
     devEntityReferenceMode: boolean;
+    devConflictDetectionMode: boolean;
     contentTranslationEnabled: boolean;
     configTranslationEnabled: boolean;
     languages: Language[];

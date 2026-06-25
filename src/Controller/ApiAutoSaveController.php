@@ -28,6 +28,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
@@ -69,6 +70,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     private readonly AccountInterface $currentUser,
     private readonly ComponentSourceManager $componentSourceManager,
     private readonly ComponentTreeLoader $componentTreeLoader,
+    private readonly ModuleHandlerInterface $moduleHandler,
   ) {}
 
   private static function validateExpectedAutoSaves(array $expected_auto_saves, array $publishable_auto_saves): ?JsonResponse {
@@ -225,7 +227,9 @@ final class ApiAutoSaveController extends ApiControllerBase {
    */
   public function get(): CacheableJsonResponse {
     $cache = new CacheableMetadata();
-    $filtered = $this->getPublishableAutoSaves(with_conflicts: TRUE, cache: $cache);
+    $conflict_detection_dev_mode = $this->moduleHandler->moduleExists('canvas_dev_cd');
+
+    $filtered = $this->getPublishableAutoSaves(with_conflicts: $conflict_detection_dev_mode, cache: $cache);
 
     $userIds = \array_column($filtered, 'owner');
     /** @var \Drupal\user\UserInterface[] $users */
