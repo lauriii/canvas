@@ -89,6 +89,17 @@ testRunner.run('component-imports rule', rule, {
       filename: resolve(process.cwd(), 'src/components/button.tsx'),
     },
     {
+      name: 'should pass when a flat named component imports another flat named component entrypoint with an extension',
+      code: `
+        import Heading from '@/components/heading.tsx';
+        const Button = ({ title }) => {
+          return <button>{title} <Heading text={title} /></button>;
+        };
+        export default Button;
+      `,
+      filename: resolve(process.cwd(), 'src/components/button.tsx'),
+    },
+    {
       name: 'should pass when component imports a relative image asset',
       code: `
         import imageUrl from './image.webp';

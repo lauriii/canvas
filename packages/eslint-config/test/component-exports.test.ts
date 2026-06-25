@@ -26,6 +26,12 @@ vi.mock('node:fs', () => ({
       '/components/card': ['card.component.yml', 'index.jsx'],
       '/components/heading': ['component.yml', 'index.tsx'],
       '/components/alert': ['alert.component.yml', 'alert.tsx'],
+      '/components/flat': [
+        'button.component.yml',
+        'button.tsx',
+        'pricing-table.component.yml',
+        'pricing-table.tsx',
+      ],
       '/src/utils': ['utils.js'],
     };
     return dirs[dir] ?? [];
@@ -174,6 +180,21 @@ testRunner.run('component-exports rule', rule, {
         };
       `,
       filename: '/components/card/card.jsx',
+      errors: [
+        {
+          message: 'Component must have a default export',
+          line: 2,
+        },
+      ],
+    },
+    {
+      name: 'flat named-style: should fail for every component entrypoint in a shared directory',
+      code: `
+        export const PricingTable = ({ title }) => {
+          return <div>{title}</div>;
+        };
+      `,
+      filename: '/components/flat/pricing-table.tsx',
       errors: [
         {
           message: 'Component must have a default export',

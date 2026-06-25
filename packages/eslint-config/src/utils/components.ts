@@ -6,6 +6,46 @@ import type { Rule as EslintRule } from 'eslint';
 const JS_EXTENSIONS = ['ts', 'tsx', 'js', 'jsx'] as const;
 const NAMED_SUFFIX = '.component.yml';
 
+function getNamedComponentBaseNames(files: string[]): string[] {
+  return files
+    .filter((file) => file !== 'component.yml' && file.endsWith(NAMED_SUFFIX))
+    .map((file) => file.slice(0, -NAMED_SUFFIX.length));
+}
+
+function getComponentEntrypointBaseNames(files: string[]): string[] {
+  const namedBaseNames = getNamedComponentBaseNames(files);
+  if (namedBaseNames.length > 0) {
+    return namedBaseNames;
+  }
+
+  return files.includes('component.yml') ? ['index'] : [];
+}
+
+function stripJsExtension(fileName: string): string {
+  for (const ext of JS_EXTENSIONS) {
+    const suffix = `.${ext}`;
+    if (fileName.endsWith(suffix)) {
+      return fileName.slice(0, -suffix.length);
+    }
+  }
+
+  return fileName;
+}
+
+function isEntrypointFileName(
+  fileName: string,
+  entrypointBaseNames: string[],
+  allowExtensionless: boolean,
+): boolean {
+  return entrypointBaseNames.some((baseName) => {
+    if (allowExtensionless && fileName === baseName) {
+      return true;
+    }
+
+    return JS_EXTENSIONS.some((ext) => fileName === `${baseName}.${ext}`);
+  });
+}
+
 export function isComponentEntrypoint(
   context: EslintRule.RuleContext,
 ): boolean {
@@ -14,12 +54,10 @@ export function isComponentEntrypoint(
     return false;
   }
   const files = getFilesInDirectory(componentDir);
-  const namedMetadataFile = files.find((file) => file.endsWith(NAMED_SUFFIX));
-  const componentBaseName = namedMetadataFile
-    ? namedMetadataFile.slice(0, -NAMED_SUFFIX.length)
-    : 'index';
-  return JS_EXTENSIONS.some(
-    (ext) => basename(context.filename) === componentBaseName + '.' + ext,
+  return isEntrypointFileName(
+    basename(context.filename),
+    getComponentEntrypointBaseNames(files),
+    false,
   );
 }
 
@@ -59,24 +97,12 @@ export function isNonComponentImportFromComponentDir(
     // Check immediate parent first — this handles direct imports from a
     // component dir (e.g. @/components/card/utils).
     if (isComponentDir(dir)) {
-      // Determine the component entry point basename.
       const files = getFilesInDirectory(dir);
-      const namedMetadataFile = files.find(
-        (file) => file !== 'component.yml' && file.endsWith(NAMED_SUFFIX),
-      );
-      const entryBaseName = namedMetadataFile
-        ? namedMetadataFile.slice(0, -NAMED_SUFFIX.length)
-        : 'index';
-
-      const importBaseName = basename(resolvedPath);
-
-      if (importBaseName === entryBaseName) {
-        return false;
-      }
-
       if (
-        JS_EXTENSIONS.some(
-          (ext) => importBaseName === entryBaseName + '.' + ext,
+        isEntrypointFileName(
+          basename(resolvedPath),
+          getComponentEntrypointBaseNames(files),
+          true,
         )
       ) {
         return false;
@@ -113,11 +139,16 @@ export function isNamedComponentEntrypointInDirectory(
   try {
     const dir = dirname(resolvedPath);
     const files = getFilesInDirectory(dir);
-    const importBaseName = basename(resolvedPath);
+    const importFileName = basename(resolvedPath);
+    const importBaseName = stripJsExtension(importFileName);
     const hasNamedMetadata = files.includes(`${importBaseName}${NAMED_SUFFIX}`);
 
     if (!hasNamedMetadata) {
       return false;
+    }
+
+    if (importFileName !== importBaseName) {
+      return files.includes(importFileName);
     }
 
     return JS_EXTENSIONS.some((ext) =>
