@@ -33,7 +33,18 @@ class AutoSaveHooks {
    */
   #[Hook('entity_delete')]
   public function entityDelete(EntityInterface $entity): void {
-    $this->autoSaveManager->delete($entity);
+    // Deleting an entity invalidates its entire pending-changes set, not just
+    // the auto-save matching $entity's own langcode: a content entity's
+    // per-language snapshots and a config entity's per-language
+    // StagedLanguageConfigOverride drafts are all separate auto-save entries.
+    // Discard the whole group so no orphaned sibling draft is left behind.
+    $group = $this->autoSaveManager->getTranslationGroupAutoSaves($entity);
+    // An entity without any auto-save yields an empty group; still delete it
+    // directly so the non-auto-save cleanup (form violations, brand kit file
+    // usage) in AutoSaveManager::delete() runs.
+    foreach ($group ?: [$entity] as $member) {
+      $this->autoSaveManager->delete($member);
+    }
   }
 
   /**

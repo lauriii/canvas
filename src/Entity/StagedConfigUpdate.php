@@ -14,6 +14,8 @@ use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
+ * @see \Drupal\canvas\Entity\StagedLanguageConfigOverride
+ *
  * @phpstan-type StagedConfigUpdateActions array<string, array{name: string, input: array<string, mixed>}>
  */
 #[ConfigEntityType(

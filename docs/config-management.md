@@ -326,3 +326,24 @@ See:
 
 Only one brand kit exists: the global one, created by default on config install. It stores font entries and loads them using
 CSS on the frontend of the site as well as the Canvas preview.
+
+### 3.9 `StagedLanguageConfigOverride` config entity
+
+See:
+- `\Drupal\canvas\Entity\StagedLanguageConfigOverride`
+
+A `StagedLanguageConfigOverride` config entity represents a language configuration override that is not immediately applied,
+but staged until published. It maps to Drupal core's `LanguageConfigOverride` (the per-language sparse override stored by
+`\Drupal\language\Config\LanguageConfigFactoryOverride`), but lives in auto-save storage until explicitly published. Like
+`StagedConfigUpdate`, it is never exported to the active configuration store. See
+`\Drupal\canvas\EntityHandlers\StagedLanguageConfigOverrideStorage` for the implementation that uses `AutoSaveManager` as
+the storage backend.
+
+The entity ID is `{langcode}.{config_name}` — mirroring the key used by the language config override storage — so mapping
+between the staged and live representations is trivial.
+
+`StagedLanguageConfigOverride` entities are created automatically during component tree reconciliation: when
+`ComponentSourceManager::updateComponentInstances()` updates a config entity's component tree, the field list implementation
+in `ComponentTreeItemList::reconcileTranslationsWithUpdatedItems()` stages an in-memory override for each language that had a
+prior translation, pruning keys for deleted props. Those staged overrides are persisted to auto-save when the config entity is
+saved.

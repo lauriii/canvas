@@ -1082,6 +1082,57 @@ canvas.staged_config_update.*:
             constraints:
               NotBlank: [ ]
 
+canvas.staged_language_config_override.*:
+  type: config_entity
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    id:
+      # The ID is "{langcode}.{config_name}", which contains dots. This ID intentionally does not use
+      # `type: machine_name`, because it is a composite ID that is better validated using the `StringParts` constraint
+      # than the `RegEx` constraint.
+      type: string
+      label: 'ID'
+      constraints:
+        NotBlank: [ ]
+        StringParts:
+          separator: .
+          reservedCharacters:
+            - ':'
+          reservedCharactersSubstitute: .
+          parts:
+            - '%parent.langcode'
+            - '%parent.config_name'
+    langcode:
+      type: string
+      label: 'Language code'
+      constraints:
+        NotBlank: [ ]
+        BetterConfigExists:
+          prefix: 'language.entity.'
+    config_name:
+      # We do not use `machine_name` since config entities have `.` in their IDs.
+      type: string
+      label: 'Config name'
+      constraints:
+        NotBlank: [ ]
+        Length:
+          # @see \Drupal\Core\Config\Entity\ConfigEntityStorage::MAX_ID_LENGTH
+          max: 166
+        # @todo Use `ConfigExists` once https://www.drupal.org/project/drupal/issues/3518273 is
+        #   fixed in core.
+        BetterConfigExists:
+          prefix: ''
+    data:
+      # The sparse override data has no fixed schema — it mirrors the structure of whatever config entity it targets.
+      # TRICKY: this could in theory be validated, but requires the default translation of the target config entity,
+      # which itself may be in the process of being modified (i.e. it may have a Canvas auto-save entry). This reduces
+      # the usefulness of validation, especially because when this staged language config override is saved, the final
+      # validation will be applied to the target config entity and all of its LanguageConfigOverrides anyway.
+      # @see \Drupal\canvas\Plugin\Validation\Constraint\CanvasConfigEntityTranslationsAreValidConstraintValidator
+      type: ignore
+      label: 'Override data'
+
 canvas.folder.*:
   type: config_entity
   constraints:

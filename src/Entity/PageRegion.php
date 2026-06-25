@@ -119,9 +119,12 @@ final class PageRegion extends ComponentTreeConfigEntityBase implements CanvasHt
 
     $items = self::clientToServerTree($autoSaveData['layout'], $autoSaveData['model'], NULL, $validate);
 
-    $auto_saved_page_region = static::create([
-      'component_tree' => $items,
-    ] + $this->toArray());
+    $auto_saved_page_region = static::create($this->toArray())
+      // Auto-saves can only exist for existing entities.
+      ->enforceIsNew(FALSE)
+      // Ensure that sequence keys are retained when this PageRegion has been
+      // translated.
+      ->setComponentTree($items);
     if (!$validate) {
       return $auto_saved_page_region;
     }

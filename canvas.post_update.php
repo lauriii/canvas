@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
+use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\Core\Config\Entity\ConfigEntityUpdater;
 use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
 use Drupal\field\Entity\FieldConfig;
@@ -422,4 +423,16 @@ function canvas_post_update_0019_recompute_list_float_component_version_hashes(a
   $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
   \Drupal::classResolver(ConfigEntityUpdater::class)
     ->update($sandbox, Component::ENTITY_TYPE_ID, static fn(Component $component): bool => $canvasConfigUpdater->updateListFloatComponentVersionHash($component));
+}
+
+/**
+ * Installs the StagedLanguageConfigOverride config entity type.
+ */
+function canvas_post_update_0020_install_staged_language_config_override_entity_type(array &$sandbox): void {
+  $entity_definition_update_manager = \Drupal::service('entity.definition_update_manager');
+  \assert($entity_definition_update_manager instanceof EntityDefinitionUpdateManagerInterface);
+  $change_list = $entity_definition_update_manager->getChangeList();
+  if (($change_list[StagedLanguageConfigOverride::ENTITY_TYPE_ID]['entity_type'] ?? NULL) === EntityDefinitionUpdateManagerInterface::DEFINITION_CREATED) {
+    $entity_definition_update_manager->installEntityType(\Drupal::entityTypeManager()->getDefinition(StagedLanguageConfigOverride::ENTITY_TYPE_ID));
+  }
 }

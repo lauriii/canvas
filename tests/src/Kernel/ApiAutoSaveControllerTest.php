@@ -1461,7 +1461,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     }
 
     // With permission but no CSRF header.
-    $account = $this->createUser([AutoSaveManager::PUBLISH_PERMISSION]);
+    // 'access content' grants 'view label' on the node; AssetLibrary::ADMIN_PERMISSION
+    // grants it on the global asset library. Both are required by
+    // getPublishableAutoSaves(), which mirrors the filter ::get() applies.
+    $account = $this->createUser([AutoSaveManager::PUBLISH_PERMISSION, 'access content', AssetLibrary::ADMIN_PERMISSION]);
     \assert($account instanceof AccountInterface);
     $this->setCurrentUser($account);
     $request = Request::create($url->toString(), 'DELETE', server: ['CONTENT_TYPE' => 'application/json']);

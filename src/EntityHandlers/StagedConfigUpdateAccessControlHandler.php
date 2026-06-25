@@ -4,50 +4,19 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EntityHandlers;
 
-use Drupal\canvas\Access\CanvasUiAccessCheck;
 use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
-use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\EntityAccessControlHandler;
 use Drupal\Core\Entity\EntityHandlerInterface;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 final class StagedConfigUpdateAccessControlHandler extends EntityAccessControlHandler implements EntityHandlerInterface {
 
+  use StagedConfigEntityAccessControlTrait;
+
   private const string SIMPLE_CONFIG = 'simple.config';
-
-  private array $typesByPrefix = [];
-
-  public function __construct(
-    EntityTypeInterface $entity_type,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly CanvasUiAccessCheck $canvasUiAccessCheck,
-  ) {
-    parent::__construct($entity_type);
-    foreach ($this->entityTypeManager->getDefinitions() as $definition) {
-      if ($definition->entityClassImplements(ConfigEntityInterface::class)) {
-        /** @var \Drupal\Core\Config\Entity\ConfigEntityTypeInterface $definition */
-        $prefix = $definition->getConfigPrefix();
-        $this->typesByPrefix[$prefix] = $definition->id();
-      }
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type): self {
-    return new self(
-      $entity_type,
-      $container->get(EntityTypeManagerInterface::class),
-      $container->get(CanvasUiAccessCheck::class),
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -80,13 +49,7 @@ final class StagedConfigUpdateAccessControlHandler extends EntityAccessControlHa
         default => AccessResult::forbidden('Unsupported simple configuration object.')
       };
     }
-
-    $loaded_target = $this->entityTypeManager->getStorage($config_type)->load($config_name);
-    if ($loaded_target === NULL) {
-      return AccessResult::forbidden("Target configuration entity '$config_name' of type '$config_type' does not exist.");
-    }
-    return $this->entityTypeManager->getAccessControlHandler($config_type)
-      ->access($loaded_target, 'update', $account, TRUE);
+    return $this->checkConfigEntityUpdateAccess($target_config_name, $account);
   }
 
   /**

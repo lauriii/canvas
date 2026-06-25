@@ -9,6 +9,7 @@ use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ClientDataToEntityConverter;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageRegion;
@@ -94,7 +95,13 @@ final class ApiLayoutController {
 
     // Store the original entity for comparison purposes.
     $original_entity = $entity;
-    $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($entity);
+    // For content entities, reconstruct the draft with every pending
+    // translation overlaid: previewing one translation reconciles and re-saves
+    // all of them (symmetric component-tree columns must stay in sync), so a
+    // sibling translation's draft must be present or it would be clobbered.
+    $autoSaveData = $entity instanceof ContentEntityInterface
+      ? $this->autoSaveManager->getAutoSaveEntityForPreview($entity)
+      : $this->autoSaveManager->getAutoSaveEntity($entity);
     if (!$autoSaveData->isEmpty()) {
       $entity = $autoSaveData->entity;
       \assert($entity instanceof ContentEntityInterface || $entity instanceof ContentTemplate);
@@ -226,11 +233,39 @@ final class ApiLayoutController {
       if ($wasModified) {
         $entity = $items->getParent()?->getValue();
         \assert($entity instanceof ComponentTreeEntityInterface || $entity instanceof FieldableEntityInterface);
+        // Capture reconciled staged overrides BEFORE setComponentTree() calls
+        // set(), which clears the $stagedOverrides cache. If captured after,
+        // getTranslation() would re-create from the live LanguageConfigOverride
+        // (still containing removed props), discarding the reconciliation.
+        $configTranslationsToSave = $entity instanceof ComponentTreeConfigEntityBase
+          ? \array_values(\array_map(
+            fn($language) => $entity->getTranslation($language->getId()),
+            $entity->getTranslationLanguages(include_default: FALSE),
+          ))
+          : [];
         if ($entity instanceof ComponentTreeEntityInterface) {
           // @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types (aka FieldableEntityInterface)
           $entity->setComponentTree($items->getValue());
         }
-        $this->autoSaveManager->saveEntity($entity);
+        // This called ::updateComponentInstances(), that means all symmetrical
+        // translations (for content or config entities) have had their
+        // component instances updated, too. They must remain in sync, so also
+        // save the updated translations.
+        // @see ADR #13, decision 4: propagation is in-memory only.
+        $this->autoSaveManager->saveEntity($entity instanceof ContentEntityInterface
+          // For content entities $entity may be a non-default translation.
+          ? $entity->getUntranslated()
+          // For config entities, $entity is always the default translation.
+          : $entity
+        );
+        if ($entity instanceof ContentEntityInterface) {
+          foreach ($entity->getTranslationLanguages(include_default: FALSE) as $language) {
+            $this->autoSaveManager->saveEntity($entity->getTranslation($language->getId()));
+          }
+        }
+        foreach ($configTranslationsToSave as $stagedOverride) {
+          $this->autoSaveManager->saveEntity($stagedOverride);
+        }
       }
 
       $built = $items->getClientSideRepresentation($preview_entity);
