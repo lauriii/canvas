@@ -97,6 +97,7 @@ rules:
   - Canvas\PHPStan\Rules\DisallowHookSchemaRule
   - Canvas\PHPStan\Rules\NoDuplicateTraitUseRule
   - Canvas\PHPStan\Rules\KernelTestsMustUseAssertEntityIsValidRule
+  - Canvas\PHPStan\Rules\ComponentInputsComparisonMustIgnoreKeyOrderRule
   - Canvas\PHPStan\Rules\NoOptionalParametersInDataProviderTestsRule
   - Canvas\PHPStan\Rules\NoJsonEncodedHttpExceptionMessageInApiControllersRule
   - Canvas\PHPStan\Rules\RequireStaticMethodsRule

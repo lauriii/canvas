@@ -123,7 +123,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Con
     foreach ($memory_and_stored() as $either) {
       $fr_list = $either->getTranslation('fr')->get($field_name);
       \assert($fr_list instanceof ComponentTreeItemList);
-      self::assertSame([
+      self::assertSameInputs([
         'text' => 'Cliquez ici',
         'href' => 'https://drupal.fr',
         // Synchronized from default ('_self').
@@ -144,7 +144,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Con
     foreach ($memory_and_stored() as $either) {
       $fr_list = $either->getTranslation('fr')->get($field_name);
       \assert($fr_list instanceof ComponentTreeItemList);
-      self::assertSame([
+      self::assertSameInputs([
         'text' => 'Cliquez ici',
         'href' => 'https://drupal.fr',
         // Updated from default to '_blank'.
@@ -177,7 +177,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Con
     foreach ($memory_and_stored() as $either) {
       $fr_list = $either->getTranslation('fr')->get($field_name);
       \assert($fr_list instanceof ComponentTreeItemList);
-      self::assertSame([
+      self::assertSameInputs([
         'text' => 'Cliquez ici',
         'href' => 'https://drupal.fr',
         // Corrected back to '_blank'.
@@ -208,7 +208,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Con
     foreach ($memory_and_stored() as $either) {
       $fr_list = $either->getTranslation('fr')->get($field_name);
       \assert($fr_list instanceof ComponentTreeItemList);
-      self::assertSame([
+      self::assertSameInputs([
         'text' => 'Cliquez ici',
         'href' => 'https://drupal.fr',
         // Added from default.
@@ -240,7 +240,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Con
       \assert($fr_list instanceof ComponentTreeItemList);
       $fr_new = $fr_list->getComponentTreeItemByUuid($new_uuid);
       self::assertNotNull($fr_new, 'New instance must be present in French translation.');
-      self::assertSame([
+      self::assertSameInputs([
         // English translatable values — no French-specific values exist yet.
         'text' => 'New link',
         'href' => 'https://new.example.com',
@@ -333,29 +333,25 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Con
         'UUID order in French must match updated default.',
       );
       // Assert inputs for each instance in the French translation.
-      self::assertSame(
-        [
-          [
-            'text' => 'Prepended link',
-            'href' => 'https://prepended.example.com',
-            'target' => $new_prepended_instance_raw['inputs']['target'],
-          ],
-          [
-            'text' => 'Cliquez ici',
-            'href' => 'https://drupal.fr',
-            'target' => $cta_instance_raw['inputs']['target'],
-          ],
-          [
-            'text' => 'New link',
-            'href' => 'https://new.example.com',
-            'target' => $new_instance_raw['inputs']['target'],
-          ],
-        ],
-        \array_map(
-          fn (ComponentTreeItem $i) => $i->getInputs(),
-          iterator_to_array($fr_list->componentTreeItemsIterator()),
-        ),
-      );
+      $fr_inputs = \array_values(\array_map(
+        fn (ComponentTreeItem $i) => $i->getInputs(),
+        iterator_to_array($fr_list->componentTreeItemsIterator()),
+      ));
+      self::assertSameInputs([
+        'text' => 'Prepended link',
+        'href' => 'https://prepended.example.com',
+        'target' => $new_prepended_instance_raw['inputs']['target'],
+      ], $fr_inputs[0] ?? NULL);
+      self::assertSameInputs([
+        'text' => 'Cliquez ici',
+        'href' => 'https://drupal.fr',
+        'target' => $cta_instance_raw['inputs']['target'],
+      ], $fr_inputs[1] ?? NULL);
+      self::assertSameInputs([
+        'text' => 'New link',
+        'href' => 'https://new.example.com',
+        'target' => $new_instance_raw['inputs']['target'],
+      ], $fr_inputs[2] ?? NULL);
       self::assertResolvedAndStoredInputsAreIdentical($fr_list);
     }
 

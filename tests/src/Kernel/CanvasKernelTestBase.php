@@ -152,6 +152,41 @@ abstract class CanvasKernelTestBase extends KernelTestBase {
   }
 
   /**
+   * Asserts component instance inputs are identical, ignoring input key order.
+   *
+   * The `inputs` field property is stored in a JSON column whose object key
+   * order is not preserved by every database backend: MySQL `json` and
+   * PostgreSQL `jsonb` are native binary types that reorder keys, while MariaDB
+   * (where `json` is a `LONGTEXT` alias) and SQLite (which stores `json` as
+   * `TEXT`) keep the source order. Component input key order is not
+   * semantically meaningful, so it must be asserted order-independently;
+   * otherwise the same assertion passes on some database engines and fails on
+   * others — and even intermittently, since an in-memory value (just written,
+   * not yet round-tripped) keeps its source order while a reloaded one does not.
+   *
+   * Canonicalizes the key order with ksort() and then compares strictly: unlike
+   * assertEqualsCanonicalizing() (which sorts by value, so a key↔value mix-up
+   * would slip through), this keeps each key bound to its value and preserves
+   * the strict type check of assertSame().
+   *
+   * @param array $expected
+   *   The expected component instance inputs.
+   * @param array|null $actual
+   *   The actual component instance inputs, e.g. from ComponentTreeItem::getInputs().
+   *
+   * @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem::getInputs()
+   * @see \Canvas\PHPStan\Rules\ComponentInputsComparisonMustIgnoreKeyOrderRule
+   * @see https://dev.mysql.com/doc/refman/8.0/en/json.html
+   * @see https://www.postgresql.org/docs/current/datatype-json.html
+   */
+  protected static function assertSameInputs(array $expected, ?array $actual): void {
+    self::assertIsArray($actual);
+    \ksort($expected);
+    \ksort($actual);
+    self::assertSame($expected, $actual);
+  }
+
+  /**
    * Saves a config entity translation.
    *
    * Respects the architecture of:

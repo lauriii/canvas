@@ -426,7 +426,7 @@ abstract class TranslationPropagationTestBase extends CanvasKernelTestBase {
     $draft_item = $draft->getComponentTree()->getComponentTreeItemByUuid($uuid);
     self::assertNotNull($draft_item);
     self::assertSame($this->originalVersion, $draft_item->getComponentVersion());
-    self::assertSame(self::DEFAULT_DRAFT_INPUTS, $draft_item->getInputs());
+    self::assertSameInputs(self::DEFAULT_DRAFT_INPUTS, $draft_item->getInputs());
 
     // The same translator stores the ES translation only AFTER the base draft.
     if ($scenario === 'translate-after-auto-save') {
@@ -463,7 +463,7 @@ abstract class TranslationPropagationTestBase extends CanvasKernelTestBase {
     $draft_item = $draft->getComponentTree()->getComponentTreeItemByUuid($uuid);
     self::assertNotNull($draft_item);
     self::assertSame($active_version, $draft_item->getComponentVersion());
-    self::assertSame(['required_text' => 'YO'], $draft_item->getInputs());
+    self::assertSameInputs(['required_text' => 'YO'], $draft_item->getInputs());
 
     // The translation was reconciled too: optional_text pruned, the translator's
     // required_text kept, the untranslated `features` (never populated by the
@@ -499,15 +499,32 @@ abstract class TranslationPropagationTestBase extends CanvasKernelTestBase {
     // ::removeAndAddProp() did not remove it from the schema, and a translation
     // may populate optional inputs the default leaves empty.
     // @phpcs:disable
-    self::assertSame([
+    self::assertSameVersionAndInputs([
       'before' => ['version' => $old_version,    'inputs' => ['required_text' => 'Hello world', 'optional_text' => 'Optional EN', 'features' => ['Alpha', 'Beta', 'Gamma', 'Delta']]],
       'after'  => ['version' => $active_version, 'inputs' => ['required_text' => 'YO',                                                                                             ]],
     ], $actual['default']);
-    self::assertSame([
+    self::assertSameVersionAndInputs([
       'before' => ['version' => $old_version,    'inputs' => ['required_text' => 'Hola mundo', 'optional_text' => 'opcional ES', 'features' => ['Alpha', 'Beta', 'Gamma', 'Delta']]],
       'after'  => ['version' => $active_version, 'inputs' => ['required_text' => 'Hola mundo',                                   'features' => ['Alpha', 'Beta', 'Gamma', 'Delta']]],
     ], $actual['es']);
     // @phpcs:enable
+  }
+
+  /**
+   * Asserts a before/after {version, inputs} map for a single component.
+   *
+   * Versions are compared exactly; inputs go through ::assertSameInputs() so
+   * the comparison ignores key order (database-backend-dependent: MySQL and
+   * PostgreSQL reorder JSON object keys).
+   *
+   * @param array{before: array{version: ?string, inputs: array<string, mixed>}, after: array{version: ?string, inputs: array<string, mixed>}} $expected
+   * @param array{before: array{version: ?string, inputs: ?array<string, mixed>}, after: array{version: ?string, inputs: ?array<string, mixed>}} $actual
+   */
+  private static function assertSameVersionAndInputs(array $expected, array $actual): void {
+    foreach (['before', 'after'] as $phase) {
+      self::assertSame($expected[$phase]['version'], $actual[$phase]['version'], "$phase version");
+      self::assertSameInputs($expected[$phase]['inputs'], $actual[$phase]['inputs']);
+    }
   }
 
   protected function addOptionalProp(): void {

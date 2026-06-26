@@ -122,7 +122,7 @@ final class ContentEntityTranslationPropagationTest extends TranslationPropagati
   protected function assertTranslationAfterUpdate(array $expected_content, array|false $expected_config): void {
     \assert($this->entity instanceof Page);
     $es_inputs = self::getInputs($this->entity, 'es', self::COMPONENT_UUID);
-    self::assertSame($expected_content, $es_inputs);
+    self::assertSameInputs($expected_content, $es_inputs);
   }
 
   /**
@@ -678,7 +678,7 @@ final class ContentEntityTranslationPropagationTest extends TranslationPropagati
     self::assertFalse($es_auto_save->isEmpty());
     \assert($es_auto_save->entity instanceof Page);
     $inputs = $es_auto_save->entity->getTranslation('es')->getComponentTree()->getComponentTreeItemByUuid(self::COMPONENT_UUID)?->getInputs();
-    self::assertSame($expected_inputs, $inputs);
+    self::assertSameInputs($expected_inputs, $inputs);
   }
 
   /**
