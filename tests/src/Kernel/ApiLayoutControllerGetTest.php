@@ -1009,19 +1009,6 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // @see testConfigTranslationAccessDenied()
     $this->setUpCurrentUser([], [ContentTemplate::ADMIN_PERMISSION, 'translate configuration']);
 
-    // Prevent locale's js_alter hook from trying to file_get_contents() the
-    // draft JS auto-save URL, which is a virtual API path, not a local file.
-    // Marking it as already-parsed tells locale to skip it entirely.
-    // @todo Remove this workaround in
-    //   https://git.drupalcode.org/project/canvas/-/work_items/3591719
-    $markJsDraftUrlAsParsed = static function (): void {
-      \Drupal::state()->delete('system.javascript_parsed');
-      \Drupal::state()->set('system.javascript_parsed', [
-        'canvas/api/v0/auto-saves/js/asset_library/global',
-      ]);
-    };
-
-    $markJsDraftUrlAsParsed();
     $json = static::decodeResponse($this->request(Request::create($url->toString())));
 
     self::assertContains('fr', $json['translations']['available'],
@@ -1062,9 +1049,6 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // entirely, so French must also disappear from available.
     $this->container->get('module_installer')->uninstall(['config_translation']);
     $this->setUpCurrentUser([], [ContentTemplate::ADMIN_PERMISSION]);
-    // Module uninstall flushes all caches (triggering locale's hook_cache_flush
-    // which deletes system.javascript_parsed), so re-populate before requesting.
-    $markJsDraftUrlAsParsed();
     $json = static::decodeResponse($this->request(Request::create($url->toString())));
     self::assertNotContains('fr', $json['translations']['available'],
       'French is absent from available when config_translation is uninstalled.');
