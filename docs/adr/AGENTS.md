@@ -1,0 +1,3 @@
+- NEVER refer to the current state of implementation.
+- NEVER refer to concrete issues, pull requests or commit.
+- ALWAYS record decisions in full, without referring to other documents, except to other ADRs.
