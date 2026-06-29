@@ -144,7 +144,12 @@ const UnpublishedChanges = () => {
         .filter((change) => change.entity_type === 'brand_kit')
         .map((change) => String(change.entity_id));
 
-      await publishAllChanges(changesToPublish);
+      try {
+        await publishAllChanges(changesToPublish).unwrap();
+      } catch {
+        // Error state is handled in pendingChangesApi.publishAllPendingChanges.
+        return;
+      }
 
       if (isCurrentChanged && entityId && entityType) {
         // Update the isPublished and isNew status.
