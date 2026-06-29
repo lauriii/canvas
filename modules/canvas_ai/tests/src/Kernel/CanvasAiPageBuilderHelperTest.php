@@ -423,4 +423,84 @@ XML;
     $this->assertFalse($memory_variation_cache->get($cache_keys, $initial_cacheability), 'Memory cache is invalidated after component update');
   }
 
+  /**
+   * Tests the processCanvasPageFields method.
+   */
+  public function testProcessCanvasPageFields(): void {
+    $response = [
+      'created_content' => 'New Title',
+      'other_key' => 'stay',
+      'metadata' => [
+        'metatag_description' => 'New Description',
+      ],
+    ];
+
+    $expected = [
+      'other_key' => 'stay',
+      'canvas_page_data' => [
+        'title[0][value]' => 'New Title',
+        'description[0][value]' => 'New Description',
+      ],
+    ];
+
+    $result = $this->canvasAiPageBuilderHelper->processCanvasPageFields($response);
+    $this->assertEquals($expected, $result);
+
+    // Test with refined_text (edit content).
+    $response = [
+      'refined_text' => 'Edited Title',
+    ];
+    $expected = [
+      'canvas_page_data' => [
+        'title[0][value]' => 'Edited Title',
+      ],
+    ];
+    $result = $this->canvasAiPageBuilderHelper->processCanvasPageFields($response);
+    $this->assertEquals($expected, $result);
+
+    // When the AI returns both title keys, created_content wins and
+    // refined_text is dropped.
+    $response = [
+      'created_content' => 'Created Title',
+      'refined_text' => 'Refined Title',
+    ];
+    $expected = [
+      'canvas_page_data' => [
+        'title[0][value]' => 'Created Title',
+      ],
+    ];
+    $result = $this->canvasAiPageBuilderHelper->processCanvasPageFields($response);
+    $this->assertEquals($expected, $result);
+
+    // A sibling key under metadata is preserved; only metatag_description is
+    // consumed.
+    $response = [
+      'metadata' => [
+        'metatag_description' => 'New Description',
+        'other_metadata' => 'keep',
+      ],
+    ];
+    $expected = [
+      'metadata' => [
+        'other_metadata' => 'keep',
+      ],
+      'canvas_page_data' => [
+        'description[0][value]' => 'New Description',
+      ],
+    ];
+    $result = $this->canvasAiPageBuilderHelper->processCanvasPageFields($response);
+    $this->assertEquals($expected, $result);
+
+    // When metatag_description is empty, metadata is left untouched and no
+    // canvas_page_data is produced.
+    $response = [
+      'metadata' => [
+        'metatag_description' => '',
+        'other_metadata' => 'keep',
+      ],
+    ];
+    $result = $this->canvasAiPageBuilderHelper->processCanvasPageFields($response);
+    $this->assertEquals($response, $result);
+  }
+
 }

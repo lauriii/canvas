@@ -83,6 +83,53 @@ class CanvasAiPageBuilderHelper {
   }
 
   /**
+   * Combines all canvas page entity field updates under a single key.
+   *
+   * @param array $response
+   *   The current response array from the orchestrator.
+   *
+   * @return array
+   *   The modified response array.
+   *
+   * @see ui/src/components/aiExtension/AiWizard.tsx
+   * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\CreateFieldContent
+   * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\EditFieldContent
+   * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\AddMetadata
+   */
+  public function processCanvasPageFields(array $response): array {
+    $canvasPageData = [];
+
+    // 'created_content' is set when the AI creates a new title; 'refined_text'
+    // when it edits an existing one. They come from separate tools, so only one
+    // is expected per response. If the AI returns both, prefer the created title
+    // and drop the refined one to keep the result deterministic.
+    if (!empty($response['created_content']) && !empty($response['refined_text'])) {
+      $this->loggerFactory->get('canvas_ai')->info('AI returned both created_content and refined_text; using created_content.');
+      unset($response['refined_text']);
+    }
+    if (!empty($response['created_content'])) {
+      $canvasPageData['title[0][value]'] = $response['created_content'];
+      unset($response['created_content']);
+    }
+    elseif (!empty($response['refined_text'])) {
+      $canvasPageData['title[0][value]'] = $response['refined_text'];
+      unset($response['refined_text']);
+    }
+    if (!empty($response['metadata']['metatag_description'])) {
+      $canvasPageData['description[0][value]'] = $response['metadata']['metatag_description'];
+      unset($response['metadata']['metatag_description']);
+      if (empty($response['metadata'])) {
+        unset($response['metadata']);
+      }
+    }
+
+    if (!empty($canvasPageData)) {
+      $response['canvas_page_data'] = $canvasPageData;
+    }
+    return $response;
+  }
+
+  /**
    * Gets the data of all the usable component entities.
    *
    * The output will be used as the context for the AI agent.

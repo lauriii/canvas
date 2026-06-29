@@ -254,6 +254,7 @@ final class CanvasBuilder extends ControllerBase {
       }
       // The final message seen by the user should be the one from the orchestrator agent.
       $response['message'] = $agent->solve();
+      $response = $this->canvasAiPageBuilderHelper->processCanvasPageFields($response);
       return new JsonResponse(
         $response,
       );
