@@ -34,7 +34,7 @@ export interface UploadedArtifactResult {
   url?: string;
 }
 
-/** Axis entry for variable fonts (Brand Kit schema). */
+/** Axis entry for variable fonts (brand kit schema). */
 export interface BrandKitFontAxis {
   tag: string;
   name?: string;
@@ -43,7 +43,7 @@ export interface BrandKitFontAxis {
   default?: number;
 }
 
-/** Font entry stored on Brand Kit (matches backend FontEntry). */
+/** Font entry stored on brand kit (matches backend FontEntry). */
 export interface BrandKitFontEntry {
   id: string;
   family: string;
@@ -58,7 +58,7 @@ export interface BrandKitFontEntryWithUrl extends BrandKitFontEntry {
   url: string;
 }
 
-/** Brand Kit config entity (subset used for font sync). */
+/** Brand kit config entity (subset used for font sync). */
 export interface BrandKit {
   id: string;
   label?: string;

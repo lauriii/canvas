@@ -1,4 +1,6 @@
-import chalk from 'chalk';
+import * as p from '@clack/prompts';
+
+import { printCommandIntro } from '../utils/command-intro';
 
 import type { Command } from 'commander';
 
@@ -21,11 +23,11 @@ function registerDeprecatedCommand(
     .allowUnknownOption()
     .allowExcessArguments()
     .action(() => {
-      console.error(
-        chalk.yellow(
-          `The \`canvas ${commandName}\` command has been removed. Use \`canvas ${replacement}\` instead.`,
-        ),
+      printCommandIntro(commandName);
+      p.log.warn(
+        `The \`canvas ${commandName}\` command has been removed. Use \`canvas ${replacement}\` instead.`,
       );
+      p.outro('Command removed');
       process.exitCode = 1;
     });
 }

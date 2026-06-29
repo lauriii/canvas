@@ -19,6 +19,7 @@ import {
   pluralizeComponent,
   updateConfigFromOptions,
 } from '../utils/command-helpers';
+import { printCommandIntro } from '../utils/command-intro';
 import {
   collectContentTemplateResults,
   prepareContentTemplates,
@@ -38,12 +39,23 @@ import {
   prepareRegions,
   pushRegions,
 } from '../utils/prepare-regions-push';
-import { reportResults } from '../utils/report-results';
+import {
+  formatErrorMessage,
+  PushPhaseError,
+  ReportedPushError,
+  runPushResourcePipeline,
+} from '../utils/push-resource-pipeline';
+import {
+  reportResults,
+  splitFailedResultsByFile,
+} from '../utils/report-results';
 import { createProgressCallback, processInPool } from '../utils/request-pool';
+import { formatFilePathForOutput } from '../utils/utils';
 import { validateContentTemplates } from '../utils/validate-content-template';
 import { validatePages } from '../utils/validate-page';
 import { validateRegions } from '../utils/validate-region';
 
+import type { DiscoveryWarning } from '@drupal-canvas/discovery';
 import type { Command } from 'commander';
 import type { ApiService } from '../services/api.js';
 import type {
@@ -55,6 +67,7 @@ import type {
 import type { ContentTemplateListItem } from '../types/ContentTemplate.js';
 import type { PageListItem } from '../types/Page.js';
 import type { Result } from '../types/Result.js';
+import type { CommandSummaryResource } from '../utils/command-summary';
 
 interface PushOptions {
   clientId?: string;
@@ -70,6 +83,217 @@ interface PushOptions {
   includeBrandKit?: boolean;
   dir?: string;
   yes?: boolean;
+}
+
+type PlannedPushResourceKey =
+  | 'components'
+  | 'pages'
+  | 'content-templates'
+  | 'global-regions'
+  | 'brand-kit';
+
+interface NotStartedPushResource {
+  key: PlannedPushResourceKey;
+  label: string;
+  operations: Map<string, number>;
+}
+
+const PLANNED_OPERATION_ORDER = ['create', 'update', 'delete'];
+const SUMMARY_CHILD_INDENT = '  ';
+const SUMMARY_DETAIL_INDENT = '    ';
+const PUSH_REPORT_OPTIONS = {
+  showTitle: false,
+  indent: false,
+  failureStyle: 'inline' as const,
+};
+
+class ArtifactUploadError extends Error {
+  constructor(public readonly failedResults: Result[]) {
+    super(
+      [
+        'Some uploads failed:',
+        ...failedResults.map(formatArtifactUploadFailureMessage),
+      ].join('\n'),
+    );
+    this.name = 'ArtifactUploadError';
+  }
+}
+
+function comparePlannedOperations(a: string, b: string): number {
+  const aIndex = PLANNED_OPERATION_ORDER.indexOf(a);
+  const bIndex = PLANNED_OPERATION_ORDER.indexOf(b);
+  return (
+    (aIndex === -1 ? PLANNED_OPERATION_ORDER.length : aIndex) -
+      (bIndex === -1 ? PLANNED_OPERATION_ORDER.length : bIndex) ||
+    a.localeCompare(b)
+  );
+}
+
+function formatNotStartedResource(resource: NotStartedPushResource): string {
+  const operations = [...resource.operations.entries()]
+    .sort(([a], [b]) => comparePlannedOperations(a, b))
+    .map(([operation, count]) => `${count} ${operation}`)
+    .join(', ');
+  return `${resource.label}: ${operations}`;
+}
+
+function removeNotStartedResource(
+  resources: NotStartedPushResource[],
+  key: PlannedPushResourceKey,
+): void {
+  const index = resources.findIndex((resource) => resource.key === key);
+  if (index !== -1) {
+    resources.splice(index, 1);
+  }
+}
+
+function buildNotStartedResources(
+  plannedResults: Result[],
+): NotStartedPushResource[] {
+  const resourceDefinitions: Array<{
+    key: PlannedPushResourceKey;
+    label: string;
+    itemType: string;
+  }> = [
+    { key: 'components', label: 'Components', itemType: 'Component' },
+    { key: 'pages', label: 'Pages', itemType: 'Page' },
+    {
+      key: 'content-templates',
+      label: 'Content templates',
+      itemType: 'Content template',
+    },
+    {
+      key: 'global-regions',
+      label: 'Global regions',
+      itemType: 'Global region',
+    },
+    { key: 'brand-kit', label: 'brand kit', itemType: 'Font variant' },
+  ];
+
+  return resourceDefinitions
+    .map((definition) => {
+      const operations = new Map<string, number>();
+      for (const result of plannedResults) {
+        if (result.itemType !== definition.itemType) {
+          continue;
+        }
+        const operation = result.details?.[0]?.content.trim();
+        if (!operation) {
+          continue;
+        }
+        operations.set(operation, (operations.get(operation) ?? 0) + 1);
+      }
+      return operations.size > 0
+        ? {
+            key: definition.key,
+            label: definition.label,
+            operations,
+          }
+        : null;
+    })
+    .filter((resource): resource is NotStartedPushResource =>
+      Boolean(resource),
+    );
+}
+
+export function formatDiscoveryWarning(warning: DiscoveryWarning): string {
+  const location = warning.path
+    ? ` (${formatFilePathForOutput(warning.path)})`
+    : '';
+  return `${warning.message}${location}`;
+}
+
+export function formatDiscoveryWarningReport(
+  warnings: DiscoveryWarning[],
+): string | null {
+  if (warnings.length === 0) {
+    return null;
+  }
+
+  return [
+    'Warnings',
+    ...warnings.map(
+      (warning) =>
+        `${SUMMARY_CHILD_INDENT}${chalk.yellow('!')} ${formatDiscoveryWarning(warning)}`,
+    ),
+  ].join('\n');
+}
+
+function reportDiscoveryWarnings(warnings: DiscoveryWarning[]): void {
+  const report = formatDiscoveryWarningReport(warnings);
+  if (report) {
+    p.log.message(report);
+  }
+}
+
+function formatArtifactUploadFailureMessage(result: Result): string {
+  const message = result.details?.[0]?.content ?? 'Unknown error';
+  return `Failed to upload ${result.itemName}: ${message}`;
+}
+
+function reportPushFailure(
+  error: unknown,
+  completedResources: CommandSummaryResource[],
+  notStartedResources: NotStartedPushResource[],
+): void {
+  const message = formatErrorMessage(error);
+  const isAuthFailure =
+    !(error instanceof PushPhaseError) &&
+    (message.includes('Authentication Error') ||
+      message.includes('Authentication failed'));
+  const phase =
+    error instanceof PushPhaseError
+      ? error.phase
+      : isAuthFailure
+        ? 'Authentication failed'
+        : 'Push failed';
+  const lines: string[] = [];
+
+  if (completedResources.length > 0 && notStartedResources.length > 0) {
+    lines.push('Not started');
+    for (const resource of notStartedResources) {
+      lines.push(
+        `${SUMMARY_CHILD_INDENT}${formatNotStartedResource(resource)}`,
+      );
+    }
+  }
+
+  if (!(error instanceof ReportedPushError)) {
+    const failedResults =
+      error instanceof PushPhaseError && error.failedResults.length > 0
+        ? error.failedResults
+        : [
+            {
+              itemName: phase,
+              success: false,
+              details: [{ content: message }],
+            },
+          ];
+
+    if (lines.length > 0) {
+      lines.push('');
+    }
+    lines.push('Failed');
+    for (const result of failedResults) {
+      lines.push(`${SUMMARY_CHILD_INDENT}${chalk.red('✗')} ${result.itemName}`);
+      for (const detail of result.details ?? []) {
+        lines.push(
+          ...detail.content
+            .split('\n')
+            .map((line) => `${SUMMARY_DETAIL_INDENT}${line}`),
+        );
+      }
+    }
+  }
+
+  if (lines.length > 0) {
+    p.log.message(lines.join('\n'));
+  }
+  p.outro(
+    completedResources.length > 0
+      ? `${chalk.red('✗')} Push incomplete`
+      : `${chalk.red('✗')} Push failed`,
+  );
 }
 
 export type SyncExclusionSource = 'flag' | 'deprecated-flag' | 'env' | 'config';
@@ -179,7 +403,7 @@ async function uploadAndBuildManifest(
 }> {
   const uploadProgress = createProgressCallback(
     spinner,
-    'Uploading artifacts',
+    'Pushing dependencies',
     new Set(files.map((file) => file.filePath)).size,
   );
 
@@ -200,16 +424,19 @@ async function uploadAndBuildManifest(
   });
 
   const uploadedByFilePath = new Map<string, UploadedArtifactResult>();
-  const errors: string[] = [];
+  const failedResults: Result[] = [];
 
   for (const result of results) {
     if (result.success && result.result) {
       uploadedByFilePath.set(uniqueFiles[result.index].filePath, result.result);
     } else {
       const fileName = uniqueFiles[result.index]?.name || 'unknown';
-      errors.push(
-        `Failed to upload ${fileName}: ${result.error?.message || 'Unknown error'}`,
-      );
+      failedResults.push({
+        itemName: fileName,
+        itemType: 'Artifact',
+        success: false,
+        details: [{ content: result.error?.message || 'Unknown error' }],
+      });
     }
   }
 
@@ -223,7 +450,7 @@ async function uploadAndBuildManifest(
     shared: [],
   };
 
-  if (errors.length === 0) {
+  if (failedResults.length === 0) {
     for (const file of files) {
       const uploadResult = uploadedByFilePath.get(file.filePath);
       if (uploadResult) {
@@ -235,8 +462,8 @@ async function uploadAndBuildManifest(
     }
   }
 
-  if (errors.length > 0) {
-    throw new Error(`Some uploads failed:\n${errors.join('\n')}`);
+  if (failedResults.length > 0) {
+    throw new ArtifactUploadError(failedResults);
   }
 
   return grouped;
@@ -251,7 +478,7 @@ export async function syncManifestArtifacts(
     apiService: Pick<ApiService, 'uploadArtifact' | 'syncManifest'>;
     createSpinner?: () => {
       start: (msg?: string) => void;
-      stop: (msg?: string) => void;
+      stop: (msg?: string, code?: number) => void;
       message: (msg?: string) => void;
     };
     logInfo?: (msg: string) => void;
@@ -276,60 +503,83 @@ export async function syncManifestArtifacts(
     const manifest = await readBuildManifest(outputDir);
     artifactFiles.push(...collectManifestArtifacts(manifest));
   } catch {
-    // Build manifest may not exist if build wasn't run.
-    // This is not fatal — components and global CSS were already pushed.
+    // Build manifest may not exist if build wasn't run. This is not fatal once
+    // components have already been pushed.
     options.logInfo?.(
-      'No build manifest found, skipping vendor/local artifact sync',
+      'No dependency map found, skipping component dependency upload',
     );
   }
 
   if (artifactFiles.length === 0) {
-    options.logInfo?.(
-      'No manifest artifacts to upload, skipping manifest sync',
-    );
+    options.logInfo?.('No component dependencies to upload');
     return { artifactCount: 0, groupedManifest: emptyManifest };
   }
 
-  const artifactSpinner = createSpinner();
-  artifactSpinner.start('Uploading vendor/local artifacts');
+  const dependencySpinner = createSpinner();
+  dependencySpinner.start('Pushing dependencies');
 
   const groupedManifest = await uploadAndBuildManifest(
     artifactFiles,
     outputDir,
     options.apiService,
-    artifactSpinner,
-  );
+    dependencySpinner,
+  ).catch((error) => {
+    dependencySpinner.stop('Pushed dependencies', 2);
+    throw error;
+  });
   const artifactCount =
     groupedManifest.vendor.length +
     groupedManifest.local.length +
     groupedManifest.shared.length;
-  artifactSpinner.stop(chalk.green(`Uploaded ${artifactCount} artifacts`));
-
-  const syncSpinner = createSpinner();
-  syncSpinner.start('Syncing manifest');
-  await options.apiService.syncManifest({
-    vendor: groupedManifest.vendor,
-    local: groupedManifest.local,
-    shared: groupedManifest.shared,
-  });
-  syncSpinner.stop(chalk.green('Manifest synced'));
+  await options.apiService
+    .syncManifest({
+      vendor: groupedManifest.vendor,
+      local: groupedManifest.local,
+      shared: groupedManifest.shared,
+    })
+    .catch((error) => {
+      dependencySpinner.stop('Pushed dependencies', 2);
+      throw error;
+    });
+  dependencySpinner.stop('Pushed dependencies', 0);
 
   return { artifactCount, groupedManifest };
+}
+
+function buildDependencyResults(groupedManifest: {
+  vendor: UploadedArtifact[];
+  local: UploadedArtifact[];
+  shared: UploadedArtifact[];
+}): Result[] {
+  return [
+    ...groupedManifest.vendor.map((dependency) => ({
+      itemName: dependency.name,
+      itemType: 'Dependency',
+      success: true,
+      details: [{ content: 'Third-party' }],
+    })),
+    ...groupedManifest.local.map((dependency) => ({
+      itemName: dependency.name,
+      itemType: 'Dependency',
+      success: true,
+      details: [{ content: 'Local' }],
+    })),
+  ];
 }
 
 /**
  * Registers the push command.
  *
- * Pushes local components, global CSS, and vendor/local build artifacts to Drupal.
+ * Pushes local components, global CSS, component dependencies, and content to Drupal.
  * 1. Component configs (via js_component entities)
  * 2. Global CSS/JS (via asset_library)
- * 3. Vendor/local build artifacts (uploaded as files, tracked in manifest)
+ * 3. Component dependencies (uploaded as files, tracked in manifest)
  */
 export function pushCommand(program: Command): void {
   program
     .command('push')
     .description(
-      'build and push local components, global CSS, vendor/local artifacts, and optional fonts and pages to Drupal',
+      'build and push local components, global CSS, component dependencies, and optional fonts and content to Drupal',
     )
     .option('--client-id <id>', 'Client ID')
     .option('--client-secret <secret>', 'Client Secret')
@@ -381,8 +631,10 @@ export function pushCommand(program: Command): void {
     .option('-y, --yes', 'Skip confirmation prompts')
     .action(async (options: PushOptions) => {
       let apiService: ApiService | undefined;
+      const completedResources: CommandSummaryResource[] = [];
+      const notStartedResources: NotStartedPushResource[] = [];
       try {
-        p.intro(chalk.bold('Drupal Canvas CLI: push'));
+        printCommandIntro('push');
         // Update config with CLI options.
         applySyncOptionAliasesAndWarnings(options);
         updateConfigFromOptions(options);
@@ -421,6 +673,10 @@ export function pushCommand(program: Command): void {
         const discoveredRegions = includesRegions ? allDiscoveredRegions : [];
         const hasIgnoredRegions =
           !includesRegions && allDiscoveredRegions.length > 0;
+        const componentDiscoveryWarnings =
+          components.length > 0 ? warnings : [];
+        const immediateDiscoveryWarnings =
+          components.length > 0 ? [] : warnings;
         const logIgnoredLocalResources = () => {
           if (hasIgnoredPages) {
             p.log.info(
@@ -489,7 +745,7 @@ export function pushCommand(program: Command): void {
           p.log.warn(
             'No components, pages, content templates, or global regions found for the enabled sync settings.',
           );
-          p.outro('Push aborted (nothing to push)');
+          p.outro('Nothing to push');
           return;
         }
 
@@ -502,19 +758,20 @@ export function pushCommand(program: Command): void {
           hasBrandKitFontsConfig
         ) {
           p.log.info(
-            'No components, pages, content templates or global regions found; syncing Brand Kit fonts from canvas.brand-kit.json.',
+            'No components, pages, content templates, or global regions found; syncing brand kit fonts from canvas.brand-kit.json.',
           );
         }
 
         if (components.length === 0) {
           p.log.info(
-            'No components found. Skipping component push, global CSS upload, and artifact sync.',
+            'No components found. Skipping component and global CSS push.',
           );
         }
 
         logIgnoredLocalResources();
 
         apiService = await createApiService();
+        const pushApiService = apiService;
         const existingComponents =
           components.length > 0 ? await apiService.listComponents() : {};
         const remoteNames = new Set(Object.keys(existingComponents));
@@ -575,9 +832,9 @@ export function pushCommand(program: Command): void {
 
         // Build a preview of planned operations.
         const operationLabels: Record<string, string> = {
-          create: chalk.green('Create'),
-          update: chalk.cyan('Update'),
-          delete: chalk.red('Delete'),
+          create: 'create',
+          update: 'update',
+          delete: 'delete',
         };
         const plannedResults: Result[] = [
           ...components.map((c) => ({
@@ -660,14 +917,14 @@ export function pushCommand(program: Command): void {
             : []),
         ];
         if (plannedResults.length > 0) {
-          reportResults(plannedResults, 'Planned operations', 'Item', {
+          notStartedResources.push(...buildNotStartedResources(plannedResults));
+          reportResults(plannedResults, 'Plan', 'Item', {
             preview: true,
           });
         }
 
-        for (const warning of warnings) {
-          const location = warning.path ? chalk.dim(` (${warning.path})`) : '';
-          p.log.warn(`${warning.message}${location}`);
+        for (const warning of immediateDiscoveryWarnings) {
+          p.log.warn(formatDiscoveryWarning(warning));
         }
 
         if (!options.yes) {
@@ -688,7 +945,7 @@ export function pushCommand(program: Command): void {
             );
           }
           if (includesBrandKit && hasBrandKitFontsConfig) {
-            parts.push('Brand Kit fonts (canvas.brand-kit.json)');
+            parts.push('brand kit fonts (canvas.brand-kit.json)');
           }
           const confirmed = await p.confirm({
             message: `Push these changes to ${config.siteUrl}?`,
@@ -703,14 +960,14 @@ export function pushCommand(program: Command): void {
         await apiService.signalPushStart();
 
         let componentResults: Result[] = [];
-        let includeGlobalCss = false;
-        let artifactCount = 0;
         let fontCount = 0;
 
         if (components.length > 0) {
-          // Step 2: Build components, global CSS, and manifest artifacts.
-          const s2 = p.spinner();
-          s2.start('Building project');
+          removeNotStartedResource(notStartedResources, 'components');
+          const componentPushApiService = apiService;
+          // Step 2: Build components, Tailwind CSS, and dependency artifacts.
+          const componentSpinner = p.spinner();
+          componentSpinner.start('Pushing components');
           const canvasBuild = await buildCanvasProject({
             projectRoot: process.cwd(),
             componentDir,
@@ -719,74 +976,151 @@ export function pushCommand(program: Command): void {
             discoveryResult,
             cleanOutputDir: true,
             requireJsEntries: true,
+          }).catch((error) => {
+            const message = formatErrorMessage(error);
+            if (message.startsWith('Missing local Tailwind CSS file')) {
+              componentSpinner.stop('Pushed assets', 2);
+              reportResults(
+                [
+                  {
+                    itemName: 'Tailwind CSS',
+                    itemType: 'Asset',
+                    success: false,
+                    details: [{ content: message }],
+                  },
+                ],
+                'Pushed assets',
+                'Asset',
+                PUSH_REPORT_OPTIONS,
+              );
+              reportDiscoveryWarnings(componentDiscoveryWarnings);
+              throw new ReportedPushError(
+                'Tailwind build failed',
+                'Tailwind build failed, global assets upload aborted. Nothing was pushed.',
+              );
+            }
+            componentSpinner.stop('Build failed', 2);
+            reportDiscoveryWarnings(componentDiscoveryWarnings);
+            throw new PushPhaseError('Build failed', message);
           });
-          s2.stop(chalk.green('Built project'));
 
           if (canvasBuild.componentResults.some((r) => !r.success)) {
+            componentSpinner.stop('Build failed', 2);
             reportResults(
-              canvasBuild.componentResults,
-              'Built components',
+              splitFailedResultsByFile(
+                canvasBuild.componentResults.filter(
+                  (result) => !result.success,
+                ),
+              ),
+              'Build failed',
               'Component',
+              PUSH_REPORT_OPTIONS,
             );
-            throw new Error('Component build failed. Nothing was pushed.');
+            reportDiscoveryWarnings(componentDiscoveryWarnings);
+            throw new ReportedPushError(
+              'Build failed',
+              'Component build failed. Nothing was pushed.',
+            );
           }
 
-          reportResults([canvasBuild.tailwindResult], 'Built assets', 'Asset');
           if (!canvasBuild.tailwindResult.success) {
-            throw new Error(
+            componentSpinner.stop('Pushed assets', 2);
+            reportResults(
+              [canvasBuild.tailwindResult],
+              'Pushed assets',
+              'Asset',
+              PUSH_REPORT_OPTIONS,
+            );
+            reportDiscoveryWarnings(componentDiscoveryWarnings);
+            throw new ReportedPushError(
+              'Build failed',
               'Tailwind build failed, global assets upload aborted. Nothing was pushed.',
             );
           }
 
-          if (canvasBuild.vendorImportCount > 0) {
-            p.log.info(
-              chalk.green(
-                `Bundled ${canvasBuild.vendorImportCount} vendor ${pluralize(canvasBuild.vendorImportCount, 'package')} → ${outputDir}/vendor/`,
-              ),
-            );
-          }
-          if (canvasBuild.localImportCount > 0) {
-            p.log.info(
-              chalk.green(
-                `Bundled ${canvasBuild.localImportCount} local ${pluralize(canvasBuild.localImportCount, 'import')} → ${outputDir}/local/`,
-              ),
-            );
-          }
-
           // Build and push components.
-          componentResults = await pushBuiltComponents(
-            canvasBuild.builtComponents,
-            apiService,
-            'Pushing',
-          );
-          if (componentResults.some((r) => !r.success)) {
-            reportResults(componentResults, 'Pushed components', 'Component');
-            throw new Error('Component push failed. Push aborted.');
+          try {
+            componentResults = await pushBuiltComponents(
+              canvasBuild.builtComponents,
+              componentPushApiService,
+              'Pushing',
+              componentSpinner,
+            );
+          } catch (error) {
+            reportDiscoveryWarnings(componentDiscoveryWarnings);
+            throw new PushPhaseError(
+              'Component upload failed',
+              formatErrorMessage(error),
+            );
           }
-          reportResults(componentResults, 'Pushed components', 'Component');
+          if (componentResults.some((r) => !r.success)) {
+            reportResults(
+              componentResults,
+              'Pushed components',
+              'Component',
+              PUSH_REPORT_OPTIONS,
+            );
+            reportDiscoveryWarnings(componentDiscoveryWarnings);
+            throw new ReportedPushError(
+              'Component push failed',
+              'Component push failed. Nothing else was pushed.',
+            );
+          }
+          reportResults(
+            componentResults,
+            'Pushed components',
+            'Component',
+            PUSH_REPORT_OPTIONS,
+          );
+          reportDiscoveryWarnings(componentDiscoveryWarnings);
+          completedResources.push({
+            label: 'Components',
+            count: componentResults.length,
+            unit: 'component',
+            action: 'pushed',
+          });
 
           // Upload Tailwind CSS.
+          const assetSpinner = p.spinner();
+          assetSpinner.start('Pushing assets');
           const globalCssResult = await uploadGlobalAssetLibrary(
-            apiService,
+            componentPushApiService,
             config.outputDir,
           );
-          reportResults([globalCssResult], 'Pushed assets', 'Asset');
+          assetSpinner.stop(
+            globalCssResult.success
+              ? 'Pushed assets'
+              : 'Global CSS push failed',
+            globalCssResult.success ? 0 : 2,
+          );
+          reportResults([globalCssResult], 'Pushed assets', 'Asset', {
+            ...PUSH_REPORT_OPTIONS,
+            showSuccessHeading: false,
+          });
           if (!globalCssResult.success) {
-            throw new Error('Push aborted (incomplete). Try again.');
+            throw new ReportedPushError(
+              'Global CSS push failed',
+              globalCssResult.details?.[0]?.content ??
+                'Global CSS push failed.',
+            );
           }
-          includeGlobalCss = true;
+          completedResources.push({
+            label: 'Global CSS',
+            action: 'pushed',
+          });
         }
 
         // Step 4b: Push fonts from canvas.brand-kit.json (when configured)
         if (includesBrandKit && config.fonts) {
+          removeNotStartedResource(notStartedResources, 'brand-kit');
           const fontOutcomeLabels: Record<string, string> = {
-            create: chalk.green('Create'),
-            update: chalk.cyan('Update'),
-            delete: chalk.red('Delete'),
+            create: chalk.green('Created'),
+            update: chalk.cyan('Updated'),
+            delete: chalk.red('Deleted'),
             unchanged: chalk.dim('Unchanged'),
           };
           const fontSpinner = p.spinner();
-          fontSpinner.start('Pushing fonts');
+          fontSpinner.start('Pushing brand kit');
           try {
             const result = await pushFonts(config, apiService);
             fontCount = result.count + result.skipped + result.deleted;
@@ -801,11 +1135,10 @@ export function pushCommand(program: Command): void {
               parts.push(`${result.deleted} deleted`);
             }
             fontSpinner.stop(
-              chalk.green(
-                parts.length > 0
-                  ? `${parts.join(', ')} font variants updated`
-                  : 'No font variants to update',
-              ),
+              parts.length > 0
+                ? 'Pushed brand kit'
+                : 'No brand kit font variants to update',
+              0,
             );
             if (result.outcomes.length > 0) {
               reportResults(
@@ -814,208 +1147,171 @@ export function pushCommand(program: Command): void {
                   success: true,
                   details: [{ content: fontOutcomeLabels[o.operation] }],
                 })),
-                'Pushed fonts',
+                'Pushed brand kit',
                 'Font variant',
+                PUSH_REPORT_OPTIONS,
               );
             }
+            if (fontCount > 0) {
+              completedResources.push({
+                label: 'brand kit',
+                count: fontCount,
+                unit: 'font variant',
+                action: 'pushed',
+              });
+            }
           } catch (err) {
-            fontSpinner.stop(chalk.red('Font push failed'));
-            throw err;
+            fontSpinner.stop('Brand kit push failed', 2);
+            throw new PushPhaseError(
+              'Brand kit push failed',
+              formatErrorMessage(err),
+            );
           }
         }
 
         if (components.length > 0) {
-          // Step 5: Upload vendor/local artifacts and sync manifest.
+          // Upload component dependencies and sync the dependency map.
           const manifestSyncResult = await syncManifestArtifacts(outputDir, {
             apiService,
-            createSpinner: () => p.spinner(),
-            logInfo: (msg) => p.log.info(msg),
+          }).catch((error) => {
+            throw new PushPhaseError(
+              'Component dependency upload failed',
+              formatErrorMessage(error),
+              error instanceof ArtifactUploadError ? error.failedResults : [],
+            );
           });
-          artifactCount = manifestSyncResult.artifactCount;
+          const dependencyResults = buildDependencyResults(
+            manifestSyncResult.groupedManifest,
+          );
+          if (dependencyResults.length > 0) {
+            reportResults(
+              dependencyResults,
+              'Pushed dependencies',
+              'Dependency',
+              PUSH_REPORT_OPTIONS,
+            );
+            completedResources.push({
+              label: 'Dependencies',
+              count: dependencyResults.length,
+              unit: 'dependency',
+              unitPlural: 'dependencies',
+              action: 'pushed',
+            });
+          }
         }
 
         // Validate and push pages.
         if (discoveredPages.length > 0) {
-          // Validate pages against the catalog.
-          const validationSpinner = p.spinner();
-          validationSpinner.start(
-            `Validating ${discoveredPages.length} ${pluralize(discoveredPages.length, 'page')}`,
-          );
-
-          const { results: pageValidationResults } = await validatePages(
-            discoveryResult,
-            { remotePageByUuid },
-          );
-
-          validationSpinner.stop(
-            chalk.green(
-              `Validated ${discoveredPages.length} ${pluralize(discoveredPages.length, 'page')}`,
-            ),
-          );
-
-          if (pageValidationResults.some((r) => !r.success)) {
-            reportResults(
-              pageValidationResults,
-              'Page validation results',
-              'Page',
-            );
-            throw new Error(
-              'Page validation failed. Fix the errors above before pushing.',
-            );
-          }
-
-          // Prepare and push pages.
-          const componentVersions = await apiService.listComponentVersions();
-
-          const pageSpinner = p.spinner();
-          pageSpinner.start('Preparing pages');
-
-          const {
-            valid: validPages,
-            failed: failedPreps,
-            pendingMediaReconciliations,
-          } = await preparePages(
-            discoveredPages,
-            componentVersions,
-            discoveryResult,
-          );
-
-          if (pendingMediaReconciliations.length > 0) {
-            throw new Error(
-              'Some pages contain media that references external URLs instead of Drupal media entities.\n' +
-                'Run `npx canvas reconcile-media` to download the external media, upload them to Drupal, and replace them in page files before pushing.',
-            );
-          }
-
-          if (validPages.length === 0) {
-            pageSpinner.stop(chalk.yellow('No valid pages to push'));
-          } else {
-            const pushProgress = createProgressCallback(
-              pageSpinner,
-              'Pushing pages',
-              validPages.length,
-            );
-            pageSpinner.message('Pushing pages');
-
-            const pushResults = await pushPages(
-              validPages,
-              remotePageByUuid,
-              apiService,
-            );
-
-            // Count progress for each successful result.
-            for (const r of pushResults) {
-              if (r.success) pushProgress();
-            }
-
-            pageSpinner.stop(
-              chalk.green(
-                `Processed ${pushResults.length} ${pluralize(pushResults.length, 'page')}`,
-              ),
-            );
-
-            const pageResults = collectPageResults(
-              pushResults,
-              failedPreps,
-              discoveredPages,
-            );
-
-            reportResults(pageResults, 'Pushed pages', 'Page');
+          const pageSummary = await runPushResourcePipeline({
+            labels: {
+              start: 'Pushing pages',
+              validating: 'Validating pages',
+              preparing: 'Preparing pages',
+              pushing: 'Pushing pages',
+              done: 'Pushed pages',
+            },
+            phases: {
+              validation: 'Page validation failed',
+              preparation: 'Page preparation failed',
+              push: 'Page push failed',
+            },
+            messages: {
+              validation: 'Page validation failed.',
+              noValidItems: 'No valid pages to push.',
+              push: 'Some pages failed to push.',
+            },
+            itemLabel: 'Page',
+            validate: async () =>
+              (await validatePages(discoveryResult, { remotePageByUuid }))
+                .results,
+            markStarted: () =>
+              removeNotStartedResource(notStartedResources, 'pages'),
+            prepare: async () => {
+              const componentVersions =
+                await pushApiService.listComponentVersions();
+              return preparePages(
+                discoveredPages,
+                componentVersions,
+                discoveryResult,
+              );
+            },
+            push: (validPages) =>
+              pushPages(validPages, remotePageByUuid, pushApiService),
+            collectResults: (pushResults, failedPreps) =>
+              collectPageResults(pushResults, failedPreps, discoveredPages),
+            reportOptions: PUSH_REPORT_OPTIONS,
+            summary: {
+              label: 'Pages',
+              unit: 'page',
+            },
+          });
+          if (pageSummary) {
+            completedResources.push(pageSummary);
           }
         }
 
         // Validate and push content templates.
-        let pushedContentTemplateCount = 0;
         if (discoveredContentTemplates.length > 0) {
-          const ctValidationSpinner = p.spinner();
-          ctValidationSpinner.start(
-            `Validating ${discoveredContentTemplates.length} ${pluralize(discoveredContentTemplates.length, 'content template')}`,
-          );
-
-          const { results: ctValidationResults } =
-            await validateContentTemplates(discoveryResult, { apiService });
-
-          ctValidationSpinner.stop(
-            chalk.green(
-              `Validated ${discoveredContentTemplates.length} ${pluralize(discoveredContentTemplates.length, 'content template')}`,
-            ),
-          );
-
-          if (ctValidationResults.some((r) => !r.success)) {
-            reportResults(
-              ctValidationResults,
-              'Content template validation results',
-              'Content template',
-            );
-            throw new Error(
-              'Content template validation failed. Fix the errors above before pushing.',
-            );
-          }
-
-          const componentVersions = await apiService.listComponentVersions();
-
-          const ctSpinner = p.spinner();
-          ctSpinner.start('Preparing content templates');
-
-          const { valid: validTemplates, failed: failedCtPreps } =
-            await prepareContentTemplates(
-              discoveredContentTemplates,
-              componentVersions,
-              discoveryResult,
-            );
-
-          if (validTemplates.length === 0 && failedCtPreps.length > 0) {
-            ctSpinner.stop(chalk.yellow('No valid content templates to push'));
-            const ctResults = collectContentTemplateResults(
-              [],
-              failedCtPreps,
-              discoveredContentTemplates,
-            );
-            reportResults(
-              ctResults,
-              'Pushed content templates',
-              'Content template',
-            );
-          } else if (validTemplates.length > 0) {
-            const ctProgress = createProgressCallback(
-              ctSpinner,
-              'Pushing content templates',
-              validTemplates.length,
-            );
-            ctSpinner.message('Pushing content templates');
-
-            const ctPushResults = await pushContentTemplates(
-              validTemplates,
-              remoteContentTemplateById,
-              apiService,
-            );
-
-            for (const r of ctPushResults) {
-              if (r.success) ctProgress();
-            }
-            pushedContentTemplateCount = ctPushResults.filter(
-              (r) => r.success,
-            ).length;
-
-            ctSpinner.stop(
-              chalk.green(
-                `Processed ${ctPushResults.length} ${pluralize(ctPushResults.length, 'content template')}`,
+          const contentTemplateSummary = await runPushResourcePipeline({
+            labels: {
+              start: 'Pushing content templates',
+              validating: 'Validating content templates',
+              preparing: 'Preparing content templates',
+              pushing: 'Pushing content templates',
+              done: 'Pushed content templates',
+              empty: 'No valid content templates to push',
+            },
+            phases: {
+              validation: 'Content template validation failed',
+              preparation: 'Content template preparation failed',
+              push: 'Content template push failed',
+            },
+            messages: {
+              validation: 'Content template validation failed.',
+              noValidItems: 'No valid content templates to push.',
+              push: 'Some content templates failed to push.',
+            },
+            itemLabel: 'Content template',
+            validate: async () =>
+              (
+                await validateContentTemplates(discoveryResult, {
+                  apiService: pushApiService,
+                })
+              ).results,
+            markStarted: () =>
+              removeNotStartedResource(
+                notStartedResources,
+                'content-templates',
               ),
-            );
-
-            const ctResults = collectContentTemplateResults(
-              ctPushResults,
-              failedCtPreps,
-              discoveredContentTemplates,
-            );
-
-            reportResults(
-              ctResults,
-              'Pushed content templates',
-              'Content template',
-            );
-          } else {
-            ctSpinner.stop(chalk.yellow('No valid content templates to push'));
+            prepare: async () => {
+              const componentVersions =
+                await pushApiService.listComponentVersions();
+              return prepareContentTemplates(
+                discoveredContentTemplates,
+                componentVersions,
+                discoveryResult,
+              );
+            },
+            push: (validTemplates) =>
+              pushContentTemplates(
+                validTemplates,
+                remoteContentTemplateById,
+                pushApiService,
+              ),
+            collectResults: (pushResults, failedPreps) =>
+              collectContentTemplateResults(
+                pushResults,
+                failedPreps,
+                discoveredContentTemplates,
+              ),
+            reportOptions: PUSH_REPORT_OPTIONS,
+            summary: {
+              label: 'Content templates',
+              unit: 'content template',
+            },
+          });
+          if (contentTemplateSummary) {
+            completedResources.push(contentTemplateSummary);
           }
         }
 
@@ -1024,146 +1320,73 @@ export function pushCommand(program: Command): void {
           discoveredRegions.length > 0 ||
           remoteRegionNamesToDelete.length > 0
         ) {
-          let validRegions: Awaited<
-            ReturnType<typeof prepareRegions>
-          >['valid'] = [];
-
-          if (discoveredRegions.length > 0) {
-            const regionValidationSpinner = p.spinner();
-            regionValidationSpinner.start(
-              `Validating ${discoveredRegions.length} global ${pluralize(discoveredRegions.length, 'region')}`,
-            );
-
-            const { results: regionValidationResults } =
-              await validateRegions(discoveryResult);
-
-            regionValidationSpinner.stop(
-              chalk.green(
-                `Validated ${discoveredRegions.length} global ${pluralize(discoveredRegions.length, 'region')}`,
+          const hasLocalRegions = discoveredRegions.length > 0;
+          const regionSummary = await runPushResourcePipeline({
+            labels: {
+              start: 'Pushing global regions',
+              validating: 'Validating global regions',
+              preparing: 'Preparing global regions',
+              pushing: 'Pushing global regions',
+              done: 'Pushed global regions',
+            },
+            phases: {
+              validation: 'Global region validation failed',
+              preparation: 'Global region preparation failed',
+              push: 'Global region push failed',
+            },
+            messages: {
+              validation: 'Global region validation failed.',
+              preparation: 'Global region preparation failed.',
+              noValidItems: 'No valid global regions to push.',
+              push: 'Some global regions failed to push.',
+            },
+            itemLabel: 'Global region',
+            validate: hasLocalRegions
+              ? async () => (await validateRegions(discoveryResult)).results
+              : undefined,
+            markStarted: () =>
+              removeNotStartedResource(notStartedResources, 'global-regions'),
+            prepare: hasLocalRegions
+              ? async () => {
+                  const componentVersions =
+                    await pushApiService.listComponentVersions();
+                  return prepareRegions(
+                    discoveredRegions,
+                    componentVersions,
+                    discoveryResult,
+                  );
+                }
+              : undefined,
+            failOnPreparationFailures: true,
+            hasPushWork: (validRegions) =>
+              validRegions.length > 0 || remoteRegionNamesToDelete.length > 0,
+            push: (validRegions) =>
+              pushRegions(
+                validRegions,
+                remoteRegionIdsByName,
+                pushApiService,
+                remoteRegionNamesToDelete,
               ),
-            );
-
-            if (regionValidationResults.some((r) => !r.success)) {
-              reportResults(
-                regionValidationResults,
-                'Global region validation results',
-                'Global region',
-              );
-              throw new Error(
-                'Global region validation failed. Fix the errors above before pushing.',
-              );
-            }
-
-            const componentVersions = await apiService.listComponentVersions();
-
-            const regionPrepSpinner = p.spinner();
-            regionPrepSpinner.start(
-              `Preparing ${discoveredRegions.length} global ${pluralize(discoveredRegions.length, 'region')}`,
-            );
-            const { valid, failed: failedRegionPreps } = await prepareRegions(
-              discoveredRegions,
-              componentVersions,
-              discoveryResult,
-            );
-            validRegions = valid;
-            regionPrepSpinner.stop(
-              chalk.green(
-                `Prepared ${validRegions.length} global ${pluralize(validRegions.length, 'region')}`,
-              ),
-            );
-
-            if (failedRegionPreps.length > 0) {
-              const failedResults = collectRegionResults(
-                [],
-                failedRegionPreps,
-                discoveredRegions,
-              );
-              reportResults(
-                failedResults,
-                'Global region validation results',
-                'Global region',
-              );
-              throw new Error(
-                'Global region validation failed. Fix the errors above before pushing.',
-              );
-            }
-          }
-
-          const regionPushSpinner = p.spinner();
-          regionPushSpinner.start('Pushing global regions');
-          const regionPushResults = await pushRegions(
-            validRegions,
-            remoteRegionIdsByName,
-            apiService,
-            remoteRegionNamesToDelete,
-          );
-          regionPushSpinner.stop(
-            chalk.green(
-              `Processed ${regionPushResults.length} global ${pluralize(regionPushResults.length, 'region')}`,
-            ),
-          );
-
-          const regionResults = collectRegionResults(
-            regionPushResults,
-            [],
-            discoveredRegions,
-          );
-          if (regionResults.length > 0) {
-            reportResults(
-              regionResults,
-              'Pushed global regions',
-              'Global region',
-            );
+            collectResults: (pushResults, failedPreps) =>
+              collectRegionResults(pushResults, failedPreps, discoveredRegions),
+            reportOptions: PUSH_REPORT_OPTIONS,
+            summary: {
+              label: 'Global regions',
+              unit: 'global region',
+            },
+          });
+          if (regionSummary) {
+            completedResources.push(regionSummary);
           }
         }
 
         await apiService.signalPushComplete();
-        const componentCount = components.length;
-        const parts = [];
-        if (componentCount > 0) {
-          parts.push(`${componentCount} ${pluralizeComponent(componentCount)}`);
-        }
-        if (discoveredPages.length > 0) {
-          parts.push(
-            `${discoveredPages.length} ${pluralize(discoveredPages.length, 'page')}`,
-          );
-        }
-        if (pushedContentTemplateCount > 0) {
-          parts.push(
-            `${pushedContentTemplateCount} ${pluralize(
-              pushedContentTemplateCount,
-              'content template',
-            )}`,
-          );
-        }
-        if (discoveredRegions.length > 0) {
-          parts.push(
-            `${discoveredRegions.length} global ${pluralize(discoveredRegions.length, 'region')}`,
-          );
-        }
-        if (includeGlobalCss) {
-          parts.push('global CSS');
-        }
-        if (artifactCount > 0) {
-          parts.push(`${artifactCount} artifacts`);
-        }
-        if (fontCount > 0) {
-          parts.push(
-            `${fontCount} font ${fontCount === 1 ? 'variant' : 'variants'}`,
-          );
-        }
-
-        p.outro(`⬆️ Push completed: ${parts.join(', ') || 'done'}`);
+        p.outro(`${chalk.green('✓')} Push completed`);
       } catch (error) {
         await apiService?.signalPushFail(
           error instanceof Error ? error.message : undefined,
         );
-        if (error instanceof Error) {
-          p.note(chalk.red(`Error: ${error.message}`));
-        } else {
-          p.note(chalk.red(`Unknown error: ${String(error)}`));
-        }
-        p.note(chalk.red('Push aborted'));
+        reportPushFailure(error, completedResources, notStartedResources);
         process.exit(1);
       }
     });

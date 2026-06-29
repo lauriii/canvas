@@ -96,7 +96,7 @@ describe('request pool utilities', () => {
   });
 
   describe('createProgressCallback', () => {
-    it('should create a progress callback that updates spinner', () => {
+    it('should create a progress callback that updates spinner once', () => {
       const mockSpinner = {
         message: vi.fn(),
       };
@@ -112,19 +112,8 @@ describe('request pool utilities', () => {
       progressCallback();
       progressCallback();
 
-      expect(mockSpinner.message).toHaveBeenCalledTimes(3);
-      expect(mockSpinner.message).toHaveBeenNthCalledWith(
-        1,
-        'Testing (1/5 - 20%)',
-      );
-      expect(mockSpinner.message).toHaveBeenNthCalledWith(
-        2,
-        'Testing (2/5 - 40%)',
-      );
-      expect(mockSpinner.message).toHaveBeenNthCalledWith(
-        3,
-        'Testing (3/5 - 60%)',
-      );
+      expect(mockSpinner.message).toHaveBeenCalledTimes(1);
+      expect(mockSpinner.message).toHaveBeenCalledWith('Testing');
     });
 
     it('should handle completion correctly', () => {
@@ -141,14 +130,8 @@ describe('request pool utilities', () => {
       progressCallback();
       progressCallback();
 
-      expect(mockSpinner.message).toHaveBeenNthCalledWith(
-        1,
-        'Uploading (1/2 - 50%)',
-      );
-      expect(mockSpinner.message).toHaveBeenNthCalledWith(
-        2,
-        'Uploading (2/2 - 100%)',
-      );
+      expect(mockSpinner.message).toHaveBeenCalledTimes(1);
+      expect(mockSpinner.message).toHaveBeenCalledWith('Uploading');
     });
 
     it('should handle single item progress', () => {
@@ -164,9 +147,7 @@ describe('request pool utilities', () => {
 
       progressCallback();
 
-      expect(mockSpinner.message).toHaveBeenCalledWith(
-        'Processing (1/1 - 100%)',
-      );
+      expect(mockSpinner.message).toHaveBeenCalledWith('Processing');
     });
   });
 });

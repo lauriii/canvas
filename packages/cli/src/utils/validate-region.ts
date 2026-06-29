@@ -62,7 +62,7 @@ export async function validateRegions(
       for (const entry of unreconciledMedia) {
         details.push({
           heading: `elements.${entry.elementId}.props.${entry.propName}`,
-          content: `Unreconciled external media URL "${entry.src}". Run \`npx canvas reconcile-media\` to resolve.`,
+          content: `Unreconciled external media URL "${entry.src}". Run \`canvas reconcile-media\` to resolve.`,
         });
       }
 

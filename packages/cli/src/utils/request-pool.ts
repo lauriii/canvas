@@ -68,13 +68,14 @@ export async function processInPool<T, R>(
 export function createProgressCallback(
   spinner: { message: (msg?: string) => void },
   operation: string,
-  total: number,
+  _total: number,
 ) {
-  let completed = 0;
+  let hasUpdated = false;
 
   return () => {
-    completed++;
-    const percentage = Math.round((completed / total) * 100);
-    spinner.message(`${operation} (${completed}/${total} - ${percentage}%)`);
+    if (!hasUpdated) {
+      spinner.message(operation);
+      hasUpdated = true;
+    }
   };
 }

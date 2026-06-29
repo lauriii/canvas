@@ -7,10 +7,8 @@ import {
   getPathAliasChange,
   normalizePathAlias,
 } from './page-path-alias-validation';
-import {
-  collectUnreconciledMediaProps,
-  serializeElementMapForServer,
-} from './prop-transforms';
+import { pageResultName } from './page-result-name';
+import { serializeElementMapForServer } from './prop-transforms';
 import { processInPool } from './request-pool';
 
 import type { DiscoveredPage, DiscoveryResult } from '@drupal-canvas/discovery';
@@ -19,19 +17,27 @@ import type { ApiService } from '../services/api';
 import type { Page, PageListItem } from '../types/Page';
 import type { Result } from '../types/Result';
 
-export interface PendingMediaReconciliation {
-  index: number;
-  title: string;
-  filePath: string;
-  elementId: string;
-  propName: string;
-  src: string;
-  mediaType: string;
-}
-
 export interface PagePushResult {
   title: string;
   operation: 'Created' | 'Updated';
+}
+
+export interface PagePushOperationResult {
+  success: boolean;
+  result?: PagePushResult;
+  error?: Error;
+  index: number;
+  pageTitle?: string;
+}
+
+interface PagePreparationError extends Error {
+  pageTitle?: string;
+}
+
+export interface PagePreparationFailure {
+  index: number;
+  error: Error;
+  pageTitle?: string;
 }
 
 export interface PreparedPage {
@@ -41,9 +47,6 @@ export interface PreparedPage {
   path: string;
   components: Page['components'];
   filePath: string;
-  pendingMediaReconciliations: Array<
-    Omit<PendingMediaReconciliation, 'index' | 'title' | 'filePath'>
-  >;
 }
 
 /**
@@ -56,40 +59,40 @@ export async function preparePages(
   discoveryResult: DiscoveryResult,
 ): Promise<{
   valid: Array<{ index: number; result: PreparedPage }>;
-  failed: Array<{ index: number; error: Error }>;
-  pendingMediaReconciliations: PendingMediaReconciliation[];
+  failed: PagePreparationFailure[];
 }> {
   const componentMetadata = await loadComponentsMetadata(discoveryResult);
 
   const results = await processInPool(discoveredPages, async (localPage) => {
-    const fileContent = await fs.readFile(localPage.path, 'utf-8');
-    const spec = JSON.parse(fileContent) as {
-      title: string;
-      description?: string;
-      path?: string;
-      elements: AuthoredSpecElementMap;
-    };
-    const pendingMediaReconciliations = collectUnreconciledMediaProps(
-      spec.elements ?? {},
-      componentMetadata,
-    );
-    const elements = serializeElementMapForServer(
-      spec.elements ?? {},
-      componentMetadata,
-    );
-    const components = authoredElementMapToComponentTree(
-      elements,
-      componentVersions,
-    );
-    return {
-      uuid: localPage.uuid,
-      title: spec.title,
-      description: spec.description ?? '',
-      path: spec.path ?? '',
-      components,
-      filePath: localPage.path,
-      pendingMediaReconciliations,
-    };
+    let pageTitle: string | undefined;
+    try {
+      const fileContent = await fs.readFile(localPage.path, 'utf-8');
+      const spec = JSON.parse(fileContent) as {
+        title: unknown;
+        description?: string;
+        path?: string;
+        elements: AuthoredSpecElementMap;
+      };
+      pageTitle = typeof spec.title === 'string' ? spec.title : undefined;
+      const elements = serializeElementMapForServer(
+        spec.elements ?? {},
+        componentMetadata,
+      );
+      const components = authoredElementMapToComponentTree(
+        elements,
+        componentVersions,
+      );
+      return {
+        uuid: localPage.uuid,
+        title: pageTitle ?? localPage.name,
+        description: spec.description ?? '',
+        path: spec.path ?? '',
+        components,
+        filePath: localPage.path,
+      };
+    } catch (error) {
+      throw withPageTitle(error, pageTitle);
+    }
   });
 
   return {
@@ -98,17 +101,11 @@ export async function preparePages(
       .map((r) => ({ index: r.index, result: r.result! })),
     failed: results
       .filter((r) => !r.success)
-      .map((r) => ({ index: r.index, error: r.error! })),
-    pendingMediaReconciliations: results
-      .filter((r) => r.success && r.result)
-      .flatMap((r) =>
-        r.result!.pendingMediaReconciliations.map((entry) => ({
-          index: r.index,
-          title: r.result!.title,
-          filePath: r.result!.filePath,
-          ...entry,
-        })),
-      ),
+      .map((r) => ({
+        index: r.index,
+        error: r.error!,
+        pageTitle: (r.error as PagePreparationError | undefined)?.pageTitle,
+      })),
   };
 }
 
@@ -120,15 +117,8 @@ export async function pushPages(
   preparedPages: Array<{ index: number; result: PreparedPage }>,
   remotePageByUuid: Map<string, PageListItem>,
   apiService: Pick<ApiService, 'createPage' | 'updatePage'>,
-): Promise<
-  Array<{
-    success: boolean;
-    result?: PagePushResult;
-    error?: Error;
-    index: number;
-  }>
-> {
-  return processInPool(preparedPages, async (entry) => {
+): Promise<PagePushOperationResult[]> {
+  const results = await processInPool(preparedPages, async (entry) => {
     const page = entry.result;
     const remotePage = page.uuid ? remotePageByUuid.get(page.uuid) : undefined;
 
@@ -167,19 +157,23 @@ export async function pushPages(
       return { title: page.title, operation: 'Created' as const };
     }
   });
+
+  return results.map((result) => {
+    const preparedPage = preparedPages[result.index];
+    return {
+      ...result,
+      index: preparedPage?.index ?? result.index,
+      pageTitle: preparedPage?.result.title,
+    };
+  });
 }
 
 /**
  * Collects push results into Result[] for reporting.
  */
 export function collectPageResults(
-  pushResults: Array<{
-    success: boolean;
-    result?: PagePushResult;
-    error?: Error;
-    index: number;
-  }>,
-  failedPreps: Array<{ index: number; error: Error }>,
+  pushResults: PagePushOperationResult[],
+  failedPreps: PagePreparationFailure[],
   discoveredPages: DiscoveredPage[],
 ): Result[] {
   const results: Result[] = [];
@@ -192,9 +186,11 @@ export function collectPageResults(
         details: [{ content: result.result.operation }],
       });
     } else {
-      const slug = discoveredPages[result.index]?.slug || 'unknown';
+      const discoveredPage = discoveredPages[result.index];
       results.push({
-        itemName: slug,
+        itemName: pageResultName(result.pageTitle, discoveredPage, {
+          includePath: true,
+        }),
         success: false,
         details: [{ content: result.error?.message || 'Unknown error' }],
       });
@@ -202,9 +198,11 @@ export function collectPageResults(
   }
 
   for (const failedPrep of failedPreps) {
-    const slug = discoveredPages[failedPrep.index]?.slug || 'unknown';
+    const discoveredPage = discoveredPages[failedPrep.index];
     results.push({
-      itemName: slug,
+      itemName: pageResultName(failedPrep.pageTitle, discoveredPage, {
+        includePath: true,
+      }),
       success: false,
       details: [
         { content: failedPrep.error?.message || 'Failed to prepare page' },
@@ -213,4 +211,11 @@ export function collectPageResults(
   }
 
   return results;
+}
+
+function withPageTitle(error: unknown, pageTitle: string | undefined): Error {
+  const normalizedError =
+    error instanceof Error ? error : new Error(String(error));
+  (normalizedError as PagePreparationError).pageTitle = pageTitle;
+  return normalizedError;
 }

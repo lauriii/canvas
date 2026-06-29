@@ -923,8 +923,8 @@ export class ApiService {
   }
 
   /**
-   * Upload a font file for Brand Kit (same endpoint as UI: artifacts/upload).
-   * Returns uri and fid for building a Brand Kit font entry.
+   * Upload a font file for brand kit (same endpoint as UI: artifacts/upload).
+   * Returns uri and fid for building a brand kit font entry.
    * When filename is provided (e.g. slugified), it is used for the upload; otherwise the path basename is used.
    */
   async uploadFont(
@@ -953,7 +953,7 @@ export class ApiService {
   }
 
   /**
-   * Get a Brand Kit config entity by id.
+   * Get a brand kit config entity by id.
    */
   async getBrandKit(id: string = BRAND_KIT_GLOBAL_ID): Promise<BrandKit> {
     try {
@@ -967,7 +967,7 @@ export class ApiService {
   }
 
   /**
-   * Update the global Brand Kit (replace the fonts array).
+   * Update the global brand kit (replace the fonts array).
    */
   async updateBrandKit(data: {
     fonts: BrandKitFontEntry[];
@@ -1073,7 +1073,7 @@ export class ApiService {
         'error_description' in data &&
         typeof data.error_description === 'string'
       ) {
-        message = `Authentication Error: ${data.error_description}\n\n${message}`;
+        message = `Authentication Error: ${data.error_description}`;
       }
 
       throw new Error(message);
@@ -1156,7 +1156,6 @@ export class ApiService {
       message += '  • Check if DDEV is running: ddev status\n';
       message += '  • Try HTTP instead of HTTPS\n';
       message += '  • Verify site is accessible in browser\n';
-      message += '  • For HTTPS issues, try: ddev auth ssl';
     } else {
       message += 'Check your site URL and internet connection.';
     }

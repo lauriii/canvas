@@ -10,6 +10,7 @@ import {
 
 import { buildCanvasProject } from './build-project';
 import { buildTailwindForComponents } from './build-tailwind';
+import { validateComponent } from './validate';
 
 import type {
   DiscoveredComponent,
@@ -29,6 +30,11 @@ vi.mock('@drupal-canvas/ui/features/code-editor/utils/ast-utils', () => ({
 vi.mock('./validate', async () => {
   const path = await import('node:path');
   return {
+    getComponentDirectoriesToValidate: vi.fn(
+      (components: DiscoveredComponent[]) => [
+        ...new Set(components.map((component) => component.directory)),
+      ],
+    ),
     validateComponent: vi.fn(async (componentDir: string) => ({
       itemName: path.basename(componentDir),
       success: true,
@@ -252,5 +258,55 @@ describe('buildCanvasProject', () => {
     ).rejects.toThrow(
       'Invalid Canvas config: componentDir "components" must be inside aliasBaseDir "src".',
     );
+  });
+
+  it('cleans stale output before returning validation failures', async () => {
+    const component = {
+      id: 'card',
+      name: 'card',
+      kind: 'index',
+      directory: path.join(componentDir, 'card'),
+      relativeDirectory: 'src/components/card',
+      metadataPath: path.join(componentDir, 'card/component.yml'),
+      jsEntryPath: path.join(componentDir, 'card/index.tsx'),
+      cssEntryPath: null,
+    } as DiscoveredComponent;
+    const staleManifestPath = path.join(outputDir, 'canvas-manifest.json');
+    await fs.mkdir(outputDir, { recursive: true });
+    await fs.writeFile(staleManifestPath, '{"stale":true}', 'utf-8');
+
+    vi.mocked(validateComponent).mockResolvedValueOnce({
+      itemName: 'card',
+      success: false,
+      details: [{ heading: 'index.tsx', content: 'Invalid component' }],
+    });
+
+    const result = await buildCanvasProject({
+      projectRoot: tmpDir,
+      componentDir,
+      aliasBaseDir: 'src',
+      outputDir,
+      discoveryResult: {
+        componentRoot: componentDir,
+        projectRoot: tmpDir,
+        components: [component],
+        pages: [],
+        contentTemplates: [],
+        regions: [],
+        warnings: [],
+        stats: {
+          scannedFiles: 2,
+          ignoredFiles: 0,
+        },
+      } as DiscoveryResult,
+      cleanOutputDir: true,
+      requireJsEntries: true,
+    });
+
+    expect(result.componentResults).toEqual([
+      expect.objectContaining({ itemName: 'card', success: false }),
+    ]);
+    await expect(fs.access(staleManifestPath)).rejects.toThrow();
+    expect(buildCanvasComponentEntry).not.toHaveBeenCalled();
   });
 });

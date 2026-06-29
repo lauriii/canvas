@@ -53,6 +53,7 @@ export function isComponentEntrypoint(
   if (!isComponentDir(componentDir)) {
     return false;
   }
+
   const files = getFilesInDirectory(componentDir);
   return isEntrypointFileName(
     basename(context.filename),

@@ -9,6 +9,8 @@ import {
   formatPagePathAliasChangeError,
   getPathAliasChange,
 } from './page-path-alias-validation';
+import { pageResultName } from './page-result-name';
+import { collectUnreconciledMediaProps } from './prop-transforms';
 import {
   buildElementsValidationContext,
   validateElements,
@@ -49,6 +51,7 @@ export async function validatePages(
     try {
       const fileContent = await fs.readFile(page.path, 'utf-8');
       const spec = JSON.parse(fileContent) as Record<string, unknown>;
+      const pageTitle = typeof spec.title === 'string' ? spec.title : undefined;
 
       const details: { heading?: string; content: string }[] = [];
 
@@ -71,6 +74,16 @@ export async function validatePages(
       const elementsResult = validateElements(elements, context);
       if (!elementsResult.success && elementsResult.details) {
         details.push(...elementsResult.details);
+      }
+      const unreconciledMedia = collectUnreconciledMediaProps(
+        elements,
+        metadata,
+      );
+      for (const entry of unreconciledMedia) {
+        details.push({
+          heading: `elements.${entry.elementId}.props.${entry.propName}`,
+          content: `Unreconciled external media URL "${entry.src}". Run \`canvas reconcile-media\` to resolve.`,
+        });
       }
 
       // Prefer the UUID from the parsed spec, but fall back to discovery so
@@ -95,14 +108,15 @@ export async function validatePages(
         }
       }
 
+      const success = details.length === 0 && elementsResult.success;
       results.push({
-        itemName: page.slug,
-        success: details.length === 0 && elementsResult.success,
+        itemName: pageResultName(pageTitle, page, { includePath: !success }),
+        success,
         details: details.length > 0 ? details : undefined,
       });
     } catch (error) {
       results.push({
-        itemName: page.slug,
+        itemName: pageResultName(undefined, page, { includePath: true }),
         success: false,
         details: [
           {

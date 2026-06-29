@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { generateManifest } from '../utils/generate-manifest';
 import { pushBuiltComponents } from '../utils/prepare-push';
 import {
+  formatDiscoveryWarning,
+  formatDiscoveryWarningReport,
   getSyncExclusionMessage,
   getSyncExclusionSource,
   syncManifestArtifacts,
@@ -94,7 +96,33 @@ describe('push sync exclusion messages', () => {
   });
 });
 
-describe('Push artifacts', () => {
+describe('push discovery warning output', () => {
+  const missingJsWarning = {
+    code: 'missing_js_entry',
+    message: 'Missing JavaScript entry file for pricing-table.component.yml.',
+    path: path.join(
+      process.cwd(),
+      'src/components/pricing-table.component.yml',
+    ),
+  } as const;
+
+  it('formats discovery warnings with their relative location', () => {
+    expect(formatDiscoveryWarning(missingJsWarning)).toBe(
+      'Missing JavaScript entry file for pricing-table.component.yml. (src/components/pricing-table.component.yml)',
+    );
+  });
+
+  it('formats discovery warnings as an inline warning report', () => {
+    expect(formatDiscoveryWarningReport([missingJsWarning])).toContain(
+      [
+        'Warnings',
+        '  ! Missing JavaScript entry file for pricing-table.component.yml. (src/components/pricing-table.component.yml)',
+      ].join('\n'),
+    );
+  });
+});
+
+describe('Push component dependencies', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
@@ -105,7 +133,7 @@ describe('Push artifacts', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('uploads artifacts, syncs manifest, and verifies temp files exist', async () => {
+  it('uploads component dependencies, syncs the dependency map, and verifies temp files exist', async () => {
     const outputDir = path.join(tmpDir, 'dist');
     await fs.mkdir(path.join(outputDir, 'vendor'), { recursive: true });
     await fs.mkdir(path.join(outputDir, 'local'), { recursive: true });
@@ -246,7 +274,94 @@ describe('Push artifacts', () => {
     expect(result.artifactCount).toBe(2);
   });
 
-  it('skips manifest sync when there are no artifacts to upload', async () => {
+  it('stops the dependency spinner with failure status when artifact upload fails', async () => {
+    const outputDir = path.join(tmpDir, 'dist');
+    await fs.mkdir(path.join(outputDir, 'vendor'), { recursive: true });
+
+    await fs.writeFile(
+      path.join(outputDir, 'vendor/lodash-abc123.js'),
+      'export default {}',
+      'utf-8',
+    );
+
+    await generateManifest({
+      outputDir,
+      vendorImportMap: { imports: { lodash: './vendor/lodash-abc123.js' } },
+      localImportMap: {},
+      sharedChunks: [],
+    });
+
+    const uploadArtifact = vi
+      .fn()
+      .mockRejectedValue(new Error('Destination file path is not writable'));
+    const syncManifest = vi.fn();
+    const spinner = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      message: vi.fn(),
+    };
+
+    await expect(
+      syncManifestArtifacts(outputDir, {
+        apiService: { uploadArtifact, syncManifest },
+        createSpinner: () => spinner,
+        logInfo: vi.fn(),
+      }),
+    ).rejects.toThrow(
+      'Failed to upload lodash: Destination file path is not writable',
+    );
+
+    expect(syncManifest).not.toHaveBeenCalled();
+    expect(spinner.stop).toHaveBeenCalledWith('Pushed dependencies', 2);
+  });
+
+  it('preserves structured artifact failures for dependency names with separators', async () => {
+    const outputDir = path.join(tmpDir, 'dist');
+    const dependencyName = '@/components/card: hero\nimage';
+    await fs.mkdir(path.join(outputDir, 'local'), { recursive: true });
+
+    await fs.writeFile(
+      path.join(outputDir, 'local/hero.js'),
+      'export const hero = true;',
+      'utf-8',
+    );
+
+    await generateManifest({
+      outputDir,
+      vendorImportMap: null,
+      localImportMap: { [dependencyName]: './local/hero.js' },
+      sharedChunks: [],
+    });
+
+    const uploadError = 'Destination: not writable\nTry again';
+    const uploadArtifact = vi.fn().mockRejectedValue(new Error(uploadError));
+    const syncManifest = vi.fn();
+    const spinner = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      message: vi.fn(),
+    };
+
+    const caught = await syncManifestArtifacts(outputDir, {
+      apiService: { uploadArtifact, syncManifest },
+      createSpinner: () => spinner,
+      logInfo: vi.fn(),
+    }).catch((error: unknown) => error);
+
+    expect(caught).toBeInstanceOf(Error);
+    expect((caught as { failedResults?: unknown }).failedResults).toEqual([
+      {
+        itemName: dependencyName,
+        itemType: 'Artifact',
+        success: false,
+        details: [{ content: uploadError }],
+      },
+    ]);
+    expect(syncManifest).not.toHaveBeenCalled();
+    expect(spinner.stop).toHaveBeenCalledWith('Pushed dependencies', 2);
+  });
+
+  it('skips dependency map sync when there are no component dependencies to upload', async () => {
     const outputDir = path.join(tmpDir, 'dist');
     await fs.mkdir(outputDir, { recursive: true });
 
@@ -273,9 +388,7 @@ describe('Push artifacts', () => {
 
     expect(uploadArtifact).not.toHaveBeenCalled();
     expect(syncManifest).not.toHaveBeenCalled();
-    expect(logInfo).toHaveBeenCalledWith(
-      'No manifest artifacts to upload, skipping manifest sync',
-    );
+    expect(logInfo).toHaveBeenCalledWith('No component dependencies to upload');
     expect(result.artifactCount).toBe(0);
     expect(result.groupedManifest).toEqual({
       vendor: [],
@@ -338,6 +451,51 @@ describe('Push components', () => {
     expect(results.map((result) => result.itemName)).toEqual([
       'card',
       'button',
+    ]);
+  });
+
+  it('returns component upload failures as component results', async () => {
+    const api = mockApiService();
+    const uploadError = [
+      'The component "canvas:button" uses non-string types for properties: image.',
+      '',
+      "[props.image.$ref] '$ref' is not a supported key.",
+    ].join('\n');
+    const spinner = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      message: vi.fn(),
+    };
+
+    vi.mocked(api.listComponents).mockResolvedValue({});
+    vi.mocked(api.createComponent).mockRejectedValue(new Error(uploadError));
+
+    const results = await pushBuiltComponents(
+      [
+        {
+          machineName: 'button',
+          componentName: 'button',
+          importedJsComponents: [],
+          componentPayload: {
+            machineName: 'button',
+            name: 'button',
+            sourceCodeJs: 'export default function Button() {}',
+            compiledJs: 'export default function Button() {}',
+          } as never,
+        },
+      ],
+      api,
+      'Pushing',
+      spinner,
+    );
+
+    expect(spinner.stop).toHaveBeenCalledWith('Pushed components', 2);
+    expect(results).toEqual([
+      {
+        itemName: 'button',
+        success: false,
+        details: [{ content: uploadError }],
+      },
     ]);
   });
 });

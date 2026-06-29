@@ -62,9 +62,6 @@ export default function (options: Options = {}): Plugin[] {
         }
         const token = readAccessToken(siteUrl);
         if (!token) {
-          console.warn(
-            '[drupal-canvas] No access token found — run `canvas login` to enable live site data in Workbench. Falling back to static config.',
-          );
           return;
         }
         try {

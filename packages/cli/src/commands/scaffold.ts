@@ -4,6 +4,7 @@ import chalk from 'chalk';
 import * as p from '@clack/prompts';
 
 import { getConfig, setConfig } from '../config.js';
+import { printCommandIntro } from '../utils/command-intro.js';
 
 import type { Command } from 'commander';
 
@@ -29,7 +30,7 @@ export function scaffoldCommand(program: Command): void {
       'Component directory to create component in',
     )
     .action(async (options: ScaffoldOptions) => {
-      p.intro(chalk.bold('Drupal Canvas CLI: scaffold'));
+      printCommandIntro('scaffold');
 
       try {
         // Update config with CLI options
@@ -61,7 +62,7 @@ export function scaffoldCommand(program: Command): void {
 
         const componentDir = path.join(baseDir, componentName);
         const s = p.spinner();
-        s.start(`Creating component "${componentName}"`);
+        let spinnerStarted = false;
 
         try {
           // Create directory
@@ -86,9 +87,12 @@ export function scaffoldCommand(program: Command): void {
             });
             if (p.isCancel(confirmDelete) || !confirmDelete) {
               p.cancel('Operation cancelled');
-              process.exit(0);
+              return;
             }
           }
+
+          s.start(`Creating component "${componentName}"`);
+          spinnerStarted = true;
 
           // Copy and process each template file
           for (const file of files) {
@@ -111,27 +115,30 @@ export function scaffoldCommand(program: Command): void {
             await fs.writeFile(destPath, content, 'utf-8');
           }
 
-          s.stop(chalk.green(`Created component "${componentName}"`));
+          s.stop('Created component', 0);
 
           // Show summary and next steps
-          p.note(`Component "${componentName}" has been created:
-- Directory: ${componentDir}
-- Component metadata: ${path.join(componentDir, `component.yml`)}
-- Source file: ${path.join(componentDir, `index.jsx`)}
-- CSS file: ${path.join(componentDir, `index.css`)}`);
+          p.log.message(`Created: ${componentName}
+Directory: ${componentDir}
+Component metadata: ${path.join(componentDir, `component.yml`)}
+Source file: ${path.join(componentDir, `index.jsx`)}
+CSS file: ${path.join(componentDir, `index.css`)}`);
 
-          p.outro('🏗️ Scaffold command completed');
+          p.outro('Scaffold completed');
         } catch (error) {
-          s.stop(chalk.red(`Failed to create component "${componentName}"`));
+          if (spinnerStarted) {
+            s.stop('Failed to create component', 2);
+          }
           throw error;
         }
       } catch (error) {
         if (error instanceof Error) {
-          p.note(chalk.red(`Error: ${error.message}`));
+          p.log.error(chalk.red(`Error: ${error.message}`));
         } else {
-          p.note(chalk.red(`Unknown error: ${String(error)}`));
+          p.log.error(chalk.red(`Unknown error: ${String(error)}`));
         }
-        process.exit(1);
+        p.outro('Scaffold failed');
+        process.exitCode = 1;
       }
     });
 }

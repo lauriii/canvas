@@ -21,7 +21,10 @@ import {
   createComponentPayload,
   readComponentMetadata,
 } from './process-component-files';
-import { validateComponent } from './validate';
+import {
+  getComponentDirectoriesToValidate,
+  validateComponent,
+} from './validate';
 
 import type {
   DiscoveredComponent,
@@ -128,13 +131,6 @@ async function prepareComponentBuild(options: {
   };
   const outputBaseName = getOutputBaseName(component);
   const distDir = path.join(outputDir, 'components', component.name);
-
-  const validationResult = await validateComponent(
-    path.dirname(component.metadataPath),
-  );
-  if (!validationResult.success) {
-    return { result: validationResult };
-  }
 
   try {
     await fs.mkdir(distDir, { recursive: true });
@@ -283,6 +279,31 @@ function emptyVendorResult(): CanvasVendorArtifactBuildResult {
   };
 }
 
+function emptyBuildManifest(): Manifest {
+  return {
+    vendor: {},
+    local: {},
+    shared: [],
+  };
+}
+
+async function validateComponentsForBuild(
+  components: DiscoveredComponent[],
+): Promise<Result[]> {
+  const results: Result[] = [];
+
+  for (const componentDirectory of getComponentDirectoriesToValidate(
+    components,
+  )) {
+    const validationResult = await validateComponent(componentDirectory);
+    if (!validationResult.success) {
+      results.push(validationResult);
+    }
+  }
+
+  return results;
+}
+
 export async function buildCanvasProject(
   options: CanvasProjectBuildOptions,
 ): Promise<CanvasProjectBuildResult> {
@@ -295,6 +316,28 @@ export async function buildCanvasProject(
   const outputDir = path.resolve(options.outputDir);
   if (options.cleanOutputDir) {
     await fs.rm(outputDir, { recursive: true, force: true });
+  }
+
+  const validationFailures = await validateComponentsForBuild(
+    options.discoveryResult.components,
+  );
+  if (validationFailures.length > 0) {
+    const manifestPath = path.join(outputDir, 'canvas-manifest.json');
+    return {
+      discoveryResult: options.discoveryResult,
+      componentResults: validationFailures,
+      builtComponents: [],
+      manifest: emptyBuildManifest(),
+      manifestPath,
+      artifactCount: 0,
+      vendorImportCount: 0,
+      localImportCount: 0,
+      tailwindResult: {
+        itemName: 'Global CSS',
+        itemType: 'Asset',
+        success: true,
+      },
+    };
   }
 
   const globalSourceCodeCss = await getGlobalCss();

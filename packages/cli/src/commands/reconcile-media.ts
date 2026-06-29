@@ -13,8 +13,12 @@ import {
 import { ensureConfig, getConfig } from '../config.js';
 import { createApiService } from '../services/api.js';
 import { pluralize, updateConfigFromOptions } from '../utils/command-helpers';
+import { printCommandIntro } from '../utils/command-intro';
 import { getUnreconciledMedia } from '../utils/prop-transforms';
-import { reportResults } from '../utils/report-results';
+import {
+  COMMAND_RESULT_REPORT_OPTIONS,
+  reportResults,
+} from '../utils/report-results';
 import { processInPool } from '../utils/request-pool';
 import { isRecord } from '../utils/utils';
 
@@ -284,7 +288,7 @@ export function reconcileMediaCommand(program: Command): void {
     .option('-y, --yes', 'Skip confirmation prompts')
     .action(async (options: ReconcileMediaOptions) => {
       try {
-        p.intro(chalk.bold('Drupal Canvas CLI: reconcile media'));
+        printCommandIntro('reconcile media');
         updateConfigFromOptions(options);
 
         await ensureConfig([
@@ -393,7 +397,6 @@ export function reconcileMediaCommand(program: Command): void {
         const spinner = p.spinner();
         spinner.start('Reconciling media');
 
-        let reconciledCount = 0;
         const resultsByUrl = new Map<string, Result>();
         for (const specFile of specFiles) {
           const { reconciled, failures, successes } =
@@ -438,40 +441,43 @@ export function reconcileMediaCommand(program: Command): void {
             continue;
           }
 
-          reconciledCount += reconciled;
           await fs.writeFile(
             specFile.path,
             JSON.stringify(specFile.spec, null, 2) + '\n',
             'utf-8',
           );
-          spinner.message(
-            `Reconciled ${reconciledCount}/${pendingCount} media items`,
-          );
+          spinner.message('Reconciling media');
         }
 
         const mediaResults = [...resultsByUrl.values()];
 
-        spinner.stop(
-          chalk.green(
-            `Reconciled ${reconciledCount} ${pluralize(reconciledCount, 'media item', 'media items')}`,
-          ),
+        spinner.stop('Reconciled media', 0);
+
+        reportResults(
+          mediaResults,
+          'Reconciled media',
+          'URL',
+          COMMAND_RESULT_REPORT_OPTIONS,
         );
 
-        reportResults(mediaResults, 'Reconciled media', 'URL');
-
+        const hasFailures = mediaResults.some((r) => !r.success);
         p.outro(
-          mediaResults.some((r) => !r.success)
-            ? 'Media reconciliation completed with errors'
+          hasFailures
+            ? 'Media reconciliation incomplete'
             : 'Media reconciliation completed',
         );
+        if (hasFailures) {
+          process.exitCode = 1;
+          return;
+        }
       } catch (error) {
         if (error instanceof Error) {
-          p.note(chalk.red(`Error: ${error.message}`));
+          p.log.error(chalk.red(`Error: ${error.message}`));
         } else {
-          p.note(chalk.red(`Unknown error: ${String(error)}`));
+          p.log.error(chalk.red(`Unknown error: ${String(error)}`));
         }
-        p.note(chalk.red('Media reconciliation aborted'));
-        process.exit(1);
+        p.outro('Media reconciliation failed');
+        process.exitCode = 1;
       }
     });
 }

@@ -4,16 +4,20 @@ import { discoverCanvasProject } from '@drupal-canvas/discovery';
 
 import { getConfig } from '../config.js';
 import { createApiService, ensureAuthConfig } from '../services/api.js';
+import { updateConfigFromOptions } from '../utils/command-helpers';
+import { printCommandIntro } from '../utils/command-intro.js';
 import {
-  pluralize,
-  pluralizeComponent,
-  updateConfigFromOptions,
-} from '../utils/command-helpers';
-import { reportResults } from '../utils/report-results.js';
+  COMMAND_RESULT_REPORT_OPTIONS,
+  reportResults,
+  splitFailedResultsByFile,
+} from '../utils/report-results.js';
 import { validateContentTemplates } from '../utils/validate-content-template.js';
 import { validatePages } from '../utils/validate-page.js';
 import { validateRegions } from '../utils/validate-region.js';
-import { validateComponent } from '../utils/validate.js';
+import {
+  getComponentDirectoriesToValidate,
+  validateComponent,
+} from '../utils/validate.js';
 
 import type { Command } from 'commander';
 import type { ApiService } from '../services/api.js';
@@ -42,7 +46,7 @@ export function validateCommand(program: Command): void {
     )
     .action(async (options: ValidateOptions) => {
       try {
-        p.intro(chalk.bold('Drupal Canvas CLI: validate'));
+        printCommandIntro('validate');
 
         // Update config with CLI options
         updateConfigFromOptions(options);
@@ -56,54 +60,37 @@ export function validateCommand(program: Command): void {
           regionsRoot: config.regionsDir,
           projectRoot: process.cwd(),
         });
-        componentDirectoriesToValidate = discoveryResult.components.map(
-          (c) => c.directory,
-        );
-
-        const componentPluralized = pluralizeComponent(
-          componentDirectoriesToValidate.length,
+        componentDirectoriesToValidate = getComponentDirectoriesToValidate(
+          discoveryResult.components,
         );
 
         const results: Result[] = [];
 
         const s = p.spinner();
-        s.start(`Validating ${componentPluralized}`);
+        s.start('Validating components');
 
         for (const componentDir of componentDirectoriesToValidate) {
           const result = await validateComponent(componentDir, options.fix);
           results.push({ ...result, itemType: 'Component' });
         }
 
-        s.stop(
-          chalk.green(
-            `Processed ${componentDirectoriesToValidate.length} ${componentPluralized}`,
-          ),
-        );
+        s.stop('Validated components', 0);
 
         if (discoveryResult && discoveryResult.pages.length > 0) {
           const pageSpinner = p.spinner();
-          pageSpinner.start(
-            `Validating ${discoveryResult.pages.length} ${pluralize(discoveryResult.pages.length, 'page')}`,
-          );
+          pageSpinner.start('Validating pages');
 
           const { results: pageResults } = await validatePages(discoveryResult);
           for (const result of pageResults) {
             results.push({ ...result, itemType: 'Page' });
           }
 
-          pageSpinner.stop(
-            chalk.green(
-              `Processed ${discoveryResult.pages.length} ${pluralize(discoveryResult.pages.length, 'page')}`,
-            ),
-          );
+          pageSpinner.stop('Validated pages', 0);
         }
 
         if (discoveryResult && discoveryResult.contentTemplates.length > 0) {
-          const ctCount = discoveryResult.contentTemplates.length;
           const ctSpinner = p.spinner();
-          ctSpinner.start(
-            `Validating ${ctCount} ${pluralize(ctCount, 'content template')}`,
-          );
+          ctSpinner.start('Validating content templates');
 
           let apiService: ApiService | undefined;
           try {
@@ -121,18 +108,12 @@ export function validateCommand(program: Command): void {
             results.push({ ...result, itemType: 'Content template' });
           }
 
-          ctSpinner.stop(
-            chalk.green(
-              `Processed ${ctCount} ${pluralize(ctCount, 'content template')}`,
-            ),
-          );
+          ctSpinner.stop('Validated content templates', 0);
         }
 
         if (discoveryResult && discoveryResult.regions.length > 0) {
           const regionSpinner = p.spinner();
-          regionSpinner.start(
-            `Validating ${discoveryResult.regions.length} ${pluralize(discoveryResult.regions.length, 'global region')}`,
-          );
+          regionSpinner.start('Validating global regions');
 
           const { results: regionResults } =
             await validateRegions(discoveryResult);
@@ -140,29 +121,32 @@ export function validateCommand(program: Command): void {
             results.push({ ...result, itemType: 'Global region' });
           }
 
-          regionSpinner.stop(
-            chalk.green(
-              `Processed ${discoveryResult.regions.length} ${pluralize(discoveryResult.regions.length, 'global region')}`,
-            ),
-          );
+          regionSpinner.stop('Validated global regions', 0);
         }
 
-        reportResults(results, 'Validation results', 'Item');
+        reportResults(
+          splitFailedResultsByFile(results),
+          'Validation results',
+          'Item',
+          COMMAND_RESULT_REPORT_OPTIONS,
+        );
 
         const hasErrors = results.some((r) => !r.success);
         if (hasErrors) {
-          p.outro(`❌ Validation completed with errors`);
-          process.exit(1);
+          p.outro(`Validation failed`);
+          process.exitCode = 1;
+          return;
         }
 
-        p.outro(`✅ Validation completed`);
+        p.outro(`Validation completed`);
       } catch (error) {
         if (error instanceof Error) {
-          p.note(chalk.red(`Error: ${error.message}`));
+          p.log.error(chalk.red(`Error: ${error.message}`));
         } else {
-          p.note(chalk.red(`Unknown error: ${String(error)}`));
+          p.log.error(chalk.red(`Unknown error: ${String(error)}`));
         }
-        process.exit(1);
+        p.outro('Validation failed');
+        process.exitCode = 1;
       }
     });
 }

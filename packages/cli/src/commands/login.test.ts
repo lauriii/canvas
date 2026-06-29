@@ -29,6 +29,7 @@ vi.mock('@clack/prompts', () => ({
   log: {
     error: vi.fn(),
     info: vi.fn(),
+    message: vi.fn(),
     success: vi.fn(),
     warn: vi.fn(),
   },
@@ -167,8 +168,8 @@ describe('loginCommand', () => {
       program.parseAsync(['node', 'canvas', 'login', '--site-url', SITE_URL]),
     ).rejects.toThrow('process.exit(1)');
 
-    expect(p.log.error).toHaveBeenCalledWith(
-      expect.stringContaining('state mismatch'),
+    expect(p.log.message).toHaveBeenCalledWith(
+      expect.stringContaining('OAuth state mismatch'),
     );
   });
 

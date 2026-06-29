@@ -196,7 +196,7 @@ export interface PullFontsResult {
 }
 
 /**
- * Pull fonts from the global Brand Kit: download new variants and return config entries.
+ * Pull fonts from the global brand kit: download new variants and return config entries.
  * Variants already represented in existingFontsConfig are skipped (variant-level matching).
  */
 export async function pullFonts(

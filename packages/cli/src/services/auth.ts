@@ -96,7 +96,6 @@ export async function discoverAuth(
           message += '  • Check if DDEV is running: ddev status\n';
           message += '  • Try HTTP instead of HTTPS\n';
           message += '  • Verify site is accessible in browser\n';
-          message += '  • For HTTPS issues, try: ddev auth ssl';
         } else {
           message += 'Check your site URL and network connection.';
         }

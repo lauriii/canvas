@@ -6,6 +6,7 @@ import { loadComponentsMetadata } from '@drupal-canvas/discovery';
 
 import contentTemplateSpecSchema from '../../../workbench/src/lib/schemas/content-template-spec.schema.json';
 import { authoredElementMapToComponentTree } from './authored-elements';
+import { contentTemplateResultName } from './content-template-result-name';
 import { collectUnreconciledMediaProps } from './prop-transforms';
 
 import type {
@@ -144,7 +145,7 @@ export async function validateContentTemplates(
       for (const entry of unreconciledMedia) {
         details.push({
           heading: `elements.${entry.elementId}.props.${entry.propName}`,
-          content: `Unreconciled external media URL "${entry.src}". Run \`npx canvas reconcile-media\` to resolve.`,
+          content: `Unreconciled external media URL "${entry.src}". Run \`canvas reconcile-media\` to resolve.`,
         });
       }
 
@@ -216,14 +217,22 @@ export async function validateContentTemplates(
         }
       }
 
+      const label = typeof spec.label === 'string' ? spec.label : undefined;
       results.push({
-        itemName: template.slug,
+        itemName:
+          details.length > 0
+            ? contentTemplateResultName(label, template, {
+                includeFileName: true,
+              })
+            : template.slug,
         success: details.length === 0,
         details: details.length > 0 ? details : undefined,
       });
     } catch (error) {
       results.push({
-        itemName: template.slug,
+        itemName: contentTemplateResultName(undefined, template, {
+          includeFileName: true,
+        }),
         success: false,
         details: [
           {

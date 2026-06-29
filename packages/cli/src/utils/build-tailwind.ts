@@ -7,7 +7,7 @@ import { resolveHostGlobalCssPath } from '@drupal-canvas/vite-compat';
 
 import { getConfig } from '../config';
 import { transformCss } from '../lib/transform-css';
-import { fileExists } from './utils';
+import { fileExists, formatFilePathForOutput } from './utils';
 
 import type { DiscoveredComponent } from '@drupal-canvas/discovery';
 import type { Result } from '../types/Result';
@@ -23,7 +23,7 @@ export async function getGlobalCss(): Promise<string> {
   }
 
   throw new Error(
-    `Missing local global CSS file at ${globalCssPath}. Create this file, or set "globalCssPath" in canvas.config.json to an existing CSS file.`,
+    `Missing local Tailwind CSS file at ${formatFilePathForOutput(globalCssPath)}. Create this file, or set "globalCssPath" in canvas.config.json to an existing CSS file.`,
   );
 }
 
@@ -155,7 +155,7 @@ export async function buildTailwindForComponents(
       itemName: 'Tailwind CSS',
       success: false,
       details: [
-        { heading: 'Error compiling Tailwind CSS', content: errorMessage },
+        { heading: 'Error building Tailwind CSS', content: errorMessage },
       ],
     };
   }

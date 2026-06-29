@@ -5,7 +5,12 @@ import { discoverCanvasProject } from '@drupal-canvas/discovery';
 import { getConfig } from '../config';
 import { buildCanvasProject } from '../utils/build-project';
 import { pluralize, updateConfigFromOptions } from '../utils/command-helpers';
-import { reportResults } from '../utils/report-results';
+import { printCommandIntro } from '../utils/command-intro';
+import {
+  COMMAND_RESULT_REPORT_OPTIONS,
+  reportResults,
+  splitFailedResultsByFile,
+} from '../utils/report-results';
 
 import type { Command } from 'commander';
 
@@ -35,7 +40,7 @@ export function buildCommand(program: Command): void {
     .option('-y, --yes', 'Skip confirmation prompts')
     .action(async (options: BuildOptions) => {
       try {
-        p.intro(chalk.bold('Drupal Canvas CLI: build'));
+        printCommandIntro('build');
 
         // Update config with CLI options
         updateConfigFromOptions(options);
@@ -49,15 +54,11 @@ export function buildCommand(program: Command): void {
           projectRoot: process.cwd(),
         });
         const { components, warnings } = discoveryResult;
-        s1.stop(
-          chalk.green(
-            `Found ${components.length} ${pluralize(components.length, 'component')}`,
-          ),
-        );
+        s1.stop('Discovered components', 0);
 
         if (components.length === 0) {
           p.log.warn('No components found. Nothing to build.');
-          p.outro('Build complete (no components)');
+          p.outro('Nothing to build');
           return;
         }
         if (warnings.length > 0) {
@@ -69,23 +70,28 @@ export function buildCommand(program: Command): void {
           }
         }
 
-        const componentLabelPluralized = pluralize(
-          components.length,
-          'component',
-        );
-
         const s2 = p.spinner();
-        s2.start(`Building ${componentLabelPluralized}`);
-        const buildResult = await buildCanvasProject({
-          projectRoot: process.cwd(),
-          componentDir,
-          aliasBaseDir,
-          outputDir,
-          discoveryResult,
-          cleanOutputDir: true,
-        });
+        s2.start('Building components');
+        let buildResult: Awaited<ReturnType<typeof buildCanvasProject>>;
+        try {
+          buildResult = await buildCanvasProject({
+            projectRoot: process.cwd(),
+            componentDir,
+            aliasBaseDir,
+            outputDir,
+            discoveryResult,
+            cleanOutputDir: true,
+          });
+        } catch (error) {
+          s2.stop('Build failed', 2);
+          throw error;
+        }
+        const hasComponentBuildFailures = buildResult.componentResults.some(
+          (result) => !result.success,
+        );
         s2.stop(
-          chalk.green(`Built ${components.length} ${componentLabelPluralized}`),
+          hasComponentBuildFailures ? 'Build failed' : 'Built components',
+          hasComponentBuildFailures ? 2 : 0,
         );
 
         // Associate discovery warnings with component results
@@ -114,14 +120,27 @@ export function buildCommand(program: Command): void {
         );
 
         // Report component build results
-        reportResults(resultsWithWarnings, 'Built components', 'Component');
-        if (resultsWithWarnings.some((result) => !result.success)) {
-          process.exit(1);
+        reportResults(
+          splitFailedResultsByFile(resultsWithWarnings),
+          'Built components',
+          'Component',
+          COMMAND_RESULT_REPORT_OPTIONS,
+        );
+        if (hasComponentBuildFailures) {
+          p.outro('Build failed');
+          process.exitCode = 1;
+          return;
         }
 
-        reportResults([buildResult.tailwindResult], 'Built assets', 'Asset');
+        reportResults([buildResult.tailwindResult], 'Built assets', 'Asset', {
+          ...COMMAND_RESULT_REPORT_OPTIONS,
+          showTitle: true,
+          showSuccessHeading: false,
+        });
         if (!buildResult.tailwindResult.success) {
-          process.exit(1);
+          p.outro('Build failed');
+          process.exitCode = 1;
+          return;
         }
 
         p.log.info(
@@ -130,14 +149,19 @@ export function buildCommand(program: Command): void {
           ),
         );
 
-        p.outro(chalk.bold.green('📦 Build completed'));
+        p.outro(chalk.bold.green('Build completed'));
       } catch (error) {
-        if (error instanceof Error) {
-          p.note(chalk.red(`Error: ${error.message}`));
-        } else {
-          p.note(chalk.red(`Unknown error: ${String(error)}`));
-        }
-        process.exit(1);
+        const message =
+          error instanceof Error
+            ? error.message
+            : `Unknown error: ${String(error)}`;
+        p.log.message(
+          ['Failed', `  ${chalk.red('✗')} Build failed`, `    ${message}`].join(
+            '\n',
+          ),
+        );
+        p.outro('Build failed');
+        process.exitCode = 1;
       }
     });
 }

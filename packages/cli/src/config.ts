@@ -99,10 +99,10 @@ export interface Config {
   fonts?: FontsConfig;
 }
 
-/** Filename for Brand Kit (font) configuration in the project root. */
+/** Filename for brand kit (font) configuration in the project root. */
 export const BRAND_KIT_CONFIG_FILENAME = 'canvas.brand-kit.json';
 
-/** Global Brand Kit id used by the CLI for font sync (single site-wide kit). */
+/** Global brand kit id used by the CLI for font sync (single site-wide kit). */
 export const BRAND_KIT_GLOBAL_ID = 'global';
 
 /** Top-level shape of canvas.brand-kit.json (fonts and future brand kit keys). */

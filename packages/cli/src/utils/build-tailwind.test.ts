@@ -5,7 +5,11 @@ import { compileCss } from 'tailwindcss-in-browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transformCss } from '../lib/transform-css';
-import { buildTailwindCss, getGlobalCss } from './build-tailwind';
+import {
+  buildTailwindCss,
+  buildTailwindForComponents,
+  getGlobalCss,
+} from './build-tailwind';
 
 vi.mock('tailwindcss-in-browser', () => ({
   compileCss: vi.fn(async () => 'compiled css'),
@@ -14,6 +18,12 @@ vi.mock('tailwindcss-in-browser', () => ({
 
 vi.mock('../lib/transform-css', () => ({
   transformCss: vi.fn(async () => 'transformed css'),
+}));
+
+vi.mock('../config', () => ({
+  getConfig: vi.fn(() => ({
+    componentDir: process.cwd(),
+  })),
 }));
 
 describe('buildTailwindCss', () => {
@@ -61,14 +71,39 @@ describe('buildTailwindCss', () => {
     ).resolves.toBe('transformed css');
   });
 
-  it('fails clearly when the local global CSS file is missing', async () => {
+  it('fails clearly when the local Tailwind CSS file is missing', async () => {
     process.chdir(temporaryDirectory);
-    const globalCssPath = path.join(process.cwd(), 'src/global.css');
 
     await expect(getGlobalCss()).rejects.toEqual(
       new Error(
-        `Missing local global CSS file at ${globalCssPath}. Create this file, or set "globalCssPath" in canvas.config.json to an existing CSS file.`,
+        'Missing local Tailwind CSS file at src/global.css. Create this file, or set "globalCssPath" in canvas.config.json to an existing CSS file.',
       ),
     );
+  });
+
+  it('reports Tailwind compile errors as build errors', async () => {
+    process.chdir(temporaryDirectory);
+    await fs.mkdir(path.join(temporaryDirectory, 'src'), { recursive: true });
+    await fs.writeFile(
+      path.join(temporaryDirectory, 'src/global.css'),
+      '@theme {}',
+      'utf-8',
+    );
+    vi.mocked(compileCss).mockRejectedValue(
+      new Error('Unterminated string: "unterminated"'),
+    );
+
+    const result = await buildTailwindForComponents([], temporaryDirectory);
+
+    expect(result).toEqual({
+      itemName: 'Tailwind CSS',
+      success: false,
+      details: [
+        {
+          heading: 'Error building Tailwind CSS',
+          content: 'Unterminated string: "unterminated"',
+        },
+      ],
+    });
   });
 });

@@ -139,7 +139,7 @@ describe('font-pull', () => {
       await fs.rm(tmpDir, { recursive: true, force: true });
     });
 
-    it('returns empty result when Brand Kit has no fonts', async () => {
+    it('returns empty result when brand kit has no fonts', async () => {
       vi.mocked(api.getBrandKit).mockResolvedValue({
         id: 'global',
         fonts: [],

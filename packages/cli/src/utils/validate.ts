@@ -3,7 +3,14 @@ import { basename } from 'path/win32';
 import { ESLint } from 'eslint';
 import { required as drupalCanvasRequired } from '@drupal-canvas/eslint-config';
 
+import type { DiscoveredComponent } from '@drupal-canvas/discovery';
 import type { Result } from '../types/Result';
+
+export function getComponentDirectoriesToValidate(
+  components: DiscoveredComponent[],
+): string[] {
+  return [...new Set(components.map((component) => component.directory))];
+}
 
 export async function validateComponent(
   componentDir: string,

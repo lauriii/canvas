@@ -36,7 +36,7 @@ const AXIS_TAG_DISPLAY_NAMES: Record<string, string> = {
 };
 
 /**
- * Enriches variable font axes for the Brand Kit payload: adds human-readable
+ * Enriches variable font axes for the brand kit payload: adds human-readable
  * names for known tags (so the UI shows "Weight" not "wght") and applies
  * optional axis default overrides from config, clamped to each axis min/max.
  */
@@ -62,7 +62,7 @@ function enrichVariableFontAxes(
 }
 
 /**
- * Builds a map of variant key (family+weight+style) to existing Brand Kit font entry.
+ * Builds a map of variant key (family+weight+style) to existing brand kit font entry.
  * Used to skip uploading variants that already exist on the backend.
  */
 function buildExistingVariantMap(
@@ -347,7 +347,7 @@ function computeFontPushOutcomes(
 }
 
 /**
- * True if the remote Brand Kit already has a variant that corresponds to this
+ * True if the remote brand kit already has a variant that corresponds to this
  * local plan key (handles API weight as range vs range minimum only).
  */
 function remoteHasVariantForLocalPlanKey(
@@ -368,7 +368,7 @@ function remoteHasVariantForLocalPlanKey(
 }
 
 /**
- * Builds planned font rows for the push confirmation table (local keys vs remote Brand Kit).
+ * Builds planned font rows for the push plan (local keys vs remote brand kit).
  */
 export function buildFontPushPlannedResults(
   fontsConfig: FontsConfig | undefined,
@@ -419,8 +419,8 @@ export function buildFontPushPlannedResults(
 }
 
 /**
- * Push fonts from canvas.brand-kit.json (config.fonts) to the global Brand Kit.
- * Fetches existing Brand Kit first; skips uploading variants that already exist and skips PATCH when unchanged.
+ * Push fonts from canvas.brand-kit.json (config.fonts) to the global brand kit.
+ * Fetches existing brand kit first; skips uploading variants that already exist and skips PATCH when unchanged.
  */
 export async function pushFonts(
   config: Config,
@@ -460,7 +460,7 @@ export async function pushFonts(
     remoteFonts = brandKit.fonts ?? undefined;
     existingByKey = buildExistingVariantMap(remoteFonts);
   } catch {
-    // Brand Kit may not exist yet; proceed with uploads for all variants.
+    // The brand kit may not exist yet; proceed with uploads for all variants.
   }
 
   const unifont = await createFontResolver(fontsConfig, projectRoot);

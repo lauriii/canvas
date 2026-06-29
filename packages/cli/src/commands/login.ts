@@ -18,6 +18,11 @@ import {
   generateState,
   waitForCallback,
 } from '../services/auth.js';
+import { printCommandIntro } from '../utils/command-intro.js';
+import {
+  COMMAND_RESULT_REPORT_OPTIONS,
+  reportResults,
+} from '../utils/report-results.js';
 
 import type { Command } from 'commander';
 
@@ -31,11 +36,32 @@ interface LogoutOptions {
   siteUrl?: string;
 }
 
+function formatErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function reportLoginFailure(itemName: string, error: unknown): never {
+  reportResults(
+    [
+      {
+        itemName,
+        success: false,
+        details: [{ content: formatErrorMessage(error) }],
+      },
+    ],
+    'Login failed',
+    'Item',
+    COMMAND_RESULT_REPORT_OPTIONS,
+  );
+  p.outro('Login failed');
+  return process.exit(1);
+}
+
 export function loginCommand(program: Command): void {
   program
     .command('login')
     .description(
-      'Log in to a Canvas site via browser (OAuth 2.0 authorization code + PKCE)',
+      'log in to a Canvas site via browser (OAuth 2.0 authorization code + PKCE)',
     )
     .option('--site-url <url>', 'Canvas site URL')
     .option(
@@ -44,7 +70,7 @@ export function loginCommand(program: Command): void {
     )
     .option('--client-id <id>', 'OAuth client ID (overrides auto-discovery)')
     .action(async (options: LoginOptions) => {
-      p.intro(chalk.bold('Drupal Canvas CLI: login'));
+      printCommandIntro('login');
 
       // Resolve site URL.
       if (options.siteUrl) {
@@ -67,11 +93,10 @@ export function loginCommand(program: Command): void {
       try {
         discovered = await discoverAuth(siteUrl, options.clientId);
       } catch (error) {
-        spinner.stop('Discovery failed');
-        p.log.error(error instanceof Error ? error.message : String(error));
-        process.exit(1);
+        spinner.stop('Discovery failed', 2);
+        reportLoginFailure('Discovery failed', error);
       }
-      spinner.stop('OAuth configuration discovered');
+      spinner.stop('OAuth configuration discovered', 0);
 
       // Generate PKCE and state.
       const codeVerifier = generateCodeVerifier();
@@ -113,15 +138,16 @@ export function loginCommand(program: Command): void {
       try {
         callbackResult = await callbackPromise;
       } catch (error) {
-        spinner.stop('Authorization failed');
-        p.log.error(error instanceof Error ? error.message : String(error));
-        process.exit(1);
+        spinner.stop('Authorization failed', 2);
+        reportLoginFailure('Authorization failed', error);
       }
 
       if (callbackResult.state !== state) {
-        spinner.stop('State mismatch');
-        p.log.error('OAuth state mismatch — possible CSRF. Please try again.');
-        process.exit(1);
+        spinner.stop('State mismatch', 2);
+        reportLoginFailure(
+          'State mismatch',
+          'OAuth state mismatch — possible CSRF. Please try again.',
+        );
       }
 
       // Exchange authorization code for tokens.
@@ -136,9 +162,8 @@ export function loginCommand(program: Command): void {
           codeVerifier,
         });
       } catch (error) {
-        spinner.stop('Token exchange failed');
-        p.log.error(error instanceof Error ? error.message : String(error));
-        process.exit(1);
+        spinner.stop('Token exchange failed', 2);
+        reportLoginFailure('Token exchange failed', error);
       }
 
       // Persist tokens.
@@ -152,7 +177,7 @@ export function loginCommand(program: Command): void {
         tokenEndpoint: discovered.tokenEndpoint,
       });
 
-      spinner.stop(chalk.green('Logged in successfully'));
+      spinner.stop('Logged in successfully', 0);
       p.log.success(`Credentials stored for ${chalk.cyan(siteUrl)}`);
       p.outro('Run `canvas push` or `canvas pull` to get started.');
     });
@@ -161,10 +186,10 @@ export function loginCommand(program: Command): void {
 export function logoutCommand(program: Command): void {
   program
     .command('logout')
-    .description('Remove stored credentials for a Canvas site')
+    .description('remove stored credentials for a Canvas site')
     .option('--site-url <url>', 'Canvas site URL')
     .action(async (options: LogoutOptions) => {
-      p.intro(chalk.bold('Drupal Canvas CLI: logout'));
+      printCommandIntro('logout');
 
       if (options.siteUrl) {
         setConfig({ siteUrl: options.siteUrl });
@@ -174,7 +199,7 @@ export function logoutCommand(program: Command): void {
       const siteUrl = getConfig().siteUrl!;
 
       removeTokenEntry(siteUrl);
-      p.log.success(`Credentials removed for ${chalk.cyan(siteUrl)}`);
-      p.outro('Done.');
+      p.log.info(`Credentials removed: ${chalk.cyan(siteUrl)}`);
+      p.outro('Logout completed');
     });
 }

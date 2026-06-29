@@ -1,6 +1,5 @@
 import fs from 'fs/promises';
 import path from 'path';
-import chalk from 'chalk';
 import { Option } from 'commander';
 import yaml from 'js-yaml';
 import * as p from '@clack/prompts';
@@ -22,11 +21,16 @@ import {
   pluralizeComponent,
   updateConfigFromOptions,
 } from '../utils/command-helpers';
+import { printCommandIntro } from '../utils/command-intro';
+import { appendCommandSummarySection } from '../utils/command-summary';
 import { contentTemplateToAuthored } from '../utils/content-templates';
 import { ensureTailwindImportAtTop } from '../utils/ensure-global-css-tailwind-import';
 import { pageToAuthoredSpec } from '../utils/pages';
 import { regionToAuthoredSpec } from '../utils/regions';
-import { reportResults } from '../utils/report-results';
+import {
+  COMMAND_RESULT_REPORT_OPTIONS,
+  reportResults,
+} from '../utils/report-results';
 
 import type {
   DiscoveredComponent,
@@ -42,6 +46,7 @@ import type { Metadata } from '../types/Metadata';
 import type { PageListItem } from '../types/Page';
 import type { RegionListItem } from '../types/Region';
 import type { Result } from '../types/Result';
+import type { CommandSummaryResource } from '../utils/command-summary';
 
 interface PullOptions {
   clientId?: string;
@@ -66,6 +71,8 @@ export interface PullTaskPrepareResult {
 }
 
 export interface PullTask {
+  startLabel: string;
+  stopLabel: string;
   prepare(): Promise<PullTaskPrepareResult>;
   execute(options?: { deleteLocalOnly?: boolean }): Promise<PullTaskResult>;
 }
@@ -76,18 +83,59 @@ export interface PullTaskResult {
   label: string;
 }
 
+function pluralizeLabel(count: number, singular: string, plural?: string) {
+  return count === 1 ? singular : (plural ?? `${singular}s`);
+}
+
 function formatSummaryLine(
-  label: string,
+  groupLabel: string,
   total: number,
   newCount: number,
   existingCount: number,
+  unit?: string,
+  unitPlural?: string,
 ): string {
-  const plural = total === 1 ? label : `${label}s`;
+  const count = unit
+    ? `${total} ${pluralizeLabel(total, unit, unitPlural)}`
+    : String(total);
   const details: string[] = [];
   if (newCount > 0) details.push(`${newCount} new`);
   if (existingCount > 0) details.push(`${existingCount} existing`);
   const suffix = details.length > 0 ? ` (${details.join(', ')})` : '';
-  return `- ${total} ${plural}${suffix}`;
+  return `${groupLabel}: ${count} pull${suffix}`;
+}
+
+function formatPullPlan(summaryLines: string[]): string {
+  return ['Plan', ...summaryLines].join('\n');
+}
+
+function formatErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function pullFailureItemName(message: string): string {
+  return message.includes('Authentication Error') ||
+    message.includes('Authentication failed')
+    ? 'Authentication failed'
+    : 'Pull failed';
+}
+
+export function buildSkippedLocalOnlyPullResources(
+  localOnlyCount: number,
+  deleteLocalOnly: boolean,
+): CommandSummaryResource[] {
+  if (localOnlyCount === 0 || deleteLocalOnly) {
+    return [];
+  }
+  return [
+    {
+      label: 'Components',
+      count: localOnlyCount,
+      unit: 'local-only component delete',
+      unitPlural: 'local-only component deletes',
+      action: 'skipped',
+    },
+  ];
 }
 
 export function createComponentsPullTask(
@@ -135,6 +183,9 @@ export function createComponentsPullTask(
   }
 
   return {
+    startLabel: 'Pulling components',
+    stopLabel: 'Pulled components',
+
     async prepare(): Promise<PullTaskPrepareResult> {
       const [fetchedComponents, discoveryResult] = await Promise.all([
         apiService.listComponents(),
@@ -163,13 +214,13 @@ export function createComponentsPullTask(
         ).length;
         const newCount = total - existingCount;
         lines.push(
-          formatSummaryLine('component', total, newCount, existingCount),
+          formatSummaryLine('Components', total, newCount, existingCount),
         );
       }
 
       if (localOnlyComponents.length > 0) {
         const n = localOnlyComponents.length;
-        lines.push(`- ${n} ${pluralizeComponent(n)} to delete (local-only)`);
+        lines.push(`Components: ${n} delete (local-only)`);
       }
 
       return {
@@ -288,6 +339,9 @@ export function createPagesPullTask(
   }
 
   return {
+    startLabel: 'Pulling pages',
+    stopLabel: 'Pulled pages',
+
     async prepare(): Promise<PullTaskPrepareResult> {
       const [fetchedPages, discoveryResult] = await Promise.all([
         apiService.listPages(),
@@ -311,7 +365,9 @@ export function createPagesPullTask(
       ).length;
       const newCount = total - existingCount;
 
-      const lines = [formatSummaryLine('page', total, newCount, existingCount)];
+      const lines = [
+        formatSummaryLine('Pages', total, newCount, existingCount),
+      ];
       return { summaryLines: lines, localOnlyCount: 0 };
     },
 
@@ -392,6 +448,9 @@ export function createContentTemplatesPullTask(
   const localById = new Map<string, DiscoveredContentTemplate>();
 
   return {
+    startLabel: 'Pulling content templates',
+    stopLabel: 'Pulled content templates',
+
     async prepare(): Promise<PullTaskPrepareResult> {
       const [fetchedTemplates, discoveryResult] = await Promise.all([
         apiService.listContentTemplates(),
@@ -413,7 +472,7 @@ export function createContentTemplatesPullTask(
       const newCount = total - existingCount;
 
       const lines = [
-        formatSummaryLine('content template', total, newCount, existingCount),
+        formatSummaryLine('Content templates', total, newCount, existingCount),
       ];
       return { summaryLines: lines, localOnlyCount: 0 };
     },
@@ -489,6 +548,9 @@ export function createRegionsPullTask(
   const localRegionMap = new Map<string, DiscoveredRegion>();
 
   return {
+    startLabel: 'Pulling global regions',
+    stopLabel: 'Pulled global regions',
+
     async prepare(): Promise<PullTaskPrepareResult> {
       const [fetched, discoveryResult] = await Promise.all([
         apiService.listRegions(),
@@ -510,7 +572,7 @@ export function createRegionsPullTask(
 
       return {
         summaryLines: [
-          formatSummaryLine('global region', total, newCount, existingCount),
+          formatSummaryLine('Global regions', total, newCount, existingCount),
         ],
         localOnlyCount: 0,
       };
@@ -594,6 +656,9 @@ export function createAssetsPullTask(
   let localExists = false;
 
   return {
+    startLabel: 'Pulling assets',
+    stopLabel: 'Pulled assets',
+
     async prepare(): Promise<PullTaskPrepareResult> {
       const globalAssetLibrary = await apiService.getGlobalAssetLibrary();
       globalCss = globalAssetLibrary?.css?.original || '';
@@ -604,11 +669,14 @@ export function createAssetsPullTask(
         .access(globalCssPath)
         .then(() => true)
         .catch(() => false);
-      return { summaryLines: ['- global CSS'], localOnlyCount: 0 };
+      return { summaryLines: ['Assets: global CSS pull'], localOnlyCount: 0 };
     },
 
     async execute(): Promise<PullTaskResult> {
       const results: Result[] = [];
+      if (!globalCss) {
+        return { results, title: 'Pulled assets', label: 'Asset' };
+      }
       try {
         if (skipOverwrite && localExists) {
           results.push({
@@ -645,6 +713,9 @@ export function createFontsPullTask(
   let existingCount = 0;
 
   return {
+    startLabel: 'Pulling brand kit',
+    stopLabel: 'Pulled brand kit',
+
     async prepare(): Promise<PullTaskPrepareResult> {
       const [brandKit, brandKitConfig] = await Promise.all([
         apiService.getBrandKit(),
@@ -674,15 +745,15 @@ export function createFontsPullTask(
           ),
       ).length;
 
+      const fontVariantSummary = formatSummaryLine(
+        'brand kit',
+        totalFontVariants,
+        newCount,
+        existingCount,
+        'font variant',
+      );
       return {
-        summaryLines: [
-          formatSummaryLine(
-            'font variant',
-            totalFontVariants,
-            newCount,
-            existingCount,
-          ),
-        ],
+        summaryLines: [fontVariantSummary],
         localOnlyCount: 0,
       };
     },
@@ -718,7 +789,7 @@ export function createFontsPullTask(
 
       return {
         results,
-        title: 'Pulled fonts',
+        title: 'Pulled brand kit',
         label: 'Font variant',
       };
     },
@@ -781,7 +852,10 @@ export function pullCommand(program: Command): void {
     .option('-y, --yes', 'Skip all confirmation prompts')
     .option('--skip-overwrite', 'Skip pulling items that already exist locally')
     .action(async (options: PullOptions) => {
-      p.intro(chalk.bold('Drupal Canvas CLI: pull'));
+      printCommandIntro('pull');
+      const s = p.spinner();
+      let spinnerActive = false;
+      let spinnerFailureLabel = 'Pull failed';
 
       try {
         applySyncOptionAliasesAndWarnings(options);
@@ -796,14 +870,6 @@ export function pullCommand(program: Command): void {
         const includesContentTemplates = config.includeContentTemplates;
         const includesRegions = config.includeRegions;
         const includesBrandKit = config.includeBrandKit;
-
-        const s = p.spinner();
-        const contentParts: string[] = ['components', 'global CSS'];
-        if (includesBrandKit) contentParts.push('fonts');
-        if (includesPages) contentParts.push('pages');
-        if (includesContentTemplates) contentParts.push('content templates');
-        if (includesRegions) contentParts.push('global regions');
-        const contentLabel = contentParts.join(', ');
 
         // Build pull tasks.
         const projectRoot = process.cwd();
@@ -855,7 +921,9 @@ export function pullCommand(program: Command): void {
         }
 
         // Fetch remote data and discover local state.
-        s.start(`Fetching ${contentLabel}`);
+        s.start('Fetching remote data');
+        spinnerActive = true;
+        spinnerFailureLabel = 'Fetch failed';
         const prepareResults = await Promise.all(tasks.map((t) => t.prepare()));
         const summaryLines = prepareResults.flatMap((r) => r.summaryLines);
         const localOnlyCount = prepareResults.reduce(
@@ -863,12 +931,14 @@ export function pullCommand(program: Command): void {
           0,
         );
         if (summaryLines.length === 0) {
-          s.stop('Nothing to pull');
-          process.exit(0);
+          s.stop('Nothing to pull', 0);
+          p.outro('Nothing to pull');
+          return;
         }
 
-        s.stop('Ready to pull:');
-        p.log.message(summaryLines.join('\n'));
+        s.stop('Fetched remote data', 0);
+        spinnerActive = false;
+        p.log.message(formatPullPlan(summaryLines));
 
         if (!options.yes) {
           const confirmed = await p.confirm({
@@ -877,7 +947,7 @@ export function pullCommand(program: Command): void {
           });
           if (p.isCancel(confirmed) || !confirmed) {
             p.cancel('Operation cancelled');
-            process.exit(0);
+            return;
           }
         }
 
@@ -892,34 +962,81 @@ export function pullCommand(program: Command): void {
             });
             if (p.isCancel(deleteLocal)) {
               p.cancel('Operation cancelled');
-              process.exit(0);
+              return;
             }
             deleteLocalOnly = Boolean(deleteLocal);
           }
         }
-
-        // Execute all tasks in parallel.
-        s.start('Pulling');
-        const outcomes = await Promise.all(
-          tasks.map((t) => t.execute({ deleteLocalOnly })),
+        const skippedResources = buildSkippedLocalOnlyPullResources(
+          localOnlyCount,
+          deleteLocalOnly,
         );
-        s.stop(chalk.green('Done'));
 
-        // Report results.
-        for (const outcome of outcomes) {
-          if (outcome.results.length > 0) {
-            reportResults(outcome.results, outcome.title, outcome.label);
+        const plannedTasks = tasks.filter(
+          (_task, index) => prepareResults[index].summaryLines.length > 0,
+        );
+        const outcomes: PullTaskResult[] = [];
+
+        for (const task of plannedTasks) {
+          s.start(task.startLabel);
+          spinnerActive = true;
+          spinnerFailureLabel = task.stopLabel;
+
+          const outcome = await task.execute({ deleteLocalOnly });
+          outcomes.push(outcome);
+          const taskHasFailures = outcome.results.some(
+            (result) => !result.success,
+          );
+          s.stop(task.stopLabel, taskHasFailures ? 2 : 0);
+          spinnerActive = false;
+
+          if (outcome.results.length === 0) {
+            continue;
           }
+          reportResults(outcome.results, outcome.title, outcome.label, {
+            ...COMMAND_RESULT_REPORT_OPTIONS,
+            showTitle: false,
+          });
         }
 
-        p.outro('⬇️ Pull completed successfully');
-      } catch (error) {
-        if (error instanceof Error) {
-          p.note(chalk.red(`Error: ${error.message}`));
-        } else {
-          p.note(chalk.red(`Unknown error: ${String(error)}`));
+        const hasFailures = outcomes.some((outcome) =>
+          outcome.results.some((result) => !result.success),
+        );
+
+        if (skippedResources.length > 0) {
+          const skippedLines: string[] = [];
+          appendCommandSummarySection(
+            skippedLines,
+            'Skipped',
+            skippedResources,
+            'skipped',
+          );
+          p.log.message(skippedLines.join('\n'));
         }
-        process.exit(1);
+        p.outro(hasFailures ? 'Pull incomplete' : 'Pull completed');
+        if (hasFailures) {
+          process.exitCode = 1;
+          return;
+        }
+      } catch (error) {
+        if (spinnerActive) {
+          s.stop(spinnerFailureLabel, 2);
+        }
+        const message = formatErrorMessage(error);
+        reportResults(
+          [
+            {
+              itemName: pullFailureItemName(message),
+              success: false,
+              details: [{ content: message }],
+            },
+          ],
+          'Pull failed',
+          'Item',
+          COMMAND_RESULT_REPORT_OPTIONS,
+        );
+        p.outro('Pull failed');
+        process.exitCode = 1;
       }
     });
 }

@@ -28,13 +28,14 @@ function mockDiscoveredPage(
   name: string,
   uuid: string | null,
   filePath: string,
+  relativePath = name + '.json',
 ): DiscoveredPage {
   return {
     name,
     slug: name,
     uuid,
     path: filePath,
-    relativePath: name + '.json',
+    relativePath,
   };
 }
 
@@ -166,7 +167,6 @@ describe('pushPages', () => {
           path: '/home',
           components: [],
           filePath,
-          pendingMediaReconciliations: [],
         },
       },
     ];
@@ -207,7 +207,6 @@ describe('pushPages', () => {
           path: '/new-home',
           components: [],
           filePath,
-          pendingMediaReconciliations: [],
         },
       },
     ];
@@ -225,6 +224,7 @@ describe('pushPages', () => {
 
     expect(results).toHaveLength(1);
     expect(results[0].success).toBe(false);
+    expect(results[0].pageTitle).toBe('Home');
     expect(results[0].error?.message).toBe(
       'Path alias changes are not allowed for existing pages. Remote path is "/home"; local path is "/new-home".',
     );
@@ -250,7 +250,6 @@ describe('pushPages', () => {
           path: '',
           components: [],
           filePath,
-          pendingMediaReconciliations: [],
         },
       },
     ];
@@ -268,6 +267,7 @@ describe('pushPages', () => {
 
     expect(results).toHaveLength(1);
     expect(results[0].success).toBe(false);
+    expect(results[0].pageTitle).toBe('Home');
     expect(results[0].error?.message).toBe(
       'Path alias changes are not allowed for existing pages. Remote path is "/home"; local path is "".',
     );
@@ -293,7 +293,6 @@ describe('pushPages', () => {
           path: '',
           components: [],
           filePath,
-          pendingMediaReconciliations: [],
         },
       },
     ];
@@ -319,6 +318,40 @@ describe('pushPages', () => {
     // Verify UUID was written back to the file.
     const content = JSON.parse(await fs.readFile(filePath, 'utf-8'));
     expect(content.uuid).toBe('server-assigned-uuid');
+  });
+
+  it('keeps failed push results aligned to the original discovered page index', async () => {
+    const secondFilePath = path.join(tmpDir, 'second.json');
+
+    const prepared = [
+      {
+        index: 1,
+        result: {
+          uuid: 'page-uuid-2',
+          title: 'Second',
+          description: '',
+          path: '/changed-second',
+          components: [],
+          filePath: secondFilePath,
+        },
+      },
+    ];
+
+    const remoteByUuid = new Map([
+      ['page-uuid-2', mockPageListItem(2, 'page-uuid-2', 'Second', '/second')],
+    ]);
+
+    const api = {
+      updatePage: vi.fn(),
+      createPage: vi.fn(),
+    } as unknown as Pick<ApiService, 'createPage' | 'updatePage'>;
+
+    const results = await pushPages(prepared, remoteByUuid, api);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].success).toBe(false);
+    expect(results[0].index).toBe(1);
+    expect(results[0].pageTitle).toBe('Second');
   });
 });
 
@@ -353,22 +386,52 @@ describe('collectPageResults', () => {
   });
 
   it('should collect failed push results', () => {
-    const pages = [mockDiscoveredPage('home', null, '/tmp/home.json')];
+    const pages = [
+      mockDiscoveredPage('home', null, '/tmp/home.json', 'pages/home.json'),
+    ];
 
     const pushResults = [
-      { success: false, error: new Error('API error'), index: 0 },
+      {
+        success: false,
+        error: new Error('API error'),
+        index: 0,
+        pageTitle: 'Home',
+      },
     ];
 
     const results = collectPageResults(pushResults, [], pages);
 
     expect(results).toHaveLength(1);
     expect(results[0].success).toBe(false);
-    expect(results[0].itemName).toBe('home');
+    expect(results[0].itemName).toBe('Home (pages/home.json)');
     expect(results[0].details?.[0].content).toBe('API error');
   });
 
-  it('should collect failed preparations', () => {
-    const pages = [mockDiscoveredPage('bad', null, '/tmp/bad.json')];
+  it('collects failed preparations with the title and relative path', () => {
+    const pages = [
+      mockDiscoveredPage('bad', null, '/tmp/bad.json', 'pages/bad.json'),
+    ];
+
+    const failedPreps = [
+      {
+        index: 0,
+        error: new Error('Invalid components'),
+        pageTitle: 'Broken page',
+      },
+    ];
+
+    const results = collectPageResults([], failedPreps, pages);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].success).toBe(false);
+    expect(results[0].itemName).toBe('Broken page (pages/bad.json)');
+    expect(results[0].details?.[0].content).toBe('Invalid components');
+  });
+
+  it('falls back to the relative path for failed preparations without a title', () => {
+    const pages = [
+      mockDiscoveredPage('bad', null, '/tmp/bad.json', 'pages/bad.json'),
+    ];
 
     const failedPreps = [{ index: 0, error: new Error('Invalid JSON') }];
 
@@ -376,7 +439,7 @@ describe('collectPageResults', () => {
 
     expect(results).toHaveLength(1);
     expect(results[0].success).toBe(false);
-    expect(results[0].itemName).toBe('bad');
+    expect(results[0].itemName).toBe('pages/bad.json');
     expect(results[0].details?.[0].content).toBe('Invalid JSON');
   });
 });
