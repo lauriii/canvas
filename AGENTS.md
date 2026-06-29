@@ -45,12 +45,14 @@ ddev exec -d /path/to/canvas npm run --list
 
 - ALWAYS run `npm run fix` when JavaScript code is updated.
 - ALWAYS run `composer run fix` when PHP code is updated.
+- ALWAYS run `npm run lint` and `composer run lint` before generating a commit
 - ALWAYS run narrow, directly impacted tests first.
 - NEVER run full test suites. (Cypress component, Cypress E2E, PHPUnit, Playwright)
 
 ## 3. Collaboration conventions
 
 - ALWAYS write U.S. English ("behavior", "color" …).
+- ALWAYS write `@todo` comments on a single line, no matter how long.
 - NEVER push commits nor post comments without human approval.
 
 ### Writing code
@@ -67,11 +69,11 @@ When in doubt, ask: *would a reviewer looking only at this commit's diff immedia
 what changed and why?* One concern per commit.
 
 ```
-[🤖 ]<intent: what this commit achieves and why — ≤160 characters>
+🤖 <intent: what this commit achieves and why — ≤160 characters>
 
 [<body: additional context, constraints, or reasoning — max 1 paragraph>]
 
-[Co-authored-by: <Name> (<Role>, <model>)]
+Co-authored-by: <Name> (<Role>, <model>)
 ```
 (Brackets convey optionality; drop the brackets if populated.)
 
