@@ -12,7 +12,9 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Drupal\canvas_personalization\Plugin\Canvas\ComponentSource\Personalization;
+use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
@@ -48,6 +50,7 @@ final class CanvasAiPageBuilderHelperTest extends CanvasKernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->installConfig(['system']);
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema('user');
     $privileged_user = $this->createUser(['create canvas_page']);
@@ -501,6 +504,64 @@ XML;
     ];
     $result = $this->canvasAiPageBuilderHelper->processCanvasPageFields($response);
     $this->assertEquals($response, $result);
+  }
+
+  /**
+   * Tests that block components expose prop metadata in context.
+   */
+  public function testBlockComponentPropsInContext(): void {
+    // Create an admin user.
+    $privileged_user = $this->createUser([], '', TRUE);
+    \assert($privileged_user !== FALSE);
+    $this->container->get('current_user')->setAccount($privileged_user);
+    $this->container->get(BlockManagerInterface::class)->getDefinitions();
+    $this->container->get(ComponentSourceManager::class)
+      ->generateComponents(BlockComponent::SOURCE_PLUGIN_ID, ['system_branding_block']);
+
+    $components = $this->canvasAiPageBuilderHelper->getAllComponentsKeyedBySource();
+    $this->assertArrayHasKey(BlockComponent::SOURCE_PLUGIN_ID, $components);
+    $component_id = BlockComponent::SOURCE_PLUGIN_ID . '.system_branding_block';
+    $block_component = $components[BlockComponent::SOURCE_PLUGIN_ID]['components'][$component_id] ?? NULL;
+    $this->assertIsArray($block_component);
+    $props = $block_component['props'] ?? NULL;
+    $this->assertIsArray($props);
+    $this->assertArrayHasKey('label', $props);
+    $this->assertArrayHasKey('label_display', $props);
+    $this->assertArrayHasKey('use_site_logo', $props);
+    $this->assertArrayHasKey('use_site_slogan', $props);
+    $this->assertTrue($props['label_display']['required']);
+  }
+
+  /**
+   * Tests that block storage data matches the access-checked listing.
+   *
+   * The 0007 post_update hook runs via `drush updb` as the anonymous user, for
+   * which getAllComponentsKeyedBySource() returns nothing.
+   * getEnabledBlockComponentsFromStorage() must reproduce the block data an
+   * admin would see there.
+   *
+   * @see \Drupal\canvas_ai\CanvasAiPageBuilderHelper::getEnabledBlockComponentsFromStorage()
+   */
+  public function testGetEnabledBlockComponentsFromStorageMatchesListing(): void {
+    $this->container->get(BlockManagerInterface::class)->getDefinitions();
+    $this->container->get(ComponentSourceManager::class)
+      ->generateComponents(BlockComponent::SOURCE_PLUGIN_ID, ['system_branding_block']);
+
+    // As an admin, capture the block components from the access-checked listing.
+    $admin = $this->createUser([], '', TRUE);
+    \assert($admin !== FALSE);
+    $this->container->get('current_user')->setAccount($admin);
+    $listed = $this->canvasAiPageBuilderHelper->getAllComponentsKeyedBySource();
+    $this->assertArrayHasKey(BlockComponent::SOURCE_PLUGIN_ID, $listed);
+    $listed_blocks = $listed[BlockComponent::SOURCE_PLUGIN_ID]['components'];
+    // Ensure that block data exists.
+    $this->assertNotEmpty($listed_blocks);
+
+    // As the anonymous user, the storage path must return the same blocks.
+    $this->container->get('current_user')->setAccount(new AnonymousUserSession());
+    $stored_blocks = $this->canvasAiPageBuilderHelper->getEnabledBlockComponentsFromStorage();
+
+    $this->assertEquals($listed_blocks, $stored_blocks);
   }
 
 }

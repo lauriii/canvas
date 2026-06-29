@@ -10,6 +10,8 @@ declare(strict_types=1);
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
+use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
+use Drupal\Component\Serialization\Yaml;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\FileStorage;
@@ -155,4 +157,48 @@ function canvas_ai_post_update_0006_restore_orchestrator_agent_uuid(): void {
   if ($changed) {
     $config->save(TRUE);
   }
+}
+
+/**
+ * Add block component props to saved component description settings.
+ *
+ * Block components previously stored only id/name/description. They now also
+ * expose props, so rebuild the saved block data from the live system and merge
+ * back any user-customized descriptions.
+ *
+ * @see \Drupal\canvas_ai\CanvasAiPageBuilderHelper::getEnabledBlockComponentsFromStorage()
+ */
+function canvas_ai_post_update_0007_add_block_props_to_component_description_settings(): void {
+  $config = \Drupal::configFactory()->getEditable('canvas_ai.component_description.settings');
+  if ($config->isNew()) {
+    return;
+  }
+
+  $source = BlockComponent::SOURCE_PLUGIN_ID;
+  $saved_data = (string) $config->get("component_context.$source.data");
+  // Nothing to migrate when the site never saved any block data.
+  if ($saved_data === '') {
+    return;
+  }
+
+  $page_builder_helper = \Drupal::service('canvas_ai.page_builder_helper');
+  assert($page_builder_helper instanceof CanvasAiPageBuilderHelper);
+  $rebuilt_blocks = $page_builder_helper->getEnabledBlockComponentsFromStorage();
+  // Without live block data there are no props to add.
+  if ($rebuilt_blocks === []) {
+    return;
+  }
+
+  // The rebuilt data already carries the new props and their default
+  // descriptions. Layer each block's previously saved description back on top.
+  $decoded = Yaml::decode($saved_data);
+  $saved_blocks = is_array($decoded) ? $decoded : [];
+  foreach ($saved_blocks as $block_id => $saved_block) {
+    if (isset($rebuilt_blocks[$block_id], $saved_block['description'])) {
+      $rebuilt_blocks[$block_id]['description'] = $saved_block['description'];
+    }
+  }
+
+  // Replace only the block data; the enabled flag is left untouched.
+  $config->set("component_context.$source.data", Yaml::encode($rebuilt_blocks))->save(TRUE);
 }

@@ -167,7 +167,25 @@ final class CanvasAiComponentDescriptionSettingsFormTest extends BrowserTestBase
       'component_context[block][components][block.system_branding_block][description]',
       $label
     );
-    // Props and slots are not considered for block components.
+
+    // Verify the form exposes non-excluded block props and hides excluded ones.
+    // Drive the assertion from the raw schema so the test stays correct if the
+    // block gains or loses settings in future Drupal versions.
+    $raw_schema = \Drupal::service('config.typed')->getDefinition('block.settings.system_branding_block');
+    $mapping = array_filter(\is_array($raw_schema['mapping'] ?? NULL) ? $raw_schema['mapping'] : [], 'is_array');
+    $excluded = ['id', 'provider', 'admin_label', 'context_mapping'];
+    foreach ($excluded as $key) {
+      $this->assertSession()->elementNotExists(
+        'css',
+        "textarea[name='component_context[block][components][block.system_branding_block][props][$key][description]']"
+      );
+    }
+    foreach (array_diff_key($mapping, array_flip($excluded)) as $prop_name => $unused) {
+      $this->assertSession()->elementExists(
+        'css',
+        "textarea[name='component_context[block][components][block.system_branding_block][props][$prop_name][description]']"
+      );
+    }
   }
 
   /**
@@ -190,6 +208,7 @@ final class CanvasAiComponentDescriptionSettingsFormTest extends BrowserTestBase
       'component_context[sdc][components][sdc.canvas_test_sdc.two_column][slots][column_one][description]' => 'Column one slot description updated',
       'component_context[sdc][components][sdc.canvas_test_sdc.two_column][slots][column_two][description]' => 'Column two slot description updated',
       'component_context[block][components][block.system_branding_block][description]' => 'Branding block description updated',
+      'component_context[block][components][block.system_branding_block][props][use_site_logo][description]' => 'Use site logo description updated',
     ];
     $this->submitForm($edit, 'Save configuration');
 
@@ -204,6 +223,7 @@ final class CanvasAiComponentDescriptionSettingsFormTest extends BrowserTestBase
     $this->assertSession()->fieldValueEquals('component_context[sdc][components][sdc.canvas_test_sdc.two_column][slots][column_one][description]', 'Column one slot description updated');
     $this->assertSession()->fieldValueEquals('component_context[sdc][components][sdc.canvas_test_sdc.two_column][slots][column_two][description]', 'Column two slot description updated');
     $this->assertSession()->fieldValueEquals('component_context[block][components][block.system_branding_block][description]', 'Branding block description updated');
+    $this->assertSession()->fieldValueEquals('component_context[block][components][block.system_branding_block][props][use_site_logo][description]', 'Use site logo description updated');
   }
 
 }

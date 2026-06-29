@@ -34,6 +34,7 @@ import {
   useCreateCodeComponentMutation,
   useGetComponentsQuery,
 } from '@/services/componentAndLayout';
+import { isPropSourceComponent } from '@/types/Component';
 import { getBaseUrl, getDrupalSettings } from '@/utils/drupal-globals';
 
 import fixtureProps from '../../../../modules/canvas_ai/src/PropsSchema.json';
@@ -203,8 +204,13 @@ const canvasPageDataHandler = {
 // Filters out 'media' fields from a js component instance's fieldValues based on the
 // component definition's propSources, forcing the component to use the example
 // image from its definition.
+// Block components do not have propSources, so we cannot set field values while
+// placing them - return unchanged in that case.
 // @todo Refactor this after https://www.drupal.org/i/3552000 is fixed.
 function removeMediaFields(componentDef: CanvasComponent, componentInst: any) {
+  if (!isPropSourceComponent(componentDef)) {
+    return componentInst;
+  }
   const newFieldValues = {} as any;
   const fieldValues = componentInst.fieldValues || {};
   for (const [key, value] of Object.entries(fieldValues)) {

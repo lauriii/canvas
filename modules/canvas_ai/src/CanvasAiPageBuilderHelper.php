@@ -16,6 +16,7 @@ use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\VariationCacheInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
@@ -63,6 +64,8 @@ class CanvasAiPageBuilderHelper {
    *   The API config controllers service.
    * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
    *   The logger channel factory.
+   * @param \Drupal\Core\Config\TypedConfigManagerInterface $typedConfigManager
+   *   The typed config manager.
    */
   public function __construct(
     private readonly ComponentPluginManager $componentPluginManager,
@@ -79,6 +82,7 @@ class CanvasAiPageBuilderHelper {
     private readonly ApiConfigControllers $apiConfigControllers,
     #[Autowire(service: 'logger.factory')]
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly TypedConfigManagerInterface $typedConfigManager,
   ) {
   }
 
@@ -382,12 +386,7 @@ class CanvasAiPageBuilderHelper {
         $this->processCodeComponents($component, $output, $available_components[$component_id]);
       }
       else {
-        // Other sources: id, name, description (description = name)
-        $output[$source]['components'][$component_id] = [
-          'id' => $component_id,
-          'name' => $component->label(),
-          'description' => $component->label(),
-        ];
+        $this->processBlock($component, $output);
       }
     }
     $cacheability = CacheableMetadata::createFromObject($available_components_response->getCacheableMetadata());
@@ -396,6 +395,33 @@ class CanvasAiPageBuilderHelper {
     $this->memoryVariationCache->set($cache_keys, $output, $cacheability, $initial_cacheability);
 
     return $output;
+  }
+
+  /**
+   * Loads all block components from storage, keyed by component id.
+   *
+   * Helper for the 0007 post_update hook. That hook runs via `drush updb` as
+   * the anonymous user, for which getAllComponentsKeyedBySource() returns
+   * nothing because it access-checks the component listing. This loads block
+   * components straight from storage instead, so it is independent of the
+   * current user.
+   *
+   * @return array
+   *   Enabled block components keyed by component id, including their props.
+   *
+   * @see canvas_ai_post_update_0007_add_block_props_to_component_description_settings()
+   */
+  public function getEnabledBlockComponentsFromStorage(): array {
+    $output = [];
+    $components = $this->entityTypeManager
+      ->getStorage(Component::ENTITY_TYPE_ID)
+      ->loadByProperties(['status' => TRUE]);
+    foreach ($components as $component) {
+      if ($component->getComponentSource()->getPluginId() === BlockComponent::SOURCE_PLUGIN_ID) {
+        $this->processBlock($component, $output);
+      }
+    }
+    return $output[BlockComponent::SOURCE_PLUGIN_ID]['components'] ?? [];
   }
 
   /**
@@ -701,6 +727,91 @@ class CanvasAiPageBuilderHelper {
         ];
       }
     }
+  }
+
+  /**
+   * Create the context data for Block components.
+   *
+   * @param \Drupal\canvas\Entity\Component $component
+   *   The component entity.
+   * @param array &$output
+   *   The output array to store the Block component data.
+   */
+  private function processBlock(Component $component, array &$output): void {
+    $component_id = $component->id();
+    $source_id = BlockComponent::SOURCE_PLUGIN_ID;
+    $output[$source_id]['components'][$component_id] = [
+      'id' => $component_id,
+      'name' => $component->label(),
+      'description' => $component->label(),
+    ];
+
+    $component_source = $component->getComponentSource();
+    if (!$component_source instanceof BlockComponent) {
+      return;
+    }
+
+    $raw_schema = $this->typedConfigManager->getDefinition('block.settings.' . $component->get('source_local_id'));
+    $mapping = $raw_schema['mapping'] ?? [];
+    if (!\is_array($mapping) || $mapping === []) {
+      return;
+    }
+
+    $settings = $component->getSettings();
+    $defaults = \is_array($settings['default_settings'] ?? NULL) ? $settings['default_settings'] : [];
+    $props = [];
+    foreach ($mapping as $prop_name => $prop_details) {
+      if (!\is_array($prop_details)) {
+        continue;
+      }
+      if (self::isBlockPropExcluded($prop_name)) {
+        continue;
+      }
+      $props[$prop_name] = [
+        'name' => $prop_details['label'] ?? $prop_name,
+        'description' => $prop_details['description'] ?? $prop_details['label'] ?? 'No description available',
+        'type' => $prop_details['type'] ?? 'string',
+        'default' => $defaults[$prop_name] ?? $prop_details['default'] ?? NULL,
+      ];
+      if (!\array_key_exists('requiredKey', $prop_details) || $prop_details['requiredKey'] !== FALSE) {
+        $props[$prop_name]['required'] = TRUE;
+      }
+      $enum = $this->getEnumFromSchemaConstraints($prop_details);
+      if (count($enum) > 0) {
+        $props[$prop_name]['enum'] = $enum;
+      }
+    }
+
+    if (!empty($props)) {
+      $output[$source_id]['components'][$component_id]['props'] = $props;
+    }
+  }
+
+  /**
+   * Returns TRUE if a block prop key should not be exposed to the agent.
+   *
+   * The context_mapping key is excluded because Canvas does not apply context
+   * mappings at render time, so any value written by the agent would have no
+   * effect.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentInstanceInputsConfigSchemaGenerator::getConfigSchemaMapping()
+   */
+  private static function isBlockPropExcluded(string $prop_name): bool {
+    return \in_array($prop_name, ['id', 'provider', 'admin_label', 'context_mapping'], TRUE);
+  }
+
+  /**
+   * Extracts enum values from config schema constraints.
+   *
+   * @param array $prop_details
+   *   The config schema definition for a prop.
+   *
+   * @return array
+   *   The enum values, if any.
+   */
+  private function getEnumFromSchemaConstraints(array $prop_details): array {
+    $choices = $prop_details['constraints']['Choice']['choices'] ?? [];
+    return \is_array($choices) ? $choices : [];
   }
 
   /**

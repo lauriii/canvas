@@ -103,7 +103,7 @@ class AiResponseValidator {
         if ($component instanceof Component && !empty($componentData['props'])) {
           $source = $component->getComponentSource();
           $clientNormalized = $component->normalizeForClientSide()->values;
-          $clientModel['source'] = $clientNormalized['propSources'];
+          $clientModel['source'] = $clientNormalized['propSources'] ?? [];
           $clientModel['resolved'] = $componentData['props'];
           $inputs = $source->clientModelToInput($componentUuid, $component, $clientModel, NULL);
         }
