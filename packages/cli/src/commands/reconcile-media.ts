@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import axios from 'axios';
 import chalk from 'chalk';
+import { Option } from 'commander';
 import { useAgent } from 'request-filtering-agent';
 import * as p from '@clack/prompts';
 import {
@@ -12,7 +13,12 @@ import {
 
 import { ensureConfig, getConfig } from '../config.js';
 import { createApiService } from '../services/api.js';
-import { pluralize, updateConfigFromOptions } from '../utils/command-helpers';
+import {
+  applySyncOptionAliasesAndWarnings,
+  parseBooleanOption,
+  pluralize,
+  updateConfigFromOptions,
+} from '../utils/command-helpers';
 import { printCommandIntro } from '../utils/command-intro';
 import { getUnreconciledMedia } from '../utils/prop-transforms';
 import {
@@ -22,7 +28,10 @@ import {
 import { processInPool } from '../utils/request-pool';
 import { isRecord } from '../utils/utils';
 
-import type { ComponentMetadata } from '@drupal-canvas/discovery';
+import type {
+  ComponentMetadata,
+  DiscoveryResult,
+} from '@drupal-canvas/discovery';
 import type { Command } from 'commander';
 import type { AuthoredSpecElementMap } from 'drupal-canvas/json-render-utils';
 import type { ApiService, UploadedMedia } from '../services/api.js';
@@ -33,8 +42,32 @@ interface ReconcileMediaOptions {
   clientSecret?: string;
   siteUrl?: string;
   scope?: string;
+  includePages?: boolean;
+  includeContentTemplates?: boolean;
+  includeRegions?: boolean;
+  pages?: boolean;
+  contentTemplates?: boolean;
+  regions?: boolean;
+  sync?: Partial<{
+    pages: boolean;
+    contentTemplates: boolean;
+    regions: boolean;
+  }>;
   dir?: string;
   yes?: boolean;
+}
+
+export interface ReconcileMediaSyncConfig {
+  includePages: boolean;
+  includeContentTemplates: boolean;
+  includeRegions: boolean;
+}
+
+export interface ReconcileSpecFile {
+  label: string;
+  relativePath: string;
+  path: string;
+  spec: { elements: AuthoredSpecElementMap; [key: string]: unknown };
 }
 
 interface DownloadedMedia {
@@ -123,6 +156,82 @@ function defaultDownloadMedia(url: string): Promise<DownloadedMedia> {
     return Promise.resolve(downloadDataUrlMedia(url));
   }
   return downloadExternalMedia(url);
+}
+
+async function readReconcileSpecFile(
+  label: string,
+  relativePath: string,
+  specPath: string,
+): Promise<ReconcileSpecFile> {
+  const content = await fs.readFile(specPath, 'utf-8');
+  const parsedSpec = JSON.parse(content) as {
+    elements?: AuthoredSpecElementMap;
+    [key: string]: unknown;
+  };
+  return {
+    label,
+    relativePath,
+    path: specPath,
+    spec: { ...parsedSpec, elements: parsedSpec.elements ?? {} },
+  };
+}
+
+export async function collectReconcileSpecFiles(
+  discoveryResult: Pick<
+    DiscoveryResult,
+    'pages' | 'contentTemplates' | 'regions'
+  >,
+  syncConfig: ReconcileMediaSyncConfig,
+): Promise<ReconcileSpecFile[]> {
+  const specFiles: ReconcileSpecFile[] = [];
+
+  if (syncConfig.includePages) {
+    for (const page of discoveryResult.pages) {
+      specFiles.push(
+        await readReconcileSpecFile(
+          `page "${page.name}"`,
+          page.relativePath,
+          page.path,
+        ),
+      );
+    }
+  }
+
+  if (syncConfig.includeContentTemplates) {
+    for (const template of discoveryResult.contentTemplates) {
+      specFiles.push(
+        await readReconcileSpecFile(
+          `content template "${template.name}"`,
+          template.relativePath,
+          template.path,
+        ),
+      );
+    }
+  }
+
+  if (syncConfig.includeRegions) {
+    for (const region of discoveryResult.regions) {
+      specFiles.push(
+        await readReconcileSpecFile(
+          `global region "${region.region}"`,
+          region.relativePath,
+          region.path,
+        ),
+      );
+    }
+  }
+
+  return specFiles;
+}
+
+export function hasReconcileMediaSyncEnabled(
+  syncConfig: ReconcileMediaSyncConfig,
+): boolean {
+  return (
+    syncConfig.includePages ||
+    syncConfig.includeContentTemplates ||
+    syncConfig.includeRegions
+  );
 }
 
 export interface ReconcileSuccess {
@@ -278,18 +387,72 @@ export function reconcileMediaCommand(program: Command): void {
   program
     .command('reconcile-media')
     .description(
-      'upload supported external media from pages and content templates to Drupal and store its provenance',
+      'upload supported external media from pages, content templates, and global regions to Drupal and store its provenance',
     )
     .option('--client-id <id>', 'Client ID')
     .option('--client-secret <secret>', 'Client Secret')
     .option('--site-url <url>', 'Site URL')
     .option('--scope <scope>', 'Scope')
+    .addOption(
+      new Option(
+        '--include-pages [enabled]',
+        'Include pages in the media reconciliation operation',
+      )
+        .preset('true')
+        .argParser(parseBooleanOption)
+        .default(undefined),
+    )
+    .addOption(
+      new Option(
+        '--include-content-templates [enabled]',
+        'Include content templates in the media reconciliation operation',
+      )
+        .preset('true')
+        .argParser(parseBooleanOption)
+        .default(undefined),
+    )
+    .addOption(
+      new Option(
+        '--include-regions [enabled]',
+        'Include global regions in the media reconciliation operation',
+      )
+        .preset('true')
+        .argParser(parseBooleanOption)
+        .default(undefined),
+    )
+    .option(
+      '--no-pages',
+      'Exclude pages from the media reconciliation operation',
+    )
+    .option(
+      '--no-content-templates',
+      'Exclude content templates from the media reconciliation operation',
+    )
+    .option(
+      '--no-regions',
+      'Exclude global regions from the media reconciliation operation',
+    )
     .option('-d, --dir <directory>', 'Component directory')
     .option('-y, --yes', 'Skip confirmation prompts')
     .action(async (options: ReconcileMediaOptions) => {
       try {
         printCommandIntro('reconcile media');
+        applySyncOptionAliasesAndWarnings(options);
         updateConfigFromOptions(options);
+
+        const currentConfig = getConfig();
+        const syncConfig = {
+          includePages: currentConfig.includePages,
+          includeContentTemplates: currentConfig.includeContentTemplates,
+          includeRegions: currentConfig.includeRegions,
+        };
+        if (!hasReconcileMediaSyncEnabled(syncConfig)) {
+          p.log.info(
+            'No pages, content templates, or global regions are enabled for media reconciliation.',
+          );
+          p.outro('Media reconciliation skipped');
+          return;
+        }
 
         await ensureConfig([
           'siteUrl',
@@ -304,49 +467,20 @@ export function reconcileMediaCommand(program: Command): void {
           componentRoot: nextConfig.componentDir,
           pagesRoot: nextConfig.pagesDir,
           contentTemplatesRoot: nextConfig.contentTemplatesDir,
+          regionsRoot: nextConfig.regionsDir,
           projectRoot: process.cwd(),
         });
         const componentMetadata = await loadComponentsMetadata(discoveryResult);
 
-        interface SpecFile {
-          label: string;
-          relativePath: string;
-          path: string;
-          spec: { elements: AuthoredSpecElementMap; [key: string]: unknown };
-        }
-
-        const specFiles: SpecFile[] = [];
-
-        for (const page of discoveryResult.pages) {
-          const content = await fs.readFile(page.path, 'utf-8');
-          const spec = JSON.parse(content) as {
-            title: string;
-            elements: AuthoredSpecElementMap;
-          };
-          specFiles.push({
-            label: `page "${page.name}"`,
-            relativePath: page.relativePath,
-            path: page.path,
-            spec,
-          });
-        }
-
-        for (const template of discoveryResult.contentTemplates) {
-          const content = await fs.readFile(template.path, 'utf-8');
-          const spec = JSON.parse(content) as {
-            label: string;
-            elements: AuthoredSpecElementMap;
-          };
-          specFiles.push({
-            label: `content template "${template.name}"`,
-            relativePath: template.relativePath,
-            path: template.path,
-            spec,
-          });
-        }
+        const specFiles = await collectReconcileSpecFiles(
+          discoveryResult,
+          syncConfig,
+        );
 
         if (specFiles.length === 0) {
-          p.log.warn('No local pages or content templates found.');
+          p.log.warn(
+            'No local pages, content templates, or global regions found for the enabled sync settings.',
+          );
           p.outro('Media reconciliation skipped');
           return;
         }

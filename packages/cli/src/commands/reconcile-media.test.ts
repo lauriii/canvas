@@ -1,7 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { promises as fs } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  collectReconcileSpecFiles,
   downloadDataUrlMedia,
+  hasReconcileMediaSyncEnabled,
   reconcileElementMapMedia,
 } from './reconcile-media';
 
@@ -26,6 +31,228 @@ const metadata: ComponentMetadata[] = [
     },
   },
 ];
+
+async function makeTempDir(): Promise<string> {
+  return fs.mkdtemp(path.join(os.tmpdir(), 'reconcile-media-test-'));
+}
+
+async function writeFile(filePath: string, content: string): Promise<void> {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, content, 'utf-8');
+}
+
+const tempDirs: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(
+    tempDirs.map((dir) => fs.rm(dir, { recursive: true, force: true })),
+  );
+  tempDirs.length = 0;
+});
+
+describe('collectReconcileSpecFiles', () => {
+  it('does not read specs when pages, content templates, and regions are disabled', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+    const pagePath = path.join(root, 'pages/home.json');
+    const templatePath = path.join(root, 'content-templates/article.json');
+    const regionPath = path.join(root, 'regions/header.json');
+
+    await writeFile(pagePath, '{');
+    await writeFile(templatePath, '{');
+    await writeFile(regionPath, '{');
+
+    const specFiles = await collectReconcileSpecFiles(
+      {
+        pages: [
+          {
+            name: 'home',
+            slug: 'home',
+            uuid: null,
+            path: pagePath,
+            relativePath: 'pages/home.json',
+          },
+        ],
+        contentTemplates: [
+          {
+            name: 'article',
+            slug: 'article',
+            label: 'Article',
+            entityTypeId: null,
+            bundle: null,
+            viewMode: null,
+            path: templatePath,
+            relativePath: 'content-templates/article.json',
+          },
+        ],
+        regions: [
+          {
+            region: 'header',
+            path: regionPath,
+            relativePath: 'regions/header.json',
+          },
+        ],
+      },
+      {
+        includePages: false,
+        includeContentTemplates: false,
+        includeRegions: false,
+      },
+    );
+
+    expect(specFiles).toEqual([]);
+  });
+
+  it('collects enabled pages and content templates while skipping disabled regions', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+    const pagePath = path.join(root, 'pages/home.json');
+    const templatePath = path.join(root, 'content-templates/article.json');
+    const regionPath = path.join(root, 'regions/header.json');
+
+    await writeFile(pagePath, JSON.stringify({ title: 'Home', elements: {} }));
+    await writeFile(
+      templatePath,
+      JSON.stringify({ label: 'Article', elements: {} }),
+    );
+    await writeFile(regionPath, JSON.stringify({ elements: {} }));
+
+    const specFiles = await collectReconcileSpecFiles(
+      {
+        pages: [
+          {
+            name: 'home',
+            slug: 'home',
+            uuid: null,
+            path: pagePath,
+            relativePath: 'pages/home.json',
+          },
+        ],
+        contentTemplates: [
+          {
+            name: 'article',
+            slug: 'article',
+            label: 'Article',
+            entityTypeId: null,
+            bundle: null,
+            viewMode: null,
+            path: templatePath,
+            relativePath: 'content-templates/article.json',
+          },
+        ],
+        regions: [
+          {
+            region: 'header',
+            path: regionPath,
+            relativePath: 'regions/header.json',
+          },
+        ],
+      },
+      {
+        includePages: true,
+        includeContentTemplates: true,
+        includeRegions: false,
+      },
+    );
+
+    expect(specFiles.map((file) => file.label)).toEqual([
+      'page "home"',
+      'content template "article"',
+    ]);
+    expect(specFiles.map((file) => file.relativePath)).toEqual([
+      'pages/home.json',
+      'content-templates/article.json',
+    ]);
+  });
+
+  it('does not read disabled page or content template specs', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+    const pagePath = path.join(root, 'pages/home.json');
+    const templatePath = path.join(root, 'content-templates/article.json');
+    const regionPath = path.join(root, 'regions/header.json');
+
+    await writeFile(pagePath, '{');
+    await writeFile(templatePath, '{');
+    await writeFile(regionPath, JSON.stringify({ elements: {} }));
+
+    const specFiles = await collectReconcileSpecFiles(
+      {
+        pages: [
+          {
+            name: 'home',
+            slug: 'home',
+            uuid: null,
+            path: pagePath,
+            relativePath: 'pages/home.json',
+          },
+        ],
+        contentTemplates: [
+          {
+            name: 'article',
+            slug: 'article',
+            label: 'Article',
+            entityTypeId: null,
+            bundle: null,
+            viewMode: null,
+            path: templatePath,
+            relativePath: 'content-templates/article.json',
+          },
+        ],
+        regions: [
+          {
+            region: 'header',
+            path: regionPath,
+            relativePath: 'regions/header.json',
+          },
+        ],
+      },
+      {
+        includePages: false,
+        includeContentTemplates: false,
+        includeRegions: true,
+      },
+    );
+
+    expect(specFiles.map((file) => file.label)).toEqual([
+      'global region "header"',
+    ]);
+    expect(specFiles[0].spec).toEqual({ elements: {} });
+  });
+});
+
+describe('hasReconcileMediaSyncEnabled', () => {
+  it('returns false only when all reconciled resource types are disabled', () => {
+    expect(
+      hasReconcileMediaSyncEnabled({
+        includePages: false,
+        includeContentTemplates: false,
+        includeRegions: false,
+      }),
+    ).toBe(false);
+    expect(
+      hasReconcileMediaSyncEnabled({
+        includePages: true,
+        includeContentTemplates: false,
+        includeRegions: false,
+      }),
+    ).toBe(true);
+    expect(
+      hasReconcileMediaSyncEnabled({
+        includePages: false,
+        includeContentTemplates: true,
+        includeRegions: false,
+      }),
+    ).toBe(true);
+    expect(
+      hasReconcileMediaSyncEnabled({
+        includePages: false,
+        includeContentTemplates: false,
+        includeRegions: true,
+      }),
+    ).toBe(true);
+  });
+});
 
 describe('reconcileElementMapMedia', () => {
   it('uploads external media, updates props, and writes provenance', async () => {

@@ -66,17 +66,17 @@ properties:
 
 **Properties:**
 
-| Property                | Default               | Description                                                                                                               |
-| ----------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `componentDir`          | `"src/components"`    | Directory where Code Components are stored in the filesystem. It must be inside `aliasBaseDir` for local builds.          |
-| `pagesDir`              | `"pages"`             | Directory where pages are stored in the filesystem.                                                                       |
-| `contentTemplatesDir`   | `"content-templates"` | Directory where content templates are stored in the filesystem.                                                           |
-| `aliasBaseDir`          | `"src"`               | Base directory for module resolution when using path aliases in your components. Tied to your project's import structure. |
-| `outputDir`             | `"dist"`              | Build output directory (similar to Vite's `build.outDir`). Defines where compiled assets are generated.                   |
-| `globalCssPath`         | `"src/global.css"`    | Path to the global CSS file.                                                                                              |
-| `sync.pages`            | `true`                | Include pages in `pull` and `push`. Set to `false` to exclude pages by default.                                           |
-| `sync.contentTemplates` | `true`                | Include content templates in `pull` and `push`. Set to `false` to exclude content templates by default.                   |
-| `sync.regions`          | `true`                | Include global regions in `pull` and `push`. Set to `false` to exclude global regions by default.                         |
+| Property                | Default               | Description                                                                                                                 |
+| ----------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `componentDir`          | `"src/components"`    | Directory where Code Components are stored in the filesystem. It must be inside `aliasBaseDir` for local builds.            |
+| `pagesDir`              | `"pages"`             | Directory where pages are stored in the filesystem.                                                                         |
+| `contentTemplatesDir`   | `"content-templates"` | Directory where content templates are stored in the filesystem.                                                             |
+| `aliasBaseDir`          | `"src"`               | Base directory for module resolution when using path aliases in your components. Tied to your project's import structure.   |
+| `outputDir`             | `"dist"`              | Build output directory (similar to Vite's `build.outDir`). Defines where compiled assets are generated.                     |
+| `globalCssPath`         | `"src/global.css"`    | Path to the global CSS file.                                                                                                |
+| `sync.pages`            | `true`                | Include pages in `pull`, `push`, and `reconcile-media`. Set to `false` to exclude pages by default.                         |
+| `sync.contentTemplates` | `true`                | Include content templates in `pull`, `push`, and `reconcile-media`. Set to `false` to exclude content templates by default. |
+| `sync.regions`          | `true`                | Include global regions in `pull`, `push`, and `reconcile-media`. Set to `false` to exclude global regions by default.       |
 
 If `canvas.config.json` is not present, the CLI will use the default values
 shown above. For existing projects, if `globalCssPath` is not set and
@@ -191,10 +191,10 @@ to get started.
 | `--scope`                | `CANVAS_SCOPE`                     | (Optional) Space-separated list of OAuth scopes to request. Tied to your specific Drupal site's OAuth configuration. Defaults to standard scopes.                                                     |
 | _(none)_                 | `CANVAS_ACCESS_TOKEN`              | (Optional) Pre-issued Bearer token. When set, skips the OAuth client credentials flow entirely. `CANVAS_CLIENT_ID`, `CANVAS_CLIENT_SECRET`, and `CANVAS_SCOPE` are ignored. Must not be empty if set. |
 | _(none)_                 | _(none)_                           | User tokens from `canvas auth login` are stored in `~/.config/drupal-canvas/oauth.json` (keyed by site URL) and used automatically. No environment variable is needed.                                |
-| `--no-pages`             | `CANVAS_INCLUDE_PAGES`             | (Optional) Exclude pages from `pull` and `push`. `CANVAS_INCLUDE_PAGES` is deprecated; use `sync.pages` in `canvas.config.json` instead.                                                              |
-| `--no-content-templates` | `CANVAS_INCLUDE_CONTENT_TEMPLATES` | (Optional) Exclude content templates from `pull` and `push`. `CANVAS_INCLUDE_CONTENT_TEMPLATES` is deprecated; use `sync.contentTemplates` in `canvas.config.json` instead.                           |
+| `--no-pages`             | `CANVAS_INCLUDE_PAGES`             | (Optional) Exclude pages from `pull`, `push`, and `reconcile-media`. `CANVAS_INCLUDE_PAGES` is deprecated; use `sync.pages` in `canvas.config.json` instead.                                          |
+| `--no-content-templates` | `CANVAS_INCLUDE_CONTENT_TEMPLATES` | (Optional) Exclude content templates from `pull`, `push`, and `reconcile-media`. `CANVAS_INCLUDE_CONTENT_TEMPLATES` is deprecated; use `sync.contentTemplates` in `canvas.config.json` instead.       |
 | `--include-brand-kit`    | `CANVAS_INCLUDE_BRAND_KIT`         | (Optional) Include brand kit (fonts) in `pull` and `push`. Defaults to `false`. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                       |
-| `--no-regions`           | `CANVAS_INCLUDE_REGIONS`           | (Optional) Exclude global regions from `pull` and `push`. `CANVAS_INCLUDE_REGIONS` is deprecated; use `sync.regions` in `canvas.config.json` instead.                                                 |
+| `--no-regions`           | `CANVAS_INCLUDE_REGIONS`           | (Optional) Exclude global regions from `pull`, `push`, and `reconcile-media`. `CANVAS_INCLUDE_REGIONS` is deprecated; use `sync.regions` in `canvas.config.json` instead.                             |
 
 **Note:** When `CANVAS_SCOPE` is unset, the CLI uses the `canvas_oauth`
 defaults. With `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT`, it adds the
@@ -559,15 +559,15 @@ component assets. Push can include:
 
 ### `reconcile-media`
 
-Upload external media referenced in local page specs and content templates to
-Drupal and store provenance metadata so that pages and content templates can be
-pushed.
+Upload external media referenced in local page specs, content templates, and
+global regions to Drupal and store provenance metadata so that those resources
+can be pushed.
 
-When page specs or content templates contain image props with external URLs
-(e.g. `https://example.com/photo.jpg`), they cannot be pushed directly because
-Drupal expects a media entity reference. This command downloads each external
-image, uploads it to Drupal as a media entity, and updates the local spec with
-the resolved image data and provenance (`target_id`).
+When page specs, content templates, or global regions contain image props with
+external URLs (e.g. `https://example.com/photo.jpg`), they cannot be pushed
+directly because Drupal expects a media entity reference. This command downloads
+each external image, uploads it to Drupal as a media entity, and updates the
+local spec with the resolved image data and provenance (`target_id`).
 
 **Usage:**
 
@@ -577,11 +577,15 @@ npx canvas reconcile-media [options]
 
 **Options:**
 
+- `--no-pages`: Exclude pages from media reconciliation
+- `--no-content-templates`: Exclude content templates from media reconciliation
+- `--no-regions`: Exclude global regions from media reconciliation
 - `-y, --yes`: Skip confirmation prompts (non-interactive mode)
 
 **Examples:**
 
-Reconcile all external media in local pages:
+Reconcile all external media in enabled local pages, content templates, and
+global regions:
 
 ```bash
 npx canvas reconcile-media
