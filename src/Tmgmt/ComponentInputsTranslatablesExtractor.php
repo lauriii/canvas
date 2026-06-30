@@ -272,9 +272,16 @@ final class ComponentInputsTranslatablesExtractor {
   }
 
   private static function isComponentInstanceInputs(TypedConfigInterface $data): bool {
-    // Per the "TRICKY" comment in the calling function, this can never be a
-    // ComponentInputsMapping instance.
-    \assert(!$data instanceof ComponentInputsMapping);
+    // A component instance's inputs are translatable directly under a
+    // `canvas.component_tree_node`. This holds both for the concrete
+    // `type: mapping` generated from a JsonSchemaPropsComponentSource AND for
+    // the raw ComponentInputsMapping handled by the fallback paths in
+    // ::extractTranslatables() (a Component that fails to load, or whose source
+    // is not a JsonSchemaPropsComponentSourceBase, e.g. a block). In both cases
+    // an empty but translatable input must still be offered for translation via
+    // the `∅` placeholder: a value can legitimately be empty in the source
+    // language yet translated to a non-empty value in the target language.
+    // @see ::extractTranslatables()
     return $data->getParent()?->getDataDefinition()->getDataType() === 'canvas.component_tree_node';
   }
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-// cspell:ignore Bienvenue savoir Découvrez Identité visuelle Gitane
+// cspell:ignore Bienvenue savoir Découvrez Identité visuelle Gitane Charte graphique
 
 use Behat\Mink\Element\NodeElement;
 use Drupal\canvas\ConfigTranslation\CanvasStaticPropSourceFieldWidget;
@@ -97,6 +97,12 @@ class ConfigWithComponentTreeConfigTranslationUiTest extends ConfigWithComponent
         $field('[' . self::UUID_BLOCK_DEEP_TRANSLATABLE . '][inputs][label]'),
         $field('[' . self::UUID_BLOCK_DEEP_TRANSLATABLE . '][inputs][deeply_nested_translatable][0][bar]'),
       ],
+      // Block whose translatable `name` is empty in the source language: it is
+      // still offered for translation, alongside the populated `label`.
+      self::UUID_BLOCK_EMPTY_TRANSLATABLE_INPUT => [
+        $field('[' . self::UUID_BLOCK_EMPTY_TRANSLATABLE_INPUT . '][inputs][label]'),
+        $field('[' . self::UUID_BLOCK_EMPTY_TRANSLATABLE_INPUT . '][inputs][name]'),
+      ],
     ], $this->getConfigTranslationUiFormElementsForComponentInstances());
     // The "format" input exists (to load CKEditor) but is hidden, so it cannot
     // be changed.
@@ -105,7 +111,7 @@ class ConfigWithComponentTreeConfigTranslationUiTest extends ConfigWithComponent
       'input[type="hidden"][name="' . $field('[' . self::UUID_BANNER . '][inputs][text][0][format]') . '"][value="canvas_html_block"]',
     );
 
-    // Provide French translations for all 6 component instances.
+    // Provide French translations for all 7 component instances.
     $this->submitForm([
       $field('[' . self::UUID_TAGS . '][inputs][tags][0][value]') => 'fr: baz',
       $field('[' . self::UUID_TAGS . '][inputs][tags][1][value]') => 'fr: bar',
@@ -120,6 +126,9 @@ class ConfigWithComponentTreeConfigTranslationUiTest extends ConfigWithComponent
       $field('[' . self::UUID_BRANDING . '][inputs][label]') => 'Identité visuelle',
       $field('[' . self::UUID_BLOCK_DEEP_TRANSLATABLE . '][inputs][label]') => 'fr: Canvas Test Block for testing input translatability',
       $field('[' . self::UUID_BLOCK_DEEP_TRANSLATABLE . '][inputs][deeply_nested_translatable][0][bar]') => 'fr: Gitane',
+      $field('[' . self::UUID_BLOCK_EMPTY_TRANSLATABLE_INPUT . '][inputs][label]') => 'fr: Test block with settings',
+      // Translate the `name` that was empty in the source language.
+      $field('[' . self::UUID_BLOCK_EMPTY_TRANSLATABLE_INPUT . '][inputs][name]') => 'Charte graphique',
     ], 'Save translation');
     $assert_session->pageTextContains('Successfully saved French translation');
 
