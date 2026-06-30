@@ -25,6 +25,7 @@ test.describe('Templates - General', () => {
         'use editorial transition publish',
         'use editorial transition archive',
         'edit any article content',
+        'translate configuration',
       ],
     });
     await drupal.logout();
@@ -164,6 +165,11 @@ test.describe('Templates - General', () => {
     await expect(
       page.locator('[data-testid="language-options-popover-title"]').first(),
     ).toContainText('French');
+    // The popover title must show the template caption (e.g.
+    // "Article - Full content template").
+    await expect(
+      page.locator('[data-testid="language-options-popover-title"]').first(),
+    ).toContainText('Article - Full content template');
     await expect(
       page.locator('[data-testid="language-options-delete"]').first(),
     ).toBeVisible();
