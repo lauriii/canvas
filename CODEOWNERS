@@ -6,138 +6,24 @@
 # - One approval is required;
 # - Merge request creators are prevented from self-approving.
 
-# *OPTIONAL SECTIONS*
-# Sections are defined *for niche areas only* to facilitate seeking input from
-# maintainers who have the most experience in a particular area. This is optional,
-# and should be used sparingly.
-# The goal is to identify people who are likely able to provide valuable input in
-# case of questions or complex decisions. While it's encouraged to seek such
-# input, it's not required.
-
-^[OpenAPI] @larowlan @wimleers
-# Issues: https://www.drupal.org/project/issues/search/canvas?issue_tags=openapi
-/openapi.yml
-/redocly.yaml
-/.redocly.lint-ignore.yaml
-/src/EventSubscriber/ApiMessageValidatorBase.php
-/src/EventSubscriber/ApiRequestValidator.php
-/src/EventSubscriber/ApiResponseValidator.php
-/tests/src/Traits/OpenApiSpecTrait.php
-/tests/src/Unit/OpenApiSpecValidationTest.php
-/tests/src/Unit/UiFixturesValidationTest.php
+# The only exception: changes that can cause data loss for end users: 3 approvals required.
+[End user disruption: data integrity/validation][3]
+# Issues are in one of the following issue queue components:
+# - https://www.drupal.org/project/issues/canvas?component=Config+management
+# - https://www.drupal.org/project/issues/canvas?component=Data+model
+# - https://www.drupal.org/project/issues/canvas?component=Component+sources
+/config/schema/
+/src/Plugin/DataType/ComponentInputs.php
+/src/Plugin/Field/FieldType/ComponentTreeItem.php
+/src/Plugin/Field/FieldType/ComponentTreeItemList.php
+/src/Plugin/Validation/
+/src/Plugin/Canvas/ComponentSource/JsonSchemaPropsComponentSourceBase.php
+/src/Plugin/Canvas/ComponentSource/*InstanceUpdater*.php
 
 [Component & Page Data forms] @bnjmnm @hooroomoo @effulgentsia
 /src/Theme/CanvasThemeNegotiator.php
 /ui/src/components/form/*.tsx
 /ui/src/components/form/twig-to-jsx-component-map.js
-
-^[Redux-integrated field widgets] @bnjmnm @effulgentsia @larowlan
-# Issues: https://www.drupal.org/project/issues/canvas?component=Redux-integrated+field+widgets
-/src/Hook/ReduxIntegratedFieldWidgetHooks.php
-/src/MediaLibraryCanvasPropOpener.php
-/tests/src/Cypress/cypress/e2e/media-library.cy.js
-/tests/src/Cypress/cypress/e2e/prop-types.cy.js
-/tests/src/Kernel/LibraryInfoAlterTest.php
-/templates/form/
-
-^[Component sources] @f.mazeikis @larowlan @longwave @wimleers
-# Issues: https://www.drupal.org/project/issues/canvas?component=Component+sources
-/src/ComponentSource/
-/src/Hook/ComponentSourceHooks.php
-/tests/src/Kernel/Plugin/Canvas/ComponentSource/
-
-^[Config management] @f.mazeikis @larowlan @wimleers
-# Issues: https://www.drupal.org/project/issues/canvas?component=Config+management
-/docs/config-management.md
-/docs/diagrams/config-management.md
-/config/schema/
-# TRICKY: files for content entities should be explicitly listed in their own sections, see `[Page]` for an example.
-/src/Entity/
-/src/Hook/ContentTemplateHooks.php
-/src/Hook/PageRegionHooks.php
-/tests/src/Kernel/Config/
-/tests/src/Functional/Config/
-
-^[Data model] @effulgentsia @tedbow @larowlan @wimleers
-# Issues: https://www.drupal.org/project/issues/canvas?component=Data+model
-/docs/data-model.md
-/docs/diagrams/data-model.md
-# data type
-/src/Plugin/DataType/
-/tests/src/Kernel/DataType/
-# field type
-/src/Plugin/Field/FieldType/
-/tests/src/Kernel/Plugin/Field/FieldType/
-# data descriptions
-/src/PropExpressions/
-# the JSONable-PHP-objects representing the different sources to retrieve a prop value
-/src/PropSource/
-
-^[Page] @mglaman @penyaskito
-# Issues: https://www.drupal.org/project/issues/canvas?component=Page
-/src/Entity/Routing/
-/src/Entity/Page.php
-/src/Entity/PageAccessControlHandler.php
-/src/Entity/PageViewBuilder.php
-/src/Hook/PageHooks.php
-/tests/modules/canvas_test_page/
-/tests/src/Kernel/Entity/
-/tests/src/Kernel/Traits/Page*
-
-^[Auto-save] @larowlan @tedbow
-# Issues: https://www.drupal.org/project/issues/canvas?component=Auto-save
-/src/AutoSaveData.php
-/src/AutoSave/
-/src/Hook/AutoSaveHooks.php
-/tests/**/*AutoSave*
-/tests/Kernel/AutoSave/
-
-^[Shape matching] @phenaproxima @wimleers
-# Issues: https://www.drupal.org/project/issues/canvas?component=Shape+matching
-# @see https://en.wikipedia.org/wiki/Schema_matching
-/docs/shape-matching.md
-/src/Hook/ShapeMatchingHooks.php
-/src/JsonSchemaInterpreter/
-/src/PropShape/
-/src/ShapeMatcher/
-/src/Plugin/DataTypeOverride/
-/src/Plugin/Field/FieldTypeOverride/
-/src/Plugin/Validation/Constraint/StringSemanticsConstraint.php
-
-^[Editor frame] @jessebaker
-/docs/react-codebase/page-preview.md
-/src/features/editorFrame
-/src/features/layout/preview/
-/src/features/layout/previewOverlay/
-
-^[Canvas OAuth] @balintbrews @wimleers
-/modules/canvas_oauth/
-
-^[Code Components & CLI] @balintbrews @hooroomoo @mglaman
-# Issues: https://www.drupal.org/project/issues/canvas?component=Theme+builder
-# Issues: https://www.drupal.org/project/issues/canvas?component=CLI+Tool
-/ui/src/features/code-editor/
-/ui/src/services/assetLibrary.ts
-/ui/src/services/componentAndLayout.ts
-/cli/
-
-^[Extensions] @balintbrews @penyaskito
-# Issues: https://www.drupal.org/project/issues/canvas?component=Extensions
-/packages/extensions/
-/src/Extension/
-/src/Controller/ApiExtensionControllers.php
-/tests/modules/canvas_test_extension*/
-/tests/src/*/Extension/
-/ui/src/components/extensions/
-/ui/src/features/extensions/
-/ui/src/services/extensions.ts
-/ui/src/types/Extensions.ts
-/ui/tests/e2e/extension*.cy.js
-
-^[Personalization] @effulgentsia @penyaskito @wimleers
-# Issues: https://www.drupal.org/project/issues/canvas?component=Personalization
-/modules/canvas_personalization
-/docs/personalization.md
 
 ^[Canvas AI] @tim.plunkett @Marcus_Johansson @NarendraR @Utkarsh_33 @kunal.sachdev @akhil_babu @tedbow @mglaman
 # Issues: https://www.drupal.org/project/issues/canvas?component=AI
