@@ -47,10 +47,6 @@ class CanvasAiHooks {
             'name' => $this->t('Selected Component'),
             'description' => $this->t('Returns the selected component name passed to the AI Agent.'),
           ],
-          'selected_component_required_props' => [
-            'name' => $this->t('Selected Component Required Props'),
-            'description' => $this->t('Returns the required props of the selected component passed to the AI Agent.'),
-          ],
           'layout' => [
             'name' => $this->t('Layout'),
             'description' => $this->t('Returns the current page layout value passed to the AI Agent.'),
@@ -71,14 +67,6 @@ class CanvasAiHooks {
             'name' => $this->t('Active Component UUID'),
             'description' => $this->t('Returns the UUID of the active component in the page.'),
           ],
-          'menu_fetch_source' => [
-            'name' => $this->t('Menu Fetch Source'),
-            'description' => $this->t('Returns the source for menu fetching.'),
-          ],
-          'json_api_module_status' => [
-            'name' => $this->t('JSON API Module status'),
-            'description' => $this->t('Returns the status of JSON API module.'),
-          ],
           'available_regions' => [
             'name' => $this->t('Available Regions'),
             'description' => $this->t('Returns the available regions.'),
@@ -86,6 +74,10 @@ class CanvasAiHooks {
           'custom_libraries' => [
             'name' => $this->t('Custom libraries in Canvas.'),
             'description' => $this->t('Returns the custom libraries in Canvas.'),
+          ],
+          'component_agent_dynamic_state' => [
+            'name' => $this->t('Component Agent Dynamic State'),
+            'description' => $this->t('Returns the assembled state and constraints for the component agent.'),
           ],
         ],
       ],
@@ -114,10 +106,6 @@ class CanvasAiHooks {
             $replacements[$original] = $data['selected_component'] ?? NULL;
             break;
 
-          case 'selected_component_required_props':
-            $replacements[$original] = $data['selected_component_required_props'] ?? NULL;
-            break;
-
           case 'layout':
             $replacements[$original] = $data['layout'] ?? NULL;
             break;
@@ -138,20 +126,16 @@ class CanvasAiHooks {
             $replacements[$original] = $data['active_component_uuid'] ?? 'None';
             break;
 
-          case 'menu_fetch_source':
-            $replacements[$original] = $data['menu_fetch_source'] ?? NULL;
-            break;
-
-          case 'json_api_module_status':
-            $replacements[$original] = $data['json_api_module_status'];
-            break;
-
           case 'available_regions':
             $replacements[$original] = !empty($data['available_regions']) ? $data['available_regions'] : NULL;
             break;
 
           case 'custom_libraries':
             $replacements[$original] = $data['custom_libraries'];
+            break;
+
+          case 'component_agent_dynamic_state':
+            $replacements[$original] = $data['component_agent_dynamic_state'] ?? NULL;
             break;
         }
       }

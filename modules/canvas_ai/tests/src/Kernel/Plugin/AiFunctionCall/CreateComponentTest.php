@@ -9,6 +9,7 @@ use Drupal\canvas_ai\Plugin\AiFunctionCall\CreateComponent;
 use Drupal\Component\Serialization\Json;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Yaml\Yaml;
 
@@ -103,6 +104,180 @@ final class CreateComponentTest extends CanvasKernelTestBase {
     ];
     $this->assertEquals($expected_props, $component_structure['props']);
     $this->assertEquals(['title'], $component_structure['required']);
+    // No slots were supplied, so the slots key is an empty array.
+    $this->assertEquals([], $component_structure['slots']);
+  }
+
+  /**
+   * Test that a formatted-text prop retains its rich-text schema keys.
+   *
+   * A string prop is only treated as formatted/rich text by Canvas when its
+   * 'contentMediaType' (and optional 'x-formatting-context') are preserved.
+   */
+  public function testCreateComponentWithFormattedTextProp(): void {
+    $props_metadata = Json::encode([
+      [
+        'id' => 'body',
+        'name' => 'Body',
+        'type' => 'string',
+        'example' => '<p>Example body text.</p>',
+        'derivedType' => 'formattedText',
+        'contentMediaType' => 'text/html',
+        'x-formatting-context' => 'block',
+      ],
+    ]);
+
+    $tool = $this->functionCallManager->createInstance('ai_agent:create_component');
+    $this->assertInstanceOf(CreateComponent::class, $tool);
+    $tool->setContextValue('component_name', 'Article Body Component');
+    $tool->setContextValue('js_structure', 'console.log("body");');
+    $tool->setContextValue('css_structure', '');
+    $tool->setContextValue('props_metadata', $props_metadata);
+    $tool->execute();
+    $result = $tool->getStructuredOutput();
+
+    $this->assertArrayHasKey('component_structure', $result);
+    $expected = [
+      'title' => 'Body',
+      'type' => 'string',
+      'examples' => ['<p>Example body text.</p>'],
+      'contentMediaType' => 'text/html',
+      'x-formatting-context' => 'block',
+    ];
+    $this->assertEquals($expected, $result['component_structure']['props']['body']);
+  }
+
+  /**
+   * Test creating a component with slots.
+   */
+  public function testCreateComponentWithSlots(): void {
+    $props_metadata = Json::encode([
+      [
+        'id' => 'heading',
+        'name' => 'Heading',
+        'type' => 'string',
+        'example' => 'Card title',
+        'required' => TRUE,
+      ],
+    ]);
+    $slots_metadata = Json::encode([
+      [
+        'id' => 'children',
+        'name' => 'Children',
+        'example' => '<p>Place components here</p>',
+      ],
+      [
+        // A slot without an example should still be accepted.
+        'id' => 'footer',
+        'name' => 'Footer',
+      ],
+    ]);
+
+    $tool = $this->functionCallManager->createInstance('ai_agent:create_component');
+    $this->assertInstanceOf(CreateComponent::class, $tool);
+    $tool->setContextValue('component_name', 'Card Component');
+    $tool->setContextValue('js_structure', 'console.log("card");');
+    $tool->setContextValue('css_structure', '.card { padding: 1rem; }');
+    $tool->setContextValue('props_metadata', $props_metadata);
+    $tool->setContextValue('slots_metadata', $slots_metadata);
+    $tool->execute();
+    $result = $tool->getStructuredOutput();
+
+    $this->assertArrayHasKey('component_structure', $result);
+    $component_structure = $result['component_structure'];
+    $expected_slots = [
+      'children' => [
+        'title' => 'Children',
+        'examples' => ['<p>Place components here</p>'],
+      ],
+      'footer' => [
+        'title' => 'Footer',
+      ],
+    ];
+    $this->assertEquals($expected_slots, $component_structure['slots']);
+    $this->assertArrayHasKey('heading', $component_structure['props']);
+  }
+
+  /**
+   * Data provider for testInvalidPropsOrSlotsMetadataReturnsError.
+   *
+   * @return array<string, array{string, string, string}>
+   *   Cases of [props_metadata, slots_metadata, expected error].
+   */
+  public static function invalidPropsOrSlotsMetadataProvider(): array {
+    return [
+      'prop id collides with slot name' => [
+        Json::encode([
+          ['id' => 'content', 'name' => 'Content', 'type' => 'string', 'example' => 'Some content'],
+        ]),
+        Json::encode([
+          ['id' => 'content', 'name' => 'Content', 'example' => '<p>child</p>'],
+        ]),
+        'Component validation errors: component_structure: The component "canvas:invalid_metadata_component" declared [content] both as a prop and as a slot. Make sure to use different names.',
+      ],
+      'multiple prop/slot collisions are all reported' => [
+        Json::encode([
+          ['id' => 'content', 'name' => 'Content', 'type' => 'string', 'example' => 'c'],
+          ['id' => 'heading', 'name' => 'Heading', 'type' => 'string', 'example' => 'h'],
+        ]),
+        Json::encode([
+          ['id' => 'content', 'name' => 'Content'],
+          ['id' => 'heading', 'name' => 'Heading'],
+        ]),
+        'Component validation errors: component_structure: The component "canvas:invalid_metadata_component" declared [content, heading] both as a prop and as a slot. Make sure to use different names.',
+      ],
+      'malformed slots JSON' => [
+        Json::encode([
+          ['id' => 'heading', 'name' => 'Heading', 'type' => 'string', 'example' => 'Hi'],
+        ]),
+        'not valid json',
+        'The slots metadata must be a valid JSON array of slot objects.',
+      ],
+      'slot missing an id' => [
+        Json::encode([
+          ['id' => 'heading', 'name' => 'Heading', 'type' => 'string', 'example' => 'Hi'],
+        ]),
+        Json::encode([
+          ['id' => 'children', 'name' => 'Children', 'example' => '<p>x</p>'],
+          ['name' => 'No Id'],
+        ]),
+        'Each slot must include both an "id" and a "name". Slot "No Id" is missing one of them.',
+      ],
+      'slot id is not the camelCase of its name' => [
+        Json::encode([
+          ['id' => 'heading', 'name' => 'Heading', 'type' => 'string', 'example' => 'Hi'],
+        ]),
+        Json::encode([
+          ['id' => 'cta_content', 'name' => 'CTA Content', 'example' => '<p>x</p>'],
+        ]),
+        'The slot "id" must be the camelCase of the slot "name". Got id "cta_content" for name "CTA Content"; expected "ctaContent".',
+      ],
+    ];
+  }
+
+  /**
+   * Test that invalid props or slots metadata returns the error to the agent.
+   *
+   * @param string $props_metadata
+   *   The props metadata as a JSON encoded string.
+   * @param string $slots_metadata
+   *   The slots metadata as a JSON encoded string.
+   * @param string $expected_error
+   *   The expected error message.
+   */
+  #[DataProvider('invalidPropsOrSlotsMetadataProvider')]
+  public function testInvalidPropsOrSlotsMetadataReturnsError(string $props_metadata, string $slots_metadata, string $expected_error): void {
+    $result = $this->getToolOutput(
+      'ai_agent:create_component',
+      [
+        'component_name' => 'Invalid Metadata Component',
+        'js_structure' => 'console.log("x");',
+        'css_structure' => '',
+        'props_metadata' => $props_metadata,
+        'slots_metadata' => $slots_metadata,
+      ]
+    );
+    self::assertYamlError($result, $expected_error);
   }
 
   /**

@@ -21,6 +21,7 @@ canvascanvas
 canvasrc
 canvasstark
 Carden
+cardwithslot
 Cdiv
 cebe
 Clurichaun
@@ -145,6 +146,7 @@ serp
 SERP
 shadcn
 shipmonk
+skypack
 slnt
 sonner
 sparkline

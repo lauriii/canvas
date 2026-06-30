@@ -19,7 +19,10 @@ import {
   selectCodeComponentProperty,
   setCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
-import { deserializeProps } from '@/features/code-editor/utils/utils';
+import {
+  deserializeProps,
+  deserializeSlots,
+} from '@/features/code-editor/utils/utils';
 import { FORM_TYPES } from '@/features/form/constants';
 import { setFieldValue } from '@/features/form/formStateSlice';
 import {
@@ -160,6 +163,16 @@ const propsMetadataHandler = {
   },
 };
 
+const slotsMetadataHandler = {
+  canHandle: (msg: any) => 'slots_metadata' in msg && msg.slots_metadata,
+  handle: async ({ message, dispatch }: { message: any; dispatch: any }) => {
+    const parsedSlots = JSON.parse(message.slots_metadata);
+    // Deserialize from Record format to Array format.
+    const deserializedSlots = deserializeSlots(parsedSlots);
+    dispatch(setCodeComponentProperty(['slots', deserializedSlots]));
+  },
+};
+
 const requiredPropsHandler = {
   canHandle: (msg: any) =>
     'required_props' in msg && Array.isArray(msg.required_props),
@@ -294,6 +307,7 @@ const messageHandlers = [
   jsStructureHandler,
   componentStructureHandler,
   propsMetadataHandler,
+  slotsMetadataHandler,
   requiredPropsHandler,
   operationsHandler,
 ];
@@ -843,7 +857,12 @@ const AiWizard = () => {
                   );
                   requestBody.append(
                     'selected_component',
-                    currentValuesRef.current.codeComponentName,
+                    // Prefer the code-editor route param: it identifies the open
+                    // component immediately after navigation (e.g. right after
+                    // creating one), whereas the Redux machineName is only set
+                    // once the editor finishes its async data load.
+                    currentValuesRef.current.params.codeComponentId ||
+                      currentValuesRef.current.codeComponentName,
                   );
                   requestBody.append(
                     'selected_component_required_props',
@@ -865,6 +884,7 @@ const AiWizard = () => {
                     entity_type: currentValuesRef.current.params.entityType,
                     entity_id: currentValuesRef.current.params.entityId,
                     selected_component:
+                      currentValuesRef.current.params.codeComponentId ||
                       currentValuesRef.current.codeComponentName,
                     selected_component_required_props:
                       currentValuesRef.current.codeComponentRequiredProps || [],

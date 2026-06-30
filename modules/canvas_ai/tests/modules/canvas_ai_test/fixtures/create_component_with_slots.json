@@ -1,0 +1,33 @@
+{
+  "status": true,
+  "component_structure": {
+    "name": "CardWithSlot",
+    "machineName": "cardwithslot",
+    "status": false,
+    "sourceCodeJs": "export default function CardWithSlot({ heading = \"Card title\", children }) {\n  return (\n    <div className=\"rounded border p-4\">\n      <h2 className=\"text-xl font-bold\">{heading}</h2>\n      <div className=\"mt-2\">{children}</div>\n    </div>\n  );\n}",
+    "sourceCodeCss": "",
+    "compiledJs": "",
+    "compiledCss": "",
+    "importedJsComponents": [],
+    "props": {
+      "heading": {
+        "title": "Heading",
+        "type": "string",
+        "examples": [
+          "Card title"
+        ]
+      }
+    },
+    "required": [],
+    "slots": {
+      "children": {
+        "title": "Children",
+        "examples": [
+          "<p>Place components here</p>"
+        ]
+      }
+    },
+    "dataDependencies": []
+  },
+  "message": "Created the CardWithSlot component with a Children slot."
+}

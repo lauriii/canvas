@@ -1,0 +1,8 @@
+{
+  "status": true,
+  "js_structure": "export default function CardWithSlot({ heading = \"Card title\", children }) {\n  return (\n    <div className=\"rounded border p-4\">\n      <h2 className=\"text-xl font-bold\">{heading}</h2>\n      <div className=\"mt-2\">{children}</div>\n    </div>\n  );\n}",
+  "props_metadata": "[{\"id\":\"heading\",\"name\":\"Heading\",\"type\":\"string\",\"example\":\"Card title\",\"format\":null,\"$ref\":null,\"derivedType\":\"text\"}]",
+  "slots_metadata": "{\"children\":{\"title\":\"Sidebar\",\"examples\":[\"<p>Place components here</p>\"]}}",
+  "required_props": [],
+  "message": "Renamed the slot to Sidebar."
+}

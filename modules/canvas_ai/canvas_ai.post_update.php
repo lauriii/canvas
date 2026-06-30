@@ -202,3 +202,29 @@ function canvas_ai_post_update_0007_add_block_props_to_component_description_set
   // Replace only the block data; the enabled flag is left untouched.
   $config->set("component_context.$source.data", Yaml::encode($rebuilt_blocks))->save(TRUE);
 }
+
+/**
+ * Reimport the component agent as its system prompt and tokens have changed.
+ *
+ * The conditional state instructions were moved out of the system prompt into
+ * a dynamic section injected through the new component_agent_dynamic_state
+ * token, so existing sites need the stored agent config refreshed.
+ *
+ * @see https://git.drupalcode.org/project/canvas/-/work_items/3584136
+ */
+function canvas_ai_post_update_0008_reimport_component_agent(): void {
+  $module_path = \Drupal::service('extension.list.module')->getPath('canvas_ai');
+  $source = new FileStorage($module_path . '/config/install');
+  $data = $source->read('ai_agents.ai_agent.canvas_component_agent');
+  $config = \Drupal::configFactory()->getEditable('ai_agents.ai_agent.canvas_component_agent');
+  if ($data && !$config->isNew()) {
+    // Only the system prompt and tool usage limits changed.
+    $config
+      ->set('system_prompt', $data['system_prompt'])
+      ->set('tool_usage_limits', $data['tool_usage_limits'])
+      ->save(TRUE);
+
+    $message = 'The Canvas component agent system prompt has been updated. If you had customized it directly, those changes have been overwritten. The recommended way to extend or alter agent behavior is through the Context Control Center or custom event subscribers.';
+    \Drupal::logger('canvas_ai')->warning($message);
+  }
+}

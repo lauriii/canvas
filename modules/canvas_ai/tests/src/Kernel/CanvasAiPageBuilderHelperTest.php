@@ -564,4 +564,42 @@ XML;
     $this->assertEquals($listed_blocks, $stored_blocks);
   }
 
+  /**
+   * Tests dynamic_prompt_parts.yml exists with non-empty prompts at every key.
+   */
+  public function testComponentAgentDynamicPromptParts(): void {
+    $reflection = new \ReflectionClass(CanvasAiPageBuilderHelper::class);
+    $class_file = $reflection->getFileName();
+    $this->assertIsString($class_file);
+    $file = dirname($class_file) . '/DynamicPrompts/canvas_component_agent/dynamic_prompt_parts.yml';
+    $this->assertFileExists($file);
+
+    $prompt_parts = Yaml::parseFile($file);
+
+    // Single-string section.
+    $this->assertArrayHasKey('selected_component_required_props', $prompt_parts);
+    $this->assertIsString($prompt_parts['selected_component_required_props']);
+    $this->assertNotEmpty(trim($prompt_parts['selected_component_required_props']));
+
+    // Grouped sections keyed by state value.
+    $expected_sections = [
+      'selected_component' => ['empty', 'present'],
+      'json_api_module_status' => ['disabled', 'enabled'],
+      'menu_fetch_source' => [
+        'linkset_not_configured',
+        'menu_fetching_functionality_not_available',
+        'jsonapi_menu_items',
+        'linkset',
+      ],
+    ];
+    foreach ($expected_sections as $section => $keys) {
+      $this->assertArrayHasKey($section, $prompt_parts);
+      foreach ($keys as $key) {
+        $this->assertArrayHasKey($key, $prompt_parts[$section], "Missing '$section.$key' prompt.");
+        $this->assertIsString($prompt_parts[$section][$key], "'$section.$key' prompt is not a string.");
+        $this->assertNotEmpty(trim($prompt_parts[$section][$key]), "'$section.$key' prompt is empty.");
+      }
+    }
+  }
+
 }

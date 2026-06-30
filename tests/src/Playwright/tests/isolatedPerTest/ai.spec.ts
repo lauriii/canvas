@@ -165,4 +165,30 @@ test.describe('AI Features', () => {
       'Experience a journey through our interactive digital space, designed to engage and inspire visitors with immersive content and seamless navigation.',
     );
   });
+
+  test('Create and edit a component with slots', async ({
+    page,
+    drupal,
+    canvas,
+    ai,
+  }) => {
+    await drupal.login({ username: 'ai_editor', password: 'ai_editor' });
+    await canvas.createCanvas();
+    await ai.openPanel();
+
+    // Create flow: the component_structure includes a `slots` map, which is
+    // persisted via createCodeComponent and surfaced in the Slots panel.
+    await ai.submitQuery('Create component with slots');
+    await expect(page).toHaveURL(
+      /\/canvas\/code-editor\/component\/cardwithslot/,
+    );
+    await page.getByRole('tab', { name: 'Slots' }).click();
+    await expect(page.getByLabel('Slot name').first()).toHaveValue('Children');
+
+    // Edit flow: the response carries `slots_metadata`, which the
+    // slotsMetadataHandler in AiWizard applies to the open component's slots.
+    await ai.submitQuery('Edit component slots');
+    await page.getByRole('tab', { name: 'Slots' }).click();
+    await expect(page.getByLabel('Slot name').first()).toHaveValue('Sidebar');
+  });
 });

@@ -199,20 +199,28 @@ final class CanvasBuilder extends ControllerBase {
     $agent->setModelName($default['model_id']);
     $agent->setAiConfiguration([]);
     $agent->setCreateDirectly(TRUE);
+    $selected_component = $prompt['selected_component'] ?? NULL;
+    $selected_component_required_props = isset($prompt['selected_component_required_props']) ? Json::encode($prompt['selected_component_required_props']) : NULL;
+    $component_agent_dynamic_state = $this->canvasAiPageBuilderHelper->generateComponentAgentDynamicPromptSection([
+      'selected_component' => $selected_component,
+      'selected_component_required_props' => $selected_component_required_props,
+      'json_api_module_status' => $this->moduleHandler()->moduleExists('jsonapi') ? 'enabled' : 'disabled',
+      'menu_fetch_source' => $this->getMenuFetchSource(),
+    ]);
     $agent->setTokenContexts([
       'entity_type' => $prompt['entity_type'] ?? NULL,
       'entity_id' => $prompt['entity_id'] ?? NULL,
-      'selected_component' => $prompt['selected_component'] ?? NULL,
-      'selected_component_required_props' => isset($prompt['selected_component_required_props']) ? Json::encode($prompt['selected_component_required_props']) : NULL,
+      'selected_component' => $selected_component,
       'layout' => $prompt['layout'] ?? NULL,
       'derived_proptypes' => isset($prompt['derived_proptypes']) ? Json::encode($prompt['derived_proptypes']) : NULL,
       'page_title' => $prompt['page_title'] ?? NULL,
       'page_description' => $prompt['page_description'] ?? NULL,
       'active_component_uuid' => $prompt['active_component_uuid'] ?? 'None',
-      'menu_fetch_source' => $this->getMenuFetchSource(),
-      'json_api_module_status' => $this->moduleHandler()->moduleExists('jsonapi') ? 'enabled' : 'disabled',
+      'component_agent_dynamic_state' => $component_agent_dynamic_state,
       'available_regions' => Json::encode($this->canvasAiPageBuilderHelper->getAvailableRegions(Json::encode($prompt['current_layout']))) ?? NULL,
-      'custom_libraries' => $this->getSupportedLibraries(),
+      // JSON-encode so the libraries render as readable data in the system
+      // prompt token rather than the string "Array".
+      'custom_libraries' => Json::encode($this->getSupportedLibraries()),
     ]);
     try {
       $solvability = $agent->determineSolvability();
@@ -413,12 +421,6 @@ final class CanvasBuilder extends ControllerBase {
    */
   protected function getSupportedLibraries(): array {
     return [
-      [
-        "name" => "importing_packages",
-        "type" => "External npm package",
-        "description" => "Although a number of useful built-in and bundled packages are provided, you can also import any npm package through the web.",
-        "code" => "```js\nimport { motion } from 'https://esm.sh/motion@12.23.26/react?external=react,react-dom'\n```",
-      ],
       [
         "name" => "formatted_text",
         "type" => "Built-in custom package",

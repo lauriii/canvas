@@ -53,11 +53,18 @@ use Symfony\Component\Yaml\Yaml;
       description: new TranslatableMarkup("Metadata for props"),
       required: FALSE
     ),
+    'slots_metadata' => new ContextDefinition(
+      data_type: 'string',
+      label: new TranslatableMarkup("Slots"),
+      description: new TranslatableMarkup("Metadata for slots. A JSON array where each entry is an object with an 'id' (slot machine name), 'name' (human-readable title) and an optional 'example' (sample child markup)."),
+      required: FALSE
+    ),
   ],
 )]
 final class CreateComponent extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface, BuilderResponseFunctionCallInterface {
 
   use ConstraintPropertyPathTranslatorTrait;
+  use AiGeneratedJsComponentPropsAndSlotsTrait;
 
   /**
    * The entity type manager.
@@ -93,6 +100,7 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
       $javascript = $this->getContextValue('js_structure') ?? '';
       $css = $this->getContextValue('css_structure') ?? '';
       $props = $this->getContextValue('props_metadata') ?? '';
+      $slots = $this->getContextValue('slots_metadata') ?? '';
       $machine_name = strtolower(preg_replace('/\s+/', '_', $component_name));
 
       // Check if the component exists.
@@ -119,7 +127,11 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
               'type' => $prop['type'],
               'examples' => [$prop['example']],
             ];
-            foreach (['format', '$ref', 'enum'] as $optional) {
+            // 'contentMediaType' (with optional 'x-formatting-context') is what
+            // marks a string prop as formatted/rich text in Canvas; it must be
+            // preserved or the prop is stored as plain text.
+            // @see \Drupal\canvas\PropShape\PropShape
+            foreach (['format', '$ref', 'enum', 'contentMediaType', 'x-formatting-context'] as $optional) {
               if (isset($prop[$optional])) {
                 $transformed[$optional] = $prop[$optional];
               }
@@ -132,6 +144,9 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
           }
         }
       }
+
+      $transformed_slots = $this->transformSlotsMetadata($slots);
+
       $output = [
         'name' => $component_name,
         'machineName' => $machine_name,
@@ -145,6 +160,7 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
         'importedJsComponents' => [],
         'props' => $transformed_props,
         'required' => $required_props,
+        'slots' => $transformed_slots,
         'dataDependencies' => [],
       ];
       $violations = JavaScriptComponent::createFromClientSide($output)->getTypedData()->validate();

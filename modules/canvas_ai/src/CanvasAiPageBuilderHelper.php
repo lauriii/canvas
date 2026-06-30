@@ -1573,6 +1573,56 @@ class CanvasAiPageBuilderHelper {
   }
 
   /**
+   * Builds the state-specific prompt section for the component agent.
+   *
+   * Selects the prompt parts that match the current system state and returns
+   * them joined together, so the agent receives only the constraints that
+   * apply instead of evaluating the state itself.
+   *
+   * @param array $context
+   *   The current state, holding 'selected_component',
+   *   'selected_component_required_props', 'json_api_module_status' and
+   *   'menu_fetch_source'.
+   *
+   * @return string
+   *   The assembled prompt section.
+   *
+   * @see canvas_component_agent/dynamic_prompt_parts.yml
+   */
+  public function generateComponentAgentDynamicPromptSection(array $context): string {
+    $prompt_parts = Yaml::parseFile(__DIR__ . '/DynamicPrompts/canvas_component_agent/dynamic_prompt_parts.yml');
+
+    $selected_component = $context['selected_component'] ?? '';
+    $required_props = $context['selected_component_required_props'] ?? '';
+    $json_api_module_status = $context['json_api_module_status'] ?? '';
+    $menu_fetch_source = $context['menu_fetch_source'] ?? '';
+
+    $sections = [];
+
+    // Component editor state: which flow (create/edit) is available.
+    $sections[] = empty($selected_component)
+      ? $prompt_parts['selected_component']['empty']
+      : str_replace('{{selected_component}}', $selected_component, $prompt_parts['selected_component']['present']);
+
+    // Required props of the open component, when any are set.
+    if (!empty($selected_component) && !empty($required_props) && $required_props !== '[]') {
+      $sections[] = str_replace('{{required_props}}', $required_props, $prompt_parts['selected_component_required_props']);
+    }
+
+    // Content fetching constraints for the current JSON:API status.
+    if (isset($prompt_parts['json_api_module_status'][$json_api_module_status])) {
+      $sections[] = $prompt_parts['json_api_module_status'][$json_api_module_status];
+    }
+
+    // Menu fetching constraints for the current menu fetch source.
+    if (isset($prompt_parts['menu_fetch_source'][$menu_fetch_source])) {
+      $sections[] = $prompt_parts['menu_fetch_source'][$menu_fetch_source];
+    }
+
+    return implode("\n\n", \array_map('trim', $sections));
+  }
+
+  /**
    * Formats user message and context into XML structure.
    *
    * @param string $context
