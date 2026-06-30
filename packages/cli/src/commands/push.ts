@@ -31,8 +31,8 @@ import {
   pushPages,
 } from '../utils/prepare-pages-push';
 import {
+  prepareGlobalAssetLibraryUpdate,
   pushBuiltComponents,
-  uploadGlobalAssetLibrary,
 } from '../utils/prepare-push';
 import {
   collectRegionResults,
@@ -59,6 +59,7 @@ import type { DiscoveryWarning } from '@drupal-canvas/discovery';
 import type { Command } from 'commander';
 import type { ApiService } from '../services/api.js';
 import type {
+  AssetLibrary,
   BrandKitFontEntry,
   BuildManifest,
   UploadedArtifact,
@@ -384,6 +385,12 @@ export function collectManifestArtifacts(manifest: BuildManifest): Array<{
   return files;
 }
 
+interface GroupedUploadedManifest {
+  vendor: UploadedArtifact[];
+  local: UploadedArtifact[];
+  shared: UploadedArtifact[];
+}
+
 /**
  * Uploads artifact files and builds manifest entries from the results.
  */
@@ -396,11 +403,7 @@ async function uploadAndBuildManifest(
   distDir: string,
   apiService: Pick<ApiService, 'uploadArtifact'>,
   spinner: { message: (msg?: string) => void },
-): Promise<{
-  vendor: UploadedArtifact[];
-  local: UploadedArtifact[];
-  shared: UploadedArtifact[];
-}> {
+): Promise<GroupedUploadedManifest> {
   const uploadProgress = createProgressCallback(
     spinner,
     'Pushing dependencies',
@@ -440,11 +443,7 @@ async function uploadAndBuildManifest(
     }
   }
 
-  const grouped: {
-    vendor: UploadedArtifact[];
-    local: UploadedArtifact[];
-    shared: UploadedArtifact[];
-  } = {
+  const grouped: GroupedUploadedManifest = {
     vendor: [],
     local: [],
     shared: [],
@@ -470,12 +469,12 @@ async function uploadAndBuildManifest(
 }
 
 /**
- * Uploads build artifacts from manifest and syncs the uploaded manifest.
+ * Uploads build artifacts from manifest.
  */
-export async function syncManifestArtifacts(
+export async function uploadManifestArtifacts(
   outputDir: string,
   options: {
-    apiService: Pick<ApiService, 'uploadArtifact' | 'syncManifest'>;
+    apiService: Pick<ApiService, 'uploadArtifact'>;
     createSpinner?: () => {
       start: (msg?: string) => void;
       stop: (msg?: string, code?: number) => void;
@@ -485,11 +484,7 @@ export async function syncManifestArtifacts(
   },
 ): Promise<{
   artifactCount: number;
-  groupedManifest: {
-    vendor: UploadedArtifact[];
-    local: UploadedArtifact[];
-    shared: UploadedArtifact[];
-  };
+  groupedManifest: GroupedUploadedManifest;
 }> {
   const createSpinner = options.createSpinner ?? (() => p.spinner());
   const emptyManifest = { vendor: [], local: [], shared: [] };
@@ -531,26 +526,66 @@ export async function syncManifestArtifacts(
     groupedManifest.vendor.length +
     groupedManifest.local.length +
     groupedManifest.shared.length;
-  await options.apiService
-    .syncManifest({
-      vendor: groupedManifest.vendor,
-      local: groupedManifest.local,
-      shared: groupedManifest.shared,
-    })
-    .catch((error) => {
-      dependencySpinner.stop('Pushed dependencies', 2);
-      throw error;
-    });
   dependencySpinner.stop('Pushed dependencies', 0);
 
   return { artifactCount, groupedManifest };
 }
 
-function buildDependencyResults(groupedManifest: {
-  vendor: UploadedArtifact[];
-  local: UploadedArtifact[];
-  shared: UploadedArtifact[];
-}): Result[] {
+/**
+ * Uploads build artifacts from manifest and syncs the uploaded manifest.
+ */
+export async function syncManifestArtifacts(
+  outputDir: string,
+  options: {
+    apiService: Pick<ApiService, 'uploadArtifact' | 'syncManifest'>;
+    createSpinner?: () => {
+      start: (msg?: string) => void;
+      stop: (msg?: string, code?: number) => void;
+      message: (msg?: string) => void;
+    };
+    logInfo?: (msg: string) => void;
+  },
+): Promise<{
+  artifactCount: number;
+  groupedManifest: GroupedUploadedManifest;
+}> {
+  const result = await uploadManifestArtifacts(outputDir, options);
+  if (result.artifactCount === 0) {
+    return result;
+  }
+
+  await options.apiService.syncManifest({
+    vendor: result.groupedManifest.vendor,
+    local: result.groupedManifest.local,
+    shared: result.groupedManifest.shared,
+  });
+
+  return result;
+}
+
+export async function updateGlobalAssetLibraryForPush(
+  apiService: Pick<ApiService, 'updateGlobalAssetLibrary'>,
+  globalAssetLibraryUpdate: Partial<AssetLibrary> | undefined,
+  manifestSyncResult: {
+    artifactCount: number;
+    groupedManifest: GroupedUploadedManifest;
+  },
+): Promise<void> {
+  const assetLibraryPatch: Partial<AssetLibrary> = {
+    ...(globalAssetLibraryUpdate ?? {}),
+  };
+  if (manifestSyncResult.artifactCount > 0) {
+    assetLibraryPatch.imports = manifestSyncResult.groupedManifest.vendor;
+    assetLibraryPatch.assets = manifestSyncResult.groupedManifest.local;
+    assetLibraryPatch.shared = manifestSyncResult.groupedManifest.shared;
+  }
+
+  await apiService.updateGlobalAssetLibrary(assetLibraryPatch);
+}
+
+function buildDependencyResults(
+  groupedManifest: GroupedUploadedManifest,
+): Result[] {
   return [
     ...groupedManifest.vendor.map((dependency) => ({
       itemName: dependency.name,
@@ -960,6 +995,8 @@ export function pushCommand(program: Command): void {
         await apiService.signalPushStart();
 
         let componentResults: Result[] = [];
+        let globalCssResult: Result | undefined;
+        let globalAssetLibraryUpdate: Partial<AssetLibrary> | undefined;
         let fontCount = 0;
 
         if (components.length > 0) {
@@ -1080,34 +1117,32 @@ export function pushCommand(program: Command): void {
             action: 'pushed',
           });
 
-          // Upload Tailwind CSS.
+          // Prepare the global Tailwind CSS update. The final asset library
+          // PATCH is sent after dependency artifacts are uploaded so CSS and
+          // manifest fields land in the same config entity update.
           const assetSpinner = p.spinner();
-          assetSpinner.start('Pushing assets');
-          const globalCssResult = await uploadGlobalAssetLibrary(
-            componentPushApiService,
-            config.outputDir,
-          );
+          assetSpinner.start('Preparing assets');
+          const preparedGlobalAssetLibrary =
+            await prepareGlobalAssetLibraryUpdate(config.outputDir);
+          globalCssResult = preparedGlobalAssetLibrary.result;
+          globalAssetLibraryUpdate = preparedGlobalAssetLibrary.assetLibrary;
           assetSpinner.stop(
             globalCssResult.success
-              ? 'Pushed assets'
+              ? 'Prepared assets'
               : 'Global CSS push failed',
             globalCssResult.success ? 0 : 2,
           );
-          reportResults([globalCssResult], 'Pushed assets', 'Asset', {
-            ...PUSH_REPORT_OPTIONS,
-            showSuccessHeading: false,
-          });
           if (!globalCssResult.success) {
+            reportResults([globalCssResult], 'Pushed assets', 'Asset', {
+              ...PUSH_REPORT_OPTIONS,
+              showSuccessHeading: false,
+            });
             throw new ReportedPushError(
               'Global CSS push failed',
               globalCssResult.details?.[0]?.content ??
                 'Global CSS push failed.',
             );
           }
-          completedResources.push({
-            label: 'Global CSS',
-            action: 'pushed',
-          });
         }
 
         // Step 4b: Push fonts from canvas.brand-kit.json (when configured)
@@ -1170,8 +1205,8 @@ export function pushCommand(program: Command): void {
         }
 
         if (components.length > 0) {
-          // Upload component dependencies and sync the dependency map.
-          const manifestSyncResult = await syncManifestArtifacts(outputDir, {
+          // Upload component dependencies and prepare the dependency map.
+          const manifestSyncResult = await uploadManifestArtifacts(outputDir, {
             apiService,
           }).catch((error) => {
             throw new PushPhaseError(
@@ -1198,6 +1233,33 @@ export function pushCommand(program: Command): void {
               action: 'pushed',
             });
           }
+
+          const assetSpinner = p.spinner();
+          assetSpinner.start('Pushing assets');
+          try {
+            await updateGlobalAssetLibraryForPush(
+              apiService,
+              globalAssetLibraryUpdate,
+              manifestSyncResult,
+            );
+          } catch (error) {
+            assetSpinner.stop('Assets push failed', 2);
+            throw new PushPhaseError(
+              'Assets push failed',
+              formatErrorMessage(error),
+            );
+          }
+          assetSpinner.stop('Pushed assets', 0);
+          if (globalCssResult) {
+            reportResults([globalCssResult], 'Pushed assets', 'Asset', {
+              ...PUSH_REPORT_OPTIONS,
+              showSuccessHeading: false,
+            });
+          }
+          completedResources.push({
+            label: 'Global CSS',
+            action: 'pushed',
+          });
         }
 
         // Validate and push pages.

@@ -11,7 +11,7 @@ import { createProgressCallback, processInPool } from './request-pool';
 import { fileExists } from './utils';
 
 import type { ApiService } from '../services/api.js';
-import type { Component } from '../types/Component.js';
+import type { AssetLibrary, Component } from '../types/Component.js';
 import type { Result } from '../types/Result.js';
 
 type ComponentOperation = 'create' | 'update' | 'delete';
@@ -387,12 +387,14 @@ export async function pushBuiltComponents(
 }
 
 /**
- * Upload the global asset library (CSS/JS) to Drupal.
+ * Prepare the global asset library (CSS/JS) update for Drupal.
  */
-export async function uploadGlobalAssetLibrary(
-  apiService: ApiService,
+export async function prepareGlobalAssetLibraryUpdate(
   outputDir: string,
-): Promise<Result> {
+): Promise<{
+  result: Result;
+  assetLibrary?: Partial<AssetLibrary>;
+}> {
   try {
     const globalCompiledCssPath = path.join(outputDir, 'index.css');
     const globalCompiledCssExists = await fileExists(globalCompiledCssPath);
@@ -406,25 +408,58 @@ export async function uploadGlobalAssetLibrary(
         'utf-8',
       );
       const originalCss = await getGlobalCss();
-      await apiService.updateGlobalAssetLibrary({
-        css: { original: originalCss, compiled: globalCompiledCss },
-        js: { original: classNameCandidateIndexFile, compiled: '' },
-      });
       return {
-        success: true,
-        itemName: 'Global CSS (Tailwind CSS build)',
-        details: [{ content: 'Pushed' }],
+        result: {
+          success: true,
+          itemName: 'Global CSS (Tailwind CSS build)',
+          details: [{ content: 'Pushed' }],
+        },
+        assetLibrary: {
+          css: { original: originalCss, compiled: globalCompiledCss },
+          js: { original: classNameCandidateIndexFile, compiled: '' },
+        },
       };
     }
     return {
-      success: false,
-      itemName: 'Global CSS (Tailwind CSS build)',
-      details: [
-        {
-          content: `Compiled Tailwind CSS file not found at ${globalCompiledCssPath}.`,
-        },
-      ],
+      result: {
+        success: false,
+        itemName: 'Global CSS (Tailwind CSS build)',
+        details: [
+          {
+            content: `Compiled Tailwind CSS file not found at ${globalCompiledCssPath}.`,
+          },
+        ],
+      },
     };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return {
+      result: {
+        success: false,
+        itemName: 'Global CSS (Tailwind CSS build)',
+        details: [{ content: errorMessage }],
+      },
+    };
+  }
+}
+
+/**
+ * Upload the global asset library (CSS/JS) to Drupal.
+ */
+export async function uploadGlobalAssetLibrary(
+  apiService: ApiService,
+  outputDir: string,
+): Promise<Result> {
+  const { result, assetLibrary } =
+    await prepareGlobalAssetLibraryUpdate(outputDir);
+
+  if (!result.success || !assetLibrary) {
+    return result;
+  }
+
+  try {
+    await apiService.updateGlobalAssetLibrary(assetLibrary);
+    return result;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     return {

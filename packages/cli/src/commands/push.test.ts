@@ -11,6 +11,8 @@ import {
   getSyncExclusionMessage,
   getSyncExclusionSource,
   syncManifestArtifacts,
+  updateGlobalAssetLibraryForPush,
+  uploadManifestArtifacts,
 } from './push';
 
 import type { ApiService } from '../services/api';
@@ -272,6 +274,138 @@ describe('Push component dependencies', () => {
       shared: [],
     });
     expect(result.artifactCount).toBe(2);
+  });
+
+  it('uploads component dependencies without syncing the dependency map', async () => {
+    const outputDir = path.join(tmpDir, 'dist');
+    await fs.mkdir(path.join(outputDir, 'vendor'), { recursive: true });
+    await fs.mkdir(path.join(outputDir, 'local'), { recursive: true });
+
+    await fs.writeFile(
+      path.join(outputDir, 'vendor/lodash-abc123.js'),
+      'export default {}',
+      'utf-8',
+    );
+    await fs.writeFile(
+      path.join(outputDir, 'local/utils-def456.js'),
+      'export const cn = () => "";',
+      'utf-8',
+    );
+
+    await generateManifest({
+      outputDir,
+      vendorImportMap: { imports: { lodash: './vendor/lodash-abc123.js' } },
+      localImportMap: { '@/lib/utils': './local/utils-def456.js' },
+      sharedChunks: [],
+    });
+
+    const uploadArtifact = vi.fn(async (filename: string) => ({
+      uri: `public://canvas/artifacts/${filename}`,
+      fid: 1,
+    }));
+
+    const result = await uploadManifestArtifacts(outputDir, {
+      apiService: { uploadArtifact },
+      createSpinner: () => ({
+        start: vi.fn(),
+        stop: vi.fn(),
+        message: vi.fn(),
+      }),
+    });
+
+    expect(uploadArtifact).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({
+      artifactCount: 2,
+      groupedManifest: {
+        vendor: [
+          {
+            name: 'lodash',
+            uri: 'public://canvas/artifacts/lodash-abc123.js',
+          },
+        ],
+        local: [
+          {
+            name: '@/lib/utils',
+            uri: 'public://canvas/artifacts/utils-def456.js',
+          },
+        ],
+        shared: [],
+      },
+    });
+  });
+
+  it('updates the global asset library once with CSS and dependency manifest fields', async () => {
+    const updateGlobalAssetLibrary = vi.fn().mockResolvedValue({});
+
+    await updateGlobalAssetLibraryForPush(
+      { updateGlobalAssetLibrary } as unknown as Pick<
+        ApiService,
+        'updateGlobalAssetLibrary'
+      >,
+      {
+        css: {
+          original: ':root { --canvas-test-color: #123456; }',
+          compiled: ':root{--canvas-test-color:#123456}',
+        },
+        js: {
+          original: '/* class candidates */',
+          compiled: '',
+        },
+      },
+      {
+        artifactCount: 3,
+        groupedManifest: {
+          vendor: [
+            {
+              name: 'lodash',
+              uri: 'public://canvas/artifacts/lodash-abc123.js',
+            },
+          ],
+          local: [
+            {
+              name: '@/lib/utils',
+              uri: 'public://canvas/artifacts/utils-def456.js',
+            },
+          ],
+          shared: [
+            {
+              name: './vendor/chunk-shared-ghi789.js',
+              uri: 'public://canvas/artifacts/chunk-shared-ghi789.js',
+            },
+          ],
+        },
+      },
+    );
+
+    expect(updateGlobalAssetLibrary).toHaveBeenCalledTimes(1);
+    expect(updateGlobalAssetLibrary).toHaveBeenCalledWith({
+      css: {
+        original: ':root { --canvas-test-color: #123456; }',
+        compiled: ':root{--canvas-test-color:#123456}',
+      },
+      js: {
+        original: '/* class candidates */',
+        compiled: '',
+      },
+      imports: [
+        {
+          name: 'lodash',
+          uri: 'public://canvas/artifacts/lodash-abc123.js',
+        },
+      ],
+      assets: [
+        {
+          name: '@/lib/utils',
+          uri: 'public://canvas/artifacts/utils-def456.js',
+        },
+      ],
+      shared: [
+        {
+          name: './vendor/chunk-shared-ghi789.js',
+          uri: 'public://canvas/artifacts/chunk-shared-ghi789.js',
+        },
+      ],
+    });
   });
 
   it('stops the dependency spinner with failure status when artifact upload fails', async () => {
