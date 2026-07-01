@@ -31,7 +31,7 @@
         "league/openapi-psr7-validator": "^0.22.0",
         "mglaman/phpstan-drupal": "2.0.15",
         "phpat/phpat": "0.12.4",
-        "phpstan/phpstan": "2.2.2",
+        "phpstan/phpstan": "2.2.3",
         "phpstan/phpstan-strict-rules": "2.0.11",
         "shipmonk/dead-code-detector": "1.2.0"
     },
