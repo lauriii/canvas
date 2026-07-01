@@ -16,11 +16,14 @@ use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\BuilderResponseFunctionCallInterface;
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Component\Serialization\Json;
+use Drupal\Component\Utility\Environment;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\File\FileExists;
-use Drupal\Core\File\FileSystemInterface;
+use Drupal\file\Upload\FileUploadHandlerInterface;
+use Drupal\file\Upload\FormUploadedFile;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -40,7 +43,7 @@ final class CanvasBuilder extends ControllerBase {
     protected CsrfTokenGenerator $csrfTokenGenerator,
     protected CanvasAiPageBuilderHelper $canvasAiPageBuilderHelper,
     protected CanvasAiTempStore $canvasAiTempStore,
-    protected FileSystemInterface $fileSystem,
+    protected FileUploadHandlerInterface $fileUploadHandler,
     protected AiAgentStatusPollerServiceInterface $poller,
     protected CanvasAiChatHelper $canvasAiChatHelper,
   ) {}
@@ -55,7 +58,7 @@ final class CanvasBuilder extends ControllerBase {
       $container->get('csrf_token'),
       $container->get('canvas_ai.page_builder_helper'),
       $container->get('canvas_ai.tempstore'),
-      $container->get('file_system'),
+      $container->get('file.upload_handler'),
       $container->get('ai_agents.agent_status_poller'),
       $container->get('canvas_ai.chat_helper'),
     );
@@ -114,28 +117,36 @@ final class CanvasBuilder extends ControllerBase {
     }
     $image_files = [];
     foreach ($files as $file) {
-      $allowed_image_types = ['image/jpeg', 'image/png'];
-      $mime_type = $file->getClientMimeType();
-
-      if (!\in_array($mime_type, $allowed_image_types, TRUE)) {
+      if (!$file instanceof UploadedFile) {
+        continue;
+      }
+      // Validate and store the upload through the core file upload pipeline.
+      // Once validated, we discard it, but we want to centralize validation.
+      $upload_result = $this->fileUploadHandler->handleFileUpload(
+        new FormUploadedFile($file),
+        validators: [
+          'FileNameLength' => [],
+          'FileExtension' => ['extensions' => 'png jpg jpeg'],
+          'FileSizeLimit' => ['fileLimit' => Environment::getUploadMaxSize()],
+          'FileIsImage' => [],
+        ],
+        destination: 'temporary://',
+        fileExists: FileExists::Rename,
+      );
+      if ($upload_result->hasViolations()) {
         return new JsonResponse([
           'status' => FALSE,
           'message' => 'Only image files are allowed (jpeg, png, jpg).',
         ]);
       }
-      // Copy the file to the temp directory.
-      $filename = $file->getClientOriginalName();
-      $tmp_name = 'temporary://' . $filename;
-      $this->fileSystem->copy($file->getPathname(), $tmp_name, FileExists::Replace);
-      // Create actual file entities.
-      $file = $this->entityTypeManager()->getStorage('file')->create([
-        'uid' => $this->currentUser()->id(),
-        'filename' => $filename,
-        'uri' => $tmp_name,
-        'status' => 0,
-      ]);
-      $file->save();
-      $binary = file_get_contents($tmp_name);
+      $uploaded_file = $upload_result->getFile();
+      $mime_type = (string) $uploaded_file->getMimeType();
+      $filename = (string) $uploaded_file->getFilename();
+      $binary = file_get_contents((string) $uploaded_file->getFileUri());
+
+      // Delete the managed file immediately, we only care about the contents.
+      $uploaded_file->delete();
+
       if ($binary === FALSE) {
         return new JsonResponse([
           'status' => FALSE,
