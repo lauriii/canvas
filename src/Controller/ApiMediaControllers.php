@@ -107,6 +107,8 @@ final class ApiMediaControllers extends ApiControllerBase {
         'FileNameLength' => [],
         'FileExtension' => ['extensions' => $file_extensions ?: 'png gif jpg jpeg webp avif'],
         'FileSizeLimit' => ['fileLimit' => $max_filesize ? Bytes::toNumber($max_filesize) : Environment::getUploadMaxSize()],
+        // Ensure that the file contents, not only the extension, is an image.
+        'FileIsImage' => [],
       ],
       destination: $upload_location,
       fileExists: FileExists::Rename,
