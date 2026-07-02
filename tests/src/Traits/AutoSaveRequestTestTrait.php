@@ -26,8 +26,8 @@ trait AutoSaveRequestTestTrait {
 
   protected function assertNoAutoSaveData(): void {
     $response = $this->makePublishAllRequest([]);
-    $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+    $json = json_decode((string) $response->getContent(), TRUE);
     self::assertEquals(['message' => 'No items to publish.'], $json);
   }
 

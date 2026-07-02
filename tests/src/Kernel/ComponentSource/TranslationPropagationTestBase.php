@@ -476,7 +476,7 @@ abstract class TranslationPropagationTestBase extends CanvasKernelTestBase {
     // The Content Creator should see only the default translation pending.
     $response = $this->request(Request::create('/canvas/api/v0/auto-saves/pending', 'GET'));
     self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
-    $json = \json_decode($response->getContent() ?: '', TRUE, flags: \JSON_THROW_ON_ERROR);
+    $json = \json_decode((string) $response->getContent(), TRUE, flags: \JSON_THROW_ON_ERROR);
     self::assertSame([$default_key], \array_keys($json['data'] ?? []));
 
     // Publishing the (only pending) default draft publishes every symmetrical

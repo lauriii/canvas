@@ -82,6 +82,9 @@ final class ApiMediaControllers extends ApiControllerBase {
 
     // Read validators from the source field settings, with sensible fallbacks.
     $file_extensions = $source_field_definition->getSetting('file_extensions');
+    $extensions = $file_extensions !== '' && $file_extensions !== NULL
+      ? $file_extensions
+      : 'png gif jpg jpeg webp avif';
     $max_filesize = $source_field_definition->getSetting('max_filesize');
 
     $file = $request->files->get('file');
@@ -105,7 +108,8 @@ final class ApiMediaControllers extends ApiControllerBase {
       $uploaded_file,
       validators: [
         'FileNameLength' => [],
-        'FileExtension' => ['extensions' => $file_extensions ?: 'png gif jpg jpeg webp avif'],
+
+        'FileExtension' => ['extensions' => $extensions],
         'FileSizeLimit' => ['fileLimit' => $max_filesize ? Bytes::toNumber($max_filesize) : Environment::getUploadMaxSize()],
         // Ensure that the file contents, not only the extension, is an image.
         'FileIsImage' => [],

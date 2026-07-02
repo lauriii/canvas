@@ -89,7 +89,7 @@ final class CanvasAIThemeRegionSettingsForm extends ConfigFormBase {
         '#type' => 'textarea',
         '#title' => $this->t('Description'),
         '#description' => $this->t('Provide a description for what kind of content should be placed in this region.'),
-        '#default_value' => NestedArray::getValue($descriptions, [$this->defaultTheme, $region_id, 'description']) ?: '',
+        '#default_value' => NestedArray::getValue($descriptions, [$this->defaultTheme, $region_id, 'description']),
         '#placeholder' => $this->t("Example: If your theme has two footer regions enabled (footer_top and footer_bottom), you can add instructions like:\n\nFooter Top: \"This region should contain the site name, site logo, and footer navigation links, wrapped in a container component with the 'margin' prop set to 'large'. Use button components with the 'type' prop set to 'link' for navigation links.\"\n\nFooter Bottom: \"This region should contain social media icons using the social media component and a copyright notice using the paragraph component, wrapped in a container component with the 'margin' prop set to 'large'.\""),
         '#rows' => 7,
       ];

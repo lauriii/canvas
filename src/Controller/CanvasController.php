@@ -319,7 +319,8 @@ HTML;
    */
   private function buildHtml(): string {
     $theme_config = $this->configFactory->get('system.theme');
-    $admin_theme_name = $theme_config->get('admin') ?: $theme_config->get('default');
+    $admin = (string) $theme_config->get('admin');
+    $admin_theme_name = $admin !== '' ? $admin : $theme_config->get('default');
     $active_admin_theme = $this->themeInitialization->getActiveThemeByName($admin_theme_name);
     $actual_active_theme = $this->themeManager->getActiveTheme();
     $this->themeManager->setActiveTheme($active_admin_theme);

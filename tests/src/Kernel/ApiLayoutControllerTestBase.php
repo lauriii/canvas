@@ -101,7 +101,7 @@ abstract class ApiLayoutControllerTestBase extends KernelTestBase {
   protected function getRegion(string $region): ?string {
     $matches = [];
 
-    $content = $this->getRawContent() ?: '';
+    $content = (string) $this->getRawContent();
     // Covers 'application/json' endpoint responses with 'html' property.
     if (json_validate($content)) {
       $decoded = \json_decode($content, TRUE);

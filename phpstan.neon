@@ -3,6 +3,7 @@ parameters:
   level: 8
   strictRules:
     allRules: false
+    disallowedShortTernary: true
     strictFunctionCalls: true
   fileExtensions:
     - php

@@ -30,7 +30,8 @@ final class JsonSchemaObject extends Mapping {
       parent::__construct($definition, $name, $parent);
       return;
     }
-    $schema = \json_decode(\file_get_contents($ref) ?: '{}', TRUE, flags: \JSON_THROW_ON_ERROR);
+    $file_contents = \file_get_contents($ref);
+    $schema = \json_decode($file_contents !== FALSE ? $file_contents : '{}', TRUE, flags: \JSON_THROW_ON_ERROR);
     if ($schema['type'] !== 'object') {
       throw new \LogicException(\sprintf("The schema definition at `%s` is invalid: the parent '\$ref' property should resolve to an object definition.", $parent?->getPropertyPath() ?? $name));
     }
@@ -42,7 +43,8 @@ final class JsonSchemaObject extends Mapping {
     ];
     foreach ($schema['properties'] as $property_name => $detail) {
       if (\array_key_exists('$ref', $detail)) {
-        $prop_schema = \json_decode(\file_get_contents($detail['$ref']) ?: '{}', TRUE, flags: \JSON_THROW_ON_ERROR);
+        $prop_file_contents = \file_get_contents($detail['$ref']);
+        $prop_schema = \json_decode($prop_file_contents !== FALSE ? $prop_file_contents : '{}', TRUE, flags: \JSON_THROW_ON_ERROR);
         if (!\in_array($prop_schema['type'] ?? NULL, $supported_property_types, TRUE)) {
           throw new \LogicException(\sprintf("The schema definition at `%s` is invalid: the parent '\$ref' property contains a '%s' property that uses an unsupported config schema type '%s'. This is not supported.", $parent?->getPropertyPath() ?? $name, $property_name, $prop_schema['type'] ?? 'unknown'));
         }

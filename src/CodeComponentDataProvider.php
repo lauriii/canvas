@@ -109,7 +109,7 @@ readonly final class CodeComponentDataProvider {
     return [
       self::V0 => [
         // @todo improve title in https://www.drupal.org/i/3502371
-        'pageTitle' => $this->titleResolver->getTitle($request, $route) ?: '',
+        'pageTitle' => $this->titleResolver->getTitle($request, $route) ?? '',
       ],
     ];
   }

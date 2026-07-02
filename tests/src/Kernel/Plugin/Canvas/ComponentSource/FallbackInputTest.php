@@ -237,7 +237,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
       $auto_save_controller = $this->container->get(ApiAutoSaveController::class);
       $data = $auto_save_controller->get();
       self::assertEquals(Response::HTTP_OK, $data->getStatusCode());
-      $response_body = \json_decode($data->getContent() ?: '{}', TRUE);
+      $response_body = \json_decode((string) $data->getContent(), TRUE);
       $this->assertArrayHasKey('data', $response_body);
       $content = \json_encode($response_body['data'], JSON_THROW_ON_ERROR);
       $request = Request::create(

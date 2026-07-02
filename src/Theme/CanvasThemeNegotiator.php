@@ -53,7 +53,10 @@ final class CanvasThemeNegotiator implements ThemeNegotiatorInterface {
 
     if ($this->requestStack->getCurrentRequest()?->query->has('use_admin_theme') && $still_in_media_library) {
       // If the admin theme is not configured, use the default theme.
-      return $this->configFactory->get('system.theme')->get('admin') ?: $this->configFactory->get('system.theme')->get('default');
+      $theme_config = $this->configFactory->get('system.theme');
+      $admin = (string) $theme_config->get('admin');
+      $admin_theme_name = $admin !== '' ? $admin : $theme_config->get('default');
+      return $admin_theme_name;
     }
     $this->requestStack->getCurrentRequest()?->query->remove('use_admin_theme');
     return 'canvas_stark';

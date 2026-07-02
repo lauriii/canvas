@@ -11,7 +11,9 @@ function canvas_vite_library_info_alter(array &$libraries, string $extension): v
     'preprocess' => FALSE,
   ];
 
-  $vite_server_origin = getenv('VITE_SERVER_ORIGIN') ?: 'http://localhost:5173';
+  $vite_server_origin = \is_string(getenv('VITE_SERVER_ORIGIN'))
+    ? getenv('VITE_SERVER_ORIGIN')
+    : 'http://localhost:5173';
 
   $libraries['canvas-ui']['drupalSettings']['canvas_vite'] = [
     'serverOrigin' => $vite_server_origin

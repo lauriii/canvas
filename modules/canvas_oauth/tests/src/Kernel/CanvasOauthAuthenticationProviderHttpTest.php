@@ -402,7 +402,7 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
     $request = Request::create(
       Url::fromRoute($route_name, $parameters)->toString(),
       $method,
-      content: json_encode($data) ?: NULL,
+      content: json_encode($data, flags: \JSON_THROW_ON_ERROR),
     );
     if (\in_array($method, ['POST', 'PATCH'], TRUE)) {
       $request->headers->set('Content-Type', 'application/json');

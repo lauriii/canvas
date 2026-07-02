@@ -143,8 +143,12 @@ final class StaticPropSourceMultivalueWidgetStateTest extends CanvasKernelTestBa
     $prop_source = StaticPropSource::generate(
       new FieldTypePropExpression($field_type, $prop_name),
       FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
-      $field_storage_settings ?: NULL,
-      $field_instance_settings ?: NULL,
+      $field_storage_settings === []
+        ? NULL
+        : $field_storage_settings,
+      $field_instance_settings === []
+        ? NULL
+        : $field_instance_settings,
     );
 
     return $values !== [] ? $prop_source->withValue($values) : $prop_source;

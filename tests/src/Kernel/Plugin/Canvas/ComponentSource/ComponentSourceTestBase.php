@@ -651,7 +651,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
       self::assertCount(1, $out->filter(\sprintf('h1:contains("This is %s")', $slot)));
     }
     // We should also have the HTML comments that allow overlays to work.
-    $html = \trim(\preg_replace('/\s+/', ' ', $out->html()) ?: '');
+    $html = \trim(\preg_replace('/\s+/', ' ', $out->html()) ?? '');
     foreach ($slots as $slot_name) {
       self::assertMatchesRegularExpression(\sprintf('/<!-- canvas-slot-start-%s\/%s -->/', self::UUID_FALLBACK_ROOT, $slot_name), $html);
       self::assertMatchesRegularExpression(\sprintf('/canvas-slot-end-(.*)\/%s -->/', $slot_name), $html);
@@ -811,7 +811,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
 
     // Should not trigger an exception during component list rendering.
     $listOutput = \Drupal::classResolver(ApiConfigControllers::class)->list(Component::ENTITY_TYPE_ID);
-    $list = \json_decode($listOutput->getContent() ?: '[]', TRUE, flags: \JSON_THROW_ON_ERROR);
+    $list = \json_decode((string) $listOutput->getContent(), TRUE, flags: \JSON_THROW_ON_ERROR);
     self::assertArrayHasKey($component->id(), $list);
     // Component should be flagged as broken.
     self::assertTrue($list[$component->id()]['broken']);
@@ -830,7 +830,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
 
     // Component list's preview should also output verbose error.
     $listOutput = \Drupal::classResolver(ApiConfigControllers::class)->list(Component::ENTITY_TYPE_ID);
-    $list = \json_decode($listOutput->getContent() ?: '[]', TRUE, flags: \JSON_THROW_ON_ERROR);
+    $list = \json_decode((string) $listOutput->getContent(), TRUE, flags: \JSON_THROW_ON_ERROR);
     self::assertArrayHasKey($component->id(), $list);
     // Component should be flagged as broken.
     self::assertTrue($list[$component->id()]['broken']);

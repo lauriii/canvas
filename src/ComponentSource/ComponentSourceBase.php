@@ -136,12 +136,15 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
     });
     return \array_reduce(
       \array_keys(\array_filter($slot_definitions, \is_array(...))),
-      static fn(array $carry, string $slot_name) => $carry + [
-        $slot_name => [
-          'title' => $slot_definitions[$slot_name]['title'],
-          'example' => \current($slot_definitions[$slot_name]['examples'] ?? []) ?: '',
-        ],
-      ],
+      static function (array $carry, string $slot_name) use ($slot_definitions): array {
+        $slot_examples = $slot_definitions[$slot_name]['examples'] ?? [];
+        return $carry + [
+          $slot_name => [
+            'title' => $slot_definitions[$slot_name]['title'],
+            'example' => $slot_examples === [] ? '' : \current($slot_examples),
+          ],
+        ];
+      },
       []
     );
   }

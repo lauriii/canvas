@@ -483,7 +483,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
     // Load the test data from the layout controller.
     $url = $this->getLayoutUrl($entity)->toString();
-    $content = $this->parentRequest(Request::create($url))->getContent() ?: '';
+    $content = (string) $this->parentRequest(Request::create($url))->getContent();
     $this->assertJson($content);
     $json = json_decode($content, TRUE, flags: \JSON_THROW_ON_ERROR);
 

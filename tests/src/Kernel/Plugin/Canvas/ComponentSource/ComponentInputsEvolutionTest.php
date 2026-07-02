@@ -637,7 +637,14 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     // 2. contains exactly the expected values
     // 3. renders the expected markup.
     self::assertEntityIsValid($pattern);
-    self::assertSame($expected_post_update_config_defined_component_tree ?: $expected_post_update_content_defined_component_tree, \array_map(
+    // In most cases, the config-defined component tree expectations are
+    // identical to the content-defined ones, but not always. Allow omitting a
+    // config-specific one (by allowing `FALSE`).
+    $expected = $expected_post_update_config_defined_component_tree !== FALSE
+      ? $expected_post_update_config_defined_component_tree
+      : $expected_post_update_content_defined_component_tree;
+    self::assertSame($expected,
+      \array_map(
       function (ComponentTreeItem $item): array {
         $array = array_filter($item->toArray());
         $array['inputs'] = json_decode($array['inputs'], TRUE);

@@ -273,7 +273,7 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
     $bundles = $host->getBundles();
     $bundle = \is_array($bundles) && \count($bundles) === 1 ? reset($bundles) : NULL;
     \assert($bundle === NULL || \is_string($bundle));
-    $entity_type_bundles[] = [$entity_type_id, $bundle ?: $entity_type_id];
+    $entity_type_bundles[] = [$entity_type_id, $bundle ?? $entity_type_id];
 
     if ($expression instanceof ReferenceFieldPropExpression) {
       $referenced = $expression->referenced;

@@ -166,7 +166,8 @@ final class LibraryHooks {
     }
 
     $theme_config = $this->configFactory->get('system.theme');
-    $admin_theme_name = $theme_config->get('admin') ?: $theme_config->get('default');
+    $admin = (string) $theme_config->get('admin');
+    $admin_theme_name = $admin !== '' ? $admin : $theme_config->get('default');
     if ($this->themeHandler->themeExists($admin_theme_name)) {
       $libraries += $this->customizeDialogLibrary($admin_theme_name);
     }

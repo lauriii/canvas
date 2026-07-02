@@ -42,7 +42,7 @@ class AutoSaveHooks {
     // An entity without any auto-save yields an empty group; still delete it
     // directly so the non-auto-save cleanup (form violations, brand kit file
     // usage) in AutoSaveManager::delete() runs.
-    foreach ($group ?: [$entity] as $member) {
+    foreach ($group !== [] ? $group : [$entity] as $member) {
       $this->autoSaveManager->delete($member);
     }
   }

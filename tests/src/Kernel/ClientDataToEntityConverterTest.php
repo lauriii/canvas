@@ -597,7 +597,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     // Originally the `No more gravy please` checkbox is checked.
     $response = $this->request(Request::create($url->toString()));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    $json = \json_decode($response->getContent() ?: '', TRUE, flags: \JSON_THROW_ON_ERROR);
+    $json = \json_decode((string) $response->getContent(), TRUE, flags: \JSON_THROW_ON_ERROR);
     self::assertEquals(TRUE, $json['entity_form_fields'][CanvasTestArticleFieldsHooks::NO_MORE_GRAVY]);
     self::assertNull($autoSave->getAutoSaveEntity($node)->entity);
     self::assertEquals('Canvas Needs This For The Time Being', $json['entity_form_fields']['title[0][value]']);

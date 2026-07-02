@@ -68,7 +68,7 @@ final class AddPageControllerTest extends CanvasKernelTestBase {
     $this->assertEquals(302, $response->getStatusCode());
     $this->assertStringContainsString(
       '/canvas/editor/canvas_page/',
-      $response->headers->get('Location') ?: ''
+      $response->headers->get('Location') ?? ''
     );
   }
 

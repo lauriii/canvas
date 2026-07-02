@@ -183,7 +183,7 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
    * @param list<array{name: string, uri: string}>|null $entries
    */
   public function setImports(?array $entries): void {
-    $this->imports = $entries ?: NULL;
+    $this->imports = $entries === [] ? NULL : $entries;
   }
 
   /**
@@ -197,7 +197,7 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
    * @param list<array{name: string, uri: string}>|null $entries
    */
   public function setAssets(?array $entries): void {
-    $this->assets = $entries ?: NULL;
+    $this->assets = $entries === [] ? NULL : $entries;
   }
 
   /**
@@ -211,7 +211,7 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
    * @param list<array{name: string, uri: string}>|null $entries
    */
   public function setShared(?array $entries): void {
-    $this->shared = $entries ?: NULL;
+    $this->shared = $entries === [] ? NULL : $entries;
   }
 
   /**

@@ -224,7 +224,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertCount(0, \array_diff($account1->getCacheTags(), $response->getCacheableMetadata()->getCacheTags()));
     self::assertCount(0, \array_diff($account1->getCacheContexts(), $response->getCacheableMetadata()->getCacheContexts()));
     self::assertContains('config:user.settings', $response->getCacheableMetadata()->getCacheTags());
-    $response_body = \json_decode($response->getContent() ?: '{}', TRUE);
+    $response_body = \json_decode((string) $response->getContent(), TRUE);
     $this->assertArrayHasKey('data', $response_body);
     $content = $response_body['data'];
     $anonContentIdentifier = \sprintf('node:%d:en', $anonAccountContent->id());
@@ -393,7 +393,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertCount(0, \array_diff($account->getCacheTags(), $response->getCacheableMetadata()->getCacheTags()));
     self::assertCount(0, \array_diff($account->getCacheContexts(), $response->getCacheableMetadata()->getCacheContexts()));
     self::assertContains('config:user.settings', $response->getCacheableMetadata()->getCacheTags());
-    $response_content = \json_decode($response->getContent() ?: '{}', TRUE);
+    $response_content = \json_decode((string) $response->getContent(), TRUE);
 
     $this->assertArrayHasKey('data', $response_content);
     self::assertCount(1, $response_content['data']);
@@ -420,7 +420,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertCount(0, \array_diff($account->getCacheTags(), $response->getCacheableMetadata()->getCacheTags()));
     self::assertCount(0, \array_diff($account->getCacheContexts(), $response->getCacheableMetadata()->getCacheContexts()));
     self::assertContains('config:user.settings', $response->getCacheableMetadata()->getCacheTags());
-    $response_content = \json_decode($response->getContent() ?: '{}', TRUE);
+    $response_content = \json_decode((string) $response->getContent(), TRUE);
 
     $this->assertArrayHasKey('data', $response_content);
     self::assertCount(1, $response_content['data']);
@@ -443,7 +443,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $response = $this->request($request);
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
     self::assertEquals(Response::HTTP_CONFLICT, $response->getStatusCode());
-    $response_content = \json_decode($response->getContent() ?: '{}', TRUE);
+    $response_content = \json_decode((string) $response->getContent(), TRUE);
     $this->assertArrayHasKey('data', $response_content);
     $this->assertArrayHasKey('errors', $response_content);
     self::assertCount(1, $response_content['errors']);
@@ -466,7 +466,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $response = $this->request($request);
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
     self::assertEquals(Response::HTTP_CONFLICT, $response->getStatusCode());
-    $response_content = \json_decode($response->getContent() ?: '{}', TRUE);
+    $response_content = \json_decode((string) $response->getContent(), TRUE);
 
     // Only the latest active conflict is detected, there cannot be 2 conflict
     // errors per same auto-save entity entry.
@@ -497,7 +497,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $response = $this->request($request);
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
     self::assertEquals(Response::HTTP_CONFLICT, $response->getStatusCode());
-    $response_content = \json_decode($response->getContent() ?: '{}', TRUE);
+    $response_content = \json_decode((string) $response->getContent(), TRUE);
 
     // Validate there are two auto-save entries and one error.
     $this->assertArrayHasKey('data', $response_content);
@@ -526,7 +526,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $response = $this->request($request);
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
     self::assertEquals(Response::HTTP_CONFLICT, $response->getStatusCode());
-    $response_content = \json_decode($response->getContent() ?: '{}', TRUE);
+    $response_content = \json_decode((string) $response->getContent(), TRUE);
 
     // Validate there are two auto-save entries and two errors.
     $this->assertArrayHasKey('data', $response_content);
@@ -566,7 +566,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $response = $this->request($request);
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
     self::assertEquals(Response::HTTP_CONFLICT, $response->getStatusCode());
-    $response_content = \json_decode($response->getContent() ?: '{}', TRUE);
+    $response_content = \json_decode((string) $response->getContent(), TRUE);
 
     // Validate there are two entries and one conflict.
     $this->assertArrayHasKey('data', $response_content);
@@ -597,7 +597,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $response = $this->request($request);
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    $response_content = \json_decode($response->getContent() ?: '{}', TRUE);
+    $response_content = \json_decode((string) $response->getContent(), TRUE);
 
     // Validate there are two auto-save entries.
     $this->assertArrayHasKey('data', $response_content);
@@ -730,7 +730,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
     self::assertSame(['user.permissions'], $response->getCacheableMetadata()->getCacheContexts());
-    $response_body = \json_decode($response->getContent() ?: '{}', TRUE);
+    $response_body = \json_decode((string) $response->getContent(), TRUE);
     $this->assertArrayHasKey('data', $response_body);
     $content = $response_body['data'];
     $anonContentIdentifier = \sprintf('node:%d:en', $article->id());
@@ -1042,7 +1042,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ]);
 
     $response = $this->makePublishAllRequest();
-    $json = json_decode($response->getContent() ?: '', TRUE);
+    $json = json_decode((string) $response->getContent(), TRUE);
     self::assertEquals(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
     $errors[] = [
       'detail' => 'This value should not be null.',
@@ -1220,7 +1220,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
           'code' => ErrorCodesEnum::UnexpectedItemInPublishRequest->value,
         ],
       ],
-    ], \json_decode($response->getContent() ?: '', TRUE, flags: JSON_THROW_ON_ERROR));
+    ], \json_decode((string) $response->getContent(), TRUE, flags: JSON_THROW_ON_ERROR));
 
     $out_dated_auto_save_data = $auto_save_data;
     $out_dated_auto_save_data[$node1_auto_save_key]['data_hash'] = 'old-hash';
@@ -1242,14 +1242,14 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
           ],
         ],
       ],
-    ], \json_decode($response->getContent() ?: '', TRUE, flags: JSON_THROW_ON_ERROR));
+    ], \json_decode((string) $response->getContent(), TRUE, flags: JSON_THROW_ON_ERROR));
 
     // Publish only node 1.
     $auto_save_data = $this->getAutoSaveStatesFromServer();
     $auto_save_count = \count($auto_save_data);
     $node1_auto_save = [$node1_auto_save_key => $auto_save_data[$node1_auto_save_key]];
     $response = $this->makePublishAllRequest($node1_auto_save);
-    $json = json_decode($response->getContent() ?: '', TRUE);
+    $json = json_decode((string) $response->getContent(), TRUE);
     self::assertEquals(['message' => 'Successfully published 1 item.'], $json);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     $this->assertValidJsonUpdateNode($node1, FALSE);
@@ -1283,7 +1283,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
     self::assertArrayHasKey(AutoSaveManager::getAutoSaveKey($template), $auto_save_data);
     $response = $this->makePublishAllRequest();
-    $json = json_decode($response->getContent() ?: '', TRUE);
+    $json = json_decode((string) $response->getContent(), TRUE);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     self::assertEquals(['message' => \sprintf('Successfully published %d items.', $auto_save_count - 1)], $json);
 
@@ -1468,7 +1468,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       $page_content_identifier => $auto_save_data[$page_content_identifier],
     ]);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    $json = json_decode($response->getContent() ?: '', TRUE);
+    $json = json_decode((string) $response->getContent(), TRUE);
     self::assertEquals(['message' => 'Successfully published 1 item.'], $json);
 
     // Test publishing multiple pages when one has an unresolved conflict.
@@ -1812,7 +1812,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $response = $this->makePublishAllRequest($publish_data);
 
     self::assertSame($expected_status_code, $response->getStatusCode());
-    $json = json_decode($response->getContent() ?: '', TRUE);
+    $json = json_decode((string) $response->getContent(), TRUE);
     if ($expected_status_code === 200) {
       \assert(\is_string($expected_message));
       self::assertSame(['message' => $expected_message], $json);
@@ -1873,7 +1873,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $auto_save_key = $autoSave->getAutoSaveKey($node);
     $response = $this->makePublishAllRequest([$auto_save_key => $auto_save_data[$auto_save_key]]);
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-    self::assertEquals(['message' => 'Successfully published 1 item.'], json_decode($response->getContent() ?: '', TRUE));
+    self::assertEquals(['message' => 'Successfully published 1 item.'], json_decode((string) $response->getContent(), TRUE));
 
     // The `moderation_state` field is computed (states are persisted as
     // `content_moderation_state` entities), but the auto-saved state must
@@ -2086,7 +2086,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
    */
   private function assertConflictErrorResponse(Response $response, int|string $expected_conflict_id, string $expected_auto_save_key): void {
     self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
-    $response_content = \json_decode($response->getContent() ?: '{}', TRUE);
+    $response_content = \json_decode((string) $response->getContent(), TRUE);
     self::assertIsArray($response_content);
     $this->assertArrayHasKey('errors', $response_content);
     self::assertCount(1, $response_content['errors']);

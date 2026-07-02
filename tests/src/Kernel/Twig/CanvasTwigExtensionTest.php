@@ -114,7 +114,7 @@ final class CanvasTwigExtensionTest extends CanvasKernelTestBase {
     $bodySlot = $crawler->filter($slot_selector);
     self::assertCount(1, $bodySlot);
     // Normalize whitespace.
-    $bodyHtml = \trim(\preg_replace('/\s+/', ' ', $bodySlot->html()) ?: '');
+    $bodyHtml = \trim(\preg_replace('/\s+/', ' ', $bodySlot->html()) ?? '');
     self::assertStringContainsString($body, $bodyHtml);
 
     if ($is_preview) {

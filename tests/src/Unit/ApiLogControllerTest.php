@@ -63,7 +63,7 @@ class ApiLogControllerTest extends TestCase {
   public function testApiLogController(array $payload, int $expectedStatus, string $expectedMessage): void {
     $logger = $this->getLogger();
     $controller = $this->getController($logger);
-    $request = new Request([], [], [], [], [], [], json_encode($payload) ?: '');
+    $request = new Request([], [], [], [], [], [], json_encode($payload, flags: \JSON_THROW_ON_ERROR));
     $response = $controller->__invoke($request);
 
     $this->assertSame($expectedStatus, $response->getStatusCode());

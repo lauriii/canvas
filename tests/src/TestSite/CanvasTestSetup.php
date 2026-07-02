@@ -583,8 +583,9 @@ class CanvasTestSetup implements TestSetupInterface {
     \assert([] === $violations, print_r($violations, TRUE));
     $canvas_user->save();
 
-    if (getenv('CANVAS_EXTRA_MODULES')) {
-      $modules = \explode(',', getenv('CANVAS_EXTRA_MODULES') ?: '');
+    $env_modules = getenv('CANVAS_EXTRA_MODULES');
+    if (\is_string($env_modules)) {
+      $modules = \explode(',', $env_modules);
       $module_installer->install($modules);
 
       // Rebuild the container before the test starts making HTTP requests.
@@ -592,10 +593,11 @@ class CanvasTestSetup implements TestSetupInterface {
       $kernel->invalidateContainer();
       $kernel->rebuildContainer();
     }
-    if (getenv('CANVAS_EXTRA_PERMISSIONS')) {
+    $env_permissions = getenv('CANVAS_EXTRA_PERMISSIONS');
+    if (\is_string($env_permissions)) {
       $role = Role::load('canvas');
       if ($role) {
-        $permissions = \explode(',', getenv('CANVAS_EXTRA_PERMISSIONS') ?: '');
+        $permissions = \explode(',', $env_permissions);
         foreach ($permissions as $permission) {
           $role->grantPermission($permission);
         }
