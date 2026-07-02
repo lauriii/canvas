@@ -1,0 +1,1325 @@
+label: 'Drupal Canvas Page Builder Agent Test group'
+description: null
+approval_percentage: 90
+config_reset: '1'
+tests:
+  -
+    id:
+      -
+        value: '1'
+    uuid:
+      -
+        value: 99f311b8-c947-44e7-b627-ae5cdffb83e3
+    label:
+      -
+        value: 'Add the Hero Component'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Adds a hero to an empty page. Verifies the hero is placed inside the empty content region and that every text prop the user supplied (heading, subheading, both CTA labels) is set, with the CTA link falling back to the https://example.com placeholder because the user gave no URL.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1779800691'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a hero component with the heading "Welcome to Drupal Canvas" and the sub-heading "Build engaging digital experiences with Drupal Canvas." Set the primary CTA text to "Try It Now" and the secondary CTA text to "Read Docs"'
+    triggering_instructions:
+      -
+        value: 'Add a hero component with the heading "Welcome to Drupal Canvas" and the sub-heading "Build engaging digital experiences with Drupal Canvas." Set the primary CTA text to "Try It Now" and the secondary CTA text to "Read Docs'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Hero placed inside the empty content region with every user-supplied text prop, and cta1href defaulting to the placeholder URL'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.target=content\r\noperations.0.placement=inside\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.my-hero.props.heading=Welcome to Drupal Canvas\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.my-hero.props.subheading=Build engaging digital experiences with Drupal Canvas.\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.my-hero.props.cta1=Try It Now\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.my-hero.props.cta1href=https://example.com\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.my-hero.props.cta2=Read Docs"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '2'
+    uuid:
+      -
+        value: c1d74d59-fbe8-47a8-9f10-d6494169623d
+    label:
+      -
+        value: 'Add a Two-Column Layout with an Image and Heading'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Adds a two-column section to an empty page with an image in the left column and an H2 heading in the right column. Verifies the container width enum (50), the nested image prop copied from its exact catalog defaults, and the nested heading text and element (h2).'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1779882970'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a two-column layout with equal-width columns (50/50). Place an image in the left column and an H2 heading with the text "Welcome to Drupal Canvas" in the right column. Place the image and heading directly in their columns; do not add any extra container inside the columns.'
+    triggering_instructions:
+      -
+        value: 'Add a two-column layout with equal-width columns (50/50). Place an image in the left column and an H2 heading with the text "Welcome to Drupal Canvas" in the right column. Place the image and heading directly in their columns; do not add any extra container inside the columns.'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Two-column section placed in content: width enum 50, an image using catalog defaults in column_one, an H2 heading in column_two'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.target=content\r\noperations.0.placement=inside\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.two_column.props.width=50\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.two_column.slots.column_one.0.sdc\\.canvas_test_sdc\\.image.props.image.src=/modules/contrib/canvas/tests/modules/canvas_test_sdc/components/image/600x400.png\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.two_column.slots.column_one.0.sdc\\.canvas_test_sdc\\.image.props.image.alt=Boring placeholder\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.two_column.slots.column_one.0.sdc\\.canvas_test_sdc\\.image.props.image.width=600\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.two_column.slots.column_one.0.sdc\\.canvas_test_sdc\\.image.props.image.height=400\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.two_column.slots.column_two.0.sdc\\.canvas_test_sdc\\.heading.props.text=Welcome to Drupal Canvas\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.two_column.slots.column_two.0.sdc\\.canvas_test_sdc\\.heading.props.element=h2"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '3'
+    uuid:
+      -
+        value: 0f12ec05-2237-404f-848b-8d1056c57c1a
+    label:
+      -
+        value: 'Place a component in the empty slot.'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'The selected component is a columns container whose fourth column is empty. Verifies the banner lands inside that empty slot (target ends in /column_4, placement inside) and that its AI-generated props exist (heading, text, and all four image keys).'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1779887715'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a banner explaining the features of Drupal Canvas and place it in the fourth column.'
+    triggering_instructions:
+      -
+        value: 'Add a banner explaining the features of Drupal Canvas and place it in the fourth column.'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Banner props exist: heading, text, and all four image keys (values are AI-generated, so existence only)'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_exists
+                value: "operations.0.target\r\noperations.0.placement\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.banner.props.heading\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.banner.props.text\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.banner.props.image.src\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.banner.props.image.alt\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.banner.props.image.width\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.banner.props.image.height"
+            remove: null
+          rule_2:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Banner placed inside the empty fourth column of the selected columns container (placement inside)'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.target=cc4bd806-4126-472b-981f-b91a4f9e8ff5/column_4\r\noperations.0.placement=inside"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid: cc4bd806-4126-472b-981f-b91a4f9e8ff5\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '4'
+    uuid:
+      -
+        value: 6251abb5-edb0-45d1-bdd3-16bece078986
+    label:
+      -
+        value: 'Add Multiple Components'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'A hero is selected. Verifies the agent adds four heading components below the selected hero (reference_uuid = the hero, placement below) and that every heading is an H3 carrying text, style, and element props.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1779888263'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add 4 H3 Headings with the Names of Popular Open Source CMS Platforms Below This Section. Add them as standalone headings; do not wrap them in a container, column, or section.'
+    triggering_instructions:
+      -
+        value: 'Add 4 H3 Headings with the Names of Popular Open Source CMS Platforms Below This Section. Add them as standalone headings; do not wrap them in a container, column, or section.'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Four heading components exist, each carrying text, style, and element props'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_exists
+                value: "operations.0.target\r\noperations.0.reference_uuid\r\noperations.0.placement\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.text\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.style\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.element\r\noperations.0.components.1.sdc\\.canvas_test_sdc\\.heading.props.text\r\noperations.0.components.1.sdc\\.canvas_test_sdc\\.heading.props.style\r\noperations.0.components.1.sdc\\.canvas_test_sdc\\.heading.props.element\r\noperations.0.components.2.sdc\\.canvas_test_sdc\\.heading.props.text\r\noperations.0.components.2.sdc\\.canvas_test_sdc\\.heading.props.style\r\noperations.0.components.2.sdc\\.canvas_test_sdc\\.heading.props.element\r\noperations.0.components.3.sdc\\.canvas_test_sdc\\.heading.props.text\r\noperations.0.components.3.sdc\\.canvas_test_sdc\\.heading.props.style\r\noperations.0.components.3.sdc\\.canvas_test_sdc\\.heading.props.element"
+            remove: null
+          rule_2:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'All four headings anchored below the selected hero (reference_uuid + placement below) and each uses element h3'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.reference_uuid=b1fe179c-9069-48ec-9724-a14b9cf650e8\r\noperations.0.placement=below\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.element=h3\r\noperations.0.components.1.sdc\\.canvas_test_sdc\\.heading.props.element=h3\r\noperations.0.components.2.sdc\\.canvas_test_sdc\\.heading.props.element=h3\r\noperations.0.components.3.sdc\\.canvas_test_sdc\\.heading.props.element=h3"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid: b1fe179c-9069-48ec-9724-a14b9cf650e8\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '5'
+    uuid:
+      -
+        value: 3202f9cb-78e3-408e-8367-0f33c43a7de5
+    label:
+      -
+        value: 'Add component to a non empty slot'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'The selected component is a one-column section that already has children. Verifies that "as the first component inside this section" resolves to placement above the section current first child (not inside), so the new hero becomes the first item in the slot.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1779949384'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a hero component tailored for the homepage of a pizza shop as the first component inside this section.'
+    triggering_instructions:
+      -
+        value: 'Add a hero component tailored for the homepage of a pizza shop as the first component inside this section.'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Hero placed as the first child of the selected section: target is the section content slot, placement above its current first child'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.target=3177b7b8-947e-4fc8-9ee4-81b7834d36a9/content\r\noperations.0.reference_uuid=4c6ef712-5bca-4459-bce6-f7581b5c67bd\r\noperations.0.placement=above"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid: 3177b7b8-947e-4fc8-9ee4-81b7834d36a9\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '6'
+    uuid:
+      -
+        value: c7b12efc-979c-4f16-8393-2fcbf254f9fe
+    label:
+      -
+        value: 'Add a non-existing component'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'The user asks for sdc.olivero.teaser, which is not in the available catalog. Per the pre-execution validation step the agent must stop and call no tool at all.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1779951152'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add the `sdc.olivero.teaser` component and tailor it for a cookie shop featuring their special chocolate chip cookie.'
+    triggering_instructions:
+      -
+        value: 'Add the `sdc.olivero.teaser` component and tailor it for a cookie shop featuring their special chocolate chip cookie.'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Tool must not run: the requested component is not in the catalog'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: empty
+                value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '7'
+    uuid:
+      -
+        value: 98ad54fd-c2cb-4005-b0d8-5d1d0eae749c
+    label:
+      -
+        value: 'Add Component to Content Region'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'When multiple regions are enabled, components should be placed in the Content region if the user has not specified a region in the prompt.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1779972582'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a heading component with the text "Hello Drupal" to this page.'
+    triggering_instructions:
+      -
+        value: 'Add a heading component with the text "Hello Drupal" to this page'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Component added to the Content region'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: operations.0.target=content
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: page-with-multiple-regions\r\nactive_component_uuid: ''\r\navailable_regions: '{\"header\":{\"nodePathPrefix\":0,\"info\":null},\"content\":{\"nodePathPrefix\":1,\"info\":null},\"sidebar\":{\"nodePathPrefix\":2,\"info\":null},\"content_below\":{\"nodePathPrefix\":3,\"info\":null},\"footer_top\":{\"nodePathPrefix\":4,\"info\":null},\"footer_bottom\":{\"nodePathPrefix\":5,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '8'
+    uuid:
+      -
+        value: 15487286-98b7-4911-9302-30d07a279265
+    label:
+      -
+        value: 'Add Component to an Explicitly Named Non-Content Region'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'When the user explicitly names a non-content region, the component must be placed in that region rather than defaulting to content.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1779974746'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a simple "Contact Us" heading to the footer bottom region'
+    triggering_instructions:
+      -
+        value: 'Add a simple "Contact Us" heading to the footer bottom region'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Component placed in footer_bottom, not content'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.target=footer_bottom\r\noperations.0.placement=inside"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: page-with-multiple-regions\r\nactive_component_uuid: ''\r\navailable_regions: '{\"header\":{\"nodePathPrefix\":0,\"info\":null},\"content\":{\"nodePathPrefix\":1,\"info\":null},\"sidebar\":{\"nodePathPrefix\":2,\"info\":null},\"content_below\":{\"nodePathPrefix\":3,\"info\":null},\"footer_top\":{\"nodePathPrefix\":4,\"info\":null},\"footer_bottom\":{\"nodePathPrefix\":5,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '9'
+    uuid:
+      -
+        value: 357aebab-c9ab-4468-9d3c-8dddbdc350fa
+    label:
+      -
+        value: 'Place Component Above an Existing Top-Level Component'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'When the user asks to add a component before an existing one at the region level, the agent must use placement=above with the existing component as reference_uuid.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1779974746'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add an H1 heading with text "Welcome to Our Site" above the hero section. Add the heading directly; do not wrap it in a container, column, or section.'
+    triggering_instructions:
+      -
+        value: 'Add an H1 heading with text "Welcome to Our Site" above the hero section. Add the heading directly; do not wrap it in a container, column, or section.'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Placement is above the hero with correct reference_uuid'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.target=content\r\noperations.0.placement=above\r\noperations.0.reference_uuid=b1fe179c-9069-48ec-9724-a14b9cf650e8\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.text=Welcome to Our Site\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.element=h1"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '10'
+    uuid:
+      -
+        value: 305bf2d6-351d-4ff3-8a1f-cb0f147b9a2a
+    label:
+      -
+        value: 'Vague Placement Resolves to Last Top-Level Component'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'When the user request has no explicit position and no selected component, the agent must place the new component below the last top-level component in the content region.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1779974746'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a heading with the text "Get In Touch" to the page. Add the heading directly; do not wrap it in a container, column, or section.'
+    triggering_instructions:
+      -
+        value: 'Add a heading with the text "Get In Touch". Add the heading directly; do not wrap it in a container, column, or section.'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Placed below the last top-level component'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.placement=below\r\noperations.0.reference_uuid=2a98c606-7d32-4501-800a-4547e52ec45c\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.text=Get In Touch"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '11'
+    uuid:
+      -
+        value: 06dc5d50-1d0f-4f00-91da-177be55066c1
+    label:
+      -
+        value: 'Image Prop Defaults Preserved When User Context Contradicts'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'When a component has an image prop, the agent must use the exact catalog default values even when the user describes imagery that conflicts with those defaults.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1779974746'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a promotional banner for our artisan chocolate shop, featuring rich images of chocolate truffles and pralines'
+    triggering_instructions:
+      -
+        value: 'Add a promotional banner for our artisan chocolate shop, featuring rich images of chocolate truffles and pralines'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Catalog image defaults used despite conflicting user context'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.components.0.sdc\\.canvas_test_sdc\\.banner.props.image.src=/modules/contrib/canvas/tests/modules/canvas_test_sdc/components/banner/balloons.png\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.banner.props.image.alt=Hot air balloons\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.banner.props.image.width=640\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.banner.props.image.height=427"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '12'
+    uuid:
+      -
+        value: 62ac6459-a95f-43d3-818b-e49eadb30769
+    label:
+      -
+        value: 'Multiple Operations Targeting Different Regions'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'When the user asks to place components in two different regions in a single request, the agent must produce two separate operations in the YAML output.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1779974746'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a heading "Site Navigation" to the header region and a heading "Quick Links" to the footer bottom region'
+    triggering_instructions:
+      -
+        value: 'Add a heading "Site Navigation" to the header region and a heading "Quick Links" to the footer bottom region'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Two operations are produced'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_exists
+                value: "operations.0.target\r\noperations.1.target"
+            remove: null
+          rule_2:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'First operation targets header, second targets footer_bottom'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.target=header\r\noperations.0.placement=inside\r\noperations.1.target=footer_bottom\r\noperations.1.placement=inside"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: page-with-multiple-regions\r\nactive_component_uuid: ''\r\navailable_regions: '{\"header\":{\"nodePathPrefix\":0,\"info\":null},\"content\":{\"nodePathPrefix\":1,\"info\":null},\"sidebar\":{\"nodePathPrefix\":2,\"info\":null},\"content_below\":{\"nodePathPrefix\":3,\"info\":null},\"footer_top\":{\"nodePathPrefix\":4,\"info\":null},\"footer_bottom\":{\"nodePathPrefix\":5,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '13'
+    uuid:
+      -
+        value: 59493f76-dd63-4b5a-8493-2416af24dd52
+    label:
+      -
+        value: 'Hero CTA Uses User-Provided URL'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'When the user supplies a URL for the hero CTA link, the agent must place the component with that exact URL in cta1href instead of the default placeholder.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1780054784'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a hero component and link the primary CTA to the Drupal.org home page at https://www.drupal.org'
+    triggering_instructions:
+      -
+        value: 'Add a hero component and link the primary CTA to the Drupal.org home page at https://www.drupal.org'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Hero placed in content with the user-provided CTA URL'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.target=content\r\noperations.0.placement=inside\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.my-hero.props.cta1href=https://www.drupal.org"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '14'
+    uuid:
+      -
+        value: 6ec2e1a0-2ee1-4ccd-9ae7-cd3807b1c6db
+    label:
+      -
+        value: 'Ordinal Target Resolves to the Third Component of a Type'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'When the user references a component by ordinal position ("the third one-column section"), the agent must resolve the reference_uuid to that specific occurrence rather than the last one of that type.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1780055223'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a heading with the text "Our Services" below the third one-column section. Add the heading directly; do not wrap it in a container, column, or section.'
+    triggering_instructions:
+      -
+        value: 'Add a heading with the text "Our Services" below the third One Column Container. Add the heading directly; do not wrap it in a container, column, or section.'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Reference resolves to the third one_column, placed below'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.target=content\r\noperations.0.placement=below\r\noperations.0.reference_uuid=c242ae12-d411-4e19-a555-64cc2c31babb\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.text=Our Services"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '15'
+    uuid:
+      -
+        value: 9ee60e99-7d06-40b2-abfb-292e23d55135
+    label:
+      -
+        value: 'Required Image Prop Uses Catalog Defaults Despite Contradicting Context'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'When a component has a required image prop, the agent must populate it with the exact catalog default values even when the user describes conflicting imagery, and must also set the other required props (loading).'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1780055844'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a card promoting our deep-sea diving tours, with a vivid underwater photo of coral reefs and sea turtles.'
+    triggering_instructions:
+      -
+        value: 'Add a card promoting our deep-sea diving tours, with a vivid underwater photo of coral reefs and sea turtles.'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Required image prop uses exact catalog defaults despite conflicting context'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.components.0.sdc\\.canvas_test_sdc\\.card.props.image.src=/modules/contrib/canvas/tests/modules/canvas_test_sdc/components/card/balloons.png\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.card.props.image.alt=Hot air balloons\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.card.props.image.width=640\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.card.props.image.height=427"
+            remove: null
+          rule_2:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'The other required prop (loading) is set'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_exists
+                value: "operations.0.components.0.sdc\\.canvas_test_sdc\\.card.props.loading"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '16'
+    uuid:
+      -
+        value: 4c9927c4-d4f3-4cd0-9d06-4a5c28a969f6
+    label:
+      -
+        value: 'Region Description Drives Heading Level'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'When a region carries an info description constraining heading level, the agent must honor it and set element=h2 even though the user did not specify a heading level.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1780056316'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a heading with the text "Latest Updates" to the header region. Add the heading directly; do not wrap it in a container, column, or section.'
+    triggering_instructions:
+      -
+        value: 'Add a heading with the text "Latest Updates" to the header region. Add the heading directly; do not wrap it in a container, column, or section.'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Heading placed in header region with level forced to h2 by region description'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.target=header\r\noperations.0.placement=below\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.text=Latest Updates\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.element=h2"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: page-with-multiple-regions\r\nactive_component_uuid: ''\r\navailable_regions: '{\"header\":{\"nodePathPrefix\":0,\"info\":\"Heading components placed in this region must always use heading level H2 (element h2).\"},\"content\":{\"nodePathPrefix\":1,\"info\":null},\"sidebar\":{\"nodePathPrefix\":2,\"info\":null},\"content_below\":{\"nodePathPrefix\":3,\"info\":null},\"footer_top\":{\"nodePathPrefix\":4,\"info\":null},\"footer_bottom\":{\"nodePathPrefix\":5,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '17'
+    uuid:
+      -
+        value: 526521a0-81ed-4829-aaae-91b8867d63b0
+    label:
+      -
+        value: 'Add a Sibling Next to a Nested Selected Component'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'When the selected component is nested inside a slot, adding a component "below this" must place it as a sibling within the parent slot, using the selected component as reference_uuid with placement below.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1780057000'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: 'Add a heading with the text "Our Team" directly below this component. Place the heading directly inside the container; do not add another column or section around it.'
+    triggering_instructions:
+      -
+        value: 'Add a heading with the text "Our Team" directly below this component. Place the heading directly inside the container; do not add another column or section around it.'
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Heading added as a sibling below the selected nested component'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.reference_uuid=4c6ef712-5bca-4459-bce6-f7581b5c67bd\r\noperations.0.placement=below\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.text=Our Team"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid: 4c6ef712-5bca-4459-bce6-f7581b5c67bd\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '18'
+    uuid:
+      -
+        value: 64570952-ad05-4580-9910-138025cd5ee7
+    label:
+      -
+        value: 'Add a Heading as First Child Inside Every One-Column Container'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'When the user asks to add a heading as the first element inside every one-column container, the agent must produce one operation per one-column container, each targeting that container content slot with placement above its first child, and must skip the two-column container. Operation order is not asserted, so target and reference_uuid are checked for existence only.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1780057200'
+    changed:
+      -
+        value: '1782969565'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "Add a heading with the text 'Related Articles' as the first element inside every one-column container on the page. Place each heading directly inside the container; do not add another column or section around it."
+    triggering_instructions:
+      -
+        value: "Add a heading with the text 'Related Articles' as the first element inside every one-column container on the page. Place each heading directly inside the container; do not add another column or section around it."
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Every operation places the heading as the first child (placement above) with the text Related Articles'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.placement=above\r\noperations.1.placement=above\r\noperations.2.placement=above\r\noperations.3.placement=above\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.text=Related Articles\r\noperations.1.components.0.sdc\\.canvas_test_sdc\\.heading.props.text=Related Articles\r\noperations.2.components.0.sdc\\.canvas_test_sdc\\.heading.props.text=Related Articles\r\noperations.3.components.0.sdc\\.canvas_test_sdc\\.heading.props.text=Related Articles"
+            remove: null
+          rule_2:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Four operations exist, each with a slot target and a reference_uuid'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_exists
+                value: "operations.0.target\r\noperations.1.target\r\noperations.2.target\r\noperations.3.target\r\noperations.0.reference_uuid\r\noperations.1.reference_uuid\r\noperations.2.reference_uuid\r\noperations.3.reference_uuid"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: page-with-multiple-regions\r\nactive_component_uuid: ''\r\navailable_regions: '{\"header\":{\"nodePathPrefix\":0,\"info\":null},\"content\":{\"nodePathPrefix\":1,\"info\":null},\"sidebar\":{\"nodePathPrefix\":2,\"info\":null},\"content_below\":{\"nodePathPrefix\":3,\"info\":null},\"footer_top\":{\"nodePathPrefix\":4,\"info\":null},\"footer_bottom\":{\"nodePathPrefix\":5,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '19'
+    uuid:
+      -
+        value: d30c253c-09e1-4e56-8db6-94ea6e1402f6
+    label:
+      -
+        value: 'Anchored Placement in a Non-Content Region'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'When the reference component exists only in a non-content region, the agent must resolve that region and place the new component there. The site branding block exists only in the header, so the heading must be placed above it in the header region.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1780057400'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "Add a heading reading 'Announcements' above the site branding block. Add the heading directly; do not wrap it in a container, column, or section."
+    triggering_instructions:
+      -
+        value: "Add a heading reading 'Announcements' above the site branding block. Add the heading directly; do not wrap it in a container, column, or section."
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Heading placed above the site branding block in the header region'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.target=header\r\noperations.0.placement=above\r\noperations.0.reference_uuid=4890f586-2774-44f0-a9cb-f0abe5500473\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.text=Announcements"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: page-with-multiple-regions\r\nactive_component_uuid: ''\r\navailable_regions: '{\"header\":{\"nodePathPrefix\":0,\"info\":null},\"content\":{\"nodePathPrefix\":1,\"info\":null},\"sidebar\":{\"nodePathPrefix\":2,\"info\":null},\"content_below\":{\"nodePathPrefix\":3,\"info\":null},\"footer_top\":{\"nodePathPrefix\":4,\"info\":null},\"footer_bottom\":{\"nodePathPrefix\":5,\"info\":null}}'"
+  -
+    id:
+      -
+        value: '20'
+    uuid:
+      -
+        value: eb09670f-64a1-4362-a3e6-b60d17ba3732
+    label:
+      -
+        value: 'Explicit Target Overrides the Selected Component'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'When a component is selected but the user explicitly names a different anchor, the agent must respect the user instruction and place relative to the named component, not the selection. The selected component is a one-column section, but the user asks to place above the banner.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1780057600'
+    changed:
+      -
+        value: '1782912094'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "Add a heading that says 'Special Offer' above the banner. Add the heading directly; do not wrap it in a container, column, or section."
+    triggering_instructions:
+      -
+        value: "Add a heading that says 'Special Offer' above the banner. Add the heading directly; do not wrap it in a container, column, or section."
+    ai_agent:
+      -
+        target_id: canvas_page_builder_agent
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'canvas_ai:set_component_structure'
+            label: 'Heading anchored to the banner named by the user, not the selected component'
+            tool_rules: should_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'canvas_ai:set_component_structure'
+            parameters:
+              component_structure:
+                type_of_check: yaml_path_equals
+                value: "operations.0.reference_uuid=81dd0a5d-6257-4244-bdd3-35a6aa89fc03\r\noperations.0.placement=above\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.text=Special Offer"
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '6'
+    tokens:
+      -
+        value: "canvas_layout_fixture: page-with-multiple-regions\r\nactive_component_uuid: 3177b7b8-947e-4fc8-9ee4-81b7834d36a9\r\navailable_regions: '{\"header\":{\"nodePathPrefix\":0,\"info\":null},\"content\":{\"nodePathPrefix\":1,\"info\":null},\"sidebar\":{\"nodePathPrefix\":2,\"info\":null},\"content_below\":{\"nodePathPrefix\":3,\"info\":null},\"footer_top\":{\"nodePathPrefix\":4,\"info\":null},\"footer_bottom\":{\"nodePathPrefix\":5,\"info\":null}}'"

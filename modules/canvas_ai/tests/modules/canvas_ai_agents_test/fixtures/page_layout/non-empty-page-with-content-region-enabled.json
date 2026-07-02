@@ -1,0 +1,404 @@
+{
+  "regions": {
+    "content": {
+      "nodePathPrefix": [
+        0
+      ],
+      "components": [
+        {
+          "name": "sdc.canvas_test_sdc.my-hero",
+          "uuid": "b1fe179c-9069-48ec-9724-a14b9cf650e8",
+          "nodePath": [
+            0,
+            0
+          ]
+        },
+        {
+          "name": "sdc.canvas_test_sdc.one_column",
+          "uuid": "3177b7b8-947e-4fc8-9ee4-81b7834d36a9",
+          "nodePath": [
+            0,
+            1
+          ],
+          "slots": {
+            "3177b7b8-947e-4fc8-9ee4-81b7834d36a9/content": {
+              "components": [
+                {
+                  "name": "sdc.canvas_test_sdc.heading",
+                  "uuid": "4c6ef712-5bca-4459-bce6-f7581b5c67bd",
+                  "nodePath": [
+                    0,
+                    1,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "name": "sdc.canvas_test_sdc.columns",
+                  "uuid": "590c8424-20c4-4ba1-9add-84bead960333",
+                  "nodePath": [
+                    0,
+                    1,
+                    0,
+                    1
+                  ],
+                  "slots": {
+                    "590c8424-20c4-4ba1-9add-84bead960333/column_1": {
+                      "components": [
+                        {
+                          "name": "sdc.canvas_test_sdc.card",
+                          "uuid": "d3cbe78a-12aa-4791-87ad-e4b6dcd4f657",
+                          "nodePath": [
+                            0,
+                            1,
+                            0,
+                            1,
+                            0,
+                            0
+                          ]
+                        }
+                      ]
+                    },
+                    "590c8424-20c4-4ba1-9add-84bead960333/column_2": {
+                      "components": [
+                        {
+                          "name": "sdc.canvas_test_sdc.card",
+                          "uuid": "6b65ebb6-4cbe-40e9-ad22-d9da96c8a238",
+                          "nodePath": [
+                            0,
+                            1,
+                            0,
+                            1,
+                            1,
+                            0
+                          ]
+                        }
+                      ]
+                    },
+                    "590c8424-20c4-4ba1-9add-84bead960333/column_3": {
+                      "components": [
+                        {
+                          "name": "sdc.canvas_test_sdc.card",
+                          "uuid": "95e10828-3160-48e4-89be-ef2e07c7bab4",
+                          "nodePath": [
+                            0,
+                            1,
+                            0,
+                            1,
+                            2,
+                            0
+                          ]
+                        }
+                      ]
+                    },
+                    "590c8424-20c4-4ba1-9add-84bead960333/column_4": {
+                      "components": []
+                    },
+                    "590c8424-20c4-4ba1-9add-84bead960333/column_5": {
+                      "components": []
+                    },
+                    "590c8424-20c4-4ba1-9add-84bead960333/column_6": {
+                      "components": []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sdc.canvas_test_sdc.one_column",
+          "uuid": "80d6df38-c48a-4367-a72f-f16c76df2c16",
+          "nodePath": [
+            0,
+            2
+          ],
+          "slots": {
+            "80d6df38-c48a-4367-a72f-f16c76df2c16/content": {
+              "components": [
+                {
+                  "name": "sdc.canvas_test_sdc.heading",
+                  "uuid": "d0721a9d-a6b7-49dc-a952-2be213b08dc7",
+                  "nodePath": [
+                    0,
+                    2,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "name": "sdc.canvas_test_sdc.grid-container",
+                  "uuid": "cb03116a-b687-4ac0-8f0c-910f1436667d",
+                  "nodePath": [
+                    0,
+                    2,
+                    0,
+                    1
+                  ],
+                  "slots": {
+                    "cb03116a-b687-4ac0-8f0c-910f1436667d/content": {
+                      "components": [
+                        {
+                          "name": "sdc.canvas_test_sdc.card-with-local-image",
+                          "uuid": "158bc8bf-4252-4c0f-8215-dd5adbda0449",
+                          "nodePath": [
+                            0,
+                            2,
+                            0,
+                            1,
+                            0,
+                            0
+                          ]
+                        },
+                        {
+                          "name": "sdc.canvas_test_sdc.card-with-remote-image",
+                          "uuid": "1fccf63f-c0cc-4918-b986-1a720d150fa6",
+                          "nodePath": [
+                            0,
+                            2,
+                            0,
+                            1,
+                            0,
+                            1
+                          ]
+                        },
+                        {
+                          "name": "sdc.canvas_test_sdc.card-with-stream-wrapper-image",
+                          "uuid": "41458e8c-7f06-42db-9cb5-86fcd0f57233",
+                          "nodePath": [
+                            0,
+                            2,
+                            0,
+                            1,
+                            0,
+                            2
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sdc.canvas_test_sdc.two_column",
+          "uuid": "0af54f7f-5d7d-4401-a110-60ec31db9065",
+          "nodePath": [
+            0,
+            3
+          ],
+          "slots": {
+            "0af54f7f-5d7d-4401-a110-60ec31db9065/column_one": {
+              "components": [
+                {
+                  "name": "sdc.canvas_test_sdc.heading",
+                  "uuid": "a391809a-7d25-46c6-99aa-a85a2a52e72f",
+                  "nodePath": [
+                    0,
+                    3,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "name": "sdc.canvas_test_sdc.my-section",
+                  "uuid": "aa7795c3-137a-47b1-91a6-4f56a8e6fd18",
+                  "nodePath": [
+                    0,
+                    3,
+                    0,
+                    1
+                  ]
+                },
+                {
+                  "name": "sdc.canvas_test_sdc.tags",
+                  "uuid": "95c769ae-b732-4589-ab77-5aef7421a6e2",
+                  "nodePath": [
+                    0,
+                    3,
+                    0,
+                    2
+                  ]
+                }
+              ]
+            },
+            "0af54f7f-5d7d-4401-a110-60ec31db9065/column_two": {
+              "components": [
+                {
+                  "name": "sdc.canvas_test_sdc.banner",
+                  "uuid": "81dd0a5d-6257-4244-bdd3-35a6aa89fc03",
+                  "nodePath": [
+                    0,
+                    3,
+                    1,
+                    0
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sdc.canvas_test_sdc.one_column",
+          "uuid": "c242ae12-d411-4e19-a555-64cc2c31babb",
+          "nodePath": [
+            0,
+            4
+          ],
+          "slots": {
+            "c242ae12-d411-4e19-a555-64cc2c31babb/content": {
+              "components": [
+                {
+                  "name": "sdc.canvas_test_sdc.heading",
+                  "uuid": "7bc3c6a1-7ac4-4706-9a90-612736152e4f",
+                  "nodePath": [
+                    0,
+                    4,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "name": "sdc.canvas_test_sdc.columns",
+                  "uuid": "cc4bd806-4126-472b-981f-b91a4f9e8ff5",
+                  "nodePath": [
+                    0,
+                    4,
+                    0,
+                    1
+                  ],
+                  "slots": {
+                    "cc4bd806-4126-472b-981f-b91a4f9e8ff5/column_1": {
+                      "components": [
+                        {
+                          "name": "sdc.canvas_test_sdc.card",
+                          "uuid": "f16a7d9b-ae58-4490-a6a4-69a157c4af66",
+                          "nodePath": [
+                            0,
+                            4,
+                            0,
+                            1,
+                            0,
+                            0
+                          ]
+                        }
+                      ]
+                    },
+                    "cc4bd806-4126-472b-981f-b91a4f9e8ff5/column_2": {
+                      "components": [
+                        {
+                          "name": "sdc.canvas_test_sdc.card",
+                          "uuid": "c5e4653a-2db0-4520-8b4c-f5a5e4d0db1b",
+                          "nodePath": [
+                            0,
+                            4,
+                            0,
+                            1,
+                            1,
+                            0
+                          ]
+                        }
+                      ]
+                    },
+                    "cc4bd806-4126-472b-981f-b91a4f9e8ff5/column_3": {
+                      "components": [
+                        {
+                          "name": "sdc.canvas_test_sdc.card",
+                          "uuid": "51b3d34c-142e-4051-a7f1-01985c89a20f",
+                          "nodePath": [
+                            0,
+                            4,
+                            0,
+                            1,
+                            2,
+                            0
+                          ]
+                        }
+                      ]
+                    },
+                    "cc4bd806-4126-472b-981f-b91a4f9e8ff5/column_4": {
+                      "components": []
+                    },
+                    "cc4bd806-4126-472b-981f-b91a4f9e8ff5/column_5": {
+                      "components": []
+                    },
+                    "cc4bd806-4126-472b-981f-b91a4f9e8ff5/column_6": {
+                      "components": []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sdc.canvas_test_sdc.one_column",
+          "uuid": "2a98c606-7d32-4501-800a-4547e52ec45c",
+          "nodePath": [
+            0,
+            5
+          ],
+          "slots": {
+            "2a98c606-7d32-4501-800a-4547e52ec45c/content": {
+              "components": [
+                {
+                  "name": "sdc.canvas_test_sdc.heading",
+                  "uuid": "fee54a60-99e5-4867-a111-88547e024c4b",
+                  "nodePath": [
+                    0,
+                    5,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "name": "sdc.canvas_test_sdc.my-section",
+                  "uuid": "64c060d5-bd6d-404f-b784-10f73b75770e",
+                  "nodePath": [
+                    0,
+                    5,
+                    0,
+                    1
+                  ]
+                },
+                {
+                  "name": "sdc.canvas_test_sdc.my-cta",
+                  "uuid": "d431628e-21db-4ad5-9714-5469464cc3e0",
+                  "nodePath": [
+                    0,
+                    5,
+                    0,
+                    2
+                  ]
+                },
+                {
+                  "name": "sdc.canvas_test_sdc.my-cta",
+                  "uuid": "d92c4106-1d69-4e41-868a-987eb4870082",
+                  "nodePath": [
+                    0,
+                    5,
+                    0,
+                    3
+                  ]
+                },
+                {
+                  "name": "sdc.canvas_test_sdc.video",
+                  "uuid": "5f4ae6ac-964c-4668-9930-63f263fa556f",
+                  "nodePath": [
+                    0,
+                    5,
+                    0,
+                    4
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
