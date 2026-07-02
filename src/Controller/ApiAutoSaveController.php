@@ -12,8 +12,10 @@ use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\EntityConstraintViolationList;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Validation\Constraint\AutoSaveEntityConflictConstraint;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\Core\Cache\CacheableJsonResponse;
@@ -28,6 +30,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\Plugin\Validation\Constraint\EntityChangedConstraint;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
@@ -43,6 +46,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
@@ -56,7 +60,6 @@ final class ApiAutoSaveController extends ApiControllerBase {
   use ConstraintPropertyPathTranslatorTrait;
 
   public const AUTO_SAVE_KEY = 'api_auto_save_key';
-  public const AUTO_SAVE_CONFLICT_KEY = 'conflict_id';
   public const AVATAR_IMAGE_STYLE = 'canvas_avatar';
 
   public function __construct(
@@ -110,6 +113,34 @@ final class ApiAutoSaveController extends ApiControllerBase {
         ], $unmatched_keys),
       ], status: Response::HTTP_CONFLICT);
     }
+
+    $matching_auto_saves = \array_intersect_key($publishable_auto_saves, $expected_auto_saves);
+    if (self::autoSaveListHasConflicts($matching_auto_saves)) {
+      $auto_saves_with_conflicts = \array_filter(
+        $matching_auto_saves,
+        fn ($entry) => isset($entry[AutoSaveManager::AUTO_SAVE_CONFLICT_KEY])
+      );
+
+      return new JsonResponse(data: [
+        'errors' => \array_map(static fn(string $key) => [
+          'detail' => ErrorCodesEnum::ItemEntityUpdatedExternally->getMessage(),
+          'source' => [
+            'pointer' => $key,
+          ],
+          'code' => ErrorCodesEnum::ItemEntityUpdatedExternally->value,
+          'meta' => \array_intersect_key($publishable_auto_saves[$key], \array_flip([
+            'entity_type',
+            'entity_id',
+            'label',
+            AutoSaveManager::AUTO_SAVE_CONFLICT_KEY,
+          ])) + [
+            self::AUTO_SAVE_KEY => $key,
+          ],
+        ],
+          \array_keys($auto_saves_with_conflicts)),
+      ], status: Response::HTTP_CONFLICT);
+    }
+
     // If any JavaScriptComponents are being published ensure dependent global
     // config surfaces are also being published.
     // @todo Improve this in https://www.drupal.org/project/canvas/issues/3535038
@@ -227,6 +258,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
    */
   public function get(): CacheableJsonResponse {
     $cache = new CacheableMetadata();
+    // @todo Remove the use of 'canvas_dev_cd' flag in https://git.drupalcode.org/project/canvas/-/work_items/3591732
     $conflict_detection_dev_mode = $this->moduleHandler->moduleExists('canvas_dev_cd');
 
     $filtered = $this->getPublishableAutoSaves(with_conflicts: $conflict_detection_dev_mode, cache: $cache);
@@ -250,7 +282,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     if (self::autoSaveListHasConflicts($filtered)) {
       $status = Response::HTTP_CONFLICT;
       foreach ($filtered as $key => $entry) {
-        if (isset($entry[self::AUTO_SAVE_CONFLICT_KEY])) {
+        if (isset($entry[AutoSaveManager::AUTO_SAVE_CONFLICT_KEY])) {
           $body['errors'][] = [
             'detail' => ErrorCodesEnum::ItemEntityUpdatedExternally->getMessage(),
             'source' => [
@@ -261,7 +293,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
               'entity_type' => $entry['entity_type'],
               'entity_id' => $entry['entity_id'],
               'label' => $entry['label'],
-              self::AUTO_SAVE_CONFLICT_KEY => $entry[self::AUTO_SAVE_CONFLICT_KEY],
+              AutoSaveManager::AUTO_SAVE_CONFLICT_KEY => $entry[AutoSaveManager::AUTO_SAVE_CONFLICT_KEY],
               self::AUTO_SAVE_KEY => $key,
             ],
           ];
@@ -305,7 +337,9 @@ final class ApiAutoSaveController extends ApiControllerBase {
   public function post(Request $request): JsonResponse {
     $client_auto_saves = \json_decode($request->getContent(), TRUE);
     \assert(\is_array($client_auto_saves));
-    $publishable_auto_saves = $this->getPublishableAutoSaves(with_conflicts: FALSE);
+    // @todo Remove the use of 'canvas_dev_cd' flag in https://git.drupalcode.org/project/canvas/-/work_items/3591732
+    $conflict_detection_dev_mode = $this->moduleHandler->moduleExists('canvas_dev_cd');
+    $publishable_auto_saves = $this->getPublishableAutoSaves(with_conflicts: $conflict_detection_dev_mode);
     if ($validation_response = self::validateExpectedAutoSaves($client_auto_saves, $publishable_auto_saves)) {
       return $validation_response;
     }
@@ -340,7 +374,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     // list, so the client can only ever select the default one.
     // @see \Drupal\canvas\Controller\ApiAutoSaveController::get()
     // @see \Drupal\canvas\AutoSave\AutoSaveManager::getTranslationGroupAutoSaves()
-    $all_auto_saves = $this->autoSaveManager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: FALSE);
+    $all_auto_saves = $this->autoSaveManager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: $conflict_detection_dev_mode);
     $publish_auto_saves = self::includeSiblingTranslationAutoSaves($publish_auto_saves, $all_auto_saves);
 
     // We want to report all access errors at one, so keeping the labels.
@@ -417,7 +451,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
       // when possible, any side effects of saving entities that cannot be
       // undone by rolling back the database transaction, such as sending
       // emails.
-      $violations = $entity->validate();
+      $violations = $this->getConflictAwareContentEntityViolations($entity, $conflict_detection_dev_mode);
       $form_violations = $this->autoSaveManager->getEntityFormViolations($entity);
       foreach ($form_violations as $form_violation) {
         // Add any form violations at this point.
@@ -446,7 +480,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
         // possibility where, when multiple entities are being saved together,
         // the first entity collides with some of the following entities. So
         // we need to validate right before saving the entity.
-        self::ensureEntityIsValid($entity);
+        $this->ensureEntityIsValid($entity, $conflict_detection_dev_mode);
         $entity->save();
       }
       foreach ($autoSaveEntities as $entity) {
@@ -558,20 +592,67 @@ final class ApiAutoSaveController extends ApiControllerBase {
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity to validate.
+   * @param bool $conflict_detection_dev_mode
+   *   Whether conflict detection flag module is enabled.
    *
    * @throws \Drupal\canvas\Exception\ConstraintViolationException
    */
-  private static function ensureEntityIsValid(EntityInterface $entity): void {
+  private function ensureEntityIsValid(EntityInterface $entity, bool $conflict_detection_dev_mode): void {
     $violations = new ConstraintViolationList();
     if ($entity instanceof ConfigEntityInterface) {
       $violations->addAll($entity->getTypedData()->validate());
     }
     elseif ($entity instanceof ContentEntityInterface) {
-      $violations->addAll($entity->validate());
+      $violations->addAll($this->getConflictAwareContentEntityViolations($entity, $conflict_detection_dev_mode));
     }
     if (count($violations) > 0) {
       throw new ConstraintViolationException($violations);
     }
+  }
+
+  /**
+   * Validates a content entity, with auto-save conflict detection layered on.
+   *
+   * For Page entities in conflict-detection mode, suppresses the core
+   * 'EntityChanged' violation (which would otherwise block publishing a
+   * resolved conflict) and replaces it with a Canvas conflict violation when
+   * an unresolved conflict is detected.
+   */
+  private function getConflictAwareContentEntityViolations(ContentEntityInterface $entity, bool $conflict_detection_dev_mode): ConstraintViolationListInterface {
+    $violations = $entity->validate();
+    if (!$conflict_detection_dev_mode || !$entity instanceof Page) {
+      return $violations;
+    }
+
+    \assert($violations instanceof EntityConstraintViolationListInterface);
+    $filtered = new EntityConstraintViolationList($violations->getEntity());
+    foreach ($violations as $violation) {
+      if ($violation->getConstraint() instanceof EntityChangedConstraint) {
+        continue;
+      }
+      $filtered->add($violation);
+    }
+
+    $conflict = $this->autoSaveManager->getUnresolvedConflictForEntity($entity);
+    if ($conflict === NULL) {
+      return $filtered;
+    }
+
+    $conflict_constraint = new AutoSaveEntityConflictConstraint();
+    $filtered->add(new ConstraintViolation(
+      message: (string) $conflict_constraint->message,
+      messageTemplate: $conflict_constraint->message,
+      parameters: [AutoSaveManager::AUTO_SAVE_CONFLICT_KEY => $conflict],
+      root: $entity,
+      propertyPath: AutoSaveManager::getAutoSaveKey($entity),
+      invalidValue: NULL,
+      plural: NULL,
+      code: (string) ErrorCodesEnum::ItemEntityUpdatedExternally->value,
+      constraint: $conflict_constraint,
+      cause: NULL,
+    ));
+
+    return $filtered;
   }
 
   public static function getViolationSetsFromPropertyPathsAndRoot(
@@ -621,7 +702,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
    * @return bool
    */
   private static function autoSaveListHasConflicts(array $auto_save_entries): bool {
-    return !empty(\array_column($auto_save_entries, self::AUTO_SAVE_CONFLICT_KEY));
+    return !empty(\array_column($auto_save_entries, AutoSaveManager::AUTO_SAVE_CONFLICT_KEY));
   }
 
   /**

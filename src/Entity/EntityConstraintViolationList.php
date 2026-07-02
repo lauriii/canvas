@@ -27,4 +27,22 @@ final class EntityConstraintViolationList extends ConstraintViolationList {
     return new static($violation_list->getEntity(), $violation_list);
   }
 
+  /**
+   * {@inheritdoc}
+   *
+   * Overridden because the parent uses `new static($violations)`, which would
+   * call the constructor in this class with an array as the first argument
+   * instead of an EntityInterface, causing a TypeError.
+   */
+  public function findByCodes(string|array $codes): static {
+    $codes = (array) $codes;
+    $violations = [];
+    foreach ($this as $violation) {
+      if (\in_array($violation->getCode(), $codes, TRUE)) {
+        $violations[] = $violation;
+      }
+    }
+    return new static($this->entity, $violations);
+  }
+
 }

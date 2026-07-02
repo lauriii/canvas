@@ -8,6 +8,7 @@ use Drupal\canvas\Entity\EntityConstraintViolationList;
 use Drupal\canvas\EventSubscriber\ApiExceptionSubscriber;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Validator\ConstraintViolationInterface;
@@ -67,7 +68,7 @@ class ApiControllerBase {
       return NULL;
     }
 
-    return new JsonResponse(status: 422, data: [
+    $data = [
       'errors' => \array_reduce($violationSets, static fn(array $carry, ConstraintViolationListInterface $violationList): array => [
         ...$carry,
         ...\array_map(static fn(ConstraintViolationInterface $violation) => ApiExceptionSubscriber::violationToJsonApiStyleErrorObject(
@@ -75,7 +76,18 @@ class ApiControllerBase {
           $violationList instanceof EntityConstraintViolationList ? $violationList->entity : NULL,
         ), \iterator_to_array($violationList)),
       ], []),
-    ]);
+    ];
+
+    // Look if any violation sets have the error code that indicates a conflict.
+    $conflict_code_found = \array_find($violationSets, static fn (ConstraintViolationListInterface $violationList) : bool =>
+      $violationList instanceof EntityConstraintViolationList && $violationList->findByCodes((string) ErrorCodesEnum::ItemEntityUpdatedExternally->value)->count() > 0
+    );
+
+    // If there are conflict errors use HTTP 409, otherwise use HTTP 422.
+    return new JsonResponse(
+      data: $data,
+      status: $conflict_code_found ? Response::HTTP_CONFLICT : Response::HTTP_UNPROCESSABLE_ENTITY
+    );
   }
 
 }

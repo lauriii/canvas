@@ -7,6 +7,7 @@ namespace Drupal\canvas\EventSubscriber;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Controller\ApiAutoSaveController;
 use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\Plugin\Validation\Constraint\AutoSaveEntityConflictConstraint;
 use Drupal\canvas\Utility\ExceptionHelper;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
@@ -166,6 +167,15 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
           ApiAutoSaveController::AUTO_SAVE_KEY => AutoSaveManager::getAutoSaveKey($entity),
         ]),
       ];
+      // If the violation marks a Canvas auto-save entity conflict, include
+      // the conflict ID and propagate the explicit conflict error code.
+      if ($violation->getConstraint() instanceof AutoSaveEntityConflictConstraint) {
+        $parameters = $violation->getParameters();
+        \assert(isset($parameters[AutoSaveManager::AUTO_SAVE_CONFLICT_KEY]) && !\is_null($parameters[AutoSaveManager::AUTO_SAVE_CONFLICT_KEY]));
+        \assert(!\is_null($violation->getCode()));
+        $meta['code'] = (int) $violation->getCode();
+        $meta['meta'][AutoSaveManager::AUTO_SAVE_CONFLICT_KEY] = $parameters[AutoSaveManager::AUTO_SAVE_CONFLICT_KEY];
+      }
     }
     return [
       'detail' => (string) $violation->getMessage(),

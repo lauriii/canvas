@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Controller\ApiAutoSaveController;
 use Drupal\canvas\Controller\ErrorCodesEnum;
 use Drupal\canvas\Entity\AssetLibrary;
@@ -15,12 +16,17 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\SessionConfigurationInterface;
@@ -345,6 +351,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   }
 
   public function testApiAutoSaveControllerGetConflictDetection(): void {
+    // @todo Remove the use of 'canvas_dev_cd' flag in https://git.drupalcode.org/project/canvas/-/work_items/3591732
     $this->enableModules(['canvas_dev_cd']);
     $this->installConfig(['test_user_config']);
     $permissions = [
@@ -426,9 +433,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertArrayHasKey($pageContentIdentifier, $response_content['data']);
     self::assertArrayNotHasKey('original_hash', $response_content['data'][$pageContentIdentifier], 'The property "original_hash" should be unset before returning response.');
     self::assertArrayNotHasKey('conflict', $response_content['data'][$pageContentIdentifier], 'The property "conflict" should be unset from the auto-save entry in the top-level "data" property of the response body.');
-    self::assertArrayHasKey('conflict_id', $response_content['errors'][0]['meta'], 'The "conflict_id" property should be added to all `errors` items that are a result of conflict detection.');
-    self::assertEquals($page->getLoadedRevisionId(), $response_content['errors'][0]['meta']['conflict_id']);
-    $page_first_conflict = $response_content['errors'][0]['meta']['conflict_id'];
+    self::assertArrayHasKey(AutoSaveManager::AUTO_SAVE_CONFLICT_KEY, $response_content['errors'][0]['meta'], \sprintf('The "%s" property should be added to all `errors` items that are a result of conflict detection.', AutoSaveManager::AUTO_SAVE_CONFLICT_KEY));
+    self::assertEquals($page->getLoadedRevisionId(), $response_content['errors'][0]['meta'][AutoSaveManager::AUTO_SAVE_CONFLICT_KEY]);
+    $page_first_conflict = $response_content['errors'][0]['meta'][AutoSaveManager::AUTO_SAVE_CONFLICT_KEY];
 
     // Repeated requests to auto-save/pending should result in HTTP 409 until
     // all the conflicts in the response are resolved.
@@ -441,8 +448,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertArrayHasKey('errors', $response_content);
     self::assertCount(1, $response_content['errors']);
     $this->assertDataCompliesWithApiSpecification($response_content['errors'][0], 'Error');
-    self::assertArrayHasKey('conflict_id', $response_content['errors'][0]['meta']);
-    self::assertEquals($response_content['errors'][0]['meta']['conflict_id'], $page_first_conflict);
+    self::assertArrayHasKey(AutoSaveManager::AUTO_SAVE_CONFLICT_KEY, $response_content['errors'][0]['meta']);
+    self::assertEquals($response_content['errors'][0]['meta'][AutoSaveManager::AUTO_SAVE_CONFLICT_KEY], $page_first_conflict);
 
     // Save the conflict property in auto-save storage.
     $page->set('title', 'Test title, please ignore');
@@ -469,16 +476,16 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertArrayHasKey('errors', $response_content);
 
     // Validate conflict property is added to the relevant error.
-    self::assertArrayHasKey('conflict_id', $response_content['errors'][0]['meta']);
+    self::assertArrayHasKey(AutoSaveManager::AUTO_SAVE_CONFLICT_KEY, $response_content['errors'][0]['meta']);
     self::assertCount(1, $response_content['errors']);
     $this->assertDataCompliesWithApiSpecification($response_content['errors'][0], 'Error');
 
     // Validate it's a conflict based on latest $page revision.
-    self::assertEquals($page->getLoadedRevisionId(), $response_content['errors'][0]['meta']['conflict_id']);
+    self::assertEquals($page->getLoadedRevisionId(), $response_content['errors'][0]['meta'][AutoSaveManager::AUTO_SAVE_CONFLICT_KEY]);
 
     // Validate it's a new conflict with a new conflict id.
-    self::assertNotEquals($response_content['errors'][0]['meta']['conflict_id'], $page_first_conflict);
-    $page_second_conflict = $response_content['errors'][0]['meta']['conflict_id'];
+    self::assertNotEquals($response_content['errors'][0]['meta'][AutoSaveManager::AUTO_SAVE_CONFLICT_KEY], $page_first_conflict);
+    $page_second_conflict = $response_content['errors'][0]['meta'][AutoSaveManager::AUTO_SAVE_CONFLICT_KEY];
 
     // Save the second page entity in the auto-save.
     $page2->set('title', 'Page without a conflict in sight.');
@@ -506,8 +513,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // Pre-existing page 1 entry with conflict.
     self::assertArrayHasKey($pageContentIdentifier, $response_content['data']);
     self::assertEquals($response_content['errors'][0]['meta']['api_auto_save_key'], $pageContentIdentifier);
-    self::assertArrayHasKey('conflict_id', $response_content['errors'][0]['meta']);
-    self::assertEquals($response_content['errors'][0]['meta']['conflict_id'], $page_second_conflict);
+    self::assertArrayHasKey(AutoSaveManager::AUTO_SAVE_CONFLICT_KEY, $response_content['errors'][0]['meta']);
+    self::assertEquals($response_content['errors'][0]['meta'][AutoSaveManager::AUTO_SAVE_CONFLICT_KEY], $page_second_conflict);
 
     // Create a conflict for the second entry.
     $page2->set('title', 'Secondary entry conflict detected, please ignore.');
@@ -534,12 +541,14 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // Validate page 1 has error due to conflict.
     self::assertArrayHasKey($pageContentIdentifier, $response_content['data']);
     self::assertEquals($response_content['errors'][0]['meta']['api_auto_save_key'], $pageContentIdentifier);
-    self::assertArrayHasKey('conflict_id', $response_content['errors'][0]['meta']);
+    self::assertArrayHasKey(AutoSaveManager::AUTO_SAVE_CONFLICT_KEY, $response_content['errors'][0]['meta']);
+    self::assertEquals($page_second_conflict, $response_content['errors'][0]['meta'][AutoSaveManager::AUTO_SAVE_CONFLICT_KEY]);
 
     // Validate page 2 has error due to conflict.
     self::assertArrayHasKey($page2ContentIdentifier, $response_content['data']);
     self::assertEquals($response_content['errors'][1]['meta']['api_auto_save_key'], $page2ContentIdentifier);
-    self::assertArrayHasKey('conflict_id', $response_content['errors'][1]['meta']);
+    self::assertArrayHasKey(AutoSaveManager::AUTO_SAVE_CONFLICT_KEY, $response_content['errors'][1]['meta']);
+    self::assertEquals($page2->getLoadedRevisionId(), $response_content['errors'][1]['meta'][AutoSaveManager::AUTO_SAVE_CONFLICT_KEY]);
 
     // Simulate conflict resolution for the page 1.
     $key = $auto_save::getAutoSaveKey($page);
@@ -548,8 +557,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // Conflict id is stored in the auto-save if it is resolved.
     // Update the first auto-save entry with conflict id to simulate a conflict
     // resolution.
-    $auto_save_data['conflict_id'] = $page_second_conflict;
-    // Save changes directly into auto-save store.
+    $auto_save_data[AutoSaveManager::AUTO_SAVE_CONFLICT_KEY] = $page_second_conflict;
+    // Save changes directly into the auto-save store.
     $auto_save_store->set($key, $auto_save_data);
 
     // One entry out of two with has active conflict - HTTP 409 response.
@@ -567,7 +576,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
     // Validate that the page 1 entry has resolved conflict.
     self::assertArrayHasKey($pageContentIdentifier, $response_content['data']);
-    self::assertArrayHasKey('conflict_id', $response_content['errors'][0]['meta']);
+    self::assertArrayHasKey(AutoSaveManager::AUTO_SAVE_CONFLICT_KEY, $response_content['errors'][0]['meta']);
+    self::assertEquals($page2->getLoadedRevisionId(), $response_content['errors'][0]['meta'][AutoSaveManager::AUTO_SAVE_CONFLICT_KEY]);
     self::assertNotEquals($response_content['errors'][0]['meta']['api_auto_save_key'], $pageContentIdentifier);
 
     // Validate that the page 2 entry still has active conflict.
@@ -578,8 +588,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $auto_save_data = $auto_save_store->get($key);
     // Update the second auto-save entry with conflict id to simulate a conflict
     // resolution.
-    $auto_save_data['conflict_id'] = $response_content['errors'][0]['meta']['conflict_id'];
-    // Save changes directly into auto-save store.
+    $auto_save_data[AutoSaveManager::AUTO_SAVE_CONFLICT_KEY] = $response_content['errors'][0]['meta'][AutoSaveManager::AUTO_SAVE_CONFLICT_KEY];
+    // Save changes directly into the auto-save store.
     $auto_save_store->set($key, $auto_save_data);
 
     // Validate endpoint response returns 200 when all conflicts are resolved.
@@ -881,6 +891,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       'status' => FALSE,
       'components' => [],
     ]);
+    self::assertSame([], self::violationsToArray($page->validate()));
     $this->assertSame(SAVED_NEW, $page->save());
     $this->assertFalse($page->isPublished());
     // Trigger a new hash for auto-save.
@@ -1401,6 +1412,200 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ],
       ],
     ], $decoded);
+
+    $autoSave->deleteAll();
+    // Test conflict detection for a single page entity during early validation
+    // of the auto-save items in ApiAutoSaveController.
+    // @see \Drupal\canvas\Controller\ApiAutoSaveController::post()
+    // @see \Drupal\canvas\Controller\ApiAutoSaveController::validateExpectedAutoSaves()
+    // @todo Remove the use of 'canvas_dev_cd' flag in https://git.drupalcode.org/project/canvas/-/work_items/3591732
+    $this->enableModules(['canvas_dev_cd']);
+    $autoSave->saveEntity($page->set('title', 'Safe title'));
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+    $page_content_identifier = $autoSave::getAutoSaveKey($page);
+
+    // Update the page title outside of the auto-save workflow.
+    // This will cause a conflict to be detected when attempting to publish this
+    // entity via the auto-save workflow.
+    $page->set('title', 'This will cause conflict');
+    $page->setNewRevision();
+    self::assertSame([], self::violationsToArray($page->validate()));
+    $page->save();
+
+    $response = $this->makePublishAllRequest([
+      $page_content_identifier => $auto_save_data[$page_content_identifier],
+    ]);
+
+    $this->assertConflictErrorResponse(
+      $response,
+      $page->getLoadedRevisionId(),
+      $page_content_identifier,
+    );
+
+    // Conflict detection during the handling of the publishing request should
+    // prevent the changes to the page entity from being saved.
+    self::assertNotNull($page->id());
+    $saved_page = $page_storage->loadUnchanged($page->id());
+    \assert($saved_page instanceof Page);
+    self::assertNotEquals($page->label(), $saved_page->label());
+    self::assertNotEquals($page->getRevisionId(), $saved_page->getRevisionId());
+
+    // Re-fetch AutoSaveManager so it uses the current container services.
+    // This ensures getUnresolvedConflictForEntity() uses the updated $page.
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    $detected_conflicts[$page_content_identifier] = $autoSave->getUnresolvedConflictForEntity($page);
+    self::assertNotNull($detected_conflicts[$page_content_identifier]);
+
+    // Resolve the conflict directly using the auto-save store.
+    $auto_save_store = $this->container->get('keyvalue')->get(AutoSaveManager::AUTO_SAVE_STORE);
+    $auto_save_item = $auto_save_store->get($page_content_identifier);
+    $auto_save_item[AutoSaveManager::AUTO_SAVE_CONFLICT_KEY] = $autoSave->getUnresolvedConflictForEntity($page);
+    // Save changes directly into the auto-save store.
+    $auto_save_store->set($page_content_identifier, $auto_save_item);
+
+    // Publishing should succeed now.
+    $response = $this->makePublishAllRequest([
+      $page_content_identifier => $auto_save_data[$page_content_identifier],
+    ]);
+    self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
+    $json = json_decode($response->getContent() ?: '', TRUE);
+    self::assertEquals(['message' => 'Successfully published 1 item.'], $json);
+
+    // Test publishing multiple pages when one has an unresolved conflict.
+    $page_without_conflict = Page::create([
+      'title' => 'Page without conflict',
+      'status' => FALSE,
+      'components' => [],
+    ]);
+    self::assertSame(SAVED_NEW, $page_without_conflict->save());
+
+    $page_with_conflict = Page::create([
+      'title' => 'Page with conflict',
+      'status' => FALSE,
+      'components' => [],
+    ]);
+    self::assertSame(SAVED_NEW, $page_with_conflict->save());
+
+    $autoSave->saveEntity($page_without_conflict->setPublished());
+    $autoSave->saveEntity($page_with_conflict->setPublished());
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+    $page_without_conflict_key = $autoSave::getAutoSaveKey($page_without_conflict);
+    $page_with_conflict_key = $autoSave::getAutoSaveKey($page_with_conflict);
+
+    // Create a conflict only for the second page before sending the request.
+    $page_with_conflict->set('title', 'Persisted conflicting title');
+    $page_with_conflict->setUnpublished();
+    $page_with_conflict->setNewRevision();
+    $page_with_conflict->save();
+
+    // Make a publish request for both pages.
+    $response = $this->makePublishAllRequest([
+      $page_without_conflict_key => $auto_save_data[$page_without_conflict_key],
+      $page_with_conflict_key => $auto_save_data[$page_with_conflict_key],
+    ]);
+
+    // Expect the request to fail due to the conflict on the second page
+    // entity, because all entities in a publish request must be
+    // published together or not at all.
+    $this->assertConflictErrorResponse(
+      $response,
+      $page_with_conflict->getLoadedRevisionId(),
+      $page_with_conflict_key,
+    );
+
+    // Assert that auto-save changes for $page_with_conflict are not persisted
+    self::assertNotNull($page_with_conflict->id());
+    $saved_page_with_conflict = $page_storage->loadUnchanged($page_with_conflict->id());
+    \assert($saved_page_with_conflict instanceof Page);
+    self::assertFalse($saved_page_with_conflict->isPublished());
+
+    // Assert that auto-save changes for $page_without_conflict are not persisted.
+    self::assertNotNull($page_without_conflict->id());
+    $saved_page_without_conflict = $page_storage->loadUnchanged($page_without_conflict->id());
+    \assert($saved_page_without_conflict instanceof Page);
+    self::assertFalse($saved_page_without_conflict->isPublished());
+
+    // The auto-save items should not change if the publishing request fails due
+    // to detection of an unresolved conflict.
+    self::assertEquals($auto_save_data, $this->getAutoSaveStatesFromServer());
+
+    // Test the secondary conflict detection that is performed during the page
+    // entity validation when handling the publishing request.
+    // Test that a new conflict can be detected for an entity that previously
+    // had a resolved conflict.
+    // Test that consecutive conflicts for the same entity have different IDs.
+    // @see \Drupal\canvas\Controller\ApiAutoSaveController::getConflictAwareContentEntityViolations()
+    // @see \Drupal\canvas\EventSubscriber\ApiExceptionSubscriber::violationToJsonApiStyleErrorObject()
+    $autoSave->saveEntity($page->set('title', 'Another safe title'));
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+
+    // Validate that the auto-save key for the page is correct and that the
+    // previously detected conflict is resolved.
+    self::assertEquals($page_content_identifier, AutoSaveManager::getAutoSaveKey($page));
+    self::assertNull($autoSave->getUnresolvedConflictForEntity($page));
+    self::assertNotNull($detected_conflicts[$page_content_identifier]);
+
+    // Cause new conflict.
+    $page->set('title', 'this will cause new conflict');
+    $page->setNewRevision();
+    $page->save();
+
+    // Validate that a new conflict is detected for the page.
+    $current_conflict = $autoSave->getUnresolvedConflictForEntity($page);
+    self::assertNotNull($current_conflict);
+
+    // Validate that the new conflict ID is different from the previously
+    // resolved conflict ID for the same entity.
+    self::assertNotEquals($detected_conflicts[$page_content_identifier], $current_conflict);
+
+    // Mock AutoSaveManager to control the conflict information returned in the
+    // publish request validation and entity validation separately, to simulate
+    // a race condition from this single-threaded test.
+    $mockedAutoSave = $this->createMock(AutoSaveManager::class);
+    $mockedAutoSave->expects($this->any())
+      ->method('getAllAutoSaveList')
+      // First conflict detection is performed during the auto-save item
+      // validation in ApiAutoSaveController::validateExpectedAutoSaves().
+      // As we want to skip the first conflict detection, we intentionally fetch
+      // auto-save items without the conflict information.
+      ->willReturn($autoSave->getAllAutoSaveList(with_entities: TRUE, with_conflicts: FALSE));
+    $mockedAutoSave->expects($this->exactly(1))
+      ->method('getUnresolvedConflictForEntity')
+      ->with()
+      // Second conflict detection is performed during entity validation in
+      // ApiAutoSaveController::getConflictAwareContentEntityViolations(). We want
+      // to test that conflict can still be detected if it occurs mid-request
+      // after the validation in ::validateExpectedAutoSaves() is performed.
+      ->willReturn($autoSave->getUnresolvedConflictForEntity($page));
+
+    // Replace the AutoSaveManager in the container with the mocked one.
+    $this->container->set(AutoSaveManager::class, $mockedAutoSave);
+    // Force ApiAutoSaveController to be rebuilt with the mocked dependency.
+    $this->container->set(ApiAutoSaveController::class, new ApiAutoSaveController(
+        $this->container->get(Connection::class),
+        $this->container->get(EntityTypeManagerInterface::class),
+        $this->container->get(ConfigFactoryInterface::class),
+        $this->container->get(FileUrlGeneratorInterface::class),
+        $mockedAutoSave,
+        $this->container->get('logger.channel.canvas'),
+        $this->container->get(AccountInterface::class),
+        $this->container->get(ComponentSourceManager::class),
+        $this->container->get(ComponentTreeLoader::class),
+        $this->container->get(ModuleHandlerInterface::class),
+    ));
+
+    $response = $this->makePublishAllRequest([
+      $page_content_identifier => $auto_save_data[$page_content_identifier],
+    ]);
+
+    // Confirm that conflict was detected despite the fact that the conflict
+    // information was missing during the early validation in the
+    // ApiAutoSaveController::validateExpectedAutoSaves().
+    $this->assertConflictErrorResponse(
+      $response,
+      $current_conflict,
+      $page_content_identifier,
+    );
   }
 
   /**
@@ -1874,6 +2079,24 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
   private function assertSiteHomepage(string $path): void {
     self::assertEquals($path, $this->config('system.site')->get('page.front'));
+  }
+
+  /**
+   * Asserts an unresolved-conflict error response.
+   */
+  private function assertConflictErrorResponse(Response $response, int|string $expected_conflict_id, string $expected_auto_save_key): void {
+    self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+    $response_content = \json_decode($response->getContent() ?: '{}', TRUE);
+    self::assertIsArray($response_content);
+    $this->assertArrayHasKey('errors', $response_content);
+    self::assertCount(1, $response_content['errors']);
+    $this->assertDataCompliesWithApiSpecification($response_content['errors'][0], 'Error');
+    self::assertArrayHasKey('code', $response_content['errors'][0]);
+    self::assertSame(ErrorCodesEnum::ItemEntityUpdatedExternally->value, $response_content['errors'][0]['code']);
+    self::assertArrayHasKey('meta', $response_content['errors'][0]);
+    self::assertArrayHasKey(AutoSaveManager::AUTO_SAVE_CONFLICT_KEY, $response_content['errors'][0]['meta']);
+    self::assertSame($expected_conflict_id, $response_content['errors'][0]['meta'][AutoSaveManager::AUTO_SAVE_CONFLICT_KEY]);
+    self::assertSame($expected_auto_save_key, $response_content['errors'][0]['meta']['api_auto_save_key']);
   }
 
 }

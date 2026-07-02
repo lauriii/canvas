@@ -218,7 +218,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/AutoSaveCollection'
         '409':
-          description: 'Returned if at least one of the auto-save entries has the entity it is based on updated outside of Canvas. Response contains both "errors" and "data" top level properties.'
+          description: 'An unresolved conflict exists for one or more of the auto-save entries. The response body contains both "errors" and "data" top-level properties.'
           content:
             application/json:
               examples:
@@ -353,6 +353,10 @@ paths:
                     examples:
                       - No items to publish
         '422':
+          description: 'One or more entities have failed validation during publishing'
+          $ref: '#/components/responses/ClientErrorResponse'
+        '409':
+          description: 'An unresolved conflict exists for one or more of the auto-save entries being published, or an attempt was made to publish non-existent auto-save items'
           $ref: '#/components/responses/ClientErrorResponse'
   /canvas/api/v0/auto-saves/{entityTypeId}/{entityId}:
     description:  Interact with an auto-save entry for a particular entity

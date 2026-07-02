@@ -59,6 +59,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * @see \Drupal\canvas\Controller\ApiAutoSaveController::post()
  * @see \Drupal\canvas\Hook\AutoSaveHooks::entityDelete()
  *
+ * @phpstan-type ConflictId string
  * @phpstan-type AutoSaveEntry array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, original_hash: string, data_hash: string, client_id: ?string, langcode: ?string, is_default_translation: bool, entity: ?EntityInterface, conflict_id?: string}
  */
 class AutoSaveManager implements EventSubscriberInterface {
@@ -66,6 +67,7 @@ class AutoSaveManager implements EventSubscriberInterface {
   public const CACHE_TAG = 'canvas__auto_save';
   public const string PUBLISH_PERMISSION = 'publish auto-saves';
   public const string AUTO_SAVE_STORE = 'canvas.auto_save';
+  public const string AUTO_SAVE_CONFLICT_KEY = 'conflict_id';
   public const string FORM_VIOLATIONS_STORE = 'canvas.form_violations';
   public const string COMPONENT_INSTANCE_FORM_VIOLATIONS_STORE = 'canvas.component_instance_form_violations';
 
@@ -83,7 +85,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     'client_id',
     'entity',
     'original_hash',
-    'conflict_id',
+    self::AUTO_SAVE_CONFLICT_KEY,
     'is_default_translation',
   ];
   const ENTITY_DUPLICATE_SUFFIX = ' (Copy)';
@@ -220,8 +222,8 @@ class AutoSaveManager implements EventSubscriberInterface {
     if ($unresolved_conflict = $this->getUnresolvedConflict($auto_save_data)) {
       $previous_auto_save_data = $this->autoSaveStore->get($key);
       // If it's a conflict that has been resolved before, retain conflict_id.
-      if (isset($previous_auto_save_data['conflict_id']) && $previous_auto_save_data['conflict_id'] === $unresolved_conflict) {
-        $auto_save_data['conflict_id'] = $previous_auto_save_data['conflict_id'];
+      if (isset($previous_auto_save_data[self::AUTO_SAVE_CONFLICT_KEY]) && $previous_auto_save_data[self::AUTO_SAVE_CONFLICT_KEY] === $unresolved_conflict) {
+        $auto_save_data[self::AUTO_SAVE_CONFLICT_KEY] = $previous_auto_save_data[self::AUTO_SAVE_CONFLICT_KEY];
       }
     }
 
@@ -654,9 +656,9 @@ class AutoSaveManager implements EventSubscriberInterface {
       $result = \array_map(
         function (array $entry): array {
           $unresolved_conflict = $this->getUnresolvedConflict($entry);
-          unset($entry['conflict_id']);
+          unset($entry[self::AUTO_SAVE_CONFLICT_KEY]);
           if ($entry['entity_type'] === Page::ENTITY_TYPE_ID && $unresolved_conflict) {
-            $entry['conflict_id'] = $unresolved_conflict;
+            $entry[self::AUTO_SAVE_CONFLICT_KEY] = $unresolved_conflict;
           }
           return $entry;
         },
@@ -665,7 +667,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     }
     else {
       $result = \array_map(fn (array $entry) =>
-        \array_diff_key($entry, \array_flip(['conflict_id'])),
+        \array_diff_key($entry, \array_flip([self::AUTO_SAVE_CONFLICT_KEY])),
         $result
       );
     }
@@ -763,7 +765,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     $active_conflict = self::getConflictId($entity);
 
     // This conflict is already stored in the entry and therefore is resolved.
-    if (isset($entry['conflict_id']) && $entry['conflict_id'] === $active_conflict) {
+    if (isset($entry[self::AUTO_SAVE_CONFLICT_KEY]) && $entry[self::AUTO_SAVE_CONFLICT_KEY] === $active_conflict) {
       return NULL;
     }
 
@@ -772,9 +774,29 @@ class AutoSaveManager implements EventSubscriberInterface {
 
   /**
    * @todo Refactor to support config entities in https://www.drupal.org/project/canvas/issues/3591544
+   *
+   * @return ConflictId
    */
   public static function getConflictId(EntityInterface $entity): string {
     return $entity instanceof Page ? (string) $entity->getLoadedRevisionId() : '';
+  }
+
+  /**
+   * Checks if an entity has an auto-save with an unresolved conflict.
+   *
+   * @todo Refactor to support config entities in https://www.drupal.org/project/canvas/issues/3591544
+   *
+   * @return ConflictId|null
+   */
+  public function getUnresolvedConflictForEntity(Page $entity): string|NULL {
+    $key = $this->getAutoSaveKey($entity);
+    $auto_save_data = $this->autoSaveStore->get($key);
+    // No auto-save, no conflict.
+    if (\is_null($auto_save_data)) {
+      return NULL;
+    }
+
+    return $this->getUnresolvedConflict($auto_save_data);
   }
 
   /**
