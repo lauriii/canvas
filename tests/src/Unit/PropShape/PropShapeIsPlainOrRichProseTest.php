@@ -15,6 +15,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[CoversClass(PropShape::class)]
 #[Group('canvas')]
+#[Group('canvas_translation')]
 final class PropShapeIsPlainOrRichProseTest extends UnitTestCase {
 
   /**
@@ -55,6 +56,14 @@ final class PropShapeIsPlainOrRichProseTest extends UnitTestCase {
     yield 'string with enum' => [
       FALSE,
       ['type' => 'string', 'enum' => ['a', 'b']],
+    ];
+    yield 'multi-line plain prose (pattern allows newlines)' => [
+      TRUE,
+      ['type' => 'string', 'pattern' => '(.|\r?\n)*'],
+    ];
+    yield 'string with unrelated pattern' => [
+      FALSE,
+      ['type' => 'string', 'pattern' => '^[a-z]+$'],
     ];
   }
 

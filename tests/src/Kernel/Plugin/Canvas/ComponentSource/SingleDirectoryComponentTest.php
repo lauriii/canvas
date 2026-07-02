@@ -234,6 +234,7 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
       'sdc.canvas_test_sdc.card-with-local-image',
       'sdc.canvas_test_sdc.card-with-remote-image',
       'sdc.canvas_test_sdc.card-with-stream-wrapper-image',
+      'sdc.canvas_test_sdc.code-example',
       'sdc.canvas_test_sdc.columns',
       'sdc.canvas_test_sdc.component-mismatch-meta-enum',
       'sdc.canvas_test_sdc.component-mismatch-meta-enum-array-items',
@@ -536,6 +537,21 @@ HTML,
             'core/components.canvas_test_sdc--card-with-stream-wrapper-image',
             'core/components.canvas--image',
             'core/components.canvas_test_sdc--card-with-stream-wrapper-image',
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.code-example' => [
+        'html' => <<<HTML
+  <pre><code class="language-php">&lt;?php
+echo &#039;Hello, world!&#039;;
+</code></pre>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.canvas_test_sdc--code-example',
+            'core/components.canvas_test_sdc--code-example',
           ],
         ],
       ],
@@ -2068,6 +2084,34 @@ HTML
           ],
         ],
       ],
+      'sdc.canvas_test_sdc.code-example' => [
+        'prop_field_definitions' => [
+          'language' => [
+            'required' => FALSE,
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              0 => ['value' => 'php'],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+          'code' => [
+            'required' => TRUE,
+            'field_type' => 'string_long',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textarea',
+            'default_value' => [
+              0 => ['value' => "<?php\necho 'Hello, world!';\n"],
+            ],
+            'expression' => 'ℹ︎string_long␟value',
+          ],
+        ],
+      ],
       'sdc.canvas_test_sdc.columns' => [
         'prop_field_definitions' => [
           'columns' => [
@@ -3393,6 +3437,13 @@ HTML
           'canvas_test_sdc',
         ],
       ],
+      'sdc.canvas_test_sdc.code-example' => [
+        'module' => [
+          'core',
+          'options',
+          'canvas_test_sdc',
+        ],
+      ],
       'sdc.canvas_test_sdc.columns' => [
         'module' => [
           'core',
@@ -4350,6 +4401,51 @@ HTML
                 ],
               ],
               'resolved' => 'lazy',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.canvas_test_sdc.code-example' => [
+        'expected_output_selectors' => [
+          'pre > code.language-php',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'language' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => ['php', 'html', 'md', 'js', 'ts', 'jsx', 'tsx'],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 'php'],
+              ],
+              'resolved' => 'php',
+            ],
+          ],
+          'code' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'pattern' => '(.|\r?\n)*',
+            ],
+            'sourceType' => 'static:field_item:string_long',
+            'expression' => 'ℹ︎string_long␟value',
+            'default_values' => [
+              'source' => [
+                0 => ['value' => "<?php\necho 'Hello, world!';\n"],
+              ],
+              'resolved' => "<?php\necho 'Hello, world!';\n",
             ],
           ],
         ],
@@ -7850,6 +7946,17 @@ HTML
         'relative_link',
         'relative_link_limited',
       ],
+    ];
+
+    yield 'Multi-line plain prose prop is translatable; enum prop is not' => [
+      'sdc.canvas_test_sdc.code-example',
+      [
+        'language' => 'php',
+        'code' => "<?php\necho 'Hello, world!';\n",
+      ],
+      // `language` is not translatable: its `enum` shape is not prose.
+      // `code` is translatable: `pattern: '(.|\r?\n)*'` is multi-line plain prose.
+      ['code'],
     ];
   }
 

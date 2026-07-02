@@ -175,9 +175,16 @@ class ApiUsageControllersTest extends HttpApiTestBase {
     $this->assertSame($listing_url->setRouteParameters(['page' => 0])->setOption('absolute', FALSE)->toString(), $body['links']['prev']);
     $this->assertNull($body['links']['next']);
     $this->assertCount(1, $body['data']);
-    $this->assertSame([
-      \array_keys($components)[ApiUsageControllers::MAX_PER_PAGE - 1] => FALSE,
-    ], $body['data']);
+    // The final page holds the single component that sorts after the first
+    // full page. Derive it from the current set rather than assuming
+    // `Component::loadMultiple()` returns the same order the API paginates by.
+    $expected_last_page = array_fill_keys(\array_keys(Component::loadMultiple()), FALSE);
+    $expected_last_page['sdc.canvas_test_sdc.props-no-slots'] = TRUE;
+    ksort($expected_last_page);
+    $this->assertSame(
+      \array_slice($expected_last_page, ApiUsageControllers::MAX_PER_PAGE, NULL, TRUE),
+      $body['data']
+    );
   }
 
 }

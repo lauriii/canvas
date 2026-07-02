@@ -214,6 +214,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       new PropShape(['type' => 'string', 'enum' => ['horizontal', 'vertical']]),
       new PropShape(['type' => 'string', 'enum' => ['lazy', 'eager']]),
       PropShape::normalize(['type' => 'string', 'enum' => ['option_one', 'option_two', 'option_three', 'option_four'], 'meta:enum' => ['option_one' => 'Option One', 'option_two' => 'Option Two', 'option_three' => 'Option Three', 'option_four' => 'Option Four']]),
+      PropShape::normalize(['type' => 'string', 'enum' => ['php', 'html', 'md', 'js', 'ts', 'jsx', 'tsx'], 'meta:enum' => ['php' => 'PHP', 'html' => 'HTML', 'md' => 'Markdown', 'js' => 'JavaScript', 'ts' => 'TypeScript', 'jsx' => 'JSX', 'tsx' => 'TSX']]),
       new PropShape(['type' => 'string', 'enum' => ['power', 'like', 'external']]),
       new PropShape(['type' => 'string', 'enum' => ['prefix', 'suffix']]),
       new PropShape(['type' => 'string', 'enum' => ['primary', 'secondary']]),
@@ -395,6 +396,18 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         shape: new PropShape([
           'type' => 'string',
           'enum' => ['_blank', '_parent', '_self', '_top'],
+        ]),
+        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
+        fieldWidget: 'options_select',
+        fieldStorageSettings: [
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+        ],
+      ),
+      'type=string&enum[0]=php&enum[1]=html&enum[2]=md&enum[3]=js&enum[4]=ts&enum[5]=jsx&enum[6]=tsx' => new StorablePropShape(
+        shape: PropShape::normalize([
+          'type' => 'string',
+          'enum' => ['php', 'html', 'md', 'js', 'ts', 'jsx', 'tsx'],
+          'meta:enum' => ['php' => 'PHP', 'html' => 'HTML', 'md' => 'Markdown', 'js' => 'JavaScript', 'ts' => 'TypeScript', 'jsx' => 'JSX', 'tsx' => 'TSX'],
         ]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',

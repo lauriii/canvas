@@ -255,7 +255,7 @@ final class PropShape {
   /**
    * Whether the given JSON schema for a prop is considered plain or rich prose.
    *
-   * - Plain prose: `type: string`
+   * - Plain prose: `type: string` — single- or multi-line
    * - Rich prose: `type: string, contentMediaType: text/html` — the
    *   `x-formatting-context` does not matter. Invalid `x-formatting-contexts`
    *   are blocked during discovery of components from ever making it into
@@ -275,11 +275,17 @@ final class PropShape {
    * @see \Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint::MARKUP
    */
   public static function isPlainOrRichProse(array $prop_schema): bool {
-    $normalized = static::normalizePropSchema($prop_schema);
-    return $normalized === ['type' => 'string']
-      || ($normalized['type'] === 'string'
-        && \array_key_exists('contentMediaType', $normalized)
-        && $normalized['contentMediaType'] === 'text/html');
+    return match(static::normalizePropSchema($prop_schema)) {
+      // Plain prose, single line.
+      ['type' => 'string'] => TRUE,
+      // Plain prose, multi-line.
+      ['type' => 'string', 'pattern' => '(.|\r?\n)*'] => TRUE,
+      // Rich prose, block.
+      ['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'block'] => TRUE,
+      // Rich prose, inline.
+      ['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'inline'] => TRUE,
+      default => FALSE,
+    };
   }
 
 }

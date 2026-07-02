@@ -1,0 +1,35 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Code Example
+description: 'A code block with a selectable language, for testing multi-line plain prose props.'
+props:
+  type: object
+  required:
+    - code
+  properties:
+    language:
+      type: string
+      title: Language
+      enum:
+        - php
+        - html
+        - md
+        - js
+        - ts
+        - jsx
+        - tsx
+      meta:enum:
+        php: PHP
+        html: HTML
+        md: Markdown
+        js: JavaScript
+        ts: TypeScript
+        jsx: JSX
+        tsx: TSX
+      examples:
+        - php
+    code:
+      type: string
+      title: Code
+      pattern: '(.|\r?\n)*'
+      examples:
+        - "<?php\necho 'Hello, world!';\n"

@@ -185,6 +185,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
         'sdc.canvas_test_sdc.component-mismatch-meta-enum',
         'sdc.canvas_test_sdc.component-mismatch-meta-enum-array-items',
         'sdc.canvas_test_sdc.component-no-meta-enum',
+        'sdc.canvas_test_sdc.code-example',
         'sdc.canvas_test_sdc.banner',
         'sdc.canvas_test_sdc.card',
         'sdc.canvas_test_sdc.props-no-slots',

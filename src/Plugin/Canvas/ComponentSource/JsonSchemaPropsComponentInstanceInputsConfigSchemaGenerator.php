@@ -46,7 +46,8 @@ final readonly class JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator
         \assert(\is_array($prop_shape));
       }
       // Plain strings, HTML strings and URLs are considered translatable. So:
-      // - type: string
+      // - type: string (single-line)
+      // - type: string, pattern: (.|\r?\n)* (multi-line)
       // - type: string: format: iri
       // - type: string: format: iri-reference
       // - type: string: format: uri
