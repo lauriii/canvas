@@ -81,20 +81,6 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
 
   /**
    * {@inheritdoc}
-   *
-   * Core ships the `content_translation` `translation_sync` third-party schema
-   * for `field_config` but not for `base_field_override`.
-   *
-   * @todo Remove this exclusion once core adds the missing schema in
-   *   https://www.drupal.org/project/drupal/issues/3387100.
-   * @see \Drupal\content_translation\config\schema\content_translation.schema.yml
-   */
-  protected static $configSchemaCheckerExclusions = [
-    'core.base_field_override.canvas_page.canvas_page.components',
-  ];
-
-  /**
-   * {@inheritdoc}
    */
   protected static $modules = [
     ...CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
