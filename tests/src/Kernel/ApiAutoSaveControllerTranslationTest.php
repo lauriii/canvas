@@ -362,7 +362,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     $all_auto_saves = $autoSave->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE);
     self::assertArrayHasKey($page_key, $all_auto_saves, 'The auto-save entry must be stored for the Spanish translation.');
 
-    // POST must reject the non-default-translation key with 409
+    // POST must reject the non-default-translation key with 403
     // UnexpectedItemInPublishRequest, because GET never exposes it to the
     // client — there is nothing to publish from the client's perspective.
     // @todo This should be publishable once https://git.drupalcode.org/project/canvas/-/work_items/3591703 is fixed and
@@ -370,7 +370,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     $response = $this->makePublishAllRequest([
       $page_key => \array_diff_key($all_auto_saves[$page_key], \array_flip(AutoSaveManager::AUTO_SAVE_INTERNAL_PROPERTIES)),
     ]);
-    self::assertEquals(Response::HTTP_CONFLICT, $response->getStatusCode(), (string) $response->getContent());
+    self::assertEquals(Response::HTTP_FORBIDDEN, $response->getStatusCode(), (string) $response->getContent());
     $decoded = \json_decode((string) $response->getContent(), TRUE);
     self::assertCount(1, $decoded['errors']);
     self::assertSame(ErrorCodesEnum::UnexpectedItemInPublishRequest->value, $decoded['errors'][0]['code']);

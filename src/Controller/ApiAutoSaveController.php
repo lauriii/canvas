@@ -76,8 +76,8 @@ final class ApiAutoSaveController extends ApiControllerBase {
     private readonly ModuleHandlerInterface $moduleHandler,
   ) {}
 
-  private static function validateExpectedAutoSaves(array $expected_auto_saves, array $publishable_auto_saves): ?JsonResponse {
-    $unexpected_keys = \array_diff_key($expected_auto_saves, $publishable_auto_saves);
+  private static function validateExpectedAutoSaves(array $expected_auto_saves, array $available_auto_saves, int $status): ?JsonResponse {
+    $unexpected_keys = \array_diff_key($expected_auto_saves, $available_auto_saves);
     if ($unexpected_keys) {
       $errors = [];
       foreach (\array_keys($unexpected_keys) as $key) {
@@ -89,11 +89,11 @@ final class ApiAutoSaveController extends ApiControllerBase {
           'code' => ErrorCodesEnum::UnexpectedItemInPublishRequest->value,
         ];
       }
-      return new JsonResponse(data: ['errors' => $errors], status: Response::HTTP_CONFLICT);
+      return new JsonResponse(data: ['errors' => $errors], status: $status);
     }
     // Check the data hashes.
-    $unmatched_keys = \array_values(\array_filter(\array_keys($expected_auto_saves), function ($key) use ($expected_auto_saves, $publishable_auto_saves) {
-      return !\hash_equals($expected_auto_saves[$key]['data_hash'], $publishable_auto_saves[$key]['data_hash']);
+    $unmatched_keys = \array_values(\array_filter(\array_keys($expected_auto_saves), function ($key) use ($expected_auto_saves, $available_auto_saves) {
+      return !\hash_equals($expected_auto_saves[$key]['data_hash'], $available_auto_saves[$key]['data_hash']);
     }));
     if ($unmatched_keys) {
       return new JsonResponse(data: [
@@ -103,7 +103,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
             'pointer' => $key,
           ],
           'code' => ErrorCodesEnum::UnmatchedItemInPublishRequest->value,
-          'meta' => \array_intersect_key($publishable_auto_saves[$key], \array_flip([
+          'meta' => \array_intersect_key($available_auto_saves[$key], \array_flip([
             'entity_type',
             'entity_id',
             'label',
@@ -111,10 +111,10 @@ final class ApiAutoSaveController extends ApiControllerBase {
             self::AUTO_SAVE_KEY => $key,
           ],
         ], $unmatched_keys),
-      ], status: Response::HTTP_CONFLICT);
+      ], status: $status);
     }
 
-    $matching_auto_saves = \array_intersect_key($publishable_auto_saves, $expected_auto_saves);
+    $matching_auto_saves = \array_intersect_key($available_auto_saves, $expected_auto_saves);
     if (self::autoSaveListHasConflicts($matching_auto_saves)) {
       $auto_saves_with_conflicts = \array_filter(
         $matching_auto_saves,
@@ -128,7 +128,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
             'pointer' => $key,
           ],
           'code' => ErrorCodesEnum::ItemEntityUpdatedExternally->value,
-          'meta' => \array_intersect_key($publishable_auto_saves[$key], \array_flip([
+          'meta' => \array_intersect_key($available_auto_saves[$key], \array_flip([
             'entity_type',
             'entity_id',
             'label',
@@ -149,7 +149,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
         continue;
       }
       $global_dependency_key = AutoSaveManager::getAutoSaveKey($global_dependency);
-      if (\array_key_exists($global_dependency_key, $publishable_auto_saves) && !\array_key_exists($global_dependency_key, $expected_auto_saves)) {
+      if (\array_key_exists($global_dependency_key, $available_auto_saves) && !\array_key_exists($global_dependency_key, $expected_auto_saves)) {
         foreach ($expected_auto_saves as $client_auto_save) {
           if ($client_auto_save['entity_type'] === JavaScriptComponent::ENTITY_TYPE_ID) {
             return new JsonResponse(data: [
@@ -160,7 +160,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
                     'pointer' => $global_dependency_key,
                   ],
                   'code' => ErrorCodesEnum::GlobalAssetNotPublished->value,
-                  'meta' => \array_intersect_key($publishable_auto_saves[$global_dependency_key], \array_flip([
+                  'meta' => \array_intersect_key($available_auto_saves[$global_dependency_key], \array_flip([
                     'entity_type',
                     'entity_id',
                     'label',
@@ -337,10 +337,19 @@ final class ApiAutoSaveController extends ApiControllerBase {
   public function post(Request $request): JsonResponse {
     $client_auto_saves = \json_decode($request->getContent(), TRUE);
     \assert(\is_array($client_auto_saves));
+
     // @todo Remove the use of 'canvas_dev_cd' flag in https://git.drupalcode.org/project/canvas/-/work_items/3591732
     $conflict_detection_dev_mode = $this->moduleHandler->moduleExists('canvas_dev_cd');
+
+    // 409 if any client-provided auto-save does not exit.
+    $all_auto_saves = $this->autoSaveManager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: FALSE);
+    if ($validation_response = self::validateExpectedAutoSaves($client_auto_saves, $all_auto_saves, Response::HTTP_CONFLICT)) {
+      return $validation_response;
+    }
+
+    // 403 if any client-provided auto-save is not publishable.
     $publishable_auto_saves = $this->getPublishableAutoSaves(with_conflicts: $conflict_detection_dev_mode);
-    if ($validation_response = self::validateExpectedAutoSaves($client_auto_saves, $publishable_auto_saves)) {
+    if ($validation_response = self::validateExpectedAutoSaves($client_auto_saves, $publishable_auto_saves, Response::HTTP_FORBIDDEN)) {
       return $validation_response;
     }
 
@@ -374,7 +383,6 @@ final class ApiAutoSaveController extends ApiControllerBase {
     // list, so the client can only ever select the default one.
     // @see \Drupal\canvas\Controller\ApiAutoSaveController::get()
     // @see \Drupal\canvas\AutoSave\AutoSaveManager::getTranslationGroupAutoSaves()
-    $all_auto_saves = $this->autoSaveManager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: $conflict_detection_dev_mode);
     $publish_auto_saves = self::includeSiblingTranslationAutoSaves($publish_auto_saves, $all_auto_saves);
 
     // We want to report all access errors at one, so keeping the labels.

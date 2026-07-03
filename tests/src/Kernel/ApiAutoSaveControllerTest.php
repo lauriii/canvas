@@ -47,6 +47,7 @@ use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 use Drupal\user\UserInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -2075,6 +2076,124 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     \assert($draft_node instanceof NodeInterface);
     self::assertTrue($draft_node->isPublished());
     self::assertSame('Updated Draft Article', $draft_node->getTitle());
+  }
+
+  /**
+   * Tests access errors for publishing a set of auto-saves with varied access.
+   */
+  public function testPublishAutoSaveItemsAccessCheckWithMixedAccess(): void {
+    /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
+    $autoSave = $this->container->get(AutoSaveManager::class);
+
+    $inaccessible_page_one = Page::create([
+      'title' => 'Publish Access Denied Page One',
+      'path' => [
+        'alias' => '/publish-access-denied-page-one',
+      ],
+    ]);
+    self::assertSame([], self::violationsToArray($inaccessible_page_one->validate()));
+    self::assertSame(SAVED_NEW, $inaccessible_page_one->save());
+    $inaccessible_page_one->set('title', 'Publish Access Denied Page One Modified');
+    $autoSave->saveEntity($inaccessible_page_one);
+
+    $accessible_article = Node::create([
+      'type' => 'article',
+      'title' => 'Publish Access Allowed Article',
+    ]);
+    self::assertSame([], self::violationsToArray($accessible_article->validate()));
+    self::assertSame(SAVED_NEW, $accessible_article->save());
+    $accessible_article->set('title', 'Publish Access Allowed Article Modified');
+    $autoSave->saveEntity($accessible_article);
+
+    $inaccessible_page_two = Page::create([
+      'title' => 'Publish Access Denied Page Two',
+      'path' => [
+        'alias' => '/publish-access-denied-page-two',
+      ],
+    ]);
+    self::assertSame([], self::violationsToArray($inaccessible_page_two->validate()));
+    self::assertSame(SAVED_NEW, $inaccessible_page_two->save());
+    $inaccessible_page_two->set('title', 'Publish Access Denied Page Two Modified');
+    $autoSave->saveEntity($inaccessible_page_two);
+
+    // Construct the request body to publish the auto-saved Page.
+    $auto_save_data = $autoSave->getAllAutoSaveList(FALSE, FALSE);
+    self::assertCount(3, $auto_save_data, 'Only the 3 auto-saves exist that were just created are present.');
+    $publish_request_body = $auto_save_data;
+    // Publish in a deterministic order, to get predictable error responses.
+    ksort($publish_request_body);
+
+    // This test exercises `view` access to `Page` entities; so revoke it from
+    // all authenticated users
+    Role::load('authenticated')?->revokePermission('access content')->save();
+
+    // 1. Publish request as user that can publish auto-saves, but cannot view
+    // Page/Node entities, cannot update Page entities, but CAN update article
+    // Node entities:
+    // - TRICKY: note this was an artificially constructed request body, because
+    //   GET returns nothing.
+    // - `canvas_page:4:en`, 'canvas_page:5:en` and `node:4:en` do exist, so no
+    //   409.
+    // - No `view label` access for any of them: 403.
+    $this->setUpCurrentUser(permissions: [
+      'edit any article content',
+      AutoSaveManager::PUBLISH_PERMISSION,
+    ]);
+    self::assertSame([], $this->getAutoSaveStatesFromServer());
+    $response = $this->makePublishAllRequest($publish_request_body);
+    self::assertSame(403, $response->getStatusCode());
+    $response_content = \json_decode((string) $response->getContent(), TRUE);
+    $this->assertDataCompliesWithApiSpecification($response_content['errors'][0], 'Error');
+    self::assertSame([
+      'errors' => [
+        [
+          'detail' => 'An unexpected item was found in the publish request. Please refresh your page and try again.',
+          'source' => [
+            'pointer' => 'canvas_page:4:en',
+          ],
+          'code' => ErrorCodesEnum::UnexpectedItemInPublishRequest->value,
+        ],
+        [
+          'detail' => 'An unexpected item was found in the publish request. Please refresh your page and try again.',
+          'source' => [
+            'pointer' => 'canvas_page:5:en',
+          ],
+          'code' => ErrorCodesEnum::UnexpectedItemInPublishRequest->value,
+        ],
+        [
+          'detail' => 'An unexpected item was found in the publish request. Please refresh your page and try again.',
+          'source' => [
+            'pointer' => 'node:4:en',
+          ],
+          'code' => ErrorCodesEnum::UnexpectedItemInPublishRequest->value,
+        ],
+      ],
+    ], $response_content);
+
+    // 2. Same request, but now with permission to view Page and Node entities:
+    // no `update` access for Page entities, so 403 (but different reason).
+    $this->setUpCurrentUser(permissions: [
+      'access content',
+      'edit any article content',
+      AutoSaveManager::PUBLISH_PERMISSION,
+    ]);
+    // The `GET` response now matches the artificially constructed `POST`
+    // request body precisely.
+    $available_to_publish = $this->getAutoSaveStatesFromServer();
+    ksort($available_to_publish);
+    self::assertSame(\array_keys($publish_request_body), \array_keys($available_to_publish));
+    self::assertArrayIsIdenticalToArrayOnlyConsideringListOfKeys($available_to_publish, $publish_request_body, ['entity_type', 'entity_id', 'owner', 'langcode', 'label', 'data_hash', 'updated']);
+    try {
+      $this->makePublishAllRequest($publish_request_body);
+      $this->fail('Expected access denied error when publishing a mix of accessible and inaccessible auto-save items.');
+    }
+    catch (CacheableAccessDeniedHttpException $exception) {
+      $message = $exception->getMessage();
+      $this->assertStringStartsWith('Unable to update entities: ', $message);
+      $this->assertStringContainsString("'{$inaccessible_page_one->label()}'", $message);
+      $this->assertStringContainsString("'{$inaccessible_page_two->label()}'", $message);
+      $this->assertStringNotContainsString("'{$accessible_article->label()}'", $message);
+    }
   }
 
   private function assertSiteHomepage(string $path): void {
