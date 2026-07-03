@@ -655,7 +655,7 @@ class CanvasAiPageBuilderHelper {
 
         // Mark required props.
         if (isset($sdc_definition['props']['required']) && \in_array($prop_name, $sdc_definition['props']['required'], TRUE)) {
-          $output[$source_id]['components'][$component_id]['props'][$prop_name]['required'] = TRUE;
+          $prop_metadata['required'] = TRUE;
         }
         if (isset($prop_details['enum'])) {
           $prop_metadata['enum'] = $prop_details['enum'];
@@ -687,9 +687,11 @@ class CanvasAiPageBuilderHelper {
     if (isset($component_data['propSources']) && \is_array($component_data['propSources'])) {
       $output[JsComponent::SOURCE_PLUGIN_ID]['components'][$component_id]['props'] = [];
       $metadata_properties = [];
+      $metadata_required = [];
       $component_source = $component->getComponentSource();
       if ($component_source instanceof JsComponent) {
         $metadata_properties = $component_source->getMetadata()->schema['properties'] ?? [];
+        $metadata_required = $component_source->getMetadata()->schema['required'] ?? [];
       }
       foreach ($component_data['propSources'] as $prop_name => $prop_details) {
         $prop_metadata = [
@@ -702,6 +704,9 @@ class CanvasAiPageBuilderHelper {
           'format' => $prop_details['jsonSchema']['format'] ?? '',
           'enum' => $prop_details['jsonSchema']['enum'] ?? '',
         ];
+        if (\in_array($prop_name, $metadata_required, TRUE)) {
+          $prop_metadata['required'] = TRUE;
+        }
         $prop_schema = $prop_details['jsonSchema'] ?? [];
         // The client-side prop schema strips meta:enum; pull labels from the
         // component metadata to keep option labels aligned with the UI.

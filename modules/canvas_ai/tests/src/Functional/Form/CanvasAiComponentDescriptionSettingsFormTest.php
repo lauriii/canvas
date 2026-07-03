@@ -9,7 +9,9 @@ use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Functional test for the Canvas AI Component Description Settings Form.
@@ -18,10 +20,17 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('canvas_ai')]
 final class CanvasAiComponentDescriptionSettingsFormTest extends BrowserTestBase {
 
+  use CreateTestJsComponentTrait;
+
   /**
    * The route name for the form.
    */
   private const ROUTE_NAME = 'canvas_ai.component_description_settings';
+
+  /**
+   * The admin user.
+   */
+  private AccountInterface $adminUser;
 
   /**
    * {@inheritdoc}
@@ -53,6 +62,7 @@ final class CanvasAiComponentDescriptionSettingsFormTest extends BrowserTestBase
       'create canvas_page',
     ]);
     \assert($admin_user instanceof AccountInterface);
+    $this->adminUser = $admin_user;
     $this->drupalLogin($admin_user);
   }
 
@@ -224,6 +234,62 @@ final class CanvasAiComponentDescriptionSettingsFormTest extends BrowserTestBase
     $this->assertSession()->fieldValueEquals('component_context[sdc][components][sdc.canvas_test_sdc.two_column][slots][column_two][description]', 'Column two slot description updated');
     $this->assertSession()->fieldValueEquals('component_context[block][components][block.system_branding_block][description]', 'Branding block description updated');
     $this->assertSession()->fieldValueEquals('component_context[block][components][block.system_branding_block][props][use_site_logo][description]', 'Use site logo description updated');
+  }
+
+  /**
+   * Tests the component context built after saving the form.
+   *
+   * Enabled sources mark their required props; disabled sources are excluded.
+   *
+   * @see \Drupal\canvas_ai\CanvasAiPageBuilderHelper::getComponentContextForAi()
+   */
+  public function testComponentContextAfterFormSubmit(): void {
+    // Create a code component so the JS source is available on the form.
+    $this->createMyCtaComponentFromSdc();
+    // getComponentContextForAi() is access-gated, so act as the admin here too.
+    $this->container->get('current_user')->setAccount($this->adminUser);
+
+    // Enable every source.
+    $this->drupalGet(Url::fromRoute(self::ROUTE_NAME));
+    $this->submitForm([
+      'component_context[sdc][enabled]' => 1,
+      'component_context[block][enabled]' => 1,
+      'component_context[js][enabled]' => 1,
+    ], 'Save configuration');
+    $this->assertSession()->pageTextContains('The configuration options have been saved.');
+
+    // Each enabled source marks its required props.
+    $context = $this->loadComponentContext();
+    $this->assertTrue($context['sdc.canvas_test_sdc.props-slots']['props']['heading']['required'] ?? FALSE, 'Required SDC prop must be marked.');
+    $this->assertTrue($context['block.system_branding_block']['props']['label_display']['required'] ?? FALSE, 'Required block prop must be marked.');
+    $this->assertTrue($context['js.my-cta']['props']['text']['required'] ?? FALSE, 'Required code component prop must be marked.');
+
+    // Disable the SDC source; keep block and JS enabled.
+    $this->drupalGet(Url::fromRoute(self::ROUTE_NAME));
+    $this->submitForm([
+      'component_context[sdc][enabled]' => FALSE,
+      'component_context[block][enabled]' => 1,
+      'component_context[js][enabled]' => 1,
+    ], 'Save configuration');
+    $this->assertSession()->pageTextContains('The configuration options have been saved.');
+
+    // The disabled SDC source is excluded from the context.
+    $context = $this->loadComponentContext();
+    $this->assertArrayNotHasKey('sdc.canvas_test_sdc.props-slots', $context);
+    $this->assertArrayHasKey('block.system_branding_block', $context);
+    $this->assertArrayHasKey('js.my-cta', $context);
+  }
+
+  /**
+   * Reads the freshly saved component context sent to the agent.
+   *
+   * @return array
+   *   The parsed component context, keyed by component ID.
+   */
+  private function loadComponentContext(): array {
+    $this->container->get('config.factory')->reset('canvas_ai.component_description.settings');
+    $yaml = \Drupal::service('canvas_ai.page_builder_helper')->getComponentContextForAi();
+    return Yaml::parse($yaml) ?? [];
   }
 
 }
