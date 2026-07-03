@@ -620,6 +620,7 @@ cypress unit:
 
 playwright:
   stage: test
+  allow_failure: true
   parallel:
     matrix:
       - SHARD: [ "1/6", "2/6", "3/6", "4/6", "5/6", "6/6" ]
@@ -701,6 +702,31 @@ playwright-reports:
         ]
       }
       EOF
+    - |
+      # Fail this job if any upstream Playwright jobs failed. Checking via the
+      # GitLab API (rather than the merged JUnit XML) catches infrastructure
+      # failures where no blob report was produced and tests="0" in the XML.
+      UPSTREAM_FAILURES=$(node -e '
+        (async () => {
+          const url = `${process.env.CI_API_V4_URL}/projects/${process.env.CI_PROJECT_ID}/pipelines/${process.env.CI_PIPELINE_ID}/jobs?per_page=100`;
+          const resp = await fetch(url, { headers: { "JOB-TOKEN": process.env.CI_JOB_TOKEN } });
+          if (!resp.ok) {
+            process.stderr.write(`GitLab API error: ${resp.status} ${resp.statusText}\n`);
+            process.exit(1);
+          }
+          const jobs = await resp.json();
+          const n = jobs.filter(j =>
+            j.name.startsWith("playwright") && !j.name.startsWith("playwright-") &&
+            j.status === "failed"
+          ).length;
+          process.stdout.write(String(n));
+        })().catch(e => { process.stderr.write(e.message + "\n"); process.exit(1); });
+      ')
+      if [ "${UPSTREAM_FAILURES}" -gt 0 ]; then
+        echo "❌ ${UPSTREAM_FAILURES} Playwright job(s) failed. See the HTML report for details."
+        exit 1
+      fi
+      echo "✅ All Playwright jobs passed."
   artifacts:
     expose_as: 'Playwright Test Reports'
     when: always
