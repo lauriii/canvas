@@ -57,6 +57,7 @@ abstract class ConfigWithComponentTreeTranslationTestBase extends FunctionalTest
     'canvas',
     'canvas_test_block',
     'canvas_test_sdc',
+    'canvas_test_translation',
     'language',
   ];
 

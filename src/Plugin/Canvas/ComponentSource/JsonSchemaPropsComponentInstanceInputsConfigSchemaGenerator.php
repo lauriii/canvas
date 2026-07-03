@@ -8,7 +8,6 @@ use Drupal\canvas\ComponentSource\ComponentInstanceInputsConfigSchemaGeneratorIn
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 use Drupal\canvas\ConfigTranslation\CanvasStaticPropSourceFieldWidget;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
-use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropSource\PropSource;
@@ -38,32 +37,7 @@ final readonly class JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator
       if (!\in_array($prop_name, $required, TRUE)) {
         $mapping_definition[$prop_name]['requiredKey'] = FALSE;
       }
-      // For translatability, cardinality is irrelevant, only the shape matters,
-      // so peek inside any `type: array` and get the actual shape.
-      if ($prop_shape['type'] === JsonSchemaType::Array->value) {
-        \assert(\array_key_exists('items', $prop_shape));
-        $prop_shape = $prop_shape['items'];
-        \assert(\is_array($prop_shape));
-      }
-      // Plain strings, HTML strings and URLs are considered translatable. So:
-      // - type: string (single-line)
-      // - type: string, pattern: (.|\r?\n)* (multi-line)
-      // - type: string: format: iri
-      // - type: string: format: iri-reference
-      // - type: string: format: uri
-      // - type: string: format: uri-reference
-      // - type: string, contentMediaType: text/html
-      // - type: string, contentMediaType: text/html,
-      //   x-formatting-context: inline
-      // - type: string, contentMediaType: text/html,
-      //   x-formatting-context: block
-      // @todo Consider adding alter hook to allow more shapes to be translatable in https://drupal.org/i/3584178
-      $translatable = PropShape::isPlainOrRichProse($prop_shape)
-        || (
-          $prop_shape['type'] === 'string'
-          && \array_key_exists('format', $prop_shape)
-          && JsonSchemaStringFormat::tryFrom($prop_shape['format'])?->isUriEsque()
-        );
+      $translatable = self::isTranslatableShape($prop_shape);
       // A translatable shape may still be backed by an entity reference — e.g.
       // an image `src` stored as `['target_id' => 1]`, whose field type prop
       // expression is a reference expression. A reference is not author-entered
@@ -88,6 +62,60 @@ final readonly class JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator
     }
 
     return $mapping_definition;
+  }
+
+  /**
+   * Whether a component input's JSON schema shape holds translatable text.
+   *
+   * Single source of truth for which prop *shapes* contain author-entered,
+   * translatable text — used both to generate the config schema (here) and to
+   * extract TMGMT translatables, so the two never disagree (a disagreement
+   * would make TMGMT offer an input the config schema rejects on save, or vice
+   * versa). Translatable shapes are plain strings, HTML (rich) strings and
+   * URI-esque strings. So:
+   * - type: string (single-line)
+   * - type: string, pattern: (.|\r?\n)* (multi-line)
+   * - type: string, format: iri
+   * - type: string, format: iri-reference
+   * - type: string, format: uri
+   * - type: string, format: uri-reference
+   * - type: string, contentMediaType: text/html
+   * - type: string, contentMediaType: text/html, x-formatting-context: inline
+   * - type: string, contentMediaType: text/html, x-formatting-context: block
+   *
+   * Cardinality is irrelevant — an array of translatable items is translatable
+   * — so this peeks inside `type: array`. It does NOT account for whether the
+   * prop is populated by an entity reference (structured data, not author
+   * text); callers handle that separately.
+   *
+   * @param array $prop_shape
+   *   A normalized JSON schema prop shape.
+   *
+   * @return bool
+   *   TRUE if the shape holds translatable text.
+   *
+   * @see \Drupal\canvas\PropShape\PropShape::isPlainOrRichProse()
+   * @see \Drupal\canvas\Tmgmt\ComponentInputsTranslatablesExtractor
+   * @todo Consider adding alter hook to allow more shapes to be translatable in https://drupal.org/i/3584178
+   * @internal
+   */
+  public static function isTranslatableShape(array $prop_shape): bool {
+    // For translatability, cardinality is irrelevant, only the shape matters,
+    // so peek inside any array prop at its item shape. Only an array carries an
+    // `items` key, so checking the key (rather than `type`) works whether the
+    // shape has been normalized or is still raw SDC metadata.
+    if (\array_key_exists('items', $prop_shape) && \is_array($prop_shape['items'])) {
+      $prop_shape = $prop_shape['items'];
+    }
+    // SDC appends `object` to every declared `type` (the declared type stays
+    // first); normalize to a scalar before comparing.
+    $type = isset($prop_shape['type']) ? \strtolower(((array) $prop_shape['type'])[0]) : NULL;
+    return PropShape::isPlainOrRichProse($prop_shape)
+      || (
+        $type === 'string'
+        && \array_key_exists('format', $prop_shape)
+        && JsonSchemaStringFormat::tryFrom($prop_shape['format'])?->isUriEsque()
+      );
   }
 
   /**

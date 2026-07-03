@@ -1,0 +1,6 @@
+name: 'Test Canvas translation components'
+type: module
+description: 'SDC components used only by Canvas translation tests, kept out of canvas_test_sdc so they do not perturb component-enumeration fixtures.'
+dependencies:
+  - canvas:canvas
+package: Testing

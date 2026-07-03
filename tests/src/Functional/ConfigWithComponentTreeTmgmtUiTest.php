@@ -130,6 +130,10 @@ class ConfigWithComponentTreeTmgmtUiTest extends ConfigWithComponentTreeTranslat
         'component_tree|' . self::UUID_BLOCK_EMPTY_TRANSLATABLE_INPUT . '|inputs|label[translation]',
         'component_tree|' . self::UUID_BLOCK_EMPTY_TRANSLATABLE_INPUT . '|inputs|name[translation]',
       ],
+      // untranslatable-prop-shapes component: no prop shape is translatable, so
+      // none is offered for translation. `date` (datetime field, date-only),
+      // `email`, `integer` and `boolean` are all excluded.
+      self::UUID_UNTRANSLATABLE_PROP_SHAPES => [],
     ], $this->getTmgmtFormElementsForComponentInstances());
     // The "format" input exists (to load CKEditor) but is hidden, so it cannot
     // be changed.

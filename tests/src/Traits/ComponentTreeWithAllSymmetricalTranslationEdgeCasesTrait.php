@@ -25,6 +25,11 @@ use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputTranslatability;
  * - link field with uri + options (my-cta href)
  * - rich prose: value + format (banner text)
  * - non-translatable boolean props (branding block)
+ * - untranslatable prop shapes (untranslatable-prop-shapes): `date`,
+ *   `email`, `integer` and `boolean`. No prop shape is translatable, so none
+ *   is offered for translation — locking in that the TMGMT extractor and the
+ *   config schema generator agree (only plain/rich prose and URI-esque strings
+ *   are translatable).
  *
  * @see \Drupal\Tests\canvas\Functional\ConfigWithComponentTreeTranslationTestBase
  * @see \Drupal\Tests\canvas\Functional\ContentWithComponentTreeTmgmtUiTest
@@ -76,6 +81,15 @@ trait ComponentTreeWithAllSymmetricalTranslationEdgeCasesTrait {
   protected const UUID_BLOCK_EMPTY_TRANSLATABLE_INPUT = '0a0a0a0a-0a0a-40a0-80a0-0a0a0a0a0a0a';
 
   /**
+   * UUID: untranslatable-prop-shapes component. Delta: 7.
+   *
+   * None of its prop shapes is translatable, so none is offered for
+   * translation: `date` (datetime field, date-only), `email`, `count`
+   * (integer) and `flag` (boolean).
+   */
+  protected const UUID_UNTRANSLATABLE_PROP_SHAPES = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+
+  /**
    * Delta of each component in the component tree, keyed by UUID constant name.
    *
    * Tmgmt_content uses delta-based field keys in its TMGMT review form
@@ -92,6 +106,7 @@ trait ComponentTreeWithAllSymmetricalTranslationEdgeCasesTrait {
     self::UUID_BRANDING => 4,
     self::UUID_BLOCK_DEEP_TRANSLATABLE => 5,
     self::UUID_BLOCK_EMPTY_TRANSLATABLE_INPUT => 6,
+    self::UUID_UNTRANSLATABLE_PROP_SHAPES => 7,
   ];
 
   /**
@@ -178,6 +193,15 @@ trait ComponentTreeWithAllSymmetricalTranslationEdgeCasesTrait {
         'label_display' => '0',
         'name' => 'Charte graphique',
       ],
+      // The untranslatable-prop-shapes component: no prop shape is
+      // translatable. `date` (datetime field, date-only), `email`, `count`
+      // (integer) and `flag` (boolean) all keep their source values.
+      self::UUID_UNTRANSLATABLE_PROP_SHAPES => [
+        'date' => '2024-01-15',
+        'email' => 'person@example.com',
+        'count' => 42,
+        'flag' => TRUE,
+      ],
     ];
     if ($expect_overrides_only) {
       // Omit `href.options`.
@@ -195,6 +219,9 @@ trait ComponentTreeWithAllSymmetricalTranslationEdgeCasesTrait {
       unset($result[self::UUID_BLOCK_DEEP_TRANSLATABLE]['deeply_nested_translatable'][0]['foo']);
       // Keep only the translatable `label` and `name`.
       unset($result[self::UUID_BLOCK_EMPTY_TRANSLATABLE_INPUT]['label_display']);
+      // No prop shape is translatable, so the override holds nothing for this
+      // component instance.
+      unset($result[self::UUID_UNTRANSLATABLE_PROP_SHAPES]);
     }
     return $result;
   }
@@ -300,6 +327,17 @@ trait ComponentTreeWithAllSymmetricalTranslationEdgeCasesTrait {
           // value in the target — rather than crash extraction.
           // @see https://git.drupalcode.org/project/canvas/-/issues/3591734
           'name' => '',
+        ],
+      ],
+      [
+        'uuid' => self::UUID_UNTRANSLATABLE_PROP_SHAPES,
+        'component_id' => 'sdc.canvas_test_translation.untranslatable-prop-shapes',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
+        'inputs' => [
+          'date' => '2024-01-15',
+          'email' => 'person@example.com',
+          'count' => 42,
+          'flag' => TRUE,
         ],
       ],
     ];

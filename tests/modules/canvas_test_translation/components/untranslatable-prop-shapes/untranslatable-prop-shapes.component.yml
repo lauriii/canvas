@@ -1,0 +1,39 @@
+'$schema': 'https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json'
+name: "SDC whose every prop shape is untranslatable: covers datetime (date-only), email, integer and boolean"
+status: stable
+group: Atom/Text
+props:
+  type: object
+  properties:
+    # Maps to a `datetime` field (date-only mode), whose stored `value` config
+    # type is `datetime_iso8601` (NOT translatable). Exercises that a
+    # `type: string, format: date` prop is not offered for translation.
+    date:
+      type: string
+      format: date
+      title: Date
+      # @todo Add example in https://www.drupal.org/project/canvas/issues/3530808, right now this causes a config schema validation error.
+      examples: []
+    # Maps to an `email` field, whose stored `value` config type is `email`
+    # (NOT translatable). Exercises that a `type: string, format: email` prop is
+    # not offered for translation.
+    email:
+      type: string
+      format: email
+      title: Email
+      examples:
+        - "person@example.com"
+    # Maps to an `integer` field (stored `value` config type `integer`, NOT
+    # translatable).
+    count:
+      type: integer
+      title: Count
+      examples:
+        - 42
+    # Maps to a `boolean` field (stored `value` config type `boolean`, NOT
+    # translatable).
+    flag:
+      type: boolean
+      title: Flag
+      examples:
+        - true

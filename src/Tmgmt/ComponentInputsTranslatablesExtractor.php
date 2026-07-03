@@ -15,7 +15,8 @@ use Drupal\Core\Config\Schema\Sequence;
 use Drupal\Core\Config\Schema\TypedConfigInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
+use Drupal\Core\TypedData\DataDefinitionInterface;
 
 /**
  * Extracts translatable data from component inputs for TMGMT.
@@ -156,30 +157,51 @@ final class ComponentInputsTranslatablesExtractor {
     // to trigger the loading of CKEditor 5 in a TMGMT job item form.
     $prop_field_definition_raw = $this->typedConfigManager->getDefinitions()[$field_value_schema];
 
-    $prop_field_definition = $this->typedConfigManager->getDefinition($field_value_schema);
-    \assert(\array_key_exists('mapping', $prop_field_definition));
-    // If the field item only defines a single property, and the component is
-    // single cardinality, we expect this to be collapsed to a simple value.
-    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::collapse()
-    if ($cardinality === 1 && \count($prop_field_definition['mapping']) === 1) {
-      $prop_definition = \reset($prop_field_definition['mapping']);
-      \assert(\array_key_exists('type', $prop_definition));
-      $concrete_schema['type'] = $prop_definition['type'];
-      return $concrete_schema;
-    }
-    // Multi-cardinality but single property.
-    if (($cardinality > 1 || $cardinality === FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED) && \count($prop_field_definition['mapping']) === 1) {
+    // The number of non-computed stored properties on the field item — not the
+    // count of `field.value.*` mapping keys — determines the runtime shape of
+    // the stored value. StaticPropSource::denormalizeValue() collapses a
+    // single-property field item to a scalar and keeps a multi-property one as
+    // a mapping, so the generated schema must follow the stored-property count.
+    // @see \Drupal\canvas\PropSource\StaticPropSource::denormalizeValue()
+    $item_definition = $static_prop_source->fieldItemList->getItemDefinition();
+    \assert($item_definition instanceof FieldItemDataDefinitionInterface);
+    $stored_prop_count = \count(\array_filter(
+      $item_definition->getPropertyDefinitions(),
+      fn(DataDefinitionInterface $def) => !$def->isComputed(),
+    ));
+
+    if ($stored_prop_count === 1) {
+      // A single stored property collapses to a scalar value. Decide whether it
+      // is translatable with the SAME rule the config schema generator uses, so
+      // TMGMT never offers an input the generated config schema would reject on
+      // save (and vice versa). A single-stored-property field reachable by a
+      // translatable shape is always a plain string — rich text (value+format)
+      // and URI-esque strings (link: uri+title+options) are multi-property
+      // field types — hence the collapsed scalar is `type: label`.
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator::isTranslatableShape()
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::collapse()
+      $prop_shape = $component_source->getMetadata()->schema['properties'][$prop_name] ?? [];
+      if (!JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator::isTranslatableShape($prop_shape)) {
+        // Leave $concrete_schema as `type: ignore`: not translatable.
+        return $concrete_schema;
+      }
+      // `type: label` is translatable; cardinality decides scalar vs sequence.
+      if ($cardinality === 1) {
+        $concrete_schema['type'] = 'label';
+        return $concrete_schema;
+      }
       $concrete_schema['type'] = 'sequence';
-      $prop_definition = \reset($prop_field_definition['mapping']);
-      \assert(\array_key_exists('type', $prop_definition));
-      $concrete_schema['sequence']['type'] = $prop_definition['type'];
+      $concrete_schema['sequence']['type'] = 'label';
       return $concrete_schema;
     }
-    // Single-cardinality but multiple properties.
-    if ($cardinality === 1 && \count($prop_field_definition['mapping']) > 1) {
+
+    // Multiple stored properties keep the raw `field.value.*` definition, so
+    // per-property `translatable` flags (e.g. a link's `uri`, a text field's
+    // `value` vs `format`) and richer types (e.g. `text_format`) are preserved.
+    if ($cardinality === 1) {
       return $prop_field_definition_raw;
     }
-    // Multi-cardinality AND multiple properties.
+    // Multi-cardinality AND multiple stored properties.
     $concrete_schema['type'] = 'sequence';
     $concrete_schema['sequence'] = $prop_field_definition_raw;
     return $concrete_schema;

@@ -58,6 +58,7 @@ class ContentWithComponentTreeTmgmtUiTest extends FunctionalTestBase {
     'canvas',
     'canvas_test_block',
     'canvas_test_sdc',
+    'canvas_test_translation',
     'content_translation',
     'language',
   ];
@@ -212,6 +213,10 @@ class ContentWithComponentTreeTmgmtUiTest extends FunctionalTestBase {
         'components|6|label[translation]',
         'components|6|name[translation]',
       ],
+      // untranslatable-prop-shapes component: no prop shape is translatable, so
+      // none is offered for translation. `date` (datetime field, date-only),
+      // `email`, `integer` and `boolean` are all excluded.
+      self::UUID_UNTRANSLATABLE_PROP_SHAPES => [],
     ], $this->getTmgmtFormElementsForComponentInstances());
     // The "format" input exists (to load CKEditor) but is hidden, so it cannot
     // be changed.
