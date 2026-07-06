@@ -66,13 +66,7 @@ final class SingleDirectoryComponentDiscovery extends JsonSchemaPropsComponentDi
 
     $component_plugin = $this->componentPluginManager->createInstance($source_specific_id);
 
-    if (property_exists($component_plugin->metadata, 'noUi') && $component_plugin->metadata->noUi === TRUE) {
-      throw new ComponentDoesNotMeetRequirementsException(['Component flagged "noUi".']);
-    }
-    // The above only works on Drupal core >=11.3.
-    // @todo Remove in https://www.drupal.org/i/3537695
-    // @phpstan-ignore-next-line offsetAccess.nonOffsetAccessible
-    if ($component_plugin->getPluginDefinition()['noUi'] ?? FALSE) {
+    if ($component_plugin->metadata->noUi) {
       throw new ComponentDoesNotMeetRequirementsException(['Component flagged "noUi".']);
     }
 
@@ -112,11 +106,7 @@ final class SingleDirectoryComponentDiscovery extends JsonSchemaPropsComponentDi
     $component_plugin = $this->componentPluginManager->createInstance($source_specific_id);
     // Disabled if obsolete or flagged with noUi.
     $initial_status = !(
-      (property_exists($component_plugin->metadata, 'noUi') && $component_plugin->metadata->noUi === TRUE)
-      // The above only works on Drupal core >=11.3.
-      // @todo Remove in https://www.drupal.org/i/3537695
-      // @phpstan-ignore offsetAccess.nonOffsetAccessible
-      || ($component_plugin->getPluginDefinition()['noUi'] ?? FALSE)
+      $component_plugin->metadata->noUi
       || (isset($component_plugin->metadata->status) && $component_plugin->metadata->status === 'obsolete')
     );
     return $initial_status;

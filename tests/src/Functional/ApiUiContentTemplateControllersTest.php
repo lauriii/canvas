@@ -630,7 +630,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       expected_cache_contexts: NULL,
       expected_cache_tags: NULL,
       expected_page_cache: 'UNCACHEABLE (request policy)',
-      expected_dynamic_page_cache: 'UNCACHEABLE (no cacheability)',
+      expected_dynamic_page_cache: "UNCACHEABLE (no cacheability)",
     );
     $this->assertSame(['errors' => [$expected_error_message]], $json);
 
@@ -647,7 +647,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       expected_cache_contexts: ['user.permissions'],
       expected_cache_tags: ['4xx-response', 'http_response'],
       expected_page_cache: 'UNCACHEABLE (request policy)',
-      expected_dynamic_page_cache: NULL,
+      expected_dynamic_page_cache: 'UNCACHEABLE (403)',
     );
     $this->assertSame(['errors' => [\sprintf("The '%s' permission is required.", ContentTemplate::ADMIN_PERMISSION)]], $json);
   }
@@ -932,6 +932,35 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     $this->assertSame($expected, $json);
   }
 
+  /**
+   * The `search` module's node view modes, removed as of Drupal 11.4.
+   *
+   * Drupal 11.4 moved node-specific search functionality out of the Search
+   * module, including the `search_index` and `search_result` view modes. They
+   * were moved into a new `search_node` submodule, which this test does
+   * install.
+   *
+   * @return array<string, array{label: string, hasTemplate: bool}>
+   *
+   * @see https://www.drupal.org/node/3587564
+   * @see https://www.drupal.org/node/3590298
+   */
+  private static function expectSearchViewModesOnDrupal113(): array {
+    if (version_compare(\Drupal::VERSION, '11.4', '>=')) {
+      return [];
+    }
+    return [
+      'search_index' => [
+        'label' => 'Search index',
+        'hasTemplate' => FALSE,
+      ],
+      'search_result' => [
+        'label' => 'Search result highlighting input',
+        'hasTemplate' => FALSE,
+      ],
+    ];
+  }
+
   public function testViewModesList(): void {
     // 1. Test endpoint response when no Template entities are available.
     $json = $this->assertExpectedResponse(
@@ -961,14 +990,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
             'label' => 'RSS',
             'hasTemplate' => FALSE,
           ],
-          'search_index' => [
-            'label' => 'Search index',
-            'hasTemplate' => FALSE,
-          ],
-          'search_result' => [
-            'label' => 'Search result highlighting input',
-            'hasTemplate' => FALSE,
-          ],
+          ...self::expectSearchViewModesOnDrupal113(),
         ],
       ],
     ], $json);
@@ -1012,14 +1034,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
             'label' => 'RSS',
             'hasTemplate' => FALSE,
           ],
-          'search_index' => [
-            'label' => 'Search index',
-            'hasTemplate' => FALSE,
-          ],
-          'search_result' => [
-            'label' => 'Search result highlighting input',
-            'hasTemplate' => FALSE,
-          ],
+          ...self::expectSearchViewModesOnDrupal113(),
         ],
       ],
     ], $json);
@@ -1057,14 +1072,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
             'label' => 'RSS',
             'hasTemplate' => FALSE,
           ],
-          'search_index' => [
-            'label' => 'Search index',
-            'hasTemplate' => FALSE,
-          ],
-          'search_result' => [
-            'label' => 'Search result highlighting input',
-            'hasTemplate' => FALSE,
-          ],
+          ...self::expectSearchViewModesOnDrupal113(),
         ],
       ],
     ], $json);

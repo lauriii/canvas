@@ -92,6 +92,13 @@ class CanvasTestSetup implements TestSetupInterface {
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements()
     // @see /ui/tests/e2e/prop-types.cy.js
     'canvas.' . ComponentEntity::ENTITY_TYPE_ID . '.' . SingleDirectoryComponent::SOURCE_PLUGIN_ID . '.sdc_test_all_props.all-props',
+    // Canvas forward-ported a fix for `type: field.value.boolean`, which in
+    // turn causes core's `article_content_type` recipe's
+    // core.base_field_override.node.article.promote config's `default_value` to
+    // fail validation.
+    // @see https://www.drupal.org/project/drupal/issues/3534717
+    // @see \Drupal\canvas\Hook\ComponentSourceHooks::configSchemaInfoAlter()
+    'core.base_field_override.node.article.promote',
   ];
 
   public function setup(bool $createContentTemplate = FALSE): void {

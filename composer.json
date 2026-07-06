@@ -11,7 +11,7 @@
     }
   ],
   "require": {
-        "drupal/core": "^11.2",
+        "drupal/core": "^11.3",
         "justinrainbow/json-schema": "^6.8.0"
     },
     "require-dev": {
@@ -41,7 +41,7 @@
         "phpcs": "mkdir -p test-results && mkdir -p .cache/phpcs && composer --working-dir=$(composer run composer-root) exec phpcs -- --standard=$(pwd)/phpcs.xml --report-width=auto --colors -s --report-junit=$(pwd)/test-results/phpcs.xml --report-full --report-summary $(pwd)",
         "phpcbf": " mkdir -p .cache/phpc && composer --working-dir=$(composer run composer-root) exec phpcbf -- --standard=$(pwd)/phpcs.xml --colors $(pwd)",
         "phpstan": "composer --working-dir=$(composer run composer-root) exec phpstan -- --configuration=$(pwd)/phpstan.neon --autoload-file=$(pwd)/phpstan_rules/autoload.php analyze $(pwd)",
-        "phpstan-regenerate-ignores-for-11.3-and-higher": "rm $(pwd)/phpstan-11.3-and-higher-ignores.neon && touch $(pwd)/phpstan-11.3-and-higher-ignores.neon && composer --working-dir=$(composer run composer-root) exec phpstan -- --configuration=$(pwd)/phpstan.neon --autoload-file=$(pwd)/phpstan_rules/autoload.php --generate-baseline=$(pwd)/phpstan-11.3-and-higher-ignores.neon analyze $(pwd)",
+        "phpstan-regenerate-ignores-for-non-min-core-version-features": "rm $(pwd)/phpstan-ignores-non-min-core-version.neon && touch $(pwd)/phpstan-ignores-non-min-core-version.neon && composer --working-dir=$(composer run composer-root) exec phpstan -- --configuration=$(pwd)/phpstan.neon --autoload-file=$(pwd)/phpstan_rules/autoload.php --generate-baseline=$(pwd)/phpstan-ignores-non-min-core-version.neon --allow-empty-baseline analyze $(pwd)",
         "phpunit": "./tests/scripts/phpunit.sh",
         "lint:phpcs": "@phpcs",
         "lint:phpstan": "@phpstan",
@@ -63,7 +63,7 @@
         "lint:phpcs": "Runs PHPCS using Canvas' rules, generates CI artifact.",
         "fix:phpcbf": "Fixes all auto-fixable PHPCS errors.",
         "lint:phpstan": "Runs PHPStan using Canvas' rules, generates CI artifact.",
-        "phpstan-regenerate-ignores-for-11.3-and-higher": "Regenerates PHPStan baseline for Drupal 11.3 and higher.",
+        "phpstan-regenerate-ignores-for-non-min-core-version-features": "Regenerates PHPStan baseline for Canvas-provided features that require a core version beyond the minimum supported version.",
         "phpunit": "Runs Canvas' back-end test suite. Supports running subset, use `composer run phpunit -- --help`.",
         "lint": "Runs all Canvas back-end (PHP) linting. Sibling: `npm run lint`.",
         "fix": "Runs all Canvas back-end (PHP) auto-fixing. Sibling: `npm run fix`."

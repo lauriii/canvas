@@ -79,7 +79,9 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
     'versioned_properties',
   ],
   constraints: [
-    'ImmutableProperties' => ['id', 'source', 'source_local_id'],
+    'ImmutableProperties' => [
+      'properties' => ['id', 'source', 'source_local_id'],
+    ],
   ],
 )]
 final class Component extends VersionedConfigEntityBase implements ComponentInterface, CanvasHttpApiEligibleConfigEntityInterface, FolderItemInterface {

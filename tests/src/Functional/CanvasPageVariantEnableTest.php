@@ -61,18 +61,24 @@ class CanvasPageVariantEnableTest extends BrowserTestBase {
       ...$content_cache_tags,
       // Cache tags bubbled by Drupal core's default "block" page variant.
       // @see \Drupal\block\Plugin\DisplayVariant\BlockPageVariant
-      'block_view',
-      'config:block.block.olivero_account_menu',
-      'config:block.block.olivero_breadcrumbs',
-      'config:block.block.olivero_content',
-      'config:block.block.olivero_main_menu',
-      'config:block.block.olivero_messages',
-      'config:block.block.olivero_page_title',
-      'config:block.block.olivero_powered',
-      'config:block.block.olivero_primary_admin_actions',
-      'config:block.block.olivero_primary_local_tasks',
-      'config:block.block.olivero_secondary_local_tasks',
-      'config:block.block.olivero_site_branding',
+      // Drupal 11.4 uses only the `config:block_list` list cache tag for blocks,
+      // dropping the per-block `config:block.block.*` tags (and `block_view`).
+      // @see https://www.drupal.org/project/drupal/issues/3341042
+      // @see \Drupal\block\Entity\Block::getCacheTagsToInvalidate()
+      ...(version_compare(\Drupal::VERSION, '11.4', '<') ? [
+        'block_view',
+        'config:block.block.olivero_account_menu',
+        'config:block.block.olivero_breadcrumbs',
+        'config:block.block.olivero_content',
+        'config:block.block.olivero_main_menu',
+        'config:block.block.olivero_messages',
+        'config:block.block.olivero_page_title',
+        'config:block.block.olivero_powered',
+        'config:block.block.olivero_primary_admin_actions',
+        'config:block.block.olivero_primary_local_tasks',
+        'config:block.block.olivero_secondary_local_tasks',
+        'config:block.block.olivero_site_branding',
+      ] : []),
       'config:block_list',
     ]);
 

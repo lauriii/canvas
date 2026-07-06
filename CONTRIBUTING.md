@@ -13,7 +13,7 @@ For joining the development process of Drupal Canvas (Canvas for short) or tryin
 mkdir ~/Sites/canvas-dev
 cd ~/Sites/canvas-dev
 ddev config --project-type=drupal --php-version=8.3 --docroot=web
-# Canvas requires Drupal >= 11.2
+# Canvas requires Drupal >= 11.3
 ddev composer create drupal/recommended-project:11.x@dev --no-install
 ddev add-on get drupal-canvas/ddev-drupal-xb-dev
 # This will clone the 'canvas' repo under web/modules/contrib
@@ -35,7 +35,7 @@ The most common commands in the development process are:
 Tip: Use `ddev help <command>` for additional information about the command and arguments available.
 
 ## Setting up you local manually
-1. Clone Drupal 11 (preferably a clone for Git archeology: `git clone git@git.drupal.org:project/drupal.git` — Drupal >=11.2 is required, so also do: `git checkout 11.2.x`).
+1. Clone Drupal 11 (preferably a clone for Git archeology: `git clone git@git.drupal.org:project/drupal.git` — Drupal >=11.3 is required, so also do: `git checkout 11.3.x`).
 2. `cd drupal && git clone git@git.drupal.org:project/canvas.git modules/contrib/canvas`
 3. `composer require drush/drush`
 4. Install Canvas's dev dependencies into the host project (required for static analysis and tests): `cd modules/contrib/canvas && composer run install-dev-deps && cd -`

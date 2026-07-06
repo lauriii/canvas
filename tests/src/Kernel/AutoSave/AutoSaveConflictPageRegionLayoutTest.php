@@ -81,9 +81,7 @@ final class AutoSaveConflictPageRegionLayoutTest extends ApiLayoutControllerTest
     self::assertSame('block.system_messages_block', $regionTree[0]['component_id']);
     self::assertSame([
       'label' => $text,
-      'label_display' => version_compare(\Drupal::VERSION, '11.3', '<')
-        ? ''
-        : '0',
+      'label_display' => '0',
     ], $regionTree[0]['inputs']);
   }
 

@@ -227,7 +227,7 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
       ...$this->findCreatedComponentConfigEntities(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'canvas_test_sdc'),
       ...$this->findCreatedComponentConfigEntities(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'sdc_theme_test'),
     ];
-    self::assertSame([
+    $expected = [
       'sdc.canvas_test_sdc.attributes',
       'sdc.canvas_test_sdc.banner',
       'sdc.canvas_test_sdc.card',
@@ -277,9 +277,29 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
       'sdc.sdc_theme_test.lib-overrides',
       'sdc.sdc_theme_test.my-card',
       'sdc.sdc_theme_test_base.my-card-no-schema',
-    ], $auto_created_components);
+    ];
+    if (version_compare(\Drupal::VERSION, '11.4', '>=')) {
+      // Drupal 11.4 adds the `cva` and `input` example components to the
+      // `sdc_theme_test` theme.
+      $offset = (int) array_search('sdc.sdc_theme_test.bar', $expected, TRUE) + 1;
+      array_splice($expected, $offset, 0, [
+        'sdc.sdc_theme_test.cva',
+        'sdc.sdc_theme_test.input',
+      ]);
+    }
+    self::assertSame($expected, $auto_created_components);
 
-    return array_combine($auto_created_components, $auto_created_components);
+    // The `cva` and `input` example components ship with the `sdc_theme_test`
+    // theme as of Drupal 11.4. Their discovery is asserted above; exclude them
+    // from the dependent tests to avoid maintaining Drupal-version-specific
+    // expected data (settings, render output, dependencies) for components that
+    // Canvas does not own.
+    $component_ids = array_values(array_diff($auto_created_components, [
+      'sdc.sdc_theme_test.cva',
+      'sdc.sdc_theme_test.input',
+    ]));
+
+    return array_combine($component_ids, $component_ids);
   }
 
   /**

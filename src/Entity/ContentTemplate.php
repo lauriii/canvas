@@ -53,10 +53,12 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
   admin_permission: self::ADMIN_PERMISSION,
   constraints: [
     'ImmutableProperties' => [
-      'id',
-      'content_entity_type_id',
-      'content_entity_type_bundle',
-      'content_entity_type_view_mode',
+      'properties' => [
+        'id',
+        'content_entity_type_id',
+        'content_entity_type_bundle',
+        'content_entity_type_view_mode',
+      ],
     ],
   ],
   config_export: [

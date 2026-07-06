@@ -11,7 +11,7 @@ use Drupal\Core\Config\TypedConfigManager;
 /**
  * @internal
  *
- * @todo Fix upstream in core in https://www.drupal.org/project/drupal/issues/3400181
+ * @todo Remove this once Canvas requires Drupal 11.4.0, which fixed this in Drupal core: https://www.drupal.org/project/drupal/issues/3400181
  *
  * @see Cloned from Drupal 11.3.5, TypedConfigManager::getDefinitionWithReplacements()
  */

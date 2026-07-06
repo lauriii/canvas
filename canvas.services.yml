@@ -123,6 +123,7 @@ services:
     tags:
       - { name: 'event_subscriber' }
   Drupal\canvas\EventSubscriber\ComponentTreeConfigEntityTransformer: ~
+  Drupal\canvas\EventSubscriber\DefaultContentSubscriber: ~
   canvas.image_style.route_alter:
     class: Drupal\canvas\EventSubscriber\ImageStyleRoutesEventSubscriber
     tags:

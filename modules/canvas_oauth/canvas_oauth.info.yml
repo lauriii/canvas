@@ -1,7 +1,7 @@
 type: module
 name: Drupal Canvas OAuth
 description: "Provides OAuth2-based authentication for Drupal Canvas's external HTTP API"
-core_version_requirement: ^11.2
+core_version_requirement: ^11.3
 package: Drupal Canvas
 dependencies:
   - canvas:canvas

@@ -16,6 +16,7 @@ use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Component\Utility\SortArray;
 use Drupal\content_moderation\Plugin\Field\ModerationStateFieldItemList;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
@@ -325,6 +326,18 @@ class AutoSaveManager implements EventSubscriberInterface {
       if ($items->isEmpty()) {
         continue;
       }
+      $item_list = \iterator_to_array($items);
+      // The computed path alias field always yields an item carrying the
+      // entity's langcode, even when no alias is set. Such an item carries no
+      // user-editable data, so treat it as empty to avoid spurious auto-saves.
+      // (Drupal 11.4 stopped round-tripping the alias langcode through the
+      // entity form, which otherwise kept this symmetric.)
+      if ($items->getFieldDefinition()->getType() === 'path') {
+        $item_list = \array_filter($item_list, static fn (FieldItemInterface $item): bool => (string) $item->get('alias')->getValue() !== '');
+        if ($item_list === []) {
+          continue;
+        }
+      }
       $normalized[$name] = \array_map(
         static function (FieldItemInterface $item): array {
           if ($item instanceof ComponentTreeItem) {
@@ -342,7 +355,7 @@ class AutoSaveManager implements EventSubscriberInterface {
           }
           return $value;
         },
-        \iterator_to_array($items)
+        $item_list
       );
     }
     return $normalized;
@@ -933,7 +946,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     // When called from ::recordInitialClientSideRepresentation() and ::save()
     // the keys for an individual component are in different orders. This causes
     // the hash to be different though the data is functionally the same.
-    self::recursiveKsort($data);
+    SortArray::sortByKeyRecursive($data);
     // We use \json_encode here instead of \serialize because we're not dealing
     // with PHP Objects and this ensures the representation hashed from PHP is
     // consistent with the representation transmitted by the client. Some of the
@@ -942,15 +955,6 @@ class AutoSaveManager implements EventSubscriberInterface {
     // depending on whether the hashing occurred before/after transfer from the
     // client.
     return \hash('xxh64', \json_encode($data, JSON_THROW_ON_ERROR));
-  }
-
-  private static function recursiveKsort(array &$array): void {
-    ksort($array);
-    foreach ($array as &$value) {
-      if (\is_array($value)) {
-        self::recursiveKsort($value);
-      }
-    }
   }
 
   public function onCanvasConfigEntitySave(ConfigCrudEvent $event): void {

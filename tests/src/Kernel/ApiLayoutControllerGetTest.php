@@ -23,6 +23,7 @@ use Drupal\Core\Url;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\link\LinkItemInterface;
+use Drupal\link\LinkTitleVisibility;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
@@ -564,7 +565,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
           'expression' => 'ℹ︎link␟url',
           'sourceTypeSettings' => [
             'instance' => [
-              'title' => \DRUPAL_DISABLED,
+              'title' => LinkTitleVisibility::Disabled->value,
               'link_type' => LinkItemInterface::LINK_GENERIC,
             ],
           ],

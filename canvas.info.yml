@@ -2,7 +2,7 @@ name: Drupal Canvas
 description: Empowers content creators to build experiences by composing components, with as much freedom as site builders allow, all without needing to write code.
 type: module
 package: Drupal Canvas
-core_version_requirement: ^11.2
+core_version_requirement: ^11.3
 php: 8.3
 configure: entity.component.collection
 dependencies:

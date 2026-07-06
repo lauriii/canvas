@@ -1063,12 +1063,9 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       //   parts of the generated value using the stored expression in such a
       //   way that the SDC component validator reports no errors.
       $randomized_prop_source = $prop_source->randomizeValue();
-
       // Some core SDCs have enums without meta:enums, which we aren't
       // supporting. So instead of option_list we are getting a textfield.
-      // So we would need to ignore those or just use one of the
-      // valid values for now. This should not be needed after requiring 11.2.x
-      // which will include https://drupal.org/i/3493070.
+      // So we would need to ignore those or just use one of the valid values.
       if (isset($storable_prop_shape->shape->schema['enum'])) {
         $randomized_prop_source = $prop_source->withValue($storable_prop_shape->shape->schema['enum'][0]);
       }

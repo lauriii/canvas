@@ -65,7 +65,6 @@ final class CanvasTestBlockInputNone extends BlockBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function getCacheContexts() {
-    // @phpstan-ignore-next-line argument.type
     return Cache::mergeContexts(parent::getCacheContexts(), ['user']);
   }
 

@@ -46,6 +46,7 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
 use Drupal\link\LinkItemInterface;
+use Drupal\link\LinkTitleVisibility;
 use Drupal\media\Entity\MediaType;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -1604,6 +1605,28 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
   }
 
   /**
+   * Orders the well-known image shape's props per core version.
+   *
+   * Drupal 11.4 started casting configuration data against config schema on
+   * every save. Hence for `type: object` props, the example order is no longer
+   * respected, and instead the config schema order is.
+   * The config schema order in turn is determined by the JSON schema definition
+   * for a prop, thanks to \Drupal\canvas\Config\Schema\ComponentInputsMapping.
+   *
+   * @return array<string, int|string>
+   *
+   * @see schema.json
+   * @see https://www.drupal.org/node/3348180
+   * @see https://www.drupal.org/project/drupal/issues/3347842
+   * @see https://git.drupalcode.org/project/canvas/-/merge_requests/1332#note_1424036
+   */
+  private static function expectImagePropsInExampleOrderOn113(int $width, int $height, string $alt): array {
+    return version_compare(\Drupal::VERSION, '11.4', '>=')
+      ? ['alt' => $alt, 'width' => $width, 'height' => $height]
+      : ['width' => $width, 'height' => $height, 'alt' => $alt];
+  }
+
+  /**
    * {@inheritdoc}
    */
   public static function getExpectedClientSideInfo(): array {
@@ -1816,9 +1839,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               'source' => [],
               'resolved' => [
                 'src' => 'https://placehold.co/1200x900@2x.png',
-                'width' => 1200,
-                'height' => 900,
-                'alt' => 'Example image placeholder',
+                ...self::expectImagePropsInExampleOrderOn113(1200, 900, 'Example image placeholder'),
               ],
             ],
           ],
@@ -1912,7 +1933,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'expression' => 'ℹ︎link␟url',
             'sourceTypeSettings' => [
               'instance' => [
-                'title' => \DRUPAL_DISABLED,
+                'title' => LinkTitleVisibility::Disabled->value,
                 'link_type' => LinkItemInterface::LINK_GENERIC,
               ],
               'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
@@ -1992,15 +2013,11 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               'resolved' => [
                 [
                   'src' => 'https://placehold.co/1200x900@2x.png',
-                  'width' => 1200,
-                  'height' => 900,
-                  'alt' => 'First example image',
+                  ...self::expectImagePropsInExampleOrderOn113(1200, 900, 'First example image'),
                 ],
                 [
                   'src' => 'https://placehold.co/800x600@2x.png',
-                  'width' => 800,
-                  'height' => 600,
-                  'alt' => 'Second example image',
+                  ...self::expectImagePropsInExampleOrderOn113(800, 600, 'Second example image'),
                 ],
               ],
             ],

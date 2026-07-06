@@ -567,9 +567,9 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     // @todo Update parent method to accept a `$additional_validation_errors` parameter in addition to `$valid_values`, and uncomment the next line, remove all lines after it.
     // parent::testImmutableProperties($valid_values);
     $constraints = $this->entity->getEntityType()->getConstraints();
-    $this->assertNotEmpty($constraints['ImmutableProperties'], 'All config entities should have at least one immutable ID property.');
+    $this->assertNotEmpty($constraints['ImmutableProperties']['properties'], 'All config entities should have at least one immutable ID property.');
 
-    foreach ($constraints['ImmutableProperties'] as $property_name) {
+    foreach ($constraints['ImmutableProperties']['properties'] as $property_name) {
       $original_value = $this->entity->get($property_name);
       $this->entity->set($property_name, $valid_values[$property_name] ?? $this->randomMachineName());
       $this->assertValidationErrors([

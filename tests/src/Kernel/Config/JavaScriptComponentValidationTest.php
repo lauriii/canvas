@@ -777,11 +777,6 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
   #[DataProvider('providerTestEntityShapes')]
   public function testEntityShapes(array $shape, array $expected_errors): void {
     $this->entity = JavaScriptComponent::create($shape);
-    // Strip out the prefix added by https://www.drupal.org/node/3549909. This
-    // can be removed when 11.3 is the minimum supported version of core.
-    if (isset($expected_errors['']) && str_starts_with($expected_errors[''], 'In component canvas:test-unknown-prop-type:') && version_compare(\Drupal::VERSION, '11.3', '<')) {
-      $expected_errors[''] = substr($expected_errors[''], 44);
-    }
     $this->assertValidationErrors($expected_errors);
   }
 
@@ -2020,11 +2015,6 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         "In component canvas:{$this->entity->id()}:\n[id] Does not match the regex pattern ^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*:[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$\n[machineName] Does not match the regex pattern ^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$",
         $expected_messages[''],
       ];
-      // Strip out the prefix added by https://www.drupal.org/node/3549909. This
-      // can be removed when 11.3 is the minimum supported version of core.
-      if (version_compare(\Drupal::VERSION, '11.3', '<')) {
-        $expected_messages[''][0] = substr($expected_messages[''][0], strlen("In component canvas:{$this->entity->id()}:\n"));
-      }
     }
     parent::assertValidationErrors($expected_messages);
   }

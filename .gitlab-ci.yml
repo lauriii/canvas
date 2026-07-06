@@ -35,8 +35,8 @@ variables:
 
   # Target a specific release, not 11.x.x-dev, to avoid breaking on evolving
   # test expectations unnecessarily.
-  DRUPAL_CORE: 11.2.12
-  DRUPAL_CORE_NEXT_MINOR: 11.3.10
+  DRUPAL_CORE: 11.3.10
+  DRUPAL_CORE_NEXT_MINOR: 11.4.1
 
   DRUPAL_TEST_WEBSERVER_USER: www-data
 
@@ -333,11 +333,12 @@ lint (php):
     # PHPStan doesn't allow multiple outputs, but it will cache the result. Use the cache to expose in GitLab CI's UI.
     # @todo Remove this in https://www.drupal.org/project/canvas/issues/3591277
     - mkdir -p test-results && composer run phpstan -- --error-format=junit > test-results/phpstan.xml || true
-    # Regenerate the >=11.3 ignores from scratch — this ensures we avoid manual additions.
+    # Regenerate PHPStan baseline for Canvas-provided features that require a core version beyond the minimum supported
+    # core version.
     # (Manual additions belong in phpstan.neon; this file should be purely auto-generated ignores.)
-    - composer run phpstan-regenerate-ignores-for-11.3-and-higher
-    - cp phpstan-11.3-and-higher-ignores.neon test-results/
-    - git diff --quiet -- phpstan-11.3-and-higher-ignores.neon && echo "✅ phpstan-11.3-and-higher-ignores.neon in sync." || (echo "❌ phpstan-11.3-and-higher-ignores.neon out of sync." && echo "🙏 Please run composer run phpstan-regenerate-ignores-for-11.3-and-higher or download the file from the CI artifacts, and commit the result." && exit 1)
+    - composer run phpstan-regenerate-ignores-for-non-min-core-version-features
+    - cp phpstan-ignores-non-min-core-version.neon test-results/
+    - git diff --quiet -- phpstan-ignores-non-min-core-version.neon && echo "✅ phpstan-ignores-non-min-core-version.neon in sync." || (echo "❌ phpstan-ignores-non-min-core-version.neon out of sync." && echo "🙏 Please run composer run phpstan-regenerate-ignores-for-non-min-core-version-features or download the file from the CI artifacts, and commit the result." && exit 1)
   after_script:
     - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/test-results $CI_PROJECT_DIR/test-results
   artifacts:
@@ -369,7 +370,7 @@ lint (node):
         exit 1
       fi
 
-phpunit (11.2 sqlite):
+phpunit (11.3 sqlite):
   rules:
     - *push-rule
     - <<: *mr-rule
@@ -401,15 +402,17 @@ phpunit (11.2 sqlite):
   before_script:
     - !reference [ .drupal-with-dev-dependencies ]
     - !reference [ .canvas-ui ]
-    # Forward-port upstream fix for https://www.drupal.org/project/drupal/issues/3582249
-    # (PHPUnit SourceMapper races with concurrent test cleanup under sites/simpletest,
-    # causing "RecursiveDirectoryIterator: Failed to open directory" random failures).
-    # Fixed on Drupal 11.x (commit 3753f904, 2026-03-30); not yet in 11.2.x. Idempotent —
-    # becomes a no-op once the minimum supported core version ships the fix.
-    - sed -i '\|<directory>\.\./sites</directory>|d' $CI_PROJECT_DIR/_drupal/web/core/phpunit.xml.dist
   script:
     - !reference [ .test_runner ]
-    - run_test "phpunit" "composer run phpunit -- --types $PHPUNIT_TESTSUITE --ci-parallel-node-index $CI_PARALLEL_NODE_INDEX --ci-parallel-node-total $CI_PARALLEL_NODE_TOTAL"
+    # Only pass --ci-parallel-node-* when this job is actually parallelized (i.e. the matrix
+    # entry sets CI_PARALLEL_NODE_TOTAL, as PHPUnit-Kernel does). Drupal 11.4's phpunit.sh
+    # errors out when --ci-parallel-node-index is passed without a value.
+    - |
+      PARALLEL_ARGS=""
+      if [ -n "$CI_PARALLEL_NODE_INDEX" ] && [ -n "$CI_PARALLEL_NODE_TOTAL" ]; then
+        PARALLEL_ARGS="--ci-parallel-node-index $CI_PARALLEL_NODE_INDEX --ci-parallel-node-total $CI_PARALLEL_NODE_TOTAL"
+      fi
+      run_test "phpunit" "composer run phpunit -- --types $PHPUNIT_TESTSUITE $PARALLEL_ARGS"
     - !reference [ .test_summary ]
   after_script:
     - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/test-results $CI_PROJECT_DIR/test-results
@@ -438,9 +441,9 @@ phpunit (11.2 sqlite):
         - test-results/*.xml
       annotations: test-results/links.json
 
-phpunit (11.2 mariadb):
-  extends: phpunit (11.2 sqlite)
-  # Only run on nightly, not on push to 1.x — the PHPUnit 11.3 CI jobs already test all DBs, do not repeat for 11.2.
+phpunit (11.3 mariadb):
+  extends: phpunit (11.3 sqlite)
+  # Only run on nightly, not on push to 1.x — the PHPUnit 11.4 CI jobs already test all DBs, do not repeat for 11.3.
   rules:
     - *nightly-rule
     - *manual-rule
@@ -453,9 +456,9 @@ phpunit (11.2 mariadb):
     MYSQL_PASSWORD: drupal
     MYSQL_ROOT_PASSWORD: root
 
-phpunit (11.2 pgsql):
-  extends: phpunit (11.2 sqlite)
-  # Only run on nightly, not on push to 1.x — the PHPUnit 11.3 CI jobs already test all DBs, do not repeat for 11.2.
+phpunit (11.3 pgsql):
+  extends: phpunit (11.3 sqlite)
+  # Only run on nightly, not on push to 1.x — the PHPUnit 11.4 CI jobs already test all DBs, do not repeat for 11.3.
   rules:
     - *nightly-rule
     - *manual-rule
@@ -467,9 +470,9 @@ phpunit (11.2 pgsql):
     POSTGRES_USER: drupal
     POSTGRES_PASSWORD: drupal
 
-phpunit (11.2 mysql):
-  extends: phpunit (11.2 sqlite)
-  # Only run on nightly, not on push to 1.x — the PHPUnit 11.3 CI jobs already test all DBs, do not repeat for 11.2.
+phpunit (11.3 mysql):
+  extends: phpunit (11.3 sqlite)
+  # Only run on nightly, not on push to 1.x — the PHPUnit 11.4 CI jobs already test all DBs, do not repeat for 11.3.
   rules:
     - *nightly-rule
     - *manual-rule
@@ -482,26 +485,23 @@ phpunit (11.2 mysql):
     MYSQL_PASSWORD: drupal
     MYSQL_ROOT_PASSWORD: root
 
-phpunit (11.3 sqlite):
-  extends: phpunit (11.2 sqlite)
-  rules:
-    - *nightly-rule
-    - *manual-rule
+phpunit (11.4 sqlite):
+  extends: phpunit (11.3 sqlite)
   variables:
     DRUPAL_CORE: $DRUPAL_CORE_NEXT_MINOR
 
-phpunit (11.3 mariadb):
-  extends: phpunit (11.2 mariadb)
+phpunit (11.4 mariadb):
+  extends: phpunit (11.3 mariadb)
   variables:
     DRUPAL_CORE: $DRUPAL_CORE_NEXT_MINOR
 
-phpunit (11.3 pgsql):
-  extends: phpunit (11.2 pgsql)
+phpunit (11.4 pgsql):
+  extends: phpunit (11.3 pgsql)
   variables:
     DRUPAL_CORE: $DRUPAL_CORE_NEXT_MINOR
 
-phpunit (11.3 mysql):
-  extends: phpunit (11.2 mysql)
+phpunit (11.4 mysql):
+  extends: phpunit (11.3 mysql)
   variables:
     DRUPAL_CORE: $DRUPAL_CORE_NEXT_MINOR
 

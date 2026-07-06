@@ -43,9 +43,7 @@ use Drupal\Core\Theme\ThemeManagerInterface;
   ],
   constraints: [
     'ImmutableProperties' => [
-      'id',
-      'theme',
-      'region',
+      'properties' => ['id', 'theme', 'region'],
     ],
   ],
 )]

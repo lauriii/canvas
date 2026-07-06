@@ -5,19 +5,20 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\canvas\Controller\EntityFormController;
+use Drupal\node\Entity\NodeType;
+use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DomCrawler\Crawler;
 
-/**
- * Tests Drupal\canvas\Controller\EntityFormController.
- */
 #[RunTestsInSeparateProcesses]
 #[CoversClass(EntityFormController::class)]
 #[Group('canvas')]
 class EntityFormControllerTest extends FunctionalTestBase {
+
+  use ImageFieldCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -36,6 +37,16 @@ class EntityFormControllerTest extends FunctionalTestBase {
 
   protected function setUp(): void {
     parent::setUp();
+    // Drupal 11.4's `standard` profile no longer ships the `article` node type
+    // (it is created via a recipe, which is not applied during test installs).
+    if (!NodeType::load('article')) {
+      $this->createContentType(['type' => 'article', 'name' => 'Article']);
+      // The `standard` profile's `article` bundle ships an image field, whose
+      // file-upload widget makes the entity form use `multipart/form-data`.
+      // Recreate it so the form's `enctype` matches the expectation below.
+      // @see ::assertFormResponse()
+      $this->createImageField('field_image', 'node', 'article');
+    }
     $this->createComponentTreeField('node', 'article', 'field_component_tree');
   }
 

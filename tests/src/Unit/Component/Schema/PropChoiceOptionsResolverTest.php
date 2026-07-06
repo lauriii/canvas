@@ -33,6 +33,9 @@ final class PropChoiceOptionsResolverTest extends UnitTestCase {
       }
 
     });
+    // Needed so that TranslatableMarkup instances returned by the mocked
+    // translator can be cast to a string without a full container.
+    $container->set('string_translation', $this->getStringTranslationStub());
     \Drupal::setContainer($container);
   }
 

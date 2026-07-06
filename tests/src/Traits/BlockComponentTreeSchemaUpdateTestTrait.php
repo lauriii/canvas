@@ -21,22 +21,22 @@ trait BlockComponentTreeSchemaUpdateTestTrait {
    *   - The expected values [violations and text] for each component instance.
    */
   public static function getValidTreesForASchemaUpdate(): \Generator {
-    // We need this test to pass both in 11.2.x and 11.3.x and above. Component versions hashes are influenced by their
-    // config schema, and for blocks that means depending on the block.settings.*. As block_settings.label_display
-    // changed between 11.2 and 11.3, that means there is no single block where we can have the same hash on 11.2.x and
-    // above. So we need to hardcode these per version.
+    // This test must pass on every supported core version. Component version hashes are influenced by their
+    // config schema, and for blocks that means depending on the block.settings.*. As block_settings changed between
+    // core versions, there is no single block where we can have the same hash across all of them. So we need to
+    // hardcode these per version.
     // @see \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
     $canvas_test_block_input_none_version = match(TRUE) {
-      // The 11.3.x version
-      version_compare(\Drupal::VERSION, "11.3", '>=') => "cc3a0b22af30e414",
-      // The 11.2.10 version
-      default => "f91f8d4aff4aba7c",
+      // The 11.4.x version
+      version_compare(\Drupal::VERSION, "11.4", '>=') => "a21446485b68f314",
+      // The 11.3.x version (the minimum supported).
+      default => "cc3a0b22af30e414",
     };
     $canvas_test_block_input_schema_change_poc_versions = match(TRUE) {
-      // The 11.3.x version
-      version_compare(\Drupal::VERSION, "11.3", '>=') => ["dbe845f73dc45b04", "0b5af0d270d99618"],
-      // The 11.2.10 version
-      default => ["88c370526c14d185", "7cc894b85e93a7d8"],
+      // The 11.4.x version
+      version_compare(\Drupal::VERSION, "11.4", '>=') => ["468f7d2205e249d9", "f90417fe5e93dc5e"],
+      // The 11.3.x version (the minimum supported).
+      default => ["dbe845f73dc45b04", "0b5af0d270d99618"],
     };
     yield 'tree with no blocks with update' => [
       [

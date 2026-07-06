@@ -71,7 +71,7 @@ class ApiStagedConfigUpdateAutoSaveControllerTest extends HttpApiTestBase {
 
     $this->drupalLogin($this->httpApiUser);
 
-    $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
+    $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (404)');
     $this->assertSame([], $auto_save_data);
 
     // Verify `'administer site configuration'` permission is required.
@@ -138,7 +138,7 @@ class ApiStagedConfigUpdateAutoSaveControllerTest extends HttpApiTestBase {
 
     // Anonymously: 401.
     $this->drupalLogout();
-    $body = $this->assertExpectedResponse('GET', $auto_save_url, [], 401, ['user.roles:anonymous'], ['4xx-response', 'config:system.site', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
+    $body = $this->assertExpectedResponse('GET', $auto_save_url, [], 401, ['user.roles:anonymous'], ['4xx-response', 'config:system.site', 'config:user.role.anonymous', 'http_response'], 'MISS', 'UNCACHEABLE (401)');
     $this->assertSame([
       'errors' => [
         'You must be logged in to access this resource.',
@@ -147,7 +147,7 @@ class ApiStagedConfigUpdateAutoSaveControllerTest extends HttpApiTestBase {
 
     // Insufficient permissions: 403
     $this->drupalLogin($this->limitedPermissionsUser);
-    $body = $this->assertExpectedResponse('GET', $auto_save_url, [], 403, ['user.permissions'], ['4xx-response', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
+    $body = $this->assertExpectedResponse('GET', $auto_save_url, [], 403, ['user.permissions'], ['4xx-response', 'http_response'], 'UNCACHEABLE (request policy)', 'UNCACHEABLE (403)');
     $this->assertSame([
       'errors' => [
         $missingPermissionError,

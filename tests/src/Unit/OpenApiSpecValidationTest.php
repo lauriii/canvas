@@ -4,20 +4,22 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit;
 
+use cebe\openapi\Reader;
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\Tests\UnitTestCase;
 use DrupalFinder\DrupalFinderComposerRuntime;
 use JsonSchema\Validator;
+use League\OpenAPIValidation\Schema\SchemaValidator;
 use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\RequiresFunction;
+use PHPUnit\Framework\Attributes\RequiresMethod;
 
 /**
  * Validates this Drupal module's OpenAPI spec against the OpenAPI JSON schema.
  */
-#[RequiresFunction('cebe\\openapi\\Reader::readFromYamlFile')]
-#[RequiresFunction('DrupalFinder\\DrupalFinderComposerRuntime::getVendorDir')]
-#[RequiresFunction('League\\OpenAPIValidation\\Schema\\SchemaValidator::validate')]
+#[RequiresMethod(Reader::class, 'readFromYamlFile')]
+#[RequiresMethod(DrupalFinderComposerRuntime::class, 'getVendorDir')]
+#[RequiresMethod(SchemaValidator::class, 'validate')]
 #[Group('canvas')]
 final class OpenApiSpecValidationTest extends UnitTestCase {
 

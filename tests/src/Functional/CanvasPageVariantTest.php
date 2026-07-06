@@ -580,8 +580,11 @@ class CanvasPageVariantTest extends FunctionalTestBase {
         // The `config:block_list` cache tag appears on top of the baseline.
         'config:block_list',
         // If >=1 Block config entity is placed, the `block_view` cache tag also
-        // appears.
-        ...(!empty($expected_cacheable_dependencies) ? ['block_view'] : []),
+        // appears — but Drupal 11.4 no longer bubbles it (it uses only the
+        // `config:block_list` list cache tag for blocks).
+        // @see https://www.drupal.org/project/drupal/issues/3341042
+        // @see \Drupal\block\Entity\Block::getCacheTagsToInvalidate()
+        ...(!empty($expected_cacheable_dependencies) && version_compare(\Drupal::VERSION, '11.4', '<') ? ['block_view'] : []),
         ...$expected_dependency_cacheability->getCacheTags(),
         ...$expected_additional_cache_tags,
       ],

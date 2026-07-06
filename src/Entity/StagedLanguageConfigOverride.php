@@ -49,9 +49,11 @@ use Drupal\language\Config\LanguageConfigOverride;
   ],
   constraints: [
     'ImmutableProperties' => [
-      'id',
-      'langcode',
-      'config_name',
+      'properties' => [
+        'id',
+        'langcode',
+        'config_name',
+      ],
     ],
   ],
 )]

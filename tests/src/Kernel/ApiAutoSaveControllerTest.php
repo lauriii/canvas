@@ -1071,12 +1071,6 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($code_component),
       ],
     ];
-    // Strip out the prefix added by https://www.drupal.org/node/3549909. This
-    // can be removed when 11.3 is the minimum supported version of core.
-    if (version_compare(\Drupal::VERSION, '11.3', '<')) {
-      $index = count($errors) - 1;
-      $errors[$index]['detail'] = substr($errors[$index]['detail'], 36);
-    }
     $errors[] = [
       'detail' => "'enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type canvas.json_schema.prop.*||canvas.json_schema.prop_shape.*).",
       'source' => [

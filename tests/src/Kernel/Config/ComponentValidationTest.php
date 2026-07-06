@@ -525,9 +525,9 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     // @todo Update parent method to accept a `$additional_validation_errors` parameter in addition to `$valid_values`, and uncomment the next line, remove all lines after it.
     // parent::testImmutableProperties($valid_values);
     $constraints = $this->entity->getEntityType()->getConstraints();
-    $this->assertNotEmpty($constraints['ImmutableProperties'], 'All config entities should have at least one immutable ID property.');
+    $this->assertNotEmpty($constraints['ImmutableProperties']['properties'], 'All config entities should have at least one immutable ID property.');
 
-    foreach ($constraints['ImmutableProperties'] as $property_name) {
+    foreach ($constraints['ImmutableProperties']['properties'] as $property_name) {
       $original_value = $this->entity->get($property_name);
       $this->entity->set($property_name, $valid_values[$property_name] ?? $this->randomMachineName());
       try {
@@ -694,11 +694,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
         $expected_violations = [
           '' => \sprintf("In component canvas:invalid_slot:\n[slots] The property %s is not defined and the definition does not allow additional properties", $slot_name),
         ] + $expected_violations;
-      }
-      // Strip out the prefix added by https://www.drupal.org/node/3549909. This
-      // can be removed when 11.3 is the minimum supported version of core.
-      if (version_compare(\Drupal::VERSION, '11.3', '<')) {
-        $expected_violations[''] = substr($expected_violations[''], 34);
       }
       self::assertSame($expected_violations, self::violationsToArray($violations));
     }

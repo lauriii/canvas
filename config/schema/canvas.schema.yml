@@ -552,7 +552,7 @@ canvas.json_schema_props:
           cardinality:
             type: integer
             label: 'Maximum number of values accepted by this component prop'
-            # @todo Uncomment this once Canvas requires Drupal >=11.2
+            # @todo Uncomment this in https://git.drupalcode.org/project/canvas/-/work_items/3526703
             #constraints:
             #  AtLeastOneOf:
             #    constraints:

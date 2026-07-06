@@ -105,9 +105,9 @@ rules:
   - Canvas\PHPStan\Rules\ComponentPreSaveUpdateMethodsRule
   - Canvas\PHPStan\Rules\ComponentConfigUpdaterMustDeclarePreSaveIntentRule
   - mglaman\PHPStanDrupal\Rules\Drupal\TodoCommentWithIssueUrlRule
-# Run `composer run phpstan-regenerate-ignores-for-11.3-and-higher` to update this list of ignores for Drupal >=11.3.
+# Run `composer run phpstan-regenerate-ignores-for-non-min-core-version-features` to update this list of ignores.
 includes:
-  - phpstan-11.3-and-higher-ignores.neon
+  - phpstan-ignores-non-min-core-version.neon
 services:
   -
     class: Canvas\PHPStan\Architecture\Layers

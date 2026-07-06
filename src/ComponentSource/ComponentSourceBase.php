@@ -7,6 +7,7 @@ namespace Drupal\canvas\ComponentSource;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Config\Schema\Mapping;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -78,20 +79,11 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
     // showing a different order. New versions of Component config entities are
     // only warranted if there is a change in the data needing to be stored for
     // a component instance.
-    self::recursiveKsort($normalized_data);
+    SortArray::sortByKeyRecursive($normalized_data);
     $hash = \hash('xxh64', \json_encode($normalized_data, JSON_THROW_ON_ERROR));
     // 💡 If you are debugging why a version hash does not match, put a
     // conditional breakpoint here.
     return $hash;
-  }
-
-  protected static function recursiveKsort(array &$array): void {
-    ksort($array);
-    foreach ($array as &$value) {
-      if (\is_array($value)) {
-        self::recursiveKsort($value);
-      }
-    }
   }
 
   /**

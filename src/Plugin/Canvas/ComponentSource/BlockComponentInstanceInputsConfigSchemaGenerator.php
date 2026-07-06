@@ -41,14 +41,6 @@ final readonly class BlockComponentInstanceInputsConfigSchemaGenerator implement
     // @todo Consider uncommenting in https://www.drupal.org/project/canvas/issues/3485502.
     unset($mapping['context_mapping']);
 
-    // Forward port 11.3's https://www.drupal.org/project/drupal/issues/3547808,
-    // to enable this to work on both 11.3 and 11.2. However, only a subset can
-    // be ported: the `Choice` and `NotBlank` constraints must be omitted to
-    // retain 11.2 compatibility. This achieves the main purpose: avoiding
-    // translations for `label_display` in Canvas for sites on 11.2.
-    // @todo Remove when Canvas requires 11.3.
-    $mapping['label_display']['type'] = 'string';
-
     return $mapping;
   }
 

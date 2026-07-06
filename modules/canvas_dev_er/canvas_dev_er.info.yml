@@ -1,6 +1,6 @@
 name: Drupal Canvas Dev Entity Reference
 description: 'Enables content entity reference props in the code editor - feature flag until the entity reference prop type is fully stable.'
-core_version_requirement: ^11.2
+core_version_requirement: ^11.3
 hidden: true
 type: module
 package: Drupal Canvas

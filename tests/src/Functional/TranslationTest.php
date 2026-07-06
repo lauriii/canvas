@@ -81,8 +81,8 @@ class TranslationTest extends FunctionalTestBase {
   protected function setUp(): void {
     parent::setUp();
 
-    // In 11.2 and above we install modules in groups, which means this module
-    // cannot be installed in the same group as canvas
+    // Modules are installed in groups, which means this module cannot be
+    // installed in the same group as canvas
     \Drupal::service(ModuleInstallerInterface::class)->install(['canvas_test_config_node_article']);
 
     $article_template = ContentTemplate::create([

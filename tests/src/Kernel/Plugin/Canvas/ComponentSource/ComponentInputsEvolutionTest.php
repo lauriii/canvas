@@ -25,6 +25,7 @@ use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\link\LinkItemInterface;
+use Drupal\link\LinkTitleVisibility;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Traits\BlockComponentTreeSchemaUpdateTestTrait;
@@ -144,7 +145,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
               'sourceType' => 'static:field_item:link',
               'sourceTypeSettings' => [
                 'instance' => [
-                  'title' => \DRUPAL_DISABLED,
+                  'title' => LinkTitleVisibility::Disabled->value,
                   'link_type' => LinkItemInterface::LINK_EXTERNAL,
                 ],
               ],
@@ -332,28 +333,28 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     \assert($block_settings_schema instanceof Mapping);
     $generic_block_settings = $block_settings_schema->getRequiredKeys();
 
-    // We need this test to pass both in 11.2.x and 11.3.x and above. Component versions hashes are influenced by their
-    // config schema, and for blocks that means depending on the block.settings.*. As block_settings.label_display
-    // changed between 11.2 and 11.3, that means there is no single block where we can have the same hash on 11.2.x and
-    // above. So we need to hardcode these per version.
+    // This test must pass on every supported core version. Component version hashes are influenced by their
+    // config schema, and for blocks that means depending on the block.settings.*. As block_settings changed between
+    // core versions, there is no single block where we can have the same hash across all of them. So we need to
+    // hardcode these per version.
     // @see \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
     $active_version = match(TRUE) {
-      // The 11.3.x version.
-      version_compare(\Drupal::VERSION, "11.3", '>=') => "dbe845f73dc45b04",
-      // The 11.2.10 version.
-      default => "88c370526c14d185",
+      // The 11.4.x version.
+      version_compare(\Drupal::VERSION, "11.4", '>=') => "468f7d2205e249d9",
+      // The 11.3.x version (the minimum supported).
+      default => "dbe845f73dc45b04",
     };
     $existing_versions = match(TRUE) {
-      // The 11.3.x versions.
-      version_compare(\Drupal::VERSION, "11.3", '>=') => [$active_version, '0b5af0d270d99618'],
-      // The 11.2.10 versions.
-      default => [$active_version, '7cc894b85e93a7d8'],
+      // The 11.4.x versions.
+      version_compare(\Drupal::VERSION, "11.4", '>=') => [$active_version, 'f90417fe5e93dc5e'],
+      // The 11.3.x versions (the minimum supported).
+      default => [$active_version, '0b5af0d270d99618'],
     };
     $expected_version = match(TRUE) {
-      // The 11.3.x version.
-      version_compare(\Drupal::VERSION, "11.3", '>=') => "ecbfb3dfb7ce5717",
-      // The 11.2.10 version.
-      default => "ec03b64ff4f992b9",
+      // The 11.4.x version.
+      version_compare(\Drupal::VERSION, "11.4", '>=') => "50b3371c8773be55",
+      // The 11.3.x version (the minimum supported).
+      default => "ecbfb3dfb7ce5717",
     };
 
     // Before the update.
@@ -399,15 +400,15 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
    * Tests invalid Block Plugin update: config schema is updated, logic is not.
    */
   public function testBrokenBlockPluginUpdate(): void {
-    // We need this test to pass both in 11.2.x and 11.3.x and above. Component versions hashes are influenced by their
-    // config schema, and for blocks that means depending on the block.settings.*. As block_settings.label_display
-    // changed between 11.2 and 11.3, that means there is no single block where we can have the same hash on 11.2.x and
-    // above. So we need to hardcode these per version.
+    // This test must pass on every supported core version. Component version hashes are influenced by their
+    // config schema, and for blocks that means depending on the block.settings.*. As block_settings changed between
+    // core versions, there is no single block where we can have the same hash across all of them. So we need to
+    // hardcode these per version.
     $active_version = match(TRUE) {
-      // The 11.3.x version.
-      version_compare(\Drupal::VERSION, "11.3", '>=') => "0b5af0d270d99618",
-      // The 11.2.10 version, for the original implementation + schema of the
-      // block being tested, because:
+      // The 11.4.x version.
+      version_compare(\Drupal::VERSION, "11.4", '>=') => "f90417fe5e93dc5e",
+      // The 11.3.x version (the minimum supported), for the original
+      // implementation + schema of the block being tested, because:
       // - no new version should be generated thanks to the Block
       //   ComponentSource plugin's ::checkRequirements() observing that the
       //   value returned by ::defaultConfiguration() is not valid according to
@@ -417,13 +418,13 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
       //   now cannot pass validation anymore: that's what the validation errors
       //   are about
       // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::checkRequirements()
-      default => "7cc894b85e93a7d8",
+      default => "0b5af0d270d99618",
     };
     $expected_version = match(TRUE) {
-      // The 11.3.x version.
-      version_compare(\Drupal::VERSION, "11.3", '>=') => "7d5753e9157ece58",
-      // The 11.2.10 version.
-      default => "af78995aa8d4160e",
+      // The 11.4.x version.
+      version_compare(\Drupal::VERSION, "11.4", '>=') => "56523fd6281e62f3",
+      // The 11.3.x version (the minimum supported).
+      default => "7d5753e9157ece58",
     };
 
     // @see \Drupal\canvas_test_block_simulate_input_schema_change\Hook\SimulatedInputSchemaChangeHooks::blockAlter()
@@ -619,10 +620,10 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     );
     $raw_component_tree = $pattern->get('component_tree');
     $active_version = match(TRUE) {
-      // The 11.3.x version.
-      version_compare(\Drupal::VERSION, "11.3", '>=') => "dbe845f73dc45b04",
-      // The 11.2.10 version.
-      default => "88c370526c14d185",
+      // The 11.4.x version.
+      version_compare(\Drupal::VERSION, "11.4", '>=') => "468f7d2205e249d9",
+      // The 11.3.x version (the minimum supported).
+      default => "dbe845f73dc45b04",
     };
     foreach ($raw_component_tree as $key => $component_instance) {
       if (\in_array($component_instance['uuid'], $pattern_component_instances_to_update, TRUE)) {

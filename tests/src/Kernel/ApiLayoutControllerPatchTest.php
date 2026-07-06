@@ -350,7 +350,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     if ($entity instanceof Node) {
       // Check that the client only receives field data they have access to.
       // @see ApiLayoutController::filterFormValues()
-      $this->assertSame([
+      $expected_entity_form_fields = [
         'changed',
         'field_hero[0][target_id]',
         'field_hero[0][alt]',
@@ -367,7 +367,12 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         'title[0][value]',
         'langcode[0][value]',
         'revision',
-      ], \array_keys($data['entity_form_fields']));
+      ];
+      if (version_compare(\Drupal::VERSION, '11.4', '>=')) {
+        // Drupal 11.4 dropped the langcode element from the path (alias) widget.
+        $expected_entity_form_fields = \array_values(\array_diff($expected_entity_form_fields, ['path[0][langcode]']));
+      }
+      $this->assertSame($expected_entity_form_fields, \array_keys($data['entity_form_fields']));
     }
 
     $model = $data['model'];

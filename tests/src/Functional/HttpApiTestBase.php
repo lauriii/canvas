@@ -40,6 +40,21 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
     $body = (string) $response->getBody();
     $this->assertSame($expected_status, $response->getStatusCode(), $body);
 
+    // Since Drupal 11.4 (#3584640) every 4xx/5xx response reports the HTTP
+    // status code as the uncacheable reason: "UNCACHEABLE (<status>)". Before
+    // 11.4 the header depended on how the response was generated:
+    // - 401/403 responses are generated during access checking, before the
+    //   Dynamic Page Cache subscriber runs, so they carried no
+    //   X-Drupal-Dynamic-Cache header at all.
+    // - other 4xx/5xx responses reached that subscriber and reported
+    //   "UNCACHEABLE (no cacheability)".
+    // @see https://www.drupal.org/node/3584640
+    if ($expected_status >= 400 && $expected_dynamic_page_cache === "UNCACHEABLE ($expected_status)" && version_compare(\Drupal::VERSION, '11.4', '<')) {
+      $expected_dynamic_page_cache = \in_array($expected_status, [401, 403], TRUE)
+        ? NULL
+        : 'UNCACHEABLE (no cacheability)';
+    }
+
     // Cacheability headers.
     $this->assertSame($expected_page_cache !== NULL, $response->hasHeader('X-Drupal-Cache'));
     if ($expected_page_cache !== NULL) {
@@ -139,7 +154,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
       $this->assertSame($expected_auto_save, $auto_save_data['data']);
     }
     else {
-      $this->assertExpectedResponse('GET', $auto_save_url, $request_options, $expected_status_code, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
+      $this->assertExpectedResponse('GET', $auto_save_url, $request_options, $expected_status_code, NULL, NULL, 'UNCACHEABLE (request policy)', "UNCACHEABLE ($expected_status_code)");
     }
 
     if ($expected_status_code < 400) {
@@ -201,7 +216,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
       \assert(str_contains($list_url->getUri(), 'folder'));
       $this->assertSameFoldersSansUuids($default_list, $body ?? []);
     }
-    $individual_body = $this->assertExpectedResponse('GET', $resource_url, [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
+    $individual_body = $this->assertExpectedResponse('GET', $resource_url, [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (404)');
     if (empty($default_list)) {
       $this->assertSame([], $individual_body);
     }

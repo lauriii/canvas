@@ -137,7 +137,7 @@ class AstroIsland extends RenderElementBase {
       ], JSON_THROW_ON_ERROR),
     ]);
     if (!empty($element['#slots'])) {
-      $attributes['await-children'] = '';
+      $attributes->setAttribute('await-children', '');
     }
     if (isset($element['#attributes'])) {
       $attributes->merge($element['#attributes']);

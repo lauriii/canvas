@@ -120,7 +120,6 @@ abstract class BetterConfigEntityValidationTestBase extends ConfigEntityValidati
    *
    * @todo Remove when https://drupal.org/i/3526908 is fixed
    */
-  // @phpstan-ignore-next-line method.childParameterType
   public function testRequiredPropertyValuesMissing(?array $additional_expected_validation_errors_when_missing = NULL): void {
     \assert($this->entity->getEntityType() instanceof ConfigEntityTypeInterface);
     \assert(\is_array($this->entity->getEntityType()->getPropertiesToExport()));
@@ -140,7 +139,14 @@ abstract class BetterConfigEntityValidationTestBase extends ConfigEntityValidati
 
     // Get the config entity properties that are immutable.
     // @see ::testImmutableProperties()
-    $immutable_properties = $this->entity->getEntityType()->getConstraints()['ImmutableProperties'];
+    // Canvas config entity types with a single immutable property rely on the
+    // automatic behavior in Drupal core. Make this method work with either core
+    // version's default behavior.
+    // @see \Drupal\Core\Config\Entity\ConfigEntityType::getConstraints()
+    $constraints = $this->entity->getEntityType()->getConstraints();
+    $immutable_properties = \array_key_exists('properties', $constraints['ImmutableProperties'])
+      ? $constraints['ImmutableProperties']['properties']
+      : $constraints['ImmutableProperties'];
 
     // Config entity properties containing plugin collections are special cases:
     // setting them to NULL would cause them to get out of sync with the plugin
@@ -191,6 +197,35 @@ abstract class BetterConfigEntityValidationTestBase extends ConfigEntityValidati
       }
 
       $this->assertValidationErrors(($additional_expected_validation_errors_when_missing[$property] ?? []) + $expected_validation_errors);
+    }
+  }
+
+  /**
+   * Forward port of 11.4's ::testImmutableProperties().
+   *
+   * (It assumes all `ImmutableProperties` constraints have been updated to the
+   * format required by Symfony >=7.4.)
+   */
+  public function testImmutableProperties(array $valid_values = []): void {
+    $constraints = $this->entity->getEntityType()->getConstraints();
+
+    // Canvas config entity types with a single immutable property rely on the
+    // automatic behavior in Drupal core. Make this method work with either core
+    // version's default behavior.
+    // @see \Drupal\Core\Config\Entity\ConfigEntityType::getConstraints()
+    $immutable_properties = \array_key_exists('properties', $constraints['ImmutableProperties'])
+      ? $constraints['ImmutableProperties']['properties']
+      : $constraints['ImmutableProperties'];
+
+    $this->assertNotEmpty($immutable_properties, 'All config entities should have at least one immutable ID property.');
+
+    foreach ($immutable_properties as $property_name) {
+      $original_value = $this->entity->get($property_name);
+      $this->entity->set($property_name, $valid_values[$property_name] ?? $this->randomMachineName());
+      $this->assertValidationErrors([
+        '' => "The '$property_name' property cannot be changed.",
+      ]);
+      $this->entity->set($property_name, $original_value);
     }
   }
 

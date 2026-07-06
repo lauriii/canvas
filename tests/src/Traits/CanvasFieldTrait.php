@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Traits;
 
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
@@ -107,18 +108,9 @@ trait CanvasFieldTrait {
     //   `\PHPUnit\Framework\Assert::assertEqualsCanonicalizing` in
     //  https://drupal.org/i/3486414. Currently that does not work in all
     //  databases.
-    self::recursiveKsort($inputs);
-    self::recursiveKsort($expected_inputs);
+    SortArray::sortByKeyRecursive($inputs);
+    SortArray::sortByKeyRecursive($expected_inputs);
     $this->assertSame($expected_inputs, $inputs);
-  }
-
-  private static function recursiveKsort(array &$array): void {
-    ksort($array);
-    foreach ($array as &$value) {
-      if (\is_array($value)) {
-        self::recursiveKsort($value);
-      }
-    }
   }
 
   private function getValidClientJson(?EntityInterface $autoSaveEntity, bool $dynamic_image = TRUE): array {

@@ -332,7 +332,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([], $body);
 
     // Admin should not be able to get disabled pattern from the Canvas HTTP API.
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 403, ['user.permissions'], ['4xx-response', 'config:canvas.pattern.disabled_pattern', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 403, ['user.permissions'], ['4xx-response', 'config:canvas.pattern.disabled_pattern', 'http_response'], 'UNCACHEABLE (request policy)', 'UNCACHEABLE (403)');
     $this->assertSame([
       'errors' => [''],
     ], $body);
@@ -1082,11 +1082,6 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
         ],
       ],
     ];
-    // Strip out the prefix added by https://www.drupal.org/node/3549909. This
-    // can be removed when 11.3 is the minimum supported version of core.
-    if (version_compare(\Drupal::VERSION, '11.3', '<')) {
-      $expected_body['errors'][0]['detail'] = substr($expected_body['errors'][0]['detail'], 26);
-    }
     $this->assertSame($expected_body, $body);
 
     // Meet data shape requirements, but provide missing component as a
@@ -1180,7 +1175,6 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
           'title' => 'Number',
           'examples' => [3.14, 42],
         ],
-        // Enum with meta-enum, as this is not mandatory in SDC < 11.2, but it is in Canvas.
         'enum' => [
           'type' => 'string',
           'enum' => ['primary', 'secondary'],
@@ -1654,7 +1648,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
-    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/canvas/api/v0/config/js_component/test'), [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
+    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/canvas/api/v0/config/js_component/test'), [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (404)');
     $this->assertSame([], $individual_body);
   }
 
@@ -1699,7 +1693,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([], $body);
 
     // Admin should not be able to get disabled Asset Library from the Canvas HTTP API.
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 403, ['user.permissions'], ['4xx-response', 'config:canvas.asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 403, ['user.permissions'], ['4xx-response', 'config:canvas.asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', 'UNCACHEABLE (403)');
     $this->assertSame([
       'errors' => [''],
     ], $body);
@@ -1899,7 +1893,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Insufficient permissions: 403.
     $this->drupalLogin($this->limitedPermissionsUser);
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'http_response'], 'UNCACHEABLE (request policy)', 'UNCACHEABLE (403)');
     $this->assertSame([
       'errors' => [
         'Requires >=1 content entity type with a Canvas field that can be created or edited.',
@@ -1970,7 +1964,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $list_url = Url::fromUri("base:/canvas/api/v0/config/$entity_type_id");
 
     // Insufficient Permissions: 403.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'http_response'], 'UNCACHEABLE (request policy)', 'UNCACHEABLE (403)');
     $this->assertSame([
       'errors' => [
         'Requires >=1 content entity type with a Canvas field that can be created or edited.',

@@ -141,8 +141,16 @@ final class CanvasTemplateDisplayTest extends BrowserTestBase {
     // Test 3: Template is enabled - should hide view mode tab (no permission).
     $this->setTemplateStatus($template, TRUE);
     $crawler = $this->getManageDisplayPageCrawler($bundle);
-    // As there's only 1 tab left, the menu tabs container is not rendered.
-    $this->assertTabsCount($crawler, 0, 'No tabs should be visible when template is enabled without permission.');
+    // The view mode tab is hidden (its display route access is denied without
+    // permission).
+    $this->assertTabsCount($crawler,
+      message: 'Only non-view-mode tabs should be visible when the template is enabled without permission.',
+      expected_count: version_compare(\Drupal::VERSION, '11.4', '>=')
+        // On Drupal >= 11.4 the "Overview" tab also remains, so 2 tabs render.
+        ? 2
+        // On Drupal < 11.4 only the "Default" tab remains — a single tab, so the tabs container is not rendered at all.
+        : 0
+    );
     $this->assertViewModeTabDoesNotExist($crawler, $view_mode_label);
 
     // Test 4: Verify direct access to view mode display page is forbidden.
@@ -279,7 +287,13 @@ final class CanvasTemplateDisplayTest extends BrowserTestBase {
    * Asserts that only the default tabs are present.
    */
   private function assertDefaultTabsOnly(Crawler $crawler): void {
-    $this->assertTabsCount($crawler, 2, 'There should be 2 default tabs (Default, Full content).');
+    $expected = version_compare(\Drupal::VERSION, '11.4', '>=')
+      // 2 per-view-mode tabs (Default + the tested view mode), plus the
+      // "Overview" tab.
+      ? 3
+      // 2 per-view-mode tabs (Default + the tested view mode).
+      : 2;
+    $this->assertTabsCount($crawler, $expected, 'There should be the 2 default view mode tabs (Default + tested view mode), plus the "Overview" tab on Drupal >= 11.4.');
   }
 
   /**

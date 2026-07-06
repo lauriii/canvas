@@ -10,12 +10,10 @@ use Drupal\canvas\Config\ThemeSettingsDiscovery;
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\CoreBugFix\ConfigEntityQueryFactory;
 use Drupal\canvas\CoreBugFix\TypedConfigManagerWithCachePollutionFix;
-use Drupal\canvas\EventSubscriber\DefaultContentSubscriber;
 use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\canvas\Validation\JitSafeRegexValidator;
 use Drupal\canvas\Validation\JsonSchema\ContentEntityReferenceObjectConstraint;
 use Drupal\canvas\Validation\JsonSchema\UriSchemeAwareFormatConstraint;
-use Drupal\Core\DefaultContent\Exporter;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceProviderBase;
 use Drupal\Core\Theme\Component\ComponentValidator;
@@ -38,14 +36,6 @@ class CanvasServiceProvider extends ServiceProviderBase {
       $container->register('canvas.media_library.opener', MediaLibraryCanvasPropOpener::class)
         ->addArgument(new Reference(CanvasUiAccessCheck::class))
         ->addTag('media_library.opener');
-    }
-
-    // The ability to export default content was added in Drupal 11.3.
-    if (class_exists(Exporter::class)) {
-      $container->register(DefaultContentSubscriber::class)
-        ->setClass(DefaultContentSubscriber::class)
-        ->setAutowired(TRUE)
-        ->addTag('event_subscriber');
     }
 
     // Register the theme settings discovery service.
