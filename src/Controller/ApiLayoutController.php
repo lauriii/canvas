@@ -12,6 +12,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
@@ -50,6 +51,7 @@ final class ApiLayoutController {
   use AutoSaveValidateTrait;
   use ClientServerConversionTrait;
   use EntityFormTrait;
+  public const string AUTO_SAVED_QUERY_KEY = 'autoSaved';
   private array $regions;
   private array $regionsClientSideIds;
 
@@ -89,22 +91,32 @@ final class ApiLayoutController {
   /**
    * Returns JSON for the entity layout and fields that the user can edit.
    */
-  public function get((ContentEntityInterface&EntityPublishedInterface)|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
+  public function get(Request $request, (ContentEntityInterface&EntityPublishedInterface)|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
     $regions = self::shouldIncludeGlobalRegions($entity) ? PageRegion::loadForActiveTheme() : [];
 
+    // @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3591732
+    $conflict_resolution_dev_mode = $this->moduleHandler->moduleExists('canvas_dev_cd');
+
+    // Determine if we are working with auto-save or published version of the
+    // entity.
+    $auto_saved = !$conflict_resolution_dev_mode || $request->query->getBoolean(self::AUTO_SAVED_QUERY_KEY, default: TRUE);
+
     // Store the original entity for comparison purposes.
     $original_entity = $entity;
-    // For content entities, reconstruct the draft with every pending
-    // translation overlaid: previewing one translation reconciles and re-saves
-    // all of them (symmetric component-tree columns must stay in sync), so a
-    // sibling translation's draft must be present or it would be clobbered.
-    $autoSaveData = $entity instanceof ContentEntityInterface
-      ? $this->autoSaveManager->getAutoSaveEntityForPreview($entity)
-      : $this->autoSaveManager->getAutoSaveEntity($entity);
-    if (!$autoSaveData->isEmpty()) {
-      $entity = $autoSaveData->entity;
-      \assert($entity instanceof ContentEntityInterface || $entity instanceof ContentTemplate);
+    if ($auto_saved) {
+      // For content entities, reconstruct the draft with every pending
+      // translation overlaid: previewing one translation reconciles and
+      // re-saves all of them (symmetric component-tree columns must stay in
+      // sync), so a sibling translation's draft must be present or it would be
+      // clobbered.
+      $autoSaveData = $entity instanceof ContentEntityInterface
+        ? $this->autoSaveManager->getAutoSaveEntityForPreview($entity)
+        : $this->autoSaveManager->getAutoSaveEntity($entity);
+      if (!$autoSaveData->isEmpty()) {
+        $entity = $autoSaveData->entity;
+        \assert($entity instanceof ContentEntityInterface || $entity instanceof ContentTemplate);
+      }
     }
 
     $model = [];
@@ -215,6 +227,20 @@ final class ApiLayoutController {
       if ($original_entity instanceof EntityPublishedInterface
         && $entity !== $original_entity) {
         $data['hasUnsavedStatusChange'] = $entity->isPublished() !== $original_entity->isPublished();
+      }
+    }
+
+    // Add 'updated' property that provides value for 'Updated' element in the
+    // side-by-side comparison UI.
+    // @todo Revisit as part of https://www.drupal.org/project/canvas/issues/3591544
+    if ($conflict_resolution_dev_mode && $entity instanceof Page) {
+      // For published entities use actual entity revision time.
+      if (!$auto_saved) {
+        $data['updated'] = (int) $entity->getRevisionCreationTime();
+      }
+      // For auto-save items use 'updated' property of auto-save entry itself.
+      elseif (!$autoSaveData->isEmpty()) {
+        $data['updated'] = $autoSaveData->updated;
       }
     }
     return new PreviewEnvelope($this->buildPreviewRenderable($entity, $preview_entity), $data);
@@ -555,17 +581,23 @@ final class ApiLayoutController {
     return $build;
   }
 
-  public function getLabel((ContentEntityInterface&EntityPublishedInterface)|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): string {
+  public function getLabel(Request $request, (ContentEntityInterface&EntityPublishedInterface)|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): string {
     if ($entity instanceof ContentTemplate) {
       \assert($preview_entity !== NULL);
       return (string) $preview_entity->label();
     }
-    // Get title from auto saved data if available.
-    $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($entity);
-    if (!$autoSaveData->isEmpty()) {
-      \assert($autoSaveData->entity instanceof EntityInterface);
-      return (string) $autoSaveData->entity->label();
+    // Determine if we are working with auto-save or published version of the
+    // entity.
+    $auto_saved = !$this->moduleHandler->moduleExists('canvas_dev_cd') || $request->query->getBoolean(self::AUTO_SAVED_QUERY_KEY, default: TRUE);
+    if ($auto_saved) {
+      // Get title from auto saved data if available.
+      $auto_save_data = $this->autoSaveManager->getAutoSaveEntity($entity);
+      if (!$auto_save_data->isEmpty()) {
+        \assert($auto_save_data->entity instanceof EntityInterface);
+        return (string) $auto_save_data->entity->label();
+      }
     }
+
     return (string) $entity->label();
   }
 

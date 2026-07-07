@@ -5,18 +5,26 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Utility\HomePageHelper;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 final class ApiContentAutoSaveControllers {
 
+  /**
+   * The request body field name used to pass a conflict id for resolution.
+   */
+  public const string RESOLVED_CONFLICT_KEY = 'resolved_conflict_id';
+
   public function __construct(
     private readonly AutoSaveManager $autoSaveManager,
     private readonly HomePageHelper $homePageHelper,
+    private readonly ModuleHandlerInterface $moduleHandler,
   ) {}
 
   /**
@@ -39,8 +47,14 @@ final class ApiContentAutoSaveControllers {
     $published_key = $entity_type->getKey('published');
     \assert(\is_string($published_key), 'Entity type must have a `published` key');
 
+    // @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3591732
+    $conflict_resolution_dev_mode = $this->moduleHandler->moduleExists('canvas_dev_cd');
+
     // Validate that only supported fields are present in the request body.
     $allowed_fields = [$published_key, 'clientInstanceId'];
+    if ($conflict_resolution_dev_mode) {
+      $allowed_fields[] = self::RESOLVED_CONFLICT_KEY;
+    }
     $unexpected_fields = array_diff(\array_keys($body), $allowed_fields);
     if (!empty($unexpected_fields)) {
       return new JsonResponse(
@@ -49,10 +63,39 @@ final class ApiContentAutoSaveControllers {
       );
     }
 
+    if ($conflict_resolution_dev_mode && \array_key_exists(self::RESOLVED_CONFLICT_KEY, $body) && \array_key_exists($published_key, $body)) {
+      return new JsonResponse(
+        data: ['error' => \sprintf('Fields %s and %s are mutually exclusive.', $published_key, self::RESOLVED_CONFLICT_KEY)],
+        status: Response::HTTP_BAD_REQUEST
+      );
+    }
+
+    if ($conflict_resolution_dev_mode && \array_key_exists(self::RESOLVED_CONFLICT_KEY, $body)) {
+      if (!\is_string($body[self::RESOLVED_CONFLICT_KEY]) || empty($body[self::RESOLVED_CONFLICT_KEY])) {
+        return new JsonResponse(
+          data: ['error' => \sprintf("Invalid format: %s", self::RESOLVED_CONFLICT_KEY)],
+          status: Response::HTTP_BAD_REQUEST
+        );
+      }
+      \assert($canvas_page instanceof Page);
+      $resolved_conflict_id = $body[self::RESOLVED_CONFLICT_KEY];
+      // Map each resolution outcome to a distinct response:
+      // - missing auto-save item: 404
+      // - auto-save item found, but has no active conflict: 422
+      // - mismatching (i.e. newer) conflict: 409
+      // - success: 204
+      $outcome = $this->autoSaveManager->resolveConflict($canvas_page, $resolved_conflict_id);
+
+      return $outcome->toResponse($canvas_page);
+    }
+
     // Check if this is an unpublish operation or publish operation.
     if (!isset($body[$published_key])) {
+      $required_fields = $conflict_resolution_dev_mode
+        ? \sprintf('%s, %s', $published_key, self::RESOLVED_CONFLICT_KEY)
+        : $published_key;
       return new JsonResponse(
-        data: ['error' => "Missing required field: {$published_key}"],
+        data: ['error' => \sprintf("At least one of the fields is required: %s", $required_fields)],
         status: Response::HTTP_BAD_REQUEST
       );
     }

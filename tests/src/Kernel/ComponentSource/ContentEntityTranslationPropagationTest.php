@@ -490,7 +490,8 @@ final class ContentEntityTranslationPropagationTest extends TranslationPropagati
     $reloaded = Page::load($page_id);
     \assert($reloaded instanceof Page);
     $translation = $reloaded->hasTranslation($langcode) ? $reloaded->getTranslation($langcode) : $reloaded;
-    $layout_controller->get($translation);
+    $request = Request::create('/api/canvas/content/canvas_page/' . $reloaded->id());
+    $layout_controller->get(request: $request, entity: $translation);
   }
 
   /**

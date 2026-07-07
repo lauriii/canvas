@@ -6,6 +6,7 @@ namespace Drupal\canvas\AutoSave;
 
 use Drupal\canvas\AutoSaveEntity;
 use Drupal\canvas\Controller\ApiContentControllers;
+use Drupal\canvas\Controller\ConflictResolutionOutcomeEnum;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
@@ -69,6 +70,7 @@ class AutoSaveManager implements EventSubscriberInterface {
   public const string PUBLISH_PERMISSION = 'publish auto-saves';
   public const string AUTO_SAVE_STORE = 'canvas.auto_save';
   public const string AUTO_SAVE_CONFLICT_KEY = 'conflict_id';
+  public const string AUTO_SAVE_STORED_ENTITY_HASH_KEY = 'original_hash';
   public const string FORM_VIOLATIONS_STORE = 'canvas.form_violations';
   public const string COMPONENT_INSTANCE_FORM_VIOLATIONS_STORE = 'canvas.component_instance_form_violations';
 
@@ -79,13 +81,15 @@ class AutoSaveManager implements EventSubscriberInterface {
    * changes when editing an entity in Drupal Canvas and not needed for the
    * publishing process.
    *
-   * The 'conflict_id' is used to store conflict id when it is resolved.
+   * The 'conflict_id' key is not persisted in the store; it is added
+   * dynamically by ::getAllAutoSaveList() when $with_conflicts is TRUE and
+   * stripped here before the data is returned to the client.
    */
   public const array AUTO_SAVE_INTERNAL_PROPERTIES = [
     'data',
     'client_id',
     'entity',
-    'original_hash',
+    self::AUTO_SAVE_STORED_ENTITY_HASH_KEY,
     self::AUTO_SAVE_CONFLICT_KEY,
     'is_default_translation',
   ];
@@ -212,21 +216,13 @@ class AutoSaveManager implements EventSubscriberInterface {
       // avoids a loadUnchanged() call at read time.
       'is_default_translation' => !($entity instanceof TranslatableInterface) || $entity->isDefaultTranslation(),
       'label' => (string) $entity->label(),
-      'original_hash' => $original_hash,
+      self::AUTO_SAVE_STORED_ENTITY_HASH_KEY => $original_hash,
       'data_hash' => $data_hash,
       'client_id' => $clientId,
       'owner' => (int) $this->currentUser->id(),
       'updated' => $this->time->getRequestTime(),
     ];
     \assert(!\is_null($auto_save_data['entity_id']));
-    // Check for conflicts.
-    if ($unresolved_conflict = $this->getUnresolvedConflict($auto_save_data)) {
-      $previous_auto_save_data = $this->autoSaveStore->get($key);
-      // If it's a conflict that has been resolved before, retain conflict_id.
-      if (isset($previous_auto_save_data[self::AUTO_SAVE_CONFLICT_KEY]) && $previous_auto_save_data[self::AUTO_SAVE_CONFLICT_KEY] === $unresolved_conflict) {
-        $auto_save_data[self::AUTO_SAVE_CONFLICT_KEY] = $previous_auto_save_data[self::AUTO_SAVE_CONFLICT_KEY];
-      }
-    }
 
     $this->autoSaveStore->set($key, $auto_save_data);
     $this->cache->delete($key);
@@ -427,7 +423,15 @@ class AutoSaveManager implements EventSubscriberInterface {
     \assert(\array_key_exists('entity_type', $auto_save_data));
     \assert(\is_array($auto_save_data['data']));
     $entity = $this->createEntityFromAutoSaveEntry($auto_save_data);
-    $auto_save_entity = new AutoSaveEntity($entity, $auto_save_data['data_hash'], $auto_save_data['client_id']);
+    $auto_save_entity = new AutoSaveEntity(
+      entity: $entity,
+      hash: $auto_save_data['data_hash'],
+      clientId: $auto_save_data['client_id'],
+      // Used to populate "Updated" element in the side-by-side comparison UI.
+      // @see \Drupal\canvas\ControllerApiLayoutController::get()
+      // @todo Revisit as part of https://www.drupal.org/project/canvas/issues/3591544
+      updated: $auto_save_data['updated']
+    );
     // Memoize the reconstructed entity to avoid calling ::create() repeatedly
     // during layout preview rendering. $this->cache MUST be a non-serializing
     // backend; see the $cache constructor parameter for why.
@@ -437,6 +441,8 @@ class AutoSaveManager implements EventSubscriberInterface {
 
   /**
    * @param AutoSaveEntry $entry
+   *
+   * @todo Consider calling \Drupal\Core\Entity\EntityChangedInterface::setChangedTime() with the auto-save entry's 'updated' value in https://www.drupal.org/project/canvas/issues/3591544
    */
   private function createEntityFromAutoSaveEntry(array $entry): EntityInterface {
     $storage = $this->entityTypeManager->getStorage($entry['entity_type']);
@@ -594,7 +600,7 @@ class AutoSaveManager implements EventSubscriberInterface {
         return AutoSaveEntity::empty();
       }
       $reconstructed = $this->createEntityFromAutoSaveEntry($group[$requested_key]);
-      return new AutoSaveEntity($reconstructed, $representative['data_hash'], $representative['client_id']);
+      return new AutoSaveEntity($reconstructed, $representative['data_hash'], $representative['client_id'], $representative['updated']);
     }
     // Clone before overlaying: loadUnchanged() repopulates the static cache, so
     // mutating its return value would leak the draft into later loads.
@@ -613,7 +619,7 @@ class AutoSaveManager implements EventSubscriberInterface {
       }
       self::overlaySnapshotOntoStored($snapshot, $stored, $langcode);
     }
-    return new AutoSaveEntity($stored->getTranslation($requested_langcode), $representative['data_hash'], $representative['client_id']);
+    return new AutoSaveEntity($stored->getTranslation($requested_langcode), $representative['data_hash'], $representative['client_id'], $representative['updated']);
   }
 
   /**
@@ -738,15 +744,14 @@ class AutoSaveManager implements EventSubscriberInterface {
    * entity's canonical edit form.
    *
    * Such conflicts are detected by storing the 'original_hash' of the entity
-   * during the ::saveEntity() and comparing it to the current version of the
-   * entity in the entity storage.
+   * during the ::saveEntity() and comparing it to the hash of the current
+   * version in the entity storage.
    *
-   * Auto-save entry saves 'conflict_id' only when the conflict is being marked
-   * as resolved. This method assumes that if there is a 'conflict_id' property
-   * in the $entry passed as an argument it's used for marking that conflict as
-   * resolved.
+   * When a user resolves a conflict without discarding the auto-save item,
+   * ::resolveConflict() advances 'original_hash' to the current stored entity
+   * hash so that subsequent calls find no mismatch.
    *
-   * @param array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, original_hash: ?string, data_hash: string, client_id: ?string, langcode: ?string, entity?: ?EntityInterface, conflict_id?: string} $entry
+   * @param array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, original_hash: ?string, data_hash: string, client_id: ?string, langcode: ?string, entity?: ?EntityInterface} $entry
    *
    * @return string|null
    */
@@ -757,7 +762,7 @@ class AutoSaveManager implements EventSubscriberInterface {
       return NULL;
     }
 
-    if (!\array_key_exists('original_hash', $entry)) {
+    if (!\array_key_exists(self::AUTO_SAVE_STORED_ENTITY_HASH_KEY, $entry)) {
       // If there is no original hash, we have no basis to determine if there is
       // a conflict, so we assume there isn't one. This can only occur for auto-
       // save entries created before https://git.drupalcode.org/project/canvas/-/commit/e31e9442e857c3a61d87a0eba8b626962a38208c
@@ -769,20 +774,13 @@ class AutoSaveManager implements EventSubscriberInterface {
     \assert(!\is_null($entity));
 
     // Compare the original_hash in auto-save entry vs latest entity hash.
-    if ($entry['original_hash'] === $this->getUnchangedHash($entity)) {
-      // Hashes are matching - no conflict
+    if ($entry[self::AUTO_SAVE_STORED_ENTITY_HASH_KEY] === self::generateHash(self::normalizeEntity($entity))) {
+      // Hashes are matching - no conflict.
       return NULL;
     }
 
     // Hashes are not matching - conflict detected.
-    $active_conflict = self::getConflictId($entity);
-
-    // This conflict is already stored in the entry and therefore is resolved.
-    if (isset($entry[self::AUTO_SAVE_CONFLICT_KEY]) && $entry[self::AUTO_SAVE_CONFLICT_KEY] === $active_conflict) {
-      return NULL;
-    }
-
-    return $active_conflict;
+    return self::getConflictId($entity);
   }
 
   /**
@@ -810,6 +808,65 @@ class AutoSaveManager implements EventSubscriberInterface {
     }
 
     return $this->getUnresolvedConflict($auto_save_data);
+  }
+
+  /**
+   * Attempts to resolve an auto-save entry's active conflict.
+   *
+   * Reads the auto-save entry, checks the requested conflict against the active
+   * one, and persists the resolution in a single pass. The returned outcome
+   * distinguishes every failure reason so callers can map them to distinct
+   * responses.
+   *
+   * On success, 'original_hash' is advanced to the current stored entity hash
+   * so that subsequent ::getUnresolvedConflict() calls find no mismatch.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity whose auto-save conflict to resolve.
+   * @param string $resolved_conflict_id
+   *   The conflict id the client believes is active.
+   *
+   * @return \Drupal\canvas\Controller\ConflictResolutionOutcomeEnum
+   *   The outcome of the resolution attempt.
+   */
+  public function resolveConflict(EntityInterface $entity, string $resolved_conflict_id): ConflictResolutionOutcomeEnum {
+    $key = $this->getAutoSaveKey($entity);
+    $auto_save_data = $this->autoSaveStore->get($key);
+
+    // No auto-save entry, so there is nothing to resolve.
+    if (\is_null($auto_save_data)) {
+      return ConflictResolutionOutcomeEnum::NoAutoSaveItem;
+    }
+
+    if (!\array_key_exists(self::AUTO_SAVE_STORED_ENTITY_HASH_KEY, $auto_save_data)) {
+      // No stored hash — no basis for conflict detection (legacy entry).
+      return ConflictResolutionOutcomeEnum::NoActiveConflict;
+    }
+
+    $stored = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($auto_save_data['entity_id']);
+    \assert(!\is_null($stored));
+    $current_hash = self::generateHash(self::normalizeEntity($stored));
+
+    if ($auto_save_data[self::AUTO_SAVE_STORED_ENTITY_HASH_KEY] === $current_hash) {
+      // Hashes match — no conflict to resolve.
+      return ConflictResolutionOutcomeEnum::NoActiveConflict;
+    }
+
+    $active_conflict = self::getConflictId($stored);
+
+    // The active conflict differs from the one the request tried to resolve;
+    // a newer external change has appeared.
+    if ($active_conflict !== $resolved_conflict_id) {
+      return ConflictResolutionOutcomeEnum::ConflictMismatch;
+    }
+
+    // Advance original_hash to the current stored entity hash.
+    $auto_save_data[self::AUTO_SAVE_STORED_ENTITY_HASH_KEY] = $current_hash;
+    $this->autoSaveStore->set($key, $auto_save_data);
+    $this->cache->delete($key);
+    $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
+
+    return ConflictResolutionOutcomeEnum::Resolved;
   }
 
   /**

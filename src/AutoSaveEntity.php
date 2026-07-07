@@ -13,12 +13,17 @@ final class AutoSaveEntity implements CacheableDependencyInterface {
 
   use CacheableDependencyTrait;
 
-  public function __construct(public readonly ?EntityInterface $entity, public readonly ?string $hash, public readonly ?string $clientId) {
+  public function __construct(
+    public readonly ?EntityInterface $entity,
+    public readonly ?string $hash,
+    public readonly ?string $clientId,
+    public readonly ?int $updated,
+  ) {
     $this->cacheTags = [AutoSaveManager::CACHE_TAG];
   }
 
   public static function empty(): AutoSaveEntity {
-    return new self(NULL, NULL, NULL);
+    return new self(NULL, NULL, NULL, NULL);
   }
 
   public function isEmpty(): bool {

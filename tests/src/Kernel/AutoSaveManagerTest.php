@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Kernel;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ClientDataToEntityConverter;
 use Drupal\canvas\Controller\ApiLayoutController;
+use Drupal\canvas\Controller\ConflictResolutionOutcomeEnum;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -31,6 +32,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\TestWith;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
@@ -192,7 +194,8 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
     self::assertEntityIsValid($canvas_page);
     self::assertSame(SAVED_NEW, $canvas_page->save());
 
-    $envelope = \Drupal::classResolver(ApiLayoutController::class)->get($canvas_page);
+    $request = Request::create('/api/canvas/content/canvas_page/' . $canvas_page->id());
+    $envelope = \Drupal::classResolver(ApiLayoutController::class)->get(request: $request, entity: $canvas_page);
     \assert($envelope instanceof PreviewEnvelope);
     $matching_client_data = \array_intersect_key(
       $envelope->additionalData,
@@ -459,7 +462,8 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
     self::assertEntityIsValid($node);
     $this->assertSame(SAVED_NEW, $node->save());
 
-    $envelope = \Drupal::classResolver(ApiLayoutController::class)->get($node);
+    $request = Request::create('/api/canvas/content/canvas_page/' . $node->id());
+    $envelope = \Drupal::classResolver(ApiLayoutController::class)->get(request: $request, entity: $node);
     \assert($envelope instanceof PreviewEnvelope);
     $matching_client_data = \array_intersect_key(
       $envelope->additionalData,
@@ -654,6 +658,92 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests conflict resolution APIs on auto-save entries for Page entities.
+   */
+  public function testConflictResolutionMethods(): void {
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+
+    $auto_save_manager = $this->container->get(AutoSaveManager::class);
+    \assert($auto_save_manager instanceof AutoSaveManager);
+
+    $page = Page::create([
+      'title' => 'Conflict resolution test page',
+      'components' => [],
+    ]);
+    self::assertSame(SAVED_NEW, $page->save());
+
+    // No auto-save exists yet.
+    self::assertNull($auto_save_manager->getUnresolvedConflictForEntity($page));
+    self::assertSame(ConflictResolutionOutcomeEnum::NoAutoSaveItem, $auto_save_manager->resolveConflict($page, 'missing'));
+
+    // Auto-save exists, but no conflict yet.
+    $page->set('title', 'Draft update');
+    $auto_save_manager->saveEntity($page);
+    self::assertNull($auto_save_manager->getUnresolvedConflictForEntity($page));
+    self::assertSame(ConflictResolutionOutcomeEnum::NoActiveConflict, $auto_save_manager->resolveConflict($page, 'still_missing'));
+
+    // Capture H1: original_hash at initial auto-save write time, before any
+    // external change.
+    $key = AutoSaveManager::getAutoSaveKey($page);
+    $auto_save_store = $this->container->get('keyvalue')->get(AutoSaveManager::AUTO_SAVE_STORE);
+    $entry = $auto_save_store->get($key);
+    \assert(\is_array($entry));
+    $h1 = $entry[AutoSaveManager::AUTO_SAVE_STORED_ENTITY_HASH_KEY];
+
+    // Trigger a conflict via external save.
+    $page->set('title', 'External update #1');
+    $page->setNewRevision(TRUE);
+    self::assertSame(SAVED_UPDATED, $page->save());
+    $active_conflict = AutoSaveManager::getConflictId($page);
+    self::assertSame($active_conflict, $auto_save_manager->getUnresolvedConflictForEntity($page));
+
+    // Wrong conflict id should not resolve.
+    self::assertSame(ConflictResolutionOutcomeEnum::ConflictMismatch, $auto_save_manager->resolveConflict($page, 'wrong_id'));
+    self::assertSame($active_conflict, $auto_save_manager->getUnresolvedConflictForEntity($page));
+
+    // Correct conflict id resolves it.
+    self::assertSame(ConflictResolutionOutcomeEnum::Resolved, $auto_save_manager->resolveConflict($page, $active_conflict));
+    self::assertNull($auto_save_manager->getUnresolvedConflictForEntity($page));
+
+    $list_with_conflicts = $auto_save_manager->getAllAutoSaveList(with_entities: FALSE, with_conflicts: TRUE);
+    self::assertArrayNotHasKey('conflict_id', $list_with_conflicts[$key]);
+    $list_without_conflicts = $auto_save_manager->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE);
+    self::assertArrayNotHasKey('conflict_id', $list_without_conflicts[$key]);
+
+    // resolveConflict() advances original_hash from H1 to H2 (the current
+    // stored entity hash after the external change).
+    $entry = $auto_save_store->get($key);
+    \assert(\is_array($entry));
+    $h2 = $entry[AutoSaveManager::AUTO_SAVE_STORED_ENTITY_HASH_KEY];
+    self::assertNotSame($h1, $h2);
+
+    // A subsequent ::saveEntity() call must not re-surface the resolved
+    // conflict. ::saveEntity() computes a fresh original_hash from storage,
+    // which equals H2 set by ::resolveConflict(), so no mismatch is found.
+    // original_hash remains H2.
+    $page->set('title', 'Draft after resolution');
+    $auto_save_manager->saveEntity($page);
+    self::assertNull($auto_save_manager->getUnresolvedConflictForEntity($page));
+    $entry = $auto_save_store->get($key);
+    \assert(\is_array($entry));
+    self::assertSame($h2, $entry[AutoSaveManager::AUTO_SAVE_STORED_ENTITY_HASH_KEY]);
+
+    // A later external save creates a new unresolved conflict.
+    $page->set('title', 'External update #2');
+    $page->setNewRevision(TRUE);
+    self::assertSame(SAVED_UPDATED, $page->save());
+    $new_conflict = AutoSaveManager::getConflictId($page);
+    self::assertNotSame($active_conflict, $new_conflict);
+    self::assertSame($new_conflict, $auto_save_manager->getUnresolvedConflictForEntity($page));
+
+    $list_with_conflicts = $auto_save_manager->getAllAutoSaveList(with_entities: FALSE, with_conflicts: TRUE);
+    \assert(isset($list_with_conflicts[$key]['conflict_id']));
+    self::assertSame($new_conflict, $list_with_conflicts[$key]['conflict_id']);
+  }
+
+  /**
    * Tests AutoSaveManager::getAllAutoSaveList parameters and conflict detection.
    *
    * @param bool $with_entities
@@ -816,7 +906,7 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
     $auto_save_store = $this->container->get('keyvalue')->get(AutoSaveManager::AUTO_SAVE_STORE);
     $auto_save_items_with_original_hash = $auto_save_store->getAll();
     $auto_save_items_without_original_hash = \array_map(fn (array $item) =>
-      \array_diff_key($item, \array_flip(['original_hash'])),
+      \array_diff_key($item, \array_flip([AutoSaveManager::AUTO_SAVE_STORED_ENTITY_HASH_KEY])),
       $auto_save_items_with_original_hash
     );
     $auto_save_store->setMultiple($auto_save_items_without_original_hash);

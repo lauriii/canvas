@@ -1521,6 +1521,15 @@ paths:
                 clientInstanceId:
                   type: string
                   description: Client instance ID for concurrency control
+                resolved_conflict_id:
+                  type: string
+                  description: Conflict id to resolve and store the result in the auto-save.
+              oneOf:
+                - required:
+                    - status
+                - required:
+                    - resolved_conflict_id
+              additionalProperties: false
             examples:
               publishPage:
                 summary: Publish a page
@@ -1564,6 +1573,88 @@ paths:
                 cannotUnpublishHomepage:
                   value:
                     error: "Cannot unpublish the homepage. Please set a different page as the homepage first."
+        '404':
+          description: Conflict resolution failed because the entity has no auto-save item to resolve a conflict on
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+                additionalProperties: false
+              examples:
+                noAutoSaveEntry:
+                  value:
+                    errors:
+                      - detail: No auto-save entry found to resolve a conflict on.
+                        source:
+                          pointer: canvas_page:1:en
+                        code: 6
+                        meta:
+                          entity_type: canvas_page
+                          entity_id: '1'
+                          label: Page 1
+                          api_auto_save_key: canvas_page:1:en
+        '409':
+          description: Conflict resolution failed because provided resolved_conflict_id does not match active conflict
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+                additionalProperties: false
+              examples:
+                conflictMismatch:
+                  value:
+                    errors:
+                      - detail: Conflict detected.
+                        source:
+                          pointer: canvas_page:1:en
+                        code: 4
+                        meta:
+                          entity_type: canvas_page
+                          entity_id: '1'
+                          label: Demo Canvas Page
+                          api_auto_save_key: canvas_page:1:en
+                          conflict_id: '2'
+        '422':
+          description: Conflict resolution is not applicable because the auto-save item has no active conflict matching the provided resolved_conflict_id
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+                additionalProperties: false
+              examples:
+                noActiveConflict:
+                  value:
+                    errors:
+                      - detail: No active conflict matching this conflict id found.
+                        source:
+                          pointer: canvas_page:1:en
+                        code: 5
+                        meta:
+                          entity_type: canvas_page
+                          entity_id: '1'
+                          label: Page 1
+                          api_auto_save_key: canvas_page:1:en
   '/canvas/api/v0/content/canvas_page/by-uuid/{entityUuid}':
     description: Endpoint for retrieving a content entity by UUID.
     get:
@@ -2208,12 +2299,23 @@ paths:
                     type: string
                     description: Error message indicating the conflict.
   '/canvas/api/v0/layout/{entityTypeId}/{entityId}':
-    description: TODO
+    description: Entity layout and previews endpoint.
     get:
-      summary: TODO
+      summary: Gets html markup, layout, model, entity form fields and various meta properties for a specified entity type and id.
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
         - $ref: '#/components/parameters/entityId'
+        - in: query
+          name: autoSaved
+          required: false
+          description: Entity status, defaults to TRUE when not provided. On TRUE - the auto-saved entity is used, on FALSE - the stored (published/live) entity is used to generate the response.
+          schema:
+            type: boolean
+          examples:
+            "load the auto-save entry for this entity, if any":
+              value: true
+            "load the actually stored entity":
+              value: false
       responses:
         '200':
           description: "The layout that the current user is allowed to edit: regions not editable by the current user are omitted."
@@ -2345,6 +2447,16 @@ paths:
                     # @see \Drupal\Core\Entity\EntityPublishedInterface
                     # @see https://www.drupal.org/node/3505118#comment-15982801
                     description: Whether the edited content entity is marked as published.
+                  updated:
+                    type: integer
+                    title: Updated timestamp
+                    # Used to populate "Updated" element in the side-by-side comparison UI.
+                    # @see \Drupal\canvas\ControllerApiLayoutController::get()
+                    # @see \Drupal\Core\Entity\EntityChangedInterface::getChangedTime()
+                    # @todo Revisit as part of https://www.drupal.org/project/canvas/issues/3591544
+                    description: Unix timestamp for entity last updated time
+                    examples:
+                      - 1732763679
         '401':
           description: Unauthorized (unauthenticated) response.
           $ref: '#/components/responses/UnauthorizedErrorResponse'

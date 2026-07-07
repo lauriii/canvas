@@ -355,7 +355,8 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       ],
     ]);
     self::assertSame([], self::violationsToArray($test_node->validate()));
-    $result = \Drupal::classResolver(ApiLayoutController::class)->get($test_node);
+    $request = Request::create('/api/canvas/content/canvas_page/' . $test_node->id());
+    $result = \Drupal::classResolver(ApiLayoutController::class)->get(request: $request, entity: $test_node);
     \assert($result instanceof PreviewEnvelope);
     $invalid_form_callback_client_json = \array_intersect_key($result->additionalData, \array_flip(['layout', 'model', 'entity_form_fields']));
     // Assert the default date and time values are returned.
