@@ -289,17 +289,27 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $user = $this->createUser([Page::EDIT_PERMISSION], 'administer_canvas_page_user');
     \assert($user instanceof UserInterface);
     $this->drupalLogin($user);
-    // We have a cache tag for page 2 as it's the homepage, set in system.site
-    // config.
+    // Every listed entity contributes its cache tag: loading entities while
+    // the Canvas auto-save workspace is active adds their cache tags (and the
+    // workspace's own cache tag) to the response.
     $expected_tags = [
       AutoSaveManager::CACHE_TAG,
       'config:system.site',
       'http_response',
+      'canvas_page:1',
       'canvas_page:2',
+      'canvas_page:3',
       'canvas_page_list',
+      'workspace:canvas_default',
     ];
-    $list_cache_contexts = ['url.query_args:page', 'url.query_args:search', 'user.permissions'];
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    // The Canvas auto-save workspace is active during canvas.api.* requests,
+    // so core workspaces adds the 'user' cache context (which absorbs
+    // 'user.permissions') to entity access results. Because 'user' is in
+    // Dynamic Page Cache's auto-placeholder conditions, these responses are
+    // reported as uncacheable by Dynamic Page Cache.
+    // @see \Drupal\workspaces\Hook\EntityAccess
+    $list_cache_contexts = ['url.query_args:page', 'url.query_args:search', 'user'];
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
     \assert(\is_array($body));
     $this->assertArrayHasKey('data', $body);
     $this->assertArrayHasKey('meta', $body);
@@ -373,14 +383,16 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
       $no_auto_save_expected_pages,
       \array_column($body['data'], NULL, 'id')
     );
-    $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
 
     // Test searching by query parameter — search returns {data: [...]} without meta/links.
     $search_url = Url::fromUri('base:/canvas/api/v0/content/canvas_page', ['query' => ['search' => 'Page 1']]);
-    // Because page 2 isn't in these results, we don't get its cache tag.
-    $expected_tags_without_page_2 = \array_diff($expected_tags, ['canvas_page:2']);
-    // Confirm that the cache is not hit when a different request is made with query parameter.
-    $search_body = $this->assertExpectedResponse('GET', $search_url, [], 200, ['languages:' . LanguageInterface::TYPE_CONTENT, 'url.query_args:search', 'user.permissions'], $expected_tags_without_page_2, 'UNCACHEABLE (request policy)', 'MISS');
+    // Because pages 2 and 3 aren't in these results, we don't get their cache
+    // tags.
+    $expected_tags_without_page_2 = \array_diff($expected_tags, ['canvas_page:2', 'canvas_page:3']);
+    // The 'user' cache context added by the active auto-save workspace makes
+    // this response uncacheable for Dynamic Page Cache.
+    $search_body = $this->assertExpectedResponse('GET', $search_url, [], 200, ['languages:' . LanguageInterface::TYPE_CONTENT, 'url.query_args:search', 'user'], $expected_tags_without_page_2, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
     \assert(\is_array($search_body));
     $this->assertArrayHasKey('data', $search_body);
     $this->assertArrayNotHasKey('meta', $search_body, 'Search results do not include a total count.');
@@ -408,12 +420,12 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
       ],
       \array_column($search_body['data'], NULL, 'id')
     );
-    // Confirm that the cache is hit when the same request is made again.
-    $this->assertExpectedResponse('GET', $search_url, [], 200, ['languages:' . LanguageInterface::TYPE_CONTENT, 'url.query_args:search', 'user.permissions'], $expected_tags_without_page_2, 'UNCACHEABLE (request policy)', 'HIT');
+    // Repeating the same request is still not served from Dynamic Page Cache.
+    $this->assertExpectedResponse('GET', $search_url, [], 200, ['languages:' . LanguageInterface::TYPE_CONTENT, 'url.query_args:search', 'user'], $expected_tags_without_page_2, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
 
     // Test searching by query parameter - substring match.
     $substring_search_url = Url::fromUri('base:/canvas/api/v0/content/canvas_page', ['query' => ['search' => 'age']]);
-    $substring_search_body = $this->assertExpectedResponse('GET', $substring_search_url, [], 200, ['languages:' . LanguageInterface::TYPE_CONTENT, 'url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    $substring_search_body = $this->assertExpectedResponse('GET', $substring_search_url, [], 200, ['languages:' . LanguageInterface::TYPE_CONTENT, 'url.query_args:search', 'user'], $expected_tags, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
     \assert(\is_array($substring_search_body));
     $this->assertEquals($no_auto_save_expected_pages, \array_column($substring_search_body['data'], NULL, 'id'));
 
@@ -431,7 +443,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $page_2->set('path', ['alias' => "/the-new-path"]);
     $autoSaveManager->saveEntity($page_2);
 
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
     \assert(\is_array($body));
     $auto_save_expected_pages = $no_auto_save_expected_pages;
     $auto_save_expected_pages[1]['autoSaveLabel'] = 'The updated title.';
@@ -442,7 +454,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
       $auto_save_expected_pages,
       \array_column($body['data'], NULL, 'id')
     );
-    $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
 
     // Confirm that if path alias is empty, the system path is used, not the
     // existing alias if set.
@@ -454,7 +466,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $page_2->set('path', NULL);
     $autoSaveManager->saveEntity($page_2);
 
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
     \assert(\is_array($body));
     $auto_save_expected_pages[1]['autoSavePath'] = '/page/1';
     $auto_save_expected_pages[2]['autoSavePath'] = '/page/2';
@@ -465,16 +477,15 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
 
     $autoSaveManager->delete($page_1);
     $autoSaveManager->delete($page_2);
-    // With page 1's auto-save deleted, the list no longer renders its draft, so
-    // its cache tag drops out. Page 2's tag persists via system.site (homepage).
-    $expected_tags = \array_values(\array_diff($expected_tags, $page_1->getCacheTags()));
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    // Even with page 1's auto-save deleted, its cache tag remains: loading
+    // listed entities in the active auto-save workspace adds their cache tags.
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
     \assert(\is_array($body));
     $this->assertEquals(
       $no_auto_save_expected_pages,
       \array_column($body['data'], NULL, 'id')
     );
-    $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
   }
 
   public function testListPagination(): void {
@@ -482,23 +493,25 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     \assert($user instanceof UserInterface);
     $this->drupalLogin($user);
 
-    $list_cache_contexts = ['url.query_args:page', 'url.query_args:search', 'user.permissions'];
+    // The active Canvas auto-save workspace adds the 'user' cache context
+    // (which absorbs 'user.permissions') to entity access results.
+    $list_cache_contexts = ['url.query_args:page', 'url.query_args:search', 'user'];
     // Base tags present on every list response, regardless of which page is
-    // included in the result. canvas_page:2 is only present when page 2 is in
-    // the result set (page 2 has no path alias, so its entity cache tag is
-    // added during URL generation; pages with aliases add a path_alias tag
-    // instead).
+    // included in the result. Each page in the result set contributes its own
+    // entity cache tag: loading entities while the Canvas auto-save workspace
+    // is active adds their cache tags (and the workspace's own cache tag).
     $base_tags = [
       AutoSaveManager::CACHE_TAG,
       'config:system.site',
       'http_response',
       'canvas_page_list',
+      'workspace:canvas_default',
     ];
     $all_pages_tags = [...$base_tags, 'canvas_page:2'];
 
     // Page 1 of 3 with limit=1: should have next/last but not first/prev.
     $url_page1 = Url::fromUri('base:/canvas/api/v0/content/canvas_page', ['query' => ['page' => ['offset' => 0, 'limit' => 1]]]);
-    $body = $this->assertExpectedResponse('GET', $url_page1, [], 200, $list_cache_contexts, $base_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url_page1, [], 200, $list_cache_contexts, [...$base_tags, 'canvas_page:1'], 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
     \assert(\is_array($body));
     $this->assertCount(1, $body['data']);
     $this->assertSame(3, $body['meta']['count']);
@@ -513,10 +526,10 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $this->assertStringContainsString('page[limit]=1', $next_href);
 
     // Middle page (offset=1, limit=1): should have first/prev/next/last.
-    // Pages are sorted by revision_created DESC; page 2 (saved second, no path
-    // alias) lands here, so canvas_page:2 is present in the cache tags.
+    // Pages are sorted by revision_created DESC; page 2 (saved second) lands
+    // here, so canvas_page:2 is present in the cache tags.
     $url_page2 = Url::fromUri('base:/canvas/api/v0/content/canvas_page', ['query' => ['page' => ['offset' => 1, 'limit' => 1]]]);
-    $body = $this->assertExpectedResponse('GET', $url_page2, [], 200, $list_cache_contexts, $all_pages_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url_page2, [], 200, $list_cache_contexts, $all_pages_tags, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
     \assert(\is_array($body));
     $this->assertCount(1, $body['data']);
     $this->assertSame(3, $body['meta']['count']);
@@ -527,7 +540,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
 
     // Last page (offset=2, limit=1): should have first/prev but not next/last.
     $url_page3 = Url::fromUri('base:/canvas/api/v0/content/canvas_page', ['query' => ['page' => ['offset' => 2, 'limit' => 1]]]);
-    $body = $this->assertExpectedResponse('GET', $url_page3, [], 200, $list_cache_contexts, $base_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url_page3, [], 200, $list_cache_contexts, [...$base_tags, 'canvas_page:3'], 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
     \assert(\is_array($body));
     $this->assertCount(1, $body['data']);
     $this->assertSame(3, $body['meta']['count']);
@@ -558,7 +571,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $this->drupalLogin($user);
     // We have a cache tag for page 2 as it's the homepage, set in system.site
     // config.
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, Cache::mergeContexts(['url.query_args:page', 'url.query_args:search', 'user.permissions'], $extraCacheContexts), Cache::mergeTags([AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:2', 'canvas_page_list'], $extraCacheTags), 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, Cache::mergeContexts(['url.query_args:page', 'url.query_args:search', 'user'], $extraCacheContexts), Cache::mergeTags([AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:1', 'canvas_page:2', 'canvas_page:3', 'canvas_page_list', 'workspace:canvas_default'], $extraCacheTags), 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
     \assert(\is_array($body));
     $data_by_id = \array_column($body['data'], NULL, 'id');
     \assert(\array_key_exists(1, $data_by_id) && \array_key_exists('links', $data_by_id[1]));
@@ -660,7 +673,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $user = $this->createUser([Page::EDIT_PERMISSION, Page::DELETE_PERMISSION], 'administer_canvas_page_user');
     \assert($user instanceof UserInterface);
     $this->drupalLogin($user);
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:page', 'url.query_args:search', 'user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:2', 'canvas_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:page', 'url.query_args:search', 'user'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:1', 'canvas_page:2', 'canvas_page:3', 'canvas_page_list', 'workspace:canvas_default'], 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
     \assert(\is_array($body));
     $data_by_id = \array_column($body['data'], NULL, 'id');
     \assert(\array_key_exists(2, $data_by_id) && \array_key_exists('links', $data_by_id[2]));
@@ -1115,11 +1128,13 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     \assert($user instanceof UserInterface);
     $this->drupalLogin($user);
 
-    $list_cache_contexts = ['url.query_args:page', 'url.query_args:search', 'user.permissions'];
-    $list_cache_tags = [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:2', 'canvas_page_list'];
+    // The active Canvas auto-save workspace adds the 'user' cache context
+    // (which absorbs 'user.permissions') to entity access results.
+    $list_cache_contexts = ['url.query_args:page', 'url.query_args:search', 'user'];
+    $list_cache_tags = [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:1', 'canvas_page:2', 'canvas_page:3', 'canvas_page_list', 'workspace:canvas_default'];
 
     // Get the initial list.
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $list_cache_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $list_cache_tags, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
     \assert(\is_array($body));
     $data_by_id = \array_column($body['data'], NULL, 'id');
 
@@ -1145,9 +1160,11 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $unpublished_page->save();
     $unpublished_page->setNewRevision(TRUE);
     $unpublished_page->setUnpublished()->save();
+    // The new page is now listed too, so it contributes its cache tag.
+    $list_cache_tags = Cache::mergeTags($list_cache_tags, $unpublished_page->getCacheTags());
 
     // Fetch the list again and check the unpublished page.
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $list_cache_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $list_cache_tags, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
     \assert(\is_array($body));
     $data_by_id = \array_column($body['data'], NULL, 'id');
 
@@ -1167,7 +1184,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $autoSaveManager->saveEntity($page_1);
     $expected_tags = Cache::mergeTags($list_cache_tags, $page_1->getCacheTags());
 
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, $list_cache_contexts, $expected_tags, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (poor cacheability)');
     \assert(\is_array($body));
     $data_by_id = \array_column($body['data'], NULL, 'id');
 

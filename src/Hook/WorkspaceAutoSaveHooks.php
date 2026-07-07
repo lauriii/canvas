@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
+use Drupal\canvas\Plugin\Validation\Constraint\CanvasAwareEntityWorkspaceConflictConstraint;
 use Drupal\Core\Hook\Attribute\Hook;
 
 /**
@@ -20,6 +21,21 @@ use Drupal\Core\Hook\Attribute\Hook;
  * @see \Drupal\workspaces\Form\WorkspaceSwitcherForm::buildForm()
  */
 final class WorkspaceAutoSaveHooks {
+
+  /**
+   * Implements hook_validation_constraint_alter().
+   */
+  #[Hook('validation_constraint_alter')]
+  public static function validationConstraintAlter(array &$definitions): void {
+    // Entities staged in the Canvas auto-save workspace must stay editable in
+    // Live; Canvas has its own conflict detection for external edits. Swap in
+    // a validator that ignores the Canvas workspace and otherwise behaves
+    // exactly like core's.
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\CanvasAwareEntityWorkspaceConflictConstraintValidator
+    if (isset($definitions['EntityWorkspaceConflict'])) {
+      $definitions['EntityWorkspaceConflict']['class'] = CanvasAwareEntityWorkspaceConflictConstraint::class;
+    }
+  }
 
   /**
    * Implements hook_form_FORM_ID_alter() for workspace_switcher_form.

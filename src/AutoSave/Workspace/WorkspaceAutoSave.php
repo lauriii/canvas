@@ -245,15 +245,21 @@ final class WorkspaceAutoSave {
     // data carries the id, and pre-1.0 legacy rows may lack the id entirely.
     if ($staged instanceof ContentEntityInterface && $entity instanceof ContentEntityInterface) {
       $entity_type = $storage->getEntityType();
-      foreach (['id', 'uuid'] as $key_name) {
+      foreach (['id', 'uuid', 'revision'] as $key_name) {
         $key = $entity_type->getKey($key_name);
-        if (\is_string($key) && $key !== '' && $staged->get($key)->isEmpty()) {
+        if (\is_string($key) && $key !== '' && $staged->get($key)->isEmpty() && !$entity->get($key)->isEmpty()) {
           $staged->set($key, $entity->get($key)->value);
         }
       }
       $staged->enforceIsNew(FALSE);
       if ($staged instanceof RevisionableInterface) {
         $staged->updateLoadedRevisionId();
+        // ::create() pre-marks the entity as a new revision, which makes the
+        // later setNewRevision(TRUE) in workspaces' entity_presave a no-op
+        // that skips clearing the revision key; the save would then insert a
+        // duplicate of the grafted revision id. Reset the flag so that
+        // transition runs and a fresh revision id is assigned.
+        $staged->setNewRevision(FALSE);
       }
     }
     // Pass the legacy entry through so its metadata (owner, updated,

@@ -2186,6 +2186,9 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'theme',
       'user.node_grants:view',
       'user.permissions',
+      // Core workspaces adds this required render cache context, and the
+      // Canvas auto-save workspace is active during canvas.api.* requests.
+      'workspace',
     ];
 
     // 1. Test basic functionality.
@@ -2247,7 +2250,9 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ])->save();
     $this->drupalGet('canvas/api/v0/config/component');
     $this->assertDynamicPageCacheAccelerated(maxAge: '3600');
-    $this->assertCacheTags(Cache::mergeTags($expected_tags, ['node:1', 'user:2']), FALSE);
+    // Rendering the node in the "recent content" preview while the Canvas
+    // auto-save workspace is active adds the workspace's cache tag.
+    $this->assertCacheTags(Cache::mergeTags($expected_tags, ['node:1', 'user:2', 'workspace:canvas_default']), FALSE);
     $this->assertCacheContexts($expected_contexts);
     $recent_content_preview = \json_decode($page->getContent(), TRUE)['block.views_block.content_recent-block_1']['default_markup'];
     self::assertStringNotContainsString('No content available.', $recent_content_preview);

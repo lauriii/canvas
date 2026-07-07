@@ -543,6 +543,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       'languages:language_interface',
       'theme',
       'user.permissions',
+      'workspace',
     ];
 
     $default_cacheability = (new CacheableMetadata())

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Controller\ApiAutoSaveController;
 use Drupal\canvas\Controller\ErrorCodesEnum;
@@ -1356,6 +1357,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       $node2_auto_save_key => $auto_save_data[$node2_auto_save_key],
     ]);
     $decoded = self::decodeResponse($response);
+    // Validation runs inside the auto-save workspace, so each draft sees the
+    // other's staged title: both items report the collision up front, instead
+    // of only the second one failing mid-save against the first's Live copy.
     $this->assertSame(
       [
         'errors' => [
@@ -1363,6 +1367,24 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
             'detail' => 'A content item with Title <em class="placeholder">I am not unique!</em> already exists.',
             'source' => [
               'pointer' => 'title',
+            ],
+            'meta' => [
+              'entity_type' => 'node',
+              'entity_id' => $node1->id(),
+              'label' => 'I am not unique!',
+              ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node1),
+            ],
+          ],
+          [
+            'detail' => 'A content item with Title <em class="placeholder">I am not unique!</em> already exists.',
+            'source' => [
+              'pointer' => 'title',
+            ],
+            'meta' => [
+              'entity_type' => 'node',
+              'entity_id' => $node2->id(),
+              'label' => 'I am not unique!',
+              ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node2),
             ],
           ],
         ],
@@ -1412,6 +1434,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // @see \Drupal\canvas\Controller\ApiAutoSaveController::validateExpectedAutoSaves()
     // @todo Remove the use of 'canvas_dev_cd' flag in https://git.drupalcode.org/project/canvas/-/work_items/3591732
     $this->enableModules(['canvas_dev_cd']);
+    // enableModules() rebuilds the container; a stale auto-save manager would
+    // hold a workspace manager instance whose active-workspace state the
+    // current container's entity hooks cannot see, silently saving to Live.
+    $autoSave = $this->container->get(AutoSaveManager::class);
     $autoSave->saveEntity($page->set('title', 'Safe title'));
     $auto_save_data = $this->getAutoSaveStatesFromServer();
     $page_content_identifier = $autoSave::getAutoSaveKey($page);
@@ -1580,6 +1606,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         $this->container->get(ComponentSourceManager::class),
         $this->container->get(ComponentTreeLoader::class),
         $this->container->get(ModuleHandlerInterface::class),
+        $this->container->get(WorkspaceAutoSave::class),
+        $this->container->get('workspaces.manager'),
     ));
 
     $response = $this->makePublishAllRequest([

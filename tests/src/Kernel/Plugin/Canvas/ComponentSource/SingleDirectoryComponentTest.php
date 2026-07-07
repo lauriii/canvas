@@ -379,6 +379,7 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
       'languages:language_interface',
       'theme',
       'user.permissions',
+      'workspace',
     ];
     $default_cacheability = (new CacheableMetadata())
       ->setCacheContexts($default_render_cache_contexts);
