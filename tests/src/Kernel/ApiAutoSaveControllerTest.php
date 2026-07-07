@@ -708,6 +708,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     self::assertSame([
       'canvas_page:2',
+      // Auto-saves are staged in the shared auto-save workspace, so the pending
+      // list depends on it.
+      'workspace:canvas_default',
       'config:canvas.js_component.test_code',
       'node:4',
       'config:canvas.page_region.stark.highlighted',
@@ -717,7 +720,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       AutoSaveManager::CACHE_TAG,
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
-    self::assertSame(['user.permissions'], $response->getCacheableMetadata()->getCacheContexts());
+    // The 'user' context comes from the auto-save workspace's view access
+    // check when listing workspace-staged entries.
+    self::assertSame(['user', 'user.permissions'], $response->getCacheableMetadata()->getCacheContexts());
     $response_body = \json_decode((string) $response->getContent(), TRUE);
     $this->assertArrayHasKey('data', $response_body);
     $content = $response_body['data'];
@@ -1871,13 +1876,92 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   }
 
   /**
+   * Staging never validates; publishing refuses invalid items, per item.
+   *
+   * The auto-save validation contract for workspace-staged content entities:
+   * an invalid draft is retained verbatim (an auto-save is never refused or
+   * dropped), the publish endpoint refuses it with per-item violations
+   * before any live write, the draft survives the refusal, and fixing the
+   * draft lets the same publish succeed.
+   *
+   * @see docs/adr/0014-stage-autosaves-in-a-dedicated-workspace.md
+   */
+  public function testInvalidDraftIsStagedButRefusedAtPublish(): void {
+    $this->setUpCurrentUser(permissions: [
+      'bypass node access',
+      Page::EDIT_PERMISSION,
+      AutoSaveManager::PUBLISH_PERMISSION,
+    ]);
+
+    /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    $node = Node::create([
+      'type' => 'article',
+      'title' => 'Live title',
+      'status' => TRUE,
+    ]);
+    self::assertSame(SAVED_NEW, $node->save());
+
+    // An intermediate editing state that fails entity validation: a title
+    // longer than the field's 255 character limit. Depending on the database
+    // driver the draft is retained as a workspace revision or falls back to
+    // a payload snapshot; both are part of the retention contract and both
+    // are read through the same auto-save API.
+    $invalid_title = str_repeat('x', 300);
+    $draft = clone $node;
+    $draft->set('title', $invalid_title);
+    self::assertNotCount(0, $draft->validate());
+    $autoSave->saveEntity($draft);
+
+    // Staging is never refused: the invalid draft is retained verbatim.
+    $staged = $autoSave->getAutoSaveEntity($node)->entity;
+    \assert($staged instanceof NodeInterface);
+    self::assertSame($invalid_title, $staged->getTitle());
+
+    // Publishing the invalid draft is refused with a per-item violation.
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+    $auto_save_key = AutoSaveManager::getAutoSaveKey($node);
+    $response = $this->makePublishAllRequest([$auto_save_key => $auto_save_data[$auto_save_key]]);
+    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    $json = json_decode((string) $response->getContent(), TRUE);
+    self::assertCount(1, $json['errors']);
+    self::assertStringContainsString('may not be longer than 255 characters', $json['errors'][0]['detail']);
+    self::assertStringStartsWith('title', $json['errors'][0]['source']['pointer']);
+    self::assertSame('node', $json['errors'][0]['meta']['entity_type']);
+    self::assertSame($auto_save_key, $json['errors'][0]['meta'][ApiAutoSaveController::AUTO_SAVE_KEY]);
+
+    // No live write happened, and the draft survived the refusal.
+    $node_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node');
+    $live = $node_storage->loadUnchanged((string) $node->id());
+    \assert($live instanceof NodeInterface);
+    self::assertSame('Live title', $live->getTitle());
+    $staged = $autoSave->getAutoSaveEntity($node)->entity;
+    \assert($staged instanceof NodeInterface);
+    self::assertSame($invalid_title, $staged->getTitle());
+
+    // Fixing the draft makes the same publish succeed.
+    $fixed = $autoSave->getEntityForLayoutEditing($node);
+    \assert($fixed instanceof NodeInterface);
+    $fixed->set('title', 'Draft title');
+    $autoSave->saveEntity($fixed);
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+    $response = $this->makePublishAllRequest([$auto_save_key => $auto_save_data[$auto_save_key]]);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    self::assertEquals(['message' => 'Successfully published 1 item.'], json_decode((string) $response->getContent(), TRUE));
+    $live = $node_storage->loadUnchanged((string) $node->id());
+    \assert($live instanceof NodeInterface);
+    self::assertSame('Draft title', $live->getTitle());
+    self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
+  }
+
+  /**
    * Tests publishing behavior for draft, published, and unpublished pages.
    *
    * This test covers different publishing scenarios:
    * - Draft pages (never published): auto-publish when publishing changes
-   * - Published pages: preserve status from autosaved entity
+   * - Published pages: preserve status from auto-saved entity
    * - Unpublished pages (previously published, now unpublished): preserve status
-   *   from autosaved entity, allowing both unpublishing and republishing.
+   *   from auto-saved entity, allowing both unpublishing and republishing.
    *
    * @legacy-covers ::post
    */
@@ -2019,7 +2103,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
     // Test Case 4: Draft page auto-publishes.
     // This verifies that draft pages (never published) are automatically
-    // published when publishing changes, even if the autosaved entity has
+    // published when publishing changes, even if the auto-saved entity has
     // status FALSE.
     $draft_node = Node::create([
       'type' => 'article',

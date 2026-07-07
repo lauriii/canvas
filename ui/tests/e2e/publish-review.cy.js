@@ -77,6 +77,38 @@ describe('Publish review functionality', () => {
     },
   );
 
+  it(
+    'Staged hero heading edit survives reloading the editor without publishing',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
+      cy.intercept('PATCH', '**/canvas/api/v0/layout/**').as('layoutPatch');
+
+      cy.loadURLandWaitForCanvasLoaded();
+
+      cy.findByTestId('canvas-topbar').findByText('Published');
+
+      cy.clickComponentInPreview('Hero');
+      cy.findByTestId(/^canvas-component-form-.*/)
+        .findByLabelText('Heading')
+        .type(' stay-after-reload');
+
+      cy.findByText('Changed');
+      cy.wait('@layoutPatch').its('response.statusCode').should('eq', 200);
+
+      cy.log(
+        'Reload Canvas without clearing auto-save; workspace-staged layout must load again.',
+      );
+      cy.loadURLandWaitForCanvasLoaded({ clearAutoSave: false });
+
+      cy.clickComponentInPreview('Hero');
+      cy.findByTestId(/^canvas-component-form-.*/)
+        .findByLabelText('Heading')
+        .should(($input) => {
+          expect($input.val()).to.contain('stay-after-reload');
+        });
+    },
+  );
+
   it('Discarding a pending change updates in-place without a full page reload', () => {
     cy.loadURLandWaitForCanvasLoaded();
     cy.location('pathname').as('originalPath');

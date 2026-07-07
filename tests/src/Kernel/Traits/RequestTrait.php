@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Traits;
 
+use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -63,6 +64,18 @@ trait RequestTrait {
       foreach ($previous_requests as $previous_request) {
         \assert($previous_request instanceof Request);
         $request_stack->push($previous_request);
+      }
+
+      // When the controller throws (this harness handles requests with
+      // catch: FALSE), kernel terminate never runs, so the auto-save workspace
+      // activated for Canvas API routes would leak into subsequent test code.
+      // In production, exceptions become responses and terminate runs.
+      // @see \Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspaceActivationSubscriber::onKernelTerminate()
+      if ($this->container->has('workspaces.manager')) {
+        $workspace_manager = $this->container->get('workspaces.manager');
+        if ($workspace_manager->hasActiveWorkspace() && $workspace_manager->getActiveWorkspace()?->id() === AutoSaveWorkspace::ID) {
+          $workspace_manager->switchToLive();
+        }
       }
     }
   }

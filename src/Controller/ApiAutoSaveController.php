@@ -81,6 +81,11 @@ final class ApiAutoSaveController extends ApiControllerBase {
     // so it is NULL when that module is not installed.
     // @see \Drupal\canvas\CanvasServiceProvider
     private readonly ?FieldTranslationSynchronizerInterface $translationSynchronizer = NULL,
+    /**
+     * @var \Drupal\workspaces\WorkspaceManagerInterface|null
+     */
+    #[Autowire(service: 'workspaces.manager')]
+    private readonly ?object $workspaceManager = NULL,
   ) {}
 
   private static function validateExpectedAutoSaves(array $expected_auto_saves, array $available_auto_saves, int $status): ?JsonResponse {
@@ -256,7 +261,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
       // Hide non-default-translation auto-saves until langcode-aware discard
       // lands and asymmetrical translation is supported.
       // @todo Remove this filtering in https://git.drupalcode.org/project/canvas/-/work_items/3591703.
-      return $access->isAllowed() && ($item['is_default_translation'] ?? TRUE);
+      return $access->isAllowed() && $item['is_default_translation'];
     });
   }
 
@@ -496,7 +501,18 @@ final class ApiAutoSaveController extends ApiControllerBase {
         // the first entity collides with some of the following entities. So
         // we need to validate right before saving the entity.
         $this->ensureEntityIsValid($entity, $conflict_detection_dev_mode);
-        $entity->save();
+        // Publishing is selective: only the requested auto-saves may go live,
+        // so a Workspace::publish() of the shared auto-save workspace (which
+        // publishes everything staged in it) cannot be used. Save each entity
+        // directly to Live: the auto-save workspace is active during Canvas
+        // API requests, and saving inside it would just create another staged
+        // revision.
+        if ($this->workspaceManager !== NULL) {
+          $this->workspaceManager->executeOutsideWorkspace(static fn () => $entity->save());
+        }
+        else {
+          $entity->save();
+        }
       }
       foreach ($autoSaveEntities as $entity) {
         $this->autoSaveManager->delete($entity);
@@ -779,7 +795,12 @@ final class ApiAutoSaveController extends ApiControllerBase {
     // synchronization source when untranslatable ("symmetric") field columns
     // are involved.
     // @see \Drupal\content_translation\FieldTranslationSynchronizer::synchronizeFields()
-    $entity = $this->entityTypeManager->getStorage($reference->getEntityTypeId())->loadUnchanged($reference->id());
+    // Load the Live copy: the auto-save workspace is active during Canvas API
+    // requests, and a workspace-aware loadUnchanged() would return the staged
+    // revision, making every field compare equal to the snapshot (so nothing
+    // would be applied) and breaking draft detection.
+    $load = fn (): ?EntityInterface => $this->entityTypeManager->getStorage($reference->getEntityTypeId())->loadUnchanged($reference->id());
+    $entity = $this->workspaceManager !== NULL ? $this->workspaceManager->executeOutsideWorkspace($load) : $load();
     \assert($entity instanceof ContentEntityInterface);
     // The unchanged copy is used both to detect which fields changed and to
     // determine whether the entity is still considered a draft (which keys off
@@ -825,7 +846,10 @@ final class ApiAutoSaveController extends ApiControllerBase {
         // over.
         // @see \Drupal\canvas\AutoSave\AutoSaveManager::isPersistedComputedField()
         $ignore_field = ($field->isComputed() && !AutoSaveManager::isPersistedComputedField($field)) || $original_field->equals($auto_save_entity->get($field_name));
-        $keys = ['id', 'revision_id', 'uuid', 'langcode', 'status', 'published'];
+        // NOTE: the revision ID's entity key is named 'revision': a snapshot
+        // taken from a staged (workspace) revision must never write its
+        // revision ID onto the stored entity.
+        $keys = ['id', 'revision', 'uuid', 'langcode', 'status', 'published'];
         $revision_keys = ['revision_created', 'revision_user'];
         foreach ($keys as $key) {
           $ignore_field |= $field_name === $entity_definition->getKey($key);

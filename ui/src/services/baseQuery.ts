@@ -169,6 +169,48 @@ const rawBaseQuery = (appConfiguration: AppConfiguration) => {
   };
 };
 
+/**
+ * Ensures layout POST/PATCH mutations run one at a time so each request reads an
+ * up-to-date autoSaves snapshot after the previous response updates Redux.
+ * Without this, parallel component PATCHes send the same stale autoSaveStartingPoint
+ * and the second request gets 409 (false concurrent-edit positives).
+ */
+const withSerializedLayoutMutations: (
+  baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
+) => BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = (
+  baseQuery,
+) => {
+  let chain: Promise<void> = Promise.resolve();
+
+  return async (args, api, extraOptions) => {
+    const url = typeof args === 'string' ? args : args.url;
+    const method =
+      typeof args === 'object' && args.method ? String(args.method) : 'GET';
+    const isLayoutDataMutation =
+      api.type === 'mutation' &&
+      (method === 'PATCH' || method === 'POST') &&
+      typeof url === 'string' &&
+      (url.includes('canvas/api/v0/layout/') ||
+        url.includes('canvas/api/v0/layout-content-template/'));
+
+    if (!isLayoutDataMutation) {
+      return baseQuery(args, api, extraOptions);
+    }
+
+    const previous = chain;
+    let release!: () => void;
+    chain = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    try {
+      return await baseQuery(args, api, extraOptions);
+    } finally {
+      release();
+    }
+  };
+};
+
 // Higher-order base query to inject the current autoSavesHash and clientInstanceId for all mutations (POST, PATCH, DELETE)
 // to allow the backend to recognize potential conflicts where the client is updating potentially out of date data.
 export const withAutoSavesInjection: (
@@ -225,9 +267,9 @@ export const withAutoSavesInjection: (
   };
 };
 
-// Export a baseQuery with autoSaves injection by default
+// Export a baseQuery with autoSaves injection by default (layout POST/PATCH serialized — see withSerializedLayoutMutations).
 export const baseQueryWithAutoSaves: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
-> = withAutoSavesInjection(baseQuery);
+> = withSerializedLayoutMutations(withAutoSavesInjection(baseQuery));

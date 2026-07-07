@@ -52,7 +52,7 @@ export const brandKitApi = createApi({
       },
     }),
     updateAutoSave: builder.mutation<
-      void,
+      { autoSaves: AutoSavesHash },
       {
         id: string;
         data: Partial<BrandKit>;
@@ -65,7 +65,8 @@ export const brandKitApi = createApi({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
-          await queryFulfilled;
+          const { data, meta } = await queryFulfilled;
+          handleAutoSavesHashUpdate(dispatch, data.autoSaves, meta);
           dispatch(
             pendingChangesApi.util.invalidateTags([
               { type: 'PendingChanges', id: 'LIST' },

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Canvas\PHPStan\UsageProvider;
 
 use Drupal\media_library\MediaLibraryFieldWidgetOpener;
+use Drupal\workspaces\Provider\WorkspaceProviderBase;
 use ShipMonk\PHPStan\DeadCode\Provider\ReflectionBasedMemberUsageProvider;
 use ShipMonk\PHPStan\DeadCode\Provider\VirtualUsageData;
 
@@ -34,7 +35,7 @@ final class DrupalPolymorphicDispatchUsageProvider extends ReflectionBasedMember
     // MediaLibraryFieldWidgetOpener::checkAccess() is overridden by
     // MediaLibraryCanvasPropOpener; the media library opener system calls it
     // via $this->checkAccess() polymorphic dispatch.
-    'checkAccess' => [MediaLibraryFieldWidgetOpener::class],
+    'checkAccess' => [MediaLibraryFieldWidgetOpener::class, WorkspaceProviderBase::class],
   ];
 
   protected function shouldMarkMethodAsUsed(\ReflectionMethod $method): ?VirtualUsageData {

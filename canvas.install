@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
+use Drupal\canvas\AutoSave\Workspace\CanvasWorkspaceProvider;
 use Drupal\canvas\CanvasNotificationHandler;
+use Drupal\canvas\Entity\CanvasAutoSaveSnapshot;
 use Drupal\canvas\Health\HealthCheck;
 use Drupal\canvas\Health\HealthRecords;
 use Drupal\Core\Datetime\DateFormatterInterface;
@@ -11,6 +14,36 @@ use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
+
+/**
+ * Implements hook_install().
+ */
+function canvas_install(): void {
+  _canvas_ensure_workspaces_module_enabled();
+  _canvas_ensure_auto_save_workspace();
+}
+
+/**
+ * Creates the Canvas-provided workspace when missing.
+ *
+ * The `provider` value keeps it out of the Workspaces UI listing and routes
+ * all access decisions through CanvasWorkspaceProvider.
+ *
+ * @see \Drupal\canvas\AutoSave\Workspace\CanvasWorkspaceProvider
+ */
+function _canvas_ensure_auto_save_workspace(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('workspace');
+  if ($storage->load(AutoSaveWorkspace::ID) !== NULL) {
+    return;
+  }
+  $workspace = $storage->create([
+    'id' => AutoSaveWorkspace::ID,
+    'label' => AutoSaveWorkspace::LABEL,
+    'uid' => 1,
+    'provider' => CanvasWorkspaceProvider::getId(),
+  ]);
+  $workspace->save();
+}
 
 /**
  * Implements hook_module_preinstall().
@@ -158,4 +191,37 @@ function canvas_update_11200(): void {
     // No need to manually flush caches during the update.
     // @see \Drupal\system\Controller\DbUpdateController::triggerBatch()
   }
+}
+
+/**
+ * Workspaces auto-save: entity schema, Workspaces module, shared workspace.
+ *
+ * Idempotent: installs canvas_auto_save_snapshot when missing, enables the
+ * Workspaces module if needed, creates the canvas_default workspace entity.
+ */
+function canvas_update_11201(): void {
+  /** @var \Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface $repository */
+  $repository = \Drupal::service('entity.last_installed_schema.repository');
+  if ($repository->getLastInstalledDefinition(CanvasAutoSaveSnapshot::ENTITY_TYPE_ID) === NULL) {
+    $definition = \Drupal::entityTypeManager()->getDefinition(CanvasAutoSaveSnapshot::ENTITY_TYPE_ID);
+    \Drupal::entityDefinitionUpdateManager()->installEntityType($definition);
+  }
+
+  _canvas_ensure_workspaces_module_enabled();
+  _canvas_ensure_auto_save_workspace();
+}
+
+/**
+ * Enables the Workspaces module when missing.
+ *
+ * Canvas declares Workspaces as a dependency; extensions listed in
+ * core.extension may omit it on older sites until this runs.
+ */
+function _canvas_ensure_workspaces_module_enabled(): void {
+  if (\Drupal::moduleHandler()->moduleExists('workspaces')) {
+    return;
+  }
+  /** @var \Drupal\Core\Extension\ModuleInstallerInterface $installer */
+  $installer = \Drupal::service('module_installer');
+  $installer->install(['workspaces']);
 }

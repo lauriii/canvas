@@ -6,6 +6,7 @@ namespace Drupal\canvas;
 
 use Drupal\canvas\Access\CanvasUiAccessCheck;
 use Drupal\canvas\Access\ViewModeAccessCheck;
+use Drupal\canvas\AutoSave\Workspace\CanvasWorkspaceProvider;
 use Drupal\canvas\Config\ThemeSettingsDiscovery;
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\CoreBugFix\ConfigEntityQueryFactory;
@@ -32,6 +33,18 @@ class CanvasServiceProvider extends ServiceProviderBase {
   public function register(ContainerBuilder $container): void {
     $modules = $container->getParameter('container.modules');
     \assert(\is_array($modules));
+
+    // The provider class extends a workspaces module base class, so it can
+    // only be registered once that module is installed; until database
+    // updates enable it, auto-save staging falls back to the key-value store.
+    // @see \Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave::usesKeyValueStaging()
+    if (\array_key_exists('workspaces', $modules)) {
+      $container->register(CanvasWorkspaceProvider::class)
+        ->setClass(CanvasWorkspaceProvider::class)
+        ->setAutowired(TRUE)
+        ->addTag('workspace_provider');
+    }
+
     if (\array_key_exists('media_library', $modules)) {
       $container->register('canvas.media_library.opener', MediaLibraryCanvasPropOpener::class)
         ->addArgument(new Reference(CanvasUiAccessCheck::class))

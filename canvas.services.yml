@@ -88,6 +88,14 @@ services:
     arguments: ['@datetime.time', 100]
     tags:
       - { name: cache.bin.memory }
+  Drupal\canvas\AutoSave\Workspace\AutoSaveRevisionPruner: { }
+  Drupal\canvas\AutoSave\Workspace\WorkspaceContentEntityPersist: { }
+  Drupal\canvas\AutoSave\Workspace\PendingContentAutoSaveBuffer: { }
+  Drupal\canvas\AutoSave\Workspace\DeferredAutoSaveFlusher: { }
+  Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave: { }
+  Drupal\canvas\AutoSave\Workspace\LegacyAutoSaveMigrator: {}
+  Drupal\canvas\AutoSave\Workspace\AutoSaveSnapshotRepository: { }
+  Drupal\canvas\Hook\WorkspaceAutoSaveRevisionHooks: {}
   Drupal\canvas\Storage\ComponentTreeLoader: {}
   Drupal\canvas\CodeComponentDataProvider: {}
   Drupal\canvas\Version: {}
@@ -165,6 +173,12 @@ services:
       - { name: path_processor_inbound, priority: 200 }
   Drupal\canvas\Controller\CanvasBlockListController: ~
   Drupal\canvas\EventSubscriber\RecipeSubscriber: ~
+  Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspaceActivationSubscriber:
+    tags:
+      - { name: event_subscriber }
+  Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspacePublishSubscriber:
+    tags:
+      - { name: event_subscriber }
 
   # Routing.
   Drupal\canvas\Entity\Routing\CanvasHtmlRouteEnhancer:

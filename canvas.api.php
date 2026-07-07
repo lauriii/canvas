@@ -14,6 +14,7 @@ use Drupal\canvas\PropShape\CandidateStorablePropShape;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Core\Extension\ExtensionPathResolver;
+use Drupal\link\LinkTitleVisibility;
 
 /**
  * @addtogroup hooks
@@ -42,7 +43,7 @@ function hook_canvas_storable_prop_shape_alter(CandidateStorablePropShape $stora
     // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::defaultFieldSettings()
     $storable_prop_shape->fieldInstanceSettings = [
       // This shape only needs the URI, not a title.
-      'title' => DRUPAL_DISABLED,
+      'title' => LinkTitleVisibility::Disabled->value,
     ];
     // @see \Drupal\link\Plugin\Field\FieldWidget\LinkWidget
     $storable_prop_shape->fieldWidget = 'link_default';

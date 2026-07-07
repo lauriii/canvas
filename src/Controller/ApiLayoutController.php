@@ -118,6 +118,12 @@ final class ApiLayoutController {
         \assert($entity instanceof ContentEntityInterface || $entity instanceof ContentTemplate);
       }
     }
+    elseif ($entity instanceof ContentEntityInterface) {
+      // Route upcasting can yield the default revision while pending edits
+      // exist on a workspace-tracked revision; resolve the revision used for
+      // layout editing inside the auto-save workspace.
+      $entity = $this->autoSaveManager->getEntityForLayoutEditing($entity);
+    }
 
     $model = [];
     // Build the content region.
@@ -152,10 +158,9 @@ final class ApiLayoutController {
       // an object and not empty array.
       'model' => empty($model) ? new \stdClass() : $model,
       'isNew' => $is_new,
-      'autoSaves' => $this->getAutoSaveHashes(array_merge(
-        [$entity],
-        self::getEditableRegions($entity),
-      )),
+      'autoSaves' => $this->getAutoSaveHashesAfterFlush(
+        array_merge([$entity], self::getEditableRegions($entity)),
+      ),
     ];
     $available_translations = [];
     $links = [];
@@ -222,7 +227,7 @@ final class ApiLayoutController {
       $data['entity_form_fields'] = $this->getFilteredEntityData($entity);
 
       // Determine if there's an unsaved status change by comparing the current
-      // entity (which may be autosaved) with the original stored entity.
+      // entity (which may be auto-saved) with the original stored entity.
       $data['hasUnsavedStatusChange'] = FALSE;
       if ($original_entity instanceof EntityPublishedInterface
         && $entity !== $original_entity) {
@@ -455,10 +460,9 @@ final class ApiLayoutController {
     if ($entity instanceof FieldableEntityInterface) {
       $data['entity_form_fields'] = $this->getFilteredEntityData($entity);
     }
-    $data['autoSaves'] = $this->getAutoSaveHashes(array_merge(
-      [$entity],
-      self::getEditableRegions($entity),
-    ));
+    $data['autoSaves'] = $this->getAutoSaveHashesAfterFlush(
+      array_merge([$entity], self::getEditableRegions($entity)),
+    );
     return new PreviewEnvelope(
       $this->buildPreviewRenderable($entity, $preview_entity),
       additionalData: $data
@@ -551,12 +555,21 @@ final class ApiLayoutController {
     return new PreviewEnvelope(
       $this->buildPreviewRenderable($entity, $preview_entity),
       additionalData: [
-        'autoSaves' => $this->getAutoSaveHashes(array_merge(
-          [$entity],
-          self::getEditableRegions($entity),
-        )),
+        'autoSaves' => $this->getAutoSaveHashesAfterFlush(
+          array_merge([$entity], self::getEditableRegions($entity)),
+        ),
       ],
     );
+  }
+
+  /**
+   * @param array<int, \Drupal\Core\Entity\EntityInterface> $entities
+   *
+   * @return array<string, array{autoSaveStartingPoint: int|string|null, hash: string|null}>
+   */
+  private function getAutoSaveHashesAfterFlush(array $entities): array {
+    $this->autoSaveManager->flushDeferredContentEntities($entities);
+    return $this->getAutoSaveHashes($entities);
   }
 
   private function buildPreviewRenderable(ContentTemplate|FieldableEntityInterface $entity, ?FieldableEntityInterface $preview_entity = NULL): array {
