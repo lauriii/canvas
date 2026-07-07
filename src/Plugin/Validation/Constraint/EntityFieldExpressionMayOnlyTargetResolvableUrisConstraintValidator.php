@@ -22,9 +22,9 @@ use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 
 /**
- * Validates the EntityFieldExpressionMustNotTargetInternalProperty constraint.
+ * Validates the EntityFieldExpressionMayOnlyTargetResolvableUris constraint.
  */
-final class EntityFieldExpressionMustNotTargetInternalPropertyConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
+final class EntityFieldExpressionMayOnlyTargetResolvableUrisConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -45,8 +45,8 @@ final class EntityFieldExpressionMustNotTargetInternalPropertyConstraintValidato
    * {@inheritdoc}
    */
   public function validate(mixed $value, Constraint $constraint): void {
-    if (!$constraint instanceof EntityFieldExpressionMustNotTargetInternalPropertyConstraint) {
-      throw new UnexpectedTypeException($constraint, EntityFieldExpressionMustNotTargetInternalPropertyConstraint::class);
+    if (!$constraint instanceof EntityFieldExpressionMayOnlyTargetResolvableUrisConstraint) {
+      throw new UnexpectedTypeException($constraint, EntityFieldExpressionMayOnlyTargetResolvableUrisConstraint::class);
     }
 
     if ($value === NULL || !\is_string($value)) {
@@ -65,9 +65,9 @@ final class EntityFieldExpressionMustNotTargetInternalPropertyConstraintValidato
       return;
     }
 
-    $internal = $this->findInternalProperty($parsed);
-    if ($internal !== NULL) {
-      [$field, $property] = $internal;
+    $raw_uri = $this->findRawUriProperty($parsed);
+    if ($raw_uri !== NULL) {
+      [$field, $property] = $raw_uri;
       $this->context->addViolation($constraint->message, [
         '@field' => $field,
         '@property' => $property,
@@ -76,23 +76,21 @@ final class EntityFieldExpressionMustNotTargetInternalPropertyConstraintValidato
   }
 
   /**
-   * Finds the first internal (non-computed) field property in an expression.
+   * Finds the first raw (non-resolvable) URI property in an expression.
    *
-   * Walks reference chains and object-prop expressions, matching the picker's
-   * rule: a field property is excluded when it is internal but not computed,
-   * or when it explicitly opts back in to being internal despite being
-   * computed (e.g. `DateTimeItemOverride` marking `date` internal).
-   * (Computed properties are internal-by-default in core yet remain pickable
-   * otherwise.)
+   * Walks reference chains and object-prop expressions: a `uri`-typed field
+   * property is a raw URI unless it carries a UriSchemeConstraint restricted
+   * to a subset of http/https, which guarantees it resolves to a
+   * browser-accessible URL.
    *
    * @return array{0: string, 1: string}|null
-   *   A [field, property] pair (e.g. ['entity:node:article.uid', 'pass']) for
-   *   the offending property, or NULL when none is internal.
+   *   A [field, property] pair (e.g. ['entity:file.uri', 'value']) for the
+   *   offending property, or NULL when none is a raw URI.
    *
-   * @see \Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers::buildFieldEntry()
-   * @see \Drupal\canvas\Utility\TypedDataHelper::isEffectivelyInternal()
+   * @see \Drupal\Core\TypedData\Plugin\DataType\Uri
+   * @see \Drupal\canvas\Utility\TypedDataHelper::isRestrictedToHttpSchemes()
    */
-  private function findInternalProperty(EntityFieldBasedPropExpressionInterface $expression): ?array {
+  private function findRawUriProperty(EntityFieldBasedPropExpressionInterface $expression): ?array {
     // Object-prop expression: every sub-property is on this same field.
     if ($expression instanceof ObjectPropExpressionInterface) {
       foreach ($expression->getObjectExpressions() as $sub_expression) {
@@ -100,7 +98,7 @@ final class EntityFieldExpressionMustNotTargetInternalPropertyConstraintValidato
         // EntityFieldBasedPropExpressionInterface (same as in
         // PropSourceSuggester::isConsideredIrrelevant()).
         // @phpstan-ignore argument.type
-        $found = $this->findInternalProperty($sub_expression);
+        $found = $this->findRawUriProperty($sub_expression);
         if ($found !== NULL) {
           return $found;
         }
@@ -108,8 +106,9 @@ final class EntityFieldExpressionMustNotTargetInternalPropertyConstraintValidato
       return NULL;
     }
 
-    // Reference expression: the referencer's `entity` property is computed (so
-    // never internal-and-not-computed); descend into the referenced expression.
+    // Reference expression: the referencer's `entity` property is a
+    // typed-data reference, not a `uri`-typed leaf; descend into the
+    // referenced expression.
     // Multi-target-bundle references are rejected separately.
     // @see \Drupal\canvas\Plugin\Validation\Constraint\MultiTargetBundleReferenceNotSupportedConstraint
     if ($expression instanceof ReferencePropExpressionInterface) {
@@ -117,26 +116,23 @@ final class EntityFieldExpressionMustNotTargetInternalPropertyConstraintValidato
       if ($expression instanceof ReferenceFieldPropExpression && $expression->targetsMultipleBundles()) {
         return NULL;
       }
-      return $this->findInternalProperty($expression->getTargetExpression());
+      return $this->findRawUriProperty($expression->getTargetExpression());
     }
 
-    // Scalar leaf: apply the picker's rule. A field property is excluded when
-    // it is internal but not computed, or explicitly internal despite being
-    // computed — at the field level (e.g. a base field marked internal) or
-    // the field property level.
+    // Scalar leaf: reject a raw `uri` property.
     if ($expression instanceof ScalarPropExpressionInterface) {
       $field_definition = $this->resolveFieldDefinition($expression);
       if ($field_definition === NULL) {
         return NULL;
       }
-      $field_id = \sprintf('%s.%s', $expression->getHostEntityDataDefinition()->getDataType(), $expression->getFieldName());
-      if (TypedDataHelper::isEffectivelyInternal($field_definition)) {
-        return [$field_id, $expression->getFieldPropertyName()];
-      }
       $item_definition = $field_definition->getItemDefinition();
       if ($item_definition instanceof ComplexDataDefinitionInterface) {
         $property_definition = $item_definition->getPropertyDefinition($expression->getFieldPropertyName());
-        if ($property_definition !== NULL && TypedDataHelper::isEffectivelyInternal($property_definition)) {
+        if ($property_definition !== NULL
+          && $property_definition->getDataType() === 'uri'
+          && !TypedDataHelper::isRestrictedToHttpSchemes($property_definition)
+        ) {
+          $field_id = \sprintf('%s.%s', $expression->getHostEntityDataDefinition()->getDataType(), $expression->getFieldName());
           return [$field_id, $expression->getFieldPropertyName()];
         }
       }

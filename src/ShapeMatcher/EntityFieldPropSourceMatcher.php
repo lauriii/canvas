@@ -22,6 +22,7 @@ use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
+use Drupal\canvas\Utility\TypedDataHelper;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\CacheBackendInterface;
@@ -595,8 +596,7 @@ final class EntityFieldPropSourceMatcher {
         //    such as the monotonically increasing integer entity ID, bundle
         //    name, entity UUID and so on.
         //    For now, the "uuid" field, to allow testing that prop shape.
-        // @phpstan-ignore-next-line
-        if ($property_definition instanceof DataReferenceTargetDefinition || $property_definition['internal'] === TRUE) {
+        if ($property_definition instanceof DataReferenceTargetDefinition || TypedDataHelper::isExplicitlyInternal($property_definition)) {
           continue;
         }
         $field_property_is_source_for = $property_definition->getSetting('is source for');

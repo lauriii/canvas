@@ -38,6 +38,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\PropExpressionInterface;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
+use Drupal\canvas\Utility\TypedDataHelper;
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
@@ -175,6 +176,7 @@ final class Layers {
         Selector::inNamespace('Drupal\canvas\PropShape'),
         Selector::inNamespace('Drupal\canvas\PropSource'),
         Selector::inNamespace('Drupal\canvas\JsonSchemaInterpreter'),
+        Selector::classname(TypedDataHelper::class),
         Selector::classname(AdapterInterface::class),
         Selector::classname(AdapterManager::class),
         // Shape matching only exists for

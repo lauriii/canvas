@@ -291,6 +291,8 @@ canvas.js_component.*:
                 MultiValuedFieldNotSupported: ~
                 # Reject expressions targeting an internal field or field property.
                 EntityFieldExpressionMustNotTargetInternalProperty: ~
+                # Reject expressions targeting a raw, non-resolvable URI property.
+                EntityFieldExpressionMayOnlyTargetResolvableUris: ~
 
 canvas.page_region.*:
   type: config_entity

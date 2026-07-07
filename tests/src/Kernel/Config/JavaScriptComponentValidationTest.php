@@ -44,6 +44,11 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     // Provides a field type with an internal (non-computed) `secret` property,
     // for the same constraint's field-property-level coverage.
     'canvas_test_internal_field_property',
+    // Provides the `link` field type, for EntityFieldExpressionMayOnlyTargetResolvableUris
+    // coverage: its raw `uri` (not internal, but not resolvable to a
+    // browser-accessible URL either) is rejected, while its computed,
+    // resolvable `url` remains usable.
+    'link',
   ];
 
   /**
@@ -1496,6 +1501,38 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       'label' => 'Field with a secret',
     ])->save();
 
+    // A field whose item type marks a *computed* property internal — for the
+    // case asserting that internal computed field properties cannot be
+    // referenced either. `DateTimeItemOverride` marks `date` internal.
+    // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\DateTimeItemOverride
+    FieldStorageConfig::create([
+      'field_name' => 'field_date',
+      'entity_type' => 'entity_test',
+      'type' => 'datetime',
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'field_date',
+      'entity_type' => 'entity_test',
+      'bundle' => 'entity_test',
+      'label' => 'Date',
+    ])->save();
+
+    // A field whose raw `uri` property is not resolvable to a
+    // browser-accessible URL (it can be `entity:node/1`) — for the case
+    // asserting raw URI properties cannot be referenced.
+    // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\LinkItemOverride
+    FieldStorageConfig::create([
+      'field_name' => 'field_link',
+      'entity_type' => 'entity_test',
+      'type' => 'link',
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'field_link',
+      'entity_type' => 'entity_test',
+      'bundle' => 'entity_test',
+      'label' => 'Link',
+    ])->save();
+
     // A multi-valued reference field — for the case asserting multi-valued
     // fields cannot be referenced.
     FieldStorageConfig::create([
@@ -1760,6 +1797,41 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     yield 'entityFields targeting an internal field property' => [
       ['entityFields' => ['my_reference' => ['ℹ︎␜entity:entity_test:entity_test␝field_with_secret␞␟secret']]],
       ['dataDependencies.entityFields.my_reference.0' => "The field property 'entity:entity_test.field_with_secret.secret' is internal and cannot be referenced."],
+      [],
+    ];
+
+    // Same, for a *computed* property explicitly marked internal:
+    // `DateTimeItemOverride` marks `date` internal, but because `date` is
+    // also computed, `DataDefinitionInterface::isInternal()` cannot
+    // distinguish that explicit mark from the default computed-properties-
+    // are-internal behavior — this used to go undetected.
+    // @see \Drupal\canvas\Utility\TypedDataHelper::isExplicitlyInternal()
+    yield 'entityFields targeting an internal computed field property' => [
+      ['entityFields' => ['my_reference' => ['ℹ︎␜entity:entity_test:entity_test␝field_date␞␟date']]],
+      ['dataDependencies.entityFields.my_reference.0' => "The field property 'entity:entity_test.field_date.date' is internal and cannot be referenced."],
+      [],
+    ];
+
+    // A `link` field's raw `uri` is not resolvable to a browser-accessible URL
+    // (it can be `entity:node/1`), so storing an expression targeting it is
+    // rejected. `uri` is not internal, so
+    // EntityFieldExpressionMustNotTargetInternalProperty does not catch this.
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\EntityFieldExpressionMayOnlyTargetResolvableUrisConstraint
+    yield 'entityFields targeting a raw uri field property' => [
+      ['entityFields' => ['my_reference' => ['ℹ︎␜entity:entity_test:entity_test␝field_link␞␟uri']]],
+      ['dataDependencies.entityFields.my_reference.0' => "The field property 'entity:entity_test.field_link.uri' is a raw URI, not guaranteed to resolve to a browser-accessible URL, and cannot be referenced."],
+      [],
+    ];
+
+    // Only the raw `uri` is rejected: a `link` field remains fully usable in
+    // CER through `url`, Canvas's computed, resolvable resolution of `uri` (it
+    // carries a UriSchemeConstraint restricted to http/https, so
+    // TypedDataHelper::isRestrictedToHttpSchemes() lets it through). A "Read
+    // more" style component can still bind a link's destination this way.
+    // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\LinkItemOverride
+    yield 'entityFields targeting a link field\'s resolvable url property' => [
+      ['entityFields' => ['my_reference' => ['ℹ︎␜entity:entity_test:entity_test␝field_link␞␟url']]],
+      [],
       [],
     ];
 

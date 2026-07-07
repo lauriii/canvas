@@ -104,11 +104,13 @@ class ImageItemOverride extends ImageItem {
     // content-entity-reference selection exposes this in the UI and as a
     // variable in code for code component developers, so we want them to be
     // able to reference it with just `src` without exposed internal
-    // implementation details.
+    // implementation details. The label is the one a Code Component Developer
+    // sees in the selection UI, so it omits the implementation detail too.
     // @todo It's not sustainable nor ecosystem-friendly to add computed field properties to field types. Remove in favor of adapters in https://www.drupal.org/project/canvas/issues/3464003.
     // ⚠️ TRICKY: switching to adapters will require an update path for ALL
     // component trees where this field property is being consumed.
     $properties['src'] = clone $properties['src_with_alternate_widths'];
+    $properties['src']->setLabel(new TranslatableMarkup('Image URL'));
     $properties['src']->setSetting('is source for', 'src_with_alternate_widths');
 
     return $properties;

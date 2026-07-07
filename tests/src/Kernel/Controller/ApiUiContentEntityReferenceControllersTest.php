@@ -54,6 +54,14 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
     // Provides `internal_string_field` (a base field marked internal), to assert
     // the picker omits internal fields.
     'entity_test',
+    // Adds `content_translation_source`/`content_translation_outdated` base
+    // fields when a bundle is translatable, to assert the picker omits the
+    // translation/revision metadata base fields.
+    'language',
+    'content_translation',
+    // Provides the `daterange` field type, to assert the picker omits its
+    // computed `start_date`/`end_date` properties.
+    'datetime_range',
   ];
 
   protected function setUp(): void {
@@ -104,6 +112,54 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
       'entity_type' => 'node',
       'bundle' => 'article',
       'label' => 'Link',
+    ])->save();
+
+    // Formatted text fields (one per text field type) — exercise the picker
+    // hiding each type's raw properties in favor of its processed one(s).
+    foreach ([
+      'field_text' => 'text',
+      'field_text_long' => 'text_long',
+      'field_text_with_summary' => 'text_with_summary',
+    ] as $field_name => $field_type) {
+      FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'type' => $field_type,
+      ])->save();
+      FieldConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'bundle' => 'article',
+        'label' => $field_name,
+      ])->save();
+    }
+
+    // Datetime and date range fields — exercise the picker hiding their
+    // computed DrupalDateTime-object properties (`date`, `start_date`,
+    // `end_date`), which are not evaluable without an adapter.
+    FieldStorageConfig::create([
+      'field_name' => 'field_date',
+      'entity_type' => 'node',
+      'type' => 'datetime',
+      'settings' => ['datetime_type' => 'datetime'],
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'field_date',
+      'entity_type' => 'node',
+      'bundle' => 'article',
+      'label' => 'Date',
+    ])->save();
+
+    FieldStorageConfig::create([
+      'field_name' => 'field_date_range',
+      'entity_type' => 'node',
+      'type' => 'daterange',
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'field_date_range',
+      'entity_type' => 'node',
+      'bundle' => 'article',
+      'label' => 'Date range',
     ])->save();
 
     // Plain file field — non-image reference whose non-`entity` properties
@@ -309,11 +365,15 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Image field exposes all non-internal, non-`entity` typed-data properties.
+   * Image field exposes `src`, but not its implementation-detail computed twins.
    *
    * Image fields are references (target=file). The response must include
-   * Canvas's computed `src_with_alternate_widths` and
-   * `srcset_candidate_uri_template` (computed-but-not-explicitly-internal).
+   * Canvas's computed `src` (labelled "Image URL") but neither of the other
+   * computed properties Canvas adds: `src_with_alternate_widths` (the property
+   * `src` is cloned from, so listing it would show the same URL twice) and
+   * `srcset_candidate_uri_template` (a raw URI template feeding `src`).
+   *
+   * @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride
    */
   public function testFieldsEndpointImageFieldExposesAllProperties(): void {
     $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access content']);
@@ -334,24 +394,34 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
 
     $props_by_name = \array_column($row['properties'], NULL, 'name');
     // Exact non-`entity` property set: target_id (from EntityReferenceItem),
-    // alt/title/width/height (from ImageItem) plus Canvas's computed
-    // src + src_with_alternate_widths + srcset_candidate_uri_template
-    // (from ImageItemOverride). `display`/`description` are unset by
-    // ImageItem itself.
-    $expected_names = ['target_id', 'alt', 'title', 'width', 'height', 'srcset_candidate_uri_template', 'src_with_alternate_widths', 'src'];
+    // alt/title/width/height (from ImageItem) and Canvas's computed `src`.
+    // Canvas's other computed properties are implementation details and are
+    // hidden: `src_with_alternate_widths` (`src`'s twin) and
+    // `srcset_candidate_uri_template` (a raw URI template feeding `src`).
+    // `display`/`description` are unset by ImageItem itself.
+    $expected_names = ['target_id', 'alt', 'title', 'width', 'height', 'src'];
     \sort($expected_names);
     $actual_names = \array_keys($props_by_name);
     \sort($actual_names);
     self::assertSame($expected_names, $actual_names);
+    self::assertArrayNotHasKey('src_with_alternate_widths', $props_by_name);
+    self::assertArrayNotHasKey('srcset_candidate_uri_template', $props_by_name);
 
     foreach ($expected_names as $property_name) {
       $expected_expression = 'ℹ︎␜entity:node:article␝field_image␞␟' . $property_name;
       self::assertSame($expected_expression, $props_by_name[$property_name]['expression']);
     }
+
+    // `src` is surfaced with the developer-facing label, not the
+    // implementation-detail one it was cloned from.
+    self::assertSame('Image URL', $props_by_name['src']['label']);
   }
 
   /**
    * Following an image field's descend link into file/file returns its fields.
+   *
+   * Also covers that the file entity's own `uri` field hides its raw
+   * stream-wrapper value, keeping only the resolvable computed `url`.
    *
    * @see \Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers::createBundleStub()
    */
@@ -372,13 +442,19 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
       self::assertArrayHasKey($expected_file_field, $file_fields);
     }
 
-    // The file fields' expressions descend through the image reference: each is
-    // a reference expression rooted at the article, following field_image into
-    // the file, with the file property as the leaf.
-    $uri_prop = \array_column($file_fields['uri']['properties'], NULL, 'name')['value'];
+    // `uri`'s raw stream-wrapper value (e.g. `public://...`) is not resolvable
+    // to a browser-accessible URL, so it is hidden; the computed `url` is offered
+    // instead. The file fields' expressions descend through the image
+    // reference: each is a reference expression rooted at the article,
+    // following field_image into the file, with the file property as the
+    // leaf.
+    // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\FileUriItemOverride::propertyDefinitions()
+    $uri_props_by_name = \array_column($file_fields['uri']['properties'], NULL, 'name');
+    self::assertArrayNotHasKey('value', $uri_props_by_name);
+    self::assertArrayHasKey('url', $uri_props_by_name);
     self::assertSame(
-      'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝uri␞␟value',
-      $uri_prop['expression'],
+      'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝uri␞␟url',
+      $uri_props_by_name['url']['expression'],
     );
   }
 
@@ -550,12 +626,91 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Link field exposes uri/title/options as separate leaves.
+   * The picker omits translation and revision metadata base fields.
+   *
+   * These base fields are not marked internal, so the internal-field rule does
+   * not catch them, but a Code Component Developer never consumes them as
+   * content: "Default translation", "Revision translation affected",
+   * "Translation source", "Translation outdated" and "Revision log message".
+   *
+   * @see \Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers::isIrrelevantMetadataField()
+   */
+  public function testFieldsEndpointOmitsTranslationAndRevisionMetadataFields(): void {
+    // Make article translatable so content_translation adds its metadata base
+    // fields alongside core's default_langcode / revision_log_message /
+    // revision_translation_affected.
+    \Drupal::service('content_translation.manager')->setEnabled('node', 'article', TRUE);
+    $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
+
+    $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access content']);
+    $response = $this->request(Request::create(\sprintf(self::URL_FIELDS, 'node', 'article')));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $by_name = \array_column(self::decodeResponse($response)['data'], NULL, 'name');
+
+    // The bookkeeping base fields the picker must hide. Asserting they exist on
+    // the entity guards against a false positive: without it, the omission
+    // assertion below would also pass if these fields were simply never created
+    // (e.g. if enabling translation silently failed). "Default translation"
+    // (default_langcode), "Revision log message" (node's `revision_log`),
+    // "Revision translation affected" (revision_translation_affected),
+    // "Translation source"/"Translation outdated" (content_translation_*).
+    $field_definitions = $this->container->get('entity_field.manager')->getFieldDefinitions('node', 'article');
+    foreach ([
+      'default_langcode',
+      'revision_log',
+      'revision_translation_affected',
+      'content_translation_source',
+      'content_translation_outdated',
+    ] as $metadata_field) {
+      self::assertArrayHasKey($metadata_field, $field_definitions, "Expected $metadata_field to exist on the article so the picker has something to omit.");
+    }
+
+    // The exact field set offered for a translatable, revisionable article.
+    // None of the bookkeeping fields asserted above appear — even though none
+    // of them is marked internal. The entity's own `langcode` is kept: it is
+    // real content, not bookkeeping.
+    $actual_field_names = \array_keys($by_name);
+    \sort($actual_field_names);
+    self::assertSame([
+      'changed',
+      'created',
+      'field_date',
+      'field_date_range',
+      'field_file',
+      'field_image',
+      'field_link',
+      'field_media',
+      'field_text',
+      'field_text_long',
+      'field_text_with_summary',
+      'field_video',
+      'langcode',
+      'nid',
+      'path',
+      'promote',
+      'revision_timestamp',
+      'revision_uid',
+      'status',
+      'sticky',
+      'title',
+      'type',
+      'uid',
+      'uuid',
+      'vid',
+    ], $actual_field_names);
+  }
+
+  /**
+   * Link field exposes title/options/url as leaves, hiding the raw uri.
    *
    * No object wrapping in the response — combining into a
-   * FieldObjectPropsExpression happens server-side during save.
+   * FieldObjectPropsExpression happens server-side during save. The raw `uri`
+   * is hidden because it lacks a UriSchemeConstraint restricted to
+   * http/https, unlike `url`.
+   *
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\UriSchemeConstraint
    */
-  public function testFieldsEndpointLinkFieldExposesAllProperties(): void {
+  public function testFieldsEndpointLinkFieldHidesRawUri(): void {
     $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access content']);
     $response = $this->request(Request::create(\sprintf(self::URL_FIELDS, 'node', 'article')));
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
@@ -569,13 +724,100 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
     self::assertArrayNotHasKey('links', $row);
 
     $props_by_name = \array_column($row['properties'], NULL, 'name');
-    foreach (['uri', 'title', 'options'] as $property_name) {
+    self::assertArrayNotHasKey('uri', $props_by_name);
+    foreach (['title', 'options', 'url'] as $property_name) {
       self::assertArrayHasKey($property_name, $props_by_name);
       self::assertSame(
         'ℹ︎␜entity:node:article␝field_link␞␟' . $property_name,
         $props_by_name[$property_name]['expression'],
       );
     }
+    self::assertSame('Resolved URL', $props_by_name['url']['label']);
+  }
+
+  /**
+   * Formatted text fields hide their raw input, keeping processed and format.
+   *
+   * `text`/`text_long` hide the raw `value`, keeping `processed`.
+   * `text_with_summary` additionally hides the raw `summary`, keeping
+   * `summary_processed`. `format` is retained in both cases.
+   *
+   * @see \Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers::buildFieldEntry()
+   * @see \Drupal\text\Plugin\Field\FieldType\TextItemBase
+   */
+  public function testFieldsEndpointFormattedTextFieldsHideRawProperties(): void {
+    $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access content']);
+    $response = $this->request(Request::create(\sprintf(self::URL_FIELDS, 'node', 'article')));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $by_name = \array_column(self::decodeResponse($response)['data'], NULL, 'name');
+
+    foreach (['field_text', 'field_text_long'] as $field_name) {
+      self::assertArrayHasKey($field_name, $by_name);
+      $props_by_name = \array_column($by_name[$field_name]['properties'], NULL, 'name');
+      self::assertArrayNotHasKey('value', $props_by_name);
+      self::assertArrayHasKey('format', $props_by_name);
+      self::assertSame(
+        'ℹ︎␜entity:node:article␝' . $field_name . '␞␟format',
+        $props_by_name['format']['expression'],
+      );
+      self::assertArrayHasKey('processed', $props_by_name);
+      self::assertSame(
+        'ℹ︎␜entity:node:article␝' . $field_name . '␞␟processed',
+        $props_by_name['processed']['expression'],
+      );
+    }
+
+    self::assertArrayHasKey('field_text_with_summary', $by_name);
+    $props_by_name = \array_column($by_name['field_text_with_summary']['properties'], NULL, 'name');
+    self::assertArrayNotHasKey('value', $props_by_name);
+    self::assertArrayNotHasKey('summary', $props_by_name);
+    self::assertArrayHasKey('format', $props_by_name);
+    self::assertSame(
+      'ℹ︎␜entity:node:article␝field_text_with_summary␞␟format',
+      $props_by_name['format']['expression'],
+    );
+    self::assertArrayHasKey('processed', $props_by_name);
+    self::assertSame(
+      'ℹ︎␜entity:node:article␝field_text_with_summary␞␟processed',
+      $props_by_name['processed']['expression'],
+    );
+    self::assertArrayHasKey('summary_processed', $props_by_name);
+    self::assertSame(
+      'ℹ︎␜entity:node:article␝field_text_with_summary␞␟summary_processed',
+      $props_by_name['summary_processed']['expression'],
+    );
+  }
+
+  /**
+   * Datetime fields hide their computed DrupalDateTime-object properties.
+   *
+   * `date` (`field_date`) and `start_date`/`end_date` (`field_date_range`)
+   * are `DrupalDateTime` objects, not evaluable without an adapter; picking
+   * them previously crashed rendering with a `preg_match()` TypeError.
+   *
+   * @todo Revisit once an adapter for `DrupalDateTime` exists, in https://www.drupal.org/project/canvas/issues/3464003.
+   *
+   * @see \Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers::buildFieldEntry()
+   * @see \Drupal\canvas\Utility\TypedDataHelper::isExplicitlyInternal()
+   * @see \Drupal\datetime\DateTimeComputed
+   */
+  public function testFieldsEndpointDateTimeFieldsHideComputedDateProperties(): void {
+    $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access content']);
+    $response = $this->request(Request::create(\sprintf(self::URL_FIELDS, 'node', 'article')));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $by_name = \array_column(self::decodeResponse($response)['data'], NULL, 'name');
+
+    self::assertArrayHasKey('field_date', $by_name);
+    $props_by_name = \array_column($by_name['field_date']['properties'], NULL, 'name');
+    self::assertArrayNotHasKey('date', $props_by_name);
+    self::assertArrayHasKey('value', $props_by_name);
+
+    self::assertArrayHasKey('field_date_range', $by_name);
+    $props_by_name = \array_column($by_name['field_date_range']['properties'], NULL, 'name');
+    self::assertArrayNotHasKey('start_date', $props_by_name);
+    self::assertArrayNotHasKey('end_date', $props_by_name);
+    self::assertArrayHasKey('value', $props_by_name);
+    self::assertArrayHasKey('end_value', $props_by_name);
   }
 
   /**

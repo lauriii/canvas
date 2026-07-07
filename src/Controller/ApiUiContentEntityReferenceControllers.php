@@ -5,19 +5,23 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\CanvasUriDefinitions;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
+use Drupal\canvas\Utility\TypedDataHelper;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
@@ -29,6 +33,7 @@ use Drupal\Core\TypedData\ComplexDataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceDefinitionInterface;
 use Drupal\Core\Url;
 use Drupal\file\FileInterface;
+use Drupal\text\Plugin\Field\FieldType\TextItemBase;
 use Drupal\user\UserInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -181,8 +186,12 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
       // Skip internal (non-computed) fields, mirroring the per-property rule in
       // buildFieldEntry(): the picker must not offer what storage rejects.
       // @see ::buildFieldEntry()
+      // @see \Drupal\canvas\Utility\TypedDataHelper::isEffectivelyInternal()
       // @see \Drupal\canvas\Plugin\Validation\Constraint\EntityFieldExpressionMustNotTargetInternalPropertyConstraint
-      if ($field_definition->isInternal() && !$field_definition->isComputed()) {
+      if (TypedDataHelper::isEffectivelyInternal($field_definition)) {
+        continue;
+      }
+      if (self::isConsideredIrrelevant($entity_type_def, $field_definition->getName())) {
         continue;
       }
       // Skip multi-valued fields, for the same reason: the picker composes
@@ -285,6 +294,44 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
   }
 
   /**
+   * Whether a base field is entity-system bookkeeping the picker should hide.
+   *
+   * Covers the translation and revision metadata base fields a Code Component
+   * Developer never consumes as content: "Default translation", "Revision
+   * translation affected", "Translation source", "Translation outdated" and
+   * "Revision log message". None are marked internal, so the internal-field
+   * rule in listFields() cannot reach them.
+   *
+   * Mirrors the intent of PropSourceSuggester::isConsideredIrrelevant() but is
+   * kept separate: the two surfaces have different needs (e.g. this picker
+   * offers a reference field's `target_id`, which the suggester hides).
+   *
+   * @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester::isConsideredIrrelevant()
+   */
+  private static function isConsideredIrrelevant(EntityTypeInterface $entity_type, string $field_name): bool {
+    // "Default translation" and "Revision translation affected" are both
+    // default entity keys, defined on the base entity type regardless of
+    // whether it is a content or config entity.
+    // @see \Drupal\Core\Entity\EntityType::__construct()
+    $irrelevant = [
+      $entity_type->getKey('default_langcode'),
+      $entity_type->getKey('revision_translation_affected'),
+    ];
+    if ($entity_type instanceof ContentEntityTypeInterface) {
+      // The "Revision log message" field name is entity-type specific (node
+      // names it `revision_log`), so resolve it through the metadata key,
+      // which is only declared on ContentEntityTypeInterface.
+      $irrelevant[] = $entity_type->getRevisionMetadataKey('revision_log_message');
+    }
+    // content_translation adds these fixed-name base fields when a bundle is
+    // translatable.
+    // @see \Drupal\content_translation\ContentTranslationHandler::fieldStorageDefinitions()
+    $irrelevant[] = 'content_translation_source';
+    $irrelevant[] = 'content_translation_outdated';
+    return \in_array($field_name, \array_filter($irrelevant), TRUE);
+  }
+
+  /**
    * Builds the JSON entry for a single field.
    *
    * Every non-internal typed-data property of the field becomes a row in
@@ -327,8 +374,61 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
       // Skip properties that are internal but not computed — i.e. internal
       // because the developer marked them as such, not because of the
       // computed-defaults-to-internal behavior in core. Computed properties
-      // (e.g. Canvas's `src_with_alternate_widths`) stay pickable.
-      if ($property_definition->isInternal() && !$property_definition->isComputed()) {
+      // (e.g. Canvas's `src_with_alternate_widths`) stay pickable, unless the
+      // definition explicitly opts back in to being internal (e.g. `date`,
+      // via `DateTimeItemOverride`).
+      // @see \Drupal\canvas\Utility\TypedDataHelper::isEffectivelyInternal()
+      if (TypedDataHelper::isEffectivelyInternal($property_definition)) {
+        continue;
+      }
+      // The `image` field type exposes two computed properties that survive the
+      // rule above (computed and non-internal) but are implementation details a
+      // Code Component Developer should not pick: `src_with_alternate_widths`
+      // (which `src` clones, so listing it would show the same URL twice) and
+      // `srcset_candidate_uri_template` (a raw RFC 6570 URI template that feeds
+      // `src`). The developer-facing `src` is offered instead. They are
+      // excluded by name so any other (existing or future) image property stays
+      // offered by default.
+      // @todo Remove the `src_with_alternate_widths` exclusion once it is removed entirely in https://git.drupalcode.org/project/canvas/-/work_items/3591648
+      //
+      // This is done here, in the picker only: marking those properties
+      // internal at the field-type level would also hide them from
+      // PropSourceSuggester, which still offers them. The `is source for`
+      // setting cannot drive it either — it is set on `src`, and
+      // EntityFieldPropSourceMatcher reads it the other way around (it hides
+      // `src` and keeps `src_with_alternate_widths`), the opposite of what the
+      // picker wants.
+      // @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher::recurseDataDefinitionInterface()
+      // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride::propertyDefinitions()
+      if (\in_array($property_name, ['src_with_alternate_widths', 'srcset_candidate_uri_template'], TRUE)
+        && \is_a($item_definition->getClass(), ImageItemOverride::class, TRUE)) {
+        continue;
+      }
+      // Formatted text field types (`text`, `text_long`, `text_with_summary`
+      // — all extend `TextItemBase`) expose the raw, unprocessed user input
+      // `value`/`summary`; exposing those would let a code component render
+      // markup that never passed through the text format's filters (an XSS
+      // vector), so keep only the computed `processed`/`summary_processed`.
+      // `format` is retained: it is not the raw input, and a code component
+      // may need it to conditionally load assets the way a Drupal `filter`
+      // plugin does, which `processed` cannot bubble when consumed over the
+      // API.
+      // @see \Drupal\text\Plugin\Field\FieldType\TextItemBase
+      // @see \Drupal\filter\FilterProcessResult
+      if (\in_array($property_name, ['value', 'summary'], TRUE)
+        && \is_a($item_definition->getClass(), TextItemBase::class, TRUE)) {
+        continue;
+      }
+      // A `uri`-typed property not constrained to the http/https schemes is
+      // not guaranteed to resolve to a browser-accessible URL: e.g. the
+      // `link` field type's raw `uri` can be `entity:node/1` or
+      // `internal:/node`, and the `file_uri` field type's raw `value` is a
+      // stream-wrapper URI like `public://image.jpg`. Properties that resolve
+      // such values to a browser-accessible URL add their own
+      // UriSchemeConstraint restricted to http/https instead (e.g. link's
+      // `url`, file's `url`).
+      // @see \Drupal\canvas\Utility\TypedDataHelper::isRestrictedToHttpSchemes()
+      if ($property_definition->getDataType() === 'uri' && !TypedDataHelper::isRestrictedToHttpSchemes($property_definition)) {
         continue;
       }
       // The typed-data reference property on reference fields is the descend

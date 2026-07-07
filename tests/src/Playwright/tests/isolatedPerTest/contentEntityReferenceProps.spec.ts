@@ -175,14 +175,13 @@ test.describe('Content entity reference props', () => {
       await dialog
         .getByRole('button', { name: 'Expand Body', exact: true })
         .click();
-      const bodyValue = fieldCheckbox(dialog, 'Body → Text');
-      await expect(bodyValue).toBeVisible();
-      await bodyValue.click();
-      await expect(bodyValue).toHaveAttribute('data-state', 'checked');
-      await expect(fieldCheckbox(dialog, 'Body → Summary')).toHaveAttribute(
-        'data-state',
-        'unchecked',
-      );
+      const bodyProcessedText = fieldCheckbox(dialog, 'Body → Processed text');
+      await expect(bodyProcessedText).toBeVisible();
+      await bodyProcessedText.click();
+      await expect(bodyProcessedText).toHaveAttribute('data-state', 'checked');
+      await expect(
+        fieldCheckbox(dialog, 'Body → Processed summary'),
+      ).toHaveAttribute('data-state', 'unchecked');
       await expect(body).toHaveAttribute('data-state', 'indeterminate');
 
       await dialog
@@ -224,14 +223,12 @@ test.describe('Content entity reference props', () => {
       await reopened
         .getByRole('button', { name: 'Expand Body', exact: true })
         .click();
-      await expect(fieldCheckbox(reopened, 'Body → Text')).toHaveAttribute(
-        'data-state',
-        'checked',
-      );
-      await expect(fieldCheckbox(reopened, 'Body → Summary')).toHaveAttribute(
-        'data-state',
-        'unchecked',
-      );
+      await expect(
+        fieldCheckbox(reopened, 'Body → Processed text'),
+      ).toHaveAttribute('data-state', 'checked');
+      await expect(
+        fieldCheckbox(reopened, 'Body → Processed summary'),
+      ).toHaveAttribute('data-state', 'unchecked');
 
       await reopened
         .getByRole('button', { name: 'Expand Authored by', exact: true })
