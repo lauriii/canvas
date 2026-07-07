@@ -18,14 +18,18 @@ use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Form\WorkspaceSafeFormInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Allows editing a component instance.
  *
+ * Workspace-safe: submissions only shape component input values that are
+ * staged in the Canvas auto-save workspace; nothing is written to Live.
+ *
  * @see \Drupal\canvas\ComponentSource\ComponentSourceInterface::buildComponentInstanceForm()
  */
-final class ComponentInstanceForm extends FormBase {
+final class ComponentInstanceForm extends FormBase implements WorkspaceSafeFormInterface {
 
   public const FORM_ID = 'component_instance_form';
 

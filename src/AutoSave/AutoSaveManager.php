@@ -1121,10 +1121,12 @@ class AutoSaveManager implements EventSubscriberInterface {
   }
 
   public function onCanvasConfigDelete(ConfigCrudEvent $event): void {
-    $autoSaveEntities = $this->getAllAutoSaveList(with_entities: TRUE, with_conflicts: FALSE);
-    $autoSaveEntities = array_filter($autoSaveEntities, fn($entityData) => $entityData['entity'] instanceof StagedConfigUpdate);
-    foreach ($autoSaveEntities as $autoSaveEntity) {
-      $staged_config_update = $autoSaveEntity['entity'];
+    // This fires for every config deletion, by any user (or none, e.g. web
+    // update.php runs): only reconstruct StagedConfigUpdate drafts, which
+    // stage without workspace involvement, instead of building the full
+    // auto-save list, which requires workspace view access.
+    // @see \Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave::loadStagedEntitiesOfType()
+    foreach ($this->workspaceAutoSave->loadStagedEntitiesOfType(StagedConfigUpdate::ENTITY_TYPE_ID) as $staged_config_update) {
       \assert($staged_config_update instanceof StagedConfigUpdate);
       if ($staged_config_update->getTarget() === $event->getConfig()->getName()) {
         $this->delete($staged_config_update);

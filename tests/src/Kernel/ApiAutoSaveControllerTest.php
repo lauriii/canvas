@@ -1297,6 +1297,11 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $library_storage = $entity_type_manager->getStorage(AssetLibrary::ENTITY_TYPE_ID);
     $page_storage = $entity_type_manager->getStorage(Page::ENTITY_TYPE_ID);
     $content_template_storage = $entity_type_manager->getStorage(ContentTemplate::ENTITY_TYPE_ID);
+    // Same staleness hazard for the auto-save manager: its captured workspace
+    // manager instance would otherwise disagree with the current container's
+    // one about the active workspace, silently turning staged saves into Live
+    // saves.
+    $autoSave = $this->container->get(AutoSaveManager::class);
 
     $this->assertNotNull($page->id());
     $page = $page_storage->loadUnchanged($page->id());

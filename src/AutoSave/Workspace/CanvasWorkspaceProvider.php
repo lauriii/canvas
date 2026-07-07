@@ -7,9 +7,14 @@ namespace Drupal\canvas\AutoSave\Workspace;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\workspaces\Provider\WorkspaceProviderBase;
+use Drupal\workspaces\WorkspaceInformationInterface;
 use Drupal\workspaces\WorkspaceInterface;
+use Drupal\workspaces\WorkspaceManagerInterface;
+use Drupal\workspaces\WorkspaceTrackerInterface;
 
 /**
  * Workspace provider for the Canvas-managed workspace.
@@ -34,6 +39,16 @@ use Drupal\workspaces\WorkspaceInterface;
  */
 final class CanvasWorkspaceProvider extends WorkspaceProviderBase {
 
+  public function __construct(
+    EntityTypeManagerInterface $entityTypeManager,
+    WorkspaceManagerInterface $workspaceManager,
+    WorkspaceTrackerInterface $workspaceTracker,
+    WorkspaceInformationInterface $workspaceInfo,
+    private readonly RouteMatchInterface $routeMatch,
+  ) {
+    parent::__construct($entityTypeManager, $workspaceManager, $workspaceTracker, $workspaceInfo);
+  }
+
   /**
    * {@inheritdoc}
    */
@@ -57,12 +72,18 @@ final class CanvasWorkspaceProvider extends WorkspaceProviderBase {
       return AccessResult::allowed()->cachePerPermissions();
     }
     if ($operation === 'view') {
-      // update.php runs the legacy key-value migration as the anonymous user;
-      // switching into the workspace requires view access. Core already
-      // exempts CLI (drush updb) from the check.
+      // update.php runs the legacy key-value migration as the anonymous user
+      // (update_free_access) or as an operator without Canvas permissions;
+      // switching into the workspace requires view access. update.php
+      // requests are dispatched through UpdateKernel, which stubs every
+      // request with the system.db_update route and does not define
+      // MAINTENANCE_MODE, so the route name is the reliable signal. Core
+      // already exempts CLI (drush updb) from the check.
       // @see canvas_post_update_0023_migrate_auto_save_to_workspace()
       // @see \Drupal\workspaces\WorkspaceManager::doSwitchWorkspace()
-      if (\defined('MAINTENANCE_MODE') && \constant('MAINTENANCE_MODE') === 'update') {
+      // @see \Drupal\Core\Update\UpdateKernel::setupRequestMatch()
+      if ($this->routeMatch->getRouteName() === 'system.db_update'
+        || (\defined('MAINTENANCE_MODE') && \constant('MAINTENANCE_MODE') === 'update')) {
         return AccessResult::allowed()->setCacheMaxAge(0);
       }
       if (self::accountHasCanvasAutoSaveWorkspaceAccess($account)) {

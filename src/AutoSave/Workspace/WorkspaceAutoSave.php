@@ -14,6 +14,7 @@ use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
@@ -238,6 +239,23 @@ final class WorkspaceAutoSave {
     $storage = $this->entityTypeManager->getStorage($legacy['entity_type']);
     $staged = $storage->create($legacy['data']);
     \assert($staged instanceof EntityInterface);
+    // The staged draft targets $entity: enforce its identity, or the persist
+    // would create a new entity instead of staging a revision of the existing
+    // one. ::create() marks the reconstruction as new even when the legacy
+    // data carries the id, and pre-1.0 legacy rows may lack the id entirely.
+    if ($staged instanceof ContentEntityInterface && $entity instanceof ContentEntityInterface) {
+      $entity_type = $storage->getEntityType();
+      foreach (['id', 'uuid'] as $key_name) {
+        $key = $entity_type->getKey($key_name);
+        if (\is_string($key) && $key !== '' && $staged->get($key)->isEmpty()) {
+          $staged->set($key, $entity->get($key)->value);
+        }
+      }
+      $staged->enforceIsNew(FALSE);
+      if ($staged instanceof RevisionableInterface) {
+        $staged->updateLoadedRevisionId();
+      }
+    }
     // Pass the legacy entry through so its metadata (owner, updated,
     // original_hash, conflict retention) survives the migration.
     $this->persistStagedEntity($staged, $legacy['client_id'] ?? NULL, TRUE, $legacy);
@@ -604,6 +622,38 @@ final class WorkspaceAutoSave {
   }
 
   /**
+   * Reconstructs all staged drafts of one entity type, unsaved.
+   *
+   * Config entity drafts live in snapshot rows or (pre-migration, or without
+   * workspace infrastructure) key-value rows, so this read never activates
+   * the auto-save workspace. That matters for callers reacting to events
+   * triggered by users without workspace view access, e.g. the config-delete
+   * hook firing for arbitrary config deletions.
+   *
+   * @return \Drupal\Core\Entity\EntityInterface[]
+   *
+   * @see \Drupal\canvas\AutoSave\AutoSaveManager::onCanvasConfigDelete()
+   */
+  public function loadStagedEntitiesOfType(string $entity_type_id): array {
+    $entities = [];
+    $storage = $this->entityTypeManager->getStorage($entity_type_id);
+    foreach ($this->snapshotRepository->loadAll() as $snapshot) {
+      if ($snapshot->getTargetEntityTypeId() !== $entity_type_id) {
+        continue;
+      }
+      $data = \json_decode($snapshot->getPayload(), TRUE, 512, JSON_THROW_ON_ERROR);
+      $entities[] = $storage->create($data);
+    }
+    foreach ($this->keyValueFactory->get(AutoSaveManager::AUTO_SAVE_STORE)->getAll() as $entry) {
+      if (($entry['entity_type'] ?? NULL) !== $entity_type_id || !isset($entry['data']) || !\is_array($entry['data'])) {
+        continue;
+      }
+      $entities[] = $storage->create($entry['data']);
+    }
+    return $entities;
+  }
+
+  /**
    * Adds content staged only in the auto-save workspace (no KV/snapshot).
    *
    * Node and other content entities are persisted via $entity->save() in the
@@ -622,6 +672,10 @@ final class WorkspaceAutoSave {
     }
     /** @var \Drupal\workspaces\WorkspaceManagerInterface $wm */
     $wm = $this->workspaceManager;
+    // The workspace must be active for this read: computed fields on staged
+    // revisions (e.g. a page's path alias, staged as a dependent path_alias
+    // entity) only resolve to their staged values inside the workspace, and
+    // the emitted data_hash must match what per-entity staging reads produce.
     $wm->executeInWorkspace(AutoSaveWorkspace::ID, function () use (&$out, $wm): void {
       $tracked = $this->workspaceAssociation->getTrackedEntities(AutoSaveWorkspace::ID);
       foreach ($tracked as $entity_type_id => $revision_map) {
@@ -810,6 +864,61 @@ final class WorkspaceAutoSave {
       foreach ($dependent_ids as $dependent_id) {
         $this->discardTrackedRevisions($dependent_type_id, $dependent_id);
       }
+    }
+  }
+
+  /**
+   * Publishes staged dependent entities (e.g. path aliases) of a host item.
+   *
+   * A path alias created while staging is a new path_alias entity whose Live
+   * (default) revision core Workspaces keeps unpublished so it stays
+   * invisible outside the workspace. Canvas publishes hosts selectively (it
+   * never calls Workspace::publish()), so when a host goes live its dependent
+   * entities must be published explicitly; core's workspace-level publish
+   * would otherwise have done this.
+   *
+   * Call after the host entity has been saved to Live: that save (e.g.
+   * PathItem::postSave()) already wrote the staged field values to the
+   * dependent's Live revision, so only its published status is missing.
+   *
+   * @see ::discardDependentStagedEntities()
+   * @see \Drupal\workspaces\Hook\EntityOperations::entityPresave()
+   */
+  public function publishDependentStagedEntities(ContentEntityInterface $entity): void {
+    if ($this->workspaceManager === NULL) {
+      return;
+    }
+    try {
+      $host_path = '/' . $entity->toUrl()->getInternalPath();
+    }
+    catch (\Exception) {
+      // Entities without a canonical route cannot have aliases.
+      return;
+    }
+    /** @var \Drupal\workspaces\WorkspaceManagerInterface $wm */
+    $wm = $this->workspaceManager;
+    foreach (self::DEPENDENT_ENTITY_TYPE_IDS as $dependent_type_id) {
+      if (!$this->entityTypeManager->hasDefinition($dependent_type_id)) {
+        continue;
+      }
+      $storage = $this->entityTypeManager->getStorage($dependent_type_id);
+      // The whole read-check-write must happen outside the workspace: the
+      // auto-save workspace is active during Canvas API requests, and inside
+      // it loads resolve to the pending revision, which core created as
+      // published; only the Live default revision carries the unpublished
+      // marker this method must lift.
+      $wm->executeOutsideWorkspace(static function () use ($storage, $host_path): void {
+        $ids = $storage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('path', $host_path)
+          ->execute();
+        foreach ($storage->loadMultiple($ids) as $dependent) {
+          if ($dependent instanceof EntityPublishedInterface && !$dependent->isPublished()) {
+            $dependent->setPublished();
+            $dependent->save();
+          }
+        }
+      });
     }
   }
 
