@@ -19,6 +19,8 @@ versioned_properties:
             -
               value: 'A heading element'
           expression: ℹ︎string␟value
+          derived_schema_metadata:
+            string_shape: {  }
         style:
           required: false
           field_type: list_string
@@ -30,6 +32,7 @@ versioned_properties:
             -
               value: primary
           expression: ℹ︎list_string␟value
+          derived_schema_metadata: {  }
         element:
           required: true
           field_type: list_string
@@ -41,6 +44,7 @@ versioned_properties:
             -
               value: h1
           expression: ℹ︎list_string␟value
+          derived_schema_metadata: {  }
     fallback_metadata:
       slot_definitions: {  }
 label: Heading

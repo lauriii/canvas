@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropShape;
 
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\Component\Assertion\Inspector;
@@ -275,6 +276,14 @@ final class PropShape {
    * @see \Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint::MARKUP
    */
   public static function isPlainOrRichProse(array $prop_schema): bool {
+    // TRICKY: prose should not have a minimum or maximum length, because each
+    // language can have a short or long word for the same concept, which would
+    // make it impossible to translate from one language to another. Plus,
+    // translation systems tend to not deal with minimum and maximum length.
+    // @todo Consider allowing `minLength` and/or `maxLength` JSON schema constraints in the future, but then translation systems must also respect this; otherwise they would trigger validation errors.
+    // @see https://git.drupalcode.org/project/canvas/-/work_items/3591690
+    // For example: "Hello" (5 characters) in English is "Bonjour" (7
+    // characters) in French.
     return match(static::normalizePropSchema($prop_schema)) {
       // Plain prose, single line.
       ['type' => 'string'] => TRUE,
@@ -286,6 +295,78 @@ final class PropShape {
       ['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'inline'] => TRUE,
       default => FALSE,
     };
+  }
+
+  /**
+   * Computes the translation-relevant string shape of a prop, if any.
+   *
+   * Single source of truth for which prop *shapes* hold author-entered,
+   * translatable text. Translatable shapes are plain strings (single- and
+   * multi-line), rich (HTML) strings and URI-esque strings. So:
+   * - type: string (single-line)
+   * - type: string, pattern: (.|\r?\n)* (multi-line)
+   * - type: string, format: iri
+   * - type: string, format: iri-reference
+   * - type: string, format: uri
+   * - type: string, format: uri-reference
+   * - type: string, contentMediaType: text/html, x-formatting-context: inline
+   * - type: string, contentMediaType: text/html, x-formatting-context: block
+   *
+   * Cardinality is irrelevant — an array of translatable items is translatable
+   * — so this peeks inside `type: array` at its item shape.
+   *
+   * The returned shape is reduced to the keys that matter to translation
+   * systems: `pattern` (multi-line), `contentMediaType` plus
+   * `x-formatting-context` (rich text) and `format` (URI-esque).
+   * `type: string` is implied and omitted. `x-formatting-context` does not
+   * affect *whether* the shape is translatable, but it is retained because
+   * translation systems must respect it: an `inline` rich text prop must not
+   * receive block-level HTML (let alone multiple paragraphs) from a
+   * translation. This reduced shape is what a component version retains in
+   * its `prop_field_definitions`, so that translatability can be derived —
+   * and re-derived, if the rules ever change — from the shape itself rather
+   * than from a stored boolean.
+   *
+   * NOTE: whether a prop is *actually* translatable also depends on how it is
+   * populated: a reference-backed prop holds structured data, not
+   * author-entered text.
+   *
+   * @param JsonSchema $prop_schema
+   *   A prop's JSON schema: raw SDC metadata or a (normalized) prop shape.
+   *
+   * @return JsonSchema|null
+   *   The reduced translation-relevant string shape (possibly empty, for a
+   *   plain single-line string), or NULL if the shape does not hold
+   *   translatable text. (See `type: canvas.json_schema_props`.)
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::isExplicitInputTranslatable()
+   * @todo Consider adding alter hook to allow more shapes to be translatable in https://drupal.org/i/3584178
+   */
+  public static function getTranslatableStringShape(array $prop_schema): ?array {
+    // For translatability, cardinality is irrelevant, only the shape matters,
+    // so peek inside any array prop at its item shape. Only an array carries an
+    // `items` key, so checking the key (rather than `type`) works whether the
+    // shape has been normalized or is still raw SDC metadata.
+    if (\array_key_exists('items', $prop_schema) && \is_array($prop_schema['items'])) {
+      $prop_schema = $prop_schema['items'];
+    }
+    $normalized = static::normalizePropSchema($prop_schema);
+    if (self::isPlainOrRichProse($normalized)) {
+      // The exact-match nature of ::isPlainOrRichProse() guarantees `pattern`,
+      // `contentMediaType` and `x-formatting-context` hold the sole values
+      // prose allows.
+      return \array_intersect_key($normalized, \array_flip(['pattern', 'contentMediaType', 'x-formatting-context']));
+    }
+    if (
+      ($normalized['type'] ?? NULL) === 'string'
+      && \array_key_exists('format', $normalized)
+      && JsonSchemaStringFormat::tryFrom($normalized['format'])?->isUriEsque()
+    ) {
+      // Deliberately reduced to just `format`: any additional constraint (e.g.
+      // a `pattern`) does not affect translatability.
+      return ['format' => $normalized['format']];
+    }
+    return NULL;
   }
 
 }

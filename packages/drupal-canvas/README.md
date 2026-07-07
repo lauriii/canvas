@@ -200,7 +200,7 @@ const components = [
     parent_uuid: '872cde09-809a-4f48-8bf5-88f37127cb55',
     slot: 'body',
     component_id: 'js.text',
-    component_version: 'b1e991f726a2a266',
+    component_version: 'd34b93534777207a',
     inputs: { content: 'World' },
     label: 'Text',
   },

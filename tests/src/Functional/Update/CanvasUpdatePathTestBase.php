@@ -6,9 +6,12 @@ namespace Drupal\Tests\canvas\Functional\Update;
 
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\FunctionalTests\Update\UpdatePathTestBase;
+use Drupal\Tests\canvas\Traits\AssertSameInputsTrait;
 use Symfony\Component\Validator\ConstraintViolation;
 
 abstract class CanvasUpdatePathTestBase extends UpdatePathTestBase {
+
+  use AssertSameInputsTrait;
 
   protected static function assertEntityIsValid(ConfigEntityInterface $entity): void {
     $violations = $entity->getTypedData()->validate();

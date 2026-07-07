@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Functional\Update;
 
 use Drupal\canvas\CanvasConfigUpdater;
 use Drupal\canvas\Entity\Component;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Group;
@@ -17,6 +18,8 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('canvas')]
 #[Group('canvas_data_model')]
 final class ComponentVersionHashTypedDataCastUpdateTest extends CanvasUpdatePathTestBase {
+
+  use ConstraintViolationsTestTrait;
 
   protected $defaultTheme = 'stark';
 
@@ -50,17 +53,18 @@ final class ComponentVersionHashTypedDataCastUpdateTest extends CanvasUpdatePath
     $component_before = Component::load(self::COMPONENT_ID);
     \assert($component_before instanceof Component);
     self::assertSame(self::OLD_VERSION, $component_before->getActiveVersion());
-    // The component is invalid for one specific reason: the stored (un-cast)
-    // active version hash no longer matches the hash recomputed from the
-    // config-cast settings. Assert that exact violation — recording core's
+    // The component is invalid for the list_float-specific reason: the stored
+    // (un-cast) active version hash no longer matches the hash recomputed from
+    // the config-cast settings. Assert that exact violation — recording core's
     // message here means we will notice if core ever stops casting the value.
-    $violation_messages = \array_map(
-      static fn($violation): string => (string) $violation->getMessage(),
-      \iterator_to_array($component_before->getTypedData()->validate()),
-    );
+    // The fixture also predates `derived_schema_metadata` (one violation per
+    // prop), which canvas_post_update_0021 backfills.
+    // @see \Drupal\Tests\canvas\Functional\Update\ComponentDerivedSchemaMetadataUpdateTest
     self::assertSame([
-      \sprintf('The version %s does not match the hash of the settings for this version, expected %s.', self::OLD_VERSION, self::NEW_VERSION),
-    ], $violation_messages);
+      'active_version' => \sprintf('The version %s does not match the hash of the settings for this version, expected %s.', self::OLD_VERSION, self::NEW_VERSION),
+      'versioned_properties.active.settings.prop_field_definitions.text' => "'derived_schema_metadata' is a required key.",
+      'versioned_properties.active.settings.prop_field_definitions.level' => "'derived_schema_metadata' is a required key.",
+    ], self::violationsToArray($component_before->getTypedData()->validate()));
 
     $this->runUpdates();
 

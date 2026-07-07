@@ -23,6 +23,7 @@ versioned_properties:
           default_value:
             - value: 40
           expression: ℹ︎integer␟value
+          derived_schema_metadata: {  }
         name:
           required: true
           field_type: string
@@ -32,3 +33,5 @@ versioned_properties:
           default_value:
             - value: Canvas
           expression: ℹ︎string␟value
+          derived_schema_metadata:
+            string_shape: {  }

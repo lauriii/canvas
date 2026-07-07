@@ -10,7 +10,6 @@ props:
       type: string
       title: Heading
       description: The text on the left
-      minLength: 2
       examples:
         - Our mission is to deliver the best products and services to our customers. We strive to exceed expectations and continuously improve our offerings.
         - Join us on our journey to innovation and excellence. Your satisfaction is our priority.

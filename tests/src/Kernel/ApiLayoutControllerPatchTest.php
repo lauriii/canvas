@@ -663,7 +663,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         [
           'uuid' => $child_in_description_uuid,
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-          'component_version' => 'b1e991f726a2a266',
+          'component_version' => 'd34b93534777207a',
           'inputs' => [
             'heading' => 'Child in description slot',
           ],
@@ -673,7 +673,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         [
           'uuid' => $child_in_sidebar_uuid,
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-          'component_version' => 'b1e991f726a2a266',
+          'component_version' => 'd34b93534777207a',
           'inputs' => [
             'heading' => 'Child in sidebar slot',
           ],

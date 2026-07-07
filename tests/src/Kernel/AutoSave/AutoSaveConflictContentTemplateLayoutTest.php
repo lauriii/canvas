@@ -44,7 +44,7 @@ class AutoSaveConflictContentTemplateLayoutTest extends ApiLayoutControllerTestB
         [
           'uuid' => '09365c2d-1ee1-47fd-b5a3-7e4f34866186',
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-          'component_version' => 'b1e991f726a2a266',
+          'component_version' => 'd34b93534777207a',
           'inputs' => ['heading' => 'Hello, world!'],
         ],
       ],

@@ -48,7 +48,6 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
  * @todo Disallow JSON schema string formats that do not make sense/are obscure enough — these should be disallowed in \Drupal\sdc\Component\ComponentValidator::validateProps()
  *
  * Will have to fix eventually, but high confidence that it will work:
- * @todo `minLength` and `maxLength` for `string`
  * @todo `multipleOf`, `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum` support for `integer` and `number`.
  * @todo Question: can we reuse \JsonSchema\Constraints\FormatConstraint to validate just prior to passing information from fields to components, only when developing?
  * @todo Use `justinrainbow/json-schema`'s \JsonSchema\Constraints\FormatConstraint to ensure data flowing from Drupal entity is guaranteed to match with JSON schema constraint; log errors in production, throw errors in dev?
@@ -331,10 +330,16 @@ enum JsonSchemaType: string {
           default => NULL,
         },
         // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
-        // @todo Support `minLength`.  ⚠️
+        // TRICKY: using `maxLength` prevents it from being translated.
+        // @see \Drupal\canvas\PropShape\PropShape::isPlainOrRichProse()
         \array_key_exists('maxLength', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('string', 'value'), fieldWidget: 'string_textfield', fieldStorageSettings: [
+          // @todo Are arbitrary max lengths truly supported by the `string` field type? Harden in https://git.drupalcode.org/project/canvas/-/work_items/3591761
           'max_length' => $schema['maxLength'],
         ]),
+        // Drupal core's string field types do not support `minLength` settings.
+        // TRICKY: using `maxLength` prevents it from being translated.
+        // @see \Drupal\canvas\PropShape\PropShape::isPlainOrRichProse()
+        \array_key_exists('minLength', $schema) => NULL,
         TRUE => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('string', 'value'), fieldWidget: 'string_textfield'),
       },
 

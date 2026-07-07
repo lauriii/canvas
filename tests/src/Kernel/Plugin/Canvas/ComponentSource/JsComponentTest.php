@@ -230,6 +230,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'default_value' => [],
             // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
             'expression' => 'ℹ︎entity_reference␟entity␜␜entity:media:video␝field_media_video_file␞␟{src↝entity␜␜entity:file␝uri␞␟url}',
+            'derived_schema_metadata' => [],
           ],
           'displayWidth' => [
             'required' => FALSE,
@@ -243,6 +244,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ['value' => 400],
             ],
             'expression' => 'ℹ︎list_integer␟value',
+            'derived_schema_metadata' => [],
           ],
           'caption' => [
             'required' => TRUE,
@@ -254,6 +256,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ['value' => 'A video'],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
         ],
       ],
@@ -267,6 +270,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'field_widget' => 'string_textfield',
             'default_value' => [0 => ['value' => 'Count']],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
         ],
       ],
@@ -294,6 +298,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -313,6 +318,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ['value' => 'medium'],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -332,6 +338,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ['value' => 'Tag D'],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'links' => [
             'required' => FALSE,
@@ -348,6 +355,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ['uri' => '/bar', 'options' => []],
             ],
             'expression' => 'ℹ︎link␟url',
+            'derived_schema_metadata' => ['string_shape' => ['format' => 'uri-reference']],
           ],
           'scores' => [
             'required' => FALSE,
@@ -363,6 +371,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ['value' => 6],
             ],
             'expression' => 'ℹ︎integer␟value',
+            'derived_schema_metadata' => [],
           ],
           'images' => [
             'required' => FALSE,
@@ -375,6 +384,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -394,6 +404,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
           'size' => [
             'required' => FALSE,
@@ -409,6 +420,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -422,6 +434,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'field_widget' => 'string_textfield',
             'default_value' => [0 => ['value' => 'This is my link']],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'link' => [
             'required' => FALSE,
@@ -439,6 +452,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
             ],
             'expression' => 'ℹ︎link␟url',
+            'derived_schema_metadata' => ['string_shape' => ['format' => 'uri-reference']],
           ],
         ],
       ],
@@ -455,6 +469,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'field_widget' => 'string_textfield',
             'default_value' => [0 => ['value' => 'Canvas']],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'age' => [
             'required' => FALSE,
@@ -464,6 +479,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'field_widget' => 'number',
             'default_value' => [0 => ['value' => 40]],
             'expression' => 'ℹ︎integer␟value',
+            'derived_schema_metadata' => [],
           ],
 
         ],
@@ -478,6 +494,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'field_widget' => 'string_textfield',
             'default_value' => [0 => ['value' => 'Name']],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
         ],
       ],

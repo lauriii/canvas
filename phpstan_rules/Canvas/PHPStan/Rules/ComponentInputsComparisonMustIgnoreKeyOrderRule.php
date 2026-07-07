@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Canvas\PHPStan\Rules;
 
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\Tests\canvas\Functional\Update\CanvasUpdatePathTestBase;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PhpParser\Node;
 use PhpParser\Node\Expr;
@@ -23,14 +24,7 @@ use PHPStan\Type\TypeCombinator;
 /**
  * Forbids order-sensitive assertSame() comparisons of component inputs.
  *
- * Component instance `inputs` are stored in a JSON column whose object key
- * order is not preserved by every database backend (MySQL `json` and
- * PostgreSQL `jsonb` reorder keys; MariaDB and SQLite keep the source order).
- * Input key order is not semantically meaningful, so comparing the result of
- * ComponentTreeItem::getInputs() with the order-sensitive assertSame() produces
- * tests that pass on some database engines and fail on others — and even
- * intermittently. assertSameInputs() (in CanvasKernelTestBase) must be used
- * instead.
+ * AssertSameInputsTrait::assertSameInputs() must be used instead.
  *
  * Detection is type-based: the receiver of getInputs() must be a
  * ComponentTreeItem, so the unrelated AdapterInterface::getInputs() does not
@@ -47,7 +41,8 @@ use PHPStan\Type\TypeCombinator;
  * (e.g. stored in a variable, or returned from an array_map() closure) is not
  * detected. This matches the pragmatic scope of the other Canvas rules.
  *
- * @see \Drupal\Tests\canvas\Kernel\CanvasKernelTestBase::assertSameInputs()
+ * @see \Drupal\Tests\canvas\Traits\AssertSameInputsTrait::assertSameInputs()
+ * @see https://www.drupal.org/node/3348180
  *
  * @implements Rule<CallLike>
  */
@@ -66,11 +61,13 @@ final class ComponentInputsComparisonMustIgnoreKeyOrderRule implements Rule {
       return [];
     }
 
-    // Only enforce in CanvasKernelTestBase subclasses. isSubclassOf() returns
-    // FALSE for CanvasKernelTestBase itself (where assertSameInputs() is
-    // defined and uses assertSame() internally), which is exactly what we want.
+    // Only enforce in CanvasKernelTestBase and CanvasUpdatePathTestBase
+    // subclasses. isSubclassOf() returns FALSE for the base classes
+    // themselves (where the AssertSameInputsTrait providing
+    // assertSameInputs() — which uses assertSame() internally — is analyzed),
+    // which is exactly what we want.
     $classReflection = $scope->getClassReflection();
-    if ($classReflection === NULL || !$classReflection->isSubclassOf(CanvasKernelTestBase::class)) {
+    if ($classReflection === NULL || (!$classReflection->isSubclassOf(CanvasKernelTestBase::class) && !$classReflection->isSubclassOf(CanvasUpdatePathTestBase::class))) {
       return [];
     }
 
@@ -78,7 +75,7 @@ final class ComponentInputsComparisonMustIgnoreKeyOrderRule implements Rule {
       if ($this->isComponentInputsGetterCall($arg->value, $scope)) {
         return [
           RuleErrorBuilder::message(
-            'Use self::assertSameInputs($expected, $actual) instead of assertSame() to compare component instance inputs. Input key order is database-backend-dependent (MySQL/PostgreSQL reorder JSON keys), so an order-sensitive comparison is flaky. The assertSameInputs() method is provided by CanvasKernelTestBase.'
+            'Use self::assertSameInputs($expected, $actual) instead of assertSame() to compare component instance inputs. Input key order is database-backend-dependent (MySQL/PostgreSQL reorder JSON keys) and since Drupal 11.4 trusted-data saves sort stored mappings to schema key order, so an order-sensitive comparison is flaky. The assertSameInputs() method is provided by AssertSameInputsTrait, used by CanvasKernelTestBase and CanvasUpdatePathTestBase.'
           )
             ->identifier('canvas.componentInputsComparisonMustIgnoreKeyOrder')
             ->build(),

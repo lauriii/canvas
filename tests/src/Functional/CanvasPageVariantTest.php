@@ -155,7 +155,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
         [
           'uuid' => self::UUID_IN_ROOT,
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-          'component_version' => 'b1e991f726a2a266',
+          'component_version' => 'd34b93534777207a',
           'inputs' => [
             'heading' => "Hello, world!",
           ],
@@ -211,7 +211,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
         [
           'uuid' => self::UUID_IN_ROOT_ANOTHER,
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '85a5c0c7dd53e0bb',
+          'component_version' => '0e79e884426a53ae',
           'inputs' => [
             'heading' => [
               'sourceType' => PropSource::Static->value . PropSourceBase::SOURCE_TYPE_PREFIX_SEPARATOR . 'field_item:entity_reference',
@@ -237,7 +237,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
     // the Component config entity is configured to do exactly this: component
     // instances must comply with the referenced Component version.
     self::assertSame([
-      'Using a static prop source that deviates from the configuration for Component <em class="placeholder">sdc.canvas_test_sdc.props-slots</em> at version <em class="placeholder">85a5c0c7dd53e0bb</em>.',
+      'Using a static prop source that deviates from the configuration for Component <em class="placeholder">sdc.canvas_test_sdc.props-slots</em> at version <em class="placeholder">0e79e884426a53ae</em>.',
     ], \array_map(
       fn (ConstraintViolationInterface $v) => (string) $v->getMessage(),
       iterator_to_array($pageRegion->getTypedData()->validate()),

@@ -24,6 +24,8 @@ versioned_properties:
             -
               value: Name
           expression: ℹ︎string␟value
+          derived_schema_metadata:
+            string_shape: {  }
     fallback_metadata:
       slot_definitions:
         description:

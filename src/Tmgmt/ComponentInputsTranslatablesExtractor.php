@@ -81,10 +81,17 @@ final class ComponentInputsTranslatablesExtractor {
     // by the props populated by StaticPropSources in the default translation
     // (and `type: ignore`s for any props populated by any other kind of prop
     // source).
+    // The prop set comes from the *versioned* prop field definitions — like
+    // the generated config schema mapping, never from the live
+    // implementation's JSON Schema, which cannot describe the component
+    // version this instance references. Any populated input without a field
+    // definition still gets a (non-translatable) `type: ignore` entry.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator::getConfigSchemaMapping()
     $concrete_schema = [
       'type' => 'mapping',
     ];
-    foreach (\array_keys($component_source->getMetadata()->schema['properties'] ?? []) as $prop_name) {
+    $prop_field_definitions = $component_source->getConfiguration()['prop_field_definitions'] ?? [];
+    foreach (\array_keys($prop_field_definitions + $config_data) as $prop_name) {
       $value = $config_data[$prop_name] ?? NULL;
       if (!JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator::isStaticPropSource($value)) {
         // No need to translate non-static prop sources.
@@ -172,16 +179,17 @@ final class ComponentInputsTranslatablesExtractor {
 
     if ($stored_prop_count === 1) {
       // A single stored property collapses to a scalar value. Decide whether it
-      // is translatable with the SAME rule the config schema generator uses, so
-      // TMGMT never offers an input the generated config schema would reject on
-      // save (and vice versa). A single-stored-property field reachable by a
-      // translatable shape is always a plain string — rich text (value+format)
-      // and URI-esque strings (link: uri+title+options) are multi-property
-      // field types — hence the collapsed scalar is `type: label`.
-      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator::isTranslatableShape()
+      // is translatable with the SAME rule the config schema generator uses —
+      // derived from this component *version's* stored prop field definitions,
+      // not the live implementation — so TMGMT never offers an input the
+      // generated config schema would reject on save (and vice versa). A
+      // single-stored-property field reachable by a translatable shape is
+      // always a plain string — rich text (value+format) and URI-esque strings
+      // (link: uri+title+options) are multi-property field types — hence the
+      // collapsed scalar is `type: label`.
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::isExplicitInputTranslatable()
       // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::collapse()
-      $prop_shape = $component_source->getMetadata()->schema['properties'][$prop_name] ?? [];
-      if (!JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator::isTranslatableShape($prop_shape)) {
+      if (!$component_source->isExplicitInputTranslatable($prop_name)) {
         // Leave $concrete_schema as `type: ignore`: not translatable.
         return $concrete_schema;
       }

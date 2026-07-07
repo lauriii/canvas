@@ -547,21 +547,18 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     $component_config_entity_after = Component::load(JsComponentDiscovery::getComponentConfigEntityId($component->id()));
     self::assertNotNull($component_config_entity_after);
     self::assertSame(['fc47b59d52e9c9e0', '9cf0a5f76460e069'], $component_config_entity_after->getVersions());
-    // TRICKY: This should NOT make the PageRegion invalid, because it continues
-    // to point to the same component version (the old one) and the removed prop
-    // is optional. However, because
-    // JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator must inspect
-    // the actual JSON schema, and SDCs nor code components retain
-    // the JSON schema for deleted/modified props, no JSON schema is available.
-    // @todo This is a regression for default translations of config-defined component trees, caused by ComponentInputsMapping in https://git.drupalcode.org/project/canvas/-/work_items/3582478. Although automatic component instance updating (ComponentInstanceUpdaterInterface) automatically fixes it. Consider fixing this regression by expanding what `type: canvas.json_schema_props`'s `prop_field_definitions` stores: either add `translatable: { type: boolean }`, `json_schema: { type: ignore }`, or something in between (like the prop shape) in <URL>.
+    // This does NOT make the PageRegion invalid: it continues to point to the
+    // same (old) component version, where the removed prop is optional. Even
+    // though the removed prop's JSON Schema is no longer available from the live
+    // implementation (`getMetadata()` can only return the live/deployed schema),
+    // the old version stored each prop's translatability in its
+    // `prop_field_definitions` when it was created, so the config schema mapping
+    // still recognizes `text_two` as a supported key.
     // @phpstan-ignore-next-line method.notFound
     $prop_definitions_after = $component_config_entity_after->getComponentSource()->getExplicitInputDefinitions()['shapes'];
     self::assertSame(['text_one' => ['type' => 'string'], 'text_two' => ['type' => 'string']], $prop_definitions_before);
     self::assertSame(['text_one' => ['type' => 'string']], $prop_definitions_after);
-    self::assertSame([
-      '' => '[<em class="placeholder">es</em>] [<em class="placeholder">component_tree.' . self::REGION_COMPONENT_UUID . '.inputs.text_two</em>] <em class="placeholder">&#039;text_two&#039; is not a supported key.</em>',
-      'component_tree.' . self::REGION_COMPONENT_UUID . '.inputs.text_two' => "'text_two' is not a supported key.",
-    ], self::violationsToArray($region->getTypedData()->validate()));
+    self::assertEntityIsValid($region);
 
     // 5. Request the page layout — this triggers addGlobalRegions() →
     // buildRegion() → updateComponentInstances() → autoSaveManager->saveEntity()
@@ -593,12 +590,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
         ],
       ],
     ], $staged_es->getData());
-    // @todo Remove this assertion in favor of the commented out assertion once <URL> is fixed.
-    // self::assertEntityIsValid($region);
-    self::assertSame([
-      '' => '[<em class="placeholder">es</em>] [<em class="placeholder">component_tree.' . self::REGION_COMPONENT_UUID . '.inputs.text_two</em>] <em class="placeholder">&#039;text_two&#039; is not a supported key.</em>',
-      'component_tree.' . self::REGION_COMPONENT_UUID . '.inputs.text_two' => "'text_two' is not a supported key.",
-    ], self::violationsToArray($region->getTypedData()->validate()));
+    self::assertEntityIsValid($region);
 
     // 7. Publish only the PageRegion auto-save via the auto-save API.
     $response = $this->makePublishAllRequest([$region_key => \array_diff_key($all_auto_saves[$region_key], \array_flip(AutoSaveManager::AUTO_SAVE_INTERNAL_PROPERTIES))]);

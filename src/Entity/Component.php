@@ -607,6 +607,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
       $this->getConfigUpdater()->unsetComponentCategoryProperty($this);
       $this->getConfigUpdater()->updateMultiBundleReferencePropExpressionToMultiBranch($this);
       $this->getConfigUpdater()->updateListFloatComponentVersionHash($this);
+      $this->getConfigUpdater()->updatePropFieldDefinitionsWithDerivedSchemaMetadata($this);
     }
     parent::preSave($storage);
 

@@ -358,13 +358,13 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       [
         'uuid' => 'a3ade070-dc70-4989-b078-85cfd8fc741e',
         'nodeType' => 'component',
-        'type' => 'sdc.canvas_test_sdc.props-no-slots@b1e991f726a2a266',
+        'type' => 'sdc.canvas_test_sdc.props-no-slots@d34b93534777207a',
         'slots' => [],
       ],
       [
         'uuid' => '67d6b081-a62f-463c-a5d8-42a145ec7243',
         'nodeType' => 'component',
-        'type' => 'sdc.canvas_test_sdc.props-no-slots@b1e991f726a2a266',
+        'type' => 'sdc.canvas_test_sdc.props-no-slots@d34b93534777207a',
         'slots' => [],
       ],
     ];
@@ -460,14 +460,14 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
           [
             'uuid' => 'a3ade070-dc70-4989-b078-85cfd8fc741e',
             'nodeType' => 'component',
-            'type' => 'sdc.canvas_test_sdc.props-no-slots@b1e991f726a2a266',
+            'type' => 'sdc.canvas_test_sdc.props-no-slots@d34b93534777207a',
             'name' => NULL,
             'slots' => [],
           ],
           [
             'uuid' => '67d6b081-a62f-463c-a5d8-42a145ec7243',
             'nodeType' => 'component',
-            'type' => 'sdc.canvas_test_sdc.props-no-slots@b1e991f726a2a266',
+            'type' => 'sdc.canvas_test_sdc.props-no-slots@d34b93534777207a',
             'name' => NULL,
             'slots' => [],
           ],
@@ -537,13 +537,13 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
               [
                 'uuid' => 'a3ade070-dc70-4989-b078-85cfd8fc741e',
                 'nodeType' => 'component',
-                'type' => 'sdc.canvas_test_sdc.props-no-slots@b1e991f726a2a266',
+                'type' => 'sdc.canvas_test_sdc.props-no-slots@d34b93534777207a',
                 'slots' => [],
               ],
               [
                 'uuid' => '67d6b081-a62f-463c-a5d8-42a145ec7243',
                 'nodeType' => 'component',
-                'type' => 'sdc.canvas_test_sdc.props-no-slots@b1e991f726a2a266',
+                'type' => 'sdc.canvas_test_sdc.props-no-slots@d34b93534777207a',
                 'slots' => [],
               ],
             ],

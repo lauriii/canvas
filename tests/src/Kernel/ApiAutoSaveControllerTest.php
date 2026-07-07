@@ -782,7 +782,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       [
         'uuid' => 'e1f6fbca-e331-4506-9dba-5734194c1e59',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Canvas is large and in charge!',
         ],
@@ -793,7 +793,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       [
         'uuid' => '6cf8297a-fc60-4019-be81-c336fd828c39',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => [
             'sourceType' => PropSource::EntityField->value,

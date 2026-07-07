@@ -371,7 +371,7 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
         [
           'uuid' => self::UUID_IN_ROOT,
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-          'component_version' => 'b1e991f726a2a266',
+          'component_version' => 'd34b93534777207a',
           'inputs' => [
             'heading' => 'world',
           ],
@@ -807,7 +807,7 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
       [
         'uuid' => self::UUID_IN_ROOT,
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Test heading, please ignore',
         ],
@@ -826,7 +826,7 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
       [
         'uuid' => self::UUID_IN_ROOT,
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Test heading, please ignore',
         ],

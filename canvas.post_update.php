@@ -436,3 +436,14 @@ function canvas_post_update_0020_install_staged_language_config_override_entity_
     $entity_definition_update_manager->installEntityType(\Drupal::entityTypeManager()->getDefinition(StagedLanguageConfigOverride::ENTITY_TYPE_ID));
   }
 }
+
+/**
+ * Store each SDC/code component prop's `derived_schema_metadata`.
+ */
+function canvas_post_update_0021_store_prop_derived_schema_metadata(array &$sandbox): void {
+  $canvasConfigUpdater = \Drupal::service(CanvasConfigUpdater::class);
+  \assert($canvasConfigUpdater instanceof CanvasConfigUpdater);
+  $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
+  \Drupal::classResolver(ConfigEntityUpdater::class)
+    ->update($sandbox, Component::ENTITY_TYPE_ID, static fn(Component $component): bool => CanvasConfigUpdater::needsPropDerivedSchemaMetadata($component));
+}

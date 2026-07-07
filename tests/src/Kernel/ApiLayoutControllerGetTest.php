@@ -109,7 +109,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       [
         'uuid' => $top_level_component_uuid,
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => [
             'sourceType' => PropSource::EntityField->value,
@@ -120,7 +120,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       [
         'uuid' => $nested_component_uuid,
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => [
             'sourceType' => PropSource::EntityField->value,

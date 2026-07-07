@@ -610,6 +610,73 @@ canvas.json_schema_props:
                   - FieldTypeObjectPropsExpression
                   - ReferenceFieldTypePropExpression
                 message: 'The expression is valid, but not one of the allowed types: %choices.'
+          # Implementation metadata for this prop at this specific component version. Deliberately NOT part of the
+          # component version hash: anything in `derived_schema_metadata` CANNOT cause changes to component instances;
+          # it MUST be derived from information in ::getExplicitInputDefinitions() (which includes detailed schema
+          # information that is not retained in the Component config entity).
+          # @see \Drupal\canvas\PropShape\PropShape::getTranslatableStringShape()
+          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::settingsAffectingVersionHash()
+          # @see \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
+          derived_schema_metadata:
+            type: mapping
+            mapping:
+              # The normalized string JSON schema for this prop (for a multiple-cardinality prop: of its items),
+              # reduced to the keys that matter for translation systems. An implied `type: string` is omitted.
+              # Present if and only if the prop's JSON schema held translatable text when this component version was
+              # created. Translatability is derived from this shape — NOT stored as a boolean — so it can be re-derived
+              # if the translatability rules evolve. (A prop populated by an entity reference is not translatable even
+              # when this shape is present: references are structured data, not author-entered text. That is derived
+              # from this prop's `expression`.)
+              # @see \Drupal\canvas\PropShape\PropShape::getTranslatableStringShape()
+              # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::isExplicitInputTranslatable()
+              string_shape:
+                # Only present for props whose shape holds translatable text. Component versions created before this
+                # key existed never have it: their props are treated as not translatable.
+                # @todo Delete this (aka make this required) in Canvas 2.0, blocked on https://git.drupalcode.org/project/canvas/-/work_items/3530097 and then zero instances being left using component versions without `string_shape`
+                requiredKey: false
+                type: mapping
+                mapping:
+                  # Multi-line plain prose.
+                  pattern:
+                    requiredKey: false
+                    type: string
+                    constraints:
+                      Choice:
+                        choices:
+                          - '(.|\r?\n)*'
+                  # Rich prose.
+                  contentMediaType:
+                    requiredKey: false
+                    type: string
+                    label: 'Content media type'
+                    constraints:
+                      Choice:
+                        choices:
+                          - 'text/html'
+                  # Rich prose formatting context. Does not affect *whether* the prop is translatable, but translation
+                  # systems must respect it: an `inline` prop must not receive block-level HTML from a translation.
+                  'x-formatting-context':
+                    requiredKey: false
+                    type: string
+                    label: 'Formatting context'
+                    constraints:
+                      Choice:
+                        choices:
+                          - 'block'
+                          - 'inline'
+                  # URI-esque strings.
+                  # @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat::isUriEsque()
+                  format:
+                    requiredKey: false
+                    type: string
+                    label: 'Format'
+                    constraints:
+                      Choice:
+                        choices:
+                          - 'iri'
+                          - 'iri-reference'
+                          - 'uri'
+                          - 'uri-reference'
 
 canvas.component_source_local_id.js:
   type: canvas.component_source_local_id.*

@@ -94,7 +94,7 @@ final class ContentTemplateAutoSavePreviewTest extends FunctionalTestBase {
         [
           'uuid' => CanvasTestSetup::UUID_COMPONENT_SDC,
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-          'component_version' => 'b1e991f726a2a266',
+          'component_version' => 'd34b93534777207a',
           'inputs' => [
             'heading' => 'Published teaser template',
           ],
@@ -228,7 +228,7 @@ final class ContentTemplateAutoSavePreviewTest extends FunctionalTestBase {
       [
         'uuid' => CanvasTestSetup::UUID_COMPONENT_SDC,
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Auto-saved teaser template',
         ],
@@ -256,7 +256,7 @@ final class ContentTemplateAutoSavePreviewTest extends FunctionalTestBase {
       [
         'uuid' => CanvasTestSetup::UUID_COMPONENT_SDC,
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Updated auto-saved teaser template',
         ],
@@ -319,7 +319,7 @@ final class ContentTemplateAutoSavePreviewTest extends FunctionalTestBase {
         [
           'uuid' => CanvasTestSetup::UUID_COMPONENT_SDC,
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-          'component_version' => 'b1e991f726a2a266',
+          'component_version' => 'd34b93534777207a',
           'inputs' => [
             'heading' => 'Published content template',
           ],
@@ -353,7 +353,7 @@ final class ContentTemplateAutoSavePreviewTest extends FunctionalTestBase {
       [
         'uuid' => CanvasTestSetup::UUID_COMPONENT_SDC,
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Auto-saved content template',
         ],
@@ -374,7 +374,7 @@ final class ContentTemplateAutoSavePreviewTest extends FunctionalTestBase {
       [
         'uuid' => CanvasTestSetup::UUID_COMPONENT_SDC,
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Updated auto-saved content template',
         ],

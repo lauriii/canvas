@@ -65,45 +65,45 @@ final class CollapseComponentInputsUpdateTest extends CanvasUpdatePathTestBase {
 
     $pattern_before = Pattern::load('test_pattern');
     \assert($pattern_before instanceof Pattern);
-    self::assertSame($expected_before_input, $pattern_before->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
+    self::assertSameInputs($expected_before_input, $pattern_before->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
 
     $template_before = ContentTemplate::load(\implode('.', ['node', 'article', 'reverse']));
     \assert($template_before instanceof ContentTemplate);
-    self::assertSame($expected_before_input, $template_before->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
+    self::assertSameInputs($expected_before_input, $template_before->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
 
     $field_before = FieldConfig::load('node.article.field_canvas_demo');
     \assert($field_before instanceof FieldConfigInterface);
     $field_default_value_tree = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
     $field_default_value_tree->setValue($field_before->get('default_value'));
-    self::assertSame($expected_before_input, $field_default_value_tree->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
+    self::assertSameInputs($expected_before_input, $field_default_value_tree->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
 
     $region_before = PageRegion::load('stark.sidebar_first');
     \assert($region_before instanceof PageRegion);
-    self::assertSame($expected_before_input, $region_before->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
+    self::assertSameInputs($expected_before_input, $region_before->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
 
     $this->runUpdates();
 
     $pattern_after = Pattern::load('test_pattern');
     \assert($pattern_after instanceof Pattern);
     self::assertEntityIsValid($pattern_after);
-    self::assertSame($expected_after_input, $pattern_after->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
+    self::assertSameInputs($expected_after_input, $pattern_after->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
 
     $template_after = ContentTemplate::load(\implode('.', ['node', 'article', 'reverse']));
     \assert($template_after instanceof ContentTemplate);
     self::assertEntityIsValid($template_after);
-    self::assertSame($expected_after_input, $template_after->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
+    self::assertSameInputs($expected_after_input, $template_after->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
 
     $field_after = FieldConfig::load('node.article.field_canvas_demo');
     \assert($field_after instanceof FieldConfigInterface);
     $field_default_value_tree = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
     $field_default_value_tree->setValue($field_after->get('default_value'));
     self::assertEntityIsValid($field_after);
-    self::assertSame($expected_after_input, $field_default_value_tree->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
+    self::assertSameInputs($expected_after_input, $field_default_value_tree->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
 
     $region_after = PageRegion::load('stark.sidebar_first');
     \assert($region_after instanceof PageRegion);
     self::assertEntityIsValid($region_after);
-    self::assertSame($expected_after_input, $region_after->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
+    self::assertSameInputs($expected_after_input, $region_after->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
   }
 
 }

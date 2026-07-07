@@ -1,5 +1,9 @@
 $schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
-name: Canvas test SDC with props but no slots
+name: Canvas test SDC with a required prop constrained by minLength
+# A required `minLength`-constrained string prop has no storable prop shape —
+# Drupal core's string field types cannot enforce `minLength` — so this
+# component MUST be ineligible.
+# @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
 props:
   type: object
   required:
@@ -9,6 +13,7 @@ props:
       type: string
       title: Heading
       description: The main heading of the hero
+      minLength: 2
       examples:
         - There goes my hero
         - Submit now

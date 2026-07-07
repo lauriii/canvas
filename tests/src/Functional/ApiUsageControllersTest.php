@@ -61,7 +61,7 @@ class ApiUsageControllersTest extends HttpApiTestBase {
       'components' => [
         'uuid' => '16176e0b-8197-40e3-ad49-48f1b6e9a7f9',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'world',
         ],

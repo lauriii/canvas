@@ -78,7 +78,7 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
     self::assertCount(1, $component->getVersions());
     $settings = $component->getSettings();
     $settings['prop_field_definitions']['heading']['default_value'][0]['value'] = 'Updated example value 👋';
-    $component->createVersion('bcf3fbf52a2b169b')
+    $component->createVersion('0b4234d27d7aac43')
       ->setSettings($settings)
       ->save();
     self::assertEntityIsValid($component);
@@ -224,8 +224,8 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
     $this->assertCount(2, $item_list);
     $violations = $item_list->validate();
     $this->assertSame([
-      '0.component_version' => "'lol' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-slots'. Available versions: '85a5c0c7dd53e0bb'.",
-      '1.component_version' => "'active' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-no-slots'. Available versions: 'b1e991f726a2a266'.",
+      '0.component_version' => "'lol' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-slots'. Available versions: '0e79e884426a53ae'.",
+      '1.component_version' => "'active' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-no-slots'. Available versions: 'd34b93534777207a'.",
     ], self::violationsToArray($violations));
   }
 
@@ -507,7 +507,7 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
     ];
 
     $test_cases['inputs invalid, using only static inputs with a StaticPropSource deviating from that defined in the referenced Component entity version'][] = [
-      \sprintf('field_canvas_test.0.inputs.%s', self::UUID_DYNAMIC_STATIC_CARD_2) => 'Using a static prop source that deviates from the configuration for Component <em class="placeholder">sdc.canvas_test_sdc.props-no-slots</em> at version <em class="placeholder">b1e991f726a2a266</em>.',
+      \sprintf('field_canvas_test.0.inputs.%s', self::UUID_DYNAMIC_STATIC_CARD_2) => 'Using a static prop source that deviates from the configuration for Component <em class="placeholder">sdc.canvas_test_sdc.props-no-slots</em> at version <em class="placeholder">d34b93534777207a</em>.',
     ];
     $test_cases['missing inputs key'][] = [
       \sprintf('field_canvas_test.0.inputs.%s', self::UUID_DYNAMIC_STATIC_CARD_2) => 'The required properties are missing.',

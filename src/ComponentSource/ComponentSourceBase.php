@@ -51,19 +51,19 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
       array_diff_key($this->configuration, array_flip(['local_source_id'])),
     );
     \assert($typed_source_specific_settings instanceof Mapping);
+    // ⚠️ TRICKY: Use config-schema-*casted* values, NOT the raw
+    // `Mapping::toArray()`. A setting generated in PHP (e.g. an SDC
+    // `examples` default of int `2`) hashes differently from its
+    // config-schema-cast form (string `"2"`, since core types
+    // `field.value.list_float.value` as `string`). That cast only kicks in
+    // once config is read back through validation — config import, recipes,
+    // config sync — and NOT on a clean install, which skips config
+    // validation. That asymmetry is why config-export-driven setups (e.g.
+    // Drupal CMS recipes) hit this and few others did. Casting here makes
+    // generation and validation agree.
+    // @see \Drupal\canvas\Entity\Component::validateActiveVersion()
     $normalized_data = [
-      // ⚠️ TRICKY: Use config-schema-*casted* values, NOT the raw
-      // `Mapping::toArray()`. A setting generated in PHP (e.g. an SDC
-      // `examples` default of int `2`) hashes differently from its
-      // config-schema-cast form (string `"2"`, since core types
-      // `field.value.list_float.value` as `string`). That cast only kicks in
-      // once config is read back through validation — config import, recipes,
-      // config sync — and NOT on a clean install, which skips config
-      // validation. That asymmetry is why config-export-driven setups (e.g.
-      // Drupal CMS recipes) hit this and few others did. Casting here makes
-      // generation and validation agree.
-      // @see \Drupal\canvas\Entity\Component::validateActiveVersion()
-      'settings' => self::castRawTypedConfigToPhpTypes($typed_source_specific_settings),
+      'settings' => $this->settingsAffectingVersionHash(self::castRawTypedConfigToPhpTypes($typed_source_specific_settings)),
       'slot_definitions' => $this instanceof ComponentSourceWithSlotsInterface
         ? self::normalizeSlotDefinitions($this->getSlotDefinitions())
         : [],
@@ -84,6 +84,29 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
     // 💡 If you are debugging why a version hash does not match, put a
     // conditional breakpoint here.
     return $hash;
+  }
+
+  /**
+   * Filters the source-specific settings that define a version's identity.
+   *
+   * By default, ALL settings affect the version hash. A component source that
+   * retains purely *derived* metadata in its settings — data that cannot cause
+   * changes to component instances because it is fully derived from data that
+   * is already hashed — must override this method to strip it, so that
+   * recomputing or backfilling that metadata never changes existing component
+   * version ids.
+   *
+   * @param mixed $settings
+   *   The config-schema-casted source-specific settings.
+   *
+   * @return mixed
+   *   The settings that affect the version hash.
+   *
+   * @see ::generateVersionHash()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::settingsAffectingVersionHash()
+   */
+  protected function settingsAffectingVersionHash(mixed $settings): mixed {
+    return $settings;
   }
 
   /**

@@ -355,7 +355,7 @@ HTML;
         [
           'uuid' => '2842cc6f-9e2b-42a5-8400-e7d6363e08bf',
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '85a5c0c7dd53e0bb',
+          'component_version' => '0e79e884426a53ae',
           'inputs' => [
             'heading' => [
               'sourceType' => PropSource::EntityField->value,

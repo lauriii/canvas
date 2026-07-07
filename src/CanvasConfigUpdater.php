@@ -24,6 +24,7 @@ use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\Utility\ComponentMetadataHelper;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\field\Entity\FieldConfig;
@@ -343,6 +344,104 @@ class CanvasConfigUpdater {
     }
 
     return $active_version_updated || $past_version_updated;
+  }
+
+  /**
+   * Whether any version's prop lacks `derived_schema_metadata`.
+   *
+   * (See `type: canvas.json_schema_props`.)
+   */
+  public static function needsPropDerivedSchemaMetadata(Component $component): bool {
+    $component_source = $component->getComponentSource();
+    // @see `type: canvas.json_schema_props`
+    if (!$component_source instanceof JsonSchemaPropsComponentSourceBase) {
+      return FALSE;
+    }
+
+    // Track the originally loaded version to enable avoiding side effects.
+    $originally_loaded_version = $component->getLoadedVersion();
+
+    // All versions of the Component config entity must have
+    // `derived_schema_metadata` for every prop field definition.
+    // Note: start with the oldest version, because it is least likely to have
+    // it.
+    $needs_updating = FALSE;
+    foreach (array_reverse($component->getVersions()) as $version) {
+      $component->loadVersion($version);
+      $settings = $component->getSettings();
+      \assert(\array_key_exists('prop_field_definitions', $settings));
+      foreach ($settings['prop_field_definitions'] as $prop_field_definition) {
+        if (!isset($prop_field_definition['derived_schema_metadata'])) {
+          $needs_updating = TRUE;
+          break 2;
+        }
+      }
+    }
+
+    // Avoid side effects: ensure the given Component still has the same version
+    // loaded. (Not strictly necessary, just a precaution.)
+    $component->loadVersion($originally_loaded_version);
+    return $needs_updating;
+  }
+
+  #[ComponentPreSaveUpdate(postUpdate: 'canvas_post_update_0021_store_prop_derived_schema_metadata')]
+  public static function updatePropFieldDefinitionsWithDerivedSchemaMetadata(Component $component): bool {
+    if (!self::needsPropDerivedSchemaMetadata($component)) {
+      return FALSE;
+    }
+
+    // Compute the translation-relevant string shapes from the live
+    // implementation's JSON Schema. Only the active version is described by the
+    // live implementation.
+    $component_source = $component->getComponentSource();
+    \assert($component_source instanceof JsonSchemaPropsComponentSourceBase);
+    $string_shapes = [];
+    foreach (JsonSchemaPropsComponentSourceBase::getComponentInputsForMetadata($component_source->getSourceSpecificComponentId(), $component_source->getMetadata()) as $cpe_string => $prop_shape) {
+      $prop_name = ComponentPropExpression::fromString($cpe_string)->propName;
+      $string_shapes[$prop_name] = PropShape::getTranslatableStringShape($prop_shape->resolvedSchema);
+    }
+
+    $updated_versions = [];
+    foreach ($component->getVersions() as $version) {
+      $component->loadVersion($version);
+      $is_active = $component->isLoadedVersionActiveVersion();
+      $settings = $component->getSettings();
+      \assert(\array_key_exists('prop_field_definitions', $settings));
+      $version_updated = FALSE;
+      foreach ($settings['prop_field_definitions'] as $prop_name => &$prop_field_definition) {
+        if (isset($prop_field_definition['derived_schema_metadata'])) {
+          continue;
+        }
+        // Only the active version's props are described by the live JSON
+        // Schema. What shape a prop had when a *past* version was created is
+        // unknowable, so its props are treated as not translatable. Component
+        // instances become translatable when they are updated to the active
+        // version, which automatic component instance updating takes care of.
+        $string_shape = $is_active ? $string_shapes[$prop_name] ?? NULL : NULL;
+        $prop_field_definition['derived_schema_metadata'] = $string_shape === NULL
+          ? []
+          : ['string_shape' => $string_shape];
+        $version_updated = TRUE;
+      }
+      unset($prop_field_definition);
+      if ($version_updated) {
+        // `derived_schema_metadata` is excluded from the version hash, so this
+        // does not change the version id: no new version is needed, not even
+        // for the active version.
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::settingsAffectingVersionHash()
+        // Pretend to be syncing; otherwise changing settings of past versions
+        // is forbidden.
+        $component->setSyncing(TRUE)
+          ->setSettings($settings)
+          ->setSyncing(FALSE);
+        $updated_versions[] = $version;
+      }
+    }
+
+    // Typically, the active version is loaded, unless otherwise requested.
+    $component->resetToActiveVersion();
+
+    return $updated_versions !== [];
   }
 
   public static function needsUpdatingPropFieldDefinitionsUsingTextValue(Component $component): bool {

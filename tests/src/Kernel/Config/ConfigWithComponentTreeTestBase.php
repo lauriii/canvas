@@ -102,7 +102,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_body',
         'uuid' => 'b7e2cf39-d62f-4ee8-99b2-27a89f1ac196',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Two layers deep.',
         ],
@@ -110,7 +110,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Hello, world!',
         ],
@@ -129,7 +129,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '3a76bf4f-9306-43e6-ba8f-cb4b5b6459df',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
         'slot' => 'the_body',
         'inputs' => [
@@ -139,7 +139,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '5f71027b-d9d3-4f3d-8990-a6502c0ba676',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'two layers deep',
         ],
@@ -163,7 +163,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       '4f785025-9bd9-4752-9dd6-068b957b03ee' => [
         'uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Hello, world!',
         ],
@@ -173,7 +173,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_body',
         'uuid' => '3a76bf4f-9306-43e6-ba8f-cb4b5b6459df',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Hello from the top of the body',
         ],
@@ -183,7 +183,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_body',
         'uuid' => 'b7e2cf39-d62f-4ee8-99b2-27a89f1ac196',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Two layers deep.',
         ],
@@ -216,7 +216,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       '5f71027b-d9d3-4f3d-8990-a6502c0ba676' => [
         'uuid' => '5f71027b-d9d3-4f3d-8990-a6502c0ba676',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'two layers deep',
         ],
@@ -236,7 +236,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Outer slot',
         ],
@@ -244,7 +244,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '33a67161-a77b-4192-a575-d9d96635399c',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
         'slot' => 'the_body',
         'inputs' => [
@@ -254,7 +254,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '1955e628-73ae-4334-a354-06fcbda376d6',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'parent_uuid' => '33a67161-a77b-4192-a575-d9d96635399c',
         'slot' => 'the_body',
         'inputs' => [
@@ -275,7 +275,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '3a76bf4f-9306-43e6-ba8f-cb4b5b6459df',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'parent_uuid' => '1955e628-73ae-4334-a354-06fcbda376d6',
         'slot' => 'the_body',
         'inputs' => [
@@ -285,7 +285,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => 'b16e28d2-ec29-480c-9944-ca72eac5d16f',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'parent_uuid' => '1955e628-73ae-4334-a354-06fcbda376d6',
         'slot' => 'the_body',
         'inputs' => [
@@ -295,7 +295,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '5a039deb-db16-42fd-a91d-8b5a189afbc3',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
         'slot' => 'the_body',
         'inputs' => [
@@ -305,7 +305,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '8dc67694-59c6-4efe-92e9-d8e3f9d03f51',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'parent_uuid' => '83e58222-88ff-40d7-ad70-4d0efa5b9172',
         'slot' => 'the_footer',
         'inputs' => [
@@ -315,7 +315,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => 'b6e8eba3-7f41-4115-9d24-67223909dcd4',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'parent_uuid' => '83e58222-88ff-40d7-ad70-4d0efa5b9172',
         'slot' => 'the_footer',
         'inputs' => [
@@ -325,7 +325,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '36b6338a-12b4-485f-a4f6-209f438e6804',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'parent_uuid' => '83e58222-88ff-40d7-ad70-4d0efa5b9172',
         'slot' => 'the_footer',
         'inputs' => [
@@ -335,7 +335,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => 'ac1e278a-2f0f-4166-a98d-1d390b3d0aa8',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'parent_uuid' => '83e58222-88ff-40d7-ad70-4d0efa5b9172',
         'slot' => 'the_footer',
         'inputs' => [
@@ -345,7 +345,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '09309f76-377f-456c-ab29-b5a10eecab48',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'parent_uuid' => '83e58222-88ff-40d7-ad70-4d0efa5b9172',
         'slot' => 'the_footer',
         'inputs' => [
@@ -355,7 +355,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '294a32af-0bcc-4e45-9044-ac51d9b9a7df',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'parent_uuid' => '83e58222-88ff-40d7-ad70-4d0efa5b9172',
         'slot' => 'the_footer',
         'inputs' => [
@@ -367,7 +367,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '83e58222-88ff-40d7-ad70-4d0efa5b9172',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'parent_uuid' => '5a039deb-db16-42fd-a91d-8b5a189afbc3',
         'slot' => 'the_body',
         'inputs' => [
@@ -379,7 +379,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       '4f785025-9bd9-4752-9dd6-068b957b03ee' => [
         'uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Outer slot',
         ],
@@ -389,7 +389,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_body',
         'uuid' => '33a67161-a77b-4192-a575-d9d96635399c',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Level 1 slot',
         ],
@@ -399,7 +399,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_body',
         'uuid' => '1955e628-73ae-4334-a354-06fcbda376d6',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Level 2 slot',
         ],
@@ -420,7 +420,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_body',
         'uuid' => '3a76bf4f-9306-43e6-ba8f-cb4b5b6459df',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Just after the powered by block',
         ],
@@ -430,7 +430,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_body',
         'uuid' => 'b16e28d2-ec29-480c-9944-ca72eac5d16f',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Last one in the body in level 2 slot',
         ],
@@ -440,7 +440,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_body',
         'uuid' => '5a039deb-db16-42fd-a91d-8b5a189afbc3',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Level 1 slot #2',
         ],
@@ -450,7 +450,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_body',
         'uuid' => '83e58222-88ff-40d7-ad70-4d0efa5b9172',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Level 2 slot #2',
         ],
@@ -460,7 +460,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_footer',
         'uuid' => '8dc67694-59c6-4efe-92e9-d8e3f9d03f51',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => '1 of 6 in the footer',
         ],
@@ -470,7 +470,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_footer',
         'uuid' => 'b6e8eba3-7f41-4115-9d24-67223909dcd4',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => '2 of 6 in the footer',
         ],
@@ -480,7 +480,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_footer',
         'uuid' => '36b6338a-12b4-485f-a4f6-209f438e6804',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => '3 of 6 in the footer',
         ],
@@ -490,7 +490,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_footer',
         'uuid' => 'ac1e278a-2f0f-4166-a98d-1d390b3d0aa8',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => '4 of 6 in the footer',
         ],
@@ -500,7 +500,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_footer',
         'uuid' => '09309f76-377f-456c-ab29-b5a10eecab48',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => '5 of 6 in the footer',
         ],
@@ -510,7 +510,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_footer',
         'uuid' => '294a32af-0bcc-4e45-9044-ac51d9b9a7df',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => '6 of 6 in the footer',
         ],
@@ -538,7 +538,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '9a0f0c96-aa92-4b10-a895-58ce3f33c023',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Top level component, no children',
         ],
@@ -546,7 +546,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '6792ad62-fbec-4ddc-8dd8-fff2f2dab881',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Top level, Has 1 child',
         ],
@@ -554,7 +554,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => 'cd7d0b31-21c1-4544-9c7b-9949d040f866',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Level 1 child',
         ],
@@ -566,7 +566,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       '9a0f0c96-aa92-4b10-a895-58ce3f33c023' => [
         'uuid' => '9a0f0c96-aa92-4b10-a895-58ce3f33c023',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Top level component, no children',
         ],
@@ -574,7 +574,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       '6792ad62-fbec-4ddc-8dd8-fff2f2dab881' => [
         'uuid' => '6792ad62-fbec-4ddc-8dd8-fff2f2dab881',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Top level, Has 1 child',
         ],
@@ -584,7 +584,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_body',
         'uuid' => 'cd7d0b31-21c1-4544-9c7b-9949d040f866',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Level 1 child',
         ],
@@ -601,7 +601,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => 'cd7d0b31-21c1-4544-9c7b-9949d040f867',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Level 1, Has no children',
         ],
@@ -611,7 +611,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => 'cd7d0b31-21c1-4544-9c7b-9949d040f890',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Level 1, Has 1 child',
         ],
@@ -621,7 +621,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '9a0f0c96-aa92-4b10-a895-58ce3f33c078',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Level 2, no children',
         ],
@@ -631,7 +631,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '9a0f0c96-aa92-4b10-a895-58ce3f33c022',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Top level component, no children',
         ],
@@ -639,7 +639,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '6792ad62-fbec-4ddc-8dd8-fff2f2dab880',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Top level, Has 2 children',
         ],
@@ -649,7 +649,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       '9a0f0c96-aa92-4b10-a895-58ce3f33c022' => [
         'uuid' => '9a0f0c96-aa92-4b10-a895-58ce3f33c022',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Top level component, no children',
         ],
@@ -657,7 +657,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       '6792ad62-fbec-4ddc-8dd8-fff2f2dab880' => [
         'uuid' => '6792ad62-fbec-4ddc-8dd8-fff2f2dab880',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Top level, Has 2 children',
         ],
@@ -667,7 +667,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_body',
         'uuid' => 'cd7d0b31-21c1-4544-9c7b-9949d040f867',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Level 1, Has no children',
         ],
@@ -677,7 +677,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_body',
         'uuid' => 'cd7d0b31-21c1-4544-9c7b-9949d040f890',
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '85a5c0c7dd53e0bb',
+        'component_version' => '0e79e884426a53ae',
         'inputs' => [
           'heading' => 'Level 1, Has 1 child',
         ],
@@ -687,7 +687,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
         'slot' => 'the_body',
         'uuid' => '9a0f0c96-aa92-4b10-a895-58ce3f33c078',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => 'b1e991f726a2a266',
+        'component_version' => 'd34b93534777207a',
         'inputs' => [
           'heading' => 'Level 2, no children',
         ],

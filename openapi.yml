@@ -1243,7 +1243,7 @@ paths:
                   -
                     uuid: 0b755464-281c-4487-82a0-ece34a9b1121
                     nodeType: component
-                    type: sdc.canvas_test_sdc.my-section@b277cb81a83a977f
+                    type: sdc.canvas_test_sdc.my-section@a82f3e4f513e1623
                     slots: [ ]
                 model:
                   0b755464-281c-4487-82a0-ece34a9b1121:

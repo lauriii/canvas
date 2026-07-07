@@ -31,6 +31,7 @@ use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormState;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\link\LinkItemInterface;
+use Drupal\link\LinkTitleVisibility;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\system\Functional\Form\StubForm;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -537,15 +538,10 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         shape: new PropShape(['type' => 'string', 'format' => 'uri']),
         fieldTypeProp: new FieldTypePropExpression('link', 'url'),
         fieldInstanceSettings: [
-          'title' => DRUPAL_DISABLED,
+          'title' => LinkTitleVisibility::Disabled->value,
           'link_type' => LinkItemInterface::LINK_EXTERNAL,
         ],
         fieldWidget: 'link_default',
-      ),
-      'type=string&minLength=2' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'minLength' => 2]),
-        fieldTypeProp: new FieldTypePropExpression('string', 'value'),
-        fieldWidget: 'string_textfield',
       ),
       'type=string&format=date' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Date->value]),
@@ -577,7 +573,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Iri->value]),
         fieldTypeProp: new FieldTypePropExpression('link', 'url'),
         fieldInstanceSettings: [
-          'title' => DRUPAL_DISABLED,
+          'title' => LinkTitleVisibility::Disabled->value,
           'link_type' => LinkItemInterface::LINK_EXTERNAL,
         ],
         fieldWidget: 'link_default',
@@ -586,7 +582,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::IriReference->value]),
         fieldTypeProp: new FieldTypePropExpression('link', 'url'),
         fieldInstanceSettings: [
-          'title' => DRUPAL_DISABLED,
+          'title' => LinkTitleVisibility::Disabled->value,
           'link_type' => LinkItemInterface::LINK_GENERIC,
         ],
         fieldWidget: 'link_default',
@@ -595,7 +591,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UriReference->value]),
         fieldTypeProp: new FieldTypePropExpression('link', 'url'),
         fieldInstanceSettings: [
-          'title' => DRUPAL_DISABLED,
+          'title' => LinkTitleVisibility::Disabled->value,
           'link_type' => LinkItemInterface::LINK_GENERIC,
         ],
         fieldWidget: 'link_default',
@@ -604,7 +600,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UriReference->value, CustomConstraintError::X_ALLOWED_SCHEMES => ['http', 'https']]),
         fieldTypeProp: new FieldTypePropExpression('link', 'url'),
         fieldInstanceSettings: [
-          'title' => DRUPAL_DISABLED,
+          'title' => LinkTitleVisibility::Disabled->value,
           'link_type' => LinkItemInterface::LINK_GENERIC,
         ],
         fieldWidget: 'link_default',
@@ -890,7 +886,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('link', 'url'),
         cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
         fieldInstanceSettings: [
-          'title' => DRUPAL_DISABLED,
+          'title' => LinkTitleVisibility::Disabled->value,
           'link_type' => LinkItemInterface::LINK_EXTERNAL,
         ],
         fieldWidget: 'link_default',
@@ -900,7 +896,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('link', 'url'),
         cardinality: 3,
         fieldInstanceSettings: [
-          'title' => DRUPAL_DISABLED,
+          'title' => LinkTitleVisibility::Disabled->value,
           'link_type' => LinkItemInterface::LINK_EXTERNAL,
         ],
         fieldWidget: 'link_default',
@@ -910,7 +906,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('link', 'url'),
         cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
         fieldInstanceSettings: [
-          'title' => DRUPAL_DISABLED,
+          'title' => LinkTitleVisibility::Disabled->value,
           'link_type' => LinkItemInterface::LINK_GENERIC,
         ],
         fieldWidget: 'link_default',
@@ -920,7 +916,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('link', 'url'),
         cardinality: 3,
         fieldInstanceSettings: [
-          'title' => DRUPAL_DISABLED,
+          'title' => LinkTitleVisibility::Disabled->value,
           'link_type' => LinkItemInterface::LINK_GENERIC,
         ],
         fieldWidget: 'link_default',
@@ -976,6 +972,11 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       'type=string&format=time' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Time->value]),
       'type=string&format=uri-template' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UriTemplate->value]),
       'type=string&format=uuid' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Uuid->value]),
+      // `minLength` cannot be enforced by Drupal core's string field types,
+      // nor by the existing translation systems (content translation, config
+      // translation, TMGMT).
+      // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
+      'type=string&minLength=2' => new PropShape(['type' => 'string', 'minLength' => 2]),
       'type=array&items[type]=integer&items[minimum]=-100&items[maximum]=100&maxItems=100&minItems=2' => new PropShape([
         'type' => 'array',
         'items' => ['type' => 'integer', 'maximum' => 100, 'minimum' => -100],

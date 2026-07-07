@@ -19,6 +19,7 @@ use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\link\LinkItemInterface;
+use Drupal\link\LinkTitleVisibility;
 use Drupal\node\Entity\NodeType;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -148,7 +149,7 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
       'bundle' => 'foo',
       'required' => TRUE,
       'settings' => [
-        'title' => DRUPAL_OPTIONAL,
+        'title' => LinkTitleVisibility::Optional->value,
         'link_type' => LinkItemInterface::LINK_GENERIC,
       ],
     ])->save();

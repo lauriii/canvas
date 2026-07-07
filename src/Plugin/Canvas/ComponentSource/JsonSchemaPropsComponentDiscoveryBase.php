@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
+use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
@@ -55,6 +56,19 @@ abstract class JsonSchemaPropsComponentDiscoveryBase {
       if ($storable_prop_shape->cardinality !== NULL) {
         $props[$cpe->propName]['cardinality'] = $storable_prop_shape->cardinality;
       }
+      // Retain the translation-relevant part of this prop's JSON Schema now
+      // (while the live implementation is still available), so that a
+      // component tree referencing this version keeps knowing which inputs are
+      // translatable even after the prop is changed or removed from the live
+      // implementation. The full schema cannot be stored: an array prop's
+      // `items` may carry a `meta:enum` whose keys can contain dots, which
+      // config keys cannot hold.
+      // @see `type: canvas.json_schema_props`
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::isExplicitInputTranslatable()
+      $string_shape = PropShape::getTranslatableStringShape($prop_shape->resolvedSchema);
+      $props[$cpe->propName]['derived_schema_metadata'] = $string_shape === NULL
+        ? []
+        : ['string_shape' => $string_shape];
     }
 
     return $props;

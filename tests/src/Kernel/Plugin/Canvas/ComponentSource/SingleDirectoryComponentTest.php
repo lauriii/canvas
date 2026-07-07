@@ -185,6 +185,14 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
       'sdc.canvas_test_sdc.props-invalid-shapes' => [
         'Drupal Canvas does not know of a field type/widget to allow populating the <code>invalid_shape</code> prop, with the shape <code>{"type":"object"}</code>.',
       ],
+      'sdc.canvas_test_sdc.props-min-length' => [
+        // `minLength` cannot be enforced by Drupal core's string field types,
+        // nor by the existing translation systems (content translation, config
+        // translation, TMGMT), so it has no storable prop shape; a *required*
+        // prop without one makes the component ineligible.
+        // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
+        'Drupal Canvas does not know of a field type/widget to allow populating the <code>heading</code> prop, with the shape <code>{"type":"string","minLength":2}</code>.',
+      ],
       'sdc.canvas_test_sdc.props-no-examples' => [
         'Prop "heading" is required, but does not have example value',
       ],
@@ -1700,6 +1708,7 @@ HTML
             'field_widget' => 'string_textfield',
             'default_value' => [0 => ['value' => 'The not-attributes SDC prop!']],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
         ],
       ],
@@ -1717,6 +1726,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'text' => [
             'required' => FALSE,
@@ -1735,6 +1745,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎text_long␟processed',
+            'derived_schema_metadata' => ['string_shape' => ['contentMediaType' => 'text/html', 'x-formatting-context' => 'block']],
           ],
           'image' => [
             'required' => FALSE,
@@ -1744,6 +1755,7 @@ HTML
             'field_widget' => 'image_image',
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -1761,6 +1773,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'content' => [
             'required' => FALSE,
@@ -1774,6 +1787,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'footer' => [
             'required' => FALSE,
@@ -1787,6 +1801,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'date' => [
             'required' => FALSE,
@@ -1798,6 +1813,7 @@ HTML
             'field_widget' => 'datetime_default',
             'default_value' => NULL,
             'expression' => 'ℹ︎datetime␟value',
+            'derived_schema_metadata' => [],
           ],
           'image' => [
             'required' => TRUE,
@@ -1807,6 +1823,7 @@ HTML
             'field_widget' => 'image_image',
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'derived_schema_metadata' => [],
           ],
           'sizes' => [
             'required' => FALSE,
@@ -1820,6 +1837,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'loading' => [
             'required' => TRUE,
@@ -1835,6 +1853,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -1852,6 +1871,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'content' => [
             'required' => FALSE,
@@ -1865,6 +1885,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'footer' => [
             'required' => FALSE,
@@ -1878,6 +1899,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'src' => [
             'required' => TRUE,
@@ -1887,6 +1909,7 @@ HTML
             'field_widget' => 'image_image',
             'default_value' => [],
             'expression' => 'ℹ︎image␟src_with_alternate_widths',
+            'derived_schema_metadata' => ['string_shape' => ['format' => 'uri-reference']],
           ],
           'alt' => [
             'required' => TRUE,
@@ -1900,6 +1923,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'loading' => [
             'required' => TRUE,
@@ -1915,6 +1939,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -1932,6 +1957,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'content' => [
             'required' => FALSE,
@@ -1945,6 +1971,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'footer' => [
             'required' => FALSE,
@@ -1958,6 +1985,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'src' => [
             'required' => TRUE,
@@ -1967,6 +1995,7 @@ HTML
             'field_widget' => 'image_image',
             'default_value' => [],
             'expression' => 'ℹ︎image␟src_with_alternate_widths',
+            'derived_schema_metadata' => ['string_shape' => ['format' => 'uri-reference']],
           ],
           'alt' => [
             'required' => TRUE,
@@ -1980,6 +2009,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'width' => [
             'required' => TRUE,
@@ -1993,6 +2023,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎integer␟value',
+            'derived_schema_metadata' => [],
           ],
           'height' => [
             'required' => TRUE,
@@ -2006,6 +2037,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎integer␟value',
+            'derived_schema_metadata' => [],
           ],
           'loading' => [
             'required' => FALSE,
@@ -2021,6 +2053,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2038,6 +2071,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'content' => [
             'required' => FALSE,
@@ -2051,6 +2085,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'footer' => [
             'required' => FALSE,
@@ -2064,6 +2099,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'src' => [
             'required' => TRUE,
@@ -2073,6 +2109,7 @@ HTML
             'field_widget' => 'image_image',
             'default_value' => [],
             'expression' => 'ℹ︎image␟entity␜␜entity:file␝uri␞␟value',
+            'derived_schema_metadata' => ['string_shape' => ['format' => 'uri']],
           ],
           'alt' => [
             'required' => TRUE,
@@ -2086,6 +2123,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'loading' => [
             'required' => FALSE,
@@ -2101,6 +2139,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2118,6 +2157,7 @@ HTML
               0 => ['value' => 'php'],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
           'code' => [
             'required' => TRUE,
@@ -2129,6 +2169,7 @@ HTML
               0 => ['value' => "<?php\necho 'Hello, world!';\n"],
             ],
             'expression' => 'ℹ︎string_long␟value',
+            'derived_schema_metadata' => ['string_shape' => ['pattern' => '(.|\\r?\\n)*']],
           ],
         ],
       ],
@@ -2144,6 +2185,7 @@ HTML
             'field_widget' => 'options_select',
             'default_value' => [0 => ['value' => 2]],
             'expression' => 'ℹ︎list_integer␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2159,6 +2201,7 @@ HTML
             'field_widget' => 'options_select',
             'default_value' => [0 => ['value' => 'small']],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
           'numbers' => [
             'required' => FALSE,
@@ -2170,6 +2213,7 @@ HTML
             'field_widget' => 'options_select',
             'default_value' => [0 => ['value' => '3.14']],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2189,6 +2233,7 @@ HTML
               1 => ['value' => 'blue'],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2204,6 +2249,7 @@ HTML
             'field_widget' => 'options_select',
             'default_value' => [0 => ['value' => 'small']],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2217,6 +2263,7 @@ HTML
             'field_widget' => 'boolean_checkbox',
             'default_value' => [0 => ['value' => FALSE]],
             'expression' => 'ℹ︎boolean␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2232,6 +2279,7 @@ HTML
             'field_widget' => 'datetime_default',
             'default_value' => NULL,
             'expression' => 'ℹ︎datetime␟value',
+            'derived_schema_metadata' => [],
           ],
           'caption' => [
             'required' => FALSE,
@@ -2241,6 +2289,7 @@ HTML
             'field_widget' => 'string_textfield',
             'default_value' => [0 => ['value' => 'Birthday']],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
         ],
       ],
@@ -2254,6 +2303,7 @@ HTML
             'field_widget' => 'string_textfield',
             'default_value' => [0 => ['value' => 'A text field']],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
         ],
       ],
@@ -2270,6 +2320,7 @@ HTML
             'field_widget' => 'string_textfield',
             'default_value' => [0 => ['value' => 'A text field']],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
         ],
       ],
@@ -2285,6 +2336,7 @@ HTML
             'field_widget' => 'options_select',
             'default_value' => [0 => ['value' => 'horizontal']],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2302,6 +2354,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'style' => [
             'required' => FALSE,
@@ -2317,6 +2370,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
           'element' => [
             'required' => TRUE,
@@ -2332,6 +2386,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2345,6 +2400,7 @@ HTML
             'field_widget' => 'image_image',
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2358,6 +2414,7 @@ HTML
             'field_widget' => 'string_textfield',
             'default_value' => NULL,
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'images' => [
             'required' => TRUE,
@@ -2370,6 +2427,7 @@ HTML
             // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2385,6 +2443,7 @@ HTML
             // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2398,6 +2457,7 @@ HTML
             'field_widget' => 'string_textfield',
             'default_value' => NULL,
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'image' => [
             'required' => FALSE,
@@ -2409,6 +2469,7 @@ HTML
             // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2424,6 +2485,7 @@ HTML
             // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2439,6 +2501,7 @@ HTML
             // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2452,6 +2515,7 @@ HTML
             'field_widget' => 'image_image',
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2467,6 +2531,7 @@ HTML
             // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'derived_schema_metadata' => [],
           ],
           'secondary_image' => [
             'required' => FALSE,
@@ -2478,6 +2543,7 @@ HTML
             // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'derived_schema_metadata' => [],
           ],
           'required_image' => [
             'required' => TRUE,
@@ -2489,6 +2555,7 @@ HTML
             // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2510,6 +2577,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'text_limited' => [
             'required' => FALSE,
@@ -2527,6 +2595,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'text_required' => [
             'required' => TRUE,
@@ -2544,6 +2613,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'link' => [
             'required' => FALSE,
@@ -2566,6 +2636,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎link␟url',
+            'derived_schema_metadata' => ['string_shape' => ['format' => 'uri']],
           ],
           'link_limited' => [
             'required' => FALSE,
@@ -2588,6 +2659,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎link␟url',
+            'derived_schema_metadata' => ['string_shape' => ['format' => 'uri']],
           ],
           'relative_link' => [
             'required' => FALSE,
@@ -2610,6 +2682,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎link␟url',
+            'derived_schema_metadata' => ['string_shape' => ['format' => 'uri-reference']],
           ],
           'relative_link_limited' => [
             'required' => FALSE,
@@ -2632,6 +2705,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎link␟url',
+            'derived_schema_metadata' => ['string_shape' => ['format' => 'uri-reference']],
           ],
           'number' => [
             'required' => FALSE,
@@ -2652,6 +2726,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎float␟value',
+            'derived_schema_metadata' => [],
           ],
           'number_limited' => [
             'required' => FALSE,
@@ -2669,6 +2744,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎float␟value',
+            'derived_schema_metadata' => [],
           ],
           'integer' => [
             'required' => FALSE,
@@ -2686,6 +2762,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎integer␟value',
+            'derived_schema_metadata' => [],
           ],
           'integer_limited' => [
             'required' => FALSE,
@@ -2703,6 +2780,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎integer␟value',
+            'derived_schema_metadata' => [],
           ],
           'datetime' => [
             'required' => FALSE,
@@ -2715,6 +2793,7 @@ HTML
             'field_widget' => 'datetime_default',
             'default_value' => NULL,
             'expression' => 'ℹ︎datetime␟value',
+            'derived_schema_metadata' => [],
           ],
           'datetime_limited' => [
             'required' => FALSE,
@@ -2727,6 +2806,7 @@ HTML
             'field_widget' => 'datetime_default',
             'default_value' => NULL,
             'expression' => 'ℹ︎datetime␟value',
+            'derived_schema_metadata' => [],
           ],
           'date' => [
             'required' => FALSE,
@@ -2739,6 +2819,7 @@ HTML
             'field_widget' => 'datetime_default',
             'default_value' => NULL,
             'expression' => 'ℹ︎datetime␟value',
+            'derived_schema_metadata' => [],
           ],
           'date_limited' => [
             'required' => FALSE,
@@ -2751,6 +2832,7 @@ HTML
             'field_widget' => 'datetime_default',
             'default_value' => NULL,
             'expression' => 'ℹ︎datetime␟value',
+            'derived_schema_metadata' => [],
           ],
           'list_text' => [
             'required' => FALSE,
@@ -2766,6 +2848,7 @@ HTML
               1 => ['value' => 'option_two'],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
           'list_text_limited' => [
             'required' => FALSE,
@@ -2781,6 +2864,7 @@ HTML
               1 => ['value' => 'option_two'],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
           'list_int' => [
             'required' => FALSE,
@@ -2796,6 +2880,7 @@ HTML
               1 => ['value' => 20],
             ],
             'expression' => 'ℹ︎list_integer␟value',
+            'derived_schema_metadata' => [],
           ],
           'list_int_limited' => [
             'required' => FALSE,
@@ -2811,6 +2896,7 @@ HTML
               1 => ['value' => 20],
             ],
             'expression' => 'ℹ︎list_integer␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2828,6 +2914,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'href' => [
             'required' => TRUE,
@@ -2845,6 +2932,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎link␟url',
+            'derived_schema_metadata' => ['string_shape' => ['format' => 'uri']],
           ],
           'target' => [
             'required' => FALSE,
@@ -2856,6 +2944,7 @@ HTML
             'field_widget' => 'options_select',
             'default_value' => NULL,
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2873,6 +2962,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'subheading' => [
             'required' => FALSE,
@@ -2886,6 +2976,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'cta1' => [
             'required' => FALSE,
@@ -2899,6 +2990,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'cta1href' => [
             'required' => TRUE,
@@ -2916,6 +3008,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎link␟url',
+            'derived_schema_metadata' => ['string_shape' => ['format' => 'uri-reference']],
           ],
           'cta2' => [
             'required' => FALSE,
@@ -2929,6 +3022,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
         ],
       ],
@@ -2946,6 +3040,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
         ],
       ],
@@ -2965,6 +3060,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2978,6 +3074,7 @@ HTML
             'field_widget' => 'string_textfield',
             'default_value' => [0 => ['value' => 'There goes my hero']],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
         ],
       ],
@@ -2991,6 +3088,7 @@ HTML
             'field_widget' => 'string_textfield',
             'default_value' => [0 => ['value' => 'There goes my hero']],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
         ],
       ],
@@ -3013,6 +3111,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎text_long␟processed',
+            'derived_schema_metadata' => ['string_shape' => ['contentMediaType' => 'text/html', 'x-formatting-context' => 'block']],
           ],
         ],
       ],
@@ -3030,6 +3129,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎integer␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -3047,6 +3147,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
         ],
       ],
@@ -3066,6 +3167,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
           'colors' => [
             'required' => FALSE,
@@ -3085,6 +3187,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -3104,6 +3207,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
           'pill' => [
             'required' => FALSE,
@@ -3117,6 +3221,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎boolean␟value',
+            'derived_schema_metadata' => [],
           ],
           'pulse' => [
             'required' => FALSE,
@@ -3130,6 +3235,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎boolean␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -3147,6 +3253,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'panel' => [
             'required' => TRUE,
@@ -3160,6 +3267,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'active' => [
             'required' => FALSE,
@@ -3169,6 +3277,7 @@ HTML
             'field_widget' => 'boolean_checkbox',
             'default_value' => NULL,
             'expression' => 'ℹ︎boolean␟value',
+            'derived_schema_metadata' => [],
           ],
           'closable' => [
             'required' => FALSE,
@@ -3178,6 +3287,7 @@ HTML
             'field_widget' => 'boolean_checkbox',
             'default_value' => NULL,
             'expression' => 'ℹ︎boolean␟value',
+            'derived_schema_metadata' => [],
           ],
           'disabled' => [
             'required' => FALSE,
@@ -3187,6 +3297,7 @@ HTML
             'field_widget' => 'boolean_checkbox',
             'default_value' => NULL,
             'expression' => 'ℹ︎boolean␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -3206,6 +3317,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
           'activation' => [
             'required' => FALSE,
@@ -3221,6 +3333,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎list_string␟value',
+            'derived_schema_metadata' => [],
           ],
           'no_scroll' => [
             'required' => FALSE,
@@ -3234,6 +3347,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎boolean␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -3251,6 +3365,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
           'active' => [
             'required' => FALSE,
@@ -3260,6 +3375,7 @@ HTML
             'field_widget' => 'boolean_checkbox',
             'default_value' => NULL,
             'expression' => 'ℹ︎boolean␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -3287,6 +3403,7 @@ HTML
               8 => ['value' => 9],
             ],
             'expression' => 'ℹ︎integer␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -3305,6 +3422,7 @@ HTML
               2 => ['value' => 'baz'],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
         ],
       ],
@@ -3324,6 +3442,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎list_integer␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -3339,6 +3458,7 @@ HTML
             'field_widget' => 'file_generic',
             'default_value' => [],
             'expression' => 'ℹ︎file␟{src↝entity␜␜entity:file␝uri␞␟url}',
+            'derived_schema_metadata' => [],
           ],
           'display_width' => [
             'required' => FALSE,
@@ -3351,6 +3471,7 @@ HTML
             'field_widget' => 'number',
             'default_value' => NULL,
             'expression' => 'ℹ︎integer␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -3374,6 +3495,7 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
           ],
         ],
       ],
@@ -6152,7 +6274,6 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
-              'minLength' => 2,
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -6224,7 +6345,6 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
-              'minLength' => 2,
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -6275,7 +6395,6 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
-              'minLength' => 2,
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
