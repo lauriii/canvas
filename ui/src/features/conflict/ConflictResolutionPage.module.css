@@ -1,0 +1,276 @@
+.page {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  background: #fff;
+}
+
+.header {
+  display: flex;
+  flex: 0 0 40px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--gray-5);
+  background: #fff;
+}
+
+.breadcrumbLabel {
+  overflow: hidden;
+  max-width: 360px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.content {
+  overflow: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 24px 24px 84px;
+  background: #fff;
+}
+
+.tabRoot {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.toolbar {
+  flex: 0 0 auto;
+  margin-bottom: 16px;
+}
+
+.tabList {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--gray-4);
+  border-radius: 6px;
+  background: var(--gray-3);
+  box-shadow: none !important;
+}
+
+.tabList .tabTrigger {
+  flex: 0 0 74px;
+  justify-content: center;
+  height: 32px;
+  cursor: pointer;
+  color: var(--gray-12);
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.tabList .tabTrigger:hover {
+  background-color: var(--gray-a3);
+}
+
+.tabList .tabTrigger + .tabTrigger {
+  border-left: 1px solid var(--gray-4);
+}
+
+.tabList .tabTrigger[data-state="active"] {
+  color: var(--gray-12);
+  background: #fff;
+  box-shadow: none;
+}
+
+.tabList .tabTrigger span {
+  background: transparent !important;
+}
+
+.tabTrigger::before,
+.tabTrigger::after {
+  display: none;
+}
+
+.tabContent {
+  flex: 1 1 auto;
+  min-height: 0;
+  outline: none;
+}
+
+.comparisonGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  gap: 22px;
+}
+
+.card,
+.cardSelected {
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--gray-6);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.cardSelected {
+  border-color: var(--blue-9);
+}
+
+.cardSelectable {
+  cursor: pointer;
+}
+
+.cardSelectable:focus-visible {
+  outline: 2px solid var(--blue-9);
+  outline-offset: 2px;
+}
+
+.cardHeader,
+.cardHeaderSelected {
+  position: relative;
+  display: flex;
+  flex: 0 0 70px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--gray-2);
+}
+
+.cardHeaderActions {
+  position: relative;
+  z-index: 1;
+}
+
+.cardHeaderSelected {
+  background: #e5f4ff;
+}
+
+.cardSelectButton {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+}
+
+.cardSelectButton:focus-visible {
+  outline: 2px solid var(--blue-9);
+  outline-offset: -2px;
+}
+
+.cardBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 24px;
+}
+
+.visualSurface {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  background: #fff;
+}
+
+.previewScrollArea {
+  display: flex;
+  overflow: auto;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  cursor: grab;
+  user-select: none;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+}
+
+.previewScrollArea[data-dragging="true"] {
+  cursor: grabbing;
+}
+
+.previewFrameWrapper {
+  --conflict-preview-scale: 1;
+
+  flex: 0 0 auto;
+  width: 78%;
+  height: 100%;
+  min-height: 360px;
+  margin: auto;
+  transition: transform 150ms ease;
+  transform: scale(var(--conflict-preview-scale));
+  transform-origin: center;
+}
+
+.previewFrame {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  border: 0;
+  background: #fff;
+}
+
+.previewControls {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: 0;
+}
+
+.previewControlButton {
+  box-shadow: 0 5px 10px 2px rgb(0, 0, 0, 0.1);
+}
+
+.previewControlButton:hover {
+  box-shadow:
+    inset 0 0 0 1px var(--accent-a7),
+    0 5px 10px 2px rgb(0, 0, 0, 0.1);
+}
+
+.textPanel {
+  overflow: auto;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  margin: 0;
+  padding: 24px;
+  white-space: pre-wrap;
+  color: var(--gray-12);
+  border-radius: 8px;
+  background: var(--gray-2);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.footer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 24px;
+  background: #fff;
+}
+
+.emptyState {
+  flex: 1 1 auto;
+  height: calc(100% - 40px);
+  text-align: center;
+}
+
+.emptyIcon {
+  width: 24px;
+  height: 24px;
+  color: var(--gray-9);
+}

@@ -28,7 +28,9 @@ const Topbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { entityType, bundle, previewEntityId } = useParams();
-  const isPreview = location.pathname.includes('/preview');
+  const isPreview =
+    location.pathname.includes('/preview') ||
+    location.pathname.includes('/conflict-preview');
   const isEditor = location.pathname.includes('/editor');
   const isSegments = location.pathname.includes('/segments');
   const isTemplateEditorContext =

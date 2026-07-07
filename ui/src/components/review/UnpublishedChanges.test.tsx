@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 
@@ -34,6 +34,10 @@ const mocks = vi.hoisted(() => {
     discardChange: vi.fn(),
     refetch: vi.fn(),
     showBoundary: vi.fn(),
+    navigate: vi.fn(),
+    locationPathname: '/editor',
+    locationSearch: '',
+    locationHash: '',
     invalidateBrandKitTags: vi.fn(),
     invalidateContentTags: vi.fn(),
     invalidateLayoutTags: vi.fn(),
@@ -52,6 +56,12 @@ vi.mock('react-router', () => ({
     entityType: 'canvas_page',
     entityId: '1',
   }),
+  useLocation: () => ({
+    pathname: mocks.locationPathname,
+    search: mocks.locationSearch,
+    hash: mocks.locationHash,
+  }),
+  useNavigate: () => mocks.navigate,
 }));
 
 vi.mock('@/app/hooks', async () => {
@@ -145,10 +155,32 @@ describe('UnpublishedChanges', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.publishReviewProps = undefined;
+    mocks.locationPathname = '/editor';
+    mocks.locationSearch = '';
+    mocks.locationHash = '';
     mocks.publishUnwrap.mockRejectedValue({ status: 409 });
     mocks.publishAllChanges.mockReturnValue({
       unwrap: mocks.publishUnwrap,
     });
+  });
+
+  it('opens the review panel from the reviewChanges query and removes the query', async () => {
+    mocks.locationSearch = '?reviewChanges=1';
+
+    render(<UnpublishedChanges />);
+
+    await waitFor(() => {
+      expect(mocks.publishReviewProps.open).toBe(true);
+    });
+    expect(mocks.refetch).toHaveBeenCalled();
+    expect(mocks.navigate).toHaveBeenCalledWith(
+      {
+        pathname: '/editor',
+        search: '',
+        hash: '',
+      },
+      { replace: true },
+    );
   });
 
   it('does not run publish success cleanup when publishing fails', async () => {

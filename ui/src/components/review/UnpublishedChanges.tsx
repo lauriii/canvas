@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { useParams } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import PublishReview from '@/components/review/PublishReview';
@@ -14,7 +14,10 @@ import {
   resetCodeEditor,
   setForceRefresh,
 } from '@/features/code-editor/codeEditorSlice';
-import { isConflictUxEnabled } from '@/features/conflict/conflictUtils';
+import {
+  getConflictRouteForChange,
+  isConflictUxEnabled,
+} from '@/features/conflict/conflictUtils';
 import { FORM_TYPES } from '@/features/form/constants';
 import { clearFieldValues } from '@/features/form/formStateSlice';
 import {
@@ -47,6 +50,7 @@ import type { PendingChanges } from '@/services/pendingChangesApi';
 import type { UnpublishedChange } from '@/types/Review';
 
 const REFETCH_INTERVAL_MS = 10000;
+const REVIEW_CHANGES_QUERY_PARAM = 'reviewChanges';
 
 const UnpublishedChanges = () => {
   const previousPendingChanges = useAppSelector(selectPreviousPendingChanges);
@@ -65,6 +69,7 @@ const UnpublishedChanges = () => {
   });
   const [pollingInterval, setPollingInterval] =
     useState<number>(REFETCH_INTERVAL_MS);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const {
     data: changes,
     error,
@@ -75,6 +80,8 @@ const UnpublishedChanges = () => {
     skipPollingIfUnfocused: true,
   });
   const { entityType, entityId, codeComponentId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { showBoundary } = useErrorBoundary();
   const entity_form_fields = useAppSelector(selectPageData);
@@ -109,14 +116,42 @@ const UnpublishedChanges = () => {
     if (previousPendingChanges) refetch();
   }, [previousPendingChanges, refetch]);
 
-  const onOpenChangeHandler = (open: boolean): void => {
-    if (open) {
-      setPollingInterval(0);
-      refetch();
-    } else {
-      setPollingInterval(REFETCH_INTERVAL_MS);
+  const onOpenChangeHandler = useCallback(
+    (open: boolean): void => {
+      setReviewOpen(open);
+      if (open) {
+        setPollingInterval(0);
+        refetch();
+      } else {
+        setPollingInterval(REFETCH_INTERVAL_MS);
+      }
+    },
+    [refetch],
+  );
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get(REVIEW_CHANGES_QUERY_PARAM) !== '1') {
+      return;
     }
-  };
+
+    onOpenChangeHandler(true);
+    searchParams.delete(REVIEW_CHANGES_QUERY_PARAM);
+    navigate(
+      {
+        pathname: location.pathname,
+        search: searchParams.toString() ? `?${searchParams.toString()}` : '',
+        hash: location.hash,
+      },
+      { replace: true },
+    );
+  }, [
+    location.hash,
+    location.pathname,
+    location.search,
+    navigate,
+    onOpenChangeHandler,
+  ]);
 
   const onPublishClick = async (selectedChanges: UnpublishedChange[]) => {
     if (selectedChanges?.length) {
@@ -318,6 +353,7 @@ const UnpublishedChanges = () => {
 
   return (
     <PublishReview
+      open={reviewOpen}
       isUpdating={isUpdating}
       isFetching={isFetching}
       changes={unpublishedChanges}
@@ -326,9 +362,11 @@ const UnpublishedChanges = () => {
       onOpenChangeCallback={onOpenChangeHandler}
       onPublishClick={onPublishClick}
       onDiscardClick={onDiscardClick}
-      onResolveConflict={() => {
-        // @todo Replace this refresh with the conflict resolution UI in
-        //   https://git.drupalcode.org/project/canvas/-/work_items/3591601.
+      onResolveConflict={(change) => {
+        if (change && conflictUxEnabled) {
+          navigate(getConflictRouteForChange(change));
+          return;
+        }
         refetch();
       }}
       isPublishing={isPublishing}

@@ -1,25 +1,20 @@
-import { useCallback, useLayoutEffect, useMemo } from 'react';
 import clsx from 'clsx';
 import ScaleToFitIcon from '@assets/icons/justify-stretch.svg?react';
-import { Button, DropdownMenu, Flex, Tooltip } from '@radix-ui/themes';
+import { Button, Flex, Tooltip } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import BreakpointIcon from '@/components/BreakpointIcon';
 import ZoomControl from '@/components/zoom/ZoomControl';
+import ViewportSelector from '@/features/layout/preview/ViewportSelector';
 import {
   scaleValues,
   selectViewportWidth,
   setEditorFrameViewPort,
-  setViewportMinHeight,
-  setViewportWidth,
 } from '@/features/ui/uiSlice';
 import { getHalfwayScrollPosition } from '@/utils/function-utils';
-import { getViewportSizes } from '@/utils/viewports';
 
 import type React from 'react';
 import type { RefObject } from 'react';
 import type { ScaleValue } from '@/features/ui/uiSlice';
-import type { viewportSize } from '@/types/Preview';
 
 import styles from './ViewportToolbar.module.css';
 
@@ -50,36 +45,6 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
   const { editorPaneRef, scalingContainerRef } = props;
   const dispatch = useAppDispatch();
   const currentWidth = useAppSelector(selectViewportWidth);
-  // Get viewport sizes (supports theme-level customization).
-  const viewportSizes = useMemo(() => getViewportSizes(), []);
-  const handleWidthClick = (viewportSize: viewportSize) => {
-    dispatch(setViewportWidth(viewportSize.width));
-    dispatch(setViewportMinHeight(viewportSize.height));
-    // Remember user's last chosen viewport size so it can persist across page reloads/navigation etc.
-    localStorage.setItem('Canvas.editorFrame.viewportSize', viewportSize.id);
-  };
-
-  const getViewportByWidth = useCallback(
-    (width: number): viewportSize => {
-      const viewportSize = viewportSizes.find((vw) => vw.width === width);
-      if (!viewportSize) {
-        throw new Error(`No viewport found with width: ${width}`);
-      }
-      return viewportSize;
-    },
-    [viewportSizes],
-  );
-
-  const getViewportById = useCallback(
-    (id: string): viewportSize => {
-      const viewportSize = viewportSizes.find((vw) => vw.id === id);
-      if (!viewportSize) {
-        throw new Error(`No viewport found with id: ${id}`);
-      }
-      return viewportSize;
-    },
-    [viewportSizes],
-  );
 
   const handleScaleToFit = () => {
     if (editorPaneRef.current) {
@@ -115,55 +80,15 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
     }
   };
 
-  useLayoutEffect(() => {
-    // Attempt to restore user's last viewport choice from localStorage
-    const storedViewportId = localStorage.getItem(
-      'Canvas.editorFrame.viewportSize',
-    );
-    let vs: viewportSize;
-    if (currentWidth) {
-      vs = getViewportByWidth(currentWidth);
-    } else {
-      vs = getViewportById(storedViewportId || 'tablet');
-    }
-    dispatch(setViewportWidth(vs.width));
-    dispatch(setViewportMinHeight(vs.height));
-  }, [currentWidth, dispatch, getViewportByWidth, getViewportById]);
-
   return (
     <Flex
       className={styles.toolbar}
       gap="2"
       data-testid="canvas-editor-frame-controls"
     >
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger>
-          <Button
-            variant="surface"
-            size="1"
-            color="gray"
-            className={clsx(styles.toolbarButton, styles.viewportSelect)}
-          >
-            <BreakpointIcon width={currentWidth} />
-            {currentWidth
-              ? getViewportByWidth(currentWidth)?.name
-              : 'Select viewport'}
-            <DropdownMenu.TriggerIcon />
-          </Button>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Content size="1">
-          {viewportSizes.map((vs) => (
-            <DropdownMenu.Item
-              key={vs.name}
-              onClick={() => handleWidthClick(vs)}
-              color={vs.width === currentWidth ? 'blue' : undefined}
-            >
-              <BreakpointIcon width={vs.width} />
-              {vs.name} ({vs.width}px)
-            </DropdownMenu.Item>
-          ))}
-        </DropdownMenu.Content>
-      </DropdownMenu.Root>
+      <ViewportSelector
+        buttonClassName={clsx(styles.toolbarButton, styles.viewportSelect)}
+      />
       <Tooltip side="bottom" content={'Scale to fit'}>
         <Button
           size="1"

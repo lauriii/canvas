@@ -36,6 +36,7 @@ interface PublishReviewProps {
   title?: string;
   changes: UnpublishedChange[];
   errors?: ErrorResponse | undefined;
+  open?: boolean;
   onPublishClick: (selectedChanges: UnpublishedChange[]) => void;
   onDiscardClick: (selectedChange: UnpublishedChange) => void;
   onViewClick?: (change: UnpublishedChange) => void;
@@ -56,6 +57,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
   title = DEFAULT_TITLE,
   changes,
   errors,
+  open: controlledOpen,
   onPublishClick,
   onDiscardClick,
   onViewClick,
@@ -70,7 +72,8 @@ const PublishReview: React.FC<PublishReviewProps> = ({
 }) => {
   const conflictUxEnabled = isConflictUxEnabled();
   // State to manage the open/close state of the popover
-  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [internalOpen, setInternalOpen] = useState<boolean>(false);
+  const isOpen = controlledOpen ?? internalOpen;
 
   // Single source to determine if something is happening
   const isBusy = isUpdating || isPublishing || isDiscarding || isFetching;
@@ -87,6 +90,11 @@ const PublishReview: React.FC<PublishReviewProps> = ({
         ? changes.filter((change) => !change.hasConflict)
         : changes,
     [changes, conflictUxEnabled],
+  );
+
+  const firstConflictedChange = useMemo(
+    () => changes.find((change) => change.hasConflict),
+    [changes],
   );
 
   const allSelected = useMemo(() => {
@@ -190,12 +198,15 @@ const PublishReview: React.FC<PublishReviewProps> = ({
 
   const onOpenChangeHandler = (open: boolean): void => {
     setHasPublished(false);
-    setIsOpen(open);
+    if (controlledOpen === undefined) {
+      setInternalOpen(open);
+    }
     onOpenChangeCallback(open);
   };
 
-  const handleResolveConflict = () => {
-    onResolveConflict?.();
+  const handleResolveConflict = (change?: UnpublishedChange) => {
+    onOpenChangeHandler(false);
+    onResolveConflict?.(change ?? firstConflictedChange);
   };
 
   return (
@@ -270,7 +281,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                 <Box px="4" pt="4">
                   <ConflictBanner
                     conflictCount={conflictCount}
-                    onResolveClick={handleResolveConflict}
+                    onResolveClick={() => handleResolveConflict()}
                     disabled={isBusy}
                   />
                 </Box>
@@ -285,9 +296,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                       setSelectedChanges={setSelectedChanges}
                       onDiscardClick={handleDiscardClick}
                       onViewClick={onViewClick}
-                      onResolveConflict={(change) =>
-                        onResolveConflict?.(change)
-                      }
+                      onResolveConflict={handleResolveConflict}
                       pageStatusMap={pageStatusMap}
                     />
                   </>

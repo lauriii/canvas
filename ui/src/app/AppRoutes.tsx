@@ -18,6 +18,8 @@ import SideMenu from '@/components/sideMenu/SideMenu';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
 import CodeEditorContainer from '@/features/code-editor/CodeEditorContainer';
 import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
+import ConflictPreview from '@/features/conflict/ConflictPreview';
+import ConflictResolutionPage from '@/features/conflict/ConflictResolutionPage';
 import EditorLayout from '@/features/editor/EditorLayout';
 import TemplateRoot from '@/features/editor/TemplateRoot';
 import PagePreview from '@/features/pagePreview/PagePreview';
@@ -169,6 +171,30 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           {
             path: 'preview/template/:entityType/:bundle/:entityId/:viewMode/:width',
             element: <PagePreview />,
+          },
+          {
+            path: '/conflict-preview/:entityType/:entityId',
+            element: <ConflictPreview />,
+          },
+          {
+            path: '/conflict-preview/:entityType/:entityId/:width',
+            element: <ConflictPreview />,
+          },
+          {
+            path: '/conflict',
+            element: (
+              <UiShell>
+                <ConflictResolutionPage />
+              </UiShell>
+            ),
+          },
+          {
+            path: '/conflict/:entityType/:entityId',
+            element: (
+              <UiShell>
+                <ConflictResolutionPage />
+              </UiShell>
+            ),
           },
           {
             // belt and braces to catch navigation to /code-editor without component id rather than showing a 404

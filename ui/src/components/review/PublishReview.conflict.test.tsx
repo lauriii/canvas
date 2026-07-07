@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AppWrapper from '@tests/vitest/components/AppWrapper';
 
@@ -49,11 +49,13 @@ const renderReview = (changes: UnpublishedChange[]) => {
     isUpdating: false,
   };
 
-  return render(
+  const result = render(
     <AppWrapper store={store} location="/" path="*">
       <PublishReview {...props} />
     </AppWrapper>,
   );
+
+  return { ...result, props };
 };
 
 describe('PublishReview conflict UI', () => {
@@ -117,6 +119,31 @@ describe('PublishReview conflict UI', () => {
     expect(
       screen.getByTestId('canvas-publish-review-select-all'),
     ).toBeDisabled();
+  });
+
+  it('closes the review and resolves the first conflicted row from the banner', async () => {
+    const user = userEvent.setup();
+    const conflictedChange = {
+      ...baseChange,
+      pointer: 'canvas_page:2:en',
+      label: 'Page 2',
+      entity_id: 2,
+      hasConflict: true,
+    };
+    const { props } = renderReview([baseChange, conflictedChange]);
+
+    await user.click(screen.getByTestId('canvas-publish-review'));
+    await user.click(
+      screen.getByRole('button', { name: 'Resolve 1 conflict' }),
+    );
+
+    expect(props.onResolveConflict).toHaveBeenCalledWith(conflictedChange);
+    expect(props.onOpenChangeCallback).toHaveBeenLastCalledWith(false);
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('canvas-publish-reviews-content'),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('treats conflicted pending changes as normal rows when conflict UX is disabled', async () => {
