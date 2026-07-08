@@ -2,6 +2,8 @@ import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
+import type { Page } from '@playwright/test';
+
 /**
  * Tests Canvas translation behavior.
  */
@@ -11,6 +13,16 @@ test.use({
 });
 
 test.describe('Canvas page language enforcement', () => {
+  async function openCanvasPageSettings(page: Page) {
+    const canvasPageSettings = page.locator('#edit-settings-canvas-page');
+    await expect(canvasPageSettings).toBeAttached();
+
+    const isOpen = (await canvasPageSettings.getAttribute('open')) !== null;
+    if (!isOpen) {
+      await canvasPageSettings.locator('summary').click();
+    }
+  }
+
   test.beforeEach(async ({ drupal, page }) => {
     await drupal.loginAsAdmin();
 
@@ -28,32 +40,57 @@ test.describe('Canvas page language enforcement', () => {
     });
   });
 
-  test('"Show language selector..." checkbox is disabled and unchecked when translation is enabled for Canvas pages', async ({
+  test('Canvas page language settings force site default and hide unsupported checkboxes', async ({
     page,
   }) => {
     await page.goto('/admin/config/regional/content-language');
 
-    const translatableCheckbox = page.locator(
+    const entityTypeCheckbox = page.locator(
       'input[name="entity_types[canvas_page]"]',
     );
-    await expect(translatableCheckbox).toBeVisible();
-    await translatableCheckbox.check();
+    await expect(entityTypeCheckbox).toBeVisible();
+    await entityTypeCheckbox.check();
+    await openCanvasPageSettings(page);
+
+    const bundleTranslatableCheckbox = page.locator(
+      'input[name="settings[canvas_page][canvas_page][translatable]"]',
+    );
+    await expect(bundleTranslatableCheckbox).toBeVisible();
+    await bundleTranslatableCheckbox.check();
+
+    const langcodeSelect = page.locator(
+      'select[name="settings[canvas_page][canvas_page][settings][language][langcode]"]',
+    );
+    await expect(langcodeSelect).toBeAttached();
+    await expect(langcodeSelect).toBeDisabled();
+    await expect(langcodeSelect).toHaveValue('site_default');
 
     const languageAlterableCheckbox = page.locator(
       'input[name="settings[canvas_page][canvas_page][settings][language][language_alterable]"]',
     );
-    await expect(languageAlterableCheckbox).toBeAttached();
-    await expect(languageAlterableCheckbox).toBeDisabled();
-    await expect(languageAlterableCheckbox).not.toBeChecked();
+    await expect(languageAlterableCheckbox).not.toBeAttached();
+
+    const untranslatableFieldsHideCheckbox = page.locator(
+      'input[name="settings[canvas_page][canvas_page][settings][content_translation][untranslatable_fields_hide]"]',
+    );
+    await expect(untranslatableFieldsHideCheckbox).not.toBeAttached();
 
     await page.locator('[data-drupal-selector="edit-submit"]').click();
     await page.waitForURL('**/admin/config/regional/content-language', {
       timeout: 10000,
     });
 
-    await expect(languageAlterableCheckbox).toBeAttached();
-    await expect(languageAlterableCheckbox).toBeDisabled();
-    await expect(languageAlterableCheckbox).not.toBeChecked();
+    // Reload the page to confirm persisted values are coming from saved config,
+    // not merely from post-submit form state.
+    await page.goto('/admin/config/regional/content-language');
+
+    await expect(bundleTranslatableCheckbox).toBeChecked();
+
+    await expect(langcodeSelect).toBeAttached();
+    await expect(langcodeSelect).toBeDisabled();
+    await expect(langcodeSelect).toHaveValue('site_default');
+    await expect(languageAlterableCheckbox).not.toBeAttached();
+    await expect(untranslatableFieldsHideCheckbox).not.toBeAttached();
   });
 
   test('No language selector is shown in the Canvas page sidebar form', async ({
@@ -62,6 +99,10 @@ test.describe('Canvas page language enforcement', () => {
   }) => {
     await page.goto('/admin/config/regional/content-language');
     await page.locator('input[name="entity_types[canvas_page]"]').check();
+    await openCanvasPageSettings(page);
+    await page
+      .locator('input[name="settings[canvas_page][canvas_page][translatable]"]')
+      .check();
     await page.locator('[data-drupal-selector="edit-submit"]').click();
     await page.waitForURL('**/admin/config/regional/content-language', {
       timeout: 10000,

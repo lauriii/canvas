@@ -383,6 +383,40 @@ class TranslationTest extends FunctionalTestBase {
   }
 
   /**
+   * Tests canvas_page content language settings enforce Canvas constraints.
+   */
+  public function testCanvasPageContentLanguageSettingsFormSubmitPersistsExpectedConfiguration(): void {
+    $assert_session = $this->assertSession();
+
+    // Verify enforced Canvas constraints in the form, then submit only visible
+    // controls and assert persisted config matches those constraints.
+    $this->drupalGet('admin/config/regional/content-language');
+
+    $assert_session->fieldValueEquals('settings[canvas_page][canvas_page][settings][language][langcode]', LanguageInterface::LANGCODE_SITE_DEFAULT);
+    $assert_session->elementAttributeExists('named', ['field', 'settings[canvas_page][canvas_page][settings][language][langcode]'], 'disabled');
+    $assert_session->fieldNotExists('settings[canvas_page][canvas_page][settings][language][language_alterable]');
+    $assert_session->fieldNotExists('settings[canvas_page][canvas_page][settings][content_translation][untranslatable_fields_hide]');
+
+    $this->submitForm([
+      'entity_types[canvas_page]' => 1,
+      'settings[canvas_page][canvas_page][translatable]' => 1,
+    ], 'Save configuration');
+
+    $assert_session->pageTextContains('Settings successfully updated.');
+
+    $content_language_settings = ContentLanguageSettings::loadByEntityTypeBundle(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID);
+    self::assertNotNull($content_language_settings);
+    self::assertSame(LanguageInterface::LANGCODE_SITE_DEFAULT, $content_language_settings->getDefaultLangcode());
+    self::assertFalse($content_language_settings->isLanguageAlterable());
+
+    $content_translation_manager = $this->container->get('content_translation.manager');
+    self::assertTrue($content_translation_manager->isEnabled(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID));
+    self::assertEquals([
+      'untranslatable_fields_hide' => 0,
+    ], $content_translation_manager->getBundleTranslationSettings(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID));
+  }
+
+  /**
    * Creates an article node with a translation.
    *
    * @return \Drupal\node\Entity\Node
