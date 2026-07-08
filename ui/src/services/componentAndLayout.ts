@@ -238,6 +238,11 @@ export const componentAndLayoutApi = createApi({
             meta,
           } = await queryFulfilled;
           dispatch(setInitialPageData(entity_form_fields));
+          // Clear any stale snapshot (e.g. from a prior language/template
+          // preview) so selectPreviewHtml returns this fresh editor html.
+          // Mirrors getPageLayout; without it a leftover preview snapshot masks
+          // the template editor frame.
+          dispatch(setSnapshotHTML(''));
           dispatch(setHtml(html));
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         } catch (err) {

@@ -158,6 +158,10 @@ export const previewApi = createApi({
             { type: 'PendingChanges', id: 'LIST' },
           ]),
         );
+        // Clear any stale snapshot (e.g. from a prior language/template preview)
+        // so selectPreviewHtml returns this fresh editor html instead of the
+        // preview snapshot, which selectPreviewHtml prefers while set.
+        dispatch(setSnapshotHTML(''));
         dispatch(setHtml(html));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,

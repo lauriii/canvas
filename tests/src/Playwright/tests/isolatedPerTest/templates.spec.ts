@@ -377,6 +377,53 @@ test.describe('Templates - General', () => {
     await expect(page.locator('p.my-hero__subheading')).toHaveText('submarine');
   });
 
+  test('Preview reflects edits made after previewing a content template', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.openCanvasRoot();
+    await canvas.openTemplatesPanel();
+
+    // Build an Article "Full content" template with a hero component.
+    await canvas.addTemplate('Article', 'Full content');
+    await page.getByTestId('template-list-item-article-Full content').click();
+    expect(page.url()).toContain('canvas/template/node/article/full/1');
+    await canvas.openLibraryPanel();
+    await canvas.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
+    await canvas.publishAllChanges();
+
+    // Open the full-page preview and return to the editor. This seeds a preview
+    // snapshot that must not mask subsequent edits.
+    await canvas.openPreview();
+    await page
+      .locator('[data-testid="canvas-topbar"]')
+      .getByRole('button', { name: 'Exit Preview' })
+      .click();
+    await page.waitForURL(/\/canvas\/template\/node\/article\/full\/\d+/, {
+      timeout: 10000,
+    });
+    await canvas.waitForEditorFrame();
+
+    // Link the hero heading to the entity Title. The preview must reflect the
+    // resolved value, not the stale snapshot captured by the preview above.
+    await canvas.clickPreviewComponent('sdc.canvas_test_sdc.my-hero');
+    await page
+      .locator('xpath=//*[@data-canvas-link-suggestions=\'["Title"]\']')
+      .click();
+    await page.locator('[data-link-suggestion-option="Title"]').click();
+    await expect(page.getByTestId('linked-field-label-heading')).toHaveText(
+      'Title',
+    );
+    await canvas.testInPreviewFrame(
+      '[data-component-id="canvas_test_sdc:my-hero"] h1',
+      async (h1) => {
+        await expect(h1).toContainText('Article One');
+      },
+    );
+  });
+
   test('Add teaser template and verify rendering', async ({
     page,
     drupal,
