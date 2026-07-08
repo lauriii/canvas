@@ -60,6 +60,7 @@ extensionless
 fieldtext
 fvar
 folderfy
+francais
 FrankenPHP
 Français
 gerbeaud

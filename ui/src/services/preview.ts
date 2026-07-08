@@ -101,9 +101,16 @@ export const previewApi = createApi({
       }
     >({
       query: ({ entityType, entityId, language, isTemplate, templateInfo }) => {
-        const url = isTemplate
-          ? `${language}/canvas/api/v0/layout-content-template/${entityType}.${templateInfo?.bundle}.${templateInfo?.viewMode}/${entityId}`
-          : `${language}/canvas/api/v0/layout/${entityType}/${entityId}`;
+        // Request the translation via the `canvas_preview_langcode` query
+        // parameter. The backend routes the request through the site's
+        // configured language negotiation — redirecting when needed — so the
+        // right translation is served regardless of the negotiation method.
+        const path = isTemplate
+          ? `canvas/api/v0/layout-content-template/${entityType}.${templateInfo?.bundle}.${templateInfo?.viewMode}/${entityId}`
+          : `canvas/api/v0/layout/${entityType}/${entityId}`;
+        const url = language
+          ? `${path}?canvas_preview_langcode=${encodeURIComponent(language)}`
+          : path;
         return { url, method: 'GET' };
       },
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {

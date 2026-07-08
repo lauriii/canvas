@@ -21,6 +21,7 @@ use Drupal\Core\Url;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\language\Entity\ContentLanguageSettings;
+use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrl;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\ApiRequestTrait;
@@ -30,6 +31,7 @@ use Drupal\user\UserInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Psr\Http\Message\ResponseInterface;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -716,6 +718,15 @@ class TranslationTest extends FunctionalTestBase {
     self::assertSame('Preview node', $get_resolved_title_in_api_response("/canvas/api/v0/layout-content-template/node.article.full/$node_id"));
     self::assertSame('Nœud de prévisualisation', $get_resolved_title_in_api_response("/fr/canvas/api/v0/layout-content-template/node.article.full/$node_id"));
 
+    // The preview ("example") entity must also be resolved in the requested
+    // language when the template is reached through the
+    // `?canvas_preview_langcode=` preview hint, which redirects to the
+    // negotiated URL asserted above.
+    $hinted = $this->makeApiRequest('GET', Url::fromUri("base:/canvas/api/v0/layout-content-template/node.article.full/$node_id", ['query' => ['canvas_preview_langcode' => 'fr']]), []);
+    self::assertSame(302, $hinted->getStatusCode());
+    self::assertStringContainsString("/fr/canvas/api/v0/layout-content-template/node.article.full/$node_id", $hinted->getHeaderLine('Location'));
+    self::assertSame('Nœud de prévisualisation', $get_resolved_title_in_api_response((string) parse_url($hinted->getHeaderLine('Location'), PHP_URL_PATH)));
+
     // Add a Hindi node translation to test fallback behavior when the
     // ContentTemplate has no Hindi translation. The template label should
     // fall back to English, but EntityFieldPropSource should resolve to the
@@ -731,6 +742,126 @@ class TranslationTest extends FunctionalTestBase {
     // Assert EntityFieldPropSource resolves to the Hindi node title, even
     // though the ContentTemplate has no Hindi translation.
     self::assertSame('नोड', $get_resolved_title_in_api_response("/hi/canvas/api/v0/layout-content-template/node.article.full/$node_id"));
+  }
+
+  /**
+   * Tests that the preview-language hint resolves the right translation.
+   *
+   * @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::redirectCanvasApiToPreviewLanguage()
+   */
+  #[DataProvider('previewLanguageNegotiationProvider')]
+  public function testCanvasPreviewLanguageNegotiation(string $method, ?string $prefix, string $expected_location): void {
+    $page = $this->createCanvasTranslationTestPage();
+    $layout_path = '/canvas/api/v0/layout/canvas_page/' . $page->id();
+
+    // Substitute the test site's base URL into the expected Location.
+    $base = parse_url($this->baseUrl);
+    self::assertIsArray($base);
+    $expected_location = strtr($expected_location, [
+      '{scheme}' => $base['scheme'] ?? 'http',
+      '{host}' => ($base['host'] ?? '') . (isset($base['port']) ? ':' . $base['port'] : ''),
+      '{base_path}' => $base['path'] ?? '',
+      '{layout_path}' => $layout_path,
+    ]);
+
+    switch ($method) {
+      case 'url':
+        if ($prefix !== NULL) {
+          $this->config('language.negotiation')->set('url.prefixes.fr', $prefix)->save();
+        }
+        break;
+
+      case 'domain':
+        // Negotiate the language from the domain instead of a URL prefix. The
+        // French domain is never requested; the test only asserts the redirect
+        // target.
+        $host = (string) parse_url($this->baseUrl, PHP_URL_HOST);
+        $this->config('language.negotiation')
+          ->set('url.source', LanguageNegotiationUrl::CONFIG_DOMAIN)
+          ->set('url.domains', ['en' => $host, 'fr' => 'fr.' . $host])
+          ->save();
+        break;
+
+      case 'session':
+        // Negotiate the language from the user-facing `language` query
+        // parameter via the session negotiator, with URL negotiation fully
+        // disabled — for the interface language too, since URL generation runs
+        // every enabled negotiation method's outbound processing, and the
+        // interface chain would otherwise still add a URL prefix to the
+        // redirect. The `language` parameter is a distinct concept from the
+        // internal `canvas_preview_langcode` hint; the redirect must translate
+        // the hint into it, via the negotiator's language switch links.
+        $this->config('language.negotiation')->set('session.parameter', 'language')->save();
+        $this->config('language.types')
+          ->set('negotiation.language_content.enabled', ['language-session' => -10, 'language-selected' => 12])
+          ->set('negotiation.language_interface.enabled', ['language-session' => -10, 'language-selected' => 12])
+          ->save();
+        break;
+
+      case 'session-content':
+        // Negotiate only the content language from the session negotiator,
+        // while the interface language keeps core's default URL-prefix
+        // negotiation: the redirect then carries both the interface chain's
+        // URL prefix (added by URL generation) and the content negotiator's
+        // query parameter.
+        $this->config('language.negotiation')->set('session.parameter', 'content_language')->save();
+        $this->config('language.types')
+          ->set('negotiation.language_content.enabled', ['language-session' => -10, 'language-selected' => 12])
+          ->save();
+        break;
+    }
+
+    // Requests a path (with an optional query) without following redirects.
+    $get = fn (string $path, array $query = []): ResponseInterface =>
+      $this->makeApiRequest('GET', Url::fromUri("base:$path", $query ? ['query' => $query] : []), []);
+    // Returns the first content-region component name from a 200 response.
+    $content_name = function (ResponseInterface $response): ?string {
+      self::assertSame(200, $response->getStatusCode());
+      $layout = json_decode((string) $response->getBody(), TRUE)['layout'];
+      $content_region = current(array_filter($layout, fn($r) => $r['id'] === 'content'));
+      return $content_region['components'][0]['name'];
+    };
+
+    // Baseline: no hint serves the default language.
+    self::assertSame('English heading', $content_name($get($layout_path)));
+
+    // A hint naming a language that does not exist is a request for a
+    // translation that cannot exist: 404, as a JSON:API-style error response
+    // (the exception is thrown after the router matched the Canvas API route, so
+    // ApiExceptionSubscriber converts it).
+    $not_found = $get($layout_path, ['canvas_preview_langcode' => 'xx']);
+    self::assertSame(404, $not_found->getStatusCode());
+    self::assertStringContainsString('application/json', $not_found->getHeaderLine('Content-Type'));
+    self::assertArrayHasKey('errors', json_decode((string) $not_found->getBody(), TRUE));
+
+    $response = $get($layout_path, ['canvas_preview_langcode' => 'fr']);
+    self::assertSame(302, $response->getStatusCode());
+    // The complete Location proves which negotiation method routed the
+    // translation: the URL prefix (which need not match the langcode), the
+    // language's domain, or the session negotiator's query parameter.
+    self::assertSame($expected_location, $response->getHeaderLine('Location'));
+
+    // Nothing persists the hint: repeating the hinted request redirects again.
+    self::assertSame(302, $get($layout_path, ['canvas_preview_langcode' => 'fr'])->getStatusCode());
+
+    // Regression: when the configured URL prefix differs from the langcode, the
+    // old langcode-as-prefix URL the buggy UI used no longer resolves.
+    if ($method === 'url' && $prefix !== NULL && $prefix !== 'fr') {
+      self::assertSame(404, $get("/fr$layout_path")->getStatusCode());
+    }
+  }
+
+  /**
+   * Data provider for ::testCanvasPreviewLanguageNegotiation().
+   */
+  public static function previewLanguageNegotiationProvider(): array {
+    return [
+      'URL prefix equal to langcode' => ['url', NULL, '{base_path}/fr{layout_path}'],
+      'URL prefix different from langcode' => ['url', 'francais', '{base_path}/francais{layout_path}'],
+      'domain per language' => ['domain', NULL, '{scheme}://fr.{host}{base_path}{layout_path}'],
+      'session (query parameter) negotiator' => ['session', NULL, '{base_path}{layout_path}?language=fr'],
+      'session content negotiation, URL-prefix interface negotiation' => ['session-content', NULL, '{base_path}/fr{layout_path}?content_language=fr'],
+    ];
   }
 
   /**
