@@ -307,7 +307,13 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
 
     $plain = $this->createUser(['view any workspace', 'edit any workspace']);
     self::assertInstanceOf(User::class, $plain);
-    self::assertFalse($workspace->access('view', $plain), 'Generic workspace permissions grant nothing on the Canvas workspace.');
+    // Any authenticated user may view (and therefore activate) the workspace:
+    // auto-save reads happen on behalf of whoever may edit some Canvas-enabled
+    // entity, and entity access still applies inside the workspace. Generic
+    // workspace permissions still grant no write access.
+    self::assertTrue($workspace->access('view', $plain));
+    self::assertFalse($workspace->access('update', $plain), 'Generic workspace permissions grant no write access on the Canvas workspace.');
+    self::assertFalse($workspace->access('delete', $plain));
 
     $admin = $this->createUser(['administer workspaces']);
     self::assertInstanceOf(User::class, $admin);

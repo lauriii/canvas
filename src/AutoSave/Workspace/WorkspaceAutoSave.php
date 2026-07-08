@@ -223,6 +223,7 @@ final class WorkspaceAutoSave {
       if ($original->hasTranslation($langcode)) {
         $original = $original->getTranslation($langcode);
       }
+      $this->applyRecordedDraftPath($active, $key);
       $hash = AutoSaveManager::generateHashFromData(AutoSaveManager::normalizeEntity($active));
       $unchanged_hash = AutoSaveManager::generateHashFromData(AutoSaveManager::normalizeEntity($original));
       if (\hash_equals($unchanged_hash, $hash)) {
@@ -392,12 +393,44 @@ final class WorkspaceAutoSave {
    * @return array<string, mixed>
    */
   public static function entryMetadata(?array $entry): array {
-    return \array_intersect_key($entry ?? [], \array_flip([
+    $metadata = \array_intersect_key($entry ?? [], \array_flip([
       'original_hash',
       'owner',
       'updated',
       AutoSaveManager::AUTO_SAVE_CONFLICT_KEY,
+      self::DRAFT_PATH_KEY,
     ]));
+    // Record the draft's `path` value verbatim: on a staged revision the
+    // computed path field resolves through alias storage, which cannot
+    // represent a draft that cleared (or never set) its alias.
+    // @see ::applyRecordedDraftPath()
+    if (!\array_key_exists(self::DRAFT_PATH_KEY, $metadata) && isset($entry['data']) && \is_array($entry['data'])) {
+      $metadata[self::DRAFT_PATH_KEY] = $entry['data']['path'] ?? [];
+    }
+    return $metadata;
+  }
+
+  /**
+   * Metadata key holding a content draft's verbatim `path` field value.
+   */
+  public const string DRAFT_PATH_KEY = 'draft_path';
+
+  /**
+   * Overrides a staged entity's computed path with the recorded draft value.
+   *
+   * The alias lookup powering the computed path field is not revision-aware:
+   * inside the workspace it resolves the staged alias, and a draft that
+   * cleared its alias would still present the previously staged (or Live)
+   * one. The verbatim value recorded at staging time is authoritative.
+   */
+  private function applyRecordedDraftPath(ContentEntityInterface $entity, string $key): void {
+    if (!$entity->hasField('path')) {
+      return;
+    }
+    $metadata = $this->getStagedEntryMetadata($key);
+    if (\is_array($metadata) && \array_key_exists(self::DRAFT_PATH_KEY, $metadata)) {
+      $entity->set('path', $metadata[self::DRAFT_PATH_KEY] ?: NULL);
+    }
   }
 
   /**
@@ -712,6 +745,7 @@ final class WorkspaceAutoSave {
             if (isset($out[$key])) {
               continue;
             }
+            $this->applyRecordedDraftPath($translation, $key);
             $data_hash = AutoSaveManager::generateHashFromData(AutoSaveManager::normalizeEntity($translation));
             if ($canonical instanceof ContentEntityInterface && $canonical->hasTranslation($langcode)) {
               $canonical_hash = AutoSaveManager::generateHashFromData(AutoSaveManager::normalizeEntity($canonical->getTranslation($langcode)));
@@ -720,7 +754,10 @@ final class WorkspaceAutoSave {
               }
             }
             $kv_row = $this->keyValueFactory->get(AutoSaveManager::AUTO_SAVE_STORE)->get($key);
-            $out[$key] = self::entryMetadata(\is_array($kv_row) ? $kv_row : NULL) + self::entryMetadata($this->getStagedEntryMetadata($key)) + [
+            $metadata = self::entryMetadata(\is_array($kv_row) ? $kv_row : NULL) + self::entryMetadata($this->getStagedEntryMetadata($key));
+            // Already applied to $translation above; not a list row property.
+            unset($metadata[self::DRAFT_PATH_KEY]);
+            $out[$key] = $metadata + [
               'entity_type' => $translation->getEntityTypeId(),
               'entity_id' => $translation->id(),
               'data' => AutoSaveManager::toStorableArray($translation),

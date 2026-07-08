@@ -61,6 +61,15 @@ final class CanvasConfigEntityTranslationsAreValidConstraintValidator extends Co
     // entity instead of the given entity (e.g. an auto-saved one).
     $base_data = $value->toArray();
     if ($value instanceof ComponentTreeConfigEntityBase) {
+      // An auto-save draft's base tree may still be delta-keyed: sequence
+      // keys are only enforced once a translation exists, and reconstructed
+      // drafts bypass ::preSave(). Overrides always target component
+      // instances by UUID sequence key, so re-key the base or the merge
+      // below would emit phantom, instance-less entries.
+      // @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::getTranslatedComponentTree()
+      $base_data['component_tree'] = ComponentTreeConfigEntityBase::asDeterministicallyAndTranslatableKeyedComponentTreeSequence(
+        \array_values($base_data['component_tree'] ?? []),
+      );
       // Calling ComponentTreeConfigEntityBase::getTranslation() has a static
       // caching side effect. Ensure that callers don't have to deal with the
       // consequences.
@@ -97,6 +106,8 @@ final class CanvasConfigEntityTranslationsAreValidConstraintValidator extends Co
       // base to get the full picture that will be served to consumers.
       // @see \Drupal\Core\Config\Config::setOverriddenData()
       $merged = NestedArray::mergeDeepArray([$base_data, $override_data], TRUE);
+      // CANVASDBG
+      \file_put_contents('/tmp/canvas-merge.log', "name=$name lang=$langcode\nbase_tree=" . \json_encode(\array_keys($base_data['component_tree'] ?? [])) . "\noverride_tree_keys=" . \json_encode(\array_keys($override_data['component_tree'] ?? [])) . "\n\n", FILE_APPEND);
       $typed = $this->typedConfigManager->createFromNameAndData($name, $merged);
       $violations = $typed->validate();
 

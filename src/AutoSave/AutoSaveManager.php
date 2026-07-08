@@ -343,6 +343,13 @@ class AutoSaveManager implements EventSubscriberInterface {
   public static function normalizeEntity(EntityInterface $entity): array {
     if (!$entity instanceof FieldableEntityInterface) {
       if ($entity instanceof ComponentTreeEntityInterface && $entity instanceof ConfigEntityInterface) {
+        // Never mutate the caller's entity: setComponentTree() re-keys the
+        // tree to numeric deltas, and normalization runs against entities
+        // that are later validated and saved (e.g. conflict detection during
+        // publishing), whose trees must stay keyed by component instance
+        // UUID.
+        $entity = clone $entity;
+        \assert($entity instanceof ComponentTreeEntityInterface && $entity instanceof ConfigEntityInterface);
         $tree = $entity->getComponentTree();
         foreach ($tree as $component) {
           \assert($component instanceof ComponentTreeItem);

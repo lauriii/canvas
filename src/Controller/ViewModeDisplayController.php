@@ -7,7 +7,7 @@ namespace Drupal\canvas\Controller;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\Core\Cache\CacheableResponseInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
-use Drupal\Core\Entity\HtmlEntityFormController;
+use Drupal\Core\Controller\FormController;
 use Drupal\Core\Routing\LocalRedirectResponse;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
@@ -19,7 +19,10 @@ use Symfony\Component\HttpFoundation\Request;
 final class ViewModeDisplayController {
 
   public function __construct(
-    private readonly HtmlEntityFormController $entityFormController,
+    // The base class, not HtmlEntityFormController: the Workspaces module
+    // decorates controller.entity_form with its own FormController subclass.
+    // @see \Drupal\workspaces\Controller\WorkspacesHtmlEntityFormController
+    private readonly FormController $entityFormController,
   ) {
   }
 

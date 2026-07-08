@@ -135,8 +135,10 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
    *   deterministic keys that uniquely identify the component instance using
    *   its instance UUID (to allow symmetrical config translations to target a
    *   given component instance even when that instance is moved).
+   *
+   * @internal
    */
-  private static function asDeterministicallyAndTranslatableKeyedComponentTreeSequence(array $component_tree_sequence): array {
+  public static function asDeterministicallyAndTranslatableKeyedComponentTreeSequence(array $component_tree_sequence): array {
     return \array_combine(
       \array_column($component_tree_sequence, 'uuid'),
       \array_values($component_tree_sequence),

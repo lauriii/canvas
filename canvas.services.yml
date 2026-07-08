@@ -251,7 +251,10 @@ services:
   Drupal\canvas\Controller\ApiUiContentTemplateControllers: {}
   Drupal\canvas\Controller\ApiUsageControllers: {}
   Drupal\canvas\Controller\AddPageController: {}
-  Drupal\canvas\Controller\ViewModeDisplayController: {}
+  Drupal\canvas\Controller\ViewModeDisplayController:
+    # No autowire alias exists for the FormController base class; the concrete
+    # class varies (Workspaces decorates controller.entity_form).
+    arguments: ['@controller.entity_form']
   Drupal\canvas\Controller\ApiArtifactController: {}
   Drupal\canvas\Controller\ApiNotificationController: {}
   Drupal\canvas\Controller\ApiPushController: {}
