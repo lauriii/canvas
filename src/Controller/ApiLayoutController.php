@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ClientDataToEntityConverter;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
@@ -57,6 +58,7 @@ final class ApiLayoutController {
 
   public function __construct(
     private readonly AutoSaveManager $autoSaveManager,
+    private readonly WorkspaceAutoSave $workspaceAutoSave,
     private readonly ThemeManagerInterface $themeManager,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly FormBuilderInterface $formBuilder,
@@ -119,10 +121,10 @@ final class ApiLayoutController {
       }
     }
     elseif ($entity instanceof ContentEntityInterface) {
-      // Route upcasting can yield the default revision while pending edits
-      // exist on a workspace-tracked revision; resolve the revision used for
-      // layout editing inside the auto-save workspace.
-      $entity = $this->autoSaveManager->getEntityForLayoutEditing($entity);
+      // The published version was explicitly requested. Route upcasting
+      // happens with the auto-save workspace active, so the upcast entity can
+      // be the workspace-staged revision; reload the Live version.
+      $entity = $this->loadLiveVersion($entity);
     }
 
     $model = [];
@@ -610,8 +612,29 @@ final class ApiLayoutController {
         return (string) $auto_save_data->entity->label();
       }
     }
+    elseif ($entity instanceof ContentEntityInterface) {
+      // The published version was explicitly requested; the upcast entity can
+      // be the workspace-staged revision.
+      $entity = $this->loadLiveVersion($entity);
+    }
 
     return (string) $entity->label();
+  }
+
+  /**
+   * Loads the Live version of an entity, keeping the requested translation.
+   *
+   * Route upcasting during Canvas API requests happens with the auto-save
+   * workspace active, so an upcast entity with staged edits resolves to the
+   * staged revision even when the caller needs the published version.
+   */
+  private function loadLiveVersion(ContentEntityInterface $entity): ContentEntityInterface {
+    $live = $this->workspaceAutoSave->loadUnchangedOutsideWorkspace($entity->getEntityTypeId(), (string) $entity->id());
+    if (!$live instanceof ContentEntityInterface) {
+      return $entity;
+    }
+    $langcode = $entity->language()->getId();
+    return $live->hasTranslation($langcode) ? $live->getTranslation($langcode) : $live;
   }
 
   /**

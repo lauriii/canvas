@@ -16,6 +16,7 @@ use Drupal\canvas\PropSource\PropSource;
 use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\RevisionableStorageInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Field\Entity\BaseFieldOverride;
@@ -1193,10 +1194,21 @@ class TranslationTest extends FunctionalTestBase {
     $response = $this->makeApiRequest('DELETE', $fr_delete_url, $request_options);
     self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
 
+    // The deletion happens while the Canvas auto-save workspace is active, so
+    // it is staged as a new workspace-tracked revision: the live (default)
+    // revision keeps the French translation, but the latest (staged) revision
+    // no longer has it.
     $reloaded = $page_storage->loadUnchanged($page_id);
     self::assertInstanceOf(Page::class, $reloaded);
-    self::assertFalse($reloaded->hasTranslation('fr'));
+    self::assertTrue($reloaded->hasTranslation('fr'));
     self::assertTrue($reloaded->hasTranslation('en'));
+    \assert($page_storage instanceof RevisionableStorageInterface);
+    $latest_revision_id = $page_storage->getLatestRevisionId($page_id);
+    self::assertNotNull($latest_revision_id);
+    $latest_revision = $page_storage->loadRevision($latest_revision_id);
+    self::assertInstanceOf(Page::class, $latest_revision);
+    self::assertFalse($latest_revision->hasTranslation('fr'));
+    self::assertTrue($latest_revision->hasTranslation('en'));
 
     // Trying to delete the default/source language is not allowed.
     $delete_default_url = Url::fromUserInput("/canvas/api/v0/content/canvas_page/{$page_id}/translations");
@@ -1206,10 +1218,12 @@ class TranslationTest extends FunctionalTestBase {
     self::assertInstanceOf(Page::class, $reloaded);
     self::assertTrue($reloaded->hasTranslation('en'));
 
-    // Trying to delete a translation that no longer exists returns 400 because
-    // Drupal's entity translation negotiation will load the default translation.
+    // Repeating the delete returns 204 again: the staged removal has not been
+    // published, so parameter conversion (which happens before the Canvas
+    // auto-save workspace is activated) still upcasts the Live revision,
+    // where the French translation still exists.
     $response = $this->makeApiRequest('DELETE', $fr_delete_url, $request_options);
-    self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
   }
 
   /**

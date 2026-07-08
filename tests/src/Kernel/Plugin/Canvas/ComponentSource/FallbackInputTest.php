@@ -71,6 +71,8 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     'editor',
     // Our module!
     'canvas',
+    // Canvas auto-save stages changes in a workspace.
+    'workspaces',
     // Test components we can force fallback and recovery on.
     'datetime',
     'canvas_test_sdc',
@@ -81,6 +83,10 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    // The Workspaces module hooks into every entity save, so its schemas must
+    // exist for any entity save to work.
+    $this->installEntitySchema('workspace');
+    $this->installSchema('workspaces', ['workspace_association', 'workspace_association_revision']);
     // Install and configure the default theme.
     $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
     $this->container->get(ConfigFactoryInterface::class)->getEditable('system.theme')->set('default', 'stark')->save();

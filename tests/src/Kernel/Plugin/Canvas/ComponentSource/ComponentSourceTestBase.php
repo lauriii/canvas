@@ -9,6 +9,7 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 use Drupal\canvas\ComponentIncompatibilityReasonRepository;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\Controller\ApiConfigControllers;
+use Drupal\canvas\Entity\CanvasAutoSaveSnapshot;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -715,6 +716,10 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
   public function testUninstallValidator(): void {
     // Setup some content with this component source plugin in use.
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    // When the uninstalled module cascades to the canvas module itself, core's
+    // ContentUninstallValidator queries every canvas content entity type, so
+    // the auto-save snapshot table must exist.
+    $this->installEntitySchema(CanvasAutoSaveSnapshot::ENTITY_TYPE_ID);
     $this->generateComponentConfig();
     $used_component = $this->createAndSaveInUseComponentForUninstallValidationTesting();
     $unused_component = $this->createAndSaveUnusedComponentForUninstallValidationTesting();
