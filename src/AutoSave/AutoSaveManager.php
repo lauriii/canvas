@@ -371,6 +371,20 @@ class AutoSaveManager implements EventSubscriberInterface {
     // persisted elsewhere on save (path aliases, moderation states).
     $fields = \array_filter($fields, static fn (FieldItemListInterface $field) => !$field->getFieldDefinition()->isComputed() || self::isPersistedComputedField($field->getFieldDefinition()));
 
+    // Exclude revision bookkeeping: a draft staged as a workspace revision
+    // carries its own revision id, revision metadata (including the Workspaces
+    // module's `workspace` key) and a FALSE `revision_default` flag, none of
+    // which is user-editable content. Including them would make a draft's
+    // hash never match the Live entity's, even when the content is identical.
+    $entity_type = $entity->getEntityType();
+    if ($entity_type instanceof ContentEntityTypeInterface && $entity_type->isRevisionable()) {
+      $revision_bookkeeping = \array_filter([
+        $entity_type->getKey('revision'),
+        ...\array_values($entity_type->getRevisionMetadataKeys()),
+      ]);
+      $fields = \array_diff_key($fields, \array_flip($revision_bookkeeping));
+    }
+
     foreach (\array_keys($fields) as $name) {
       $items = $entity->get($name);
       // Exclude items that are empty.

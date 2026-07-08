@@ -611,6 +611,13 @@ class CanvasPageVariantTest extends FunctionalTestBase {
       'user.permissions',
       'user.roles:authenticated',
     ], $expected_additional_cache_contexts);
+    // Once the canvas module (and with it, workspaces) is installed, core
+    // workspaces adds the required 'workspace' cache context to every render
+    // array.
+    // @see \Drupal\workspaces\WorkspacesServiceProvider
+    if ($this->container->get('module_handler')->moduleExists('workspaces')) {
+      $expected_cache_contexts[] = 'workspace';
+    }
     $optimized_cache_contexts = $this->container->get(CacheContextsManager::class)->optimizeTokens($expected_cache_contexts);
     $this->assertCacheContexts($optimized_cache_contexts, include_default_contexts: FALSE);
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Max-Age', '-1 (Permanent)');

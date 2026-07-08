@@ -9,6 +9,7 @@ use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use Drupal\workspaces\Entity\Workspace;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -60,6 +61,14 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
 
     // A sample value is generated during the test, which needs this table.
     $this->installSchema('file', ['file_usage']);
+
+    // The Workspaces module adds an internal 'workspace' revision metadata
+    // field to media entities. Sample value generation for the generated
+    // media entities must find an existing workspace to reference; otherwise
+    // it autocreates a workspace stub without an ID, which cannot be saved.
+    // @see \Drupal\workspaces\Hook\EntityTypeInfo::entityBaseFieldInfo()
+    // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::generateSampleValue()
+    Workspace::create(['id' => 'stage', 'label' => 'Stage'])->save();
 
     // @see \Drupal\media_library\MediaLibraryEditorOpener::__construct()
     $this->installEntitySchema('filter_format');
@@ -156,7 +165,12 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
    */
   #[Depends('testStorablePropShapes')]
   public function testPropShapesYieldWorkingStaticPropSources(array $storable_prop_shapes): void {
-    $this->setUpCurrentUser(permissions: ['access content', 'administer media']);
+    // The 'view any workspace' permission is needed because sample value
+    // generation for the internal 'workspace' revision metadata field on
+    // media entities must be able to reference the workspace created in
+    // ::setUp().
+    // @see \Drupal\workspaces\Plugin\EntityReferenceSelection\WorkspaceSelection::getReferenceableEntities()
+    $this->setUpCurrentUser(permissions: ['access content', 'administer media', 'view any workspace']);
     parent::testPropShapesYieldWorkingStaticPropSources($storable_prop_shapes);
   }
 
