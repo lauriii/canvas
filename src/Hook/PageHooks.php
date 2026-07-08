@@ -123,7 +123,12 @@ final class PageHooks {
   #[Hook('canvas_page_presave')]
   public function ensurePathautoSkipped(Page $page): void {
     if ($this->moduleHandler->moduleExists('pathauto')) {
-      $pathauto_item = $page->get('path')->first();
+      // Path items with an explicit empty alias are filtered out as empty
+      // before presave hooks run, so pages without an alias need a fresh item
+      // here.
+      // @see \Drupal\Core\Entity\ContentEntityStorageBase::invokeHook()
+      // @see \Drupal\Core\Field\FieldItemList::preSave()
+      $pathauto_item = $page->get('path')->first() ?? $page->get('path')->appendItem();
       \assert($pathauto_item instanceof PathautoItem);
       $pathauto_item->set('pathauto', PathautoState::SKIP);
     }
