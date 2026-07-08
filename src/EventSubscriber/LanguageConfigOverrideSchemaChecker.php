@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EventSubscriber;
 
-use Drupal\canvas_dev_translation\Hook\ConfigTranslationSupportHooks;
+use Drupal\canvas\Hook\ConfigTranslationHooks;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\ConfigException;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -39,9 +39,8 @@ final readonly class LanguageConfigOverrideSchemaChecker implements EventSubscri
   /**
    * Config name prefixes for translatable Canvas config entities.
    *
-   * Derived from ConfigTranslationSupportHooks::TRANSLATABLE_ENTITY_TYPE_IDS,
-   * which is the canonical list of Canvas config entity types that support
-   * translation.
+   * Derived from ConfigTranslationHooks::TRANSLATABLE_ENTITY_TYPE_IDS, which is
+   * the canonical list of Canvas config entity types that support translation.
    *
    * @var string[]
    */
@@ -53,7 +52,7 @@ final readonly class LanguageConfigOverrideSchemaChecker implements EventSubscri
   ) {
     $this->translatableConfigPrefixes = \array_map(
       static fn(string $entity_type_id): string => 'canvas.' . $entity_type_id . '.',
-      ConfigTranslationSupportHooks::TRANSLATABLE_ENTITY_TYPE_IDS,
+      ConfigTranslationHooks::TRANSLATABLE_ENTITY_TYPE_IDS,
     );
   }
 

@@ -1028,7 +1028,6 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   public function testConfigTranslationAvailabilityLinksAndPermissions(): void {
     $this->container->get('module_installer')->install([
       'language',
-      'canvas_dev_translation',
       'config_translation',
       'content_translation',
     ]);

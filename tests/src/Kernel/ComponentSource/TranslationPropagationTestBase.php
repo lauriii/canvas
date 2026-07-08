@@ -45,10 +45,6 @@ abstract class TranslationPropagationTestBase extends CanvasKernelTestBase {
   protected static $modules = [
     'field',
     'language',
-    // - Content-defined component trees: validates symmetrically translations
-    // - Config-defined component trees: makes PageRegion and ContentTemplate
-    //   config entities translatable
-    'canvas_dev_translation',
   ];
 
   /**

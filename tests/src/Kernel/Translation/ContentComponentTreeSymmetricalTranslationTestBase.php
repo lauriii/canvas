@@ -36,7 +36,6 @@ abstract class ContentComponentTreeSymmetricalTranslationTestBase extends Canvas
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas_dev_translation',
     'canvas_test_sdc',
     'content_translation',
     'field',

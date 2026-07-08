@@ -2,20 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Drupal\canvas_dev_translation\Hook;
+namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\Validation\Constraint\CanvasConfigEntityTranslationsAreValidConstraint;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Hook\Order\OrderBefore;
 
 /**
  * Makes Canvas config entities compatible with config_translation.
  */
-readonly final class ConfigTranslationSupportHooks {
+final readonly class ConfigTranslationHooks {
 
   /**
    * Canvas config entity type IDs that support translation.
@@ -27,11 +28,25 @@ readonly final class ConfigTranslationSupportHooks {
     PageRegion::ENTITY_TYPE_ID,
   ];
 
+  public function __construct(
+    private ModuleHandlerInterface $moduleHandler,
+  ) {}
+
   /**
    * Implements hook_entity_type_alter.
    */
   #[Hook('entity_type_alter', order: new OrderBefore(['config_translation']))]
-  public static function entityTypeAlter(array $definitions): void {
+  public function entityTypeAlter(array $definitions): void {
+    // Canvas config entity translations are managed through config_translation
+    // (and, on top of it, contrib modules such as tmgmt_config). Without it
+    // there is no way to create the LanguageConfigOverrides this constraint
+    // validates, and the `edit-form` link templates below are only consumed by
+    // config_translation.
+    // @todo Refactor to use `HookDependsOnModule` once Canvas depends on Drupal 11.5's https://www.drupal.org/node/3548805
+    if (!$this->moduleHandler->moduleExists('config_translation')) {
+      return;
+    }
+
     $edit_links = [
       ContentTemplate::ENTITY_TYPE_ID => '/admin/structure/content-template/{content_template}',
       PageRegion::ENTITY_TYPE_ID => '/admin/appearance/page-region/{page_region}',
@@ -62,6 +77,16 @@ readonly final class ConfigTranslationSupportHooks {
    */
   #[Hook('config_schema_info_alter')]
   public static function configSchemaInfoAlter(array &$definitions): void {
+    // ⚠️ TRICKY: Unlike ::entityTypeAlter(), this runs unconditionally.
+    // Because:
+    // 1. these alters also impact content translations via
+    //    ComponentInstanceInputsConfigSchemaGeneratorInterface (and they do for
+    //    sure via JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator)
+    // 2. for consistency and reliability sake, it is better to always have the
+    //    same config schema for the same (`field.value.*`) config schema types
+    // @see \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator
+
     // It is a Canvas product decision that all SDC and code component props
     // with URI-esque prop shapes are translatable. For config-defined component
     // trees, it's config schema that determines what exactly appears as
@@ -88,7 +113,6 @@ readonly final class ConfigTranslationSupportHooks {
     }
 
     // @todo Remove when Canvas requires a core version that includes https://www.drupal.org/project/drupal/issues/2381147
-    // @todo Move to TmgmtHooks when `canvas_dev_translation` is deleted.
     if (isset($definitions['field.value.text'])) {
       $definitions['field.value.text']['type'] = 'text_format';
       unset($definitions['field.value.text']['mapping']);

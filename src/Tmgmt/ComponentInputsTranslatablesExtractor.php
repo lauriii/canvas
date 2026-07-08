@@ -290,7 +290,7 @@ final class ComponentInputsTranslatablesExtractor {
         // never shows a CKEditor 5 instance when appropriate. This fixes that,
         // by setting the `#format` that TMGMT's job item form looks for.
         // @see \Drupal\tmgmt\Form\JobItemForm::buildTranslation()
-        // @see \Drupal\canvas_dev_translation\Hook\ConfigTranslationSupportHooks::configSchemaInfoAlter()
+        // @see \Drupal\canvas\Hook\ConfigTranslationHooks::configSchemaInfoAlter()
         // @todo Remove after fixing upstream in https://www.drupal.org/project/tmgmt/issues/3601476
         if ($schema->getDataDefinition()->getDataType() === 'text_format') {
           \assert(\array_key_exists('format', $config_data));

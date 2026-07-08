@@ -5,7 +5,6 @@ type: 'Canvas'
 install:
   - language
   - content_translation
-  - canvas_dev_translation
 config:
   strict: false
   import:

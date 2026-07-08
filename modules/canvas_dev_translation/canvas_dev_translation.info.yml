@@ -1,7 +1,10 @@
+# @todo Remove before Canvas 2.0.
 name: Drupal Canvas dev translation
-description: 'Enables translation features for Canvas - useful for testing translation scenarios'
+description: '(DEPRECATED) Enables translation features for Canvas - useful for testing translation scenarios'
 core_version_requirement: ^11.3
 hidden: true
+lifecycle: deprecated
+lifecycle_link: 'https://www.drupal.org/node/3609337'
 type: module
 package: Drupal Canvas
 dependencies:

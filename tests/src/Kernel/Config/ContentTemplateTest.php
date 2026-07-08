@@ -129,14 +129,6 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
       // translatable subsets.
       // @see ::saveConfigEntityTranslation()
       'config_translation',
-      // To formally enable config translation support for Canvas' config entity
-      // types.
-      // @see \Drupal\canvas_dev_translation\Hook\ConfigTranslationSupportHooks::entityTypeAlter()
-      // Attaches CanvasConfigEntityTranslationsAreValidConstraint to Canvas
-      // config entity types, so invalid overrides are caught by entity
-      // validation.
-      // @see \Drupal\canvas\Plugin\Validation\Constraint\CanvasConfigEntityTranslationsAreValidConstraint
-      'canvas_dev_translation',
     ]);
     $this->generateComponentConfig();
 

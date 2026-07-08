@@ -550,22 +550,18 @@ class TranslationTest extends FunctionalTestBase {
   }
 
   /**
-   * Tests that the layout API returns translated content from language-prefixed routes when canvas_dev_translation is enabled.
+   * Tests that the layout API returns translated content from language-prefixed routes.
    *
    * @todo This might just be temporary test until we have a Playwright test
    *    that test this functionality with the translation preview.
    */
-  public function testCanvasDevTranslationLayoutApi(): void {
+  public function testTranslationLayoutApi(): void {
     // Delete the content template created in setUp() — this test needs a
     // heading-based template with explicit labels to assert translation.
     $existing_template = ContentTemplate::load('node.article.full');
     if ($existing_template instanceof ContentTemplate) {
       $existing_template->delete();
     }
-
-    $module_installer = $this->container->get(ModuleInstallerInterface::class);
-    $module_installer->install(['canvas_dev_translation']);
-    $this->rebuildContainer();
 
     $page = $this->createCanvasTranslationTestPage();
     $this->createPageRegionWithFrenchOverride();
@@ -630,7 +626,7 @@ class TranslationTest extends FunctionalTestBase {
     };
 
     // Helper: returns the first component's name from the first non-content
-    // region (the PageRegion created by canvas_dev_translation hook_install()).
+    // region (the PageRegion created by createPageRegionWithFrenchOverride()).
     $get_region_name_in_api_response = function (string $root_relative_url): ?string {
       $response = $this->makeApiRequest('GET', Url::fromUri("base:$root_relative_url"), []);
       self::assertSame(200, $response->getStatusCode());
@@ -710,10 +706,6 @@ class TranslationTest extends FunctionalTestBase {
    * of the canvas_page.
    */
   public function testTranslationForPage(): void {
-    $module_installer = $this->container->get(ModuleInstallerInterface::class);
-    $module_installer->install(['canvas_dev_translation']);
-    $this->rebuildContainer();
-
     $page = $this->createCanvasTranslationTestPage();
     $this->createPageRegionWithFrenchOverride();
     $page_id = $page->id();
@@ -905,10 +897,6 @@ class TranslationTest extends FunctionalTestBase {
    * it falls back to the default language (English).
    */
   public function testNonDefaultTranslationPageRegionTranslation(): void {
-    $module_installer = $this->container->get(ModuleInstallerInterface::class);
-    $module_installer->install(['canvas_dev_translation']);
-    $this->rebuildContainer();
-
     $this->createPageRegionWithFrenchOverride();
 
     // Create a plain article node with no French translation.

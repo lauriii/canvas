@@ -30,19 +30,7 @@ class ConfigWithComponentTreeConfigTranslationUiTest extends ConfigWithComponent
     $translation_path = '/admin/structure/content-template/node.article.full/translate/fr/add';
     $field = static fn (string $suffix): string => 'translation[config_names][' . self::CONFIG_NAME . '][component_tree]' . $suffix;
 
-    // 1. Confirm Templates are not translatable via the UI without
-    // `canvas_dev_translation` enabled.
-    $this->drupalGet($translation_path);
-    $assert_session = $this->assertSession();
-    $assert_session->statusCodeEquals(404);
-
-    if (!$this->container->get('module_handler')->moduleExists('canvas_dev_translation')) {
-      $module_installer->install(['canvas_dev_translation']);
-      $this->rebuildContainer();
-    }
-
-    // 2. Confirm Templates are translatable via the UI once
-    // `canvas_dev_translation` is enabled.
+    // Confirm Templates are translatable via the UI with config_translation.
     $this->drupalGet($translation_path);
     $assert_session = $this->assertSession();
     $assert_session->statusCodeEquals(200);

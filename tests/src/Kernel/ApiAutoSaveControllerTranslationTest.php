@@ -87,7 +87,6 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     'canvas_test_sdc',
     'language',
     'content_translation',
-    'canvas_dev_translation',
     'config_translation',
     'field',
     'locale',

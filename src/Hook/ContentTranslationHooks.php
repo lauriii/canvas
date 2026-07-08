@@ -25,8 +25,7 @@ final readonly class ContentTranslationHooks {
    * translatable entity types, so that saves are rejected when non-translatable
    * component input keys differ from the default translation.
    *
-   * Only active when both `content_translation` and `canvas_dev_translation`
-   * are installed.
+   * Only active when `content_translation` is installed.
    *
    * @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeSymmetricalTranslationConstraint
    * @see \Drupal\content_translation\Plugin\Validation\Constraint\ContentTranslationSynchronizedFieldsConstraint
@@ -34,12 +33,12 @@ final readonly class ContentTranslationHooks {
   #[Hook('entity_type_alter')]
   public function entityTypeAlter(array &$entity_types): void {
     // @todo Refactor to use `HookDependsOnModule` once Canvas depends on Drupal 11.5's https://www.drupal.org/node/3548805
-    if (!$this->moduleHandler->moduleExists('content_translation') || !$this->moduleHandler->moduleExists('canvas_dev_translation')) {
+    if (!$this->moduleHandler->moduleExists('content_translation')) {
       return;
     }
 
     // A sibling exists for config-defined component trees.
-    // @see \Drupal\canvas_dev_translation\Hook\ConfigTranslationSupportHooks::entityTypeAlter()
+    // @see \Drupal\canvas\Hook\ConfigTranslationHooks::entityTypeAlter()
     // @see \Drupal\canvas\Plugin\Validation\Constraint\CanvasConfigEntityTranslationsAreValidConstraint
     foreach ($entity_types as $entity_type) {
       if ($entity_type instanceof ContentEntityTypeInterface && $entity_type->isTranslatable()) {

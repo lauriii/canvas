@@ -31,7 +31,9 @@ class ConfigWithComponentTreeTmgmtUiTest extends ConfigWithComponentTreeTranslat
   public function test(): void {
     $module_installer = $this->container->get('module_installer');
     \assert($module_installer instanceof ModuleInstallerInterface);
-    $module_installer->install(['tmgmt', 'tmgmt_config', 'tmgmt_test', 'canvas_dev_translation']);
+    $module_installer->install(['tmgmt', 'tmgmt_config', 'tmgmt_test']);
+    // Rebuild necessary for TMGMT-specific config schema changes.
+    // @see \Drupal\canvas\Hook\TmgmtHooks::configSchemaInfoAlter()
     $this->rebuildContainer();
 
     $translator = $this->createTranslator([
@@ -61,7 +63,7 @@ class ConfigWithComponentTreeTmgmtUiTest extends ConfigWithComponentTreeTranslat
     // Plain prose.
     $assert->pageTextContains('Press');
     // URI-esque: requires `field.value.link` alteration.
-    // @see \Drupal\canvas_dev_translation\Hook\ConfigTranslationSupportHooks::configSchemaInfoAlter()
+    // @see \Drupal\canvas\Hook\ConfigTranslationHooks::configSchemaInfoAlter()
     $assert->pageTextContains('https://www.drupal.org');
     // Banner plain prose.
     $assert->pageTextContains('A heading element! :)');

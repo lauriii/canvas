@@ -178,10 +178,10 @@ final class ContentEntityTranslationPropagationTest extends TranslationPropagati
    * Tests that triggering from a non-default translation reconciles all of them.
    *
    * The editor's GET preview endpoint calls updateComponentInstances() for
-   * whichever language is being previewed. Under symmetric translation — the
-   * mode this fixture sets up via canvas_dev_translation, where component_version
-   * is shared — triggering from a non-default translation must still bring the
-   * default to the new version, keeping every translation on the same version.
+   * whichever language is being previewed. When using symmetric translations,
+   * the component_version is shared, but triggering from a non-default
+   * translation must still bring the default to the new version, keeping every
+   * translation on the same version.
    */
   public function testNonDefaultLanguageTriggersPropagation(): void {
     $page = $this->createPageWithTranslation();

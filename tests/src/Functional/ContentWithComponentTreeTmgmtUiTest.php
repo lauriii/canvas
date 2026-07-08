@@ -84,11 +84,10 @@ class ContentWithComponentTreeTmgmtUiTest extends FunctionalTestBase {
   }
 
   public function test(): void {
-    // Install TMGMT after other modules — rebuildContainer() triggers
-    // TmgmtHooks::fieldInfoAlter() with tmgmt_content present,
-    // registering ComponentTreeFieldProcessor for component_tree fields.
     $module_installer = $this->container->get(ModuleInstallerInterface::class);
-    $module_installer->install(['tmgmt', 'tmgmt_content', 'tmgmt_test', 'canvas_dev_translation']);
+    $module_installer->install(['tmgmt', 'tmgmt_content', 'tmgmt_test']);
+    // Rebuild necessary for TMGMT-specific field metadata changes.
+    // @see \Drupal\canvas\Hook\TmgmtHooks::fieldInfoAlter()
     $this->rebuildContainer();
 
     // Enable content translation for canvas_page so the TMGMT content source

@@ -6,7 +6,6 @@ recipes:
 install:
   - language
   - content_translation
-  - canvas:canvas_dev_translation
   - canvas:canvas_test_sdc
 config:
   strict: false

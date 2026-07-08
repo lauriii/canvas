@@ -43,9 +43,8 @@ const Topbar = () => {
   const canvasSettings = getCanvasSettings();
 
   const isTranslationEnabled =
-    canvasSettings?.devTranslationMode &&
-    (canvasSettings?.contentTranslationEnabled ||
-      canvasSettings?.configTranslationEnabled);
+    canvasSettings?.contentTranslationEnabled ||
+    canvasSettings?.configTranslationEnabled;
 
   if (
     canvasSettings?.aiExtensionAvailable &&
