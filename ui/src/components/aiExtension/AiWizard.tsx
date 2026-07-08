@@ -1,13 +1,7 @@
 /**
  * ⚠️ This is highly experimental and *will* be refactored.
  */
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DeepChat } from 'deep-chat-react';
 import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
@@ -105,6 +99,7 @@ const createHistoryStore = () => {
       db.clear();
       subscribers.forEach((callback) => callback());
     },
+    // @todo No subscribers remain since the history prop is frozen at mount; remove subscribe and the subscribers Set in https://git.drupalcode.org/project/canvas/-/work_items/3591731.
     subscribe(callback: () => void) {
       subscribers.add(callback);
       return () => subscribers.delete(callback);
@@ -478,6 +473,204 @@ function getHandlersForMessage(message: any) {
   return messageHandlers.filter((handler) => handler.canHandle(message));
 }
 
+// Stable references for static DeepChat props. These are defined at module
+// scope so they keep the same identity across renders, preventing DeepChat from
+// resetting (and clearing the typed prompt) when the component re-renders.
+const DEEP_CHAT_IMAGES = {
+  files: {
+    acceptedFormats: '.jpg, .png, .jpeg',
+    // For now we just support uploading 1 image at a time
+    // if the user tries to upload another image the already
+    // added image is replaced.
+    maxNumberOfFiles: 1,
+  },
+  button: {
+    position: 'inside-start',
+    styles: {
+      container: {
+        default: {
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginLeft: '8px',
+          marginBottom: '12px',
+          backgroundColor: '#F0F0F3',
+        },
+      },
+      svg: {
+        content: `
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="16" height="16" fill="white" fill-opacity="0.01"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M8.53324 2.93324C8.53324 2.63869 8.29445 2.3999 7.9999 2.3999C7.70535 2.3999 7.46657 2.63869 7.46657 2.93324V7.46657H2.93324C2.63869 7.46657 2.3999 7.70535 2.3999 7.9999C2.3999 8.29445 2.63869 8.53324 2.93324 8.53324H7.46657V13.0666C7.46657 13.3611 7.70535 13.5999 7.9999 13.5999C8.29445 13.5999 8.53324 13.3611 8.53324 13.0666V8.53324H13.0666C13.3611 8.53324 13.5999 8.29445 13.5999 7.9999C13.5999 7.70535 13.3611 7.46657 13.0666 7.46657H8.53324V2.93324Z" fill="#60646C"/>
+        </svg>
+      `,
+      },
+    },
+  },
+} as const;
+
+// Setting to -1 to allow sending the entire conversation history.
+// @see https://deepchat.dev/docs/connect/#requestBodyLimits
+const DEEP_CHAT_REQUEST_BODY_LIMITS = {
+  maxMessages: -1,
+} as const;
+
+const DEEP_CHAT_TEXT_INPUT = {
+  placeholder: { text: 'Build me a ...' },
+  styles: {
+    text: {
+      padding: '16px',
+    },
+    container: {
+      height: '167px',
+      width: '100%',
+      padding: '0 0 40px 0',
+    },
+  },
+} as const;
+
+const DEEP_CHAT_STYLE = {
+  width: '283px',
+  height: '100%',
+} as const;
+
+const DEEP_CHAT_MESSAGE_STYLES = {
+  default: {
+    shared: {
+      bubble: {
+        width: '100%',
+        maxWidth: '100%',
+        color: 'var(--black-12)',
+        fontSize: '14px',
+        fontWeight: '400',
+        lineHeight: '1.26',
+        padding: '8px',
+        textAlign: 'left',
+      },
+    },
+    user: {
+      bubble: {
+        backgroundColor: '#F0F0F3',
+      },
+    },
+    ai: {
+      bubble: {
+        backgroundColor: 'white',
+      },
+    },
+    error: {
+      bubble: {
+        color: '#FF3333',
+      },
+    },
+  },
+} as const;
+
+const DEEP_CHAT_SUBMIT_BUTTON_STYLES = {
+  disabled: {
+    container: {
+      default: {
+        display: 'none',
+      },
+    },
+  },
+  submit: {
+    container: {
+      default: {
+        display: 'inherit',
+        marginRight: '8px',
+        marginBottom: '12px',
+      },
+    },
+    svg: {
+      content: `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 3C0 1.34315 1.34315 0 3 0H21C22.6569 0 24 1.34315 24 3V21C24 22.6569 22.6569 24 21 24H3C1.34315 24 0 22.6569 0 21V3Z" fill="#0090FF"/>
+        <rect width="16" height="16" transform="translate(4 4)" fill="white" fill-opacity="0.01"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M11.6228 6.28952C11.8311 6.08123 12.1688 6.08123 12.3771 6.28952L16.6438 10.5562C16.852 10.7645 16.852 11.1021 16.6438 11.3104C16.4355 11.5187 16.0978 11.5187 15.8894 11.3104L12.5333 7.95422V17.3333C12.5333 17.6278 12.2945 17.8666 12 17.8666C11.7054 17.8666 11.4666 17.6278 11.4666 17.3333V7.95422L8.11041 11.3104C7.90213 11.5187 7.56444 11.5187 7.35617 11.3104C7.14788 11.1021 7.14788 10.7645 7.35617 10.5562L11.6228 6.28952Z" fill="white"/>
+      </svg>
+    `,
+    },
+  },
+  stop: {
+    svg: {
+      content: `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 3C0 1.34315 1.34315 0 3 0H21C22.6569 0 24 1.34315 24 3V21C24 22.6569 22.6569 24 21 24H3C1.34315 24 0 22.6569 0 21V3Z" fill="#0090FF"/>
+        <rect width="16" height="16" transform="translate(4 4)" fill="white" fill-opacity="0.01"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M6.1333 7.19997C6.1333 6.61087 6.61087 6.1333 7.19997 6.1333H16.8C17.3891 6.1333 17.8666 6.61087 17.8666 7.19997V16.8C17.8666 17.3891 17.3891 17.8666 16.8 17.8666H7.19997C6.61087 17.8666 6.1333 17.3891 6.1333 16.8V7.19997ZM16.8 7.19997H7.19997V16.8H16.8V7.19997Z" fill="white"/>
+      </svg>
+    `,
+    },
+  },
+} as const;
+
+const DEEP_CHAT_AUXILIARY_STYLE = `
+  :host {
+    border: none !important;
+  }
+  .aiLoader, .aiCompletedIcon {
+    display: inline-block;
+    box-sizing: border-box;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  .aiLoader {
+    width: 12px;
+    height: 12px;
+    border: 2px solid #8B8D98;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    animation: ai-wizard-rotation 0.8s linear infinite;
+  }
+  @keyframes ai-wizard-rotation {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .aiCompletedIcon {
+    position: relative;
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid #30A46C;
+    border-radius: 50%;
+  }
+  .aiCompletedIcon::after {
+    content: '';
+    position: absolute;
+    top: 0px;
+    left: 3px;
+    width: 3px;
+    height: 6px;
+    border: solid #30A46C;
+    border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg);
+  }
+  #chat-view:has(#messages:empty) {
+    display: block;
+  }
+  #chat-view:has(#messages:empty) #input:has(#file-attachment-container[style*='display: block']) {
+    margin-top: 40px;
+  }
+  .text-message h1 {
+    font-size: var(--font-size-5);
+  }
+  .text-message h2 {
+    font-size: var(--font-size-4);
+  }
+  .text-message h3 {
+    font-size: var(--font-size-3);
+  }
+  .text-message h4 {
+    font-size: var(--font-size-2);
+  }
+  .text-message h5 {
+    font-size: var(--font-size-1);
+  }
+` as const;
+
+// Memoized DeepChat so it only re-renders when its props change identity.
+const MemoDeepChat = memo(DeepChat);
+
 const AiWizard = () => {
   const pageData = useAppSelector(selectPageData);
   const dispatch = useAppDispatch();
@@ -498,11 +691,15 @@ const AiWizard = () => {
     Object.entries(model).map(([uuid, comp]) => [uuid, comp.resolved]),
   );
   const textPropsMapString = JSON.stringify(textPropsMap);
-  const chatHistory = useSyncExternalStore(
-    historyStore.subscribe,
-    historyStore.getSnapshot,
-  );
-  let isComponentRendered = false;
+  // deep-chat resets its view (clearing the typed prompt and any in-progress
+  // messages) whenever the `history` prop reference changes, and
+  // `historyStore.addMessage` swaps the snapshot without notifying
+  // subscribers, so any unrelated re-render would push a new reference in.
+  // Capture the snapshot once at mount to keep the prop stable; messages are
+  // still written to IndexedDB.
+  // @todo Decide whether IndexedDB chat persistence is still needed now that uploads are size-limited; restore or remove it in https://git.drupalcode.org/project/canvas/-/work_items/3591731.
+  const initialHistoryRef = useRef(historyStore.getSnapshot());
+  const isComponentRenderedRef = useRef(false);
   const welcomeTextRef = useRef<HTMLSpanElement>(null);
   // AbortController to cancel ongoing requests when component unmounts
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -713,6 +910,225 @@ const AiWizard = () => {
     ],
   );
 
+  // Keep the latest receiveMessage and csrfToken in refs so connectHandler can
+  // stay referentially stable. A changing connect prop re-renders MemoDeepChat,
+  // which resets DeepChat and clears the typed prompt when page metadata
+  // changes.
+  const receiveMessageRef = useRef(receiveMessage);
+  const csrfTokenRef = useRef(csrfToken);
+  useEffect(() => {
+    receiveMessageRef.current = receiveMessage;
+    csrfTokenRef.current = csrfToken;
+  }, [receiveMessage, csrfToken]);
+
+  // Stable handler for DeepChat's connect prop. It reads up-to-date data via
+  // refs (currentValuesRef, receiveMessageRef, csrfTokenRef, chatElementRef,
+  // abortControllerRef, pollingStopSignalRef), so it never needs to be
+  // recreated and the connect prop keeps a stable identity.
+  const connectHandler = useCallback(
+    async (body: any, signals: any) => {
+      const csrfToken = csrfTokenRef.current;
+      // MemoDeepChat only renders once csrfToken is set, but this handler is
+      // defined before that render guard, so narrow the nullable type here.
+      if (!csrfToken) {
+        return;
+      }
+      let pendingResponse: any = null;
+      const stopPolling = { stopped: false };
+
+      try {
+        const hasFiles = body instanceof FormData;
+        let requestBody: FormData | string;
+        const headers: Record<string, string> = {
+          'X-CSRF-Token': csrfToken,
+        };
+
+        if (hasFiles) {
+          const files = body.getAll('files');
+          const MAX_FILE_SIZE = drupalSettings?.canvas?.canvasAiMaxFileSize;
+
+          for (const file of files) {
+            if (file instanceof File && file.size > MAX_FILE_SIZE) {
+              signals.onResponse({
+                text: `File is too large. Maximum allowed size is ${MAX_FILE_SIZE / (1024 * 1024)}MB.`,
+                role: 'error',
+              });
+              return;
+            }
+          }
+          requestBody = body as FormData;
+          requestBody.append(
+            'entity_type',
+            currentValuesRef.current.params.entityType || '',
+          );
+          requestBody.append(
+            'entity_id',
+            currentValuesRef.current.params.entityId || '',
+          );
+          requestBody.append(
+            'selected_component',
+            // Prefer the code-editor route param: it identifies the open
+            // component immediately after navigation (e.g. right after
+            // creating one), whereas the Redux machineName is only set
+            // once the editor finishes its async data load.
+            currentValuesRef.current.params.codeComponentId ||
+              currentValuesRef.current.codeComponentName,
+          );
+          requestBody.append(
+            'selected_component_required_props',
+            JSON.stringify(
+              currentValuesRef.current.codeComponentRequiredProps || [],
+            ),
+          );
+          requestBody.append(
+            'layout',
+            currentValuesRef.current.textPropsMapString,
+          );
+          requestBody.append('derived_proptypes', JSON.stringify(fixtureProps));
+        } else {
+          requestBody = JSON.stringify({
+            ...body,
+            entity_type: currentValuesRef.current.params.entityType,
+            entity_id: currentValuesRef.current.params.entityId,
+            selected_component:
+              currentValuesRef.current.params.codeComponentId ||
+              currentValuesRef.current.codeComponentName,
+            selected_component_required_props:
+              currentValuesRef.current.codeComponentRequiredProps || [],
+            layout: currentValuesRef.current.textPropsMapString,
+            active_component_uuid:
+              currentValuesRef.current.selectedComponent ?? '',
+            current_layout: transformLayout(),
+            derived_proptypes: fixtureProps,
+            page_title: currentValuesRef.current.pageData['title[0][value]'],
+            page_description:
+              currentValuesRef.current.pageData['description[0][value]'],
+          });
+          headers['Content-Type'] = 'application/json';
+        }
+        // Generate a unique request ID
+        const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+        if (hasFiles) {
+          (requestBody as FormData).append('request_id', requestId);
+        } else {
+          const parsedBody = JSON.parse(requestBody as string);
+          parsedBody.request_id = requestId;
+          requestBody = JSON.stringify(parsedBody);
+        }
+
+        // Create a new AbortController for this request.
+        const abortController = new AbortController();
+        abortControllerRef.current = abortController;
+        pollingStopSignalRef.current = stopPolling;
+        // Start polling first
+        const chatEl = chatElementRef.current;
+        if (chatEl) {
+          startPolling(
+            requestId,
+            csrfToken,
+            chatEl,
+            async () => {
+              // Process the main response after polling completes
+              if (pendingResponse) {
+                const processedMessage =
+                  await receiveMessageRef.current(pendingResponse);
+                await signals.onResponse(processedMessage);
+                chatEl.disableSubmitButton();
+              }
+            },
+            stopPolling,
+          );
+        }
+
+        // Make the main API call but don't process the response immediately
+        fetch('/admin/api/canvas/ai', {
+          method: 'POST',
+          headers,
+          body: requestBody,
+          signal: abortController.signal,
+        })
+          .then(async (response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error. Status: ${response.status}`);
+            }
+            const data = await response.json();
+
+            if (data.status === false) {
+              throw new Error(
+                data.message ||
+                  'An error occurred while processing your request. Please try again.',
+              );
+            }
+            // Store the response instead of processing it
+            pendingResponse = data;
+          })
+          .catch((error) => {
+            // Don't show error if request was aborted intentionally
+            if (error.name === 'AbortError') {
+              console.log('AI request was aborted');
+              return;
+            }
+            console.error('AI request failed:', error);
+            stopPolling.stopped = true;
+            signals.onResponse({
+              text: error.message
+                ? error.message
+                : 'An error occurred while processing your request. Please try again.',
+              role: 'error',
+            });
+            setTimeout(() => {
+              chatElementRef.current?.disableSubmitButton();
+            }, 0);
+          });
+      } catch (error: any) {
+        // Don't show error if request was aborted intentionally
+        if (error.name === 'AbortError') {
+          console.log('AI request was aborted');
+          return;
+        }
+        console.error('AI request failed:', error);
+        stopPolling.stopped = true;
+        await signals.onResponse({
+          text: 'An error occurred while processing your request. Please try again.',
+          role: 'error',
+        });
+        setTimeout(() => {
+          chatElementRef.current?.disableSubmitButton();
+        }, 0);
+      }
+      setTimeout(() => {
+        chatElementRef.current?.disableSubmitButton();
+      }, 0);
+    },
+    // The handler is intentionally stable so MemoDeepChat is not re-rendered
+    // (and the typed prompt cleared) when unrelated state such as page metadata
+    // changes. It reads every dynamic value via refs (currentValuesRef,
+    // receiveMessageRef, csrfTokenRef) and transformLayout(), so the deps stay
+    // empty.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const connectConfig = useMemo(
+    () => ({
+      // Defining a handler instead of an object to ensure we can work with
+      // up-to-date data. Otherwise `connect.additionalBodyProps` captures
+      // the values at the time the component was mounted.
+      // @see https://deepchat.dev/docs/connect/#Handler
+      handler: connectHandler,
+    }),
+    [connectHandler],
+  );
+
+  const handleComponentRender = useCallback(() => {
+    if (!isComponentRenderedRef.current) {
+      chatElementRef.current.clearMessages();
+      historyStore.clearHistory();
+      chatElementRef.current.disableSubmitButton();
+      isComponentRenderedRef.current = true;
+    }
+  }, []);
+
   useEffect(() => {
     const chatEl = chatElementRef.current;
     if (!chatEl) return;
@@ -738,8 +1154,10 @@ const AiWizard = () => {
     };
   }, [csrfToken]);
 
-  // Handle text input changes to enable/disable submit button.
-  const handleTextInput = () => {
+  // Handle text input changes to enable/disable submit button. Memoized so its
+  // identity stays stable across renders, which keeps MemoDeepChat from
+  // re-rendering (and clearing the typed prompt) when page metadata changes.
+  const handleTextInput = useCallback(() => {
     const chatEl = chatElementRef.current;
     const deepChatEl = document.querySelector('deep-chat') as any;
     const inputText =
@@ -749,7 +1167,7 @@ const AiWizard = () => {
     } else {
       chatEl.disableSubmitButton();
     }
-  };
+  }, []);
 
   return (
     csrfToken && (
@@ -776,384 +1194,23 @@ const AiWizard = () => {
             Hello, how can I help you today?
           </Text>
         </Flex>
-        <DeepChat
+        <MemoDeepChat
           ref={chatElementRef}
-          history={chatHistory.length > 0 ? chatHistory : undefined}
-          images={{
-            files: {
-              acceptedFormats: '.jpg, .png, .jpeg',
-              // For now we just support uploading 1 image at a time
-              // if the user tries to upload another image the already
-              // added image is replaced.
-              maxNumberOfFiles: 1,
-            },
-            button: {
-              position: 'inside-start',
-              styles: {
-                container: {
-                  default: {
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginLeft: '8px',
-                    marginBottom: '12px',
-                    backgroundColor: '#F0F0F3',
-                  },
-                },
-                svg: {
-                  content: `
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="16" height="16" fill="white" fill-opacity="0.01"/>
-                  <path fill-rule="evenodd" clip-rule="evenodd" d="M8.53324 2.93324C8.53324 2.63869 8.29445 2.3999 7.9999 2.3999C7.70535 2.3999 7.46657 2.63869 7.46657 2.93324V7.46657H2.93324C2.63869 7.46657 2.3999 7.70535 2.3999 7.9999C2.3999 8.29445 2.63869 8.53324 2.93324 8.53324H7.46657V13.0666C7.46657 13.3611 7.70535 13.5999 7.9999 13.5999C8.29445 13.5999 8.53324 13.3611 8.53324 13.0666V8.53324H13.0666C13.3611 8.53324 13.5999 8.29445 13.5999 7.9999C13.5999 7.70535 13.3611 7.46657 13.0666 7.46657H8.53324V2.93324Z" fill="#60646C"/>
-                  </svg>
-                `,
-                },
-              },
-            },
-          }}
-          // Setting to -1 to allow sending the entire conversation history.
-          // @see https://deepchat.dev/docs/connect/#requestBodyLimits
-          requestBodyLimits={{
-            maxMessages: -1,
-          }}
-          connect={{
-            // Defining a handler instead of an object to ensure we can work with
-            // up-to-date data. Otherwise `connect.additionalBodyProps` captures
-            // the values at the time the component was mounted.
-            // @see https://deepchat.dev/docs/connect/#Handler
-            handler: async (body, signals) => {
-              let pendingResponse: any = null;
-              const stopPolling = { stopped: false };
-
-              try {
-                const hasFiles = body instanceof FormData;
-                let requestBody: FormData | string;
-                const headers: Record<string, string> = {
-                  'X-CSRF-Token': csrfToken,
-                };
-
-                if (hasFiles) {
-                  const files = body.getAll('files');
-                  const MAX_FILE_SIZE =
-                    drupalSettings?.canvas?.canvasAiMaxFileSize;
-
-                  for (const file of files) {
-                    if (file instanceof File && file.size > MAX_FILE_SIZE) {
-                      signals.onResponse({
-                        text: `File is too large. Maximum allowed size is ${MAX_FILE_SIZE / (1024 * 1024)}MB.`,
-                        role: 'error',
-                      });
-                      return;
-                    }
-                  }
-                  requestBody = body as FormData;
-                  requestBody.append(
-                    'entity_type',
-                    currentValuesRef.current.params.entityType || '',
-                  );
-                  requestBody.append(
-                    'entity_id',
-                    currentValuesRef.current.params.entityId || '',
-                  );
-                  requestBody.append(
-                    'selected_component',
-                    // Prefer the code-editor route param: it identifies the open
-                    // component immediately after navigation (e.g. right after
-                    // creating one), whereas the Redux machineName is only set
-                    // once the editor finishes its async data load.
-                    currentValuesRef.current.params.codeComponentId ||
-                      currentValuesRef.current.codeComponentName,
-                  );
-                  requestBody.append(
-                    'selected_component_required_props',
-                    JSON.stringify(
-                      currentValuesRef.current.codeComponentRequiredProps || [],
-                    ),
-                  );
-                  requestBody.append(
-                    'layout',
-                    currentValuesRef.current.textPropsMapString,
-                  );
-                  requestBody.append(
-                    'derived_proptypes',
-                    JSON.stringify(fixtureProps),
-                  );
-                } else {
-                  requestBody = JSON.stringify({
-                    ...body,
-                    entity_type: currentValuesRef.current.params.entityType,
-                    entity_id: currentValuesRef.current.params.entityId,
-                    selected_component:
-                      currentValuesRef.current.params.codeComponentId ||
-                      currentValuesRef.current.codeComponentName,
-                    selected_component_required_props:
-                      currentValuesRef.current.codeComponentRequiredProps || [],
-                    layout: currentValuesRef.current.textPropsMapString,
-                    active_component_uuid:
-                      currentValuesRef.current.selectedComponent ?? '',
-                    current_layout: transformLayout(),
-                    derived_proptypes: fixtureProps,
-                    page_title:
-                      currentValuesRef.current.pageData['title[0][value]'],
-                    page_description:
-                      currentValuesRef.current.pageData[
-                        'description[0][value]'
-                      ],
-                  });
-                  headers['Content-Type'] = 'application/json';
-                }
-                // Generate a unique request ID
-                const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-                if (hasFiles) {
-                  (requestBody as FormData).append('request_id', requestId);
-                } else {
-                  const parsedBody = JSON.parse(requestBody as string);
-                  parsedBody.request_id = requestId;
-                  requestBody = JSON.stringify(parsedBody);
-                }
-
-                // Create a new AbortController for this request.
-                const abortController = new AbortController();
-                abortControllerRef.current = abortController;
-                pollingStopSignalRef.current = stopPolling;
-                // Start polling first
-                const chatEl = chatElementRef.current;
-                if (chatEl) {
-                  startPolling(
-                    requestId,
-                    csrfToken,
-                    chatEl,
-                    async () => {
-                      // Process the main response after polling completes
-                      if (pendingResponse) {
-                        const processedMessage =
-                          await receiveMessage(pendingResponse);
-                        await signals.onResponse(processedMessage);
-                        chatEl.disableSubmitButton();
-                      }
-                    },
-                    stopPolling,
-                  );
-                }
-
-                // Make the main API call but don't process the response immediately
-                fetch('/admin/api/canvas/ai', {
-                  method: 'POST',
-                  headers,
-                  body: requestBody,
-                  signal: abortController.signal,
-                })
-                  .then(async (response) => {
-                    if (!response.ok) {
-                      throw new Error(`HTTP error. Status: ${response.status}`);
-                    }
-                    const data = await response.json();
-
-                    if (data.status === false) {
-                      throw new Error(
-                        data.message ||
-                          'An error occurred while processing your request. Please try again.',
-                      );
-                    }
-                    // Store the response instead of processing it
-                    pendingResponse = data;
-                  })
-                  .catch((error) => {
-                    // Don't show error if request was aborted intentionally
-                    if (error.name === 'AbortError') {
-                      console.log('AI request was aborted');
-                      return;
-                    }
-                    console.error('AI request failed:', error);
-                    stopPolling.stopped = true;
-                    signals.onResponse({
-                      text: error.message
-                        ? error.message
-                        : 'An error occurred while processing your request. Please try again.',
-                      role: 'error',
-                    });
-                    setTimeout(() => {
-                      chatElementRef.current?.disableSubmitButton();
-                    }, 0);
-                  });
-              } catch (error: any) {
-                // Don't show error if request was aborted intentionally
-                if (error.name === 'AbortError') {
-                  console.log('AI request was aborted');
-                  return;
-                }
-                console.error('AI request failed:', error);
-                stopPolling.stopped = true;
-                await signals.onResponse({
-                  text: 'An error occurred while processing your request. Please try again.',
-                  role: 'error',
-                });
-                setTimeout(() => {
-                  chatElementRef.current?.disableSubmitButton();
-                }, 0);
-              }
-              setTimeout(() => {
-                chatElementRef.current?.disableSubmitButton();
-              }, 0);
-            },
-          }}
+          history={
+            initialHistoryRef.current.length > 0
+              ? initialHistoryRef.current
+              : undefined
+          }
+          images={DEEP_CHAT_IMAGES}
+          requestBodyLimits={DEEP_CHAT_REQUEST_BODY_LIMITS}
+          connect={connectConfig}
           onInput={handleTextInput}
-          onComponentRender={() => {
-            if (!isComponentRendered) {
-              chatElementRef.current.clearMessages();
-              historyStore.clearHistory();
-              chatElementRef.current.disableSubmitButton();
-              isComponentRendered = true;
-            }
-          }}
-          textInput={{
-            placeholder: { text: 'Build me a ...' },
-            styles: {
-              text: {
-                padding: '16px',
-              },
-              container: {
-                height: '167px',
-                width: '100%',
-                padding: '0 0 40px 0',
-              },
-            },
-          }}
-          style={{
-            width: '283px',
-            height: '100%',
-          }}
-          messageStyles={{
-            default: {
-              shared: {
-                bubble: {
-                  width: '100%',
-                  maxWidth: '100%',
-                  color: 'var(--black-12)',
-                  fontSize: '14px',
-                  fontWeight: '400',
-                  lineHeight: '1.26',
-                  padding: '8px',
-                  textAlign: 'left',
-                },
-              },
-              user: {
-                bubble: {
-                  backgroundColor: '#F0F0F3',
-                },
-              },
-              ai: {
-                bubble: {
-                  backgroundColor: 'white',
-                },
-              },
-              error: {
-                bubble: {
-                  color: '#FF3333',
-                },
-              },
-            },
-          }}
-          submitButtonStyles={{
-            disabled: {
-              container: {
-                default: {
-                  display: 'none',
-                },
-              },
-            },
-            submit: {
-              container: {
-                default: {
-                  display: 'inherit',
-                  marginRight: '8px',
-                  marginBottom: '12px',
-                },
-              },
-              svg: {
-                content: `
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M0 3C0 1.34315 1.34315 0 3 0H21C22.6569 0 24 1.34315 24 3V21C24 22.6569 22.6569 24 21 24H3C1.34315 24 0 22.6569 0 21V3Z" fill="#0090FF"/>
-                  <rect width="16" height="16" transform="translate(4 4)" fill="white" fill-opacity="0.01"/>
-                  <path fill-rule="evenodd" clip-rule="evenodd" d="M11.6228 6.28952C11.8311 6.08123 12.1688 6.08123 12.3771 6.28952L16.6438 10.5562C16.852 10.7645 16.852 11.1021 16.6438 11.3104C16.4355 11.5187 16.0978 11.5187 15.8894 11.3104L12.5333 7.95422V17.3333C12.5333 17.6278 12.2945 17.8666 12 17.8666C11.7054 17.8666 11.4666 17.6278 11.4666 17.3333V7.95422L8.11041 11.3104C7.90213 11.5187 7.56444 11.5187 7.35617 11.3104C7.14788 11.1021 7.14788 10.7645 7.35617 10.5562L11.6228 6.28952Z" fill="white"/>
-                </svg>
-              `,
-              },
-            },
-            stop: {
-              svg: {
-                content: `
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M0 3C0 1.34315 1.34315 0 3 0H21C22.6569 0 24 1.34315 24 3V21C24 22.6569 22.6569 24 21 24H3C1.34315 24 0 22.6569 0 21V3Z" fill="#0090FF"/>
-                  <rect width="16" height="16" transform="translate(4 4)" fill="white" fill-opacity="0.01"/>
-                  <path fill-rule="evenodd" clip-rule="evenodd" d="M6.1333 7.19997C6.1333 6.61087 6.61087 6.1333 7.19997 6.1333H16.8C17.3891 6.1333 17.8666 6.61087 17.8666 7.19997V16.8C17.8666 17.3891 17.3891 17.8666 16.8 17.8666H7.19997C6.61087 17.8666 6.1333 17.3891 6.1333 16.8V7.19997ZM16.8 7.19997H7.19997V16.8H16.8V7.19997Z" fill="white"/>
-                </svg>
-              `,
-              },
-            },
-          }}
-          auxiliaryStyle="
-          :host {
-            border: none !important;
-          }
-          .aiLoader, .aiCompletedIcon {
-            display: inline-block;
-            box-sizing: border-box;
-            vertical-align: middle;
-            margin-right: 8px;
-          }
-          .aiLoader {
-            width: 12px;
-            height: 12px;
-            border: 2px solid #8B8D98;
-            border-bottom-color: transparent;
-            border-radius: 50%;
-            animation: ai-wizard-rotation 0.8s linear infinite;
-          }
-          @keyframes ai-wizard-rotation {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          .aiCompletedIcon {
-            position: relative;
-            width: 12px;
-            height: 12px;
-            border: 1.5px solid #30A46C;
-            border-radius: 50%;
-          }
-          .aiCompletedIcon::after {
-            content: '';
-            position: absolute;
-            top: 0px;
-            left: 3px;
-            width: 3px;
-            height: 6px;
-            border: solid #30A46C;
-            border-width: 0 1.5px 1.5px 0;
-            transform: rotate(45deg);
-          }
-          #chat-view:has(#messages:empty) {
-            display: block;
-          }
-          #chat-view:has(#messages:empty) #input:has(#file-attachment-container[style*='display: block']) {
-            margin-top: 40px;
-          }
-          .text-message h1 {
-            font-size: var(--font-size-5);
-          }
-          .text-message h2 {
-            font-size: var(--font-size-4);
-          }
-          .text-message h3 {
-            font-size: var(--font-size-3);
-          }
-          .text-message h4 {
-            font-size: var(--font-size-2);
-          }
-          .text-message h5 {
-            font-size: var(--font-size-1);
-          }
-        "
+          onComponentRender={handleComponentRender}
+          textInput={DEEP_CHAT_TEXT_INPUT}
+          style={DEEP_CHAT_STYLE}
+          messageStyles={DEEP_CHAT_MESSAGE_STYLES}
+          submitButtonStyles={DEEP_CHAT_SUBMIT_BUTTON_STYLES}
+          auxiliaryStyle={DEEP_CHAT_AUXILIARY_STYLE}
         />
         <Box className={styles.aiWizardLegalContainer}>
           <Text>
