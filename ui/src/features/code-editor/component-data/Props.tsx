@@ -47,7 +47,6 @@ import {
   VALUE_MODE_LIMITED,
   VALUE_MODE_UNLIMITED,
 } from '@/types/CodeComponent';
-import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import type {
   CodeComponentProp,
@@ -96,9 +95,6 @@ export default function Props() {
   const required = useAppSelector(selectCodeComponentProperty('required'));
   const componentStatus = useAppSelector(selectCodeComponentProperty('status'));
   const initialPropIds = useAppSelector(selectSavedPropIds);
-  const canvasSettings = getCanvasSettings();
-  const isContentEntityReferenceEnabled =
-    canvasSettings?.devEntityReferenceMode === true;
 
   // Memoized Set of prop IDs that need to be disabled from editing name and type.
   const disabledPropIds = useMemo(() => {
@@ -171,16 +167,6 @@ export default function Props() {
 
   const renderPropContent = (prop: CodeComponentProp) => {
     const propName = getPropMachineName(prop.name);
-    // `type.type` is the candidate option from `derivedPropTypes`.
-    // `prop.derivedType` is the prop type stored in the current component configuration.
-    // Keep the content entity reference option when the feature flag is enabled,
-    // or when the current prop already uses that type.
-    const propTypeOptions = derivedPropTypes.filter(
-      (type) =>
-        type.type !== 'contentEntityReference' ||
-        isContentEntityReferenceEnabled ||
-        prop.derivedType === 'contentEntityReference',
-    );
     return (
       <Flex direction="column" flexGrow="1">
         <Flex mb="4" gap="4" align="end" width="100%" wrap="wrap">
@@ -270,7 +256,7 @@ export default function Props() {
               >
                 <Select.Trigger id={`prop-type-${prop.id}`} />
                 <Select.Content>
-                  {propTypeOptions.map((type) => (
+                  {derivedPropTypes.map((type) => (
                     <Select.Item key={type.type} value={type.type}>
                       {type.displayName}
                     </Select.Item>

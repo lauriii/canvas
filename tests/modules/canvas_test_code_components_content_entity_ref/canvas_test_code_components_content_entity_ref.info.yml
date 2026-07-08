@@ -7,7 +7,6 @@ type: module
 package: Testing
 dependencies:
   - canvas:canvas
-  - canvas:canvas_dev_er
   - drupal:node
   - drupal:user
   - drupal:text

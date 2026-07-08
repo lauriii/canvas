@@ -1,7 +1,10 @@
+# @todo Remove before Canvas 2.0.
 name: Drupal Canvas Dev Entity Reference
-description: 'Enables content entity reference props in the code editor - feature flag until the entity reference prop type is fully stable.'
+description: '(DEPRECATED) Enables content entity reference props in the code editor - feature flag until the entity reference prop type is fully stable.'
 core_version_requirement: ^11.3
 hidden: true
+lifecycle: deprecated
+lifecycle_link: 'https://www.drupal.org/node/3609370'
 type: module
 package: Drupal Canvas
 dependencies:
