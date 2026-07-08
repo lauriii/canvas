@@ -291,7 +291,10 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
     self::assertArrayHasKey(Page::ENTITY_TYPE_ID, $data[Page::ENTITY_TYPE_ID]['bundles']);
 
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
-    self::assertSame(['user.permissions'], $response->getCacheableMetadata()->getCacheContexts());
+    // The 'user' cache context is added by the Workspaces module's entity
+    // access hook because the auto-save workspace is active during Canvas API
+    // requests.
+    self::assertSame(['user.permissions', 'user'], $response->getCacheableMetadata()->getCacheContexts());
   }
 
   public function testContentEntityTypesAccessFiltering(): void {

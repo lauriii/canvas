@@ -547,6 +547,15 @@ final class EntityFieldPropSourceMatcher {
     $field_definitions = $this->recurseDataDefinitionInterface($entity_data_definition);
     foreach ($field_definitions as $field_definition) {
       \assert($field_definition instanceof FieldDefinitionInterface);
+      // Fields explicitly marked internal (e.g. the `workspace` revision
+      // metadata field the Workspaces module adds to supported entity types)
+      // are implementation details, not content: never offer them as prop
+      // sources. Only the explicit flag is checked, because ::isInternal()
+      // falls back to ::isComputed(), which would also exclude persisted
+      // computed fields such as `path`.
+      if ($field_definition instanceof BaseFieldDefinition && $field_definition['internal'] === TRUE) {
+        continue;
+      }
       foreach (self::IGNORE_FIELD_TYPES as ['class' => $field_type_class, 'exceptions' => $allowed_schemas]) {
         // DO NOT ignore the field type if it's one of a carefully selected set
         // of exceptions.

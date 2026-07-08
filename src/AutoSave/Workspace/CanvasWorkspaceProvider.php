@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\AutoSave\Workspace;
 
-use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -86,32 +85,17 @@ final class CanvasWorkspaceProvider extends WorkspaceProviderBase {
         || (\defined('MAINTENANCE_MODE') && \constant('MAINTENANCE_MODE') === 'update')) {
         return AccessResult::allowed()->setCacheMaxAge(0);
       }
-      if (self::accountHasCanvasAutoSaveWorkspaceAccess($account)) {
-        return AccessResult::allowed()->cachePerPermissions();
+      // Any authenticated user may view (i.e. switch into) the workspace:
+      // Canvas auto-save reads happen on behalf of whoever may edit some
+      // Canvas-enabled entity, which cannot be expressed as a fixed permission
+      // list (e.g. a user with only a node edit permission). Viewing grants no
+      // content access by itself; entity access still applies inside the
+      // workspace, and edit, delete and publish stay locked down.
+      if ($account->isAuthenticated()) {
+        return AccessResult::allowed()->addCacheContexts(['user.roles:authenticated']);
       }
     }
     return AccessResult::forbidden('The Canvas workspace is internal infrastructure managed by the canvas module.')->cachePerPermissions();
-  }
-
-  private static function accountHasCanvasAutoSaveWorkspaceAccess(AccountInterface $account): bool {
-    if (!$account->isAuthenticated()) {
-      return FALSE;
-    }
-    $permissions = [
-      AutoSaveManager::PUBLISH_PERMISSION,
-      'edit canvas_page',
-      'create canvas_page',
-      'administer components',
-      'administer code components',
-      'administer brand kit',
-      'administer content templates',
-    ];
-    foreach ($permissions as $permission) {
-      if ($account->hasPermission($permission)) {
-        return TRUE;
-      }
-    }
-    return FALSE;
   }
 
 }

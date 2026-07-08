@@ -6,7 +6,9 @@ namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
 use Drupal\canvas\Plugin\Validation\Constraint\CanvasAwareEntityWorkspaceConflictConstraint;
+use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\workspaces\Entity\Handler\IgnoredWorkspaceHandler;
 
 /**
  * Keeps the Canvas workspace out of core Workspaces UI surfaces.
@@ -21,6 +23,31 @@ use Drupal\Core\Hook\Attribute\Hook;
  * @see \Drupal\workspaces\Form\WorkspaceSwitcherForm::buildForm()
  */
 final class WorkspaceAutoSaveHooks {
+
+  /**
+   * Implements hook_entity_type_build().
+   */
+  #[Hook('entity_type_build')]
+  public static function entityTypeBuild(array &$entity_types): void {
+    if (!\class_exists(IgnoredWorkspaceHandler::class)) {
+      return;
+    }
+    // Canvas config entities (components, code components, asset libraries,
+    // patterns, folders, staged config updates, personalization segments, …)
+    // are staged by Canvas's own snapshot system, not by Workspaces. Without
+    // this, core's workspace provider forbids saving them while the Canvas
+    // auto-save workspace is active during Canvas API requests.
+    // @see \Drupal\workspaces\Provider\WorkspaceProviderBase::entityPresave()
+    foreach ($entity_types as $entity_type) {
+      if (!$entity_type instanceof ConfigEntityTypeInterface || $entity_type->hasHandlerClass('workspace')) {
+        continue;
+      }
+      $provider = $entity_type->getProvider();
+      if ($provider === 'canvas' || \str_starts_with($provider, 'canvas_')) {
+        $entity_type->setHandlerClass('workspace', IgnoredWorkspaceHandler::class);
+      }
+    }
+  }
 
   /**
    * Implements hook_validation_constraint_alter().

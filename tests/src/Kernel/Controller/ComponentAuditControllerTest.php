@@ -274,6 +274,10 @@ final class ComponentAuditControllerTest extends CanvasKernelTestBase {
       'url.query_args:_wrapper_format',
       // @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
       'route.name',
+      // The Workspaces module adds a required render cache context to every
+      // HTML response.
+      // @see \Drupal\workspaces\WorkspacesServiceProvider
+      'workspace',
     ];
     self::assertEqualsCanonicalizing($expected_cache_contexts, $response->getCacheableMetadata()->getCacheContexts());
     self::assertEqualsCanonicalizing([
