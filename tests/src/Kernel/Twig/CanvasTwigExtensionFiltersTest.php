@@ -131,9 +131,9 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
    */
   public function testToSrcSet(): void {
     $actual_width = 640;
-    $expect_all_srcset_widths = self::expectedBalloonsSrcsetUpTo640();
+    $expect_all_srcset_widths = self::expectedBalloonsSrcset();
     $expect_width_200 = self::generateExpectedSrcSet(
-      array_filter(ParametrizedImageStyleConverter::ALLOWED_WIDTHS, fn($w) => $w <= 200)
+      self::getWidthsIncludingNextLarger(200)
     );
 
     $cases = [
@@ -187,14 +187,25 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Gets allowed widths up to the target width, plus the next larger width.
+   */
+  private static function getWidthsIncludingNextLarger(int $target_width): array {
+    $widths = [];
+    foreach (ParametrizedImageStyleConverter::ALLOWED_WIDTHS as $allowed_width) {
+      $widths[] = $allowed_width;
+      if ($allowed_width > $target_width) {
+        break;
+      }
+    }
+    return $widths;
+  }
+
+  /**
    * Expected parametrized srcset for `public://balloons.png` (640px wide fixture).
    */
-  private static function expectedBalloonsSrcsetUpTo640(): string {
+  private static function expectedBalloonsSrcset(): string {
     return self::generateExpectedSrcSet(
-      array_filter(
-        ParametrizedImageStyleConverter::ALLOWED_WIDTHS,
-        static fn ($w) => $w <= 640
-      )
+      self::getWidthsIncludingNextLarger(640)
     );
   }
 
@@ -204,7 +215,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
   public function testToSrcSetWithRootRelativePublicFilesUrl(): void {
     $publicBasePath = PublicStream::basePath();
     $src = '/' . $publicBasePath . '/balloons.png';
-    $expected = self::expectedBalloonsSrcsetUpTo640();
+    $expected = self::expectedBalloonsSrcset();
     $html = $this->renderCanvasImageComponent([
       'src' => $src,
       'width' => 640,
@@ -219,7 +230,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
   public function testToSrcSetWithFullUrlIncludingNonDefaultPort(): void {
     $publicBasePath = PublicStream::basePath();
     $src = 'http://127.0.0.1:8080/' . $publicBasePath . '/balloons.png';
-    $expected = self::expectedBalloonsSrcsetUpTo640();
+    $expected = self::expectedBalloonsSrcset();
     $html = $this->renderCanvasImageComponent([
       'src' => $src,
       'width' => 640,
@@ -237,7 +248,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
     $this->pushSubdirectorySiteRequest($subdirectoryBaseUrl);
 
     $src = $subdirectoryBaseUrl . '/' . $publicBasePath . '/balloons.png';
-    $expected = self::expectedBalloonsSrcsetUpTo640();
+    $expected = self::expectedBalloonsSrcset();
     $html = $this->renderCanvasImageComponent([
       'src' => $src,
       'width' => 640,
