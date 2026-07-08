@@ -1,8 +1,9 @@
+import { readFile } from 'fs/promises';
 import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
-// cspell:ignore région
+// cspell:ignore région languageswitcher
 /**
  * Tests language switching functionality and URL query parameters.
  */
@@ -274,6 +275,101 @@ test.describe('Language Select', () => {
 
     // Verify page region is in Spanish.
     await expect(previewFrame.locator('html')).toHaveAttribute('lang', /^es/i);
+  });
+
+  test('A language switcher code component renders working translation links on the live site', async ({
+    page,
+    canvas,
+    drupal,
+  }) => {
+    await login({ username: 'editor', password: 'editor', drupal });
+    await page.goto('/canvas');
+
+    // Open the pre-created translated page in the editor.
+    await canvas.openContentNavigation();
+    const translationPageLink = page
+      .locator('[data-testid="canvas-navigation-results"]')
+      .locator('text=Canvas Translation Test Page');
+    await expect(translationPageLink).toBeVisible();
+    await translationPageLink.click();
+    await canvas.waitForEditorUi();
+
+    // Create the language switcher code component documented in
+    // docs/user/src/content/docs/code-components/data-fetching.mdx, publish
+    // it, and place it on the page.
+    const code = await readFile(
+      'tests/fixtures/code_components/page-elements/LanguageSwitcher.jsx',
+      'utf-8',
+    );
+    // The code editor preview has no main entity, so the switcher renders
+    // nothing there; wait for the debounced auto-save request instead before
+    // publishing to avoid a save conflict.
+    const autoSaved = page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes('/canvas/api/v0/config/auto-save/js_component/') &&
+        response.request().method() === 'PATCH',
+    );
+    await canvas.createCodeComponent('LanguageSwitcher', code);
+    await autoSaved;
+    await canvas.publishAllChanges(['LanguageSwitcher']);
+    await canvas.saveCodeComponent('js.languageswitcher');
+    await canvas.addComponent(
+      { id: 'js.languageswitcher' },
+      { hasInputs: false },
+    );
+    await canvas.publishAllChanges(['Canvas Translation Test Page']);
+
+    // On the default-language URL, English is marked current, translated
+    // French and untranslated Spanish are links carrying the language prefix,
+    // and no fallback message is shown.
+    await page.goto('/canvas-translation-test');
+    const switcher = page.locator('canvas-island nav');
+    await expect(switcher.locator('[aria-current="true"]')).toHaveText(
+      'English',
+    );
+    const frenchLink = switcher.locator('a[hreflang="fr"]');
+    await expect(frenchLink).toHaveText('Français');
+    await expect(frenchLink).toHaveAttribute(
+      'href',
+      /\/fr\/canvas-translation-test$/,
+    );
+    const spanishLink = switcher.locator('a[hreflang="es"]');
+    await expect(spanishLink).toHaveText('Español (not translated)');
+    // Path aliases are per language and no Spanish one exists, so the Spanish
+    // URL is the language-prefixed system path.
+    await expect(spanishLink).toHaveAttribute('href', /\/es\/page\/\d+$/);
+    await expect(
+      switcher.getByText('Not available in your language'),
+    ).toBeHidden();
+
+    // The untranslated Spanish URL renders the default translation as a
+    // fallback, so the switcher (part of the default tree) is still present:
+    // it marks Spanish current and reports the fallback via requestedLanguage
+    // vs renderedLanguage.
+    await spanishLink.click();
+    await page.waitForURL(/\/es\/page\/\d+$/);
+    await expect(
+      page.getByRole('heading', { name: 'Hello, Canvas!' }),
+    ).toBeVisible();
+    await expect(switcher.locator('[aria-current="true"]')).toHaveText(
+      'Español',
+    );
+    await expect(
+      switcher.getByText('Not available in your language; showing en.'),
+    ).toBeVisible();
+
+    // Following the French link from the fallback page serves the French
+    // translation. Without a translation_sync setting each translation keeps
+    // its own component tree, so the pre-existing French tree does not
+    // contain the switcher; the translated content proves the link resolved
+    // to the right translation.
+    await frenchLink.click();
+    await page.waitForURL('**/fr/canvas-translation-test');
+    await expect(
+      page.getByRole('heading', { name: 'Bonjour, Canvas!' }),
+    ).toBeVisible();
   });
 
   test('Language context popover deletes an existing translation in-app and shows no actions for missing translations', async ({

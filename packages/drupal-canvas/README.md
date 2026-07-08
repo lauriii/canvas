@@ -41,7 +41,7 @@ Access information about the current page.
 import { getPageData } from 'drupal-canvas';
 
 const { pageTitle, breadcrumbs, mainEntity } = getPageData();
-const { bundle, entityTypeId, uuid } = mainEntity;
+const { bundle, entityTypeId, uuid, translations } = mainEntity;
 ```
 
 #### Main entity metadata
@@ -49,7 +49,10 @@ const { bundle, entityTypeId, uuid } = mainEntity;
 The main entity is the primary Drupal entity (e.g. article, canvas_page, blog)
 associated with the current page. Access main entity metadata of the page you
 are on with `getPageData`. This can be used to construct JSON:API parameters for
-requests.
+requests. `mainEntity.translations` lists every enabled site language
+(`langcode`, `name`, `nativeName`, `url`, `translationAvailable`, `current`) for
+building a language switcher, alongside `requestedLanguage` and
+`renderedLanguage`.
 [View documentation and example here.](https://project.pages.drupalcode.org/canvas/code-components/data-fetching#main-entity-metadata)
 
 ### `getSiteData`

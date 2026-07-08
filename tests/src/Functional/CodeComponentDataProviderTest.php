@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
@@ -143,7 +144,22 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
    * @legacy-covers \Drupal\canvas\CodeComponentDataProvider::getCanvasDataMainEntityV0
    */
   public function testGetCanvasDataMainEntityV0OnCanvasPageRoute(): void {
-    // Create a Canvas Page entity and visit its canonical route.
+    // Set up multiple languages so the translations data covers a translated
+    // language (French), an untranslated one (German), and the default and
+    // currently active language (English).
+    $this->container->get('module_installer')->install(['language']);
+    // Refresh the container so the language schema is known before saving
+    // language.negotiation below.
+    $this->rebuildContainer();
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    ConfigurableLanguage::createFromLangcode('de')->save();
+    // Configure URL prefixes so translation links carry the language prefix.
+    $this->config('language.negotiation')
+      ->set('url.prefixes', ['en' => '', 'fr' => 'fr', 'de' => 'de'])
+      ->save();
+    $this->rebuildContainer();
+
+    // Create a Canvas Page entity and add a French translation only.
     $page = Page::create([
       'title' => 'Test canvas page',
       'type' => 'page',
@@ -156,12 +172,25 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
     ]);
     self::assertCount(0, $page->validate());
     $page->save();
+    $page->addTranslation('fr', ['title' => 'Page de test'])->save();
+    $id = $page->id();
 
     $regular_user = $this->drupalCreateUser(['access content']);
     $this->assertInstanceOf(AccountInterface::class, $regular_user);
     $this->drupalLogin($regular_user);
 
+    // Visit the English (default) canonical route.
     $this->drupalGet($page->toUrl());
+
+    // The code component that reads `mainEntity` carries the cache tags for the
+    // language list and URL negotiation config the translation data depends on.
+    $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', 'config:configurable_language_list');
+    $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', 'config:language.negotiation');
+    // It also carries the cacheability of the per-translation view access
+    // results embedded in the translation data.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
+    $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Contexts', 'user.permissions');
+    $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', "canvas_page:$id");
 
     $drupalSettings = $this->getDrupalSettings();
     $this->assertArrayHasKey(CodeComponentDataProvider::CANVAS_DATA_KEY, $drupalSettings);
@@ -170,7 +199,159 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
       'bundle' => 'canvas_page',
       'entityTypeId' => 'canvas_page',
       'uuid' => $page->uuid(),
+      'requestedLanguage' => 'en',
+      'renderedLanguage' => 'en',
+      'translations' => [
+        [
+          'langcode' => 'en',
+          'name' => 'English',
+          'nativeName' => 'English',
+          'url' => "/page/$id",
+          'translationAvailable' => TRUE,
+          'current' => TRUE,
+        ],
+        [
+          'langcode' => 'fr',
+          'name' => 'French',
+          'nativeName' => 'Français',
+          'url' => "/fr/page/$id",
+          'translationAvailable' => TRUE,
+          'current' => FALSE,
+        ],
+        [
+          'langcode' => 'de',
+          'name' => 'German',
+          'nativeName' => 'Deutsch',
+          'url' => "/de/page/$id",
+          'translationAvailable' => FALSE,
+          'current' => FALSE,
+        ],
+      ],
     ], $drupalSettings[CodeComponentDataProvider::CANVAS_DATA_KEY][CodeComponentDataProvider::V0]['mainEntity']);
+
+    // Visiting the German URL: German is requested and current, but the page has
+    // no German translation so the content renders in English (the fallback).
+    $de = $this->container->get('language_manager')->getLanguage('de');
+    $this->drupalGet($page->toUrl('canonical', ['language' => $de]));
+    $drupalSettings = $this->getDrupalSettings();
+    self::assertSame([
+      'bundle' => 'canvas_page',
+      'entityTypeId' => 'canvas_page',
+      'uuid' => $page->uuid(),
+      'requestedLanguage' => 'de',
+      'renderedLanguage' => 'en',
+      'translations' => [
+        [
+          'langcode' => 'en',
+          'name' => 'English',
+          'nativeName' => 'English',
+          'url' => "/page/$id",
+          'translationAvailable' => TRUE,
+          'current' => FALSE,
+        ],
+        [
+          'langcode' => 'fr',
+          'name' => 'French',
+          'nativeName' => 'Français',
+          'url' => "/fr/page/$id",
+          'translationAvailable' => TRUE,
+          'current' => FALSE,
+        ],
+        [
+          'langcode' => 'de',
+          'name' => 'German',
+          'nativeName' => 'Deutsch',
+          'url' => "/de/page/$id",
+          'translationAvailable' => FALSE,
+          'current' => TRUE,
+        ],
+      ],
+    ], $drupalSettings[CodeComponentDataProvider::CANVAS_DATA_KEY][CodeComponentDataProvider::V0]['mainEntity']);
+  }
+
+  /**
+   * Tests that a translation the user cannot view is reported as untranslated.
+   *
+   * @legacy-covers \Drupal\canvas\CodeComponentDataProvider::getCanvasDataMainEntityV0
+   */
+  public function testGetCanvasDataMainEntityV0TranslationViewAccess(): void {
+    $this->container->get('module_installer')->install(['language']);
+    // Refresh the container so the language schema is known before saving
+    // language.negotiation below.
+    $this->rebuildContainer();
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $this->config('language.negotiation')
+      ->set('url.prefixes', ['en' => '', 'fr' => 'fr'])
+      ->save();
+    $this->rebuildContainer();
+
+    // A published English page with an *unpublished* French translation.
+    $page = Page::create([
+      'title' => 'Test canvas page',
+      'type' => 'page',
+      'components' => [
+        [
+          'uuid' => CanvasTestSetup::UUID_COMPONENT_SDC,
+          'component_id' => 'js.canvas_test_code_components_using_get_page_data',
+        ],
+      ],
+    ]);
+    self::assertCount(0, $page->validate());
+    $page->save();
+    $page->addTranslation('fr', ['title' => 'Page de test'])->save();
+    $page->getTranslation('fr')->setUnpublished()->save();
+    $id = $page->id();
+
+    $expected = static fn (bool $fr_translation_available): array => [
+      [
+        'langcode' => 'en',
+        'name' => 'English',
+        'nativeName' => 'English',
+        'url' => "/page/$id",
+        'translationAvailable' => TRUE,
+        'current' => TRUE,
+      ],
+      [
+        'langcode' => 'fr',
+        'name' => 'French',
+        'nativeName' => 'Français',
+        'url' => "/fr/page/$id",
+        'translationAvailable' => $fr_translation_available,
+        'current' => FALSE,
+      ],
+    ];
+
+    // A user who can only access published content must not see the unpublished
+    // French translation: it is reported as `translationAvailable: false` (a
+    // fallback URL), indistinguishable from an untranslated language.
+    $unprivileged_user = $this->drupalCreateUser(['access content']);
+    $this->assertInstanceOf(AccountInterface::class, $unprivileged_user);
+    $this->drupalLogin($unprivileged_user);
+    $this->drupalGet($page->toUrl());
+    $drupalSettings = $this->getDrupalSettings();
+    self::assertSame(
+      $expected(FALSE),
+      $drupalSettings[CodeComponentDataProvider::CANVAS_DATA_KEY][CodeComponentDataProvider::V0]['mainEntity']['translations'],
+    );
+    // The response carries the cacheability of the access-gated result: it
+    // varies by permission and depends on the page (whose translation's
+    // published state determines the outcome).
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
+    $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Contexts', 'user.permissions');
+    $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', "canvas_page:$id");
+
+    // A user who may edit pages can view the unpublished translation, so it is
+    // reported as `translationAvailable: true`; the gate is per user, not a
+    // blanket hide.
+    $editor_user = $this->drupalCreateUser([Page::EDIT_PERMISSION, 'access content']);
+    $this->assertInstanceOf(AccountInterface::class, $editor_user);
+    $this->drupalLogin($editor_user);
+    $this->drupalGet($page->toUrl());
+    $drupalSettings = $this->getDrupalSettings();
+    self::assertSame(
+      $expected(TRUE),
+      $drupalSettings[CodeComponentDataProvider::CANVAS_DATA_KEY][CodeComponentDataProvider::V0]['mainEntity']['translations'],
+    );
   }
 
   /**
@@ -180,7 +361,15 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
    */
   public function testGetCanvasDataMainEntityV0OnPreviewEntityRoute(): void {
     // Preview route should use 'preview_entity' when present.
-    $this->container->get('module_installer')->install(['node']);
+    $this->container->get('module_installer')->install(['node', 'language']);
+    // Refresh the container so the language schema is known before saving
+    // language.negotiation below.
+    $this->rebuildContainer();
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $this->config('language.negotiation')
+      ->set('url.prefixes', ['en' => '', 'fr' => 'fr'])
+      ->save();
+    $this->rebuildContainer();
     $this->drupalCreateContentType(['type' => 'article', 'name' => 'Article']);
     self::assertTrue($this->container->get('module_handler')->moduleExists('canvas'));
 
@@ -232,7 +421,44 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
       'bundle' => 'article',
       'entityTypeId' => 'node',
       'uuid' => $node->uuid(),
+      'requestedLanguage' => 'en',
+      'renderedLanguage' => 'en',
+      // Every enabled language is listed even though the `article` bundle is
+      // not marked translatable (only the `content_translation` module sets
+      // that flag): a language switcher must always list every language. The
+      // untranslated language reports `translationAvailable: false` with a
+      // fallback URL.
+      'translations' => [
+        [
+          'langcode' => 'en',
+          'name' => 'English',
+          'nativeName' => 'English',
+          'url' => "/node/{$node->id()}",
+          'translationAvailable' => TRUE,
+          'current' => TRUE,
+        ],
+        [
+          'langcode' => 'fr',
+          'name' => 'French',
+          'nativeName' => 'Français',
+          'url' => "/fr/node/{$node->id()}",
+          'translationAvailable' => FALSE,
+          'current' => FALSE,
+        ],
+      ],
     ], $drupalSettings[CodeComponentDataProvider::CANVAS_DATA_KEY][CodeComponentDataProvider::V0]['mainEntity']);
+
+    // A factual translation is reported even though the bundle is not marked
+    // translatable: it keeps rendering at its URL regardless.
+    $node->addTranslation('fr', ['title' => 'Un article'])->save();
+    $this->drupalGet("/canvas/api/v0/layout-content-template/{$template->id()}/{$node->id()}");
+    $this->assertSession()->statusCodeEquals(200);
+    $parsed_response = Json::decode($this->getSession()->getPage()->getContent());
+    $drupalSettings = self::getLayoutPreviewDrupalSettings($parsed_response['html']);
+    self::assertSame(
+      ['en' => TRUE, 'fr' => TRUE],
+      \array_column($drupalSettings[CodeComponentDataProvider::CANVAS_DATA_KEY][CodeComponentDataProvider::V0]['mainEntity']['translations'], 'translationAvailable', 'langcode'),
+    );
   }
 
   /**

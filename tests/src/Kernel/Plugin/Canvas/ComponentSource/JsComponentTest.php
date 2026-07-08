@@ -850,9 +850,14 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         ],
       ],
       'js.canvas_test_code_components_using_get_page_data' => [
+        // This component reads `canvasData.v0.mainEntity`, so its cacheability
+        // also depends on the enabled-language list and URL negotiation config.
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
         'cacheability' => (clone $default_cacheability)
           ->setCacheTags([
             'config:canvas.js_component.canvas_test_code_components_using_get_page_data',
+            'config:configurable_language_list',
+            'config:language.negotiation',
           ]),
         'attachments' => [
           'library' => [
@@ -938,9 +943,16 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       \assert($component instanceof Component);
       $source = $component->getComponentSource();
       \assert($source instanceof JsComponent);
+      $js_component = $source->getJavaScriptComponent();
       $expected_cacheability = (new CacheableMetadata())
         ->addCacheTags($additional_expected_cache_tags)
-        ->addCacheableDependency($source->getJavaScriptComponent());
+        ->addCacheableDependency($js_component);
+      // Components reading `canvasData.v0.mainEntity` also depend on the
+      // enabled-language list and URL negotiation config.
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
+      if (\in_array('canvas/canvasData.v0.mainEntity', $js_component->getAssetLibraryDependencies(), TRUE)) {
+        $expected_cacheability->addCacheTags(['config:configurable_language_list', 'config:language.negotiation']);
+      }
       $this->assertRenderedAstroIsland($component, $preview_requested, $auto_save_exists, $expected_result, $expected_cacheability);
     }
   }

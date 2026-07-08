@@ -6,6 +6,7 @@ namespace Canvas\PHPStan\Architecture;
 
 use Drupal\canvas\Attribute\ComponentSource;
 use Drupal\canvas\AutoSaveEntity;
+use Drupal\canvas\CodeComponentDataProvider;
 use Drupal\canvas\ComponentSource\UrlRewriteInterface;
 use Drupal\canvas\ConfigTranslation\CanvasStaticPropSourceFieldWidget;
 use Drupal\canvas\Entity\AssetLibrary;
@@ -338,6 +339,9 @@ final class Layers {
         // Code component functionality.
         Selector::classname(GlobalImports::class),
         Selector::classname(ImportMapResponseAttachmentsProcessor::class),
+        // Bubbles the cacheability of `canvasData.v0.mainEntity` data.
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
+        Selector::classname(CodeComponentDataProvider::class),
         // Code components can be auto-saved, which requires awareness of them.
         Selector::inNamespace('Drupal\canvas\AutoSave'),
         Selector::classname(AutoSaveEntity::class),
