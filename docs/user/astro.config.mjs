@@ -86,6 +86,13 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Guides',
+          items: [
+            { label: 'Introduction', slug: 'guides' },
+            { label: 'Translations', slug: 'guides/translations' },
+          ],
+        },
+        {
           label: 'APIs',
           items: [
             { label: 'Introduction', slug: 'apis' },

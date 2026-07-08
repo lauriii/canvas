@@ -1,0 +1,105 @@
+---
+title: Translations
+---
+
+Canvas supports symmetric translations: every translation shares the same
+component tree, and only the translatable inputs of each component instance
+differ per language. This guide walks through enabling translations on
+Drupal CMS.
+
+## Enable translation support
+
+1. Enable the core translation modules:
+   - Language module
+   - Content Translation module (to translate Canvas Pages)
+   - Configuration Translation module (to translate global regions and
+     content templates)
+2. Configure the languages available on the site at
+   `/admin/config/regional/language`.
+3. Make the Canvas "Page" entity type translatable at
+   `/admin/config/regional/content-language`:
+   1. In Custom language settings, click "Page".
+   2. Under the Page collapsible, check "Page".
+   3. Under the translatable fields settings, ensure "Components" is checked.
+   4. Save changes.
+
+You will also need a module that provides a UI for translating Canvas
+content, because the UI provided by the core Content Translation module does
+not currently support translating Canvas content. You can use either
+[TMGMT](https://www.drupal.org/project/tmgmt) or the experimental
+[Canvas Translate](https://www.drupal.org/project/canvas_translate) module.
+
+## Translating with TMGMT
+
+1. Download it: `composer require 'drupal/tmgmt:^1.18'`
+2. Enable the Translation Management Core module.
+3. Enable the Content Entity Source module (to translate Canvas Pages).
+4. Enable the Config Entity Source module (to translate global regions and
+   content templates).
+
+This example proceeds with TMGMT's built-in user translation module. Consider
+adopting a different translation provider, since the Drupal user translation
+capabilities are very basic.
+
+1. Enable TMGMT's "Drupal user" (tmgmt_local) module.
+2. Configure the user's translation skills at the bottom of the user edit
+   form (for example, `/user/1/edit`). This is required for TMGMT to allow
+   using Drupal user translation.
+3. Request translations manually at `/admin/tmgmt/sources`.
+4. Configure the provider at `/admin/tmgmt/translators`.
+5. Optionally, set up continuous translation at `/admin/tmgmt/jobs` so that a
+   new translation is requested every time changes are made.
+
+### Translating a page
+
+1. Create a page in the Canvas editor and add a component with translatable
+   content (for example, a Text component).
+2. Publish the page.
+3. Go to `/admin/tmgmt/sources`.
+4. Locate and select the **Page** source.
+5. Choose the source language and target language.
+6. Select the page and request a translation.
+7. Assign the job to a user with matching translation skills and submit it
+   to the translation provider.
+8. Open the translation task at `/translate` and fill in the translated
+   content.
+9. Save the translation and click **Save as completed**.
+10. Review the finished translation at `/admin/tmgmt` and click
+    **Save as completed** to accept it.
+11. Return to the Canvas editor for the page.
+12. Use the language switcher at the top of the editor to verify that the
+    translation exists. A check mark appears next to the translated language.
+13. Translations can also be deleted from the language switcher if needed.
+
+### Translating a content template
+
+1. Create an article.
+2. Navigate to **Content Templates** in the Canvas editor.
+3. Open the content template and add a component (for example, a Text
+   component).
+4. Publish the changes to the content template.
+5. Go to `/admin/tmgmt/sources`.
+6. Locate and select the **Content Template** source.
+7. Choose the source language and target language.
+8. Select the content template and request a translation.
+9. Assign the job to a user with matching translation skills and submit it
+   to the translation provider.
+10. Open the translation task at `/translate` and fill in the translated
+    content.
+11. Save the translation and click **Save as completed**.
+12. Review the finished translation at `/admin/tmgmt` and click
+    **Save as completed** to accept it.
+13. Return to the Canvas editor for the content template.
+14. Use the language switcher at the top of the editor to verify that the
+    translation exists. A check mark appears next to the translated language.
+15. Translations can also be deleted from the language switcher if needed.
+
+## Translating with Canvas Translate (experimental)
+
+Canvas Translate provides a translation UI inside the Canvas editor and does
+not require TMGMT.
+
+1. Download it: `composer require 'drupal/canvas_translate:^1.0@alpha'`
+2. Enable the Canvas Translate module.
+3. Clear caches.
+4. Canvas Translate now appears in the left sidebar in Canvas.
