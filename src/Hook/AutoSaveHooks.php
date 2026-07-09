@@ -48,6 +48,20 @@ class AutoSaveHooks {
   }
 
   /**
+   * Implements hook_entity_translation_delete().
+   */
+  #[Hook('entity_translation_delete')]
+  public function entityTranslationDelete(EntityInterface $translation): void {
+    // Deleting a single translation removes only that translation from the
+    // entity, so unlike hook_entity_delete() the sibling translations' drafts
+    // must survive. Discard just the deleted translation's own snapshot,
+    // keyed by its langcode; otherwise the stale snapshot is reapplied on the
+    // next publish and silently resurrects the deleted translation.
+    // @see \Drupal\canvas\Controller\ApiAutoSaveController::applyAutoSaveTranslationSnapshots()
+    $this->autoSaveManager->delete($translation);
+  }
+
+  /**
    * Implements hook_form_alter().
    */
   #[Hook('form_alter')]

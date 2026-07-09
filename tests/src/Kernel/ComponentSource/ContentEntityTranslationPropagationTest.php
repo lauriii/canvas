@@ -731,4 +731,62 @@ final class ContentEntityTranslationPropagationTest extends TranslationPropagati
     self::assertCount(0, $auto_save_manager->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE));
   }
 
+  /**
+   * Deleting a translation discards its snapshot so publish cannot revive it.
+   *
+   * @see \Drupal\canvas\Hook\AutoSaveHooks::entityTranslationDelete()
+   *
+   * @legacy-covers \Drupal\canvas\Hook\AutoSaveHooks::entityTranslationDelete()
+   */
+  public function testDeletingTranslationDiscardsItsSnapshot(): void {
+    $this->config('system.theme')->set('default', 'stark')->save();
+    $this->setUpCurrentUser([], [Page::EDIT_PERMISSION, AutoSaveManager::PUBLISH_PERMISSION]);
+
+    $page = $this->createPageWithTranslation();
+    $page_id = $page->id();
+    \assert($page_id !== NULL);
+
+    // New required prop → new component version, drafting both EN and ES.
+    $this->addRequiredProp();
+    self::previewTranslation($page_id, 'en');
+
+    $auto_save_manager = $this->container->get(AutoSaveManager::class);
+    \assert($auto_save_manager instanceof AutoSaveManager);
+    $en_key = AutoSaveManager::getAutoSaveKey($page->getUntranslated());
+    $es_key = AutoSaveManager::getAutoSaveKey($page->getTranslation('es'));
+    $expected_keys = [$en_key, $es_key];
+    \sort($expected_keys);
+    $actual_keys = \array_keys($auto_save_manager->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE));
+    \sort($actual_keys);
+    self::assertSame($expected_keys, $actual_keys, 'Both EN and ES auto-saves exist before deleting the translation.');
+
+    // Delete the Spanish translation while its snapshot is still pending.
+    \Drupal::entityTypeManager()->getStorage(Page::ENTITY_TYPE_ID)->resetCache();
+    $page = Page::load($page_id);
+    \assert($page instanceof Page);
+    self::assertTrue($page->hasTranslation('es'));
+    $page->removeTranslation('es');
+    $page->save();
+
+    // hook_entity_translation_delete() discarded only the ES snapshot; the EN
+    // draft survives.
+    $remaining = \array_keys($auto_save_manager->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE));
+    self::assertSame([$en_key], $remaining, 'Only the default translation snapshot remains.');
+
+    // Publishing the EN draft must not rebuild the deleted ES translation.
+    $all_auto_saves = $auto_save_manager->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE);
+    $client_payload = [$en_key => ['data_hash' => $all_auto_saves[$en_key]['data_hash']]];
+    $request = Request::create('/canvas/api/v0/auto-saves/publish', 'POST', content: (string) \json_encode($client_payload));
+    $publish_controller = \Drupal::classResolver(ApiAutoSaveController::class);
+    \assert($publish_controller instanceof ApiAutoSaveController);
+    $response = $publish_controller->post($request);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+
+    \Drupal::entityTypeManager()->getStorage(Page::ENTITY_TYPE_ID)->resetCache();
+    $published = Page::load($page_id);
+    \assert($published instanceof Page);
+    self::assertFalse($published->hasTranslation('es'), 'The deleted Spanish translation is not resurrected on publish.');
+    self::assertCount(0, $auto_save_manager->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE));
+  }
+
 }
