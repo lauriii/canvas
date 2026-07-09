@@ -75,6 +75,26 @@ test.describe('Canvas page language enforcement', () => {
     );
     await expect(untranslatableFieldsHideCheckbox).not.toBeAttached();
 
+    const componentsFieldCheckbox = page.locator(
+      'input[name="settings[canvas_page][canvas_page][fields][components]"]',
+    );
+    await expect(componentsFieldCheckbox).toBeAttached();
+    // The label text appears both on the field checkbox and in its column
+    // group summary, so a bare getByText() violates strict mode.
+    await expect(
+      page.getByText('Component input values').first(),
+    ).toBeVisible();
+
+    const componentsInputsCheckbox = page.locator(
+      'input[name="settings[canvas_page][canvas_page][columns][components][inputs]"]',
+    );
+    await expect(componentsInputsCheckbox).not.toBeAttached();
+
+    const componentsTreeCheckbox = page.locator(
+      'input[name="settings[canvas_page][canvas_page][columns][components][tree]"]',
+    );
+    await expect(componentsTreeCheckbox).not.toBeAttached();
+
     await page.locator('[data-drupal-selector="edit-submit"]').click();
     await page.waitForURL('**/admin/config/regional/content-language', {
       timeout: 10000,
@@ -91,6 +111,10 @@ test.describe('Canvas page language enforcement', () => {
     await expect(langcodeSelect).toHaveValue('site_default');
     await expect(languageAlterableCheckbox).not.toBeAttached();
     await expect(untranslatableFieldsHideCheckbox).not.toBeAttached();
+
+    await expect(componentsFieldCheckbox).toBeAttached();
+    await expect(componentsInputsCheckbox).not.toBeAttached();
+    await expect(componentsTreeCheckbox).not.toBeAttached();
   });
 
   test('No language selector is shown in the Canvas page sidebar form', async ({

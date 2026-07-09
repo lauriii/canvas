@@ -1,0 +1,41 @@
+# Guarantee at the config schema validation level that only symmetrical
+# translations are allowed for the Canvas Page content entity type's
+# `components` base field: the input values of component instances may be
+# translated, the component tree itself may not.
+# @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3571130
+
+# Third party settings config schema types are resolved using the resolved
+# type of the root config object (`%type`). Defining this specific type (in
+# addition to core's `core.base_field_override.*.*.*`) makes the lookup for
+# the `content_translation` third party settings resolve to the specific type
+# below instead of the generic forward-ported one.
+# @see core.data_types.schema.yml `config_entity.mapping.third_party_settings`
+# @see config/schema/core_fix_forward_port.schema.yml
+core.base_field_override.canvas_page.canvas_page.components:
+  type: core.base_field_override.*.*.*
+
+# Intentionally NOT `FullyValidatable`: when translation is disabled for the
+# `canvas_page` bundle, content_translation saves this base field override
+# without any `translation_sync` keys. The keys must remain optional; only
+# when they are present must they match the symmetrical combination.
+core.base_field_override.canvas_page.canvas_page.components.third_party.content_translation:
+  type: core.base_field_override.*.*.*.third_party.content_translation
+  mapping:
+    translation_sync:
+      type: mapping
+      label: 'Field properties for which to synchronize translations'
+      mapping:
+        inputs:
+          type: string
+          label: 'Component instance input values (must be translatable)'
+          constraints:
+            Choice:
+              choices:
+                - 'inputs'
+        tree:
+          type: string
+          label: 'Component tree (must not be translatable)'
+          constraints:
+            Choice:
+              choices:
+                - '0'

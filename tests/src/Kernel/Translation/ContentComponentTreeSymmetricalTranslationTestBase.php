@@ -112,27 +112,29 @@ abstract class ContentComponentTreeSymmetricalTranslationTestBase extends Canvas
       $field_config->setTranslatable(TRUE);
       $field_config->setThirdPartySetting('content_translation', 'translation_sync', [
         'inputs' => 'inputs',
-        'tree' => 0,
+        'tree' => '0',
       ]);
       self::assertEntityIsValid($field_config);
       $field_config->save();
     }
     else {
       // canvas_page uses the 'components' base field (already translatable).
-      // Create a BaseFieldOverride to store the translation_sync setting.
+      // Load the BaseFieldOverride storing the translation_sync setting (if
+      // it exists already), or create it.
       // BaseFieldOverride implements ThirdPartySettingsInterface, which is what
       // FieldTranslationSynchronizer::getFieldSynchronizationSettings() checks.
       $this->enableContentTranslation($entity_type_id, $bundle);
-      $override = BaseFieldOverride::createFromBaseFieldDefinition(
-        // @todo Remove this ignore once core's getBaseFieldDefinitions() return type is fixed.
-        // @phpstan-ignore-next-line argument.type
-        $this->container->get('entity_field.manager')
-          ->getBaseFieldDefinitions($entity_type_id)[$field_name],
-        $bundle,
-      );
+      $override = BaseFieldOverride::loadByName($entity_type_id, $bundle, $field_name)
+        ?? BaseFieldOverride::createFromBaseFieldDefinition(
+          // @todo Remove this ignore once core's getBaseFieldDefinitions() return type is fixed.
+          // @phpstan-ignore-next-line argument.type
+          $this->container->get('entity_field.manager')
+            ->getBaseFieldDefinitions($entity_type_id)[$field_name],
+          $bundle,
+        );
       $override->setThirdPartySetting('content_translation', 'translation_sync', [
         'inputs' => 'inputs',
-        'tree' => 0,
+        'tree' => '0',
       ]);
       self::assertEntityIsValid($override);
       $override->save();

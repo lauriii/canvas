@@ -126,6 +126,10 @@ class ModuleHooks {
         static::class,
         'afterBuildCanvasPageLanguageSettings',
       ];
+      $form['#validate'][] = [
+        static::class,
+        'validateCanvasPageLanguageSettings',
+      ];
     }
   }
 
@@ -174,7 +178,56 @@ class ModuleHooks {
       $element[$bundle]['settings']['content_translation']['untranslatable_fields_hide']['#value'] = 0;
       $element[$bundle]['settings']['content_translation']['untranslatable_fields_hide']['#access'] = FALSE;
     }
+
+    // Change the label of the Components field to make it clear that the input
+    // values of the component instances are what is translatable, not the set
+    // of component instances nor their relative position themselves. Remove
+    // the Components field from the columns section to simplify the form.
+    if (isset($element[$bundle]['fields']['components'])) {
+      $element[$bundle]['fields']['components']['#label'] = t('Component input values');
+    }
+    if (isset($element[$bundle]['columns']['components'])) {
+      unset($element[$bundle]['columns']['components']);
+    }
+
     return $element;
+  }
+
+  /**
+   * Forces Canvas Pages to use symmetrical translations for `components` field.
+   *
+   * Ensures that the Canvas Page entity type's `components` base field always
+   * sets `third_party_settings.content_translation.translation_sync` to be
+   * symmetrically translated.
+   *
+   * @see \Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer::ensureSymmetricalCanvasPageComponents()
+   */
+  public static function validateCanvasPageLanguageSettings(array &$form, FormStateInterface $form_state): void {
+    $bundle = Page::ENTITY_TYPE_ID;
+    $components_columns = $form_state->getValue([
+      'settings',
+      $bundle,
+      $bundle,
+      'columns',
+      'components',
+    ]);
+    // Normally absent: afterBuildCanvasPageLanguageSettings() removes the
+    // `components` column checkboxes from the form, so this handler forces the
+    // symmetrical combination rather than reading user input.
+    if (!\is_array($components_columns)) {
+      $components_columns = [];
+    }
+    // Note: `'0'`, not `0`, to comply with the config schema: core's
+    // `translation_sync` third party setting is a sequence of strings.
+    $components_columns['inputs'] = 'inputs';
+    $components_columns['tree'] = '0';
+    $form_state->setValue([
+      'settings',
+      $bundle,
+      $bundle,
+      'columns',
+      'components',
+    ], $components_columns);
   }
 
   /**

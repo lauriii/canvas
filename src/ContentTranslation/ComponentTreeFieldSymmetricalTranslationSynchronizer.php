@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\ContentTranslation;
 
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\DataType\ComponentInputs;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\content_translation\FieldTranslationSynchronizerInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 
 /**
@@ -191,6 +194,38 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
    */
   public static function isAsymmetricallyTranslated(FieldTranslationSynchronizerInterface $synchronizer, FieldDefinitionInterface $field_definition): bool {
     return !self::isTreeSynced($synchronizer, $field_definition) && !self::isInputsSynced($synchronizer, $field_definition);
+  }
+
+  /**
+   * Forces symmetrical translation of the Canvas Page `components` field.
+   *
+   * Loads the base field override storing the `translation_sync` third party
+   * setting, or creates it, and sets the only supported combination: input
+   * values of component instances are translatable, the component tree is
+   * shared across languages.
+   *
+   * This cannot be shipped as `config/optional`: recipes import a module's
+   * optional config unconditionally (no dependency gating), so a recipe
+   * importing canvas config without content_translation installed would fail
+   * validation on the `content_translation` module dependency.
+   *
+   * Must only be called when the content_translation module is installed.
+   *
+   * @see \Drupal\canvas\Hook\ContentTranslationHooks::modulesInstalled()
+   * @see canvas_post_update_0022_enforce_symmetrical_canvas_page_components_translation()
+   * @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3571130
+   */
+  public static function ensureSymmetricalCanvasPageComponents(): void {
+    $entity_field_manager = \Drupal::service('entity_field.manager');
+    \assert($entity_field_manager instanceof EntityFieldManagerInterface);
+    $base_field_definitions = $entity_field_manager->getBaseFieldDefinitions(Page::ENTITY_TYPE_ID);
+    \assert($base_field_definitions['components'] instanceof BaseFieldDefinition);
+    $override = $base_field_definitions['components']->getConfig(Page::ENTITY_TYPE_ID);
+    $override->setThirdPartySetting('content_translation', 'translation_sync', [
+      'inputs' => 'inputs',
+      'tree' => '0',
+    ]);
+    $override->save();
   }
 
 }

@@ -8,6 +8,7 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\search_api\processor;
 
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\ComponentTreeInputExtractor;
+use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
@@ -16,7 +17,6 @@ use Drupal\canvas\Plugin\search_api\processor\ComponentTreeInputs;
 use Drupal\Component\Uuid\Php;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
-use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\Entity\BaseFieldOverride;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
@@ -666,19 +666,10 @@ final class ComponentTreeInputsTest extends CanvasKernelTestBase {
    */
   private function setUpSymmetricalTranslation(): void {
     $this->enableContentTranslation(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID);
-    $base_field_definition = $this->container->get('entity_field.manager')
-      ->getBaseFieldDefinitions(Page::ENTITY_TYPE_ID)['components'];
-    \assert($base_field_definition instanceof BaseFieldDefinition);
-    $override = BaseFieldOverride::createFromBaseFieldDefinition(
-      $base_field_definition,
-      Page::ENTITY_TYPE_ID,
-    );
-    $override->setThirdPartySetting('content_translation', 'translation_sync', [
-      'inputs' => 'inputs',
-      'tree' => 0,
-    ]);
+    ComponentTreeFieldSymmetricalTranslationSynchronizer::ensureSymmetricalCanvasPageComponents();
+    $override = BaseFieldOverride::loadByName(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components');
+    self::assertNotNull($override);
     self::assertEntityIsValid($override);
-    $override->save();
   }
 
   private function attachFieldToIndex(IndexInterface $index): void {

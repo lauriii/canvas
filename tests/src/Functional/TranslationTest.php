@@ -15,6 +15,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Field\Entity\BaseFieldOverride;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Url;
@@ -416,6 +417,34 @@ class TranslationTest extends FunctionalTestBase {
     self::assertEquals([
       'untranslatable_fields_hide' => 0,
     ], $content_translation_manager->getBundleTranslationSettings(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID));
+
+    // The `components` base field override must have been forced to the
+    // symmetrical `translation_sync` combination, even though the form does
+    // not present the corresponding checkboxes.
+    // @see \Drupal\canvas\Hook\ModuleHooks::validateCanvasPageLanguageSettings()
+    $override = BaseFieldOverride::loadByName(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components');
+    self::assertNotNull($override);
+    self::assertSame([
+      'inputs' => 'inputs',
+      'tree' => '0',
+    ], $override->getThirdPartySetting('content_translation', 'translation_sync'));
+    self::assertSame([], self::violationsToArray($override->getTypedData()->validate()));
+
+    // Disable translation for the canvas_page bundle again:
+    // content_translation then saves the base field override without any
+    // `translation_sync` keys, which the config schema must allow.
+    // @see config/schema/canvas_symmetrical_translations_only.schema.yml
+    $this->drupalGet('admin/config/regional/content-language');
+    $this->submitForm([
+      'entity_types[canvas_page]' => 1,
+      'settings[canvas_page][canvas_page][translatable]' => 0,
+    ], 'Save configuration');
+    $assert_session->pageTextContains('Settings successfully updated.');
+
+    $override = BaseFieldOverride::loadByName(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components');
+    self::assertNotNull($override);
+    self::assertNull($override->getThirdPartySetting('content_translation', 'translation_sync'));
+    self::assertSame([], self::violationsToArray($override->getTypedData()->validate()));
   }
 
   /**
@@ -526,6 +555,14 @@ class TranslationTest extends FunctionalTestBase {
     $page->save();
 
     $fr_page = $page->addTranslation('fr');
+    // Set the translation source metadata, like the UI would: core's
+    // FieldTranslationSynchronizer — active for this field thanks to the
+    // `translation_sync` setting created on module install — requires
+    // it to synchronize a newly added translation.
+    // @see \Drupal\content_translation\Hook\ContentTranslationHooks::entityPresave()
+    $this->container->get('content_translation.manager')
+      ->getTranslationMetadata($fr_page)
+      ->setSource('en');
     $fr_page->set('title', 'Page de test Canvas');
     $fr_page->set('components', $page->get('components')->getValue());
     $fr_tree = $fr_page->getComponentTree();

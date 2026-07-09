@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeSymmetricalTranslationConstraint;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -45,6 +46,30 @@ final readonly class ContentTranslationHooks {
         $entity_type->addConstraint(ComponentTreeSymmetricalTranslationConstraint::PLUGIN_ID);
       }
     }
+  }
+
+  /**
+   * Implements hook_modules_installed().
+   *
+   * Ensures the Canvas Page `components` base field override exists with the
+   * symmetrical `translation_sync` setting whenever canvas and
+   * content_translation are both installed, in whichever order.
+   *
+   * @see \Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer::ensureSymmetricalCanvasPageComponents()
+   */
+  #[Hook('modules_installed')]
+  public function modulesInstalled(array $modules, bool $is_syncing): void {
+    // During config sync, the override comes from the synced config itself.
+    if ($is_syncing) {
+      return;
+    }
+    if (\array_intersect(['canvas', 'content_translation'], $modules) === []) {
+      return;
+    }
+    if (!$this->moduleHandler->moduleExists('content_translation')) {
+      return;
+    }
+    ComponentTreeFieldSymmetricalTranslationSynchronizer::ensureSymmetricalCanvasPageComponents();
   }
 
 }

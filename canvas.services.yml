@@ -124,6 +124,8 @@ services:
       - { name: 'event_subscriber' }
   Drupal\canvas\EventSubscriber\ComponentTreeConfigEntityTransformer: ~
   Drupal\canvas\EventSubscriber\DefaultContentSubscriber: ~
+  # @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3571130
+  Drupal\canvas\EventSubscriber\SymmetricalTranslationsConfigImportValidator: ~
   canvas.image_style.route_alter:
     class: Drupal\canvas\EventSubscriber\ImageStyleRoutesEventSubscriber
     tags:

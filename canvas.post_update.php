@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasConfigUpdater;
+use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -446,4 +447,27 @@ function canvas_post_update_0021_store_prop_derived_schema_metadata(array &$sand
   $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
   \Drupal::classResolver(ConfigEntityUpdater::class)
     ->update($sandbox, Component::ENTITY_TYPE_ID, static fn(Component $component): bool => CanvasConfigUpdater::needsPropDerivedSchemaMetadata($component));
+}
+
+/**
+ * Enforce symmetrical translation of the Canvas Page `components` base field.
+ */
+function canvas_post_update_0022_enforce_symmetrical_canvas_page_components_translation(): void {
+  // Case 1. Sites without content_translation need no update: the override
+  // gets created when content_translation gets installed.
+  // @see \Drupal\canvas\Hook\ContentTranslationHooks::modulesInstalled()
+  // @see \Drupal\Tests\canvas\Functional\Update\SymmetricalCanvasPageComponentsTranslationUpdateTest::testWithoutContentTranslation
+  if (!\Drupal::moduleHandler()->moduleExists('content_translation')) {
+    return;
+  }
+  // Case 2. Sites that used canvas_dev_translation and had invalid config are
+  // forced into the only valid config.
+  // @see \Drupal\Tests\canvas\Functional\Update\SymmetricalCanvasPageComponentsTranslationUpdateTest::testExistingOverrideWithUnsupportedSettings
+  // Case 3. Sites that used canvas_dev_translation and had the right config:
+  // an effective no-op.
+  // @see \Drupal\Tests\canvas\Functional\Update\SymmetricalCanvasPageComponentsTranslationUpdateTest::testExistingOverrideWithValidSettings
+  // Case 4. Sites with content_translation but no base field override yet get
+  // it created.
+  // @see \Drupal\Tests\canvas\Functional\Update\SymmetricalCanvasPageComponentsTranslationUpdateTest::testMissingOverride
+  ComponentTreeFieldSymmetricalTranslationSynchronizer::ensureSymmetricalCanvasPageComponents();
 }
