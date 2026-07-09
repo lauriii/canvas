@@ -75,6 +75,43 @@ describe('regionToAuthoredSpec', () => {
 
     expect(spec.elements['9c1d5586-fdec-496a-84d1-071bdf995556']).toBeDefined();
   });
+
+  it('preserves authored content entity reference inputs instead of resolved values', () => {
+    const region: Region = {
+      id: 'olivero.header',
+      theme: 'olivero',
+      region: 'header',
+      status: true,
+      component_tree: [
+        {
+          uuid: '11111111-1111-4111-8111-111111111111',
+          parent_uuid: null,
+          slot: null,
+          component_id: 'js.article-card',
+          component_version: 'v1',
+          inputs: {
+            article: { target_id: '42' },
+          },
+          inputs_resolved: {
+            article: {
+              __type: 'article',
+              title: 'Resolved article title',
+            },
+          },
+          label: null,
+        },
+      ],
+    };
+
+    expect(regionToAuthoredSpec(region).elements).toEqual({
+      '11111111-1111-4111-8111-111111111111': {
+        type: 'js.article-card',
+        props: {
+          article: { target_id: '42' },
+        },
+      },
+    });
+  });
 });
 
 describe('authoredRegionToPayload', () => {

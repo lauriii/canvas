@@ -19,7 +19,7 @@ export async function fetchPreviewEntitySuggestions(
   bundle: string,
   signal?: AbortSignal,
 ): Promise<PreviewEntitySuggestion[]> {
-  const url = `/canvas/api/v0/ui/content_template/suggestions/preview/${encodeURIComponent(entityTypeId)}/${encodeURIComponent(bundle)}?_format=json`;
+  const url = `/canvas/api/v0/ui/content_template/suggestions/preview/${encodeURIComponent(entityTypeId)}/${encodeURIComponent(bundle)}`;
   const response = await fetch(url, {
     credentials: 'include',
     headers: { Accept: 'application/json' },

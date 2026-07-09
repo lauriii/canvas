@@ -34,6 +34,7 @@ Canvas Code Components:
 
 | Rule                                           | Description                                                                                             |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `component-content-entity-reference-props`     | Validates content entity reference props.                                                               |
 | `component-dir-name`                           | Validates that `machineName` matches the directory name (index-style) or filename prefix (named-style). |
 | `component-exports`                            | Validates that component has a default export.                                                          |
 | `component-imports`                            | Validates that component imports only from supported import sources and patterns.                       |

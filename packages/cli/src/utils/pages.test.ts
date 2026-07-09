@@ -452,4 +452,54 @@ describe('pageToAuthoredSpec', () => {
       },
     });
   });
+
+  it('stores content entity reference inputs instead of resolved preview payloads', () => {
+    const page: Page = {
+      id: 1,
+      uuid: '27a539f5-2dd0-471a-a364-8fee7a024a73',
+      title: 'Article page',
+      description: '',
+      status: true,
+      path: '/article-page',
+      internalPath: '/page/1',
+      autoSaveLabel: null,
+      autoSavePath: null,
+      links: {},
+      components: [
+        {
+          uuid: 'article-card-uuid',
+          component_id: 'js.article-card',
+          component_version: 'v1',
+          parent_uuid: null,
+          slot: null,
+          inputs: { article: { target_id: 42 } },
+          inputs_resolved: {
+            article: {
+              __type: 'article',
+              title: 'Example article',
+              path: '/example-article',
+            },
+          },
+          label: null,
+        },
+      ],
+    };
+
+    expect(pageToAuthoredSpec(page)).toEqual({
+      uuid: '27a539f5-2dd0-471a-a364-8fee7a024a73',
+      title: 'Article page',
+      path: '/article-page',
+      description: '',
+      elements: {
+        'article-card-uuid': {
+          type: 'js.article-card',
+          props: {
+            article: {
+              target_id: 42,
+            },
+          },
+        },
+      },
+    });
+  });
 });

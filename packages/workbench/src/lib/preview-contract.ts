@@ -25,6 +25,10 @@ export interface PreviewManifestComponent {
   previewable: boolean;
   ineligibilityReason: PreviewIneligibilityReason | null;
   exampleProps: Record<string, unknown>;
+  props: Record<string, unknown>;
+  dataDependencies: {
+    entityFields?: Record<string, string[]>;
+  };
   mocks: PreviewManifestComponentMock[];
 }
 
@@ -154,6 +158,8 @@ export function toPreviewManifestComponent(component: {
       previewable: false,
       ineligibilityReason: 'missing_js_entry',
       exampleProps: {},
+      props: {},
+      dataDependencies: {},
       mocks: [],
     };
   }
@@ -177,6 +183,8 @@ export function toPreviewManifestComponent(component: {
       previewable: false,
       ineligibilityReason: 'unsupported_js_extension',
       exampleProps: {},
+      props: {},
+      dataDependencies: {},
       mocks: [],
     };
   }
@@ -199,6 +207,8 @@ export function toPreviewManifestComponent(component: {
     previewable: true,
     ineligibilityReason: null,
     exampleProps: {},
+    props: {},
+    dataDependencies: {},
     mocks: [],
   };
 }

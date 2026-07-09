@@ -3,7 +3,7 @@ import * as p from '@clack/prompts';
 import { discoverCanvasProject } from '@drupal-canvas/discovery';
 
 import { getConfig } from '../config.js';
-import { createApiService, ensureAuthConfig } from '../services/api.js';
+import { createApiService, isUserAuthenticated } from '../services/api.js';
 import { updateConfigFromOptions } from '../utils/command-helpers';
 import { printCommandIntro } from '../utils/command-intro.js';
 import {
@@ -14,10 +14,7 @@ import {
 import { validateContentTemplates } from '../utils/validate-content-template.js';
 import { validatePages } from '../utils/validate-page.js';
 import { validateRegions } from '../utils/validate-region.js';
-import {
-  getComponentDirectoriesToValidate,
-  validateComponent,
-} from '../utils/validate.js';
+import { validateComponents } from '../utils/validate.js';
 
 import type { Command } from 'commander';
 import type { ApiService } from '../services/api.js';
@@ -26,6 +23,27 @@ import type { Result } from '../types/Result.js';
 interface ValidateOptions {
   dir?: string;
   fix?: boolean;
+}
+
+async function createOptionalValidationApiService(): Promise<
+  ApiService | undefined
+> {
+  const config = getConfig();
+  if (!config.siteUrl) {
+    return undefined;
+  }
+  const hasClientCredentials =
+    Boolean(config.clientId) &&
+    Boolean(config.clientSecret) &&
+    Boolean(config.scope);
+  if (!isUserAuthenticated(config.siteUrl) && !hasClientCredentials) {
+    return undefined;
+  }
+  try {
+    return await createApiService();
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -51,7 +69,6 @@ export function validateCommand(program: Command): void {
         // Update config with CLI options
         updateConfigFromOptions(options);
 
-        let componentDirectoriesToValidate: string[] = [];
         const config = getConfig();
         const discoveryResult = await discoverCanvasProject({
           componentRoot: config.componentDir,
@@ -60,17 +77,20 @@ export function validateCommand(program: Command): void {
           regionsRoot: config.regionsDir,
           projectRoot: process.cwd(),
         });
-        componentDirectoriesToValidate = getComponentDirectoriesToValidate(
-          discoveryResult.components,
-        );
-
         const results: Result[] = [];
+        const apiService = await createOptionalValidationApiService();
 
         const s = p.spinner();
         s.start('Validating components');
 
-        for (const componentDir of componentDirectoriesToValidate) {
-          const result = await validateComponent(componentDir, options.fix);
+        const { results: componentResults } = await validateComponents(
+          discoveryResult,
+          {
+            fix: options.fix,
+            apiService,
+          },
+        );
+        for (const result of componentResults) {
           results.push({ ...result, itemType: 'Component' });
         }
 
@@ -91,14 +111,6 @@ export function validateCommand(program: Command): void {
         if (discoveryResult && discoveryResult.contentTemplates.length > 0) {
           const ctSpinner = p.spinner();
           ctSpinner.start('Validating content templates');
-
-          let apiService: ApiService | undefined;
-          try {
-            await ensureAuthConfig();
-            apiService = await createApiService();
-          } catch {
-            // Auth not configured — draft validation will be skipped.
-          }
 
           const { results: ctResults } = await validateContentTemplates(
             discoveryResult,

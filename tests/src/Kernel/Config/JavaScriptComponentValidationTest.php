@@ -1602,6 +1602,15 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       [],
     ];
 
+    yield 'entityFields valid expression of disallowed type' => [
+      ['entityFields' => ['my_reference' => ['ℹ︎string␟value']]],
+      [
+        '' => 'Missing "x-allowed-entity-type-id" for content entity reference prop "my_reference".',
+        'dataDependencies.entityFields.my_reference.0' => 'The expression is valid, but not one of the allowed types: <em class="placeholder">&quot;FieldPropExpression&quot;, &quot;FieldObjectPropsExpression&quot;, &quot;ReferenceFieldPropExpression&quot;</em>.',
+      ],
+      [],
+    ];
+
     yield 'entityFields alongside drupalSettings' => [
       ['drupalSettings' => ['v0.pageTitle'], 'entityFields' => ['my_reference' => ['ℹ︎␜entity:user␝name␞␟value']]],
       [],

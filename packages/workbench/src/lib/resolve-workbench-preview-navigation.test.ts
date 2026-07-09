@@ -28,6 +28,8 @@ function manifestComponent(
     previewable: true,
     ineligibilityReason: null,
     exampleProps: {},
+    props: {},
+    dataDependencies: {},
     mocks,
   };
 }

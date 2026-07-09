@@ -610,13 +610,18 @@ Pull context for AI agents working on content templates and write it to
 - `prop-sources.json` — for each entity bundle and component, the available
   field bindings agents can use as prop sources.
 - `view-modes.json` — view modes available per entity type and bundle.
+- `content-entity-reference-expressions.json` — available entity field
+  expressions for content-entity-reference props, grouped by entity type and
+  bundle. Use the `cer-preview` context provider to resolve component CER props
+  into full JavaScript prop value objects.
 - `.gitignore` — ignores the generated files; the directory should not be
   committed.
 
 **Usage:**
 
 ```bash
-npx canvas agents-context [options]
+npx canvas agents-context <provider> [providerArg] [options]
+npx canvas agents-context --all [options]
 ```
 
 **Options:**
@@ -625,12 +630,35 @@ npx canvas agents-context [options]
 - `--client-id <id>`: Client ID
 - `--client-secret <secret>`: Client Secret
 - `--scope <scope>`: Scope
+- `--all`: Execute all default context providers
 
 **Example:**
+
+List available providers:
 
 ```bash
 npx canvas agents-context
 ```
+
+Execute all default providers:
+
+```bash
+npx canvas agents-context --all
+```
+
+Execute only one provider:
+
+```bash
+npx canvas agents-context cer-preview article-card
+```
+
+Available providers:
+
+- `content-templates` — writes `prop-sources.json` and `view-modes.json`.
+- `content-entity-reference-expressions` (`cer-expressions`)
+- `content-entity-reference-preview` (`cer-preview`) — requires a component
+  ID/name argument. It uses the first preview entity suggestion for each CER
+  prop and prints the resolved prop values returned by the preview endpoint.
 
 ---
 

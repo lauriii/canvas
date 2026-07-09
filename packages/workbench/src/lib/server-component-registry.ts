@@ -15,7 +15,7 @@
  *   - Concurrent callers share the in-flight promise.
  */
 
-const ENDPOINT = '/canvas/api/v0/config/component?_format=json';
+const ENDPOINT = '/canvas/api/v0/config/component';
 const MIN_REFETCH_INTERVAL_MS = 2000;
 
 export interface ServerComponentShape {

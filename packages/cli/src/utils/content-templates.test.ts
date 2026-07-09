@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { serverPropToAuthored } from './content-templates';
+import {
+  contentTemplateToAuthored,
+  serverPropToAuthored,
+} from './content-templates';
+
+import type { ContentTemplate } from '../types/ContentTemplate';
 
 describe('serverPropToAuthored', () => {
   it('passes simple entity-field prop sources through verbatim', () => {
@@ -114,5 +119,46 @@ describe('serverPropToAuthored roundtrip', () => {
       },
     };
     expect(serverPropToAuthored(original)).toEqual(original);
+  });
+});
+
+describe('contentTemplateToAuthored', () => {
+  it('preserves authored content entity reference inputs instead of resolved values', () => {
+    const template: ContentTemplate = {
+      id: 'node.article.full',
+      label: 'Article full',
+      status: true,
+      entityType: 'node',
+      bundle: 'article',
+      viewMode: 'full',
+      component_tree: [
+        {
+          uuid: '11111111-1111-4111-8111-111111111111',
+          parent_uuid: null,
+          slot: null,
+          component_id: 'js.article-card',
+          component_version: 'v1',
+          inputs: {
+            article: { target_id: '42' },
+          },
+          inputs_resolved: {
+            article: {
+              __type: 'article',
+              title: 'Resolved article title',
+            },
+          },
+          label: null,
+        },
+      ],
+    };
+
+    expect(contentTemplateToAuthored(template).elements).toEqual({
+      '11111111-1111-4111-8111-111111111111': {
+        type: 'js.article-card',
+        props: {
+          article: { target_id: '42' },
+        },
+      },
+    });
   });
 });

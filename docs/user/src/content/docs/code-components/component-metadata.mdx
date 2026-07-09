@@ -2,6 +2,8 @@
 title: Code Components - Component metadata
 ---
 
+import { Aside } from '@astrojs/starlight/components';
+
 When working with Code Components in a local codebase, `component.yml` files
 define component metadata. This follows the same metadata model as SDC
 `component.yml` files.
@@ -156,6 +158,64 @@ keys match the enum values, and the values are the display labels shown in the
 UI.
 
 Enum values cannot contain dots.
+
+### Content entity reference
+
+Reference to a selected Drupal content entity as a structured object. Use this
+when the component needs the editor to choose an entity and the component should
+receive selected entity fields together on one prop.
+
+<Aside type="tip">
+  Because content entity reference metadata depends on the site's entity model
+  and field expressions, it is usually best added by a coding agent. Install the
+  [Drupal Canvas skills](https://github.com/drupal-canvas/skills) so it knows
+  how to select expressions, update `dataDependencies.entityFields`, and preview
+  the resolved prop shape.
+
+  A simple prompt can be:
+
+  ```text
+  Add a content entity reference prop named featuredArticle for article nodes. Include the title and path fields.
+  ```
+</Aside>
+
+```yaml
+props:
+  properties:
+    featuredArticle:
+      title: Featured article
+      type: object
+      $ref: json-schema-definitions://canvas.module/content-entity-reference
+      x-allowed-entity-type-id: node
+      x-allowed-bundle: article
+dataDependencies:
+  entityFields:
+    featuredArticle:
+      - ℹ︎␜entity:node:article␝title␞␟value
+      - ℹ︎␜entity:node:article␝path␞␟alias
+```
+
+Content entity reference props must be optional: do not list them in `required`.
+Do not add `examples`; preview values are resolved from
+`dataDependencies.entityFields`.
+
+Every content entity reference prop must include:
+
+- `x-allowed-entity-type-id`: the Drupal entity type, such as `node`
+- `x-allowed-bundle`: the Drupal bundle, such as `article`
+
+Add `dataDependencies.entityFields.<propName>` with one or more expressions from
+`.agents/drupal-canvas/content-entity-reference-expressions.json`. If that file
+is missing, stale, or does not include the needed entity fields, run
+`npx canvas agents-context cer-expressions` to refresh the content entity
+reference expressions from the configured Canvas site.
+
+All expressions for one content entity reference prop must target the same
+entity type and bundle. Do not infer the final component prop shape from
+expression names alone. After the component metadata exists locally, run
+`npx canvas agents-context cer-preview <component>` to inspect the resolved prop
+shape that component code should consume. Reference expressions can create
+nested objects and include metadata keys such as `__type`.
 
 ## Slot metadata
 

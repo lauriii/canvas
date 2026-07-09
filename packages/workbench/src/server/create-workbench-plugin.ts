@@ -637,15 +637,17 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
           await refresh();
 
           const manifest = buildPreviewManifest(cachedResult!);
+          const localMetadata = await loadComponentsMetadata(cachedResult!);
           const discoveredComponentNames = manifest.components.map(
             (component) => component.name,
           );
           const componentMocksAndExamples = await Promise.all(
-            manifest.components.map(async (component) => {
+            manifest.components.map(async (component, index) => {
               const componentPreviewMetadata =
                 await extractComponentPreviewMetadataFromComponentYaml(
                   component.metadataPath,
                 );
+              const metadata = localMetadata[index];
               const exampleProps = componentPreviewMetadata.exampleProps;
               const { mocks, warnings } = await loadComponentMocks(
                 component,
@@ -659,6 +661,8 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
                   ...component,
                   label: componentPreviewMetadata.label ?? component.label,
                   exampleProps,
+                  props: metadata?.props.properties ?? {},
+                  dataDependencies: metadata?.dataDependencies ?? {},
                   mocks,
                 },
                 warnings,

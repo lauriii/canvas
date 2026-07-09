@@ -148,7 +148,7 @@ export function createComponentsPullTask(
   let localOnlyComponents: DiscoveredComponent[] = [];
 
   function buildMetadata(component: Component): Metadata {
-    return {
+    const metadata: Metadata = {
       name: component.name,
       machineName: component.machineName,
       status: component.status,
@@ -158,6 +158,14 @@ export function createComponentsPullTask(
       },
       slots: component.slots || {},
     };
+
+    if (component.dataDependencies?.entityFields) {
+      metadata.dataDependencies = {
+        entityFields: component.dataDependencies.entityFields,
+      };
+    }
+
+    return metadata;
   }
 
   function writeComponentFiles(

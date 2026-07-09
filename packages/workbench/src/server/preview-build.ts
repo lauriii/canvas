@@ -683,6 +683,8 @@ export async function buildPreviewArtifact(
         previewable: Boolean(selectedComponent.jsEntryPath),
         ineligibilityReason: null,
         exampleProps: {},
+        props: {},
+        dataDependencies: {},
         mocks: [],
       };
 

@@ -696,6 +696,23 @@ canvas.api.ui.content_entity_reference.fields:
   options:
     _format: 'json'
 
+canvas.api.ui.content_entity_reference.preview:
+  path: '/canvas/api/v0/ui/content-entity-reference/preview/{entity_type}/{entity}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers::preview'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+    _entity_access: 'entity.view'
+    _format: 'json'
+  methods: [POST]
+  options:
+    canvas_external_api: true
+    parameters:
+      entity:
+        type: entity:{entity_type}
+    _format: 'json'
+
 canvas.api.ui.content_template.suggestions.preview_content_entities:
   path: '/canvas/api/v0/ui/content_template/suggestions/preview/{entity_type_id}/{bundle}'
   defaults:

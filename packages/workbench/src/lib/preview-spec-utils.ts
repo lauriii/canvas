@@ -5,7 +5,7 @@ import type {
 } from './authored-spec-utils';
 import type { ServerComponentShape } from './server-component-registry';
 
-const SYNTHETIC_ROOT_TYPE = 'canvas:component-tree';
+export const SYNTHETIC_ROOT_TYPE = 'canvas:component-tree';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -23,7 +23,12 @@ interface ComponentTreeNode {
   slot?: string;
 }
 
-export interface DraftPreviewModel {
+export interface LocalComponentShape {
+  propKeys: string[];
+  slotKeys: string[];
+}
+
+export interface ResolvedPreviewModel {
   [componentUuid: string]: {
     resolved?: Record<string, unknown>;
     source?: Record<string, unknown>;
@@ -31,11 +36,7 @@ export interface DraftPreviewModel {
   };
 }
 
-export interface DraftPreviewResponse {
-  model: DraftPreviewModel | Record<string, never>;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
@@ -87,14 +88,14 @@ export function findUnknownElementUuids(
  * Builds a server-format component_tree from the workbench's spec, with
  * unknown UUIDs removed. Slot children of removed items are promoted to
  * the unknown's parent (or to root if the unknown was a root). Repeats
- * until no unknown ancestors remain in the chain — handles nested
+ * until no unknown ancestors remain in the chain - handles nested
  * unknown-inside-unknown cases.
  *
  * Children kept in this returned tree retain their original UUIDs, so the
  * resolved server model can be looked up by UUID and applied back to the
  * original spec regardless of where in the tree the children ended up.
  */
-function buildServerTreeWithoutUnknowns(
+export function buildServerTreeWithoutUnknowns(
   spec: Spec,
   unknownUuids: Set<string>,
   componentVersions: Map<string, string>,
@@ -110,7 +111,7 @@ function buildServerTreeWithoutUnknowns(
     serverToSpec.set(serverKey, key);
   }
 
-  // Build child → { parent uuid, slot } from authored slot links.
+  // Build child -> { parent uuid, slot } from authored slot links.
   const childToParent = new Map<string, { parent: string; slot: string }>();
   for (const [uuid, element] of Object.entries(elements)) {
     if (!element.slots) continue;
@@ -154,108 +155,18 @@ function buildServerTreeWithoutUnknowns(
   return { tree, serverToSpec };
 }
 
-// Drupal's `/session/token` returns a base64url-style string. Reject anything
-// that doesn't fit so we never put HTML/error pages into a header value.
-const CSRF_TOKEN_PATTERN = /^[A-Za-z0-9_-]+$/;
-
-async function fetchCsrfToken(signal?: AbortSignal): Promise<string | null> {
-  try {
-    const response = await fetch('/session/token', {
-      credentials: 'include',
-      ...(signal ? { signal } : {}),
-    });
-    if (!response.ok) return null;
-    const token = (await response.text()).trim();
-    return CSRF_TOKEN_PATTERN.test(token) ? token : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * POSTs a draft content template + preview entity to the Drupal layout
- * draft endpoint and returns the resolved input model.
- *
- * Caller-supplied `unknownUuids` get stripped from the server tree before
- * sending (with their slot children promoted) so the server resolves the
- * remaining tree normally without rejecting the request.
- *
- * Goes through the workbench dev server's `/canvas/api/` proxy (same-origin)
- * so authentication cookies and CORS work without extra setup. Fetches a
- * fresh CSRF token from `/session/token` (also proxied) for the mutating
- * request.
- */
-export async function fetchDraftContentTemplatePreview(
-  spec: Spec,
-  metadata: { entityTypeId: string; bundle: string; viewMode: string },
-  previewEntityId: string,
-  unknownUuids: string[],
-  componentVersions: Map<string, string>,
-  signal?: AbortSignal,
-): Promise<DraftPreviewResponse> {
-  const { tree: componentTree, serverToSpec } = buildServerTreeWithoutUnknowns(
-    spec,
-    new Set(unknownUuids),
-    componentVersions,
-  );
-  const csrfToken = await fetchCsrfToken(signal);
-  // The preview entity ID is the entity's primary identifier (e.g. nid for
-  // nodes), as returned by the suggestions endpoint.
-  const url = `/canvas/api/v0/layout-content-template-draft/${encodeURIComponent(metadata.entityTypeId)}/${encodeURIComponent(previewEntityId)}?_format=json`;
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  };
-  if (csrfToken) {
-    headers['X-CSRF-Token'] = csrfToken;
-  }
-  const response = await fetch(url, {
-    method: 'POST',
-    credentials: 'include',
-    headers,
-    body: JSON.stringify({
-      bundle: metadata.bundle,
-      viewMode: metadata.viewMode,
-      component_tree: componentTree,
-    }),
-    ...(signal ? { signal } : {}),
-  });
-  if (!response.ok) {
-    const errorBody = (await response.json().catch(() => null)) as {
-      message?: string;
-    } | null;
-    throw new Error(
-      errorBody?.message ??
-        `Draft content template preview request failed with status ${response.status}.`,
-    );
-  }
-  const result = (await response.json()) as DraftPreviewResponse;
-
-  // Remap server UUIDs back to original spec element keys.
-  if (serverToSpec.size > 0 && isRecord(result.model)) {
-    const remapped: DraftPreviewModel = {};
-    for (const [serverUuid, value] of Object.entries(result.model)) {
-      const specKey = serverToSpec.get(serverUuid) ?? serverUuid;
-      remapped[specKey] = value;
-    }
-    result.model = remapped;
-  }
-
-  return result;
-}
-
 /**
  * Splices the server-resolved input values into element props so json-render
  * receives literal values instead of unresolved prop-source objects.
  */
 export function applyResolved(
   spec: Spec,
-  model: DraftPreviewModel | Record<string, never>,
+  model: ResolvedPreviewModel | Record<string, never>,
 ): Spec {
   const elements = { ...(spec.elements ?? {}) };
   for (const [uuid, element] of Object.entries(elements)) {
     if (!element || element.type === SYNTHETIC_ROOT_TYPE) continue;
-    const resolved = (model as DraftPreviewModel)[uuid]?.resolved;
+    const resolved = (model as ResolvedPreviewModel)[uuid]?.resolved;
     if (!resolved) continue;
     const existingProps = isRecord(element.props) ? element.props : {};
     const merged: Record<string, unknown> = { ...existingProps };
@@ -277,9 +188,18 @@ export function applyResolved(
   return { ...spec, elements };
 }
 
-export interface LocalComponentShape {
-  propKeys: string[];
-  slotKeys: string[];
+export function applyResolvedToElementsOfType(
+  spec: Spec,
+  componentNames: Set<string>,
+  resolved: Record<string, unknown>,
+): Spec {
+  const model: ResolvedPreviewModel = {};
+  for (const [uuid, element] of Object.entries(spec.elements ?? {})) {
+    if (!element || element.type === SYNTHETIC_ROOT_TYPE) continue;
+    if (!componentNames.has(element.type)) continue;
+    model[uuid] = { resolved };
+  }
+  return applyResolved(spec, model);
 }
 
 export async function getLocalComponentShapes(
@@ -311,7 +231,7 @@ function arraysEqual(a: string[], b: string[]): boolean {
 
 /**
  * Returns component type IDs that exist on both server and locally but have
- * different prop or slot keys — indicating local schema changes.
+ * different prop or slot keys - indicating local schema changes.
  */
 export function findComponentsWithLocalChanges(
   spec: Spec,

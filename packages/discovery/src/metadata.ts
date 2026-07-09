@@ -47,6 +47,12 @@ function validateRawMetadata(
     );
   }
 
+  if (raw.dataDependencies !== undefined && !isRecord(raw.dataDependencies)) {
+    throw new Error(
+      `Invalid "dataDependencies" in ${metadataPath}: expected an object, got ${typeof raw.dataDependencies}.`,
+    );
+  }
+
   // Allow empty array as equivalent to no slots.
   const isEmptyArray = Array.isArray(raw.slots) && raw.slots.length === 0;
   if (raw.slots !== undefined && !isRecord(raw.slots) && !isEmptyArray) {
@@ -119,6 +125,8 @@ export async function loadComponentsMetadata(
         props: { properties: rawProps },
         required: (raw.required as string[]) ?? [],
         slots: (raw.slots as ComponentMetadata['slots']) ?? {},
+        dataDependencies:
+          (raw.dataDependencies as ComponentMetadata['dataDependencies']) ?? {},
       };
 
       return metadata;

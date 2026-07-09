@@ -1,6 +1,24 @@
 import type { Spec } from '@json-render/core';
 import type { PreviewManifest } from './preview-contract';
 
+const CSRF_TOKEN_PATTERN = /^[A-Za-z0-9_-]+$/;
+
+export async function fetchCsrfToken(
+  signal?: AbortSignal,
+): Promise<string | null> {
+  try {
+    const response = await fetch('/session/token', {
+      credentials: 'include',
+      ...(signal ? { signal } : {}),
+    });
+    if (!response.ok) return null;
+    const token = (await response.text()).trim();
+    return CSRF_TOKEN_PATTERN.test(token) ? token : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchPreviewManifest(): Promise<PreviewManifest> {
   const response = await fetch('/__canvas/preview-manifest');
 

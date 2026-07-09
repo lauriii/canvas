@@ -21,10 +21,7 @@ import {
   createComponentPayload,
   readComponentMetadata,
 } from './process-component-files';
-import {
-  getComponentDirectoriesToValidate,
-  validateComponent,
-} from './validate';
+import { validateComponents } from './validate';
 
 import type {
   DiscoveredComponent,
@@ -288,20 +285,10 @@ function emptyBuildManifest(): Manifest {
 }
 
 async function validateComponentsForBuild(
-  components: DiscoveredComponent[],
+  discoveryResult: DiscoveryResult,
 ): Promise<Result[]> {
-  const results: Result[] = [];
-
-  for (const componentDirectory of getComponentDirectoriesToValidate(
-    components,
-  )) {
-    const validationResult = await validateComponent(componentDirectory);
-    if (!validationResult.success) {
-      results.push(validationResult);
-    }
-  }
-
-  return results;
+  const { results } = await validateComponents(discoveryResult);
+  return results.filter((result) => !result.success);
 }
 
 export async function buildCanvasProject(
@@ -319,7 +306,7 @@ export async function buildCanvasProject(
   }
 
   const validationFailures = await validateComponentsForBuild(
-    options.discoveryResult.components,
+    options.discoveryResult,
   );
   if (validationFailures.length > 0) {
     const manifestPath = path.join(outputDir, 'canvas-manifest.json');

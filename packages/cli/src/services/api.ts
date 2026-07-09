@@ -47,6 +47,38 @@ export interface UploadedMedia<TInputsResolved = unknown> {
   inputs_resolved: TInputsResolved;
 }
 
+export interface ContentEntityReferenceBundle {
+  label: string;
+  links?: Record<string, { href: string }>;
+}
+
+export interface ContentEntityReferenceEntityType {
+  label: string;
+  bundles: Record<string, ContentEntityReferenceBundle>;
+}
+
+export interface ContentEntityReferenceFieldProperty {
+  name: string;
+  label: string;
+  expression: string;
+}
+
+export interface ContentEntityReferenceField {
+  name: string;
+  label: string;
+  hasChildren: boolean;
+  properties: ContentEntityReferenceFieldProperty[];
+  targetEntityType?: string;
+  targetBundles?: Record<
+    string,
+    {
+      label: string;
+      labelExpression: string;
+      links?: Record<string, { href: string }>;
+    }
+  >;
+}
+
 export class ApiService {
   private client: AxiosInstance;
   private readonly siteUrl: string;
@@ -637,7 +669,7 @@ export class ApiService {
   ): Promise<{ model: Record<string, unknown> }> {
     try {
       const response = await this.client.post(
-        `/canvas/api/v0/layout-content-template-draft/${encodeURIComponent(entityTypeId)}/${encodeURIComponent(previewEntityId)}?_format=json`,
+        `/canvas/api/v0/layout-content-template-draft/${encodeURIComponent(entityTypeId)}/${encodeURIComponent(previewEntityId)}`,
         {
           bundle,
           viewMode,
@@ -645,6 +677,22 @@ export class ApiService {
         },
       );
       return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  async previewContentEntityReferenceFields(
+    entityTypeId: string,
+    entityId: string,
+    entityFields: Record<string, string[]>,
+  ): Promise<Record<string, unknown>> {
+    try {
+      const response = await this.client.post(
+        `/canvas/api/v0/ui/content-entity-reference/preview/${encodeURIComponent(entityTypeId)}/${encodeURIComponent(entityId)}`,
+        { entityFields },
+      );
+      return response.data.data;
     } catch (error) {
       this.handleApiError(error);
     }
@@ -676,6 +724,35 @@ export class ApiService {
         `/canvas/api/v0/ui/content_template/suggestions/prop-sources/${encodeURIComponent(entityTypeId)}/${encodeURIComponent(bundle)}/${encodeURIComponent(componentId)}`,
       );
       return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  async listContentEntityReferenceEntityTypes(): Promise<
+    Record<string, ContentEntityReferenceEntityType>
+  > {
+    try {
+      const response = await this.client.get(
+        '/canvas/api/v0/ui/content-entity-reference',
+      );
+      return response.data.data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  async fetchContentEntityReferenceFields(
+    entityTypeId: string,
+    bundle: string,
+    href?: string,
+  ): Promise<ContentEntityReferenceField[]> {
+    try {
+      const response = await this.client.get(
+        href ??
+          `/canvas/api/v0/ui/content-entity-reference/${encodeURIComponent(entityTypeId)}/${encodeURIComponent(bundle)}`,
+      );
+      return response.data.data;
     } catch (error) {
       this.handleApiError(error);
     }

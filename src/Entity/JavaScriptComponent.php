@@ -20,6 +20,7 @@ use Drupal\canvas\PropExpressions\StructuredData\Coalescer;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\Resource\CanvasResourceLink;
 use Drupal\canvas\Resource\CanvasResourceLinkCollection;
@@ -414,6 +415,37 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
   }
 
   /**
+   * Parses list of expression strings and coalesces same-field entries.
+   *
+   * @param list<string> $expression_strings
+   *
+   * @return list<\Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface>
+   *
+   * @see \Drupal\canvas\PropExpressions\StructuredData\Coalescer::coalesce()
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\EntityFieldExpressionsSameFieldMustBeCoalescedConstraint
+   * @internal
+   */
+  public static function parseAndCoalesceEntityFieldExpressions(array $expression_strings): array {
+    $expressions = [];
+    foreach ($expression_strings as $expression_string) {
+      try {
+        $expressions[] = StructuredDataPropExpression::fromString($expression_string);
+      }
+      catch (\Throwable $e) {
+        throw new \InvalidArgumentException(\sprintf("'%s' is not a valid prop expression.", $expression_string), previous: $e);
+      }
+    }
+    $entity_field_expressions = [];
+    foreach ($expressions as $expression) {
+      if (!$expression instanceof EntityFieldBasedPropExpressionInterface) {
+        return $expressions;
+      }
+      $entity_field_expressions[] = $expression;
+    }
+    return Coalescer::coalesce($entity_field_expressions);
+  }
+
+  /**
    * Coalesces same-field entries in `dataDependencies.entityFields` into one.
    *
    * Groups entries by `(host data type, fieldName, delta)` and merges them into
@@ -423,9 +455,6 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
    * @param array<string, mixed> $dataDependencies
    *
    * @return array<string, mixed>
-   *
-   * @see \Drupal\canvas\PropExpressions\StructuredData\Coalescer::coalesce()
-   * @see \Drupal\canvas\Plugin\Validation\Constraint\EntityFieldExpressionsSameFieldMustBeCoalescedConstraint
    */
   private static function coalesceEntityFields(array $dataDependencies): array {
     if (!isset($dataDependencies['entityFields']) || !\is_array($dataDependencies['entityFields'])) {
@@ -435,17 +464,23 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
       if (!\is_array($expression_strings)) {
         continue;
       }
-      \assert(\array_is_list($expression_strings));
-      \assert(Inspector::assertAllStrings($expression_strings));
-      // Let parse errors propagate — the ValidStructuredDataPropExpression
-      // constraint catches invalid strings on save. The config schema restricts
-      // each entry to an entity-field-based expression.
-      // @see canvas.schema.yml (canvas.js_component.*: dataDependencies.entityFields)
-      $expressions = \array_map(StructuredDataPropExpression::fromString(...), $expression_strings);
-      \assert(Inspector::assertAllObjects($expressions, EntityFieldBasedPropExpressionInterface::class));
+      if (!\array_is_list($expression_strings) || !Inspector::assertAllStrings($expression_strings)) {
+        continue;
+      }
+      try {
+        $expressions = self::parseAndCoalesceEntityFieldExpressions($expression_strings);
+      }
+      catch (\Throwable) {
+        // Leave invalid expressions unchanged for config validation: the
+        // ValidStructuredDataPropExpression constraint catches invalid strings
+        // on save. The config schema restricts each entry to an
+        // entity-field-based expression.
+        // @see canvas.schema.yml (canvas.js_component.*: dataDependencies.entityFields)
+        continue;
+      }
       $dataDependencies['entityFields'][$prop_name] = \array_map(
-        static fn (EntityFieldBasedPropExpressionInterface $expression): string => (string) $expression,
-        Coalescer::coalesce($expressions),
+        static fn (StructuredDataPropExpressionInterface $expression): string => (string) $expression,
+        $expressions,
       );
     }
     return $dataDependencies;

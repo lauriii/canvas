@@ -78,6 +78,7 @@ export interface ComponentMetadata extends Pick<
   props: {
     properties: CodeComponentSerialized['props'];
   };
+  dataDependencies?: CodeComponentSerialized['dataDependencies'];
 }
 
 export interface CanvasSyncConfig {

@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\CanvasUriDefinitions;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
@@ -19,6 +22,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -36,6 +40,7 @@ use Drupal\file\FileInterface;
 use Drupal\text\Plugin\Field\FieldType\TextItemBase;
 use Drupal\user\UserInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -243,6 +248,29 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
     $response = new CacheableJsonResponse(data: ['data' => $data]);
     $response->addCacheableDependency($cacheability);
     return $response;
+  }
+
+  /**
+   * Resolves entityFields expressions against a selected content entity.
+   */
+  public static function preview(Request $request, string $entity_type, EntityInterface $entity): CacheableJsonResponse {
+    if (!$entity instanceof ContentEntityInterface) {
+      throw new BadRequestHttpException(\sprintf("The entity type '%s' is not a content entity type.", $entity_type));
+    }
+    $data = self::decode($request);
+    $resolved = [];
+    foreach ($data['entityFields'] as $prop_name => $expression_strings) {
+      try {
+        $expressions = JavaScriptComponent::parseAndCoalesceEntityFieldExpressions($expression_strings);
+        $resolved[$prop_name] = JsComponent::buildReferencePayload(new EvaluationResult($entity), $expressions);
+      }
+      catch (\DomainException | \InvalidArgumentException | \UnhandledMatchError $e) {
+        throw new BadRequestHttpException($e->getMessage(), $e);
+      }
+    }
+    $resolved_result = new EvaluationResult($resolved);
+    return (new CacheableJsonResponse(data: ['data' => $resolved_result->value]))
+      ->addCacheableDependency($resolved_result);
   }
 
   /**

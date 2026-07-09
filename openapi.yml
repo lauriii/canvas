@@ -3004,6 +3004,97 @@ paths:
                                 href: /canvas/api/v0/ui/content-entity-reference/user/user
         '401':
           $ref: '#/components/responses/AuthenticationErrorResponse'
+  /canvas/api/v0/ui/content-entity-reference/preview/{entity_type}/{entity}:
+    post:
+      summary: Resolves content-entity-reference prop preview values for a selected entity.
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          description: Entity type ID for the selected preview entity.
+          schema:
+            type: string
+        - name: entity
+          in: path
+          required: true
+          description: Primary ID of the selected preview entity.
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - entityFields
+              additionalProperties: false
+              properties:
+                entityFields:
+                  type: object
+                  description: Content-entity-reference prop names mapped to entity field expression strings.
+                  minProperties: 1
+                  additionalProperties:
+                    type: array
+                    minItems: 1
+                    items:
+                      type: string
+            examples:
+              article-card-preview:
+                summary: Resolve one article content-entity-reference prop.
+                value:
+                  entityFields:
+                    article:
+                      - "ℹ︎␜entity:node:article␝title␞␟value"
+                      - "ℹ︎␜entity:node:article␝field_image␞␟src"
+                      - "ℹ︎␜entity:node:article␝field_image␞␟alt"
+                      - "ℹ︎␜entity:node:article␝field_image␞␟width"
+                      - "ℹ︎␜entity:node:article␝field_image␞␟height"
+      responses:
+        '200':
+          description: Resolved prop preview values keyed by content-entity-reference prop name.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                additionalProperties: false
+                properties:
+                  data:
+                    type: object
+                    additionalProperties:
+                      type:
+                        - object
+                        - "null"
+                      additionalProperties: true
+              examples:
+                resolved-article:
+                  summary: Resolved article prop preview values.
+                  value:
+                    data:
+                      article:
+                        __type: article
+                        label: How to turn model output into product stories people remember
+                        path: ''
+                        field_image:
+                          src: /sites/default/files/example.jpg
+                          alt: Example image
+                          width: 800
+                          height: 600
+        '400':
+          description: Invalid request body or entity field expression.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '403':
+          description: Current user cannot access the selected entity.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '404':
+          description: Non-existent entity type or selected entity.
+          $ref: '#/components/responses/ClientErrorResponse'
   /canvas/api/v0/ui/content-entity-reference/{entityType}/{bundle}:
     get:
       summary: Lists fields with derivable prop expressions on an entity type + bundle.

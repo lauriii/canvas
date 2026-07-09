@@ -1,31 +1,45 @@
 import path from 'path';
-import { basename } from 'path/win32';
 import { ESLint } from 'eslint';
 import { required as drupalCanvasRequired } from '@drupal-canvas/eslint-config';
 
-import type { DiscoveredComponent } from '@drupal-canvas/discovery';
-import type { Result } from '../types/Result';
+import { readComponentMetadata } from './process-component-files';
+import { validateContentEntityReferencePropExpressions } from './validate-content-entity-reference';
 
-export function getComponentDirectoriesToValidate(
+import type {
+  DiscoveredComponent,
+  DiscoveryResult,
+} from '@drupal-canvas/discovery';
+import type { Result } from '../types/Result';
+import type { ContentEntityReferenceValidationApi } from './validate-content-entity-reference';
+
+function getComponentsToValidate(
   components: DiscoveredComponent[],
-): string[] {
-  return [...new Set(components.map((component) => component.directory))];
+): DiscoveredComponent[] {
+  const componentsByDirectory = new Map<string, DiscoveredComponent>();
+
+  for (const component of components) {
+    if (!componentsByDirectory.has(component.directory)) {
+      componentsByDirectory.set(component.directory, component);
+    }
+  }
+
+  return [...componentsByDirectory.values()];
 }
 
-export async function validateComponent(
-  componentDir: string,
+async function validateComponent(
+  component: DiscoveredComponent,
   fix: boolean = false,
+  apiService?: ContentEntityReferenceValidationApi,
 ): Promise<Result> {
   const eslint = new ESLint({
     overrideConfigFile: true,
     overrideConfig: drupalCanvasRequired,
     fix,
   });
-  const eslintResults = await eslint.lintFiles(componentDir + '/**/*');
+  const eslintResults = await eslint.lintFiles(component.directory + '/**/*');
   if (fix) {
     await ESLint.outputFixes(eslintResults);
   }
-  const success = eslintResults.every((result) => result.errorCount === 0);
   const details: { heading: string; content: string }[] = [];
   eslintResults
     .filter((result) => result.errorCount > 0)
@@ -43,9 +57,41 @@ export async function validateComponent(
       });
     });
 
+  const metadata = await readComponentMetadata(component.metadataPath);
+  if (metadata) {
+    details.push(
+      ...(await validateContentEntityReferencePropExpressions(
+        metadata,
+        apiService,
+      )),
+    );
+  }
+
+  const success =
+    eslintResults.every((result) => result.errorCount === 0) &&
+    details.length === 0;
+
   return {
-    itemName: basename(componentDir),
+    itemName: component.name,
     success,
     details,
   };
+}
+
+export async function validateComponents(
+  discoveryResult: DiscoveryResult,
+  options: {
+    fix?: boolean;
+    apiService?: ContentEntityReferenceValidationApi;
+  } = {},
+): Promise<{ results: Result[] }> {
+  const results: Result[] = [];
+
+  for (const component of getComponentsToValidate(discoveryResult.components)) {
+    results.push(
+      await validateComponent(component, options.fix, options.apiService),
+    );
+  }
+
+  return { results };
 }

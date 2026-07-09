@@ -1,9 +1,12 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { resolveCanvasConfig } from '@drupal-canvas/discovery';
+import {
+  discoverCanvasProject,
+  resolveCanvasConfig,
+} from '@drupal-canvas/discovery';
 
-import { validateComponent } from './validate';
+import { validateComponents } from './validate';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(currentDir, '../..');
@@ -27,22 +30,29 @@ async function validateFixtureProject(fixtureName: string) {
   const projectRoot = path.join(fixtureRoot, fixtureName);
   const config = resolveCanvasConfig({ hostRoot: projectRoot });
   const componentRoot = path.resolve(projectRoot, config.componentDir);
+  const discoveryResult = await discoverCanvasProject({
+    componentRoot,
+    projectRoot,
+  });
 
   return withWorkingDirectory(projectRoot, () =>
-    validateComponent(componentRoot),
+    validateComponents(discoveryResult),
   );
 }
 
 describe('local codebase fixture projects', () => {
   it('reports imports and assets examples documented as unsupported', async () => {
-    const result = await validateFixtureProject(
+    const { results } = await validateFixtureProject(
       'imports-and-assets-unsupported-caught-by-eslint',
     );
-    const messages = (result.details ?? [])
+    const messages = results
+      .flatMap((componentResult) => componentResult.details ?? [])
       .map((detail) => detail.content)
       .join('\n\n');
 
-    expect(result.success).toBe(false);
+    expect(results.some((componentResult) => !componentResult.success)).toBe(
+      true,
+    );
     expect(messages).toContain(
       'Importing "@/components/pricing-card/helpers" from a component directory is not supported.',
     );

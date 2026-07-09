@@ -7,4 +7,5 @@ export interface Metadata extends Pick<
   props: {
     properties: CodeComponentSerialized['props'];
   };
+  dataDependencies?: CodeComponentSerialized['dataDependencies'];
 }

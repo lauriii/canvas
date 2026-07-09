@@ -8,17 +8,25 @@ import {
   SelectValue,
 } from '@wb/client/components/ui/select';
 import { fetchPreviewEntitySuggestions } from '@wb/lib/preview-entity-suggestions';
+import { cn } from '@wb/lib/utils';
 
 import type { PreviewEntitySuggestion } from '@wb/lib/preview-entity-suggestions';
 
-interface ContentTemplateEntityPickerProps {
+interface PreviewEntityPickerProps {
   entityTypeId: string;
   bundle: string;
   siteUrl: string | null;
   selectedEntityId: string | null;
   onSelect: (id: string | null) => void;
   onError?: (message: string) => void;
+  idSuffix?: string;
+  label?: string;
+  layout?: 'full' | 'compact';
+  allowEmptySelection?: boolean;
 }
+
+const EMPTY_SELECTION_VALUE = '__canvas_no_preview_entity__';
+const EMPTY_SELECTION_LABEL = '- Select preview entity -';
 
 type LoadState =
   | { status: 'idle' }
@@ -26,16 +34,26 @@ type LoadState =
   | { status: 'error'; message: string }
   | { status: 'ready'; entities: PreviewEntitySuggestion[] };
 
-export function ContentTemplateEntityPicker({
+export function PreviewEntityPicker({
   entityTypeId,
   bundle,
   siteUrl,
   selectedEntityId,
   onSelect,
   onError,
-}: ContentTemplateEntityPickerProps) {
+  idSuffix = 'default',
+  label = 'Preview content:',
+  layout = 'full',
+  allowEmptySelection = false,
+}: PreviewEntityPickerProps) {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'idle' });
   const [retryCounter, setRetryCounter] = useState(0);
+  const [hasAppliedDefaultSelection, setHasAppliedDefaultSelection] =
+    useState(false);
+
+  useEffect(() => {
+    setHasAppliedDefaultSelection(false);
+  }, [siteUrl, entityTypeId, bundle, idSuffix]);
 
   useEffect(() => {
     if (!siteUrl) {
@@ -88,10 +106,25 @@ export function ContentTemplateEntityPicker({
     const stillAvailable =
       selectedEntityId !== null &&
       loadState.entities.some((entity) => entity.id === selectedEntityId);
-    if (!stillAvailable) {
-      onSelect(loadState.entities[0].id);
+    if (stillAvailable) {
+      return;
     }
-  }, [loadState, selectedEntityId, onSelect]);
+    if (
+      allowEmptySelection &&
+      selectedEntityId === null &&
+      hasAppliedDefaultSelection
+    ) {
+      return;
+    }
+    setHasAppliedDefaultSelection(true);
+    onSelect(loadState.entities[0].id);
+  }, [
+    allowEmptySelection,
+    hasAppliedDefaultSelection,
+    loadState,
+    selectedEntityId,
+    onSelect,
+  ]);
 
   if (!siteUrl) {
     return (
@@ -99,7 +132,7 @@ export function ContentTemplateEntityPicker({
         <span className="font-semibold text-foreground">No data source.</span>
         <span>
           Set the <code className="font-mono">CANVAS_SITE_URL</code> env var (in{' '}
-          <code className="font-mono">.env</code>) to preview this template
+          <code className="font-mono">.env</code>) to render this preview
           against entities from a live Drupal site.
         </span>
       </div>
@@ -140,34 +173,59 @@ export function ContentTemplateEntityPicker({
     );
   }
 
-  const selectedEntity =
-    loadState.entities.find((entity) => entity.id === selectedEntityId) ??
-    loadState.entities[0];
-  const selectItems = loadState.entities.map((entity) => ({
-    label: entity.label,
-    value: entity.id,
-  }));
+  const selectedEntity = loadState.entities.find(
+    (entity) => entity.id === selectedEntityId,
+  );
+  const selectedValue =
+    selectedEntity?.id ??
+    (allowEmptySelection ? EMPTY_SELECTION_VALUE : loadState.entities[0].id);
+  const selectItems = [
+    ...(allowEmptySelection
+      ? [{ label: EMPTY_SELECTION_LABEL, value: EMPTY_SELECTION_VALUE }]
+      : []),
+    ...loadState.entities.map((entity) => ({
+      label: entity.label,
+      value: entity.id,
+    })),
+  ];
+  const selectId = `canvas-preview-entity-picker-${idSuffix.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
   return (
-    <div className="flex items-center gap-2 border p-2 text-xs">
+    <div
+      className={cn(
+        'flex items-center gap-2 border p-2 text-xs',
+        layout === 'compact' && 'w-[min(100%,24rem)] shrink-0 border-0 p-0',
+      )}
+    >
       <label
-        htmlFor="canvas-content-template-entity-picker"
-        className="text-muted-foreground"
+        htmlFor={selectId}
+        className={cn(
+          'text-muted-foreground',
+          layout === 'compact' && 'shrink-0',
+        )}
       >
-        Preview content:
+        {label}
       </label>
       <Select
         items={selectItems}
-        value={selectedEntity.id}
+        value={selectedValue}
         onValueChange={(id) => {
-          onSelect(id);
+          onSelect(id === EMPTY_SELECTION_VALUE ? null : id);
         }}
       >
-        <SelectTrigger id="canvas-content-template-entity-picker">
+        <SelectTrigger
+          id={selectId}
+          className={cn(layout === 'compact' && 'min-w-0 flex-1')}
+        >
           <SelectValue placeholder="Select preview content" />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
+            {allowEmptySelection ? (
+              <SelectItem value={EMPTY_SELECTION_VALUE}>
+                {EMPTY_SELECTION_LABEL}
+              </SelectItem>
+            ) : null}
             {loadState.entities.map((entity: PreviewEntitySuggestion) => (
               <SelectItem key={entity.id} value={entity.id}>
                 {entity.label}

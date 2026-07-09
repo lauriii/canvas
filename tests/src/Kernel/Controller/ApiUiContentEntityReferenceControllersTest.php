@@ -8,12 +8,18 @@ use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\comment\Entity\CommentType;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\file\Entity\File;
+use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
@@ -24,6 +30,8 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -40,6 +48,7 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
 
   private const string URL_TYPES = '/canvas/api/v0/ui/content-entity-reference';
   private const string URL_FIELDS = '/canvas/api/v0/ui/content-entity-reference/%s/%s';
+  private const string URL_PREVIEW = '/canvas/api/v0/ui/content-entity-reference/preview/%s/%s';
 
   /**
    * {@inheritdoc}
@@ -362,6 +371,193 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
       'ℹ︎␜entity:node:article␝uid␞␟target_id',
       $uid_props_by_name['target_id']['expression'],
     );
+  }
+
+  /**
+   * Resolves entityFields expressions against a selected content entity.
+   */
+  public function testPreviewFieldsEndpoint(): void {
+    $account = $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access content', 'access user profiles']);
+    $file = File::create([
+      'uri' => 'public://example.jpg',
+      'filename' => 'example.jpg',
+    ]);
+    $file->save();
+    $node = Node::create([
+      'type' => 'article',
+      'title' => 'Example article',
+      'uid' => $account->id(),
+      'status' => 1,
+      'field_image' => [
+        'target_id' => $file->id(),
+        'alt' => 'Example alt text',
+        'width' => 800,
+        'height' => 600,
+      ],
+    ]);
+    $node->save();
+
+    $article = BetterEntityDataDefinition::create('node', 'article');
+    $user = BetterEntityDataDefinition::create('user', 'user');
+    $request = Request::create(
+      \sprintf(self::URL_PREVIEW, 'node', $node->id()),
+      'POST',
+      server: ['CONTENT_TYPE' => 'application/json'],
+      content: \json_encode([
+        'entityFields' => [
+          'article' => [
+            (string) new FieldPropExpression($article, 'title', NULL, 'value'),
+            (string) new ReferenceFieldPropExpression(
+              new FieldPropExpression($article, 'uid', NULL, 'entity'),
+              new FieldPropExpression($user, 'name', NULL, 'value'),
+            ),
+            (string) new FieldPropExpression($article, 'field_image', NULL, 'alt'),
+            (string) new FieldPropExpression($article, 'field_image', NULL, 'width'),
+            (string) new FieldPropExpression($article, 'field_image', NULL, 'height'),
+          ],
+        ],
+      ], \JSON_THROW_ON_ERROR),
+    );
+
+    $response = $this->request($request);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    self::assertSame(
+      [
+        'data' => [
+          'article' => [
+            '__type' => 'article',
+            'label' => 'Example article',
+            'field_image' => [
+              'alt' => 'Example alt text',
+              'height' => 600,
+              'width' => 800,
+            ],
+            'owner' => [
+              '__type' => 'user',
+              'name' => $account->getAccountName(),
+            ],
+          ],
+        ],
+      ],
+      self::decodeResponse($response),
+    );
+    self::assertInstanceOf(CacheableJsonResponse::class, $response);
+    self::assertContains('node:' . $node->id(), $response->getCacheableMetadata()->getCacheTags());
+    self::assertContains('user:' . $account->id(), $response->getCacheableMetadata()->getCacheTags());
+  }
+
+  /**
+   * The preview endpoint requires view access to the selected entity.
+   */
+  public function testPreviewFieldsEndpointChecksSelectedEntityAccess(): void {
+    $node = Node::create([
+      'type' => 'article',
+      'title' => 'Example article',
+      'status' => 1,
+    ]);
+    $node->save();
+    $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION]);
+
+    $request = Request::create(
+      \sprintf(self::URL_PREVIEW, 'node', $node->id()),
+      'POST',
+      server: ['CONTENT_TYPE' => 'application/json'],
+      content: \json_encode([
+        'entityFields' => [
+          'article' => [
+            (string) new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'title', NULL, 'value'),
+          ],
+        ],
+      ], \JSON_THROW_ON_ERROR),
+    );
+
+    $this->expectException(AccessDeniedHttpException::class);
+    $this->request($request);
+  }
+
+  /**
+   * The selected entity must match the expressions' entity type and bundle.
+   */
+  public function testPreviewFieldsEndpointRejectsMismatchedSelectedEntity(): void {
+    $account = $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access user profiles']);
+
+    $request = Request::create(
+      \sprintf(self::URL_PREVIEW, 'user', $account->id()),
+      'POST',
+      server: ['CONTENT_TYPE' => 'application/json'],
+      content: \json_encode([
+        'entityFields' => [
+          'article' => [
+            (string) new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'title', NULL, 'value'),
+          ],
+        ],
+      ], \JSON_THROW_ON_ERROR),
+    );
+
+    $this->expectException(BadRequestHttpException::class);
+    $this->expectExceptionMessage('is an expression for entity type `node`, but the provided entity is of type `user`.');
+    $this->request($request);
+  }
+
+  /**
+   * The preview endpoint rejects unparseable expression strings.
+   */
+  public function testPreviewFieldsEndpointRejectsInvalidExpressionString(): void {
+    $node = Node::create([
+      'type' => 'article',
+      'title' => 'Example article',
+      'status' => 1,
+    ]);
+    $node->save();
+    $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access content']);
+
+    $request = Request::create(
+      \sprintf(self::URL_PREVIEW, 'node', $node->id()),
+      'POST',
+      server: ['CONTENT_TYPE' => 'application/json'],
+      content: \json_encode([
+        'entityFields' => [
+          'article' => [
+            'not-a-valid-expression',
+          ],
+        ],
+      ], \JSON_THROW_ON_ERROR),
+    );
+
+    $this->expectException(BadRequestHttpException::class);
+    $this->expectExceptionMessage("'not-a-valid-expression' is not a valid prop expression.");
+    $this->request($request);
+  }
+
+  /**
+   * The preview endpoint accepts only entity-field-based expressions.
+   */
+  public function testPreviewFieldsEndpointRejectsFieldTypeExpression(): void {
+    $node = Node::create([
+      'type' => 'article',
+      'title' => 'Example article',
+      'status' => 1,
+    ]);
+    $node->save();
+    $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access content']);
+
+    $expression = (string) new FieldTypePropExpression('string', 'value');
+    $request = Request::create(
+      \sprintf(self::URL_PREVIEW, 'node', $node->id()),
+      'POST',
+      server: ['CONTENT_TYPE' => 'application/json'],
+      content: \json_encode([
+        'entityFields' => [
+          'article' => [
+            $expression,
+          ],
+        ],
+      ], \JSON_THROW_ON_ERROR),
+    );
+
+    $this->expectException(BadRequestHttpException::class);
+    $this->expectExceptionMessage(\sprintf("'%s' is not a valid content-entity-reference prop expression.", $expression));
+    $this->request($request);
   }
 
   /**

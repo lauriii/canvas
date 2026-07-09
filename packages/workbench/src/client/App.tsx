@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { canvasTreeToSpec } from 'drupal-canvas/json-render-utils';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
-import { ContentTemplateEntityPicker } from '@wb/client/components/content-template-entity-picker';
+import { PreviewEntityPicker } from '@wb/client/components/preview-entity-picker';
 import { ThemeMenu } from '@wb/client/components/theme-menu';
 import { Badge } from '@wb/client/components/ui/badge';
 import { Separator } from '@wb/client/components/ui/separator';
@@ -21,13 +21,6 @@ import {
   SidebarTrigger,
 } from '@wb/client/components/ui/sidebar';
 import { Tabs, TabsList, TabsTrigger } from '@wb/client/components/ui/tabs';
-import {
-  applyResolved,
-  fetchDraftContentTemplatePreview,
-  findComponentsWithLocalChanges,
-  findUnknownElementUuids,
-  getLocalComponentShapes,
-} from '@wb/lib/content-template-draft-preview';
 import { fetchDiscoveryResult } from '@wb/lib/discovery-client';
 import {
   fetchPreviewContentTemplateSpec,
@@ -36,8 +29,23 @@ import {
   fetchPreviewRegionSpec,
   fetchWorkbenchConfig,
 } from '@wb/lib/preview-client';
+import {
+  fetchResolvedContentEntityReferenceFields,
+  fetchResolvedContentEntityReferenceFieldsForSpec,
+  getContentEntityReferencePropPreviews,
+  groupEntityFieldsByProp,
+} from '@wb/lib/preview-content-entity-reference';
+import { fetchDraftContentTemplatePreview } from '@wb/lib/preview-content-template-draft';
 import { isPreviewFrameEvent } from '@wb/lib/preview-contract';
 import { toViteFsUrl } from '@wb/lib/preview-runtime';
+import {
+  applyResolved,
+  applyResolvedToElementsOfType,
+  findComponentsWithLocalChanges,
+  findUnknownElementUuids,
+  getLocalComponentShapes,
+  isRecord,
+} from '@wb/lib/preview-spec-utils';
 import { getServerComponentRegistry } from '@wb/lib/server-component-registry';
 import { WORKBENCH_PREVIEW_HTML_PATH } from '@wb/lib/workbench-preview-constants';
 import {
@@ -131,6 +139,26 @@ function getWarningToastId(warning: PreviewWarning, index: number): string {
   return `${warning.code}:${warning.path ?? 'none'}:${index}`;
 }
 
+function getComponentPreviewTypeNames(component: PreviewManifestComponent) {
+  const names = new Set<string>([component.name]);
+  if (component.name.startsWith('js.')) {
+    names.add(component.name.slice(3));
+  } else {
+    names.add(`js.${component.name}`);
+  }
+  return names;
+}
+
+function getComponentPropTitle(
+  component: PreviewManifestComponent,
+  propName: string,
+): string {
+  const prop = component.props[propName];
+  return isRecord(prop) && typeof prop.title === 'string' && prop.title.trim()
+    ? prop.title
+    : propName;
+}
+
 export function App() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -148,6 +176,9 @@ export function App() {
   const [workbenchConfig, setWorkbenchConfig] =
     useState<WorkbenchConfig | null>(null);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [selectedComponentEntityIds, setSelectedComponentEntityIds] = useState<
+    Record<string, string | null>
+  >({});
   const [error, setError] = useState<string | null>(null);
   const [isFrameReady, setIsFrameReady] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
@@ -571,6 +602,27 @@ export function App() {
     selectedMockIndex,
   ]);
 
+  const isDefaultComponentPreview =
+    Boolean(selectedComponent) && selectedComponentMock === null;
+  const selectedComponentEntityFields =
+    selectedComponent?.dataDependencies.entityFields;
+  const selectedComponentReferencePropPreviews = useMemo(
+    () =>
+      getContentEntityReferencePropPreviews(
+        selectedComponentEntityFields,
+        selectedComponent?.props,
+      ),
+    [selectedComponent?.props, selectedComponentEntityFields],
+  );
+  const selectedComponentReferencePropKey =
+    selectedComponentReferencePropPreviews
+      .map((preview) => `${preview.propName}:${preview.target.key}`)
+      .join('|');
+
+  useEffect(() => {
+    setSelectedComponentEntityIds({});
+  }, [selectedComponent?.id, selectedComponentReferencePropKey]);
+
   const locationRef = useRef(location);
   locationRef.current = location;
 
@@ -666,70 +718,148 @@ export function App() {
       selectedComponent?.previewable &&
       selectedComponent.js.url
     ) {
-      const defaultSpec: Spec = canvasTreeToSpec([
-        {
-          uuid: crypto.randomUUID(),
-          parent_uuid: null,
-          slot: null,
-          component_id: selectedComponent.name,
-          component_version: null,
-          inputs: selectedComponent.exampleProps,
-          label: null,
-        },
-      ]);
-      const specToRender = selectedComponentMock?.spec ?? defaultSpec;
-      const selectedMockRenderId = selectedComponentMock
-        ? `${selectedComponent.id}:${selectedComponentMock.id}`
-        : selectedComponent.id;
-      const registrySources = selectedComponentMock
-        ? (discoveryResult?.components
-            .filter(
-              (
-                component,
-              ): component is DiscoveredComponent & { jsEntryPath: string } =>
-                component.jsEntryPath !== null,
-            )
-            .map(
-              (component: DiscoveredComponent & { jsEntryPath: string }) => ({
-                name: component.name,
-                jsEntryUrl: toViteFsUrl(component.jsEntryPath),
-              }),
-            ) ?? [])
-        : [
-            {
-              name: selectedComponent.name,
-              jsEntryUrl: selectedComponent.js.url,
-            },
-          ];
-      const cssUrls = selectedComponentMock
-        ? [
-            ...(previewManifest.globalCssUrl
-              ? [previewManifest.globalCssUrl]
-              : []),
-            ...(discoveryResult?.components ?? [])
-              .filter((component) => component.cssEntryPath !== null)
-              .map((component) => toViteFsUrl(component.cssEntryPath!)),
-          ]
-        : [
-            ...(previewManifest.globalCssUrl
-              ? [previewManifest.globalCssUrl]
-              : []),
-            ...(selectedComponent.css.url ? [selectedComponent.css.url] : []),
-          ];
+      const selectedComponentJsUrl = selectedComponent.js.url;
+      void (async () => {
+        const defaultSpec: Spec = canvasTreeToSpec([
+          {
+            uuid: crypto.randomUUID(),
+            parent_uuid: null,
+            slot: null,
+            component_id: selectedComponent.name,
+            component_version: null,
+            inputs: selectedComponent.exampleProps,
+            label: null,
+          },
+        ]);
+        let specToRender = selectedComponentMock?.spec ?? defaultSpec;
+        const entityFields = selectedComponent.dataDependencies.entityFields;
+        const entityFieldGroups =
+          selectedComponentMock === null
+            ? groupEntityFieldsByProp(
+                entityFields,
+                selectedComponent.props,
+                selectedComponentEntityIds,
+              )
+            : [];
+        if (workbenchConfig?.siteUrl && entityFieldGroups.length > 0) {
+          try {
+            const resolvedGroups = await Promise.all(
+              entityFieldGroups.map((group) =>
+                fetchResolvedContentEntityReferenceFields(
+                  group.target.entityTypeId,
+                  group.entityId,
+                  group.entityFields,
+                  pageSpecAbortController.signal,
+                ),
+              ),
+            );
+            if (pageSpecAbortController.signal.aborted) {
+              return;
+            }
+            const resolved = Object.assign({}, ...resolvedGroups) as Record<
+              string,
+              unknown
+            >;
+            specToRender = applyResolvedToElementsOfType(
+              specToRender,
+              getComponentPreviewTypeNames(selectedComponent),
+              resolved,
+            );
+          } catch (resolveError) {
+            if (
+              resolveError instanceof DOMException &&
+              resolveError.name === 'AbortError'
+            ) {
+              return;
+            }
+            toast.error('Failed to resolve preview values', {
+              description:
+                resolveError instanceof Error
+                  ? resolveError.message
+                  : 'Failed to resolve content entity reference preview values.',
+            });
+          }
+        }
+        if (workbenchConfig?.siteUrl) {
+          try {
+            const resolvedModel =
+              await fetchResolvedContentEntityReferenceFieldsForSpec(
+                specToRender,
+                previewManifest.components,
+                pageSpecAbortController.signal,
+              );
+            if (pageSpecAbortController.signal.aborted) {
+              return;
+            }
+            specToRender = applyResolved(specToRender, resolvedModel);
+          } catch (resolveError) {
+            if (
+              resolveError instanceof DOMException &&
+              resolveError.name === 'AbortError'
+            ) {
+              return;
+            }
+            toast.error('Failed to resolve preview values', {
+              description:
+                resolveError instanceof Error
+                  ? resolveError.message
+                  : 'Failed to resolve content entity reference preview values.',
+            });
+          }
+        }
+        const selectedMockRenderId = selectedComponentMock
+          ? `${selectedComponent.id}:${selectedComponentMock.id}`
+          : `${selectedComponent.id}:${JSON.stringify(selectedComponentEntityIds)}`;
+        const registrySources = selectedComponentMock
+          ? (discoveryResult?.components
+              .filter(
+                (
+                  component,
+                ): component is DiscoveredComponent & { jsEntryPath: string } =>
+                  component.jsEntryPath !== null,
+              )
+              .map(
+                (component: DiscoveredComponent & { jsEntryPath: string }) => ({
+                  name: component.name,
+                  jsEntryUrl: toViteFsUrl(component.jsEntryPath),
+                }),
+              ) ?? [])
+          : [
+              {
+                name: selectedComponent.name,
+                jsEntryUrl: selectedComponentJsUrl,
+              },
+            ];
+        const cssUrls = selectedComponentMock
+          ? [
+              ...(previewManifest.globalCssUrl
+                ? [previewManifest.globalCssUrl]
+                : []),
+              ...(discoveryResult?.components ?? [])
+                .filter((component) => component.cssEntryPath !== null)
+                .map((component) => toViteFsUrl(component.cssEntryPath!)),
+            ]
+          : [
+              ...(previewManifest.globalCssUrl
+                ? [previewManifest.globalCssUrl]
+                : []),
+              ...(selectedComponent.css.url ? [selectedComponent.css.url] : []),
+            ];
 
-      const message: PreviewRenderRequest = {
-        source: 'canvas-workbench-parent',
-        type: 'preview:render',
-        payload: {
-          renderId: selectedMockRenderId,
-          renderType: 'component',
-          spec: specToRender,
-          registrySources,
-          cssUrls,
-          shellPath,
-        },
-      };
-      frameWindow.postMessage(message, window.location.origin);
+        const message: PreviewRenderRequest = {
+          source: 'canvas-workbench-parent',
+          type: 'preview:render',
+          payload: {
+            renderId: selectedMockRenderId,
+            renderType: 'component',
+            spec: specToRender,
+            registrySources,
+            cssUrls,
+            shellPath,
+          },
+        };
+        frameWindow.postMessage(message, window.location.origin);
+      })();
       return;
     }
 
@@ -777,15 +907,63 @@ export function App() {
                 ? { jsEntryUrl: toViteFsUrl(layoutPath), regions: {} }
                 : undefined;
 
+          let resolvedPageSpec = pageSpec;
+          let resolvedRegionSpecs = regionSpecs;
+          if (workbenchConfig?.siteUrl) {
+            const [pageModel, ...regionModels] = await Promise.all([
+              fetchResolvedContentEntityReferenceFieldsForSpec(
+                pageSpec,
+                previewManifest.components,
+                pageSpecAbortController.signal,
+              ),
+              ...regionSpecs.map((regionSpec) =>
+                fetchResolvedContentEntityReferenceFieldsForSpec(
+                  regionSpec.spec,
+                  previewManifest.components,
+                  pageSpecAbortController.signal,
+                ),
+              ),
+            ]);
+            if (pageSpecAbortController.signal.aborted) {
+              return;
+            }
+            resolvedPageSpec = applyResolved(pageSpec, pageModel);
+            resolvedRegionSpecs = regionSpecs.map((regionSpec, index) => ({
+              ...regionSpec,
+              spec: applyResolved(regionSpec.spec, regionModels[index] ?? {}),
+            }));
+          }
+
+          const resolvedLayoutPayload = layoutPayload
+            ? {
+                ...layoutPayload,
+                regions: Object.fromEntries(
+                  Object.keys(layoutPayload.regions).map((regionId) => {
+                    const regionIndex = discoveredRegions.findIndex(
+                      (region) => region.region === regionId,
+                    );
+                    return [
+                      regionId,
+                      regionIndex === -1
+                        ? layoutPayload.regions[regionId]
+                        : resolvedRegionSpecs[regionIndex].spec,
+                    ];
+                  }),
+                ),
+              }
+            : undefined;
+
           const pageMessage: PreviewRenderRequest = {
             source: 'canvas-workbench-parent',
             type: 'preview:render',
             payload: {
               renderId: selectedPage.slug,
               renderType: 'page',
-              spec: pageSpec,
+              spec: resolvedPageSpec,
               shellPath,
-              ...(layoutPayload ? { layout: layoutPayload } : {}),
+              ...(resolvedLayoutPayload
+                ? { layout: resolvedLayoutPayload }
+                : {}),
               registrySources: discoveryResult.components
                 .filter(
                   (
@@ -856,7 +1034,7 @@ export function App() {
             return;
           }
 
-          const layoutPayload =
+          let layoutPayload =
             layoutPath && includeGlobalRegions
               ? {
                   jsEntryUrl: toViteFsUrl(layoutPath),
@@ -985,6 +1163,44 @@ export function App() {
             }
           }
 
+          if (workbenchConfig?.siteUrl && layoutPayload) {
+            const currentLayoutPayload = layoutPayload;
+            const regionModels = await Promise.all(
+              regionSpecs.map((regionSpec) =>
+                fetchResolvedContentEntityReferenceFieldsForSpec(
+                  regionSpec.spec,
+                  previewManifest.components,
+                  pageSpecAbortController.signal,
+                ),
+              ),
+            );
+            if (pageSpecAbortController.signal.aborted) {
+              return;
+            }
+            const resolvedRegionSpecs = regionSpecs.map(
+              (regionSpec, index) => ({
+                ...regionSpec,
+                spec: applyResolved(regionSpec.spec, regionModels[index] ?? {}),
+              }),
+            );
+            layoutPayload = {
+              ...currentLayoutPayload,
+              regions: Object.fromEntries(
+                Object.keys(currentLayoutPayload.regions).map((regionId) => {
+                  const regionIndex = discoveredRegions.findIndex(
+                    (region) => region.region === regionId,
+                  );
+                  return [
+                    regionId,
+                    regionIndex === -1
+                      ? currentLayoutPayload.regions[regionId]
+                      : resolvedRegionSpecs[regionIndex].spec,
+                  ];
+                }),
+              ),
+            };
+          }
+
           const specWithState: Spec = resolvedSpec;
 
           const renderId = `${selectedContentTemplate.slug}:${selectedEntityId ?? 'no-entity'}`;
@@ -1050,13 +1266,29 @@ export function App() {
           if (pageSpecAbortController.signal.aborted) {
             return;
           }
+          let resolvedRegionSpec = regionResponse.spec;
+          if (workbenchConfig?.siteUrl) {
+            const resolvedModel =
+              await fetchResolvedContentEntityReferenceFieldsForSpec(
+                regionResponse.spec,
+                previewManifest.components,
+                pageSpecAbortController.signal,
+              );
+            if (pageSpecAbortController.signal.aborted) {
+              return;
+            }
+            resolvedRegionSpec = applyResolved(
+              regionResponse.spec,
+              resolvedModel,
+            );
+          }
           const regionMessage: PreviewRenderRequest = {
             source: 'canvas-workbench-parent',
             type: 'preview:render',
             payload: {
               renderId: selectedRegion.region,
               renderType: 'region',
-              spec: regionResponse.spec,
+              spec: resolvedRegionSpec,
               shellPath,
               registrySources: discoveryResult.components
                 .filter(
@@ -1111,6 +1343,7 @@ export function App() {
     previewManifest,
     selectedComponent,
     selectedComponentMock,
+    selectedComponentEntityIds,
     selectedContentTemplate,
     selectedEntityId,
     selectedPage,
@@ -1270,13 +1503,41 @@ export function App() {
 
         <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden p-4">
           {selectedContentTemplate ? (
-            <ContentTemplateEntityPicker
+            <PreviewEntityPicker
               entityTypeId={selectedContentTemplate.entityTypeId ?? ''}
               bundle={selectedContentTemplate.bundle ?? ''}
               siteUrl={workbenchConfig?.siteUrl ?? null}
               selectedEntityId={selectedEntityId}
               onSelect={setSelectedEntityId}
             />
+          ) : null}
+
+          {selectedComponent &&
+          isDefaultComponentPreview &&
+          selectedComponentReferencePropPreviews.length > 0 ? (
+            <div className="flex flex-wrap gap-x-4 gap-y-3 border p-2">
+              {selectedComponentReferencePropPreviews.map((preview) => (
+                <PreviewEntityPicker
+                  key={preview.propName}
+                  entityTypeId={preview.target.entityTypeId}
+                  bundle={preview.target.bundle}
+                  siteUrl={workbenchConfig?.siteUrl ?? null}
+                  selectedEntityId={
+                    selectedComponentEntityIds[preview.propName] ?? null
+                  }
+                  idSuffix={`component-${preview.propName}`}
+                  label={`${getComponentPropTitle(selectedComponent, preview.propName)}:`}
+                  layout="compact"
+                  allowEmptySelection
+                  onSelect={(entityId) => {
+                    setSelectedComponentEntityIds((current) => ({
+                      ...current,
+                      [preview.propName]: entityId,
+                    }));
+                  }}
+                />
+              ))}
+            </div>
           ) : null}
 
           {selectedComponent && componentPreviewVariants.length > 1 ? (

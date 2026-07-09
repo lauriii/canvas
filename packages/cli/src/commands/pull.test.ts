@@ -160,6 +160,33 @@ describe('Pull Command', () => {
       expect(parsed).toHaveProperty('machineName', 'my-button');
     });
 
+    it('should write entity field data dependencies to component metadata', async () => {
+      const component: Component = {
+        ...mockComponent('article-card'),
+        dataDependencies: {
+          entityFields: {
+            article: ['entity:node:article.title.value'],
+          },
+        },
+      };
+      const api = mockApiService({ a: component });
+      const task = createComponentsPullTask(api, tmpDir, false);
+
+      await task.prepare();
+      await task.execute();
+
+      const ymlContent = await fs.readFile(
+        path.join(tmpDir, 'article-card', 'component.yml'),
+        'utf-8',
+      );
+      const parsed = yaml.load(ymlContent) as Record<string, unknown>;
+      expect(parsed).toHaveProperty('dataDependencies', {
+        entityFields: {
+          article: ['entity:node:article.title.value'],
+        },
+      });
+    });
+
     it('should update existing component files in-place', async () => {
       // Set up an existing component on disk.
       const componentDir = path.join(tmpDir, 'my-button');

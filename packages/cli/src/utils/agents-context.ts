@@ -1,130 +1,154 @@
 import fs from 'fs/promises';
 import path from 'path';
 
-import { processInPool } from './request-pool';
+import agentsContextProviders from './agents-context-providers';
 
+import type { Command } from 'commander';
 import type { ApiService } from '../services/api';
 
-interface PropSourceSuggestion {
-  label: string;
-  source: Record<string, unknown>;
+export interface AgentsContextProviderInput {
+  apiService: ApiService;
+  writeContextFile: (filename: string, data: unknown) => Promise<string>;
+  writeMessage: (message: string) => void;
+  writeOutput: (data: unknown) => void;
+  arguments: string[];
+}
+
+export interface AgentsContextProvider {
+  name: string;
+  description: string;
+  aliases?: string[];
+  default: boolean;
+  execute: (input: AgentsContextProviderInput) => Promise<void>;
 }
 
 export const AGENTS_CONTEXT_DIR = path.join('.agents', 'drupal-canvas');
 
-function simplifyViewModes(
-  viewModes: Record<
-    string,
-    Record<string, Record<string, { label: string; hasTemplate: boolean }>>
-  >,
-): Record<string, Record<string, Record<string, string>>> {
-  const result: Record<string, Record<string, Record<string, string>>> = {};
-  for (const [entityType, bundles] of Object.entries(viewModes)) {
-    result[entityType] = {};
-    for (const [bundle, modes] of Object.entries(bundles)) {
-      result[entityType][bundle] = {};
-      for (const [viewMode, info] of Object.entries(modes)) {
-        result[entityType][bundle][viewMode] = info.label;
-      }
-    }
-  }
-  return result;
-}
-
-function flattenSuggestions(items: unknown[]): PropSourceSuggestion[] {
-  const result: PropSourceSuggestion[] = [];
-  for (const item of items) {
-    if (!item || typeof item !== 'object') continue;
-    const record = item as Record<string, unknown>;
-    if (record.source && typeof record.source === 'object') {
-      result.push({
-        label: typeof record.label === 'string' ? record.label : '',
-        source: record.source as Record<string, unknown>,
-      });
-    }
-    if (Array.isArray(record.items)) {
-      result.push(...flattenSuggestions(record.items));
-    }
-  }
-  return result;
+export interface PullAgentsContextOptions {
+  provider?: string;
+  providerArgs?: string[];
+  writeMessage?: (message: string) => void;
+  writeOutput?: (data: unknown) => void;
+  runAll?: boolean;
 }
 
 export async function pullAgentsContext(
   apiService: ApiService,
   projectRoot: string,
+  options: PullAgentsContextOptions = {},
 ): Promise<void> {
-  const [viewModes, components] = await Promise.all([
-    apiService.listViewModes(),
-    apiService.listComponents(),
-  ]);
-
-  const componentIds = Object.keys(components).map((name) => `js.${name}`);
-  const bundles: Array<{ entityTypeId: string; bundle: string }> = [];
-  for (const [entityTypeId, bundleMap] of Object.entries(viewModes)) {
-    for (const bundle of Object.keys(bundleMap)) {
-      bundles.push({ entityTypeId, bundle });
-    }
-  }
-
-  const propSources: Record<
-    string,
-    Record<string, Record<string, Record<string, PropSourceSuggestion[]>>>
-  > = {};
-
-  if (componentIds.length > 0 && bundles.length > 0) {
-    const jobs = bundles.flatMap(({ entityTypeId, bundle }) =>
-      componentIds.map((componentId) => ({
-        entityTypeId,
-        bundle,
-        componentId,
-      })),
-    );
-
-    const results = await processInPool(jobs, async (job) => {
-      const raw = await apiService.fetchPropSourceSuggestions(
-        job.entityTypeId,
-        job.bundle,
-        job.componentId,
-      );
-      const flattened: Record<string, PropSourceSuggestion[]> = {};
-      for (const [propName, suggestions] of Object.entries(raw)) {
-        const flat = flattenSuggestions(
-          Array.isArray(suggestions) ? suggestions : [],
-        );
-        if (flat.length > 0) {
-          flattened[propName] = flat;
-        }
-      }
-      return { ...job, suggestions: flattened };
-    });
-
-    for (const result of results) {
-      if (!result.success || !result.result) continue;
-      const { entityTypeId, bundle, componentId, suggestions } = result.result;
-      if (Object.keys(suggestions).length === 0) continue;
-      propSources[entityTypeId] ??= {};
-      propSources[entityTypeId][bundle] ??= {};
-      propSources[entityTypeId][bundle][componentId] = suggestions;
-    }
-  }
-
+  const {
+    provider,
+    providerArgs = [],
+    writeMessage = (message: string) => {
+      process.stdout.write(`${message}\n`);
+    },
+    writeOutput = (data: unknown) => {
+      process.stdout.write(`${JSON.stringify(data)}\n`);
+    },
+    runAll = false,
+  } = options;
   const outDir = path.join(projectRoot, AGENTS_CONTEXT_DIR);
-  await fs.mkdir(outDir, { recursive: true });
+  const writeContextFile = async (
+    filename: string,
+    data: unknown,
+  ): Promise<string> => {
+    const filePath = path.join(outDir, filename);
+    await fs.mkdir(outDir, { recursive: true });
+    await fs.writeFile(filePath, JSON.stringify(data) + '\n', 'utf-8');
+    return path.relative(projectRoot, filePath);
+  };
 
-  const writeContextFile = (filename: string, data: unknown): Promise<void> =>
-    fs.writeFile(
-      path.join(outDir, filename),
-      JSON.stringify(data, null, 2) + '\n',
-      'utf-8',
-    );
+  const providers = selectAgentsContextProviders(provider, runAll);
+  const providerInput = {
+    apiService,
+    writeContextFile,
+    writeMessage,
+    writeOutput,
+    arguments: providerArgs,
+  };
 
   await Promise.all([
-    writeContextFile('prop-sources.json', propSources),
-    writeContextFile('view-modes.json', simplifyViewModes(viewModes)),
-    fs.writeFile(
-      path.join(outDir, '.gitignore'),
-      '# Generated by `canvas agents-context`.\n*\n',
-      'utf-8',
-    ),
+    ...providers.map((provider) => provider.execute(providerInput)),
+    (async () => {
+      await fs.mkdir(outDir, { recursive: true });
+      await fs.writeFile(
+        path.join(outDir, '.gitignore'),
+        '# Generated by `canvas agents-context`.\n*\n',
+        'utf-8',
+      );
+    })(),
   ]);
+}
+
+export function formatAgentsContextProviders(command?: Command): string {
+  if (command) {
+    const helper = command.createHelp();
+    helper.prepareContext({});
+    const termWidth = Math.max(
+      helper.padWidth(command, helper),
+      ...agentsContextProviders.map((provider) =>
+        helper.displayWidth(formatProviderTerm(provider)),
+      ),
+    );
+    const providerItems = agentsContextProviders.map((provider) =>
+      helper.formatItem(
+        helper.styleSubcommandTerm(formatProviderTerm(provider)),
+        termWidth,
+        helper.styleSubcommandDescription(
+          formatProviderDescription(provider.description, termWidth),
+        ),
+        helper,
+      ),
+    );
+    return helper
+      .formatItemList('Available context providers:', providerItems, helper)
+      .join('\n');
+  }
+
+  const lines = ['', 'Available context providers:'];
+  for (const provider of agentsContextProviders) {
+    lines.push(`  ${formatProviderTerm(provider)}`);
+    lines.push(`    ${provider.description.replace(/\n/g, '\n    ')}`);
+    lines.push('');
+  }
+  return lines.join('\n');
+}
+
+function formatProviderTerm(provider: AgentsContextProvider): string {
+  if (!provider.aliases || provider.aliases.length === 0) {
+    return provider.name;
+  }
+  return `${provider.name} (${provider.aliases.join(', ')})`;
+}
+
+function formatProviderDescription(
+  description: string,
+  termWidth: number,
+): string {
+  return description.replace(/\n/g, `\n${' '.repeat(termWidth + 2)}`);
+}
+
+function selectAgentsContextProviders(
+  provider?: string,
+  runAll = false,
+): AgentsContextProvider[] {
+  if (runAll) {
+    return agentsContextProviders.filter((provider) => provider.default);
+  }
+  if (!provider) {
+    throw new Error(
+      `Specify an agents context provider or use --all.\n\n${formatAgentsContextProviders()}`,
+    );
+  }
+  const selectedProvider = agentsContextProviders.find(
+    (candidate) =>
+      candidate.name === provider || candidate.aliases?.includes(provider),
+  );
+  if (!selectedProvider) {
+    throw new Error(
+      `Unknown agents context provider '${provider}'. Available providers: ${agentsContextProviders.map((candidate) => candidate.name).join(', ')}.`,
+    );
+  }
+  return [selectedProvider];
 }
