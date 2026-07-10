@@ -13,7 +13,6 @@ use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Render\PreviewEnvelope;
@@ -35,7 +34,6 @@ use Drupal\language\ConfigurableLanguageManagerInterface;
 use GuzzleHttp\Psr7\Query;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -93,7 +91,6 @@ final class ApiLayoutController {
    */
   public function get(Request $request, (ContentEntityInterface&EntityPublishedInterface)|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
-    $regions = self::shouldIncludeGlobalRegions($entity) ? PageRegion::loadForActiveTheme() : [];
 
     // @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3591732
     $conflict_resolution_dev_mode = $this->moduleHandler->moduleExists('canvas_dev_cd');
@@ -129,17 +126,9 @@ final class ApiLayoutController {
     // of the stored entity.
     $is_new = AutoSaveManager::entityIsConsideredNew($original_entity);
 
-    if ($regions) {
-      \assert($model !== NULL);
-      $this->addGlobalRegions($regions, $model, $layout);
-      $layout_keyed_by_region = array_combine(\array_map(static fn($region) => $region['id'], $layout), $layout);
-      // Reorder the layout to match theme order.
-      $layout = array_values(array_replace(
-        array_intersect_key(array_flip($this->regionsClientSideIds), $layout_keyed_by_region),
-        $layout_keyed_by_region
-      ));
-    }
-
+    // Page variants render the chrome around the content, so the layout serves
+    // only the single content region; the surrounding variant is edited
+    // separately.
     $data = [
       // Maps to the `tree` property of the Canvas field type.
       // @see \Drupal\canvas\Plugin\DataType\ComponentTreeStructure
@@ -346,33 +335,6 @@ final class ApiLayoutController {
     return Query::parse(\http_build_query($values));
   }
 
-  private function addGlobalRegions(array $regions, array &$model, array &$layout, bool $includeAllRegions = FALSE): void {
-    // Only expose regions marked as editable in the `layout` for the client.
-    foreach ($regions as $id => $region) {
-      \assert($region instanceof PageRegion);
-      \assert($region->status() === TRUE);
-      if (!$region->access('edit') && !$includeAllRegions) {
-        // If the user doesn't have access to a region, we don't need to include
-        // it.
-        continue;
-      }
-
-      // Use auto-save data for each PageRegion config entity if available.
-      if ($draft_region = $this->autoSaveManager->getAutoSaveEntity($region)->entity) {
-        \assert($draft_region instanceof PageRegion);
-        // @phpstan-ignore-next-line parameterByRef.type
-        $layout[] = $this->buildRegion($id, $draft_region->getComponentTree(), $model);
-      }
-      // Otherwise fall back to the currently live PageRegion config entity.
-      // (Note: this automatically ignores auto-saves for PageRegions that were
-      // editable at the time, but no longer are.)
-      else {
-        // @phpstan-ignore-next-line parameterByRef.type
-        $layout[] = $this->buildRegion($id, $region->getComponentTree(), $model);
-      }
-    }
-  }
-
   /**
    * Updates single component instance's auto-save entry and returns a preview.
    */
@@ -430,20 +392,11 @@ final class ApiLayoutController {
       $clientInstanceId,
     );
 
-    // Determine which entity to PATCH.
+    // Determine which entity to PATCH. Page variants edit only the content
+    // entity's own tree, so the patched component instance belongs to it.
     $entity = $this->getAutoSavedVersionIfAvailable([$entity])[$entity->id()];
     \assert($entity instanceof FieldableEntityInterface || $entity instanceof ContentTemplate);
-    $regions = self::shouldIncludeGlobalRegions($entity)
-      ? $this->getAutoSavedVersionIfAvailable(PageRegion::loadForActiveTheme())
-      : [];
-    $entity_to_patch = $this->getEntityWithComponentInstance([$entity, ...$regions], $componentInstanceUuid);
-
-    // Route-level access checks already verified `edit` access to $entity. Only
-    // perform an additional `edit` access check if $entity_to_patch is not
-    // $entity, but a PageRegion entity.
-    if ($entity_to_patch instanceof PageRegion && !$entity_to_patch->access('edit')) {
-      throw new AccessDeniedHttpException(\sprintf('Access denied for region %s', $entity_to_patch->get('region')));
-    }
+    $entity_to_patch = $this->getEntityWithComponentInstance([$entity], $componentInstanceUuid);
 
     // Update the entity & auto-save it. We might be updating a component
     // instance version aside of the model itself.
@@ -451,7 +404,7 @@ final class ApiLayoutController {
     $this->autoSaveManager->saveEntity($entity_to_patch, $clientInstanceId);
 
     // Inform the UI of the updated reality.
-    $data = $this->buildLayoutAndModel($entity, $regions, preview_entity: $preview_entity);
+    $data = $this->buildLayoutAndModel($entity, preview_entity: $preview_entity);
     \assert(['layout', 'model'] === \array_keys($data));
     if ($entity instanceof FieldableEntityInterface) {
       $data['entity_form_fields'] = $this->getFilteredEntityData($entity);
@@ -509,45 +462,21 @@ final class ApiLayoutController {
       $clientInstanceId,
     );
 
-    // Route-level access checks already verified `edit` access to $entity. But
-    // any PageRegion entities present in the layout provided by the client
-    // still need their `edit` access checked.
-    $regions = PageRegion::loadForActiveThemeByClientSideId();
+    // The layout serves only the single content region; its tree belongs to the
+    // edited entity. (Page variants are edited separately from page content.)
     $region_layouts = self::getRegionLayoutNodesKeyedByClientSideId($layout);
     \assert(\array_key_exists(CanvasPageVariant::MAIN_CONTENT_REGION, $region_layouts));
-    // The main content region's component tree is for the edited entity.
     $main_content_layout = $region_layouts[CanvasPageVariant::MAIN_CONTENT_REGION];
-    unset($region_layouts[CanvasPageVariant::MAIN_CONTENT_REGION]);
-    $missing_regions = array_diff_key($region_layouts, $regions);
-    if ($missing_regions) {
-      throw new NotFoundHttpException('Unknown regions: ' . implode(', ', \array_keys($missing_regions)));
-    }
-    foreach (\array_keys($region_layouts) as $client_side_region_id) {
-      // Check access to regions if any component was added or removed.
-      if (!$regions[$client_side_region_id]->access('edit')) {
-        throw new AccessDeniedHttpException(\sprintf('Access denied for region %s', $client_side_region_id));
-      }
-    }
 
     // We want to work with the auto-save entity from this point so that any
     // previously saved values from e.g. another user are respected.
     $entity = $this->getAutoSavedVersionIfAvailable([$entity])[$entity->id()];
-    $regions = $this->getAutoSavedVersionIfAvailable($regions);
 
     // Update the entity & auto-save it. This can update both:
     // - the component tree in the entity (using `layout` and `model`)
     // - the fields in the entity, if any (using `entity_form_fields`)
     $this->updateEntity($entity, $main_content_layout, $model, $entity_form_fields, $preview_entity);
     $this->autoSaveManager->saveEntity($entity, $clientInstanceId);
-
-    // Update all PageRegions' component trees.
-    foreach ($region_layouts as $client_side_region_id => $region_layout) {
-      $regions[$client_side_region_id] = $regions[$client_side_region_id]->forAutoSaveData([
-        'layout' => $region_layout['components'],
-        'model' => self::extractModelForSubtree($region_layout, (array) $model),
-      ], validate: FALSE);
-      $this->autoSaveManager->saveEntity($regions[$client_side_region_id], $clientInstanceId);
-    }
 
     return new PreviewEnvelope(
       $this->buildPreviewRenderable($entity, $preview_entity),
@@ -636,37 +565,12 @@ final class ApiLayoutController {
     ]);
   }
 
-  private static function extractModelForSubtree(array $initial_layout_node, array $full_model): array {
-    $node_model = [];
-    if ($initial_layout_node['nodeType'] === 'component') {
-      foreach ($initial_layout_node['slots'] as $slot) {
-        $node_model = \array_merge($node_model, self::extractModelForSubtree($slot, $full_model));
-      }
-    }
-    elseif ($initial_layout_node['nodeType'] === 'region' || $initial_layout_node['nodeType'] === 'slot') {
-      foreach ($initial_layout_node['components'] as $component) {
-        if (isset($full_model[$component['uuid']])) {
-          $node_model[$component['uuid']] = $full_model[$component['uuid']];
-        }
-        $node_model = \array_merge($node_model, self::extractModelForSubtree($component, $full_model));
-      }
-    }
-    return $node_model;
-  }
-
-  private function buildLayoutAndModel(FieldableEntityInterface|ContentTemplate $entity, array $regions, ?FieldableEntityInterface $preview_entity = NULL): array {
+  private function buildLayoutAndModel(FieldableEntityInterface|ContentTemplate $entity, ?FieldableEntityInterface $preview_entity = NULL): array {
     $data = ['layout' => [], 'model' => []];
-    // Build the content region.
+    // Build the single content region.
     $tree = $this->componentTreeLoader->load($entity);
     $data['layout'] = [$this->buildRegion(CanvasPageVariant::MAIN_CONTENT_REGION, $tree, $data['model'], $preview_entity)];
     \assert(\is_array($data['model']));
-    $this->addGlobalRegions($regions, $data['model'], $data['layout'], includeAllRegions: TRUE);
-    $layout_keyed_by_region = array_combine(\array_map(static fn($region) => $region['id'], $data['layout']), $data['layout']);
-    // Reorder the layout to match theme order.
-    $data['layout'] = array_values(array_replace(
-      array_intersect_key(array_flip($this->regionsClientSideIds), $layout_keyed_by_region),
-      $layout_keyed_by_region
-    ));
     return $data;
   }
 
@@ -681,15 +585,12 @@ final class ApiLayoutController {
   }
 
   /**
-   * @return \Drupal\canvas\Entity\PageRegion[]
-   *   The editable regions for the active theme, or empty if global regions
-   *   should not be included for the given entity.
+   * @return array<never>
+   *   Always empty: page variants replaced editable global regions. The
+   *   surrounding chrome is a page variant, edited separately from the content.
    */
   private static function getEditableRegions(ContentTemplate|FieldableEntityInterface $entity): array {
-    if (!self::shouldIncludeGlobalRegions($entity)) {
-      return [];
-    }
-    return array_filter(PageRegion::loadForActiveTheme(), fn(PageRegion $region) => $region->access('update'));
+    return [];
   }
 
   /**
