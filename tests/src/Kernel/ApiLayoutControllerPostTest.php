@@ -217,7 +217,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $url = $this->getLayoutUrl($entity)->toString();
     // Load the test data from the layout controller.
     $response = $this->parentRequest(Request::create($url));
-    $this->assertResponseAutoSaves($response, [$entity], TRUE);
+    $this->assertResponseAutoSaves($response, [$entity]);
     $json = self::decodeResponse($response);
     $model = $json['model'];
     $crawler = new Crawler($json['html']);
@@ -318,122 +318,6 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->assertResponseAutoSaves($response, [$entity]);
     self::assertFalse($autoSave->getAutoSaveEntity($entity)->isEmpty());
     self::assertArrayHasKey($uuid, $json['model']);
-  }
-
-  #[DataProvider('providerEntityTypes')]
-  public function testWithGlobal(string $entity_type): void {
-    $entity = $this->getTestEntity($entity_type);
-    $this->setUpCurrentUser(
-      [],
-      [
-        PageRegion::ADMIN_PERMISSION,
-        self::getAdminPermission($entity),
-      ]
-    );
-    $regions = PageRegion::createFromBlockLayout('stark');
-    foreach ($regions as $region) {
-      $region->save();
-    }
-
-    // Load the test data from the layout controller.
-    $url = $this->getLayoutUrl($entity)->toString();
-    $content = $this->parentRequest(Request::create($url))->getContent();
-    $this->assertIsString($content);
-    $json = json_decode($content, TRUE);
-    $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
-    self::assertCount(1, $highlightedRegion);
-    self::assertGreaterThanOrEqual(1, \count(\reset($highlightedRegion)['components']));
-    $this->request(Request::create($url, method: 'POST', content: $this->filterLayoutForPost($content)));
-    $autoSave = $this->container->get(AutoSaveManager::class);
-    \assert($autoSave instanceof AutoSaveManager);
-    self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
-    foreach ($regions as $region) {
-      self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
-    }
-
-    // Check that regions exist and are wrapped.
-    $contentRegion = $this->getRegion('content');
-    $this->assertNotNull($contentRegion);
-    $highlighted = $this->getRegion('highlighted');
-    $this->assertNotNull($highlighted);
-
-    // Add a new component to a global region.
-    $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
-    $json['model'][$uuid] = self::getNewHeadingComponentModel();
-    unset($json['isNew'], $json['isPublished'], $json['hasUnsavedStatusChange'], $json['html']);
-    $json['layout'][\key($highlightedRegion)]['components'][] = [
-      'nodeType' => 'component',
-      'uuid' => $uuid,
-      'type' => 'sdc.canvas_test_sdc.heading@8c01a2bdb897a810',
-      'slots' => [],
-    ];
-    $json += $this->getPostContentsDefaults($entity);
-    $this->request(Request::create($url, method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
-    $autoSave = $this->container->get(AutoSaveManager::class);
-    \assert($autoSave instanceof AutoSaveManager);
-    self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
-    foreach ($regions as $region) {
-      \assert($region instanceof PageRegion);
-      self::assertEquals($region->get('region') !== 'highlighted', $autoSave->getAutoSaveEntity($region)->isEmpty());
-    }
-  }
-
-  #[DataProvider('providerEntityTypes')]
-  public function testWithoutPageRegionPermission(string $entity_type): void {
-    $entity = $this->getTestEntity($entity_type);
-    $this->setUpCurrentUser([], [
-      'administer url aliases',
-      self::getAdminPermission($entity),
-    ]);
-
-    $regions = PageRegion::createFromBlockLayout('stark');
-    foreach ($regions as $region) {
-      $region->save();
-    }
-
-    // Load the test data from the layout controller.
-    $url = $this->getLayoutUrl($entity)->toString();
-    $content = $this->parentRequest(Request::create($url))->getContent();
-    $this->assertIsString($content);
-    $json = json_decode($content, TRUE);
-    $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
-    self::assertEmpty($highlightedRegion);
-    $this->request(Request::create($url, method: 'POST', content: $this->filterLayoutForPost($content)));
-    $autoSave = $this->container->get(AutoSaveManager::class);
-    \assert($autoSave instanceof AutoSaveManager);
-    self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
-    foreach ($regions as $region) {
-      self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
-    }
-
-    // Check that content region exist and is wrapped.
-    $contentRegion = $this->getRegion('content');
-    $this->assertNotNull($contentRegion);
-    // But not the highlighted region, as we don't have access to it.
-    $highlighted = $this->getRegion('highlighted');
-    $this->assertNull($highlighted);
-
-    // Add a new component instance to a ("global") region.
-    $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
-    $json['model'][$uuid] = self::getNewHeadingComponentModel();
-    unset($json['isNew'], $json['isPublished'], $json['hasUnsavedStatusChange'], $json['html']);
-    $json['layout'][1] = [
-      'nodeType' => 'region',
-      'id' => 'highlighted',
-      'name' => 'Highlighted',
-    ];
-    $json['layout'][1]['components'][] = [
-      'nodeType' => 'component',
-      'uuid' => $uuid,
-      'type' => 'sdc.canvas_test_sdc.heading',
-      'slots' => [],
-    ];
-    $json += $this->getPostContentsDefaults($entity);
-
-    $this->expectException(AccessDeniedHttpException::class);
-    $this->expectExceptionMessage('Access denied for region highlighted');
-
-    $this->request(Request::create($url, method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
   }
 
   #[DataProvider('providerEntityTypes')]

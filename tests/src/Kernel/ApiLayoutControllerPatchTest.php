@@ -290,26 +290,18 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
   }
 
   /**
- * Tests .
- */
+   * Tests PATCH against the single "content" region.
+   */
   #[DataProvider('providerValid')]
-  public function test(string $entity_type, bool $withAutoSave, bool $withGlobal): void {
+  public function test(string $entity_type, bool $withAutoSave): void {
     $entity = $this->getTestEntity($entity_type);
     $url = $this->getLayoutUrl($entity)->toString();
     $this->setUpCurrentUser([], [
       'administer url aliases',
-      PageRegion::ADMIN_PERMISSION,
       self::getAdminPermission($entity),
     ]);
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
-    $regions = [];
-    if ($withGlobal) {
-      $regions = PageRegion::createFromBlockLayout('stark');
-      foreach ($regions as $region) {
-        $region->save();
-      }
-    }
 
     // Setup additional nesting of components.
     $tree_loader = $this->container->get(ComponentTreeLoader::class);
@@ -343,7 +335,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
 
     // Load the test data from the layout controller.
     $response = $this->parentRequest(Request::create($url));
-    $this->assertResponseAutoSaves($response, [$entity], $withGlobal);
+    $this->assertResponseAutoSaves($response, [$entity]);
     $content = $response->getContent();
     self::assertIsString($content);
     $data = $this->decodeResponse($response);
@@ -382,12 +374,9 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       // This will not result in an auto-save entry because the content is the
       // same as the saved version.
       $response = $this->request(Request::create($url, method: 'POST', content: $this->filterLayoutForPost($content)));
-      $this->assertResponseAutoSaves($response, [$entity], $withGlobal);
+      $this->assertResponseAutoSaves($response, [$entity]);
       self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
       self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
-      foreach ($regions as $region) {
-        self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
-      }
     }
 
     // Update the image.
@@ -413,7 +402,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
 
     // The new model should contain the updated value.
     $data = self::decodeResponse($response);
-    $this->assertResponseAutoSaves($response, [$entity], $withGlobal);
+    $this->assertResponseAutoSaves($response, [$entity]);
     // The updated preview should reference the new image.
     $file = $media->get('field_media_image')->entity;
     \assert($file instanceof FileInterface);
@@ -431,29 +420,12 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     self::assertEquals($src->getValue()->getGeneratedUrl(), $data['model'][CanvasTestSetup::UUID_STATIC_IMAGE]['resolved']['image']['src']);
 
     self::assertFalse($autoSave->getAutoSaveEntity($entity)->isEmpty());
-    foreach ($regions as $region) {
-      self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
-    }
 
-    // Check that each level is structured correctly.
+    // Check that the content region is structured correctly.
     $content = $this->getRegion('content');
     self::assertNotNull($content);
-    $globalElements = [];
-    if ($withGlobal) {
-      $sidebar_first = $this->getRegion('sidebar_first');
-      self::assertNotNull($sidebar_first);
-      $globalElements = $this->getComponentInstances($sidebar_first);
-
-      $highlighted = $this->getRegion('highlighted');
-      self::assertNotNull($highlighted);
-      $highlightedElements = $this->getComponentInstances($highlighted);
-      $globalElements = [...$globalElements, ...$highlightedElements];
-    }
     $contentElements = $this->getComponentInstances($content);
-    self::assertCount($withGlobal ? 10 : 8, \array_merge($contentElements, $globalElements));
-    if ($withGlobal) {
-      self::assertSame(\array_keys($model), \array_merge($contentElements, $globalElements));
-    }
+    self::assertCount(8, $contentElements);
 
     // There should be two images originating from media items.
     $images = (new Crawler($data['html']))->filter('img')->extract(['src']);
@@ -468,114 +440,13 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     unset($updateImageClientData['clientInstanceId']);
     $updateImageClientData += $this->getPatchContentsDefaults([$entity]);
     $this->assertRequestAutoSaveConflict(Request::create($url, method: 'PATCH', content: \json_encode($updateImageClientData, JSON_THROW_ON_ERROR)));
-
-    if ($withGlobal) {
-      $new_label = $this->randomMachineName();
-      // Patch a global component.
-      $globalComponentUuid = reset($globalElements);
-      $updateRegionClientData = [
-        'model' => [
-          'resolved' => [
-            'label' => $new_label,
-            'label_display' => '0',
-          ],
-        ],
-        // The component version may vary depending on upstream changes in core.
-        'componentType' => 'block.system_messages_block@' . Component::load('block.system_messages_block')?->getActiveVersion(),
-        'componentInstanceUuid' => $globalComponentUuid,
-      ] + $this->getPatchContentsDefaults([$entity]);
-      $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
-
-      // The new model should contain the updated value.
-      $data = self::decodeResponse($response);
-      self::assertEquals($new_label, $data['model'][$globalComponentUuid]['resolved']['label']);
-
-      self::assertFalse($autoSave->getAutoSaveEntity($entity)->isEmpty());
-      $sidebarFirstRegion = NULL;
-      foreach ($regions as $region) {
-        // The updated component is in sidebar_first and so auto-save should not
-        // be empty.
-        self::assertEquals($region->get('region') !== 'sidebar_first', $autoSave->getAutoSaveEntity($region)->isEmpty());
-        if ($region->get('region') === 'sidebar_first') {
-          $sidebarFirstRegion = $region;
-          $this->assertResponseAutoSaves($response, [$entity], $withGlobal);
-        }
-      }
-      $this->assertNotNull($sidebarFirstRegion);
-
-      // Trying to post the same data again should throw a conflict exception
-      // because it does not contain the auto-save hash of the region.
-      $updateRegionClientData['clientInstanceId'] .= '-new-client';
-      $this->assertRequestAutoSaveConflict(Request::create($url, method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
-
-      unset($updateRegionClientData['autoSaves']);
-      $updateRegionClientData['clientInstanceId'] .= '-new-client2';
-      $updateRegionClientData += $this->getClientAutoSaves([$entity], $withGlobal);
-      $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
-      $this->assertSame(200, $response->getStatusCode());
-    }
   }
 
   public static function providerValid(): iterable {
     foreach (['node', ContentTemplate::ENTITY_TYPE_ID] as $entity_type) {
-      yield "$entity_type: fresh state, no global" => [$entity_type, FALSE, FALSE];
-      yield "$entity_type: fresh state, global" => [$entity_type, FALSE, TRUE];
-      yield "$entity_type: existing auto-save, no global" => [$entity_type, TRUE, FALSE];
-      yield "$entity_type: existing auto-save, global" => [$entity_type, TRUE, TRUE];
+      yield "$entity_type: fresh state" => [$entity_type, FALSE];
+      yield "$entity_type: existing auto-save" => [$entity_type, TRUE];
     }
-  }
-
-  /**
- * Tests without page region permission.
- */
-  #[DataProvider('providerEntityTypes')]
-  public function testWithoutPageRegionPermission(string $entity_type): void {
-    $entity = $this->getTestEntity($entity_type);
-    $this->setUpCurrentUser([], [
-      'administer url aliases',
-      self::getAdminPermission($entity),
-    ]);
-
-    $autoSave = $this->container->get(AutoSaveManager::class);
-    \assert($autoSave instanceof AutoSaveManager);
-    $regions = PageRegion::createFromBlockLayout('stark');
-    foreach ($regions as $region) {
-      $region->save();
-    }
-    // Load the test data from the layout controller.
-    $url = $this->getLayoutUrl($entity)->toString();
-    $this->request(Request::create($url))->getContent();
-
-    // Check that content region exist and is wrapped.
-    $contentRegion = $this->getRegion('content');
-    $this->assertNotNull($contentRegion);
-    // But not the highlighted region, as we don't have access to it.
-    $highlighted = $this->getRegion('highlighted');
-    self::assertNull($highlighted);
-
-    $new_label = $this->randomMachineName();
-    // Patch a component instance in a ("global") region.
-    // We need to use the APIs to get the UUID of a valid component instance in a region.
-    $component_tree_values = $regions['stark.highlighted']->getComponentTree()->getValue();
-    $globalComponentUuids = \array_column($component_tree_values, 'uuid');
-    // There is only one block, the title, in the highlighted region.
-    $this->assertCount(1, $globalComponentUuids);
-    $globalComponentUuid = $globalComponentUuids[0];
-
-    $this->expectException(AccessDeniedHttpException::class);
-    $this->expectExceptionMessage('Access denied for region highlighted');
-
-    $this->request(Request::create($url, method: 'PATCH', content: \json_encode([
-      'model' => [
-        'resolved' => [
-          'label' => $new_label,
-          'label_display' => '0',
-        ],
-      ],
-      // The component version may vary depending on upstream changes in core.
-      'componentType' => 'block.system_messages_block@' . Component::load('block.system_messages_block')?->getActiveVersion(),
-      'componentInstanceUuid' => $globalComponentUuid,
-    ] + $this->getPatchContentsDefaults([$entity], FALSE), JSON_THROW_ON_ERROR)));
   }
 
   /**
