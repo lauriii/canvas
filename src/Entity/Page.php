@@ -149,6 +149,15 @@ final class Page extends EditorialContentEntityBase implements EntityOwnerInterf
         'label' => 'hidden',
         'type' => 'canvas_naive_render_sdc_tree',
       ]);
+    $fields['page_variant'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('Page variant'))
+      ->setDescription(t('The machine name of the page variant that renders this page. Empty uses the site default.'))
+      ->setRevisionable(TRUE)
+      ->setSetting('max_length', 255)
+      ->setDisplayOptions('form', [
+        'type' => 'string_textfield',
+      ])
+      ->setDisplayConfigurable('form', TRUE);
     // @see path_entity_base_field_info().
     $fields['path'] = BaseFieldDefinition::create('path')
       ->setLabel(t('URL alias'))

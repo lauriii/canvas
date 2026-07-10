@@ -68,6 +68,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     'content_entity_type_view_mode',
     'component_tree',
     'exposed_slots',
+    'page_variant',
   ],
 )]
 final class ContentTemplate extends ComponentTreeConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, EntityViewDisplayInterface, AutoSavePublishAwareInterface {
@@ -110,6 +111,11 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
    * @var ?array<string, array{'component_uuid': string, 'slot_name': string, 'label': string}>
    */
   protected ?array $exposed_slots = [];
+
+  /**
+   * The machine name of the selected page variant, or NULL for the default.
+   */
+  protected ?string $page_variant = NULL;
 
   /**
    * Disabled by default.
@@ -210,7 +216,24 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     $view_mode = $this->getViewMode();
     $this->addDependency($view_mode->getConfigDependencyKey(), $view_mode->getConfigDependencyName());
 
+    // Depend on the selected page variant, if any. Deleting that variant
+    // triggers ::onDependencyRemoval() to drop the selection rather than
+    // cascade-deleting this template.
+    if ($this->page_variant !== NULL) {
+      $variant = PageVariant::load($this->page_variant);
+      if ($variant !== NULL) {
+        $this->addDependency($variant->getConfigDependencyKey(), $variant->getConfigDependencyName());
+      }
+    }
+
     return $this;
+  }
+
+  /**
+   * Returns the machine name of the selected page variant, or NULL.
+   */
+  public function getPageVariant(): ?string {
+    return $this->page_variant;
   }
 
   /**
@@ -407,6 +430,21 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     }
     if ($changed) {
       $this->setComponentTree($tree->getValue());
+    }
+
+    // Drop a stale page variant selection instead of letting the config
+    // dependency system cascade-delete this template when the selected variant
+    // is removed.
+    if ($this->page_variant !== NULL && isset($dependencies['config'])) {
+      $variant_config_name = 'canvas.' . PageVariant::ENTITY_TYPE_ID . '.' . $this->page_variant;
+      foreach ($dependencies['config'] as $dependency) {
+        $name = $dependency instanceof ConfigEntityInterface ? $dependency->getConfigDependencyName() : $dependency;
+        if ($name === $variant_config_name) {
+          $this->set('page_variant', NULL);
+          $changed = TRUE;
+          break;
+        }
+      }
     }
 
     $changed |= parent::onDependencyRemoval($dependencies);

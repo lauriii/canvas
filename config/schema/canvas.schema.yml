@@ -353,6 +353,44 @@ canvas.page_region.*:
       # A region that is left empty may be `null`.
       nullable: true
 
+canvas.page_variant.*:
+  type: config_entity
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    id:
+      type: machine_name
+      label: 'ID'
+    label:
+      type: required_label
+      label: 'Label'
+    description:
+      type: text
+      label: 'Description'
+      nullable: true
+    component_tree:
+      type: canvas.component_tree
+      # A variant with no components yet may be `null`.
+      nullable: true
+
+# Site-wide Drupal Canvas settings.
+canvas.settings:
+  type: config_object
+  label: 'Drupal Canvas settings'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    default_page_variant:
+      type: string
+      label: 'Default page variant'
+      # The machine name of the page_variant that renders everything without an
+      # explicit selection. `null` means no default: pages render through core
+      # block layout.
+      nullable: true
+      constraints:
+        Regex:
+          pattern: '/^[a-z0-9_]+$/'
+
 # The config equivalent of a ComponentTreeItemList, validated by the same constraints.
 # This is a list of component items in a tree, one item per component instance.
 # @see `ComponentTreeItemKeyedSequence` in ComponentTreeConfigEntityBase
@@ -1115,6 +1153,15 @@ canvas.content_template.*.*.*:
           # @see \Drupal\canvas\Plugin\Validation\Constraint\ValidSlotNameConstraint::VALID_NAME
           pattern: '/^[a-z0-9]+([a-z0-9_-]+)[a-z0-9]+$/'
           message: "%value is not a valid exposed slot name."
+    page_variant:
+      type: string
+      label: 'Page variant'
+      # The machine name of the page_variant that renders content using this
+      # template. `null` uses the site default.
+      nullable: true
+      constraints:
+        Regex:
+          pattern: '/^[a-z0-9_]+$/'
 
 canvas.staged_config_update.*:
   type: config_entity
