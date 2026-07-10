@@ -77,6 +77,8 @@ canvas.component.*:
           - block
           # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
           - marker
+          # @see \Drupal\canvas_page_template_component\Plugin\Canvas\ComponentSource\ThemePageTemplate
+          - theme_page_template
     source_local_id:
       type: canvas.component_source_local_id.[%parent.source]
     versioned_properties:
@@ -790,6 +792,24 @@ canvas.component_source_local_id.marker:
 canvas.component_source_settings.marker:
   type: canvas.component_source_settings.*
   label: 'Marker component settings'
+  constraints:
+    FullyValidatable: ~
+
+# Theme page template components (one per installed theme, provided by the
+# optional canvas_page_template_component module). The source-local ID is the
+# theme's machine name.
+# @see \Drupal\canvas_page_template_component\Plugin\Canvas\ComponentSource\ThemePageTemplate
+canvas.component_source_local_id.theme_page_template:
+  type: canvas.component_source_local_id.*
+  label: 'Theme'
+  constraints:
+    FullyValidatable: ~
+    Regex:
+      pattern: '/^[a-z][a-z0-9_]*$/'
+      message: 'The %value theme machine name is not valid.'
+canvas.component_source_settings.theme_page_template:
+  type: canvas.component_source_settings.*
+  label: 'Theme page template component settings'
   constraints:
     FullyValidatable: ~
 
