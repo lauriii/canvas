@@ -7,9 +7,11 @@ namespace Drupal\canvas\Plugin\DisplayVariant;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
-use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Display\Attribute\PageDisplayVariant;
 use Drupal\Core\Display\PageVariantInterface;
 use Drupal\Core\Display\VariantBase;
@@ -75,6 +77,11 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
   public const string PREVIEW_KEY = 'preview';
 
   /**
+   * The plugin configuration key whose value is the page variant id to render.
+   */
+  public const string VARIANT_ID_KEY = 'page_variant';
+
+  /**
    * The (machine) name of the only theme region required to exist.
    *
    * See detailed analysis in the class-level documentation.
@@ -130,83 +137,85 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
    * {@inheritdoc}
    */
   public function build() {
-    $build = [];
     \assert(\is_bool($this->configuration[self::PREVIEW_KEY]) || \is_null($this->configuration[self::PREVIEW_KEY]));
     $is_preview = $this->configuration[self::PREVIEW_KEY] === TRUE;
 
-    $build['#attached']['library'][] = 'canvas/asset_library.' . AssetLibrary::GLOBAL_ID .
-      ($is_preview ? '.draft' : '');
-    $build['#attached']['library'][] = 'canvas/brand_kit.' . BrandKit::GLOBAL_ID .
-      ($is_preview ? '.draft' : '');
-
-    $regions = PageRegion::loadForActiveTheme();
-    if (empty($regions)) {
-      throw new \LogicException('This page display variant needs Drupal Canvas PageRegion config entities.');
+    $variant_id = $this->configuration[self::VARIANT_ID_KEY] ?? NULL;
+    \assert(\is_string($variant_id));
+    $variant = PageVariant::load($variant_id);
+    if (!$variant instanceof PageVariant) {
+      throw new \LogicException(\sprintf('The "%s" page variant does not exist.', $variant_id));
     }
 
-    \assert(!empty($this->title));
+    // In preview, render the auto-saved draft of the variant if one exists.
+    if ($is_preview) {
+      $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($variant);
+      if (!$autoSaveData->isEmpty() && $autoSaveData->entity instanceof PageVariant) {
+        $variant = $autoSaveData->entity;
+      }
+    }
+
     \assert(!empty($this->mainContent));
+
+    $component_tree = $variant->getComponentTree();
 
     // Track whether a block showing the messages is displayed.
     $messages_block_displayed = FALSE;
 
-    foreach ($regions as $region) {
-      // If we are in preview mode replace the region with the auto-saved
-      // version if any.
-      if ($is_preview) {
-        $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($region);
-        if (!$autoSaveData->isEmpty()) {
-          \assert($autoSaveData->entity instanceof PageRegion);
-          $violations = $autoSaveData->entity->getTypedData()->validate();
-          if (\count($violations) === 0) {
-            // The auto-save entry is valid, so use it instead.
-            $region = $autoSaveData->entity;
-          }
-        }
-      }
-
-      $component_tree = $region->getComponentTree();
-
-      // Render the component tree in a PHP fiber to allow injecting page-level
-      // information (title, which originates from the matched route's
-      // controller) into special Canvas Components.
-      // @see \Drupal\Core\Display\PageVariantInterface
-      // @see \Drupal\Core\Block\TitleBlockPluginInterface
-      // @see \Drupal\canvas\ComponentSource\ComponentSourceInterface::renderComponent()
-      // @see \Drupal\block\Plugin\DisplayVariant\BlockPageVariant::build()
-      $fiber = new \Fiber(fn() => $component_tree->toRenderable($region, $is_preview));
-      $component_instance = $fiber->start();
-      while ($fiber->isSuspended()) {
-        $component_instance = match (TRUE) {
-          // Page-level information: the title.
-          $component_instance instanceof TitleBlockPluginInterface => (function () use ($component_instance, $fiber) {
-            $component_instance->setTitle($this->title);
-            return $fiber->resume();
-          })(),
-          $component_instance instanceof MessagesBlockPluginInterface => (function () use ($fiber, &$messages_block_displayed) {
-            $messages_block_displayed = TRUE;
-            return $fiber->resume();
-          })(),
-          // If fiber was suspended in some other context (e.g. while loading
-          // entities) resume it to continue component tree rendering.
-          default => $fiber->resume(),
-        };
-      }
-      \assert($fiber->isTerminated());
-      $build[$region->get('region')] = $fiber->getReturn();
+    // Render the variant's component tree in a PHP fiber so page-level
+    // information can be injected into special Canvas Components: the title and
+    // messages blocks receive their data, and the "Page content" marker is
+    // replaced with the route's main content.
+    // @see \Drupal\Core\Display\PageVariantInterface
+    // @see \Drupal\canvas\ComponentSource\ComponentSourceInterface::renderComponent()
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::renderComponent()
+    $fiber = new \Fiber(fn() => $component_tree->toRenderable($variant, $is_preview));
+    $component_instance = $fiber->start();
+    while ($fiber->isSuspended()) {
+      $component_instance = match (TRUE) {
+        // Page-level information: the title.
+        $component_instance instanceof TitleBlockPluginInterface => (function () use ($component_instance, $fiber) {
+          $component_instance->setTitle($this->title);
+          return $fiber->resume();
+        })(),
+        $component_instance instanceof MessagesBlockPluginInterface => (function () use ($fiber, &$messages_block_displayed) {
+          $messages_block_displayed = TRUE;
+          return $fiber->resume();
+        })(),
+        // The "Page content" marker: inject the route's main content in place.
+        $component_instance instanceof Marker => $fiber->resume($this->mainContent),
+        // If the fiber was suspended in some other context (e.g. while loading
+        // entities) resume it to continue component tree rendering.
+        default => $fiber->resume(),
+      };
     }
+    \assert($fiber->isTerminated());
+    $content = $fiber->getReturn();
 
-    // Now render the special "content" region.
-    // @see ::MAIN_CONTENT_REGION
-    $build[self::MAIN_CONTENT_REGION]['system_main'] = $this->mainContent;
-    // If no block displays status messages, still render them.
+    // If no block displays status messages, still render them, above the page.
     if (!$messages_block_displayed) {
-      $build[self::MAIN_CONTENT_REGION]['messages'] = [
-        '#weight' => -1000,
-        '#type' => 'status_messages',
-        '#include_fallback' => TRUE,
+      $content = [
+        'messages' => [
+          '#weight' => -1000,
+          '#type' => 'status_messages',
+          '#include_fallback' => TRUE,
+        ],
+        'content' => $content,
       ];
     }
+
+    // The variant tree is the whole page body: render it through the bare page
+    // template, replacing the theme's page.html.twig.
+    // @see \Drupal\canvas\Hook\ModuleHooks::theme()
+    $build = [
+      '#theme' => 'canvas_page_variant',
+      '#content' => $content,
+    ];
+    $build['#attached']['library'][] = 'canvas/asset_library.' . AssetLibrary::GLOBAL_ID .
+      ($is_preview ? '.draft' : '');
+    $build['#attached']['library'][] = 'canvas/brand_kit.' . BrandKit::GLOBAL_ID .
+      ($is_preview ? '.draft' : '');
+    CacheableMetadata::createFromObject($variant)->applyTo($build);
 
     return $build;
   }

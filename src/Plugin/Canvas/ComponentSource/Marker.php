@@ -92,9 +92,16 @@ final class Marker extends ComponentSourceBase {
    */
   public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview): array {
     // A marker renders nothing on its own. In a page variant, the renderer
-    // replaces it with the route's main content.
-    // @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant
-    return [];
+    // injects the route's main content in its place by resuming the fiber with
+    // that content. Suspending yields this source so the variant can recognize
+    // the marker. Outside the variant fiber (for example a client-side preview
+    // build) the marker is an empty placeholder.
+    // @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
+    if (\Fiber::getCurrent() === NULL) {
+      return [];
+    }
+    $injected = \Fiber::suspend($this);
+    return \is_array($injected) ? $injected : [];
   }
 
   /**
