@@ -9,6 +9,7 @@ import {
   CodeIcon,
   FileTextIcon,
   LayersIcon,
+  LayoutIcon,
   PlusIcon,
 } from '@radix-ui/react-icons';
 import { Button, Flex, Tooltip } from '@radix-ui/themes';
@@ -147,6 +148,14 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       label: 'Templates',
       enabled: true,
       hidden: !hasPermission('contentTemplates'),
+    },
+    {
+      type: 'button',
+      id: 'pageVariants',
+      icon: <LayoutIcon />,
+      label: 'Page variants',
+      enabled: true,
+      hidden: !hasPermission('pageVariants'),
     },
     {
       type: 'separator',

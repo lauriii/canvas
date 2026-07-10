@@ -9,6 +9,7 @@ import ExtensionsList from '@/components/extensions/ExtensionsList';
 import Code from '@/components/sidePanel/Code';
 import Library from '@/components/sidePanel/Library';
 import Pages from '@/components/sidePanel/Pages';
+import PageVariants from '@/components/sidePanel/PageVariants';
 import Templates from '@/components/sidePanel/Templates';
 import BrandKitPanel from '@/features/brandKit/BrandKitPanel';
 import Layers from '@/features/layout/layers/Layers';
@@ -50,6 +51,7 @@ export const PrimaryPanel = () => {
     aiWizard: 'AI',
     templates: 'Templates',
     pages: 'Pages',
+    pageVariants: 'Page variants',
   };
 
   return (
@@ -105,6 +107,11 @@ export const PrimaryPanel = () => {
                 {activePanel === 'pages' && (
                   <ErrorBoundary>
                     <Pages />
+                  </ErrorBoundary>
+                )}
+                {activePanel === 'pageVariants' && (
+                  <ErrorBoundary>
+                    <PageVariants />
                   </ErrorBoundary>
                 )}
                 {activePanel === 'extensions' && (

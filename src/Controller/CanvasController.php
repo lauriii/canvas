@@ -14,6 +14,7 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Extension\CanvasExtensionPluginManager;
 use Drupal\canvas\Extension\CanvasExtensionTypeEnum;
@@ -252,6 +253,7 @@ HTML;
             'canvasModulePath' => $canvas_module_path,
             'permissions' => [
               'globalRegions' => $this->currentUser->hasPermission(PageRegion::ADMIN_PERMISSION),
+              'pageVariants' => $this->currentUser->hasPermission(PageVariant::ADMIN_PERMISSION),
               'patterns' => $this->currentUser->hasPermission(Pattern::ADMIN_PERMISSION),
               'brandKit' => $this->currentUser->hasPermission(BrandKit::ADMIN_PERMISSION),
               'codeComponents' => $this->currentUser->hasPermission(JavaScriptComponent::ADMIN_PERMISSION),
