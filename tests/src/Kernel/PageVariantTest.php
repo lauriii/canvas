@@ -223,18 +223,18 @@ final class PageVariantTest extends CanvasKernelTestBase {
    * Tests that clearing the default lifts the guard and the variant deletes.
    */
   public function testDefaultVariantDeletesOnceCleared(): void {
-    $variant = PageVariant::create(['id' => 'clearme', 'label' => 'Clear me', 'component_tree' => [self::markerInstance()]]);
+    $variant = PageVariant::create(['id' => 'cleared', 'label' => 'Clear me', 'component_tree' => [self::markerInstance()]]);
     $variant->save();
-    $this->config('canvas.settings')->set(PageVariant::DEFAULT_SETTING, 'clearme')->save();
+    $this->config('canvas.settings')->set(PageVariant::DEFAULT_SETTING, 'cleared')->save();
 
     // Clearing the default lifts the guard.
     $this->config('canvas.settings')->set(PageVariant::DEFAULT_SETTING, NULL)->save();
-    $variant = PageVariant::load('clearme');
+    $variant = PageVariant::load('cleared');
     self::assertInstanceOf(PageVariant::class, $variant);
     self::assertFalse($variant->isSiteDefault());
 
     $variant->delete();
-    self::assertNull(PageVariant::load('clearme'));
+    self::assertNull(PageVariant::load('cleared'));
   }
 
   /**
@@ -375,13 +375,13 @@ final class PageVariantTest extends CanvasKernelTestBase {
    * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
    */
   public function testDisplayVariantInjectsMainContentAtMarker(): void {
-    PageVariant::create(['id' => 'renderme', 'label' => 'Render me', 'component_tree' => [self::markerInstance()]])->save();
+    PageVariant::create(['id' => 'rendered', 'label' => 'Render me', 'component_tree' => [self::markerInstance()]])->save();
 
     $variant_manager = $this->container->get('plugin.manager.display_variant');
     self::assertInstanceOf(VariantManager::class, $variant_manager);
     $plugin = $variant_manager->createInstance(CanvasPageVariant::PLUGIN_ID, [
       CanvasPageVariant::PREVIEW_KEY => FALSE,
-      CanvasPageVariant::VARIANT_ID_KEY => 'renderme',
+      CanvasPageVariant::VARIANT_ID_KEY => 'rendered',
     ]);
     self::assertInstanceOf(CanvasPageVariant::class, $plugin);
 

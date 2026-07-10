@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import ReactDOM from 'react-dom';
-import { useParams } from 'react-router-dom';
 
 import { useAppSelector } from '@/app/hooks';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
+import { selectContentRegion } from '@/features/layout/layoutModelSlice';
 import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
 import {
-  DEFAULT_REGION,
   selectDragging,
   selectEditorViewPortScale,
   selectZooming,
 } from '@/features/ui/uiSlice';
-import { useEditorNavigation } from '@/hooks/useEditorNavigation';
 import useResizeObserver from '@/hooks/useResizeObserver';
 import useTransitionEndListener from '@/hooks/useTransitionEndListener';
 import useWindowResizeListener from '@/hooks/useWindowResizeListener';
@@ -36,16 +33,10 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const positionDivRef = useRef(null);
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
-  const layout = useAppSelector(selectLayout);
+  const contentRegion = useAppSelector(selectContentRegion);
   const [rect, setRect] = useState<Rect | null>(null);
   const { treeDragging } = useAppSelector(selectDragging);
   const isZooming = useAppSelector(selectZooming);
-  const { setSelectedRegion } = useEditorNavigation();
-  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
-
-  const displayedRegions = layout.filter((region) => {
-    return region.components.length > 0 || region.id === DEFAULT_REGION;
-  });
 
   const updateRect = useCallback(() => {
     // The top and left must equal the distance from the parent (positionAnchor, which is always static) to the iFrame.
@@ -100,15 +91,6 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
     updateRect();
   }, [previewContainerRef, updateRect, editorViewPortScale]);
 
-  // When double-clicking "outside" the focused region, set the focus back to the default region (by navigating to /editor).
-  function handleDoubleClick(event: React.MouseEvent<HTMLDivElement>) {
-    event.stopPropagation();
-    if (focusedRegion !== DEFAULT_REGION) {
-      // Navigate back to the default region if we are currently focused in a specific region
-      setSelectedRegion(DEFAULT_REGION);
-    }
-  }
-
   if (!portalRoot || !rect || treeDragging) return null;
 
   // This overlay is portalled and rendered higher up the DOM tree to ensure that when the editor frame is zoomed, the UI
@@ -119,7 +101,6 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
       className={clsx('canvas--viewport-overlay', styles.viewportOverlay, {
         [styles.isZooming]: isZooming,
       })}
-      onDoubleClick={handleDoubleClick}
       style={{
         top: `${rect.top}px`,
         left: `${rect.left}px`,
@@ -127,15 +108,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
         height: `${rect.height}px`,
       }}
     >
-      {displayedRegions.map((region) => (
-        <RegionOverlay
-          iframeRef={iframeRef}
-          region={region}
-          regionId={region.id}
-          key={region.id}
-          regionName={region.name}
-        />
-      ))}
+      <RegionOverlay iframeRef={iframeRef} region={contentRegion} />
     </div>,
     portalRoot,
   );

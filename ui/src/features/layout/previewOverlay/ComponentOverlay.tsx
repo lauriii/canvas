@@ -9,6 +9,7 @@ import { ComponentNameTag } from '@/features/layout/preview/NameTag';
 import ComponentDropZone from '@/features/layout/previewOverlay/ComponentDropZone';
 import SlotOverlay from '@/features/layout/previewOverlay/SlotOverlay';
 import {
+  DEFAULT_REGION,
   selectComponentIsSelected,
   selectDragging,
   selectEditorViewPortScale,
@@ -25,7 +26,6 @@ import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
 import type React from 'react';
 import type {
   ComponentNode,
-  RegionNode,
   SlotNode,
 } from '@/features/layout/layoutModelSlice';
 import type { StackDirection } from '@/types/Annotations';
@@ -36,7 +36,6 @@ export interface ComponentOverlayProps {
   component: ComponentNode;
   iframeRef: React.RefObject<HTMLIFrameElement>;
   parentSlot?: SlotNode;
-  parentRegion?: RegionNode;
   index: number;
   disableDrop?: boolean;
   forceRecalculate?: number; // Increment this prop to trigger a re-calculation of the component overlay's border rect
@@ -46,7 +45,6 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const {
     component,
     parentSlot,
-    parentRegion,
     iframeRef,
     index,
     disableDrop = false,
@@ -58,10 +56,10 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
     componentsMap[component.uuid]?.elements,
   );
 
-  let parentElementInsideIframe = null;
-  if (parentRegion?.id) {
-    parentElementInsideIframe = regionsMap[parentRegion.id]?.elements;
-  }
+  // Components live either directly in the content region or inside a slot.
+  // Use the slot element when nested, otherwise the content region element.
+  let parentElementInsideIframe: HTMLElement[] | HTMLElement | null =
+    regionsMap[DEFAULT_REGION]?.elements ?? null;
   if (parentSlot?.id) {
     parentElementInsideIframe = slotsMap[parentSlot.id]?.element;
   }
@@ -239,14 +237,12 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
               component={component}
               position={stackDirection.startsWith('v') ? 'top' : 'left'}
               parentSlot={parentSlot}
-              parentRegion={parentRegion}
             />
           )}
           <ComponentDropZone
             component={component}
             position={stackDirection.startsWith('v') ? 'bottom' : 'right'}
             parentSlot={parentSlot}
-            parentRegion={parentRegion}
           />
         </>
       )}

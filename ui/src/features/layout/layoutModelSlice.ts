@@ -2,7 +2,10 @@
 import { v4 as uuidv4 } from 'uuid';
 import { createSelector, createSlice } from '@reduxjs/toolkit';
 
-import { selectEditorFrameContext } from '@/features/ui/uiSlice';
+import {
+  DEFAULT_REGION,
+  selectEditorFrameContext,
+} from '@/features/ui/uiSlice';
 import { previewApi } from '@/services/preview';
 import { hasSlotDefinitions, isPropSourceComponent } from '@/types/Component';
 import {
@@ -22,7 +25,7 @@ import {
 
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { StateWithHistory } from 'redux-undo';
-import type { AppThunk, RootState } from '@/app/store';
+import type { AppThunk } from '@/app/store';
 import type { EditorFrameContext } from '@/features/ui/uiSlice';
 import type {
   CanvasComponent,
@@ -907,17 +910,20 @@ export const selectIsInitialized = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.isInitialized;
 export const selectTranslations = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.translations;
-const selectRegion = (state: RootState, regionName: string) => regionName;
 
-export const selectLayoutForRegion = createSelector(
-  [selectLayout, selectRegion],
-  (layout: Array<RegionNode>, regionName: string) =>
-    layout.find((region) => region.id === regionName) ||
+// The editor edits a single content region (the page's, or a variant's, tree).
+// This selector returns that content region, synthesizing an empty one as a
+// fallback so consumers always have a region to render into.
+export const selectContentRegion = createSelector(
+  [selectLayout],
+  (layout: Array<RegionNode>): RegionNode =>
+    layout.find((region) => region.id === DEFAULT_REGION) ||
+    layout[0] ||
     ({
       components: [],
-      name: regionName,
-      id: regionName,
-      nodeType: 'region',
+      name: DEFAULT_REGION,
+      id: DEFAULT_REGION,
+      nodeType: NodeType.Region,
     } as RegionNode),
 );
 
@@ -926,7 +932,7 @@ export const selectLayoutForRegion = createSelector(
 const layoutUtils = {
   addNewComponentToLayout,
   addNewPatternToLayout,
-  selectLayoutForRegion,
+  selectContentRegion,
   updateExistingComponentValues,
 };
 setCanvasDrupalSetting('layoutUtils', layoutUtils);

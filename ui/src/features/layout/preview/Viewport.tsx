@@ -4,7 +4,6 @@ import { Progress } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import IframeSwapper from '@/features/layout/preview/IframeSwapper';
-import { RegionSpotlight } from '@/features/layout/preview/RegionSpotlight/RegionSpotlight';
 import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
 import {
   EditorFrameMode,
@@ -112,13 +111,10 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         interactive={editorFrameMode === EditorFrameMode.INTERACTIVE}
       />
       {editorFrameMode === EditorFrameMode.EDIT && (
-        <>
-          <ViewportOverlay
-            iframeRef={iframeRef}
-            previewContainerRef={previewContainerRef}
-          />
-          <RegionSpotlight />
-        </>
+        <ViewportOverlay
+          iframeRef={iframeRef}
+          previewContainerRef={previewContainerRef}
+        />
       )}
     </div>
   );

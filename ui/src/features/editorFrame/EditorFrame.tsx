@@ -33,7 +33,6 @@ import {
 } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
-import useLayoutWatcher from '@/hooks/useLayoutWatcher';
 import useResizeObserver from '@/hooks/useResizeObserver';
 import useSyncParamsToState from '@/hooks/useSyncParamsToState';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
@@ -52,7 +51,6 @@ const PINCH_ZOOM_SENSITIVITY = 0.01; // Using a trackpad pinch gesture
 const EditorFrame: React.FC = () => {
   const dispatch = useAppDispatch();
   useSyncParamsToState();
-  useLayoutWatcher();
   const headlessSettings = useHeadlessPreviewSettings();
   const editorFrameRef = useRef<HTMLDivElement | null>(null);
   const editorPaneRef = useRef<HTMLDivElement | null>(null);

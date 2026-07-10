@@ -7,14 +7,11 @@ import { UnifiedMenu } from '@/components/UnifiedMenu';
 import {
   deleteNode,
   duplicateNode,
-  selectLayout,
   shiftNode,
 } from '@/features/layout/layoutModelSlice';
 import ComponentContextMenuMoveInto from '@/features/layout/preview/ComponentContextMenuMoveInto';
-import ComponentContextMenuRegions from '@/features/layout/preview/ComponentContextMenuRegions';
 import { setDialogOpen } from '@/features/ui/dialogSlice';
 import {
-  DEFAULT_REGION,
   selectEditorViewPortScale,
   selectSelectedComponentUuid,
   unsetHoveredComponent,
@@ -41,11 +38,9 @@ export const ComponentContextMenuContent: React.FC<
   }
 > = ({ component, menuType = 'context' }) => {
   const dispatch = useAppDispatch();
-  const layout = useAppSelector(selectLayout);
   const { data: components } = useGetComponentsQuery();
   const componentName = useGetComponentName(component);
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
-  const hasGlobalRegions = layout.some((r) => r.id !== DEFAULT_REGION);
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const { setSelectedComponent, unsetSelectedComponent } =
     useComponentSelection();
@@ -228,11 +223,6 @@ export const ComponentContextMenuContent: React.FC<
           )}
         </UnifiedMenu.SubContent>
       </UnifiedMenu.Sub>
-      {hasGlobalRegions && (
-        <PermissionCheck hasPermission="globalRegions">
-          <ComponentContextMenuRegions component={component} />
-        </PermissionCheck>
-      )}
       <UnifiedMenu.Separator />
       <UnifiedMenu.Item shortcut="⌫" color="red" onClick={handleDeleteClick}>
         Delete

@@ -113,14 +113,6 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             ),
             children: [
               {
-                path: '/editor/:entityType/:entityId/region/:regionId/component/:componentId',
-                element: <ComponentInstanceForm />,
-              },
-              {
-                path: '/editor/:entityType/:entityId/region/:regionId',
-                element: <ComponentInstanceForm />,
-              },
-              {
                 path: '/editor/:entityType/:entityId/component/:componentId',
                 element: <ComponentInstanceForm />,
               },
@@ -142,14 +134,6 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
               </UiShell>
             ),
             children: [
-              {
-                path: '/template/:entityType/:bundle/:viewMode/:previewEntityId/region/:regionId/component/:componentId',
-                element: <ComponentInstanceForm />,
-              },
-              {
-                path: '/template/:entityType/:bundle/:viewMode/:previewEntityId/region/:regionId',
-                element: <ComponentInstanceForm />,
-              },
               {
                 path: '/template/:entityType/:bundle/:viewMode/:previewEntityId/component/:componentId',
                 element: <ComponentInstanceForm />,
