@@ -6,7 +6,7 @@ Issue: TBD (file against canvas 1.x when opening the MR)
 
 ## Status
 
-Proposed
+Accepted
 
 ## Context
 
