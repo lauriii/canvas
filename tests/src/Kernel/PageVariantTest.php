@@ -8,11 +8,15 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
+use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\Core\Config\ConfigException;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
+use Drupal\Core\Display\VariantManager;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
@@ -329,6 +333,68 @@ final class PageVariantTest extends CanvasKernelTestBase {
     self::assertInstanceOf(ContentTemplate::class, $reloaded);
     self::assertNull($reloaded->getPageVariant());
     self::assertNotContains('canvas.page_variant.promo', $reloaded->getDependencies()['config'] ?? []);
+  }
+
+  /**
+   * Tests the resolution chain: entity selection, then default, then none.
+   *
+   * @see \Drupal\canvas\PageVariantResolver
+   */
+  public function testResolverChain(): void {
+    $resolver = $this->container->get(PageVariantResolver::class);
+    self::assertInstanceOf(PageVariantResolver::class, $resolver);
+
+    // No default and no entity: nothing resolves (core block layout renders).
+    self::assertNull($resolver->resolve(NULL));
+
+    // With a default set, a request whose entity has no selection uses it.
+    PageVariant::create(['id' => 'site_default', 'label' => 'Site default', 'component_tree' => [self::markerInstance()]])->save();
+    $this->config('canvas.settings')->set(PageVariant::DEFAULT_SETTING, 'site_default')->save();
+    $default = $resolver->resolve(Page::create(['title' => 'No selection']));
+    self::assertInstanceOf(PageVariant::class, $default);
+    self::assertSame('site_default', $default->id());
+
+    // A canvas_page's own selection wins over the default.
+    PageVariant::create(['id' => 'chosen', 'label' => 'Chosen', 'component_tree' => [self::markerInstance()]])->save();
+    $chosen = $resolver->resolve(Page::create(['title' => 'Picks a variant', 'page_variant' => 'chosen']));
+    self::assertInstanceOf(PageVariant::class, $chosen);
+    self::assertSame('chosen', $chosen->id());
+
+    // A selection pointing at a missing variant falls back to the default.
+    $fallback = $resolver->resolve(Page::create(['title' => 'Stale selection', 'page_variant' => 'deleted']));
+    self::assertInstanceOf(PageVariant::class, $fallback);
+    self::assertSame('site_default', $fallback->id());
+  }
+
+  /**
+   * Tests that the display variant injects main content at the marker.
+   *
+   * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
+   */
+  public function testDisplayVariantInjectsMainContentAtMarker(): void {
+    PageVariant::create(['id' => 'renderme', 'label' => 'Render me', 'component_tree' => [self::markerInstance()]])->save();
+
+    $variant_manager = $this->container->get('plugin.manager.display_variant');
+    self::assertInstanceOf(VariantManager::class, $variant_manager);
+    $plugin = $variant_manager->createInstance(CanvasPageVariant::PLUGIN_ID, [
+      CanvasPageVariant::PREVIEW_KEY => FALSE,
+      CanvasPageVariant::VARIANT_ID_KEY => 'renderme',
+    ]);
+    self::assertInstanceOf(CanvasPageVariant::class, $plugin);
+
+    $sentinel = 'canvas-main-content-3f9c1e';
+    $plugin->setMainContent(['#markup' => $sentinel]);
+    $plugin->setTitle('Rendered title');
+    $build = $plugin->build();
+
+    // The page body renders through the bare variant template.
+    self::assertSame('canvas_page_variant', $build['#theme']);
+
+    // The route's main content is injected where the marker sits.
+    $renderer = $this->container->get(RendererInterface::class);
+    self::assertInstanceOf(RendererInterface::class, $renderer);
+    $html = (string) $renderer->renderInIsolation($build['#content']);
+    self::assertStringContainsString($sentinel, $html);
   }
 
 }
