@@ -14,6 +14,7 @@ use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
+use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\Core\Config\Entity\ConfigEntityUpdater;
 use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
 use Drupal\field\Entity\FieldConfig;
@@ -520,5 +521,90 @@ function canvas_post_update_0023_install_page_variants(): void {
   $settings = \Drupal::configFactory()->getEditable('canvas.settings');
   if ($settings->isNew()) {
     $settings->set('default_page_variant', NULL)->save();
+  }
+}
+
+/**
+ * Convert each theme's page regions into one page variant.
+ */
+function canvas_post_update_0024_migrate_page_regions_to_variants(): void {
+  $all_regions = PageRegion::loadMultiple();
+  if (!$all_regions) {
+    // Sites that never used page regions need no migration.
+    return;
+  }
+
+  // The theme page template component reproduces the theme's original markup.
+  if (!\Drupal::moduleHandler()->moduleExists('canvas_page_template_component')) {
+    \Drupal::service('module_installer')->install(['canvas_page_template_component']);
+  }
+
+  $uuid = \Drupal::service('uuid');
+  $default_theme = \Drupal::config('system.theme')->get('default');
+  $marker = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
+  \assert($marker instanceof Component);
+
+  // Group the regions by theme.
+  $by_theme = [];
+  foreach ($all_regions as $region) {
+    \assert($region instanceof PageRegion);
+    $by_theme[$region->get('theme')][$region->get('region')] = $region;
+  }
+
+  foreach ($by_theme as $theme => $regions) {
+    $template_id = 'theme_page_template.' . $theme;
+    $template = Component::load($template_id);
+    if (!$template instanceof Component) {
+      // The submodule does not ship this theme; a manual variant is needed.
+      continue;
+    }
+
+    // The variant tree: the theme page template with the marker in its content
+    // slot, plus each region's components in the matching slot.
+    $template_uuid = $uuid->generate();
+    $tree = [
+      [
+        'uuid' => $template_uuid,
+        'component_id' => $template_id,
+        'component_version' => $template->getActiveVersion(),
+        'inputs' => [],
+      ],
+      [
+        'uuid' => $uuid->generate(),
+        'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+        'component_version' => $marker->getActiveVersion(),
+        'parent_uuid' => $template_uuid,
+        'slot' => CanvasPageVariant::MAIN_CONTENT_REGION,
+        'inputs' => [],
+      ],
+    ];
+    foreach ($regions as $region_name => $region) {
+      if ($region_name === CanvasPageVariant::MAIN_CONTENT_REGION) {
+        continue;
+      }
+      foreach ($region->getComponentTree()->getValue() as $item) {
+        if (empty($item['parent_uuid'])) {
+          // Re-parent this region's root components into the template slot.
+          $item['parent_uuid'] = $template_uuid;
+          $item['slot'] = $region_name;
+        }
+        $tree[] = $item;
+      }
+    }
+
+    $variant_id = 'theme_' . \preg_replace('/[^a-z0-9_]/', '_', (string) $theme);
+    if (!PageVariant::load($variant_id)) {
+      PageVariant::create([
+        'id' => $variant_id,
+        'label' => \ucfirst((string) $theme) . ' theme',
+        'component_tree' => $tree,
+      ])->save();
+    }
+
+    if ($theme === $default_theme) {
+      \Drupal::configFactory()->getEditable('canvas.settings')
+        ->set(PageVariant::DEFAULT_SETTING, $variant_id)
+        ->save();
+    }
   }
 }
