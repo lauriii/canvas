@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\Core\Authentication\AuthenticationProviderInterface;
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\simple_oauth\Authentication\Provider\SimpleOauthAuthenticationProvider;
@@ -91,6 +92,7 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       BrandKit::ENTITY_TYPE_ID,
       ContentTemplate::ENTITY_TYPE_ID,
       PageRegion::ENTITY_TYPE_ID,
+      PageVariant::ENTITY_TYPE_ID,
     ];
 
     if ($entity_type_id !== NULL && \in_array($entity_type_id, $protected_config_entity_types, TRUE)) {
