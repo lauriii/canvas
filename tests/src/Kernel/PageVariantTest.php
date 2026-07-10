@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\canvas\Controller\ApiSettingsController;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
@@ -22,6 +23,8 @@ use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
  * Tests the page variant foundation.
@@ -395,6 +398,29 @@ final class PageVariantTest extends CanvasKernelTestBase {
     self::assertInstanceOf(RendererInterface::class, $renderer);
     $html = (string) $renderer->renderInIsolation($build['#content']);
     self::assertStringContainsString($sentinel, $html);
+  }
+
+  /**
+   * Tests the settings endpoint that reads and writes the default variant.
+   *
+   * @see \Drupal\canvas\Controller\ApiSettingsController
+   */
+  public function testDefaultPageVariantEndpoint(): void {
+    $controller = ApiSettingsController::create($this->container);
+
+    // The default starts unset.
+    $get = $controller->getDefaultPageVariant();
+    self::assertSame(['default_page_variant' => NULL], \json_decode((string) $get->getContent(), TRUE));
+
+    // Setting it to an existing variant persists.
+    PageVariant::create(['id' => 'home', 'label' => 'Home', 'component_tree' => [self::markerInstance()]])->save();
+    $set = $controller->setDefaultPageVariant(Request::create('/', 'PATCH', content: (string) \json_encode(['default_page_variant' => 'home'])));
+    self::assertSame(['default_page_variant' => 'home'], \json_decode((string) $set->getContent(), TRUE));
+    self::assertSame('home', $this->config('canvas.settings')->get(PageVariant::DEFAULT_SETTING));
+
+    // Setting it to a variant that does not exist is rejected.
+    $this->expectException(UnprocessableEntityHttpException::class);
+    $controller->setDefaultPageVariant(Request::create('/', 'PATCH', content: (string) \json_encode(['default_page_variant' => 'ghost'])));
   }
 
 }

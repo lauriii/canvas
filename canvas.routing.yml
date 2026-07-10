@@ -250,6 +250,31 @@ canvas.api.config.translation.delete:
     _format: 'json'
   methods: [DELETE]
 
+# The default page variant lives in simple config, so it has its own endpoint
+# (the generic config entity API only handles config entities).
+canvas.api.settings.default_page_variant.get:
+  path: '/canvas/api/v0/settings/default-page-variant'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiSettingsController::getDefaultPageVariant'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'administer page variants'
+    _canvas_ui_access: 'TRUE'
+  options:
+    _format: 'json'
+  methods: [GET]
+canvas.api.settings.default_page_variant.set:
+  path: '/canvas/api/v0/settings/default-page-variant'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiSettingsController::setDefaultPageVariant'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'administer page variants'
+    _canvas_ui_access: 'TRUE'
+  options:
+    _format: 'json'
+  methods: [PATCH]
+
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 canvas.api.content.auto-save.patch:
   path: '/canvas/api/v0/content/auto-save/canvas_page/{canvas_page}'
