@@ -75,6 +75,8 @@ canvas.component.*:
           - js
           # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent
           - block
+          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+          - marker
     source_local_id:
       type: canvas.component_source_local_id.[%parent.source]
     versioned_properties:
@@ -372,6 +374,10 @@ canvas.page_variant.*:
       type: canvas.component_tree
       # A variant with no components yet may be `null`.
       nullable: true
+      constraints:
+        # A page variant must contain exactly one "Page content" marker.
+        # @see \Drupal\canvas\Plugin\Block\PageContentBlockInterface
+        PageVariantHasContentMarker: ~
 
 # Site-wide Drupal Canvas settings.
 canvas.settings:
@@ -772,6 +778,21 @@ canvas.component_source_settings.block:
     default_settings:
       type: block.settings.[%parent.%parent.%parent.%parent.source_local_id]
 
+# Marker components (intrinsic placeholders such as the page content marker).
+# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+canvas.component_source_local_id.marker:
+  type: canvas.component_source_local_id.*
+  label: 'Marker component ID'
+  constraints:
+    FullyValidatable: ~
+    Choice:
+      - page_content
+canvas.component_source_settings.marker:
+  type: canvas.component_source_settings.*
+  label: 'Marker component settings'
+  constraints:
+    FullyValidatable: ~
+
 # The `fallback` plugin ID is the only one not required to specify a source-local ID.
 canvas.component_source_settings.fallback:
   constraints:
@@ -816,6 +837,9 @@ field.value.component_tree:
         absence:
           - Drupal\Core\Block\TitleBlockPluginInterface
           - Drupal\Core\Block\MessagesBlockPluginInterface
+          # The page content marker is only allowed in page_variant trees.
+          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+          - marker.page_content
         presence: ~
     FullyValidatable: ~
 
@@ -858,6 +882,9 @@ canvas.pattern.*:
               # @see `type: canvas.page_region.*`
               - Drupal\Core\Block\TitleBlockPluginInterface
               - Drupal\Core\Block\MessagesBlockPluginInterface
+              # The page content marker is only allowed in page_variant trees.
+              # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+              - marker.page_content
             presence: ~
 canvas.asset_library.*:
   type: config_entity
@@ -1106,6 +1133,9 @@ canvas.content_template.*.*.*:
               # @see `type: canvas.page_region.*`
               - Drupal\Core\Block\TitleBlockPluginInterface
               - Drupal\Core\Block\MessagesBlockPluginInterface
+              # The page content marker is only allowed in page_variant trees.
+              # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+              - marker.page_content
             presence: ~
       label: 'Component tree'
     exposed_slots:
