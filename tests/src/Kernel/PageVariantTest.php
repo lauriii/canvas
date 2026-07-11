@@ -526,4 +526,100 @@ final class PageVariantTest extends CanvasKernelTestBase {
     $controller->setDefaultPageVariant(Request::create('/', 'PATCH', content: (string) \json_encode(['default_page_variant' => 'ghost'])));
   }
 
+  /**
+   * Tests the rules around disabled page variants.
+   *
+   * Disabled variants keep rendering where they are already selected, and
+   * such pages stay saveable, but the variant cannot be selected anew and
+   * cannot be (or stay) the site default.
+   */
+  public function testDisabledVariantRules(): void {
+    $field_manager = $this->container->get(EntityFieldManagerInterface::class);
+    self::assertInstanceOf(EntityFieldManagerInterface::class, $field_manager);
+    $definition = $field_manager->getFieldStorageDefinitions(Page::ENTITY_TYPE_ID)['page_variant'];
+
+    PageVariant::create(['id' => 'main', 'label' => 'Main', 'component_tree' => [self::markerInstance()]])->save();
+    $other = PageVariant::create(['id' => 'other', 'label' => 'Other', 'component_tree' => [self::markerInstance()]]);
+    $other->save();
+
+    // A page selects 'other' while it is enabled; then 'other' is disabled.
+    $page = Page::create(['title' => 'Existing page', 'page_variant' => 'other']);
+    self::assertSaveWithoutViolations($page);
+    $other->setStatus(FALSE)->save();
+
+    // Disabled variants are omitted from new selections…
+    self::assertSame(['main' => 'Main'], PageVariant::allowedValues());
+    self::assertSame(['main' => 'Main'], PageVariant::allowedValues($definition, Page::create(['title' => 'New page'])));
+
+    // …but the page that already persisted the selection keeps it: it still
+    // validates, saves, and renders through the disabled variant.
+    $existing = Page::load($page->id());
+    self::assertInstanceOf(Page::class, $existing);
+    self::assertSame(['main' => 'Main', 'other' => 'Other'], PageVariant::allowedValues($definition, $existing));
+    self::assertSaveWithoutViolations($existing);
+    $resolver = $this->container->get(PageVariantResolver::class);
+    self::assertInstanceOf(PageVariantResolver::class, $resolver);
+    self::assertSame('other', $resolver->resolve($existing)?->id());
+
+    // A new page cannot select the disabled variant — not even by setting the
+    // value directly, because the persisted (not in-memory) selection is what
+    // allowedValues() honors.
+    $sneaky = Page::create(['title' => 'Sneaky page', 'page_variant' => 'other']);
+    $messages = \array_map(
+      static fn ($violation): string => (string) $violation->getMessage(),
+      \iterator_to_array($sneaky->validate()->filterByFields(['path'])),
+    );
+    self::assertContains('The value you selected is not a valid choice.', $messages);
+
+    // The site default cannot be disabled.
+    $this->config('canvas.settings')->set(PageVariant::DEFAULT_SETTING, 'main')->save();
+    $main = PageVariant::load('main');
+    self::assertInstanceOf(PageVariant::class, $main);
+    $main->setStatus(FALSE);
+    self::assertContains(
+      'The site default page variant cannot be disabled. Set another variant as the default first.',
+      self::markerViolations($main),
+    );
+
+    // A disabled variant cannot become the site default.
+    $controller = ApiSettingsController::create($this->container);
+    try {
+      $controller->setDefaultPageVariant(Request::create('/', 'PATCH', content: (string) \json_encode(['default_page_variant' => 'other'])));
+      $this->fail('Setting a disabled variant as the site default must be rejected.');
+    }
+    catch (UnprocessableEntityHttpException $e) {
+      self::assertSame('The page variant "other" is disabled and cannot be the site default.', $e->getMessage());
+    }
+  }
+
+  /**
+   * Tests the config schema constraints on `canvas.settings`.
+   *
+   * The settings endpoint checks existence at request time; the schema must
+   * also reject a dangling default so other write paths (config import,
+   * drush config:set) are covered too.
+   */
+  public function testDefaultPageVariantSettingValidation(): void {
+    $typed_config_manager = $this->container->get('config.typed');
+    $validate = static fn (?string $id): array => self::violationsToArray(
+      $typed_config_manager->createFromNameAndData('canvas.settings', ['default_page_variant' => $id])->validate()
+    );
+
+    // No default is allowed.
+    self::assertSame([], $validate(NULL));
+
+    // An existing variant is allowed.
+    PageVariant::create(['id' => 'home', 'label' => 'Home', 'component_tree' => [self::markerInstance()]])->save();
+    self::assertSame([], $validate('home'));
+
+    // A dangling reference is rejected.
+    self::assertSame(
+      ['default_page_variant' => "The 'canvas.page_variant.ghost' config does not exist."],
+      $validate('ghost'),
+    );
+
+    // A malformed machine name is rejected.
+    self::assertArrayHasKey('default_page_variant', $validate('Not Valid'));
+  }
+
 }

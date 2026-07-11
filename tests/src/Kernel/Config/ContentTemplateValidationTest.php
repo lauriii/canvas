@@ -600,6 +600,16 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     ]);
   }
 
+  /**
+   * The `page_variant` selection must reference an existing page variant.
+   */
+  public function testInvalidPageVariant(): void {
+    $this->entity->set('page_variant', 'nope');
+    $this->assertValidationErrors([
+      'page_variant' => "The 'canvas.page_variant.nope' config does not exist.",
+    ]);
+  }
+
   public function testExposedSlotMustBeEmpty(): void {
     \assert($this->entity instanceof ContentTemplate);
 

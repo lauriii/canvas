@@ -362,6 +362,11 @@ canvas.page_variant.*:
   constraints:
     FullyValidatable: ~
   mapping:
+    status:
+      constraints:
+        # The site default must stay enabled: disabled variants keep rendering
+        # where already selected, but cannot be selected anew.
+        SiteDefaultPageVariantEnabled: ~
     id:
       type: machine_name
       label: 'ID'
@@ -398,6 +403,8 @@ canvas.settings:
       constraints:
         Regex:
           pattern: '/^[a-z0-9_]+$/'
+        ConfigExists:
+          prefix: canvas.page_variant.
 
 # The config equivalent of a ComponentTreeItemList, validated by the same constraints.
 # This is a list of component items in a tree, one item per component instance.
@@ -804,9 +811,10 @@ canvas.component_source_local_id.theme_page_template:
   label: 'Theme'
   constraints:
     FullyValidatable: ~
-    Regex:
-      pattern: '/^[a-z][a-z0-9_]*$/'
-      message: 'The %value theme machine name is not valid.'
+    # Matches the `theme` validation of `type: canvas.page_region.*`.
+    NotBlank: [ ]
+    ExtensionName: [ ]
+    ExtensionExists: theme
 canvas.component_source_settings.theme_page_template:
   type: canvas.component_source_settings.*
   label: 'Theme page template component settings'
@@ -1212,6 +1220,8 @@ canvas.content_template.*.*.*:
       constraints:
         Regex:
           pattern: '/^[a-z0-9_]+$/'
+        ConfigExists:
+          prefix: canvas.page_variant.
 
 canvas.staged_config_update.*:
   type: config_entity
