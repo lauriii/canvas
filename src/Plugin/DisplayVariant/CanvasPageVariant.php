@@ -169,7 +169,7 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
     // TRICKY: the tree renders in NON-preview mode even when previewing a
     // draft ($is_preview only selects the draft variant and draft asset
     // libraries above/below): here the variant is the chrome around edited
-    // content, not the edit target, so editing affordances (slot annotations,
+    // content, not the edit target, so editing helpers (slot annotations,
     // empty-slot placeholders) must not render. Only the layout API's variant
     // editing route renders a variant tree in preview mode.
     // @see \Drupal\Core\Display\PageVariantInterface

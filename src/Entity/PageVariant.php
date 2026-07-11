@@ -206,7 +206,6 @@ final class PageVariant extends ComponentTreeConfigEntityBase implements CanvasH
    * @see \Drupal\canvas\PageVariantResolver
    * @see options_allowed_values()
    */
-  // @phpstan-ignore shipmonk.deadMethod
   public static function allowedValues(?FieldStorageDefinitionInterface $definition = NULL, ?FieldableEntityInterface $entity = NULL, bool &$cacheable = TRUE): array {
     $cacheable = FALSE;
     $persisted_selection = NULL;

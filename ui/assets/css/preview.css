@@ -47,7 +47,7 @@ itself is edited; at render time the route's main content replaces it. */
       transparent 20px
     ),
     rgb(48, 164, 108, 0.04);
-  font-family: -apple-system, blinkmacsystemfont, 'Segoe UI', sans-serif;
+  font-family: system-ui, sans-serif;
   font-size: 1rem;
   gap: 6px;
 }
