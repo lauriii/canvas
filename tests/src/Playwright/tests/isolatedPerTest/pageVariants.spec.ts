@@ -193,13 +193,15 @@ test.describe('Page variants', () => {
     await variantSelect.selectOption({ label: 'Marketing' });
     await autoSave;
 
-    // After a reload, the layout reports the resolved variant and the topbar
-    // offers to jump to editing it.
+    // After a reload, the layout reports the resolved variant and the Layers
+    // panel offers to jump to editing it.
     await page.reload();
     await canvas.waitForEditorUi();
-    const jumpButton = page.getByTestId('canvas-page-variant-jump');
-    await expect(jumpButton).toHaveText('Marketing');
-    await jumpButton.click();
+    await canvas.openLayersPanel();
+    const variantLayer = page.getByTestId('canvas-page-variant-layer');
+    const variantRow = variantLayer.getByText('Marketing');
+    await expect(variantRow).toBeVisible();
+    await variantRow.click();
     await expect(page).toHaveURL(/\/canvas\/editor\/page_variant\/marketing/);
   });
 });
