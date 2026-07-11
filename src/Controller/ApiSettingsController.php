@@ -59,9 +59,16 @@ final class ApiSettingsController implements ContainerInjectionInterface {
     }
     $id = $body['default_page_variant'];
     // A null default is allowed (fall back to core block layout). A non-null
-    // default must reference an existing variant.
-    if ($id !== NULL && (!\is_string($id) || PageVariant::load($id) === NULL)) {
-      throw new UnprocessableEntityHttpException(\sprintf('The page variant "%s" does not exist.', (string) $id));
+    // default must reference an existing, enabled variant: disabled variants
+    // cannot be selected for new pages, so they cannot be the default either.
+    if ($id !== NULL) {
+      $variant = \is_string($id) ? PageVariant::load($id) : NULL;
+      if ($variant === NULL) {
+        throw new UnprocessableEntityHttpException(\sprintf('The page variant "%s" does not exist.', (string) $id));
+      }
+      if (!$variant->status()) {
+        throw new UnprocessableEntityHttpException(\sprintf('The page variant "%s" is disabled and cannot be the site default.', $id));
+      }
     }
     $this->configFactory->getEditable('canvas.settings')
       ->set(PageVariant::DEFAULT_SETTING, $id)
