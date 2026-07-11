@@ -598,7 +598,6 @@ cypress E2E:
     # Auto-retry when known frequent random failures occur.
     - grep "✖.*autocomplete-props" $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/cypress.log && exit 112 || true
     - grep "✖.*copy-and-paste" $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/cypress.log && exit 112 || true
-    - grep "✖.*global-regions-interact" $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/cypress.log && exit 112 || true
     - grep "✖.*media-library-component-instance" $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/cypress.log && exit 112 || true
     # If no auto-retry was attempted, use the original exit code.
     - exit $EXIT_CODE
