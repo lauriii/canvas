@@ -149,13 +149,13 @@ final class Page extends EditorialContentEntityBase implements EntityOwnerInterf
         'label' => 'hidden',
         'type' => 'canvas_naive_render_sdc_tree',
       ]);
-    $fields['page_variant'] = BaseFieldDefinition::create('string')
+    $fields['page_variant'] = BaseFieldDefinition::create('list_string')
       ->setLabel(t('Page variant'))
-      ->setDescription(t('The machine name of the page variant that renders this page. Empty uses the site default.'))
+      ->setDescription(t('The page variant that renders this page. Empty uses the site default.'))
       ->setRevisionable(TRUE)
-      ->setSetting('max_length', 255)
+      ->setSetting('allowed_values_function', PageVariant::class . '::allowedValues')
       ->setDisplayOptions('form', [
-        'type' => 'string_textfield',
+        'type' => 'options_select',
       ])
       ->setDisplayConfigurable('form', TRUE);
     // @see path_entity_base_field_info().

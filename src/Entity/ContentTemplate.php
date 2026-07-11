@@ -501,6 +501,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
         'status' => $this->status,
         'id' => $this->id(),
         'suggestedPreviewEntityId' => $preview_entity ? (int) $preview_entity->id() : NULL,
+        'pageVariant' => $this->page_variant,
         'component_tree' => $component_tree,
       ],
       preview: NULL,
@@ -534,6 +535,9 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     }
     if (\array_key_exists('status', $data)) {
       $this->set('status', (bool) $data['status']);
+    }
+    if (\array_key_exists('pageVariant', $data)) {
+      $this->set('page_variant', $data['pageVariant'] === '' ? NULL : $data['pageVariant']);
     }
   }
 

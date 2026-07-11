@@ -4716,6 +4716,9 @@ components:
         status:
           type: boolean
           description: ContentTemplate entity status.
+        pageVariant:
+          type: [string, "null"]
+          description: The page variant that renders this template's pages; null (or an empty string) uses the site default.
         component_tree:
           $ref: '#/components/schemas/ComponentTree'
           description: Replacement component tree.
@@ -5001,6 +5004,7 @@ components:
         - suggestedPreviewEntityId
         - label
         - viewModeLabel
+        - pageVariant
         - component_tree
       properties:
         entityType:
@@ -5027,6 +5031,9 @@ components:
         viewModeLabel:
           type: string
           description: Entity View Mode label.
+        pageVariant:
+          type: [string, "null"]
+          description: The page variant that renders this template's pages; null uses the site default.
         component_tree:
           $ref: '#/components/schemas/ComponentTree'
           description: The persisted component tree.

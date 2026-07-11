@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Controller\ApiSettingsController;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\EventSubscriber\PageVariantSelectorSubscriber;
 use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
@@ -17,7 +19,9 @@ use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Display\VariantManager;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Render\PageDisplayVariantSelectionEvent;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Routing\RouteMatch;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
@@ -25,6 +29,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
+use Symfony\Component\Routing\Route;
 
 /**
  * Tests the page variant foundation.
@@ -76,6 +81,7 @@ final class PageVariantTest extends CanvasKernelTestBase {
     $this->installPageEntitySchema();
     // Provides the `node.full` view mode and `user` config that content
     // templates depend on, plus a bundle to template.
+    $this->installEntitySchema('node');
     $this->installConfig(['node', 'user']);
     NodeType::create(['type' => 'helpful', 'name' => 'Helpful'])->save();
 
@@ -149,6 +155,9 @@ final class PageVariantTest extends CanvasKernelTestBase {
     self::assertSame('Homepage', $reloaded->label());
     self::assertSame('The default full-page layout.', $reloaded->get('description'));
     self::assertCount(1, $reloaded->getComponentTree()->getValue());
+
+    // An enabled variant is not considered a new draft by the editor.
+    self::assertFalse(AutoSaveManager::entityIsConsideredNew($reloaded));
   }
 
   /**
@@ -248,8 +257,16 @@ final class PageVariantTest extends CanvasKernelTestBase {
     self::assertArrayHasKey('page_variant', $base_fields);
     $field = $base_fields['page_variant'];
     self::assertInstanceOf(BaseFieldDefinition::class, $field);
-    self::assertSame('string', $field->getType());
+    // The selection is an options list so the form renders a select widget
+    // listing the existing variants by label.
+    self::assertSame('list_string', $field->getType());
+    self::assertSame(PageVariant::class . '::allowedValues', $field->getSetting('allowed_values_function'));
+    self::assertSame('options_select', $field->getDisplayOptions('form')['type'] ?? NULL);
     self::assertTrue($field->isRevisionable());
+
+    PageVariant::create(['id' => 'homepage', 'label' => 'Homepage', 'component_tree' => [self::markerInstance()]])->save();
+    PageVariant::create(['id' => 'landing', 'label' => 'Landing', 'component_tree' => [self::markerInstance()]])->save();
+    self::assertSame(['homepage' => 'Homepage', 'landing' => 'Landing'], PageVariant::allowedValues());
 
     // A page can store and reload a page variant selection.
     $page = Page::create([
@@ -261,6 +278,13 @@ final class PageVariantTest extends CanvasKernelTestBase {
     $reloaded = Page::load($page->id());
     self::assertInstanceOf(Page::class, $reloaded);
     self::assertSame('homepage', $reloaded->get('page_variant')->value);
+
+    // A selection referencing a nonexistent variant is invalid.
+    $invalid = Page::create([
+      'title' => 'Dangling selection',
+      'page_variant' => 'ghost',
+    ]);
+    self::assertNotCount(0, $invalid->get('page_variant')->validate());
   }
 
   /**
@@ -298,6 +322,15 @@ final class PageVariantTest extends CanvasKernelTestBase {
     self::assertInstanceOf(ContentTemplate::class, $reloaded);
     self::assertSame('headline', $reloaded->getPageVariant());
     self::assertContains('canvas.page_variant.headline', $reloaded->getDependencies()['config']);
+
+    // The selection round-trips through the client-side representation, so the
+    // editor can read and change it.
+    self::assertSame('headline', $reloaded->normalizeForClientSide()->values['pageVariant']);
+    $reloaded->updateFromClientSide(['pageVariant' => NULL]);
+    self::assertNull($reloaded->getPageVariant());
+    self::assertNull($reloaded->normalizeForClientSide()->values['pageVariant']);
+    $reloaded->updateFromClientSide(['pageVariant' => 'headline']);
+    self::assertSame('headline', $reloaded->getPageVariant());
   }
 
   /**
@@ -398,6 +431,65 @@ final class PageVariantTest extends CanvasKernelTestBase {
     self::assertInstanceOf(RendererInterface::class, $renderer);
     $html = (string) $renderer->renderInIsolation($build['#content']);
     self::assertStringContainsString($sentinel, $html);
+  }
+
+  /**
+   * Tests the marker's placeholder when the variant tree itself is previewed.
+   *
+   * When a page variant is edited in Canvas, its tree renders as the preview's
+   * main content: no variant fiber injects the route's main content, so the
+   * marker must render a visible, selectable placeholder. Outside previews the
+   * marker renders nothing.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::renderComponent()
+   */
+  public function testMarkerPreviewPlaceholder(): void {
+    PageVariant::create(['id' => 'edited', 'label' => 'Edited', 'component_tree' => [self::markerInstance()]])->save();
+    $variant = PageVariant::load('edited');
+    self::assertInstanceOf(PageVariant::class, $variant);
+
+    $renderer = $this->container->get(RendererInterface::class);
+    self::assertInstanceOf(RendererInterface::class, $renderer);
+
+    $preview_build = $variant->getComponentTree()->toRenderable($variant, isPreview: TRUE);
+    $preview = (string) $renderer->renderInIsolation($preview_build);
+    self::assertStringContainsString('canvas--page-content-marker-placeholder', $preview);
+    self::assertStringContainsString('Page content', $preview);
+
+    $live_build = $variant->getComponentTree()->toRenderable($variant, isPreview: FALSE);
+    $live = (string) $renderer->renderInIsolation($live_build);
+    self::assertStringNotContainsString('canvas--page-content-marker-placeholder', $live);
+  }
+
+  /**
+   * Tests that no variant is selected while a page variant itself is edited.
+   *
+   * Requests that edit a page variant (its layout API and component instance
+   * form routes carry it as a parameter) must not have their page wrapped in
+   * the route's resolved variant: that would nest the edited variant inside
+   * page chrome, or inside itself when it is the site default.
+   *
+   * @see \Drupal\canvas\EventSubscriber\PageVariantSelectorSubscriber
+   */
+  public function testNoVariantSelectedWhileEditingAVariant(): void {
+    PageVariant::create(['id' => 'site_default', 'label' => 'Site default', 'component_tree' => [self::markerInstance()]])->save();
+    $this->config('canvas.settings')->set(PageVariant::DEFAULT_SETTING, 'site_default')->save();
+    $variant = PageVariant::load('site_default');
+    self::assertInstanceOf(PageVariant::class, $variant);
+
+    $subscriber = $this->container->get(PageVariantSelectorSubscriber::class);
+    self::assertInstanceOf(PageVariantSelectorSubscriber::class, $subscriber);
+    $route = new Route('/canvas/api/v0/layout/page_variant/{entity}');
+
+    // A request without a page variant parameter resolves the site default.
+    $event = new PageDisplayVariantSelectionEvent('simple_page', new RouteMatch('canvas.test', $route, [], []));
+    $subscriber->onSelectPageDisplayVariant($event);
+    self::assertSame(CanvasPageVariant::PLUGIN_ID, $event->getPluginId());
+
+    // A request editing a page variant leaves core block layout in place.
+    $event = new PageDisplayVariantSelectionEvent('simple_page', new RouteMatch('canvas.test', $route, ['entity' => $variant], ['entity' => $variant->id()]));
+    $subscriber->onSelectPageDisplayVariant($event);
+    self::assertSame('simple_page', $event->getPluginId());
   }
 
   /**

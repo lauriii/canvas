@@ -178,6 +178,25 @@ final class PageVariant extends ComponentTreeConfigEntityBase implements CanvasH
   }
 
   /**
+   * Allowed values callback for page variant selection fields.
+   *
+   * Called via setSetting('allowed_values_function', ...) in
+   * Page::baseFieldDefinitions().
+   *
+   * @return array<string, string>
+   *   Page variant labels, keyed by machine name.
+   *
+   * @see \Drupal\canvas\Entity\Page::baseFieldDefinitions()
+   */
+  // @phpstan-ignore shipmonk.deadMethod
+  public static function allowedValues(): array {
+    return \array_map(
+      static fn (PageVariant $variant): string => (string) $variant->label(),
+      self::loadMultiple(),
+    );
+  }
+
+  /**
    * {@inheritdoc}
    *
    * Blocks deleting the site default variant, so that content and content
