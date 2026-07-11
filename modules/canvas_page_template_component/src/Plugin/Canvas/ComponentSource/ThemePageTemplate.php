@@ -15,6 +15,8 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -130,6 +132,12 @@ final class ThemePageTemplate extends ComponentSourceBase implements
     // @see \Drupal\Core\Render\MainContent\HtmlRenderer::prepare()
     return [
       '#theme' => 'page',
+      // Consumed by ::setSlots() to annotate slots in previews. The Twig-level
+      // annotation cannot: it wraps prints of bare slot variables in component
+      // templates, but page.html.twig prints regions as `page.<region>`.
+      // @see \Drupal\canvas\Twig\CanvasWrapperNode
+      '#canvas_component_uuid' => $componentUuid,
+      '#canvas_is_preview' => $isPreview,
     ];
   }
 
@@ -156,6 +164,8 @@ final class ThemePageTemplate extends ComponentSourceBase implements
    * {@inheritdoc}
    */
   public function setSlots(array &$build, array $slots): void {
+    $uuid = $build['#canvas_component_uuid'] ?? NULL;
+    $is_preview = $build['#canvas_is_preview'] ?? FALSE;
     // Wrap each region's content in the theme's `region` theme hook, matching
     // how core renders regions placed by block layout. This resolves
     // region.html.twig and its per-region suggestions (region__<name>).
@@ -165,9 +175,32 @@ final class ThemePageTemplate extends ComponentSourceBase implements
       if (empty($region_build)) {
         continue;
       }
-      $build[$region_name] = $region_build;
-      $build[$region_name]['#theme_wrappers'][] = 'region';
-      $build[$region_name]['#region'] = $region_name;
+      // Outside previews, a region whose only content is the empty slot
+      // default renders nothing at all, matching how core block layout skips
+      // empty regions. In previews the empty-slot placeholder becomes the
+      // region's drop target, so the region wrapper must render.
+      // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::renderify()
+      if (!$is_preview
+        && ($region_build['#plain_text'] ?? $region_build['#markup'] ?? NULL) === ''
+        && Element::children($region_build) === []) {
+        continue;
+      }
+      // In previews, annotate each slot with the HTML comments the editor uses
+      // to locate slots for overlays and drop targets. TRICKY: the comments
+      // must render INSIDE the region wrapper (the editor associates a slot
+      // with the comment's parent element; outside the wrapper, every slot
+      // would resolve to the shared page container), so the slot content nests
+      // one level below the element carrying the `region` theme wrapper.
+      // @see ui/src/utils/function-utils.ts
+      if ($is_preview && \is_string($uuid)) {
+        $region_build['#prefix'] = Markup::create(\sprintf('<!-- canvas-slot-start-%s/%s -->', $uuid, $region_name));
+        $region_build['#suffix'] = Markup::create(\sprintf('<!-- canvas-slot-end-%s/%s -->', $uuid, $region_name));
+      }
+      $build[$region_name] = [
+        '#theme_wrappers' => ['region'],
+        '#region' => $region_name,
+        'content' => $region_build,
+      ];
     }
   }
 

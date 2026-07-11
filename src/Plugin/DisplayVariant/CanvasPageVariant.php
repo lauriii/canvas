@@ -166,10 +166,17 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
     // information can be injected into special Canvas Components: the title and
     // messages blocks receive their data, and the "Page content" marker is
     // replaced with the route's main content.
+    // TRICKY: the tree renders in NON-preview mode even when previewing a
+    // draft ($is_preview only selects the draft variant and draft asset
+    // libraries above/below): here the variant is the chrome around edited
+    // content, not the edit target, so editing affordances (slot annotations,
+    // empty-slot placeholders) must not render. Only the layout API's variant
+    // editing route renders a variant tree in preview mode.
     // @see \Drupal\Core\Display\PageVariantInterface
     // @see \Drupal\canvas\ComponentSource\ComponentSourceInterface::renderComponent()
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::renderComponent()
-    $fiber = new \Fiber(fn() => $component_tree->toRenderable($variant, $is_preview));
+    // @see \Drupal\canvas\EventSubscriber\PageVariantSelectorSubscriber
+    $fiber = new \Fiber(fn() => $component_tree->toRenderable($variant, FALSE));
     $component_instance = $fiber->start();
     while ($fiber->isSuspended()) {
       $component_instance = match (TRUE) {
