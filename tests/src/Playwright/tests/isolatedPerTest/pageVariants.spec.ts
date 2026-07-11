@@ -185,10 +185,14 @@ test.describe('Page variants', () => {
       .click();
     const variantSelect = pageDataForm.getByLabel('Page template');
     await expect(variantSelect).toBeVisible();
+    // Wait for the auto-save POST that actually carries the new selection:
+    // preview posts queue, so an earlier in-flight POST (without the value)
+    // must not satisfy the wait.
     const autoSave = page.waitForResponse(
       (response) =>
         response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
-        response.request().method() === 'POST',
+        response.request().method() === 'POST' &&
+        (response.request().postData() ?? '').includes('marketing'),
     );
     await variantSelect.selectOption({ label: 'Marketing' });
     await autoSave;
