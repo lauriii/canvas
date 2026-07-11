@@ -9,7 +9,6 @@ namespace Drupal\Tests\canvas\Functional;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -579,12 +578,12 @@ class TranslationTest extends FunctionalTestBase {
   }
 
   /**
-   * Creates a PageRegion for the default theme with a French language override.
+   * Creates the site default page variant with a French language override.
    *
-   * @return \Drupal\canvas\Entity\PageRegion
-   *   The saved PageRegion entity.
+   * @return \Drupal\canvas\Entity\PageVariant
+   *   The saved page variant.
    */
-  private function createPageRegionWithFrenchOverride(): PageVariant {
+  private function createChromePageVariantWithFrenchOverride(): PageVariant {
     $version = $this->getHeadingComponentVersion();
     $marker = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
     \assert($marker instanceof Component);
@@ -649,7 +648,7 @@ class TranslationTest extends FunctionalTestBase {
     }
 
     $page = $this->createCanvasTranslationTestPage();
-    $this->createPageRegionWithFrenchOverride();
+    $this->createChromePageVariantWithFrenchOverride();
     $page_id = $page->id();
 
     // Create a ContentTemplate for node/article/full with French language
@@ -711,7 +710,7 @@ class TranslationTest extends FunctionalTestBase {
     };
 
     // Helper: returns the heading component's name from the page variant's
-    // layout (the variant created by createPageRegionWithFrenchOverride()).
+    // layout (the variant created by createChromePageVariantWithFrenchOverride()).
     $get_region_name_in_api_response = function (string $root_relative_url): ?string {
       $response = $this->makeApiRequest('GET', Url::fromUri("base:$root_relative_url"), []);
       self::assertSame(200, $response->getStatusCode());
@@ -922,7 +921,7 @@ class TranslationTest extends FunctionalTestBase {
    */
   public function testTranslationForPage(): void {
     $page = $this->createCanvasTranslationTestPage();
-    $this->createPageRegionWithFrenchOverride();
+    $this->createChromePageVariantWithFrenchOverride();
     $page_id = $page->id();
 
     // Retrieve the French language object for constructing the /fr/ URL.
@@ -1112,7 +1111,7 @@ class TranslationTest extends FunctionalTestBase {
    * it falls back to the default language (English).
    */
   public function testNonDefaultTranslationPageRegionTranslation(): void {
-    $this->createPageRegionWithFrenchOverride();
+    $this->createChromePageVariantWithFrenchOverride();
 
     // Create a plain article node with no French translation.
     $node = $this->createTestNode();
@@ -1267,7 +1266,7 @@ class TranslationTest extends FunctionalTestBase {
       self::assertInstanceOf(ContentTemplate::class, $entity);
     }
     else {
-      $entity = $this->createPageRegionWithFrenchOverride();
+      $entity = $this->createChromePageVariantWithFrenchOverride();
     }
     $entity_id = $entity->id();
 
