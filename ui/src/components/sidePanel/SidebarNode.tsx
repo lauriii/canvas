@@ -85,7 +85,33 @@ const SidebarNode = React.forwardRef<
     const contextIndent = useIndentContext();
     const effectiveIndent = indent ?? contextIndent;
     const isDisabled = disabled || broken;
-    const content = (
+    const mainContent = (
+      <>
+        {leadingContent && (
+          <Flex
+            mr="-2" // Offset the padding of the element to the right. This will provide a larger area for clicking.
+            align="center"
+            flexShrink="0"
+            flexGrow="0"
+            className={styles.leadingContent}
+          >
+            {leadingContent}
+          </Flex>
+        )}
+        <Flex pl="2" align="center" flexShrink="0" className={styles.icon}>
+          {broken
+            ? VARIANTS['broken']?.icon
+            : VARIANTS[variant]?.icon || <Component1Icon />}
+        </Flex>
+        <Flex px="2" align="center" flexGrow="1" overflow="hidden">
+          <Text size="1" truncate className={styles.title}>
+            {title}
+          </Text>
+        </Flex>
+      </>
+    );
+
+    return (
       <Flex
         align="center"
         pr="2"
@@ -104,29 +130,28 @@ const SidebarNode = React.forwardRef<
         )}
         {...props}
       >
-        <Flex flexGrow="1" align="center" overflow="hidden">
-          {leadingContent && (
-            <Flex
-              mr="-2" // Offset the padding of the element to the right. This will provide a larger area for clicking.
-              align="center"
-              flexShrink="0"
-              flexGrow="0"
-              className={styles.leadingContent}
-            >
-              {leadingContent}
-            </Flex>
-          )}
-          <Flex pl="2" align="center" flexShrink="0" className={styles.icon}>
-            {broken
-              ? VARIANTS['broken']?.icon
-              : VARIANTS[variant]?.icon || <Component1Icon />}
+        {/* The link wraps only the main content: interactive children (the
+            contextual menu trigger) must not nest inside an anchor, where
+            their clicks would also navigate. */}
+        {to ? (
+          <Link
+            to={to}
+            style={{
+              textDecoration: 'none',
+              color: 'inherit',
+              display: 'flex',
+              alignItems: 'center',
+              flexGrow: 1,
+              minWidth: 0,
+            }}
+          >
+            {mainContent}
+          </Link>
+        ) : (
+          <Flex flexGrow="1" align="center" overflow="hidden">
+            {mainContent}
           </Flex>
-          <Flex px="2" align="center" flexGrow="1" overflow="hidden">
-            <Text size="1" truncate className={styles.title}>
-              {title}
-            </Text>
-          </Flex>
-        </Flex>
+        )}
         {trailingContent && (
           <Flex align="center" flexShrink="0" mr="2">
             {trailingContent}
@@ -149,19 +174,6 @@ const SidebarNode = React.forwardRef<
         )}
       </Flex>
     );
-
-    if (to) {
-      return (
-        <Link
-          to={to}
-          style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
-        >
-          {content}
-        </Link>
-      );
-    }
-
-    return <>{content}</>;
   },
 );
 
