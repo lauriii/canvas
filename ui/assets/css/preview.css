@@ -38,7 +38,6 @@ itself is edited; at render time the route's main content replaces it. */
   not available inside the preview iFrame. Matches green-9 / green-11. */
   color: #18794e;
   border: 1.5px dashed rgb(48 164 108 / 0.55);
-  border-radius: 8px;
   background:
     repeating-linear-gradient(
       -45deg,

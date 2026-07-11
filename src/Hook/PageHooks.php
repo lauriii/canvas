@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
@@ -14,6 +15,8 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -132,6 +135,32 @@ final class PageHooks {
       \assert($pathauto_item instanceof PathautoItem);
       $pathauto_item->set('pathauto', PathautoState::SKIP);
     }
+  }
+
+  /**
+   * Implements hook_field_widget_single_element_WIDGET_TYPE_form_alter().
+   *
+   * An empty `page_variant` selection means "follow the site default": the
+   * page re-resolves whenever the default changes, instead of pinning the
+   * current default's id. Present that as "Site default" (with the current
+   * default's label) instead of the widget's "- None -".
+   *
+   * @see \Drupal\canvas\PageVariantResolver
+   */
+  #[Hook('field_widget_single_element_options_select_form_alter')]
+  public function pageVariantSelectionEmptyOption(array &$element, FormStateInterface $form_state, array $context): void {
+    $items = $context['items'] ?? NULL;
+    if (!$items instanceof FieldItemListInterface
+      || $items->getEntity()->getEntityTypeId() !== Page::ENTITY_TYPE_ID
+      || $items->getFieldDefinition()->getName() !== 'page_variant'
+      || !isset($element['#options']['_none'])) {
+      return;
+    }
+    $default_id = $this->configFactory->get('canvas.settings')->get(PageVariant::DEFAULT_SETTING);
+    $default = \is_string($default_id) ? PageVariant::load($default_id) : NULL;
+    $element['#options']['_none'] = $default instanceof PageVariant
+      ? new TranslatableMarkup('Site default (@label)', ['@label' => $default->label()])
+      : new TranslatableMarkup('Site default');
   }
 
   /**
