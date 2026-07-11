@@ -131,7 +131,8 @@ test.describe('Page variants', () => {
       variantSelect.locator('option', { hasText: 'Marketing' }),
     ).toHaveCount(0);
 
-    // Re-enabling restores selectability. Open another panel first: the
+    // Re-enabling makes the variant selectable again. Open another panel
+    // first: the
     // templates list can get stuck loading when it mounts with an already
     // fulfilled variants cache (a pre-existing panel bug); remounting it
     // through a toggle reliably shows the list.

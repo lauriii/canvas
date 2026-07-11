@@ -31,12 +31,13 @@ export interface CreatePageVariantPayload {
 }
 
 // The body accepted by PATCH `/canvas/api/v0/config/page_variant/{id}` when
-// renaming or re-describing a variant. `id` is immutable server-side, so it is
-// not part of the patch body.
+// renaming, re-describing, or enabling/disabling a variant. `id` is immutable
+// server-side, so it is not part of the patch body.
 export interface UpdatePageVariantPayload {
   id: string;
   label?: string;
   description?: string;
+  status?: boolean;
 }
 
 // The payload for GET/PATCH `/canvas/api/v0/settings/default-page-variant`.
