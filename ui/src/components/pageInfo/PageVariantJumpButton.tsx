@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import TemplateIcon from '@assets/icons/template.svg?react';
+import { LayoutIcon } from '@radix-ui/react-icons';
 import { Button, Tooltip } from '@radix-ui/themes';
 import { skipToken } from '@reduxjs/toolkit/query';
 
@@ -52,7 +52,7 @@ const PageVariantJumpButton = () => {
         data-testid="canvas-page-variant-jump"
         onClick={() => navigateToEditor(PAGE_VARIANT_ENTITY_TYPE, variantId)}
       >
-        <TemplateIcon />
+        <LayoutIcon />
         {label}
       </Button>
     </Tooltip>

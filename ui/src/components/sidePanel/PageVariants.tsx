@@ -187,7 +187,7 @@ const VariantListItem = ({
         <div data-testid={`canvas-page-variant-${variant.id}`}>
           <SidebarNode
             title={variant.label || variant.id}
-            variant="template"
+            variant="pageVariant"
             selected={isBeingEdited}
             to={urlForEditor(PAGE_VARIANT_ENTITY_TYPE, variant.id)}
             trailingContent={

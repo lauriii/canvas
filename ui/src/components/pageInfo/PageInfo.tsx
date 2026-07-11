@@ -7,6 +7,7 @@ import {
   CodeIcon,
   FileTextIcon,
   HomeIcon,
+  LayoutIcon,
   SectionIcon,
   StackIcon,
 } from '@radix-ui/react-icons';
@@ -61,6 +62,7 @@ const iconMap: PageType = {
   GlobalPatternName: <SectionIcon />,
   Homepage: <HomeIcon />,
   Template: <TemplateIcon />,
+  PageVariant: <LayoutIcon />,
 };
 
 const canvasSettings = getCanvasSettings();
@@ -312,7 +314,7 @@ const PageInfo = () => {
                 </>
               ) : isPageVariantRoute ? (
                 <>
-                  {iconMap['Template']}
+                  {iconMap['PageVariant']}
                   {pageVariant?.label || entityId}
                 </>
               ) : (
