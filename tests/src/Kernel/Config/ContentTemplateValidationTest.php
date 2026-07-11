@@ -33,6 +33,14 @@ use PHPUnit\Framework\Attributes\TestWith;
 #[Group('slow')]
 final class ContentTemplateValidationTest extends BetterConfigEntityValidationTestBase {
 
+  /**
+   * {@inheritdoc}
+   */
+  protected static array $propertiesWithOptionalValues = [
+    // An empty selection follows the site default page variant.
+    'page_variant',
+  ];
+
   use BetterConfigDependencyManagerTrait;
   use DataProviderWithComponentTreeTrait;
   use ContentTypeCreationTrait;

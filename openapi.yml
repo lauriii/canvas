@@ -4158,6 +4158,10 @@ components:
           type: boolean
         isPublished:
           type: boolean
+        # Response-only in practice; accepted here so layout GET responses can
+        # round-trip into POST bodies, like isNew/isPublished/translations.
+        resolvedPageVariant:
+          type: [string, "null"]
     AutoSaveConcurrencyControl:
       title: Auto Save Concurrency Control
       type: object
