@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Entity\PageVariant;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
@@ -142,13 +141,13 @@ final class PageHooks {
    *
    * An empty `page_variant` selection means "follow the site default": the
    * page re-resolves whenever the default changes, instead of pinning the
-   * current default's id. Present that as "Site default" (with the current
-   * default's label) instead of the widget's "- None -".
+   * current default's id. Present that as "Site default" instead of the
+   * widget's "- None -".
    *
    * @see \Drupal\canvas\PageVariantResolver
    */
   #[Hook('field_widget_single_element_options_select_form_alter')]
-  public function pageVariantSelectionEmptyOption(array &$element, FormStateInterface $form_state, array $context): void {
+  public static function pageVariantSelectionEmptyOption(array &$element, FormStateInterface $form_state, array $context): void {
     $items = $context['items'] ?? NULL;
     if (!$items instanceof FieldItemListInterface
       || $items->getEntity()->getEntityTypeId() !== Page::ENTITY_TYPE_ID
@@ -156,11 +155,7 @@ final class PageHooks {
       || !isset($element['#options']['_none'])) {
       return;
     }
-    $default_id = $this->configFactory->get('canvas.settings')->get(PageVariant::DEFAULT_SETTING);
-    $default = \is_string($default_id) ? PageVariant::load($default_id) : NULL;
-    $element['#options']['_none'] = $default instanceof PageVariant
-      ? new TranslatableMarkup('Site default (@label)', ['@label' => $default->label()])
-      : new TranslatableMarkup('Site default');
+    $element['#options']['_none'] = new TranslatableMarkup('Site default');
   }
 
   /**
