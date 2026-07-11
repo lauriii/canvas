@@ -1344,6 +1344,17 @@ paths:
         '403':
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
+  '/canvas/api/v0/config/page_variant/{configEntityId}/translations':
+    description: Endpoint for deleting a specific translation of a Page Variant. Note that the path can be prefixed with a langcode to negotiate deleting that particular translation.
+    delete:
+      summary: Deletes the language config override (translation) for a page_variant config entity.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '204':
+          description: Translation deleted successfully.
+        '400':
+          description: No translation exists for the current language.
   /canvas/api/v0/config/pattern:
     description: TODO
     get:

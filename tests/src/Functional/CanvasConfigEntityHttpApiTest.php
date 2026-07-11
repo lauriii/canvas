@@ -178,6 +178,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'type' => 'component',
       'weight' => 0,
       'items' => [
+        'marker.page_content',
         'sdc.canvas_broken_sdcs.invalid-filter',
         'sdc.canvas_broken_sdcs.malformed-image',
         'sdc.canvas_test_sdc.mixed-images-with-example',
@@ -2789,6 +2790,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'status' => FALSE,
       'id' => 'node.bunny.full',
       'suggestedPreviewEntityId' => NULL,
+      'pageVariant' => NULL,
       'component_tree' => [],
     ];
 
@@ -2872,6 +2874,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'status' => FALSE,
       'id' => 'node.llama.full',
       'suggestedPreviewEntityId' => NULL,
+      'pageVariant' => NULL,
       'component_tree' => [],
     ];
     $this->assertSame($expected_full_llama_normalization, $body);

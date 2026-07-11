@@ -10,6 +10,8 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropSource\PropSource;
@@ -582,35 +584,45 @@ class TranslationTest extends FunctionalTestBase {
    * @return \Drupal\canvas\Entity\PageRegion
    *   The saved PageRegion entity.
    */
-  private function createPageRegionWithFrenchOverride(): PageRegion {
+  private function createPageRegionWithFrenchOverride(): PageVariant {
     $version = $this->getHeadingComponentVersion();
+    $marker = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
+    \assert($marker instanceof Component);
 
-    $default_theme = $this->container->get('theme_handler')->getDefault();
-    $regions = PageRegion::createFromBlockLayout($default_theme);
-    $new_region = reset($regions);
-    \assert($new_region instanceof PageRegion);
-    $existing = $this->container->get('entity_type.manager')
-      ->getStorage(PageRegion::ENTITY_TYPE_ID)
-      ->load($new_region->id());
-    $region = $existing instanceof PageRegion ? $existing : $new_region;
-    $region->set('component_tree', [
-      [
-        'uuid' => '33333333-3333-4333-8333-333333333333',
-        'component_id' => 'sdc.canvas_test_sdc.heading',
-        'component_version' => $version,
-        'inputs' => [
-          'text' => 'Hello from region',
-          'element' => 'h3',
+    // The page chrome around the content: a page variant with a heading next
+    // to the "Page content" marker, selected as the site default. (Page
+    // regions no longer render; variants replaced them.)
+    $variant = PageVariant::load('chrome') ?? PageVariant::create([
+      'id' => 'chrome',
+      'label' => 'Chrome',
+      'component_tree' => [
+        [
+          'uuid' => '44444444-4444-4444-8444-444444444444',
+          'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+          'component_version' => $marker->getActiveVersion(),
+          'inputs' => [],
         ],
-        'label' => 'English region heading',
+        [
+          'uuid' => '33333333-3333-4333-8333-333333333333',
+          'component_id' => 'sdc.canvas_test_sdc.heading',
+          'component_version' => $version,
+          'inputs' => [
+            'text' => 'Hello from region',
+            'element' => 'h3',
+          ],
+          'label' => 'English region heading',
+        ],
       ],
     ]);
-    $region->enable()->save();
+    $variant->save();
+    $this->container->get('config.factory')->getEditable('canvas.settings')
+      ->set(PageVariant::DEFAULT_SETTING, $variant->id())
+      ->save();
 
     $language_manager = $this->container->get(LanguageManagerInterface::class);
     \assert($language_manager instanceof ConfigurableLanguageManagerInterface);
-    $region_override = $language_manager->getLanguageConfigOverride('fr', $region->getConfigDependencyName());
-    $region_override->setData([
+    $variant_override = $language_manager->getLanguageConfigOverride('fr', $variant->getConfigDependencyName());
+    $variant_override->setData([
       'component_tree' => [
         '33333333-3333-4333-8333-333333333333' => [
           'label' => 'French region heading',
@@ -619,7 +631,7 @@ class TranslationTest extends FunctionalTestBase {
       ],
     ])->save();
 
-    return $region;
+    return $variant;
   }
 
   /**
@@ -698,14 +710,15 @@ class TranslationTest extends FunctionalTestBase {
       return $content_region['components'][0]['name'];
     };
 
-    // Helper: returns the first component's name from the first non-content
-    // region (the PageRegion created by createPageRegionWithFrenchOverride()).
+    // Helper: returns the heading component's name from the page variant's
+    // layout (the variant created by createPageRegionWithFrenchOverride()).
     $get_region_name_in_api_response = function (string $root_relative_url): ?string {
       $response = $this->makeApiRequest('GET', Url::fromUri("base:$root_relative_url"), []);
       self::assertSame(200, $response->getStatusCode());
       $layout = json_decode((string) $response->getBody(), TRUE)['layout'];
-      $page_region = current(array_filter($layout, fn($r) => $r['id'] !== 'content'));
-      return $page_region['components'][0]['name'];
+      $content_region = current(array_filter($layout, fn($r) => $r['id'] === 'content'));
+      $headings = array_filter($content_region['components'], fn($c) => !str_starts_with($c['type'], 'marker.'));
+      return current($headings)['name'];
     };
 
     // Assert the canvas_page layout API returns the correct translation per
@@ -715,12 +728,12 @@ class TranslationTest extends FunctionalTestBase {
     // Language that does not have translations enabled should fallback to default language.
     self::assertSame('English heading', $get_name_in_api_response("/hi/canvas/api/v0/layout/canvas_page/$page_id"));
 
-    // Assert the PageRegion layout API returns the correct translation per
-    // language prefix.
-    self::assertSame('English region heading', $get_region_name_in_api_response("/canvas/api/v0/layout/canvas_page/$page_id"));
-    self::assertSame('French region heading', $get_region_name_in_api_response("/fr/canvas/api/v0/layout/canvas_page/$page_id"));
-    // Language that does not have translations enabled should fallback to default language.
-    self::assertSame('English region heading', $get_region_name_in_api_response("/hi/canvas/api/v0/layout/canvas_page/$page_id"));
+    // Assert the page variant layout API serves the variant's tree. The
+    // variant edits in the site default language; its French override renders
+    // on the live page (asserted in testTranslationForPage()).
+    // @todo Assert French labels once the variant editor negotiates config
+    //   override languages like the content template editor does, in https://www.drupal.org/i/3591806.
+    self::assertSame('English region heading', $get_region_name_in_api_response("/canvas/api/v0/layout/page_variant/chrome"));
 
     // Create an article node with English and French translations to use as the
     // ContentTemplate preview entity. The French translation has a distinct
@@ -1231,7 +1244,7 @@ class TranslationTest extends FunctionalTestBase {
   public static function deleteConfigEntityTranslationProvider(): array {
     return [
       'Content Template' => [ContentTemplate::ENTITY_TYPE_ID],
-      'Page Region' => [PageRegion::ENTITY_TYPE_ID],
+      'Page Variant' => [PageVariant::ENTITY_TYPE_ID],
     ];
   }
 
