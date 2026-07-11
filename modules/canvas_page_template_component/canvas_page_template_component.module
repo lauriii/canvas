@@ -38,8 +38,14 @@ function canvas_page_template_component_ensure_component(string $theme): ?Compon
     return $component;
   }
 
-  $source = \Drupal::service(ComponentSourceManager::class)
-    ->createInstance(ThemePageTemplate::SOURCE_PLUGIN_ID, ['local_source_id' => $theme]);
+  $manager = \Drupal::service(ComponentSourceManager::class);
+  if (!$manager->hasDefinition(ThemePageTemplate::SOURCE_PLUGIN_ID)) {
+    // hook_install() can run before the source manager's cached discovery
+    // includes this module's plugin (e.g. when the module is installed from a
+    // form submit handler).
+    $manager->clearCachedDefinitions();
+  }
+  $source = $manager->createInstance(ThemePageTemplate::SOURCE_PLUGIN_ID, ['local_source_id' => $theme]);
   \assert($source instanceof ThemePageTemplate);
   $component = Component::create([
     'id' => $id,

@@ -12,6 +12,7 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Display\Attribute\PageDisplayVariant;
 use Drupal\Core\Display\PageVariantInterface;
 use Drupal\Core\Display\VariantBase;
@@ -104,7 +105,7 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
    */
   private $title = '';
 
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, private readonly AutoSaveManager $autoSaveManager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, private readonly AutoSaveManager $autoSaveManager, private readonly ConfigFactoryInterface $configFactory) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
@@ -114,6 +115,7 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
       $plugin_id,
       $plugin_definition,
       $container->get(AutoSaveManager::class),
+      $container->get(ConfigFactoryInterface::class),
     );
   }
 
@@ -222,7 +224,12 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
       ($is_preview ? '.draft' : '');
     $build['#attached']['library'][] = 'canvas/brand_kit.' . BrandKit::GLOBAL_ID .
       ($is_preview ? '.draft' : '');
-    CacheableMetadata::createFromObject($variant)->applyTo($build);
+    CacheableMetadata::createFromObject($variant)
+      // Which variant renders depends on the site default selection; a change
+      // to it must invalidate the cached page.
+      // @see \Drupal\canvas\PageVariantResolver
+      ->addCacheableDependency($this->configFactory->get('canvas.settings'))
+      ->applyTo($build);
 
     return $build;
   }

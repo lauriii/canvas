@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
@@ -91,12 +92,35 @@ class PageRegionHooks {
           $page_regions_generated_from_block_layout[$key]->enable()->save();
         }
       }
+
+      // Rendering happens through the theme's page variant: convert the
+      // regions into one (an existing variant is reused, preserving edits)
+      // and select it as the site default when nothing else is.
+      $regions_by_name = [];
+      foreach (PageRegion::loadForTheme($theme, TRUE) as $region) {
+        $regions_by_name[$region->get('region')] = $region;
+      }
+      $variant = \canvas_page_variant_from_page_regions($theme, $regions_by_name);
+      if ($variant instanceof PageVariant && $theme === \Drupal::config('system.theme')->get('default')) {
+        $settings = \Drupal::configFactory()->getEditable('canvas.settings');
+        if ($settings->get(PageVariant::DEFAULT_SETTING) === NULL) {
+          $settings->set(PageVariant::DEFAULT_SETTING, $variant->id())->save();
+        }
+      }
     }
     else {
       // When disabling: of the PageRegion config entities that exist, disable
       // the ones that are enabled (aka "editable").
       foreach ($existing_page_regions as $region) {
         $region->disable()->save();
+      }
+
+      // Return rendering to core's block layout when this theme's variant is
+      // the site default. The variant itself is kept: re-enabling restores it.
+      $variant_id = 'theme_' . \preg_replace('/[^a-z0-9_]/', '_', (string) $theme);
+      $settings = \Drupal::configFactory()->getEditable('canvas.settings');
+      if ($settings->get(PageVariant::DEFAULT_SETTING) === $variant_id) {
+        $settings->set(PageVariant::DEFAULT_SETTING, NULL)->save();
       }
     }
 
