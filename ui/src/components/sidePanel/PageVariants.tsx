@@ -192,7 +192,18 @@ const VariantListItem = ({
             to={urlForEditor(PAGE_VARIANT_ENTITY_TYPE, variant.id)}
             trailingContent={
               isDefault ? (
-                <Badge size="1" variant="soft" color="blue">
+                <Badge
+                  size="1"
+                  variant="soft"
+                  color="blue"
+                  // On the active (solid) row the soft badge is illegible;
+                  // use a translucent white chip instead.
+                  style={
+                    isBeingEdited
+                      ? { background: 'rgb(255 255 255 / 20%)', color: '#fff' }
+                      : undefined
+                  }
+                >
                   Default
                 </Badge>
               ) : undefined

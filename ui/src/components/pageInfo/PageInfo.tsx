@@ -5,9 +5,9 @@ import TemplateIcon from '@assets/icons/template.svg?react';
 import {
   ChevronLeftIcon,
   CodeIcon,
+  ContainerIcon,
   FileTextIcon,
   HomeIcon,
-  LayoutIcon,
   SectionIcon,
   StackIcon,
 } from '@radix-ui/react-icons';
@@ -62,7 +62,7 @@ const iconMap: PageType = {
   GlobalPatternName: <SectionIcon />,
   Homepage: <HomeIcon />,
   Template: <TemplateIcon />,
-  PageVariant: <LayoutIcon />,
+  PageVariant: <ContainerIcon />,
 };
 
 const canvasSettings = getCanvasSettings();
