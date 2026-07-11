@@ -7,6 +7,7 @@ namespace Drupal\canvas\Entity;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -88,6 +89,7 @@ final class CanvasPageForm extends ContentEntityForm {
       '#weight' => -20,
     ];
 
+    $this->groupPageTemplateSelection($form);
     $this->addTransliterationSettings($form);
     $this->customizePathField($form);
 
@@ -96,6 +98,56 @@ final class CanvasPageForm extends ContentEntityForm {
     }
 
     return $form;
+  }
+
+  /**
+   * Groups the page template selection into a collapsed section.
+   *
+   * The selection is rarely changed, so it takes no space until expanded;
+   * expanding it offers the selection plus a shortcut to edit the template.
+   */
+  private function groupPageTemplateSelection(array &$form): void {
+    if (!isset($form['page_variant'])) {
+      return;
+    }
+    $group = 'page_template';
+    $form[$group] = [
+      '#type' => 'details',
+      '#title' => $this->t('Page template'),
+      '#open' => FALSE,
+      // Below the URL alias field, whose widget weight ends up at 30.
+      '#weight' => 35,
+    ];
+    $form[$group]['page_variant'] = $form['page_variant'];
+    // The section title already names the field.
+    $form[$group]['page_variant']['widget']['#title_display'] = 'invisible';
+    // The selection comes first, the edit shortcut below it.
+    $form[$group]['page_variant']['#weight'] = 0;
+    // The "Site default" option makes the field description redundant here.
+    unset($form[$group]['page_variant']['widget']['#description']);
+    // @see \Drupal\canvas\Entity\CanvasPageForm::form() for why fields move
+    // into the group instead of using #group.
+    unset($form['page_variant']);
+
+    // A shortcut to edit the template that currently renders this page.
+    $entity = $this->getEntity();
+    \assert($entity instanceof Page);
+    $selected = $entity->get('page_variant')->value
+      ?? $this->config('canvas.settings')->get(PageVariant::DEFAULT_SETTING);
+    if (\is_string($selected) && PageVariant::load($selected) !== NULL) {
+      $form[$group]['edit_template'] = [
+        '#type' => 'link',
+        '#title' => $this->t('Edit template'),
+        // TRICKY: an unrouted base: URI, because /canvas/* is an SPA route
+        // that Drupal's router would collapse to /canvas.
+        '#url' => Url::fromUri('base:canvas/editor/page_variant/' . $selected),
+        '#attributes' => [
+          'class' => ['canvas-page-template-edit'],
+          'data-testid' => 'canvas-page-template-edit',
+        ],
+        '#weight' => 10,
+      ];
+    }
   }
 
   /**
