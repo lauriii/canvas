@@ -13,11 +13,23 @@ import type {
   UpdatePageVariantPayload,
 } from '@/types/PageVariant';
 
+// The `page_variant` config entity type id, as used in editor routes and the
+// layout API.
+// @see \Drupal\canvas\Entity\PageVariant::ENTITY_TYPE_ID
+export const PAGE_VARIANT_ENTITY_TYPE = 'page_variant';
+
 // The intrinsic "Page content" marker. A valid page variant must contain
 // exactly one, marking where the route's main content is injected at render
 // time.
 // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::PAGE_CONTENT_COMPONENT_ID
 export const PAGE_CONTENT_MARKER_ID = 'marker.page_content';
+
+// Whether a layout node's component type (`<component id>@<version>`) is a
+// marker. Markers are intrinsic placeholders managed by Canvas: they can be
+// moved, but never deleted, duplicated, or copied.
+// @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+export const isMarkerComponentType = (type?: string): boolean =>
+  !!type?.startsWith('marker.');
 
 // Reads the active version hash of the "Page content" marker from the component
 // library. The version is a backend detail (it changes only if the marker's

@@ -40,6 +40,10 @@ import {
   useUpdateContentMutation,
 } from '@/services/content';
 import { pageDataFormApi } from '@/services/pageDataForm';
+import {
+  PAGE_VARIANT_ENTITY_TYPE,
+  useGetPageVariantQuery,
+} from '@/services/pageVariants';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 import { getQueryErrorMessage } from '@/utils/error-handling';
 
@@ -77,6 +81,11 @@ const PageInfo = () => {
   const { isTemplateContext, isTemplatePreviewRoute } = useTemplateRef();
   const isTemplateRoute = isTemplateContext || isTemplatePreviewRoute;
   const templateCaption = useTemplateCaption();
+
+  const isPageVariantRoute = entityType === PAGE_VARIANT_ENTITY_TYPE;
+  const { data: pageVariant } = useGetPageVariantQuery(entityId ?? '', {
+    skip: !isPageVariantRoute || !entityId,
+  });
 
   const [searchTerm, setSearchTerm] = useState<string>('');
   // @todo: https://www.drupal.org/i/3513566 this needs to be generalized to check all content entity types.
@@ -300,6 +309,11 @@ const PageInfo = () => {
                 <>
                   {iconMap['Template']}
                   {templateCaption || 'Template'}
+                </>
+              ) : isPageVariantRoute ? (
+                <>
+                  {iconMap['Template']}
+                  {pageVariant?.label || entityId}
                 </>
               ) : (
                 <>

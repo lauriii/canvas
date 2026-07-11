@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
+import { useParams } from 'react-router-dom';
 
 import { useAppSelector } from '@/app/hooks';
 import ContextualPanel from '@/components/panel/ContextualPanel';
@@ -18,6 +19,7 @@ import {
   selectIsMultiSelect,
   selectSelectedComponentUuid,
 } from '@/features/ui/uiSlice';
+import { PAGE_VARIANT_ENTITY_TYPE } from '@/services/pageVariants';
 
 import type React from 'react';
 
@@ -33,10 +35,15 @@ const EditorLayout: React.FC<EditorLayoutProps> = ({ context }) => {
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const isMultiSelect = useAppSelector(selectIsMultiSelect);
 
+  const { entityType } = useParams();
   const isTemplateContext = editorFrameContext === EditorFrameContext.TEMPLATE;
+  // Like templates, page variants have no "Page data" tab, so the right panel
+  // only appears when a component is selected.
+  const isSettingsOnlyContext =
+    isTemplateContext || entityType === PAGE_VARIANT_ENTITY_TYPE;
   const isPanelHidden =
     editorFrameMode === EditorFrameMode.INTERACTIVE ||
-    (isTemplateContext && !isMultiSelect && !selectedComponent);
+    (isSettingsOnlyContext && !isMultiSelect && !selectedComponent);
 
   const [rightWidthPx, setRightWidthPx] = useState(loadRightSidebarWidthPx);
   const rightWidthPxRef = useRef(rightWidthPx);

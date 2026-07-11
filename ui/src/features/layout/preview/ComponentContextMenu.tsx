@@ -21,6 +21,7 @@ import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
+import { isMarkerComponentType } from '@/services/pageVariants';
 
 import type React from 'react';
 import type { ReactNode } from 'react';
@@ -61,6 +62,9 @@ export const ComponentContextMenuContent: React.FC<
     'type' in components[componentType] &&
     components[componentType].type === 'external',
   );
+  // Markers (e.g. a page variant's "Page content" marker) are intrinsic: they
+  // can only be repositioned, so every other mutating operation is hidden.
+  const isMarker = isMarkerComponentType(component.type);
 
   const handleDeleteClick = useCallback(
     (ev: React.MouseEvent<HTMLElement>) => {
@@ -187,21 +191,27 @@ export const ComponentContextMenuContent: React.FC<
       )}
       <UnifiedMenu.Separator />
 
-      <UnifiedMenu.Item onClick={handleDuplicateClick} shortcut="⌘ D">
-        Duplicate
-      </UnifiedMenu.Item>
-      <UnifiedMenu.Item onClick={handleCopyClick} shortcut="⌘ C">
-        Copy
-      </UnifiedMenu.Item>
+      {!isMarker && (
+        <UnifiedMenu.Item onClick={handleDuplicateClick} shortcut="⌘ D">
+          Duplicate
+        </UnifiedMenu.Item>
+      )}
+      {!isMarker && (
+        <UnifiedMenu.Item onClick={handleCopyClick} shortcut="⌘ C">
+          Copy
+        </UnifiedMenu.Item>
+      )}
       <UnifiedMenu.Item onClick={handlePasteClick} shortcut="⌘ V">
         Paste
       </UnifiedMenu.Item>
-      <PermissionCheck hasPermission="patterns">
-        <UnifiedMenu.Separator />
-        <UnifiedMenu.Item onClick={handleCreatePatternClick}>
-          Create pattern
-        </UnifiedMenu.Item>
-      </PermissionCheck>
+      {!isMarker && (
+        <PermissionCheck hasPermission="patterns">
+          <UnifiedMenu.Separator />
+          <UnifiedMenu.Item onClick={handleCreatePatternClick}>
+            Create pattern
+          </UnifiedMenu.Item>
+        </PermissionCheck>
+      )}
       <UnifiedMenu.Separator />
 
       <UnifiedMenu.Sub>
@@ -223,10 +233,18 @@ export const ComponentContextMenuContent: React.FC<
           )}
         </UnifiedMenu.SubContent>
       </UnifiedMenu.Sub>
-      <UnifiedMenu.Separator />
-      <UnifiedMenu.Item shortcut="⌫" color="red" onClick={handleDeleteClick}>
-        Delete
-      </UnifiedMenu.Item>
+      {!isMarker && (
+        <>
+          <UnifiedMenu.Separator />
+          <UnifiedMenu.Item
+            shortcut="⌫"
+            color="red"
+            onClick={handleDeleteClick}
+          >
+            Delete
+          </UnifiedMenu.Item>
+        </>
+      )}
     </UnifiedMenu.Content>
   );
 };

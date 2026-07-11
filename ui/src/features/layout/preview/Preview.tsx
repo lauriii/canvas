@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
@@ -25,7 +26,10 @@ import {
 } from '@/features/ui/uiSlice';
 import { useStableCallback } from '@/hooks/useStableCallback';
 import useSyncTitle from '@/hooks/useSyncTitle';
-import { usePostTemplateLayoutMutation } from '@/services/componentAndLayout';
+import {
+  useGetPageLayoutQuery,
+  usePostTemplateLayoutMutation,
+} from '@/services/componentAndLayout';
 import {
   selectUpdateComponentLoadingState,
   useQueuedPostPreviewMutation,
@@ -67,6 +71,12 @@ const Preview: React.FC = () => {
     usePostTemplateLayoutMutation({
       fixedCacheKey: 'editorFrameTemplatePreview',
     });
+  // While the layout of another entity loads (e.g. switching between a page
+  // and a page variant), the previous preview stays visible with the loading
+  // bar on top. Shares LayoutLoader's cache entry, so this adds no request.
+  const { isFetching: isLayoutFetching } = useGetPageLayoutQuery(
+    entityId && entityType ? { entityId, entityType } : skipToken,
+  );
   const isPatching = useAppSelector((state) =>
     selectUpdateComponentLoadingState(state, selectedComponent),
   );
@@ -181,7 +191,9 @@ const Preview: React.FC = () => {
       <Viewport
         frameSrcDoc={frameSrcDoc}
         isFetching={
-          (isFetching || isPatching || isTemplateFetching) && !backgroundUpdate
+          ((isFetching || isPatching || isTemplateFetching) &&
+            !backgroundUpdate) ||
+          isLayoutFetching
         }
       />
     </ComponentHtmlMapProvider>

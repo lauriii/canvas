@@ -35,6 +35,9 @@ export type LayoutApiResponse = RootLayoutModel & {
   html: string;
   autoSaves: AutoSavesHash;
   translations?: Record<string, any>;
+  // For content entities: the page variant rendering this entity, null when
+  // core block layout renders the page. Absent for config entities.
+  resolvedPageVariant?: string | null;
 };
 
 export type TemplateViewMode = {

@@ -36,9 +36,11 @@ import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import useResizeObserver from '@/hooks/useResizeObserver';
 import useSyncParamsToState from '@/hooks/useSyncParamsToState';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
+import { isMarkerComponentType } from '@/services/pageVariants';
 import { getHalfwayScrollPosition } from '@/utils/function-utils';
 
-import { deleteNode } from '../layout/layoutModelSlice';
+import { deleteNode, selectLayout } from '../layout/layoutModelSlice';
+import { findComponentByUuid } from '../layout/layoutUtils';
 
 import type React from 'react';
 
@@ -74,6 +76,11 @@ const EditorFrame: React.FC = () => {
   const spaceKeyPressedRef = useRef(false);
   const { componentId: selectedComponent } = useParams();
   const { unsetSelectedComponent } = useComponentSelection();
+  const layout = useAppSelector(selectLayout);
+  // Markers can be repositioned but never deleted or copied.
+  const selectedComponentIsMarker =
+    !!selectedComponent &&
+    isMarkerComponentType(findComponentByUuid(layout, selectedComponent)?.type);
   const panningModeRef = useRef(panningMode);
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
@@ -130,13 +137,15 @@ const EditorFrame: React.FC = () => {
     keyup: true,
   });
   useHotkeys(['Backspace', 'Delete'], () => {
-    if (selectedComponent) {
+    if (selectedComponent && !selectedComponentIsMarker) {
       dispatch(deleteNode(selectedComponent));
       unsetSelectedComponent();
     }
   });
   useHotkeys('mod+c', () => {
-    copySelectedComponent();
+    if (!selectedComponentIsMarker) {
+      copySelectedComponent();
+    }
   });
   useHotkeys('mod+v', () => {
     pasteAfterSelectedComponent();

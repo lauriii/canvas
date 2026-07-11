@@ -339,7 +339,9 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     ) {
       return;
     }
-    const selectedModel = model[selectedComponent];
+    // Components without explicit inputs (e.g. a theme page template or the
+    // page variant "Page content" marker) have no model entry at all.
+    const selectedModel = model[selectedComponent] ?? { resolved: {} };
     const node = findComponentByUuid(layout, selectedComponent);
     if (!node) {
       return;

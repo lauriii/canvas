@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import parse from 'html-react-parser';
+import { useParams } from 'react-router-dom';
 import { PlusIcon } from '@radix-ui/react-icons';
 import {
   AlertDialog,
@@ -21,11 +22,13 @@ import ErrorCard from '@/components/error/ErrorCard';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import {
   buildCreateVariantPayload,
   buildDuplicateVariantPayload,
   getPageContentMarkerVersion,
+  PAGE_VARIANT_ENTITY_TYPE,
   useCreatePageVariantMutation,
   useDeletePageVariantMutation,
   useGetDefaultPageVariantQuery,
@@ -40,6 +43,7 @@ import type { PageVariant } from '@/types/PageVariant';
 const VariantMenuContent = ({
   variant,
   isDefault,
+  onEdit,
   onRename,
   onDuplicate,
   onSetDefault,
@@ -47,6 +51,7 @@ const VariantMenuContent = ({
 }: {
   variant: PageVariant;
   isDefault: boolean;
+  onEdit: (variant: PageVariant) => void;
   onRename: (variant: PageVariant) => void;
   onDuplicate: (variant: PageVariant) => void;
   onSetDefault: (variant: PageVariant) => void;
@@ -55,6 +60,12 @@ const VariantMenuContent = ({
   <>
     <UnifiedMenu.Label>{variant.label || variant.id}</UnifiedMenu.Label>
     <UnifiedMenu.Separator />
+    <UnifiedMenu.Item
+      onClick={(event) => event.stopPropagation()}
+      onSelect={() => onEdit(variant)}
+    >
+      Edit
+    </UnifiedMenu.Item>
     <UnifiedMenu.Item
       onClick={(event) => event.stopPropagation()}
       onSelect={() => onRename(variant)}
@@ -140,6 +151,7 @@ const VariantMenuContent = ({
 const VariantListItem = ({
   variant,
   isDefault,
+  onEdit,
   onRename,
   onDuplicate,
   onSetDefault,
@@ -147,15 +159,21 @@ const VariantListItem = ({
 }: {
   variant: PageVariant;
   isDefault: boolean;
+  onEdit: (variant: PageVariant) => void;
   onRename: (variant: PageVariant) => void;
   onDuplicate: (variant: PageVariant) => void;
   onSetDefault: (variant: PageVariant) => void;
   onDelete: (variant: PageVariant) => void;
 }) => {
+  const { urlForEditor } = useEditorNavigation();
+  const { entityType, entityId } = useParams();
+  const isBeingEdited =
+    entityType === PAGE_VARIANT_ENTITY_TYPE && entityId === variant.id;
   const menuContent = (
     <VariantMenuContent
       variant={variant}
       isDefault={isDefault}
+      onEdit={onEdit}
       onRename={onRename}
       onDuplicate={onDuplicate}
       onSetDefault={onSetDefault}
@@ -170,6 +188,8 @@ const VariantListItem = ({
           <SidebarNode
             title={variant.label || variant.id}
             variant="template"
+            selected={isBeingEdited}
+            to={urlForEditor(PAGE_VARIANT_ENTITY_TYPE, variant.id)}
             trailingContent={
               isDefault ? (
                 <Badge size="1" variant="soft" color="blue">
@@ -285,6 +305,7 @@ const VariantFormDialog = ({
 const emptyFormValues: VariantFormValues = { label: '', description: '' };
 
 const PageVariants = () => {
+  const { navigateToEditor } = useEditorNavigation();
   const {
     data: variants,
     isLoading: isVariantsLoading,
@@ -408,6 +429,9 @@ const PageVariants = () => {
                   key={variant.id}
                   variant={variant}
                   isDefault={variant.id === defaultId}
+                  onEdit={(item) =>
+                    navigateToEditor(PAGE_VARIANT_ENTITY_TYPE, item.id)
+                  }
                   onRename={setRenameTarget}
                   onDuplicate={handleDuplicate}
                   onSetDefault={(item) => setDefault(item.id)}

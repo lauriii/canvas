@@ -19,6 +19,7 @@ import { useGetPreviewContentEntitiesQuery } from '@/services/componentAndLayout
 import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import PageInfo from '../pageInfo/PageInfo';
+import PageVariantJumpButton from '../pageInfo/PageVariantJumpButton';
 
 import styles from './Topbar.module.css';
 
@@ -140,6 +141,7 @@ const Topbar = () => {
           </Flex>
           <Flex align="center" justify="center" gap="2">
             <PageInfo />
+            {!isPreview && <PageVariantJumpButton />}
             {isTemplateEditorContext && (
               <ContentPreviewSelector
                 items={previewEntities}

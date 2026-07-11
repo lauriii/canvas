@@ -18,7 +18,16 @@ interface ComponentListProps {
 }
 
 const ComponentList = ({ searchTerm }: ComponentListProps) => {
-  const { data: components, error, isLoading } = useGetComponentsQuery();
+  const { data: allComponents, error, isLoading } = useGetComponentsQuery();
+  // Markers (e.g. the page variant "Page content" marker) are intrinsic
+  // placeholders managed by Canvas: they are never offered in the library.
+  const components = allComponents
+    ? Object.fromEntries(
+        Object.entries(allComponents).filter(
+          ([, component]) => component.source !== 'Marker',
+        ),
+      )
+    : allComponents;
   const {
     data: folders,
     error: foldersError,
