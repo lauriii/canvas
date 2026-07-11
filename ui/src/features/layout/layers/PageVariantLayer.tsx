@@ -1,5 +1,4 @@
 import { useParams } from 'react-router-dom';
-import { LockClosedIcon } from '@radix-ui/react-icons';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { ListIndentContext } from '@/components/sidePanel/ListIndentContext';
@@ -49,11 +48,12 @@ const PageVariantLayer = ({ children }: { children: React.ReactNode }) => {
     <div data-testid="canvas-page-variant-layer">
       <SidebarNode
         title={variants?.[variantId]?.label || variantId}
-        variant="pageVariant"
+        variant="template"
         to={urlForEditor(PAGE_VARIANT_ENTITY_TYPE, variantId)}
-        trailingContent={<LockClosedIcon width={11} height={11} />}
       />
-      <ListIndentContext.Provider value={1}>
+      {/* Component rows below add a 20px collapse-triangle gutter; indent the
+          region row two steps so the tree levels read evenly. */}
+      <ListIndentContext.Provider value={2}>
         {children}
       </ListIndentContext.Provider>
     </div>
