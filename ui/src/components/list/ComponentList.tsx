@@ -7,6 +7,7 @@ import {
   useGetComponentsQuery,
   useGetFoldersQuery,
 } from '@/services/componentAndLayout';
+import { isMarkerComponentType } from '@/services/pageVariants';
 
 import LibraryItemList from './LibraryItemList';
 
@@ -24,7 +25,7 @@ const ComponentList = ({ searchTerm }: ComponentListProps) => {
   const components = allComponents
     ? Object.fromEntries(
         Object.entries(allComponents).filter(
-          ([, component]) => component.source !== 'Marker',
+          ([id]) => !isMarkerComponentType(id),
         ),
       )
     : allComponents;

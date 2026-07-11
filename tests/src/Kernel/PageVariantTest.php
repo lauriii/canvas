@@ -359,6 +359,10 @@ final class PageVariantTest extends CanvasKernelTestBase {
     self::assertSame('promo', $template->getPageVariant());
     self::assertContains('canvas.page_variant.promo', $template->getDependencies()['config']);
 
+    // A page also selects the variant.
+    $page = Page::create(['title' => 'Selects promo', 'page_variant' => 'promo']);
+    self::assertSaveWithoutViolations($page);
+
     // The variant is not the site default, so deletion is allowed. Deleting it
     // triggers the config dependency removal flow.
     $variant->delete();
@@ -369,6 +373,13 @@ final class PageVariantTest extends CanvasKernelTestBase {
     self::assertInstanceOf(ContentTemplate::class, $reloaded);
     self::assertNull($reloaded->getPageVariant());
     self::assertNotContains('canvas.page_variant.promo', $reloaded->getDependencies()['config'] ?? []);
+
+    // The page's dangling selection was cleared too (it is an options list,
+    // so a dangling value would fail validation on the page's next save).
+    $reloaded_page = Page::load($page->id());
+    self::assertInstanceOf(Page::class, $reloaded_page);
+    self::assertNull($reloaded_page->get('page_variant')->value);
+    self::assertSaveWithoutViolations($reloaded_page);
   }
 
   /**

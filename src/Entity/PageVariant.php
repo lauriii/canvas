@@ -214,4 +214,32 @@ final class PageVariant extends ComponentTreeConfigEntityBase implements CanvasH
     }
   }
 
+  /**
+   * {@inheritdoc}
+   *
+   * Clears `page_variant` selections referencing the deleted variants: the
+   * selection is an options list, so a dangling value would fail validation
+   * on the page's next save. Cleared pages fall back to the site default.
+   *
+   * @see \Drupal\canvas\Entity\Page::baseFieldDefinitions()
+   * @see \Drupal\canvas\PageVariantResolver
+   */
+  public static function postDelete(EntityStorageInterface $storage, array $entities): void {
+    parent::postDelete($storage, $entities);
+    $entity_type_manager = \Drupal::entityTypeManager();
+    if (!$entity_type_manager->hasDefinition(Page::ENTITY_TYPE_ID)) {
+      return;
+    }
+    $page_storage = $entity_type_manager->getStorage(Page::ENTITY_TYPE_ID);
+    $page_ids = $page_storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('page_variant', \array_keys($entities), 'IN')
+      ->execute();
+    foreach ($page_storage->loadMultiple($page_ids) as $page) {
+      \assert($page instanceof Page);
+      $page->set('page_variant', NULL);
+      $page->save();
+    }
+  }
+
 }

@@ -81,9 +81,16 @@ final class ComponentInstanceForm extends FormBase {
         '#markup' => $this->t('The canvas_stark theme must be enabled for this form to work.'),
       ];
     }
-    // Content templates resolve component inputs against the preview entity;
-    // page variants have no host entity at all: their trees are self-contained.
-    $host_entity = $entity instanceof FieldableEntityInterface ? $entity : $preview_entity;
+    // Content templates resolve component inputs against the preview entity.
+    // Page variants have no host entity; an empty stand-in keeps input
+    // conversion working even for pasted components with entity-bound props.
+    $host_entity = match (TRUE) {
+      $entity instanceof FieldableEntityInterface => $entity,
+      $preview_entity instanceof FieldableEntityInterface => $preview_entity,
+      // Per the assert above, only config entities providing an empty
+      // stand-in (page variants) remain.
+      default => $entity->createEmptyTargetEntity(),
+    };
 
     $request = $this->getRequest();
     $tree = $request->request->getString('form_canvas_tree');

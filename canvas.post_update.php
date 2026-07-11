@@ -608,3 +608,19 @@ function canvas_post_update_0024_migrate_page_regions_to_variants(): void {
     }
   }
 }
+
+/**
+ * Updates the canvas_page `page_variant` selection field to an options list.
+ */
+function canvas_post_update_0024_page_variant_selection_options(): void {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  if ($update_manager->getFieldStorageDefinition('page_variant', 'canvas_page') === NULL) {
+    // Fresh installs (and sites upgraded by post_update 0023 running after
+    // this code landed) already have the options-list definition.
+    return;
+  }
+  // The stored values and column schema are unchanged (a machine name in a
+  // varchar column); only the field type and its settings change.
+  $storage_definitions = \Drupal::service('entity_field.manager')->getFieldStorageDefinitions('canvas_page');
+  $update_manager->updateFieldStorageDefinition($storage_definitions['page_variant']);
+}

@@ -40,7 +40,10 @@ import { isMarkerComponentType } from '@/services/pageVariants';
 import { getHalfwayScrollPosition } from '@/utils/function-utils';
 
 import { deleteNode, selectLayout } from '../layout/layoutModelSlice';
-import { findComponentByUuid } from '../layout/layoutUtils';
+import {
+  componentSubtreeMatchesType,
+  findComponentByUuid,
+} from '../layout/layoutUtils';
 
 import type React from 'react';
 
@@ -77,10 +80,15 @@ const EditorFrame: React.FC = () => {
   const { componentId: selectedComponent } = useParams();
   const { unsetSelectedComponent } = useComponentSelection();
   const layout = useAppSelector(selectLayout);
-  // Markers can be repositioned but never deleted or copied.
+  // Markers can be repositioned but never deleted or copied. The same applies
+  // to any ancestor whose slots contain a marker: deleting or copying it would
+  // take the marker with it.
+  const selectedNode = selectedComponent
+    ? findComponentByUuid(layout, selectedComponent)
+    : null;
   const selectedComponentIsMarker =
-    !!selectedComponent &&
-    isMarkerComponentType(findComponentByUuid(layout, selectedComponent)?.type);
+    !!selectedNode &&
+    componentSubtreeMatchesType(selectedNode, isMarkerComponentType);
   const panningModeRef = useRef(panningMode);
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();

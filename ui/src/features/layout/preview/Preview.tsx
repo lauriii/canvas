@@ -191,9 +191,11 @@ const Preview: React.FC = () => {
       <Viewport
         frameSrcDoc={frameSrcDoc}
         isFetching={
-          ((isFetching || isPatching || isTemplateFetching) &&
-            !backgroundUpdate) ||
-          isLayoutFetching
+          (isFetching ||
+            isPatching ||
+            isTemplateFetching ||
+            isLayoutFetching) &&
+          !backgroundUpdate
         }
       />
     </ComponentHtmlMapProvider>

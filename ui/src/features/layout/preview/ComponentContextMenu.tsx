@@ -9,6 +9,7 @@ import {
   duplicateNode,
   shiftNode,
 } from '@/features/layout/layoutModelSlice';
+import { componentSubtreeMatchesType } from '@/features/layout/layoutUtils';
 import ComponentContextMenuMoveInto from '@/features/layout/preview/ComponentContextMenuMoveInto';
 import { setDialogOpen } from '@/features/ui/dialogSlice';
 import {
@@ -64,7 +65,12 @@ export const ComponentContextMenuContent: React.FC<
   );
   // Markers (e.g. a page variant's "Page content" marker) are intrinsic: they
   // can only be repositioned, so every other mutating operation is hidden.
-  const isMarker = isMarkerComponentType(component.type);
+  // The same applies to any ancestor whose slots contain a marker: deleting or
+  // duplicating it would delete or duplicate the marker with it.
+  const isMarker = componentSubtreeMatchesType(
+    component,
+    isMarkerComponentType,
+  );
 
   const handleDeleteClick = useCallback(
     (ev: React.MouseEvent<HTMLElement>) => {
