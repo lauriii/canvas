@@ -9,6 +9,31 @@ variant renders them; anything without a selection uses the site default
 Page variants replace the previous "global regions" model (one `PageRegion`
 config entity per theme region). See ADR 0017.
 
+## Editing
+
+Variants are managed and edited entirely in the editor:
+
+- The "Page variants" panel lists all variants and supports create, rename,
+  duplicate, delete, and set-as-default. Clicking a variant opens its tree in
+  the editor at `/canvas/editor/page_variant/{id}`, served by the same layout
+  API as other entities (`/canvas/api/v0/layout/page_variant/{id}`).
+- In the variant editor, the "Page content" marker renders as a visible
+  placeholder. It can be repositioned but never deleted, duplicated, or copied;
+  empty slots render as labeled drop targets. Edits auto-save and publish
+  through the same review flow as all Canvas changes. Empty regions render only
+  here: live pages and the page editor skip them, like core block layout.
+- While editing a page, the resolved variant renders the (locked) chrome, and
+  the topbar names it: clicking it jumps to editing the variant.
+
+## Selecting
+
+- Pages select their variant with a select widget on the "Page data" form (the
+  `page_variant` base field is an options list of the existing variants; empty
+  means the site default).
+- Content templates select theirs from the "Page variant" submenu in the
+  Templates panel, backed by `pageVariant` on the content template config HTTP
+  API.
+
 ## Concepts
 
 - **`page_variant` config entity** (`\Drupal\canvas\Entity\PageVariant`): id,
