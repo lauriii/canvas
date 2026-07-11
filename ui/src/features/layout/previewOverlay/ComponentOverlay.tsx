@@ -22,6 +22,7 @@ import useComponentSelection from '@/hooks/useComponentSelection';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import useSyncPreviewElementOffset from '@/hooks/useSyncPreviewElementOffset';
 import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
+import { isMarkerComponentType } from '@/services/pageVariants';
 
 import type React from 'react';
 import type {
@@ -215,7 +216,11 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           <ComponentNameTag
             name={name}
             id={component.uuid}
-            nodeType={component.nodeType}
+            nodeType={
+              isMarkerComponentType(component.type)
+                ? 'marker'
+                : component.nodeType
+            }
           />
         </div>
       )}

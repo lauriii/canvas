@@ -14,6 +14,7 @@ import {
   FileTextIcon,
   HomeIcon,
   SectionIcon,
+  TargetIcon,
 } from '@radix-ui/react-icons';
 import { DropdownMenu, Flex, Text } from '@radix-ui/themes';
 
@@ -32,6 +33,9 @@ const VARIANTS = {
   pattern: { icon: <SectionIcon /> },
   slot: { icon: <BoxModelIcon /> },
   template: { icon: <TemplateIcon /> },
+  // The page variant "Page content" marker: the injection point for the
+  // route's main content.
+  marker: { icon: <TargetIcon /> },
   broken: { icon: <ExclamationTriangleIcon /> },
 } as const;
 
