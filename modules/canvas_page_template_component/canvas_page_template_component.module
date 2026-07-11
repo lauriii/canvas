@@ -1,0 +1,61 @@
+<?php
+
+/**
+ * @file
+ * Exposes theme page templates as Canvas components.
+ */
+
+declare(strict_types=1);
+
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\VersionedConfigEntityInterface;
+use Drupal\canvas_page_template_component\Plugin\Canvas\ComponentSource\ThemePageTemplate;
+
+/**
+ * Ensures the page template component for a theme exists.
+ *
+ * Components are generated per theme instead of shipped as config: only the
+ * themes a site actually builds variants with get one (the default theme on
+ * install, plus any theme whose page regions the upgrade path converts).
+ *
+ * @param string $theme
+ *   The machine name of an installed theme.
+ *
+ * @return \Drupal\canvas\Entity\Component|null
+ *   The (existing or newly created) component, or NULL when the theme is not
+ *   installed.
+ */
+function canvas_page_template_component_ensure_component(string $theme): ?Component {
+  $theme_handler = \Drupal::service('theme_handler');
+  if (!$theme_handler->themeExists($theme)) {
+    return NULL;
+  }
+
+  $id = ThemePageTemplate::SOURCE_PLUGIN_ID . '.' . $theme;
+  $component = Component::load($id);
+  if ($component instanceof Component) {
+    return $component;
+  }
+
+  $source = \Drupal::service(ComponentSourceManager::class)
+    ->createInstance(ThemePageTemplate::SOURCE_PLUGIN_ID, ['local_source_id' => $theme]);
+  \assert($source instanceof ThemePageTemplate);
+  $component = Component::create([
+    'id' => $id,
+    'label' => $theme_handler->getName($theme) . ' page template',
+    'provider' => 'canvas_page_template_component',
+    'source' => ThemePageTemplate::SOURCE_PLUGIN_ID,
+    'source_local_id' => $theme,
+    'active_version' => $source->generateVersionHash(),
+    'versioned_properties' => [
+      VersionedConfigEntityInterface::ACTIVE_VERSION => [
+        'settings' => [],
+        'fallback_metadata' => ['slot_definitions' => $source->getSlotDefinitions()],
+      ],
+    ],
+    'dependencies' => ['enforced' => ['module' => ['canvas_page_template_component']]],
+  ]);
+  $component->save();
+  return $component;
+}

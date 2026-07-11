@@ -553,9 +553,10 @@ function canvas_post_update_0024_migrate_page_regions_to_variants(): void {
 
   foreach ($by_theme as $theme => $regions) {
     $template_id = 'theme_page_template.' . $theme;
-    $template = Component::load($template_id);
+    // Components are generated per theme; ensure this theme's exists.
+    $template = canvas_page_template_component_ensure_component((string) $theme);
     if (!$template instanceof Component) {
-      // The submodule does not ship this theme; a manual variant is needed.
+      // The theme is no longer installed; a manual variant is needed.
       continue;
     }
 
@@ -612,7 +613,7 @@ function canvas_post_update_0024_migrate_page_regions_to_variants(): void {
 /**
  * Updates the canvas_page `page_variant` selection field to an options list.
  */
-function canvas_post_update_0024_page_variant_selection_options(): void {
+function canvas_post_update_0025_page_variant_selection_options(): void {
   $update_manager = \Drupal::entityDefinitionUpdateManager();
   if ($update_manager->getFieldStorageDefinition('page_variant', 'canvas_page') === NULL) {
     // Fresh installs (and sites upgraded by post_update 0023 running after
