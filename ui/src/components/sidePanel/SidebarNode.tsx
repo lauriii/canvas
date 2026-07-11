@@ -9,12 +9,12 @@ import {
   Component2Icon,
   ComponentBooleanIcon,
   CubeIcon,
+  DiscIcon,
   DotsHorizontalIcon,
   ExclamationTriangleIcon,
   FileTextIcon,
   HomeIcon,
   SectionIcon,
-  TargetIcon,
 } from '@radix-ui/react-icons';
 import { DropdownMenu, Flex, Text } from '@radix-ui/themes';
 
@@ -35,7 +35,7 @@ const VARIANTS = {
   template: { icon: <TemplateIcon /> },
   // The page variant "Page content" marker: the injection point for the
   // route's main content.
-  marker: { icon: <TargetIcon /> },
+  marker: { icon: <DiscIcon /> },
   broken: { icon: <ExclamationTriangleIcon /> },
 } as const;
 

@@ -9,6 +9,7 @@ import { useErrorBoundary } from 'react-error-boundary';
 import { Spinner, Text } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import EmptyStateCallout from '@/components/EmptyStateCallout';
 import { getPropsValues } from '@/components/form/react-hook-form/fields/componentFormData';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
 import { FORM_TYPES } from '@/features/form/constants';
@@ -33,6 +34,7 @@ import hyperscriptify from '@/local_packages/hyperscriptify';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { useGetComponentInstanceFormQuery } from '@/services/componentInstanceForm';
+import { isMarkerComponentType } from '@/services/pageVariants';
 import {
   selectUpdateComponentLoadingState,
   usePatchComponent,
@@ -346,6 +348,14 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     if (!node) {
       return;
     }
+    // Markers are intrinsic placeholders without inputs, so there is no
+    // backend form to fetch. Help text is rendered instead; see below.
+    if (isMarkerComponentType(node.type)) {
+      setFormQueryString('');
+      previousModelRef.current = null;
+      previousSelectedComponentRef.current = selectedComponent;
+      return;
+    }
     const [selectedComponentType] = node.type.split('@');
 
     // This is metadata about the props of the SDC being edited. This is specific
@@ -432,6 +442,20 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     layout,
     model,
   ]);
+  const selectedNode = selectedComponent
+    ? findComponentByUuid(layout, selectedComponent)
+    : undefined;
+  if (selectedNode && isMarkerComponentType(selectedNode.type)) {
+    return (
+      <EmptyStateCallout
+        data-testid="canvas-marker-help"
+        title="Page content"
+        description="This marks where each page's own content renders. Every page that uses this variant shows its content here. You can move it to a different spot in the layout, but it cannot be deleted. A page variant always needs exactly one."
+        variant="surface"
+      />
+    );
+  }
+
   return (
     formQueryString &&
     renderComponentId === selectedComponent && (

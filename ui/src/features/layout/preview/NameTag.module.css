@@ -21,4 +21,8 @@
   &.page {
     background-color: var(--color-outline-page);
   }
+
+  &.marker {
+    background-color: var(--green-9);
+  }
 }

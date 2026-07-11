@@ -3,8 +3,8 @@ import {
   BoxModelIcon,
   Component1Icon,
   CubeIcon,
+  DiscIcon,
   FileTextIcon,
-  TargetIcon,
 } from '@radix-ui/react-icons';
 
 import { useAppSelector } from '@/app/hooks';
@@ -25,7 +25,7 @@ const VARIANTS = {
   page: <FileTextIcon width={10} height={10} />,
   // The page variant "Page content" marker: the injection point for the
   // route's main content.
-  marker: <TargetIcon width={10} height={10} />,
+  marker: <DiscIcon width={10} height={10} />,
 };
 
 interface NameTagProps {
@@ -44,6 +44,7 @@ const NameTag: React.FC<NameTagProps> = (props) => {
         [styles.slot]: nodeType === 'slot',
         [styles.region]: nodeType === 'region',
         [styles.page]: nodeType === 'page',
+        [styles.marker]: nodeType === 'marker',
       })}
     >
       {VARIANTS[nodeType as keyof typeof VARIANTS]}

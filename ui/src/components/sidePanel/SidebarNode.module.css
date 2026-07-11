@@ -137,6 +137,15 @@
   composes: default;
 }
 
+.markerVariant {
+  --bg-hover: var(--green-3);
+  --bg-selected: var(--green-9);
+  --bg-hover-dots: var(--green-5);
+  --bg-selected-dots-hover: var(--green-11);
+
+  composes: default;
+}
+
 .pageVariant, .homepageVariant, .templateVariant {
   --bg-hover: var(--blue-3);
   --bg-selected: var(--blue-9);
