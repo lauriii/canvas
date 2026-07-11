@@ -14,6 +14,7 @@ use Drupal\canvas\Entity\AutoSavePublishAwareInterface;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\EmptyTargetEntityProviderInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
@@ -254,6 +255,7 @@ final class Layers {
         Selector::classname(FormStateInterface::class),
         Selector::classname(WidgetPluginManager::class),
         Selector::classname(ContentTemplate::class),
+        Selector::classname(EmptyTargetEntityProviderInterface::class),
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::validateComponentInput()
         self::usesConstraintViolationValueObjects(),
         // For the translatability of inputs.

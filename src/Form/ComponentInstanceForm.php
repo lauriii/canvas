@@ -9,6 +9,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\Storage\ComponentTreeLoader;
@@ -72,7 +73,7 @@ final class ComponentInstanceForm extends FormBase {
     if (\is_null($entity)) {
       throw new \UnexpectedValueException('The $entity parameter should never be NULL.');
     }
-    \assert($entity instanceof FieldableEntityInterface || ($entity instanceof ContentTemplate && $preview_entity instanceof FieldableEntityInterface));
+    \assert($entity instanceof FieldableEntityInterface || $entity instanceof PageVariant || ($entity instanceof ContentTemplate && $preview_entity instanceof FieldableEntityInterface));
     // @phpstan-ignore-next-line property.notFound
     if (!$this->themeHandler->themeExists('canvas_stark') || !$this->themeHandler->listInfo()['canvas_stark']->status) {
       return [
@@ -80,7 +81,9 @@ final class ComponentInstanceForm extends FormBase {
         '#markup' => $this->t('The canvas_stark theme must be enabled for this form to work.'),
       ];
     }
-    $host_entity = $entity instanceof ContentTemplate ? $preview_entity : $entity;
+    // Content templates resolve component inputs against the preview entity;
+    // page variants have no host entity at all: their trees are self-contained.
+    $host_entity = $entity instanceof FieldableEntityInterface ? $entity : $preview_entity;
 
     $request = $this->getRequest();
     $tree = $request->request->getString('form_canvas_tree');

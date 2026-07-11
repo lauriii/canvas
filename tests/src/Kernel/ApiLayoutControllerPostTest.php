@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Serialization\Json;
@@ -210,7 +211,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->assertSame(['c4074d1f-149a-4662-aaf3-615151531cf6'], $slot_and_component_comments);
   }
 
-  #[DataProvider('providerEntityTypes')]
+  #[DataProvider('providerCanvasTestSetupTreeEntityTypes')]
   public function test(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
@@ -320,7 +321,55 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     self::assertArrayHasKey($uuid, $json['model']);
   }
 
-  #[DataProvider('providerEntityTypes')]
+  /**
+   * Tests editing a page variant's component tree through the layout API.
+   *
+   * A page variant serves the generic layout endpoint like other entities, but
+   * its tree is self-contained (no host entity) and the "Page content" marker
+   * renders as a placeholder in previews.
+   */
+  public function testPageVariant(): void {
+    $entity = $this->getTestEntity(PageVariant::ENTITY_TYPE_ID);
+    $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
+    $url = $this->getLayoutUrl($entity)->toString();
+
+    $response = $this->parentRequest(Request::create($url));
+    $json = self::decodeResponse($response);
+
+    // The preview renders the marker as a visible, selectable placeholder.
+    self::assertStringContainsString('canvas--page-content-marker-placeholder', $json['html']);
+    // The preview is not wrapped in a resolved page variant: exactly one
+    // content region is annotated.
+    self::assertSame(1, \substr_count($json['html'], '<!-- canvas-region-start-content -->'));
+
+    // Add a heading component next to the marker and POST the updated layout.
+    $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
+    $json['model'][$uuid] = self::getNewHeadingComponentModel();
+    $json['layout'][0]['components'][] = [
+      'nodeType' => 'component',
+      'uuid' => $uuid,
+      'type' => 'sdc.canvas_test_sdc.heading@8c01a2bdb897a810',
+      'slots' => [],
+    ];
+    unset($json['isNew'], $json['isPublished'], $json['hasUnsavedStatusChange'], $json['html'], $json['translations']);
+    $json += $this->getPostContentsDefaults($entity);
+    $this->request(Request::create($url, method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+
+    // The preview now renders the new heading, still without variant chrome.
+    self::assertSame('This is a random heading.', (string) $this->cssSelect('h1[data-component-id="canvas_test_sdc:heading"]')[0]);
+
+    // The change is auto-saved, not written to the stored variant.
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    $autoSaved = $autoSave->getAutoSaveEntity($entity)->entity;
+    self::assertInstanceOf(PageVariant::class, $autoSaved);
+    self::assertCount(2, $autoSaved->getComponentTree());
+    $stored = PageVariant::load($entity->id());
+    self::assertInstanceOf(PageVariant::class, $stored);
+    self::assertCount(1, $stored->getComponentTree());
+  }
+
+  #[DataProvider('providerCanvasTestSetupTreeEntityTypes')]
   public function testWithCodeComponent(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);

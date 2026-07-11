@@ -23,3 +23,17 @@ This file is included as an attached Drupal library and as such is subject to CS
 .canvas--region-empty-placeholder {
   min-height: var(--canvas--sortable-empty-region-height);
 }
+
+/* Shown where a page variant's "Page content" marker sits while the variant
+itself is edited; at render time the route's main content replaces it. */
+.canvas--page-content-marker-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--canvas--sortable-empty-region-height);
+  color: #5c5e63;
+  border: 2px dashed #9d9fa5;
+  border-radius: 4px;
+  font-family: sans-serif;
+  font-size: 1rem;
+}

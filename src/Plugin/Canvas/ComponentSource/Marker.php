@@ -93,15 +93,31 @@ final class Marker extends ComponentSourceBase {
   public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview): array {
     // A marker renders nothing on its own. In a page variant, the renderer
     // injects the route's main content in its place by resuming the fiber with
-    // that content. Suspending yields this source so the variant can recognize
-    // the marker. Outside the variant fiber (for example a client-side preview
-    // build) the marker is an empty placeholder.
+    // that content: suspending yields this source so the variant can recognize
+    // the marker. TRICKY: a current fiber does not imply the variant renderer,
+    // because core renders placeholders in fibers too; those resume with NULL,
+    // so only an array counts as injected content.
     // @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
-    if (\Fiber::getCurrent() === NULL) {
-      return [];
+    // @see \Drupal\Core\Render\Renderer::replacePlaceholders()
+    if (\Fiber::getCurrent() !== NULL) {
+      $injected = \Fiber::suspend($this);
+      if (\is_array($injected)) {
+        return $injected;
+      }
     }
-    $injected = \Fiber::suspend($this);
-    return \is_array($injected) ? $injected : [];
+    // Nothing was injected: the variant tree itself is being rendered. In a
+    // preview that means the variant is being edited, so render a visible
+    // placeholder that can be selected and moved.
+    if ($isPreview) {
+      return [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['canvas--page-content-marker-placeholder']],
+        '#value' => $this->t('Page content'),
+        '#attached' => ['library' => ['canvas/preview']],
+      ];
+    }
+    return [];
   }
 
   /**

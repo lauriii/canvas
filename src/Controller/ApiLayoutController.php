@@ -13,6 +13,8 @@ use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Render\PreviewEnvelope;
@@ -64,6 +66,7 @@ final class ApiLayoutController {
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly LanguageManagerInterface $languageManager,
     private readonly AccountProxyInterface $currentUser,
+    private readonly PageVariantResolver $pageVariantResolver,
   ) {
     $theme = $this->themeManager->getActiveTheme()->getName();
     $theme_regions = system_region_list($theme);
@@ -89,7 +92,7 @@ final class ApiLayoutController {
   /**
    * Returns JSON for the entity layout and fields that the user can edit.
    */
-  public function get(Request $request, (ContentEntityInterface&EntityPublishedInterface)|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
+  public function get(Request $request, (ContentEntityInterface&EntityPublishedInterface)|ContentTemplate|PageVariant $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
 
     // @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3591732
@@ -112,7 +115,7 @@ final class ApiLayoutController {
         : $this->autoSaveManager->getAutoSaveEntity($entity);
       if (!$autoSaveData->isEmpty()) {
         $entity = $autoSaveData->entity;
-        \assert($entity instanceof ContentEntityInterface || $entity instanceof ContentTemplate);
+        \assert($entity instanceof ContentEntityInterface || $entity instanceof ContentTemplate || $entity instanceof PageVariant);
       }
     }
 
@@ -210,6 +213,9 @@ final class ApiLayoutController {
     if ($entity instanceof ContentEntityInterface && $entity instanceof EntityPublishedInterface) {
       $data['isPublished'] = $entity->isPublished();
       $data['entity_form_fields'] = $this->getFilteredEntityData($entity);
+      // Which page variant renders this entity, so the editor can offer to
+      // jump to editing it. NULL when core block layout renders the page.
+      $data['resolvedPageVariant'] = $this->pageVariantResolver->resolve($entity)?->id();
 
       // Determine if there's an unsaved status change by comparing the current
       // entity (which may be autosaved) with the original stored entity.
@@ -218,6 +224,13 @@ final class ApiLayoutController {
         && $entity !== $original_entity) {
         $data['hasUnsavedStatusChange'] = $entity->isPublished() !== $original_entity->isPublished();
       }
+    }
+    elseif ($entity instanceof PageVariant) {
+      // The client shows the same published/changed status badge for page
+      // variants as for content entities.
+      $data['isPublished'] = $entity->status();
+      // Config entities have no entity form; keep the response shape uniform.
+      $data['entity_form_fields'] = new \stdClass();
     }
 
     // Add 'updated' property that provides value for 'Updated' element in the
@@ -338,7 +351,7 @@ final class ApiLayoutController {
   /**
    * Updates single component instance's auto-save entry and returns a preview.
    */
-  public function patch(Request $request, FieldableEntityInterface|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
+  public function patch(Request $request, FieldableEntityInterface|ContentTemplate|PageVariant $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
     $body = \json_decode($request->getContent(), TRUE, flags: JSON_THROW_ON_ERROR);
     if (!\array_key_exists('componentInstanceUuid', $body)) {
@@ -395,7 +408,7 @@ final class ApiLayoutController {
     // Determine which entity to PATCH. Page variants edit only the content
     // entity's own tree, so the patched component instance belongs to it.
     $entity = $this->getAutoSavedVersionIfAvailable([$entity])[$entity->id()];
-    \assert($entity instanceof FieldableEntityInterface || $entity instanceof ContentTemplate);
+    \assert($entity instanceof FieldableEntityInterface || $entity instanceof ContentTemplate || $entity instanceof PageVariant);
     $entity_to_patch = $this->getEntityWithComponentInstance([$entity], $componentInstanceUuid);
 
     // Update the entity & auto-save it. We might be updating a component
@@ -408,6 +421,10 @@ final class ApiLayoutController {
     \assert(['layout', 'model'] === \array_keys($data));
     if ($entity instanceof FieldableEntityInterface) {
       $data['entity_form_fields'] = $this->getFilteredEntityData($entity);
+    }
+    elseif ($entity instanceof PageVariant) {
+      // Config entities have no entity form; keep the response shape uniform.
+      $data['entity_form_fields'] = new \stdClass();
     }
     $data['autoSaves'] = $this->getAutoSaveHashes(array_merge(
       [$entity],
@@ -424,7 +441,7 @@ final class ApiLayoutController {
    *
    * @todo Remove this in https://drupal.org/i/3492065
    */
-  public function post(Request $request, FieldableEntityInterface|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
+  public function post(Request $request, FieldableEntityInterface|ContentTemplate|PageVariant $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
     $body = json_decode($request->getContent(), TRUE);
     if (!\array_key_exists('model', $body)) {
@@ -489,7 +506,7 @@ final class ApiLayoutController {
     );
   }
 
-  private function buildPreviewRenderable(ContentTemplate|FieldableEntityInterface $entity, ?FieldableEntityInterface $preview_entity = NULL): array {
+  private function buildPreviewRenderable(ContentTemplate|PageVariant|FieldableEntityInterface $entity, ?FieldableEntityInterface $preview_entity = NULL): array {
     $renderable = $entity instanceof ContentTemplate
       // @phpstan-ignore-next-line
       ? $entity->build($preview_entity, isPreview: TRUE)
@@ -511,7 +528,7 @@ final class ApiLayoutController {
     return $build;
   }
 
-  public function getLabel(Request $request, (ContentEntityInterface&EntityPublishedInterface)|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): string {
+  public function getLabel(Request $request, (ContentEntityInterface&EntityPublishedInterface)|ContentTemplate|PageVariant $entity, ?ContentEntityInterface $preview_entity = NULL): string {
     if ($entity instanceof ContentTemplate) {
       \assert($preview_entity !== NULL);
       return (string) $preview_entity->label();
@@ -565,7 +582,7 @@ final class ApiLayoutController {
     ]);
   }
 
-  private function buildLayoutAndModel(FieldableEntityInterface|ContentTemplate $entity, ?FieldableEntityInterface $preview_entity = NULL): array {
+  private function buildLayoutAndModel(FieldableEntityInterface|ContentTemplate|PageVariant $entity, ?FieldableEntityInterface $preview_entity = NULL): array {
     $data = ['layout' => [], 'model' => []];
     // Build the single content region.
     $tree = $this->componentTreeLoader->load($entity);
@@ -580,7 +597,12 @@ final class ApiLayoutController {
    * For content templates with a view mode other than "full", global regions
    * are not part of the display and are excluded from the editor and preview.
    */
-  private static function shouldIncludeGlobalRegions(ContentTemplate|FieldableEntityInterface $entity): bool {
+  private static function shouldIncludeGlobalRegions(ContentTemplate|PageVariant|FieldableEntityInterface $entity): bool {
+    // A page variant is itself the chrome around the content: its preview must
+    // show only its own tree, not nest it inside the route's resolved variant.
+    if ($entity instanceof PageVariant) {
+      return FALSE;
+    }
     return !($entity instanceof ContentTemplate && $entity->getMode() !== 'full');
   }
 
@@ -589,7 +611,7 @@ final class ApiLayoutController {
    *   Always empty: page variants replaced editable global regions. The
    *   surrounding chrome is a page variant, edited separately from the content.
    */
-  private static function getEditableRegions(ContentTemplate|FieldableEntityInterface $entity): array {
+  private static function getEditableRegions(ContentTemplate|PageVariant|FieldableEntityInterface $entity): array {
     return [];
   }
 
@@ -676,7 +698,7 @@ final class ApiLayoutController {
   /**
    * Updates the entire component tree in the given entity (+ fields if any).
    *
-   * @param \Drupal\canvas\Entity\ContentTemplate|\Drupal\Core\Entity\FieldableEntityInterface $entity
+   * @param \Drupal\canvas\Entity\ContentTemplate|\Drupal\canvas\Entity\PageVariant|\Drupal\Core\Entity\FieldableEntityInterface $entity
    *   The entity that is updated by reference: its fields (if any) and its
    *   component tree.
    * @param RegionClientStructureArray $layout
@@ -684,9 +706,9 @@ final class ApiLayoutController {
    * @param ?array $entity_form_fields
    *   Entity form fields. Required only if $entity is fieldable.
    * @param \Drupal\Core\Entity\FieldableEntityInterface|null $preview_entity
-   *   Preview entity. Required only if $entity is a ContentTemplates.
+   *   Preview entity. Required only if $entity is a ContentTemplate.
    */
-  private function updateEntity(ContentTemplate|FieldableEntityInterface $entity, array $layout, array $model, ?array $entity_form_fields, ?FieldableEntityInterface $preview_entity): void {
+  private function updateEntity(ContentTemplate|PageVariant|FieldableEntityInterface $entity, array $layout, array $model, ?array $entity_form_fields, ?FieldableEntityInterface $preview_entity): void {
     if ($entity instanceof FieldableEntityInterface) {
       \assert(!\is_null($entity_form_fields));
       // If we are not auto-saving there is no reason to convert the
@@ -702,7 +724,9 @@ final class ApiLayoutController {
     }
     else {
       \assert(\is_null($entity_form_fields));
-      \assert(!\is_null($preview_entity));
+      // Page variant trees are self-contained: no host entity is needed to
+      // resolve their component inputs.
+      \assert($entity instanceof PageVariant || !\is_null($preview_entity));
       // @todo Use \Drupal\canvas\ClientDataToEntityConverter here
       //   as well in https://drupal.org/i/3543197.
       // @todo Remove php-stan-ignore in https://drupal.org/i/3548273.

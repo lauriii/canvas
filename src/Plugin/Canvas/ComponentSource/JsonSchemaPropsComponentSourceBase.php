@@ -8,6 +8,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceBase;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\EmptyTargetEntityProviderInterface;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -839,7 +840,9 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     // @see \Drupal\canvas\PropSource\StaticPropSource::formTemporaryRemoveThisExclamationExclamationExclamation()
     $entity_object_for_field_widget = match (TRUE) {
       $entity instanceof FieldableEntityInterface => $entity,
-      $entity instanceof ContentTemplate => $entity->createEmptyTargetEntity(),
+      // Config entities hosting component trees (content templates, page
+      // variants) provide an empty stand-in entity.
+      $entity instanceof EmptyTargetEntityProviderInterface => $entity->createEmptyTargetEntity(),
       default => throw new \LogicException(),
     };
 

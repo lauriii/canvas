@@ -12,6 +12,7 @@ use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\ConfigException;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
@@ -55,7 +56,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     ],
   ],
 )]
-final class PageVariant extends ComponentTreeConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface {
+final class PageVariant extends ComponentTreeConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, EmptyTargetEntityProviderInterface {
 
   public const string ENTITY_TYPE_ID = 'page_variant';
 
@@ -161,6 +162,19 @@ final class PageVariant extends ComponentTreeConfigEntityBase implements CanvasH
    */
   public function isSiteDefault(): bool {
     return \Drupal::config('canvas.settings')->get(self::DEFAULT_SETTING) === $this->id();
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Page variant trees have no host entity: their component inputs are static,
+   * so any fieldable entity satisfies the field widgets. Use an empty canvas
+   * page, which is always available.
+   */
+  public function createEmptyTargetEntity(): FieldableEntityInterface {
+    $entity = \Drupal::entityTypeManager()->getStorage(Page::ENTITY_TYPE_ID)->create([]);
+    \assert($entity instanceof FieldableEntityInterface);
+    return $entity;
   }
 
   /**

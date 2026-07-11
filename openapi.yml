@@ -1995,7 +1995,7 @@ paths:
     description: TODO
     parameters:
       - $ref: '#/components/parameters/entityTypeId'
-      - $ref: '#/components/parameters/entityId'
+      - $ref: '#/components/parameters/layoutEntityId'
     patch:
       summary: Generates a component instance form.
       responses:
@@ -2304,7 +2304,7 @@ paths:
       summary: Gets html markup, layout, model, entity form fields and various meta properties for a specified entity type and id.
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
+        - $ref: '#/components/parameters/layoutEntityId'
         - in: query
           name: autoSaved
           required: false
@@ -2447,6 +2447,10 @@ paths:
                     # @see \Drupal\Core\Entity\EntityPublishedInterface
                     # @see https://www.drupal.org/node/3505118#comment-15982801
                     description: Whether the edited content entity is marked as published.
+                  resolvedPageVariant:
+                    type: [string, "null"]
+                    # @see \Drupal\canvas\PageVariantResolver
+                    description: For content entities, the page variant that renders this entity (null when core block layout renders the page). Absent when editing config entities.
                   updated:
                     type: integer
                     title: Updated timestamp
@@ -2471,7 +2475,7 @@ paths:
         time as it is published)
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
+        - $ref: '#/components/parameters/layoutEntityId'
       requestBody:
         $ref: '#/components/requestBodies/PatchLayout'
       responses:
@@ -2532,7 +2536,7 @@ paths:
         it is published)
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
+        - $ref: '#/components/parameters/layoutEntityId'
       requestBody:
         $ref: '#/components/requestBodies/Layout'
       responses:
@@ -5222,6 +5226,18 @@ components:
       examples:
         arbitraryEntityId:
           value: 42
+    layoutEntityId:
+      name: entityId
+      in: path
+      required: true
+      description: "The edited entity's ID: a content entity ID, or a page variant machine name."
+      schema:
+        type: string
+      examples:
+        contentEntityId:
+          value: '42'
+        pageVariantId:
+          value: marketing
     entityUuid:
       name: entityUuid
       in: path

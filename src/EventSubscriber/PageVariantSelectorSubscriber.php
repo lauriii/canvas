@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EventSubscriber;
 
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -40,6 +41,20 @@ final class PageVariantSelectorSubscriber implements EventSubscriberInterface {
     // theme (the Canvas editor, admin pages, and so on).
     if ($this->themeManager->getActiveTheme()->getName() === $this->configFactory->get('system.theme')->get('admin')) {
       return;
+    }
+
+    // When the request edits a page variant itself (the layout API and the
+    // component instance form have it as a route parameter), the edited
+    // variant IS the page: wrapping its preview in the route's resolved
+    // variant would nest the variant inside page chrome, or even inside
+    // itself. Leave core block layout to render the page; the preview
+    // renderer strips its regions.
+    // @see \Drupal\canvas\Controller\ApiLayoutController::buildPreviewRenderable()
+    // @see \Drupal\canvas\Render\MainContent\CanvasPreviewRenderer::prepare()
+    foreach ($event->getRouteMatch()->getParameters() as $parameter) {
+      if ($parameter instanceof PageVariant) {
+        return;
+      }
     }
 
     $variant = $this->resolver->resolve(self::getRouteEntity($event->getRouteMatch()));

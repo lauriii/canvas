@@ -71,7 +71,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     'page_variant',
   ],
 )]
-final class ContentTemplate extends ComponentTreeConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, EntityViewDisplayInterface, AutoSavePublishAwareInterface {
+final class ContentTemplate extends ComponentTreeConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, EmptyTargetEntityProviderInterface, EntityViewDisplayInterface, AutoSavePublishAwareInterface {
 
   public const string ENTITY_TYPE_ID = 'content_template';
 

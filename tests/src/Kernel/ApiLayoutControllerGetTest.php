@@ -9,6 +9,8 @@ use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\Controller\ApiLayoutController;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -208,6 +210,11 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       \assert(isset($new_title));
       self::assertEquals($new_title, $json['entity_form_fields']['title[0][value]']);
     }
+    elseif ($original_entity instanceof PageVariant) {
+      // Config entities have no entity form, but the generic layout endpoint
+      // keeps the response shape uniform.
+      self::assertSame([], $json['entity_form_fields']);
+    }
     else {
       self::assertArrayNotHasKey('entity_form_fields', $json);
     }
@@ -245,6 +252,16 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $this->assertArrayHasKey('name', $region);
     $this->assertSame('Content', $region['name']);
     $this->assertArrayHasKey('components', $region);
+
+    // A page variant is seeded with only the "Page content" marker; the rest
+    // of this method asserts the CanvasTestSetup node tree.
+    if ($entity instanceof PageVariant) {
+      self::assertCount(1, $region['components']);
+      self::assertSame('component', $region['components'][0]['nodeType']);
+      self::assertStringStartsWith(Marker::PAGE_CONTENT_COMPONENT_ID . '@', $region['components'][0]['type']);
+      return $node;
+    }
+
     $this->assertSame([
       [
         'uuid' => CanvasTestSetup::UUID_TWO_COLUMN_UUID,
