@@ -15,6 +15,7 @@ use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
@@ -260,6 +261,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       JavaScriptComponent::ADMIN_PERMISSION,
       Pattern::ADMIN_PERMISSION,
       PageRegion::ADMIN_PERMISSION,
+      PageVariant::ADMIN_PERMISSION,
       Folder::ADMIN_PERMISSION,
       ContentTemplate::ADMIN_PERMISSION,
     ]);
@@ -878,6 +880,246 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'http_response',
     ], 'UNCACHEABLE (request policy)', 'MISS');
     self::assertSame([], $body);
+  }
+
+  /**
+   * @see \Drupal\canvas\Entity\PageVariant
+   * @see \Drupal\canvas\Controller\ApiSettingsController
+   */
+  public function testPageVariant(): void {
+    $this->drupalLogin($this->limitedPermissionsUser);
+    $this->assertAuthenticationAndAuthorization('page_variant');
+
+    $base = rtrim(base_path(), '/');
+    $list_url = Url::fromUri('base:/canvas/api/v0/config/page_variant');
+    $individual_url = Url::fromUri('base:/canvas/api/v0/config/page_variant/homepage');
+    $settings_url = Url::fromUri('base:/canvas/api/v0/settings/default-page-variant');
+
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+
+    // The "Page content" marker ships in the module's default config.
+    // @see config/install/canvas.component.marker.page_content.yml
+    $marker_component = Component::load('marker.page_content');
+    self::assertInstanceOf(ComponentInterface::class, $marker_component);
+    $marker = [
+      'uuid' => '14b2e2b7-5e05-42e2-9f6e-2ffdbb37df35',
+      'component_id' => 'marker.page_content',
+      'component_version' => $marker_component->getActiveVersion(),
+      'inputs' => [],
+    ];
+
+    // POST without a "Page content" marker: 422.
+    $request_options[RequestOptions::JSON] = [
+      'id' => 'homepage',
+      'label' => 'Homepage',
+      'status' => TRUE,
+      'component_tree' => [],
+    ];
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    self::assertSame([
+      'errors' => [
+        [
+          'detail' => 'A page variant must contain a "Page content" placement.',
+          'source' => ['pointer' => 'layout'],
+        ],
+      ],
+    ], $body);
+
+    // POST with more than one marker: 422.
+    $request_options[RequestOptions::JSON] = [
+      'id' => 'homepage',
+      'label' => 'Homepage',
+      'status' => TRUE,
+      'component_tree' => [
+        $marker,
+        ['uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1'] + $marker,
+      ],
+    ];
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    self::assertSame([
+      'errors' => [
+        [
+          'detail' => 'A page variant must contain only one "Page content" placement, but found 2.',
+          'source' => ['pointer' => 'layout'],
+        ],
+      ],
+    ], $body);
+
+    // POST a valid variant: 201.
+    $variant_to_send = [
+      'id' => 'homepage',
+      'label' => 'Homepage',
+      'description' => 'The default full-page layout.',
+      'status' => TRUE,
+      'component_tree' => [$marker],
+    ];
+    $request_options[RequestOptions::JSON] = $variant_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
+      'Location' => [
+        "$base/canvas/api/v0/config/page_variant/homepage",
+      ],
+    ]);
+    $expected_normalization = [
+      'id' => 'homepage',
+      'label' => 'Homepage',
+      'description' => 'The default full-page layout.',
+      'status' => TRUE,
+      'component_tree' => [$marker],
+    ];
+    $this->assertSame($expected_normalization, $body);
+
+    // GET individual returns the same normalization.
+    $body = $this->assertExpectedResponse('GET', $individual_url, [], 200, ['user.permissions'], [
+      'config:canvas.page_variant.homepage',
+      'http_response',
+    ], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame($expected_normalization, $body);
+
+    // GET list returns the variant; page variants are theme-independent so
+    // there is no `theme` cache context.
+    // @see \Drupal\canvas\Entity\PageVariant::refineListQuery()
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], [
+      'config:page_variant_list',
+      'http_response',
+    ], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame(['homepage' => $expected_normalization], $body);
+
+    // POSTing the same ID again: 409.
+    $request_options[RequestOptions::JSON] = $variant_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 409, NULL, NULL, NULL, NULL);
+    self::assertSame([
+      'errors' => [
+        "'page_variant' entity with ID 'homepage' already exists.",
+      ],
+    ], $body);
+
+    // PATCH updates label and description.
+    $request_options[RequestOptions::JSON] = [
+      'label' => 'Homepage (updated)',
+      'description' => NULL,
+    ];
+    $body = $this->assertExpectedResponse('PATCH', $individual_url, $request_options, 200, NULL, NULL, NULL, NULL);
+    self::assertIsArray($body);
+    self::assertSame('Homepage (updated)', $body['label']);
+    self::assertNull($body['description']);
+    self::assertSame([$marker], $body['component_tree']);
+
+    // PATCHing a tree without the marker: 422, the stored variant unchanged.
+    $request_options[RequestOptions::JSON] = ['component_tree' => []];
+    $body = $this->assertExpectedResponse('PATCH', $individual_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    self::assertSame([
+      'errors' => [
+        [
+          'detail' => 'A page variant must contain a "Page content" placement.',
+          'source' => ['pointer' => 'layout'],
+        ],
+      ],
+    ], $body);
+
+    // PATCHing the immutable `id` is silently ignored — updateFromClientSide
+    // only applies label, description, component_tree and status.
+    $request_options[RequestOptions::JSON] = ['id' => 'renamed'];
+    $body = $this->assertExpectedResponse('PATCH', $individual_url, $request_options, 200, NULL, NULL, NULL, NULL);
+    self::assertIsArray($body);
+    self::assertSame('homepage', $body['id']);
+
+    // The site default page variant starts unset.
+    $body = $this->assertExpectedResponse('GET', $settings_url, [], 200, ['user.permissions'], [
+      'config:canvas.settings',
+      'http_response',
+    ], 'UNCACHEABLE (request policy)', 'MISS');
+    self::assertSame(['default_page_variant' => NULL], $body);
+
+    // PATCHing the default to a variant that does not exist: 422.
+    $request_options[RequestOptions::JSON] = ['default_page_variant' => 'ghost'];
+    $body = $this->assertExpectedResponse('PATCH', $settings_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    self::assertSame([
+      'errors' => ['The page variant "ghost" does not exist.'],
+    ], $body);
+
+    // PATCHing without the `default_page_variant` key: 400. The OpenAPI
+    // request validator would reject this before the controller, so bypass it
+    // to prove the controller validates on its own.
+    $request_options[RequestOptions::JSON] = ['unrelated' => 'key'];
+    $request_options[RequestOptions::HEADERS]['X-NO-OPENAPI-VALIDATION'] = 'TRUE';
+    $body = $this->assertExpectedResponse('PATCH', $settings_url, $request_options, 400, NULL, NULL, NULL, NULL);
+    self::assertSame([
+      'errors' => ['Missing default_page_variant.'],
+    ], $body);
+    unset($request_options[RequestOptions::HEADERS]['X-NO-OPENAPI-VALIDATION']);
+
+    // PATCHing the default to the created variant persists it.
+    $request_options[RequestOptions::JSON] = ['default_page_variant' => 'homepage'];
+    $body = $this->assertExpectedResponse('PATCH', $settings_url, $request_options, 200, NULL, NULL, NULL, NULL);
+    self::assertSame(['default_page_variant' => 'homepage'], $body);
+
+    // The site default variant cannot be deleted.
+    // @see \Drupal\canvas\EntityHandlers\PageVariantAccessControlHandler
+    $response = $this->makeApiRequest('DELETE', $individual_url, [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+        'X-CSRF-Token' => $this->drupalGet('session/token'),
+      ],
+    ]);
+    $this->assertSame(403, $response->getStatusCode());
+
+    // The site default variant cannot be disabled either.
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\SiteDefaultPageVariantEnabledConstraint
+    $request_options[RequestOptions::JSON] = ['status' => FALSE];
+    $body = $this->assertExpectedResponse('PATCH', $individual_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    self::assertSame([
+      'errors' => [
+        [
+          'detail' => 'The site default page variant cannot be disabled. Set another variant as the default first.',
+          'source' => ['pointer' => 'status'],
+        ],
+      ],
+    ], $body);
+
+    // After clearing the default, the variant can be disabled. Disabled
+    // variants remain visible to the management UI.
+    $request_options[RequestOptions::JSON] = ['default_page_variant' => NULL];
+    $body = $this->assertExpectedResponse('PATCH', $settings_url, $request_options, 200, NULL, NULL, NULL, NULL);
+    self::assertSame(['default_page_variant' => NULL], $body);
+    $request_options[RequestOptions::JSON] = ['status' => FALSE];
+    $body = $this->assertExpectedResponse('PATCH', $individual_url, $request_options, 200, NULL, NULL, NULL, NULL);
+    self::assertIsArray($body);
+    self::assertFalse($body['status']);
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], [
+      'config:page_variant_list',
+      'http_response',
+    ], 'UNCACHEABLE (request policy)', 'MISS');
+    self::assertIsArray($body);
+    self::assertArrayHasKey('homepage', $body);
+
+    // A disabled variant cannot become the site default: 422.
+    $request_options[RequestOptions::JSON] = ['default_page_variant' => 'homepage'];
+    $body = $this->assertExpectedResponse('PATCH', $settings_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    self::assertSame([
+      'errors' => ['The page variant "homepage" is disabled and cannot be the site default.'],
+    ], $body);
+
+    // A disabled non-default variant can be deleted.
+    $this->assertExpectedResponse('DELETE', $individual_url, [], 204, NULL, NULL, NULL, NULL);
+
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], [
+      'config:page_variant_list',
+      'http_response',
+    ], 'UNCACHEABLE (request policy)', 'MISS');
+    self::assertSame([], $body);
+
+    // The settings endpoints require authentication and the `administer page
+    // variants` permission.
+    $this->drupalLogout();
+    $response = $this->makeApiRequest('GET', $settings_url, []);
+    $this->assertSame(401, $response->getStatusCode());
+    $this->drupalLogin($this->limitedPermissionsUser);
+    $response = $this->makeApiRequest('GET', $settings_url, []);
+    $this->assertSame(403, $response->getStatusCode());
   }
 
   /**

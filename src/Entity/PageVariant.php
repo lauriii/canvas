@@ -6,7 +6,7 @@ namespace Drupal\canvas\Entity;
 
 use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\Controller\ClientServerConversionTrait;
-use Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler;
+use Drupal\canvas\EntityHandlers\PageVariantAccessControlHandler;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\ConfigException;
@@ -14,6 +14,7 @@ use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
@@ -37,7 +38,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
   label_collection: new TranslatableMarkup('Page variants'),
   admin_permission: self::ADMIN_PERMISSION,
   handlers: [
-    'access' => CanvasConfigEntityAccessControlHandler::class,
+    'access' => PageVariantAccessControlHandler::class,
   ],
   entity_keys: [
     'id' => 'id',
@@ -183,16 +184,46 @@ final class PageVariant extends ComponentTreeConfigEntityBase implements CanvasH
    * Called via setSetting('allowed_values_function', ...) in
    * Page::baseFieldDefinitions().
    *
+   * Disabled variants keep rendering where they are already selected, but
+   * cannot be selected anew, so they are omitted unless they are the given
+   * entity's *persisted* selection. The persisted (not in-memory) value is
+   * what keeps an existing page saveable after its variant was disabled,
+   * without letting a new page sneak a disabled variant in.
+   *
+   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface|null $definition
+   *   The field storage definition, when called by the options module.
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $entity
+   *   The entity holding the selection, when available.
+   * @param bool $cacheable
+   *   Always set to FALSE: the result depends on the given entity and on the
+   *   variants' current statuses, but the options module statically caches
+   *   per field rather than per entity.
+   *
    * @return array<string, string>
    *   Page variant labels, keyed by machine name.
    *
    * @see \Drupal\canvas\Entity\Page::baseFieldDefinitions()
+   * @see \Drupal\canvas\PageVariantResolver
+   * @see options_allowed_values()
    */
   // @phpstan-ignore shipmonk.deadMethod
-  public static function allowedValues(): array {
+  public static function allowedValues(?FieldStorageDefinitionInterface $definition = NULL, ?FieldableEntityInterface $entity = NULL, bool &$cacheable = TRUE): array {
+    $cacheable = FALSE;
+    $persisted_selection = NULL;
+    if ($entity !== NULL && !$entity->isNew() && $entity->hasField('page_variant')) {
+      $original = \Drupal::entityTypeManager()
+        ->getStorage($entity->getEntityTypeId())
+        ->loadUnchanged($entity->id());
+      if ($original instanceof FieldableEntityInterface) {
+        $persisted_selection = $original->get('page_variant')->value;
+      }
+    }
     return \array_map(
       static fn (PageVariant $variant): string => (string) $variant->label(),
-      self::loadMultiple(),
+      \array_filter(
+        self::loadMultiple(),
+        static fn (PageVariant $variant): bool => $variant->status() || $variant->id() === $persisted_selection,
+      ),
     );
   }
 
