@@ -5,7 +5,6 @@ import TemplateIcon from '@assets/icons/template.svg?react';
 import {
   ChevronLeftIcon,
   CodeIcon,
-  ContainerIcon,
   FileTextIcon,
   HomeIcon,
   SectionIcon,
@@ -62,7 +61,7 @@ const iconMap: PageType = {
   GlobalPatternName: <SectionIcon />,
   Homepage: <HomeIcon />,
   Template: <TemplateIcon />,
-  PageVariant: <ContainerIcon />,
+  PageVariant: <TemplateIcon />,
 };
 
 const canvasSettings = getCanvasSettings();

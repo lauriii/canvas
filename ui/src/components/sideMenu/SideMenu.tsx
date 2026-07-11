@@ -9,7 +9,6 @@ import {
   CodeIcon,
   FileTextIcon,
   LayersIcon,
-  LayoutIcon,
   PlusIcon,
 } from '@radix-ui/react-icons';
 import { Button, Flex, Tooltip } from '@radix-ui/themes';
@@ -147,15 +146,10 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       icon: <TemplateIcon />,
       label: 'Templates',
       enabled: true,
-      hidden: !hasPermission('contentTemplates'),
-    },
-    {
-      type: 'button',
-      id: 'pageVariants',
-      icon: <LayoutIcon />,
-      label: 'Page variants',
-      enabled: true,
-      hidden: !hasPermission('pageVariants'),
+      // The panel holds content templates and page templates; show it when
+      // the user may manage either.
+      hidden:
+        !hasPermission('contentTemplates') && !hasPermission('pageVariants'),
     },
     {
       type: 'separator',

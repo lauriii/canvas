@@ -9,7 +9,6 @@ import ExtensionsList from '@/components/extensions/ExtensionsList';
 import Code from '@/components/sidePanel/Code';
 import Library from '@/components/sidePanel/Library';
 import Pages from '@/components/sidePanel/Pages';
-import PageVariants from '@/components/sidePanel/PageVariants';
 import Templates from '@/components/sidePanel/Templates';
 import BrandKitPanel from '@/features/brandKit/BrandKitPanel';
 import Layers from '@/features/layout/layers/Layers';
@@ -31,7 +30,11 @@ export const PrimaryPanel = () => {
   const offLeftClasses = useHidePanelClasses('left');
 
   useEffect(() => {
-    if (activePanel === 'templates' && !hasPermission('contentTemplates')) {
+    if (
+      activePanel === 'templates' &&
+      !hasPermission('contentTemplates') &&
+      !hasPermission('pageVariants')
+    ) {
       dispatch(unsetActivePanel());
     }
     if (
@@ -51,7 +54,6 @@ export const PrimaryPanel = () => {
     aiWizard: 'AI',
     templates: 'Templates',
     pages: 'Pages',
-    pageVariants: 'Page variants',
   };
 
   return (
@@ -109,11 +111,6 @@ export const PrimaryPanel = () => {
                     <Pages />
                   </ErrorBoundary>
                 )}
-                {activePanel === 'pageVariants' && (
-                  <ErrorBoundary>
-                    <PageVariants />
-                  </ErrorBoundary>
-                )}
                 {activePanel === 'extensions' && (
                   <ErrorBoundary>
                     <ExtensionsList />
@@ -125,7 +122,8 @@ export const PrimaryPanel = () => {
                   </ErrorBoundary>
                 )}
                 {activePanel === 'templates' &&
-                  hasPermission('contentTemplates') && (
+                  (hasPermission('contentTemplates') ||
+                    hasPermission('pageVariants')) && (
                     <ErrorBoundary>
                       <Templates />
                     </ErrorBoundary>

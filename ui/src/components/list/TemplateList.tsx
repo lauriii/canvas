@@ -196,7 +196,7 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
       <UnifiedMenu.Label>{viewMode.viewModeLabel}</UnifiedMenu.Label>
       <UnifiedMenu.Separator />
       <UnifiedMenu.Sub>
-        <UnifiedMenu.SubTrigger>Page variant</UnifiedMenu.SubTrigger>
+        <UnifiedMenu.SubTrigger>Page template</UnifiedMenu.SubTrigger>
         <UnifiedMenu.SubContent>
           <UnifiedMenu.RadioGroup
             value={viewMode.pageVariant ?? ''}
@@ -208,11 +208,18 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
             }
           >
             <UnifiedMenu.RadioItem value="">Site default</UnifiedMenu.RadioItem>
-            {Object.values(pageVariants ?? {}).map((variant) => (
-              <UnifiedMenu.RadioItem key={variant.id} value={variant.id}>
-                {variant.label || variant.id}
-              </UnifiedMenu.RadioItem>
-            ))}
+            {Object.values(pageVariants ?? {})
+              // Disabled templates keep rendering where already selected, but
+              // cannot be selected anew.
+              .filter(
+                (variant) =>
+                  variant.status || variant.id === viewMode.pageVariant,
+              )
+              .map((variant) => (
+                <UnifiedMenu.RadioItem key={variant.id} value={variant.id}>
+                  {variant.label || variant.id}
+                </UnifiedMenu.RadioItem>
+              ))}
           </UnifiedMenu.RadioGroup>
         </UnifiedMenu.SubContent>
       </UnifiedMenu.Sub>

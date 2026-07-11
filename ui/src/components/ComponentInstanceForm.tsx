@@ -450,7 +450,7 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
       <EmptyStateCallout
         data-testid="canvas-marker-help"
         title="Page content"
-        description="This marks where each page's own content renders. Every page that uses this variant shows its content here. You can move it to a different spot in the layout, but it cannot be deleted. A page variant always needs exactly one."
+        description="This marks where each page's own content renders. Every page that uses this template shows its content here. You can move it to a different spot in the layout, but it cannot be deleted. A page template always needs exactly one."
         variant="surface"
         mt="3"
       />

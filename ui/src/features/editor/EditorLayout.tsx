@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router-dom';
 
-import { useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ContextualPanel from '@/components/panel/ContextualPanel';
 import Editor from '@/features/editor/Editor';
 import {
@@ -11,6 +11,7 @@ import {
   SIDEBAR_MAX_PX,
   SIDEBAR_MIN_PX,
 } from '@/features/editor/editorLayoutStorage';
+import { setActivePanel } from '@/features/ui/primaryPanelSlice';
 import {
   EditorFrameContext,
   EditorFrameMode,
@@ -36,6 +37,14 @@ const EditorLayout: React.FC<EditorLayoutProps> = ({ context }) => {
   const isMultiSelect = useAppSelector(selectIsMultiSelect);
 
   const { entityType } = useParams();
+  const dispatch = useAppDispatch();
+  // While a page template is edited, open the Templates panel so the left
+  // sidebar shows which template is on the canvas.
+  useEffect(() => {
+    if (entityType === PAGE_VARIANT_ENTITY_TYPE) {
+      dispatch(setActivePanel('templates'));
+    }
+  }, [entityType, dispatch]);
   const isTemplateContext = editorFrameContext === EditorFrameContext.TEMPLATE;
   // Like templates, page variants have no "Page data" tab, so the right panel
   // only appears when a component is selected.

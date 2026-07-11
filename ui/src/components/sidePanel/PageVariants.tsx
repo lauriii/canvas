@@ -47,6 +47,7 @@ const VariantMenuContent = ({
   onRename,
   onDuplicate,
   onSetDefault,
+  onToggleStatus,
   onDelete,
 }: {
   variant: PageVariant;
@@ -55,6 +56,7 @@ const VariantMenuContent = ({
   onRename: (variant: PageVariant) => void;
   onDuplicate: (variant: PageVariant) => void;
   onSetDefault: (variant: PageVariant) => void;
+  onToggleStatus: (variant: PageVariant) => void;
   onDelete: (variant: PageVariant) => void;
 }) => (
   <>
@@ -78,12 +80,40 @@ const VariantMenuContent = ({
     >
       Duplicate
     </UnifiedMenu.Item>
-    {!isDefault && (
+    {!isDefault && variant.status && (
       <UnifiedMenu.Item
         onClick={(event) => event.stopPropagation()}
         onSelect={() => onSetDefault(variant)}
       >
         Set as default
+      </UnifiedMenu.Item>
+    )}
+    {isDefault ? (
+      // The server blocks disabling the site default variant, so surface why
+      // rather than firing a request that will fail.
+      <UnifiedMenu.Item
+        color="gray"
+        disabled
+        onClick={(event) => event.stopPropagation()}
+      >
+        <HoverCard.Root>
+          <HoverCard.Trigger onClick={(event) => event.stopPropagation()}>
+            <Text as="span">Disable</Text>
+          </HoverCard.Trigger>
+          <HoverCard.Content>
+            <Text as="p">
+              Cannot disable the default template. Set another template as the
+              default first.
+            </Text>
+          </HoverCard.Content>
+        </HoverCard.Root>
+      </UnifiedMenu.Item>
+    ) : (
+      <UnifiedMenu.Item
+        onClick={(event) => event.stopPropagation()}
+        onSelect={() => onToggleStatus(variant)}
+      >
+        {variant.status ? 'Disable' : 'Enable'}
       </UnifiedMenu.Item>
     )}
     <UnifiedMenu.Separator />
@@ -101,7 +131,7 @@ const VariantMenuContent = ({
           </HoverCard.Trigger>
           <HoverCard.Content>
             <Text as="p">
-              Cannot delete the default variant. Set another variant as the
+              Cannot delete the default template. Set another template as the
               default first.
             </Text>
           </HoverCard.Content>
@@ -123,7 +153,7 @@ const VariantMenuContent = ({
             Delete {variant.label || variant.id}
           </AlertDialog.Title>
           <AlertDialog.Description size="2">
-            This action will permanently delete the page variant. This action
+            This action will permanently delete the page template. This action
             cannot be undone.
           </AlertDialog.Description>
           <Flex gap="3" mt="4" justify="end">
@@ -138,7 +168,7 @@ const VariantMenuContent = ({
                 color="red"
                 onClick={() => onDelete(variant)}
               >
-                Delete variant
+                Delete template
               </Button>
             </AlertDialog.Action>
           </Flex>
@@ -155,6 +185,7 @@ const VariantListItem = ({
   onRename,
   onDuplicate,
   onSetDefault,
+  onToggleStatus,
   onDelete,
 }: {
   variant: PageVariant;
@@ -163,6 +194,7 @@ const VariantListItem = ({
   onRename: (variant: PageVariant) => void;
   onDuplicate: (variant: PageVariant) => void;
   onSetDefault: (variant: PageVariant) => void;
+  onToggleStatus: (variant: PageVariant) => void;
   onDelete: (variant: PageVariant) => void;
 }) => {
   const { urlForEditor } = useEditorNavigation();
@@ -177,6 +209,7 @@ const VariantListItem = ({
       onRename={onRename}
       onDuplicate={onDuplicate}
       onSetDefault={onSetDefault}
+      onToggleStatus={onToggleStatus}
       onDelete={onDelete}
     />
   );
@@ -187,15 +220,17 @@ const VariantListItem = ({
         <div data-testid={`canvas-page-variant-${variant.id}`}>
           <SidebarNode
             title={variant.label || variant.id}
-            variant="pageVariant"
+            variant="template"
             selected={isBeingEdited}
             to={urlForEditor(PAGE_VARIANT_ENTITY_TYPE, variant.id)}
             trailingContent={
-              isDefault ? (
+              // The default is always enabled, so the badges are mutually
+              // exclusive.
+              isDefault || !variant.status ? (
                 <Badge
                   size="1"
                   variant="soft"
-                  color="blue"
+                  color={isDefault ? 'green' : 'gray'}
                   // On the active (solid) row the soft badge is illegible;
                   // use a translucent white chip instead.
                   style={
@@ -204,7 +239,7 @@ const VariantListItem = ({
                       : undefined
                   }
                 >
-                  Default
+                  {isDefault ? 'Default' : 'Disabled'}
                 </Badge>
               ) : undefined
             }
@@ -291,7 +326,7 @@ const VariantFormDialog = ({
           id="page-variant-label"
           data-testid="canvas-page-variant-label-input"
           value={label}
-          placeholder="Variant name"
+          placeholder="Template name"
           size="1"
           onChange={(event) => setLabel(event.target.value)}
         />
@@ -410,7 +445,7 @@ const PageVariants = () => {
           }}
         >
           <PlusIcon />
-          New variant
+          New page template
         </Button>
       </Flex>
 
@@ -418,14 +453,14 @@ const PageVariants = () => {
         <Box>
           {variantsError && (
             <ErrorCard
-              title="An unexpected error has occurred while loading page variants."
+              title="An unexpected error has occurred while loading page templates."
               error={String(extractErrorMessageFromApiResponse(variantsError))}
             />
           )}
           {!variantsError && variantList.length === 0 && (
             <EmptyStateCallout
               data-testid="canvas-page-variant-list"
-              title="No page variants found"
+              title="No page templates found"
               variant="surface"
             />
           )}
@@ -446,6 +481,9 @@ const PageVariants = () => {
                   onRename={setRenameTarget}
                   onDuplicate={handleDuplicate}
                   onSetDefault={(item) => setDefault(item.id)}
+                  onToggleStatus={(item) =>
+                    updateVariant({ id: item.id, status: !item.status })
+                  }
                   onDelete={(item) => deleteVariant(item.id)}
                 />
               ))}
@@ -457,8 +495,8 @@ const PageVariants = () => {
       {isCreateOpen && (
         <VariantFormDialog
           open={isCreateOpen}
-          title="New page variant"
-          confirmText="Create variant"
+          title="New page template"
+          confirmText="Create template"
           initialValues={emptyFormValues}
           isSubmitting={isCreating}
           error={
@@ -474,7 +512,7 @@ const PageVariants = () => {
       {renameTarget && (
         <VariantFormDialog
           open={!!renameTarget}
-          title="Rename page variant"
+          title="Rename page template"
           confirmText="Save changes"
           initialValues={{
             label: renameTarget.label ?? '',

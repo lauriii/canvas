@@ -6,6 +6,9 @@ content" marker is placed in the tree. Pages and content templates select which
 variant renders them; anything without a selection uses the site default
 (`canvas.settings:default_page_variant`).
 
+The UI calls page variants "page templates"; machine names, config, and the
+HTTP API keep `page_variant`.
+
 Page variants replace the previous "global regions" model (one `PageRegion`
 config entity per theme region). See ADR 0017.
 
@@ -13,24 +16,28 @@ config entity per theme region). See ADR 0017.
 
 Variants are managed and edited entirely in the editor:
 
-- The "Page variants" panel lists all variants and supports create, rename,
-  duplicate, delete, and set-as-default. Clicking a variant opens its tree in
-  the editor at `/canvas/editor/page_variant/{id}`, served by the same layout
-  API as other entities (`/canvas/api/v0/layout/page_variant/{id}`).
+- The "Page templates" section of the Templates panel lists all variants and
+  supports create, rename, duplicate, enable/disable, delete, and
+  set-as-default. Clicking a
+  variant opens its tree in the editor at `/canvas/editor/page_variant/{id}`,
+  served by the same layout API as other entities
+  (`/canvas/api/v0/layout/page_variant/{id}`).
 - In the variant editor, the "Page content" marker renders as a visible
   placeholder. It can be repositioned but never deleted, duplicated, or copied;
   empty slots render as labeled drop targets. Edits auto-save and publish
   through the same review flow as all Canvas changes. Empty regions render only
   here: live pages and the page editor skip them, like core block layout.
-- While editing a page, the resolved variant renders the (locked) chrome, and
-  the topbar names it: clicking it jumps to editing the variant.
+- While editing a page, the resolved variant renders the chrome read-only. The
+  Layers tree nests the page's content under the variant's layer, and both that
+  layer and the topbar chip jump to editing the variant.
 
 ## Selecting
 
-- Pages select their variant with a select widget on the "Page data" form (the
-  `page_variant` base field is an options list of the existing variants; empty
-  means the site default).
-- Content templates select theirs from the "Page variant" submenu in the
+- Pages select their variant in the collapsed "Page template" section of the
+  "Page data" form (the `page_variant` base field is an options list of the
+  existing variants; empty means the site default, shown as "Site default").
+  The section also links to editing the currently resolved variant.
+- Content templates select theirs from the "Page template" submenu in the
   Templates panel, backed by `pageVariant` on the content template config HTTP
   API.
 
@@ -54,8 +61,13 @@ Variants are managed and edited entirely in the editor:
   layout renders the page unchanged.
 - **The default variant** is read and set through
   `/canvas/api/v0/settings/default-page-variant` (the generic config entity API
-  cannot write simple config). The default variant cannot be deleted while it is
-  the default.
+  cannot write simple config). The default variant cannot be deleted or
+  disabled while it is the default, and a disabled variant cannot be made the
+  default.
+- **Disabled variants** keep rendering wherever they are already selected (a
+  page must always render something), but cannot be selected anew: they are
+  omitted from the page's template options and from the content template
+  picker.
 
 ## The `canvas_page_template_component` module
 

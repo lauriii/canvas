@@ -8,7 +8,6 @@ import {
   Component1Icon,
   Component2Icon,
   ComponentBooleanIcon,
-  ContainerIcon,
   CubeIcon,
   DiscIcon,
   DotsHorizontalIcon,
@@ -34,7 +33,6 @@ const VARIANTS = {
   pattern: { icon: <SectionIcon /> },
   slot: { icon: <BoxModelIcon /> },
   template: { icon: <TemplateIcon /> },
-  pageVariant: { icon: <ContainerIcon /> },
   // The page variant "Page content" marker: the injection point for the
   // route's main content.
   marker: { icon: <DiscIcon /> },

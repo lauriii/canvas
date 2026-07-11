@@ -146,11 +146,22 @@
   composes: default;
 }
 
-.pageVariant, .homepageVariant, .templateVariant {
+.pageVariant,
+.homepageVariant {
   --bg-hover: var(--blue-3);
   --bg-selected: var(--blue-9);
   --bg-hover-dots: var(--blue-5);
   --bg-selected-dots-hover: var(--blue-11);
+
+  composes: default;
+}
+
+/* Templates share the green identity with the page-content marker. */
+.templateVariant {
+  --bg-hover: var(--green-3);
+  --bg-selected: var(--green-9);
+  --bg-hover-dots: var(--green-5);
+  --bg-selected-dots-hover: var(--green-11);
 
   composes: default;
 }

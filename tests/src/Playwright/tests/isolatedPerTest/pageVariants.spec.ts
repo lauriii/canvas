@@ -7,25 +7,26 @@ import type { Page } from '@playwright/test';
 /**
  * Tests the page variant editing flow.
  *
- * Covers creating a variant in the Page variants panel, opening it in the
- * editor by clicking it, the "Page content" marker placeholder and its delete
- * protection, editing the variant's tree, publishing, and selecting the
- * variant for a page through the Page data select widget.
+ * Page variants are called "page templates" in the UI. Covers creating one in
+ * the Templates panel's "Page templates" section, opening it in the editor by clicking it, the
+ * "Page content" marker placeholder and its delete protection, editing the
+ * variant's tree, publishing, and selecting the variant for a page through
+ * the Page data form's collapsed "Page template" section.
  */
 
 test.use({ modules: ['canvas_test_sdc'], enableTestExtensions: true });
 
 /**
- * Creates a page variant labeled "Marketing" through the Page variants panel.
+ * Creates a page variant labeled "Marketing" through the Templates panel.
  */
 async function createMarketingVariant(page: Page) {
   await page
     .getByTestId('canvas-side-menu')
-    .getByRole('button', { name: 'Page variants' })
+    .getByRole('button', { name: 'Templates' })
     .click();
   await page.getByTestId('canvas-page-variant-new-button').click();
   await page.getByTestId('canvas-page-variant-label-input').fill('Marketing');
-  await page.getByRole('button', { name: 'Create variant' }).click();
+  await page.getByRole('button', { name: 'Create template' }).click();
   await expect(page.getByTestId('canvas-page-variant-marketing')).toBeVisible();
 }
 
@@ -82,6 +83,87 @@ test.describe('Page variants', () => {
     await canvas.publishAllChanges(['Marketing']);
   });
 
+  test('disable and enable a page variant', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    const canvasPage = await canvas.createCanvas({ title: 'Disable host' });
+    await canvas.openCanvas(canvasPage);
+    await createMarketingVariant(page);
+
+    const row = page.getByTestId('canvas-page-variant-marketing');
+    const openRowMenu = async () => {
+      await row.hover();
+      await row.getByLabel('Open contextual menu').click();
+      const menu = page.getByRole('menu');
+      await expect(menu).toBeVisible();
+      return menu;
+    };
+    const patched = () =>
+      page.waitForResponse(
+        (response) =>
+          response
+            .url()
+            .includes('/canvas/api/v0/config/page_variant/marketing') &&
+          response.request().method() === 'PATCH',
+      );
+
+    // Disable the variant from its row menu; the row shows a badge.
+    let menu = await openRowMenu();
+    let patch = patched();
+    await menu.getByRole('menuitem', { name: 'Disable' }).click();
+    await patch;
+    await expect(row.getByText('Disabled')).toBeVisible();
+
+    // A disabled variant cannot be selected for a page: it is omitted from
+    // the Page data form's "Page template" options.
+    await canvas.openCanvas(canvasPage);
+    const pageDataForm = page.getByTestId('canvas-page-data-form');
+    await pageDataForm
+      .locator('button')
+      .filter({ hasText: 'Page template' })
+      .click();
+    const variantSelect = pageDataForm.getByLabel('Page template');
+    await expect(variantSelect).toBeVisible();
+    await expect(
+      variantSelect.locator('option', { hasText: 'Marketing' }),
+    ).toHaveCount(0);
+
+    // Re-enabling restores selectability. Open another panel first: the
+    // templates list can get stuck loading when it mounts with an already
+    // fulfilled variants cache (a pre-existing panel bug); remounting it
+    // through a toggle reliably shows the list.
+    await page
+      .getByTestId('canvas-side-menu')
+      .getByRole('button', { name: 'Templates' })
+      .click();
+    await page
+      .getByTestId('canvas-side-menu')
+      .getByRole('button', { name: 'Pages' })
+      .click();
+    await page
+      .getByTestId('canvas-side-menu')
+      .getByRole('button', { name: 'Templates' })
+      .click();
+    await expect(row).toBeVisible();
+    menu = await openRowMenu();
+    patch = patched();
+    await menu.getByRole('menuitem', { name: 'Enable' }).click();
+    await patch;
+    await expect(row.getByText('Disabled')).toHaveCount(0);
+    await canvas.openCanvas(canvasPage);
+    await pageDataForm
+      .locator('button')
+      .filter({ hasText: 'Page template' })
+      .click();
+    await expect(variantSelect).toBeVisible();
+    await expect(
+      variantSelect.locator('option', { hasText: 'Marketing' }),
+    ).toHaveCount(1);
+  });
+
   test('select a page variant for a page', async ({ page, drupal, canvas }) => {
     await drupal.login({ username: 'editor', password: 'editor' });
     const canvasPage = await canvas.createCanvas({ title: 'Variant host' });
@@ -91,10 +173,16 @@ test.describe('Page variants', () => {
     // the variant that was just created.
     await canvas.openCanvas(canvasPage);
 
-    // Select the variant for the page with the Page data select widget.
-    const variantSelect = page
-      .getByTestId('canvas-page-data-form')
-      .getByLabel('Page variant');
+    // Select the variant inside the Page data form's collapsed "Page
+    // template" section.
+    const pageDataForm = page.getByTestId('canvas-page-data-form');
+    // Element locator, not getByRole: the Drupal summary inside the trigger
+    // also exposes role=button with the same name.
+    await pageDataForm
+      .locator('button')
+      .filter({ hasText: 'Page template' })
+      .click();
+    const variantSelect = pageDataForm.getByLabel('Page template');
     await expect(variantSelect).toBeVisible();
     const autoSave = page.waitForResponse(
       (response) =>
