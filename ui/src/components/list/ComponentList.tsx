@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 
 import ListItem from '@/components/list/ListItem';
@@ -22,13 +22,19 @@ const ComponentList = ({ searchTerm }: ComponentListProps) => {
   const { data: allComponents, error, isLoading } = useGetComponentsQuery();
   // Markers (e.g. the page variant "Page content" marker) are intrinsic
   // placeholders managed by Canvas: they are never offered in the library.
-  const components = allComponents
-    ? Object.fromEntries(
-        Object.entries(allComponents).filter(
-          ([id]) => !isMarkerComponentType(id),
-        ),
-      )
-    : allComponents;
+  // Memoized: a fresh object on every render would remount the whole list on
+  // unrelated re-renders, dropping in-flight clicks on its menu items.
+  const components = useMemo(
+    () =>
+      allComponents
+        ? Object.fromEntries(
+            Object.entries(allComponents).filter(
+              ([id]) => !isMarkerComponentType(id),
+            ),
+          )
+        : allComponents,
+    [allComponents],
+  );
   const {
     data: folders,
     error: foldersError,

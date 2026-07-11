@@ -114,7 +114,14 @@ const ListItem: React.FC<{
   };
 
   const insertMenuItem = () => (
-    <UnifiedMenu.Item onClick={handleInsertClick}>Insert</UnifiedMenu.Item>
+    // While the layout (re)loads the model has no regions to insert into; a
+    // click then would be silently dropped, so offer Insert only when ready.
+    <UnifiedMenu.Item
+      onClick={handleInsertClick}
+      disabled={layout.length === 0}
+    >
+      Insert
+    </UnifiedMenu.Item>
   );
 
   const menuTitleItems = () => (
