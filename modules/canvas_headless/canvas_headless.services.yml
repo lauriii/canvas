@@ -1,0 +1,13 @@
+services:
+  _defaults:
+    autoconfigure: true
+    autowire: true
+  Drupal\canvas_headless\PreviewAssertionFactoryInterface:
+    class: Drupal\canvas_headless\PreviewAssertionFactory
+  Drupal\canvas_headless\PreviewUrlGeneratorInterface:
+    class: Drupal\canvas_headless\PreviewUrlGenerator
+  Drupal\canvas_headless\Access\PreviewCeilingAccessPolicy:
+    arguments:
+      - '@simple_oauth.oauth2_scope.provider'
+    tags:
+      - { name: access_policy }

@@ -29,6 +29,11 @@ use ShipMonk\PHPStan\DeadCode\Provider\VirtualUsageData;
  *    Drupal\canvas\Tmgmt\ registered via `tmgmt_field_processor` in
  *    hook_field_info_alter(); tmgmt_content calls extractTranslatableData()
  *    and setTranslations() via plugin dispatch.
+ *
+ * 4. Simple OAuth grant plugins: canvas_headless classes in
+ *    Drupal\canvas_headless\Plugin\Oauth2Grant\ implement
+ *    Oauth2GrantInterface; simple_oauth's grant manager calls
+ *    getGrantType() via plugin dispatch.
  */
 final class ContribPluginsUsageProvider extends ReflectionBasedMemberUsageProvider {
 
@@ -56,6 +61,14 @@ final class ContribPluginsUsageProvider extends ReflectionBasedMemberUsageProvid
     ) {
       return VirtualUsageData::withNote(
         \sprintf('Called by tmgmt_content field processor dispatch via tmgmt_field_processor field info key: %s::%s().', $method->getDeclaringClass()->getShortName(), $method->getName()),
+      );
+    }
+
+    if ($method->getName() === 'getGrantType'
+      && str_starts_with($method->getDeclaringClass()->getName(), 'Drupal\\canvas_headless\\Plugin\\Oauth2Grant\\')
+    ) {
+      return VirtualUsageData::withNote(
+        \sprintf('Called by simple_oauth grant plugin dispatch: %s::getGrantType().', $method->getDeclaringClass()->getShortName()),
       );
     }
 

@@ -1,0 +1,3 @@
+frontend_url: 'http://localhost:3000'
+draft_path: '/api/draft'
+assertion_expiration: 60

@@ -1,5 +1,6 @@
 import type {
   DrupalSettings,
+  HeadlessSettings,
   Language,
   PropsValues,
 } from '@drupal-canvas/types';
@@ -18,6 +19,8 @@ export const getCanvasPermissions = () =>
   drupalSettings.canvas.permissions as Record<string, boolean>;
 export const getCanvasModuleBaseUrl = () =>
   `${getBaseUrl()}${drupalSettings?.canvas?.canvasModulePath}`;
+export const getCanvasHeadlessSettings = (): HeadlessSettings | undefined =>
+  drupalSettings?.canvas?.headless;
 
 export const setCanvasDrupalSetting = (
   property: 'layoutUtils' | 'navUtils',

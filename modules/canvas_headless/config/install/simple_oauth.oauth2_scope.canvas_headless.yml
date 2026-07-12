@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas_headless
+id: canvas_headless
+name: canvas_headless
+description: 'Draft preview session. The token is bound to the initiating editor and capped to the preview-safe (view-only) permission ceiling, so effective access is the editor''s own permissions minus anything not declared preview-safe.'
+grant_types:
+  canvas_headless_preview_assertion:
+    status: true
+    description: 'Issued when the frontend app redeems a signed preview assertion.'
+umbrella: false
+parent: null
+granularity_id: canvas_headless_safe_permissions
+granularity_configuration: {  }

@@ -14,6 +14,7 @@ import { useGesture } from '@use-gesture/react';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import Preview from '@/features/layout/preview/Preview';
+import { useHeadlessPreviewSettings } from '@/features/layout/preview/useHeadlessPreviewSettings';
 import ViewportToolbar from '@/features/layout/preview/ViewportToolbar';
 import PreviewOverlay from '@/features/layout/previewOverlay/PreviewOverlay';
 import {
@@ -52,6 +53,7 @@ const EditorFrame: React.FC = () => {
   const dispatch = useAppDispatch();
   useSyncParamsToState();
   useLayoutWatcher();
+  const headlessSettings = useHeadlessPreviewSettings();
   const editorFrameRef = useRef<HTMLDivElement | null>(null);
   const editorPaneRef = useRef<HTMLDivElement | null>(null);
   const animFrameScrollRef = useRef<number | null>(null);
@@ -488,7 +490,10 @@ const EditorFrame: React.FC = () => {
               </ErrorBoundary>
             </div>
 
-            <PreviewOverlay />
+            {/* The overlay depends on same-origin access to the preview
+                iframe's document, which a headless (cross-origin) preview
+                cannot provide. */}
+            {!headlessSettings && <PreviewOverlay />}
           </div>
         </div>
       </div>

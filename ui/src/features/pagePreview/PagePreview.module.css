@@ -28,6 +28,20 @@
   border: 0;
 }
 
+.headlessStatus {
+  position: fixed;
+  z-index: 200;
+  top: var(--topbar-height);
+  left: 0;
+  width: 100%;
+  margin: 0;
+  padding: 4px 8px;
+  color: #666;
+  border-bottom: 1px solid #eee;
+  background: white;
+  font-size: 12px;
+}
+
 .controls {
   position: fixed;
   z-index: 200;

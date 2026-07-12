@@ -24,6 +24,7 @@ Carden
 cardwithslot
 Cdiv
 cebe
+clickjacking
 Clurichaun
 cnvs
 cnvst # Used for "canvas tests"
@@ -31,6 +32,7 @@ coalescable
 Coalescer
 CODEOWNERS
 codespaces
+cookieless
 cqmr
 cset
 csstree
@@ -58,6 +60,7 @@ esque
 extralight
 extensionless
 fieldtext
+frontends
 fvar
 folderfy
 francais
@@ -67,6 +70,7 @@ gerbeaud
 gesturechange
 gestureend
 gesturestart
+granularities
 greppable
 heredocs
 herobanner
@@ -86,7 +90,11 @@ jangregor
 Jsona
 JSONified
 jsxs
+keypair
+keypairs
+keytype
 langcode
+lcobucci
 leftbar
 liftup
 lightningcss
@@ -96,6 +104,7 @@ metacharacter
 metatag
 microlink
 mymodule
+navigations
 naïvely
 networkidle
 nodepath
@@ -114,6 +123,7 @@ opsz
 phpat
 placehold
 Postel
+replayable
 slugified
 slugifies
 Slugifies
@@ -163,14 +173,17 @@ subtyping
 supersets
 superstrongpassword
 SVAY
+tamperable
 targetable
 testid
 tmgmt
+toctou
 toolset
 topbar
 trackpad
 tsconfigs
 tseslint
+unbuilt
 unifont
 Unifont
 ultrawide
@@ -179,6 +192,7 @@ uncollapsed
 uncollapses
 unhydrated
 unlayered
+unmixable
 unmodeled
 unparseable
 unrooted
@@ -190,6 +204,7 @@ unvalidated
 updb
 upserting
 upserts
+upstreaming
 useswr
 uuidv
 Validatable

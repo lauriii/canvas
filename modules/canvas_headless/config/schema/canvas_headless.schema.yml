@@ -1,0 +1,71 @@
+canvas_headless.settings:
+  type: config_object
+  label: 'Drupal Canvas Headless settings'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    frontend_url:
+      type: uri
+      label: 'Frontend base URL'
+      constraints:
+        NotBlank: {  }
+        # Only an unambiguous absolute http(s) URL is acceptable. The value
+        # becomes the editor frame's iframe src and a redirect target, so an
+        # executable scheme (javascript:, data:) would run script in the
+        # Drupal origin. Backslashes, credentials (@), queries (?), and
+        # fragments (#) are refused as parser-differential vectors — a
+        # browser and PHP's parse_url disagree on the host of
+        # "https://evil.test\@trusted.example". The host must be spelled the
+        # way a browser would spell it: a canonical dotted-quad IPv4 literal,
+        # or letter/digit/hyphen labels whose final label starts with a
+        # letter. That refuses the host forms browsers silently rewrite
+        # (percent-encoding, IPv4 number forms like 0x7f000001, non-ASCII
+        # IDN), any of which would navigate the iframe to one origin while
+        # postMessage checks compared against another. It must also not end
+        # with a slash, because the draft path is appended verbatim and would
+        # produce a double slash. Case-insensitive, because FrontendUrl
+        # lowercases scheme and host — the one rewrite browsers also perform.
+        # FrontendUrl accepts exactly this set at runtime, for values that
+        # never pass through validation.
+        Regex:
+          pattern: '~^https?://(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?)(?::\d+)?(/[^\s\\@?#]*[^/\s\\@?#])?$~i'
+          message: 'The frontend URL must be an absolute http:// or https:// URL whose host is a hostname or a dotted-quad IPv4 address, with no credentials, query, fragment, or trailing slash.'
+    draft_path:
+      type: path
+      label: 'Path on the frontend that enables draft mode'
+      constraints:
+        Regex:
+          pattern: '@^/@'
+          message: 'The draft path must begin with a slash.'
+    assertion_expiration:
+      type: integer
+      label: 'Preview assertion expiration time in seconds'
+      # Assertions are single-use bridge credentials that travel in URLs:
+      # long enough to survive the redirect hop, short enough that a logged
+      # or history-cached assertion is worthless.
+      constraints:
+        Range:
+          min: 10
+          max: 300
+
+grant_type.canvas_headless_preview_assertion:
+  type: grant_type.settings
+  label: 'JWT bearer (preview assertion)'
+
+# The ceiling is computed at runtime from
+# hook_canvas_headless_safe_permissions() implementations; no permissions are
+# stored in config, and the plugin's validateConfiguration() rejects any that
+# would otherwise be silently ignored. The sequence shape and constraint
+# follow core's modeling of permission lists (user.schema.yml); the Callback
+# constraint is non-enforcing there, pending
+# https://www.drupal.org/node/3446364.
+simple_oauth_scope_granularity.canvas_headless_safe_permissions:
+  type: sequence
+  label: 'Preview-safe permissions (view-only ceiling) granularity configuration'
+  orderby: value
+  sequence:
+    type: string
+    label: 'Permission'
+    constraints:
+      Callback:
+        callback: [\Drupal\user\Entity\Role, getAllValidPermissions]

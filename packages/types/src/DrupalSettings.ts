@@ -8,6 +8,17 @@ export type Language = {
   isDefault: boolean;
 };
 
+export interface HeadlessSettings {
+  // The app's origin, used to address and validate postMessage traffic.
+  frontendOrigin: string;
+  // The app's draft-mode activation endpoint; an assertion query parameter
+  // is appended to form the iframe URL.
+  draftUrl: string;
+  // Drupal endpoint minting preview assertions (POST, X-CSRF-Token header).
+  // Takes either entity_type + entity (activation) or path (renewal).
+  assertionUrl: string;
+}
+
 export interface PageExtension {
   id: string;
   name: string;
@@ -63,6 +74,9 @@ export interface DrupalSettings {
     personalizationExtensionAvailable: boolean;
     // ⚠️ This is highly experimental and *will* be refactored.
     canvasAiMaxFileSize: number;
+    // Present when the canvas_headless module embeds a frontend app in the
+    // editor frame instead of the Drupal-rendered preview.
+    headless?: HeadlessSettings;
   };
   canvasData: {
     v0: {

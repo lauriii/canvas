@@ -1,0 +1,40 @@
+# Session renewal. Same-origin JSON endpoint for the Canvas editor's
+# JavaScript: it fetches a fresh assertion here and relays it into the
+# embedded app via postMessage. POST with header-based CSRF protection,
+# following the Canvas UI's existing pattern of sending the X-CSRF-Token
+# header obtained from core's /session/token endpoint.
+#
+# Both routes accept only cookie authentication: the Drupal session is the
+# documented revocation boundary of the whole preview flow, so only that
+# session may mint assertions. Without the restriction, Simple OAuth's
+# global authentication provider would let any bearer token holding the
+# preview permission call these endpoints and chain itself into fresh
+# assertions, outliving the session.
+canvas_headless.assertion:
+  path: '/canvas-headless/assertion'
+  defaults:
+    _controller: 'Drupal\canvas_headless\Controller\AssertionController::mint'
+  methods: [POST]
+  requirements:
+    _permission: 'access canvas headless preview'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    no_cache: TRUE
+    _auth: ['cookie']
+
+# Standalone-tab renewal: a top-level navigation (the one request shape that
+# still carries Drupal's SameSite=Lax session cookie from another site) that
+# mints a fresh preview URL for the given path and redirects back into the
+# app. No CSRF token — it is reached by a plain link from the frontend; the
+# redirect target is the configured frontend URL, so the request cannot
+# choose the destination site.
+canvas_headless.renew:
+  path: '/canvas-headless/renew'
+  defaults:
+    _controller: 'Drupal\canvas_headless\Controller\AssertionController::renew'
+  methods: [GET]
+  requirements:
+    _permission: 'access canvas headless preview'
+  options:
+    no_cache: TRUE
+    _auth: ['cookie']

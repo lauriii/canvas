@@ -1,0 +1,72 @@
+<?php
+
+/**
+ * @file
+ * Install hooks for Drupal Canvas Headless.
+ */
+
+declare(strict_types=1);
+
+use Drupal\canvas_headless\PreviewAssertionFactory;
+use Drupal\consumers\Entity\Consumer;
+
+/**
+ * Implements hook_install().
+ *
+ * Provisions the OAuth consumer the decoupled frontend app redeems preview
+ * assertions with. It is a public client (RFC 6749 §2.1): no secret, because
+ * the signed assertion is the credential (RFC 7523 permits skipping client
+ * authentication when the assertion itself carries the trust). The only
+ * enabled grant is the preview assertion exchange, so this client can do
+ * nothing else at the token endpoint. No user_id: every issued token is
+ * bound to the editor named in the assertion, never to a service account.
+ *
+ * Nothing here is site-specific — this is what makes the module zero
+ * configuration: install it, point it at the frontend URL, done.
+ *
+ * The consumer is a content entity, so config sync never recreates it: it
+ * must be provisioned here even when installing from existing configuration
+ * (as the consumers module provisions its own default consumer), or every
+ * assertion exchange would fail with invalid_client on a config-sync install.
+ */
+function canvas_headless_install(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('consumer');
+  if (!$storage->loadByProperties(['client_id' => PreviewAssertionFactory::CLIENT_ID])) {
+    $consumer = Consumer::create([
+      'client_id' => PreviewAssertionFactory::CLIENT_ID,
+      'label' => 'Canvas Headless preview',
+      'description' => 'Public client the headless frontend app uses to redeem preview assertions.',
+      'confidential' => FALSE,
+      'is_default' => FALSE,
+      'third_party' => FALSE,
+      'grant_types' => ['canvas_headless_preview_assertion'],
+      'access_token_expiration' => 900,
+    ]);
+    $consumer->save();
+    // Remember which entity this hook created, so uninstalling deletes
+    // exactly that one. A pre-existing consumer with the same client_id is
+    // adopted, not owned: no state entry is written for it, and uninstall
+    // leaves it alone.
+    \Drupal::state()->set('canvas_headless.provisioned_consumer_uuid', $consumer->uuid());
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ *
+ * Deletes only the consumer hook_install() created, identified by the UUID
+ * recorded at creation. Deleting by client_id would also destroy a consumer
+ * the site owned before this module was installed (installation adopts such
+ * a consumer instead of failing), and content entities are not this
+ * module's to remove unless it created them.
+ */
+function canvas_headless_uninstall(): void {
+  $uuid = \Drupal::state()->get('canvas_headless.provisioned_consumer_uuid');
+  if (\is_string($uuid) && $uuid !== '') {
+    $storage = \Drupal::entityTypeManager()->getStorage('consumer');
+    foreach ($storage->loadByProperties(['uuid' => $uuid]) as $consumer) {
+      $consumer->delete();
+    }
+  }
+  \Drupal::state()->delete('canvas_headless.provisioned_consumer_uuid');
+}

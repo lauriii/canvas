@@ -40,6 +40,7 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@drupal-canvas/headless-host": "*",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
     "@microlink/react-json-view": "^1.26.1",
     "@radix-ui/react-accordion": "^1.2.10",

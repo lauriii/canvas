@@ -1,0 +1,6 @@
+name: 'Drupal Canvas Headless test support'
+type: module
+description: 'Hook implementations exercising the canvas_headless extension points.'
+package: Testing
+dependencies:
+  - canvas:canvas_headless

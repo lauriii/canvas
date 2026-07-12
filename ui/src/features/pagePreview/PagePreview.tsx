@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useLocation, useParams } from 'react-router';
 import { useSearchParams } from 'react-router-dom';
@@ -11,6 +11,7 @@ import {
   selectModel,
   selectUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
+import { useHeadlessDraftSession } from '@/features/layout/preview/useHeadlessDraftSession';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import {
   selectPreviewHtml,
@@ -21,9 +22,53 @@ import {
   useGetSnapshotPreviewQuery,
   useQueuedPostPreviewMutation,
 } from '@/services/preview';
+import { getCanvasHeadlessSettings } from '@/utils/drupal-globals';
 import { getViewportSizes } from '@/utils/viewports';
 
+import type React from 'react';
+import type { HeadlessSettings } from '@drupal-canvas/types';
+
 import styles from './PagePreview.module.css';
+
+/**
+ * Embeds the configured frontend app in the standalone page preview.
+ *
+ * The counterpart of the editor frame's HeadlessPreview: when the
+ * canvas_headless module is enabled, the app owns the rendering here too,
+ * driven by the same draft-session protocol. The width selector keeps
+ * working — it only sizes the iframe.
+ */
+const HeadlessPagePreview: React.FC<{
+  settings: HeadlessSettings;
+  width: string;
+}> = ({ settings, width }) => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const { entityId, entityType } = useParams();
+  const { statusText } = useHeadlessDraftSession(
+    iframeRef,
+    settings,
+    entityType,
+    entityId,
+  );
+
+  return (
+    <div className={styles.PagePreviewContainer}>
+      <p
+        data-testid="canvas-headless-status"
+        aria-live="polite"
+        className={styles.headlessStatus}
+      >
+        {statusText}
+      </p>
+      <iframe
+        ref={iframeRef}
+        title="Page preview"
+        style={{ width }}
+        className={styles.PagePreviewIframe}
+      ></iframe>
+    </div>
+  );
+};
 
 const PagePreview = () => {
   const dispatch = useAppDispatch();
@@ -48,6 +93,14 @@ const PagePreview = () => {
 
   // Determine template context from the URL path.
   const isContentTemplate = location.pathname.includes('/preview/template');
+
+  // The same gate as useHeadlessPreviewSettings, keyed on the URL instead of
+  // the editor frame context, which is not set on this route: content
+  // templates have no public path for the app to enter at, so they keep the
+  // Drupal-rendered preview.
+  const headlessSettings = isContentTemplate
+    ? undefined
+    : getCanvasHeadlessSettings();
 
   // Only fetch the language preview when we are on a preview route.
   const isPreview = isContentTemplate || location.pathname.includes('/preview');
@@ -74,6 +127,7 @@ const PagePreview = () => {
     },
     {
       skip:
+        !!headlessSettings ||
         !isPreview ||
         (!language && !isContentTemplate) ||
         !entityType ||
@@ -98,8 +152,9 @@ const PagePreview = () => {
       // Template previews are rendered by the snapshot query against the
       // content-template route. This POST hits the generic /layout route, which
       // only supports canvas_page entities; skip it for a content template's
-      // preview.
-      if (isContentTemplate || !entityType || !entityId) {
+      // preview. In headless mode the app owns the rendering, so the srcdoc
+      // HTML this generates would never be shown.
+      if (isContentTemplate || headlessSettings || !entityType || !entityId) {
         return;
       }
       try {
@@ -125,6 +180,7 @@ const PagePreview = () => {
     entityId,
     entityType,
     isContentTemplate,
+    headlessSettings,
     updatePreview,
     showBoundary,
   ]);
@@ -169,6 +225,12 @@ const PagePreview = () => {
   const handleLinkOpenClick = useCallback(() => {
     window.open(linkIntercepted, '_blank');
   }, [linkIntercepted]);
+
+  // When the canvas_headless module embeds a frontend app, the app owns
+  // the rendering, exactly as in the editor frame.
+  if (headlessSettings) {
+    return <HeadlessPagePreview settings={headlessSettings} width={widthVal} />;
+  }
 
   return (
     <>

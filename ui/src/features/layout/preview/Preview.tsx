@@ -9,6 +9,8 @@ import {
   selectUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
 import ComponentHtmlMapProvider from '@/features/layout/preview/DataToHtmlMapContext';
+import HeadlessPreview from '@/features/layout/preview/HeadlessPreview';
+import { useHeadlessPreviewSettings } from '@/features/layout/preview/useHeadlessPreviewSettings';
 import Viewport from '@/features/layout/preview/Viewport';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import {
@@ -45,6 +47,7 @@ const Preview: React.FC = () => {
   );
   const { entityId, entityType } = useParams();
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
+  const headlessSettings = useHeadlessPreviewSettings();
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
   const { showBoundary } = useErrorBoundary();
   useSyncTitle();
@@ -165,6 +168,13 @@ const Preview: React.FC = () => {
       }
     };
   }, []);
+
+  // When the canvas_headless module embeds a frontend app, the app owns
+  // the rendering: the srcdoc preview pipeline is bypassed, while the
+  // mutation flow above keeps running so edits still persist to auto-save.
+  if (headlessSettings) {
+    return <HeadlessPreview settings={headlessSettings} />;
+  }
 
   return (
     <ComponentHtmlMapProvider>
