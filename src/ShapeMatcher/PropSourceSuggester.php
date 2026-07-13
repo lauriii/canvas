@@ -101,12 +101,18 @@ final readonly class PropSourceSuggester {
     // 1. never suggest `default_langcode` base field
     // 2. never suggest `revision_log_message` base field
     // 3. never suggest `revision_default` base field
+    // 4. never suggest content_translation's `content_translation_source` and
+    //    `content_translation_outdated` base fields, added with fixed names to
+    //    a content entity type when one of its bundles is translatable.
+    // @see \Drupal\content_translation\ContentTranslationHandler::fieldStorageDefinitions()
     $content_entity_type_definition = $this->entityTypeManager->getDefinition($entity_type_id);
     \assert($content_entity_type_definition instanceof ContentEntityTypeInterface);
     $is_irrelevant = \in_array($expression_field_name, [
       $content_entity_type_definition->getKey('default_langcode'),
       $content_entity_type_definition->getRevisionMetadataKey('revision_default'),
       $content_entity_type_definition->getRevisionMetadataKey('revision_log_message'),
+      'content_translation_source',
+      'content_translation_outdated',
     ], TRUE);
     if ($is_irrelevant) {
       return TRUE;
