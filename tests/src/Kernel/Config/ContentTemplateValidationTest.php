@@ -600,7 +600,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     ]);
   }
 
-  public function testExposedSlotMustBeEmpty(): void {
+  public function testExposedSlotWithDefaultContentIsAllowed(): void {
     \assert($this->entity instanceof ContentTemplate);
 
     // Add a component in one of the open slots.
@@ -626,9 +626,11 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         'label' => "Something's already here!",
       ],
     ]);
-    $this->assertValidationErrors([
-      'exposed_slots.filled_footer' => 'The <em class="placeholder">the_footer</em> slot must be empty.',
-    ]);
+    // Template content in an exposed slot is allowed for content templates: it
+    // becomes the slot's per-entity-overridable default. (The slot-must-be-empty
+    // check remains available via the ValidExposedSlot `requireEmpty` option for
+    // consumers such as page variants.)
+    $this->assertValidationErrors([]);
   }
 
   public static function providerInvalidExposedSlot(): iterable {
