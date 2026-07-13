@@ -16,6 +16,51 @@ export const validateCodeMachineNameClientSide = (name: string) => {
   return '';
 };
 
+/**
+ * Derives a machine-name alias from a human-readable exposed-slot label.
+ *
+ * Mirrors Drupal's machine-name transform: lowercase, non-alphanumeric runs
+ * collapsed to a single underscore, with leading/trailing underscores trimmed.
+ *
+ * @param label - The human-readable label.
+ * @returns The derived machine-name alias.
+ */
+export const deriveExposedSlotAlias = (label: string): string =>
+  label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+/**
+ * The alias pattern enforced server-side for exposed slots.
+ *
+ * @see config/schema/canvas.schema.yml (SequenceKeysMatchRegex on exposed_slots)
+ */
+const EXPOSED_SLOT_ALIAS_PATTERN = /^[a-z0-9]+([a-z0-9_-]+)[a-z0-9]+$/;
+
+/**
+ * Validates an exposed-slot machine-name alias.
+ *
+ * @param alias - The alias to validate.
+ * @param existingAliases - Aliases already used in this template (for uniqueness).
+ * @returns An error message if invalid, or an empty string if valid.
+ */
+export const validateExposedSlotAlias = (
+  alias: string,
+  existingAliases: string[] = [],
+) => {
+  if (!alias.trim()) {
+    return 'Machine name is required.';
+  }
+  if (!EXPOSED_SLOT_ALIAS_PATTERN.test(alias)) {
+    return 'Machine name may only contain lowercase letters, numbers, underscores and hyphens, must be at least 3 characters long, and cannot start or end with an underscore or hyphen.';
+  }
+  if (existingAliases.includes(alias)) {
+    return 'This machine name is already in use in this template.';
+  }
+  return '';
+};
+
 export const validateFolderNameClientSide = (name: string) => {
   // Trim leading/trailing spaces before validation to allow typing spaces
   // at the end while user is still typing. The final trim happens on submit.

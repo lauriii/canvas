@@ -1,15 +1,31 @@
 import { useCallback } from 'react';
 import { CollapsibleContent } from '@radix-ui/react-collapsible';
 import * as Collapsible from '@radix-ui/react-collapsible';
-import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
+import {
+  CheckboxIcon,
+  TriangleDownIcon,
+  TriangleRightIcon,
+} from '@radix-ui/react-icons';
 import { Box, Flex } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
+import {
+  filterNonMarkerComponents,
+  findExposedSlotEntry,
+  isExposedSlotTarget,
+} from '@/features/layout/exposedSlots';
 import ComponentLayer from '@/features/layout/layers/ComponentLayer';
 import LayersDropZone from '@/features/layout/layers/LayersDropZone';
 import {
+  selectExposedSlots,
+  selectIsPerContentMode,
+} from '@/features/layout/layoutModelSlice';
+import { SlotContextMenuContent } from '@/features/layout/preview/SlotContextMenu';
+import {
+  EditorFrameContext,
   selectCollapsedLayers,
+  selectEditorFrameContext,
   setHoveredComponent,
   toggleCollapsedLayer,
   unsetHoveredComponent,
@@ -42,6 +58,31 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
   const collapsedLayers = useAppSelector(selectCollapsedLayers);
   const slotId = slot.id;
   const isCollapsed = collapsedLayers.includes(slotId);
+
+  // Template editor: relabel + mark exposed slots and expose the slot menu.
+  const editorFrameContext = useAppSelector(selectEditorFrameContext);
+  const isTemplateContext = editorFrameContext === EditorFrameContext.TEMPLATE;
+  const exposedSlots = useAppSelector(selectExposedSlots);
+  const perContentMode = useAppSelector(selectIsPerContentMode);
+  const exposed =
+    isTemplateContext && parentNode
+      ? findExposedSlotEntry(exposedSlots, parentNode.uuid, slot.name)
+      : null;
+  const displayName = exposed
+    ? exposed.definition.disabled
+      ? `${exposed.definition.label} (disabled)`
+      : exposed.definition.label
+    : slotName;
+
+  // Per-content editing: hide empty-override markers, and only let active
+  // exposed slots accept drops (overriding inherited disableDrop from locked
+  // chrome). Elsewhere the inherited disableDrop is respected.
+  const isPerContentExposed =
+    perContentMode && isExposedSlotTarget(slot, exposedSlots);
+  const visibleComponents = perContentMode
+    ? filterNonMarkerComponents(slot.components)
+    : slot.components;
+  const layerDropDisabled = perContentMode ? !isPerContentExposed : disableDrop;
 
   const handleItemMouseEnter = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -83,16 +124,36 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
           id={`layer-${slotId}-name`}
           onMouseEnter={handleItemMouseEnter}
           onMouseLeave={handleItemMouseLeave}
-          title={slotName}
+          title={displayName}
           draggable={false}
           variant="slot"
           open={!isCollapsed}
           disabled={disableDrop}
           indent={indent}
+          trailingContent={
+            exposed ? (
+              <Flex
+                align="center"
+                data-testid={`slot-layer-exposed-marker-${slotId}`}
+                aria-label="Exposed slot"
+              >
+                <CheckboxIcon />
+              </Flex>
+            ) : undefined
+          }
+          dropdownMenuContent={
+            isTemplateContext && parentNode ? (
+              <SlotContextMenuContent
+                slot={slot}
+                parentComponent={parentNode}
+                menuType="dropdown"
+              />
+            ) : undefined
+          }
           leadingContent={
             <Flex>
               <Box width="var(--space-4)" mr="1">
-                {slot.components.length > 0 ? (
+                {visibleComponents.length > 0 ? (
                   <Box>
                     <Collapsible.Trigger
                       asChild={true}
@@ -121,21 +182,21 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
           }
         />
 
-        {slot.components.length > 0 && (
+        {visibleComponents.length > 0 && (
           <CollapsibleContent role="tree">
-            {slot.components.map((component, index) => (
+            {visibleComponents.map((component, index) => (
               <ComponentLayer
                 key={component.uuid}
                 index={index}
                 component={component}
                 indent={indent + 1}
                 parentNode={slot}
-                disableDrop={disableDrop}
+                disableDrop={layerDropDisabled}
               />
             ))}
           </CollapsibleContent>
         )}
-        {!slot.components.length && !disableDrop && (
+        {!visibleComponents.length && !layerDropDisabled && (
           <LayersDropZone
             layer={slot}
             position={'bottom'}

@@ -23,6 +23,7 @@ import ConflictResolutionPage from '@/features/conflict/ConflictResolutionPage';
 import EditorLayout from '@/features/editor/EditorLayout';
 import TemplateRoot from '@/features/editor/TemplateRoot';
 import HeadlessFrontendsPage from '@/features/headlessFrontends/HeadlessFrontendsPage';
+import ExposeSlotDialogs from '@/features/layout/exposeSlot/ExposeSlotDialogs';
 import PagePreview from '@/features/pagePreview/PagePreview';
 import PatternDialogs from '@/features/pattern/PatternDialogs';
 import SegmentDashboard from '@/features/personalization/SegmentDashboard';
@@ -91,6 +92,7 @@ const Dialogs = () => (
     <PatternDialogs />
     <CodeComponentDialogs />
     <ExtensionDialog />
+    <ExposeSlotDialogs />
   </div>
 );
 
