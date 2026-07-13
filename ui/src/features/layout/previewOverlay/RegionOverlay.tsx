@@ -3,7 +3,10 @@ import clsx from 'clsx';
 import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { selectLayoutForRegion } from '@/features/layout/layoutModelSlice';
+import {
+  selectIsPerContentMode,
+  selectLayoutForRegion,
+} from '@/features/layout/layoutModelSlice';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import { RegionNameTag } from '@/features/layout/preview/NameTag';
 import RegionContextMenu from '@/features/layout/preview/RegionContextMenu';
@@ -44,6 +47,7 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
     regionsMap[region.id]?.elements,
   );
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
+  const perContentMode = useAppSelector(selectIsPerContentMode);
   const [overlayStyles, setOverlayStyles] = useState({});
   const targetSlot = useAppSelector(selectTargetSlot);
   const disableRegion = focusedRegion !== region.id;
@@ -140,8 +144,12 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
             />
           ))}
 
-          {!region.components.length && <EmptyRegionDropZone region={region} />}
-          {!!region.components.length && (
+          {/* Per-content editing: regions never accept drops directly, only the
+              exposed slots nested within them do. */}
+          {!perContentMode && !region.components.length && (
+            <EmptyRegionDropZone region={region} />
+          )}
+          {!perContentMode && !!region.components.length && (
             <>
               <RegionDropZone region={region} position="before" />
               <RegionDropZone region={region} position="after" />
