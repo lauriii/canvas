@@ -1,11 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router';
-import {
-  BoxIcon,
-  DotsHorizontalIcon,
-  Pencil1Icon,
-} from '@radix-ui/react-icons';
+import { BoxIcon, DotsHorizontalIcon } from '@radix-ui/react-icons';
 import { ContextMenu, DropdownMenu } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -15,13 +11,11 @@ import {
   findExposedSlotEntry,
 } from '@/features/layout/exposedSlots';
 import {
-  overrideSlotDefaultContent,
   revertSlotOverride,
   selectExposedSlots,
   selectIsPerContentMode,
   selectSlotOverrides,
 } from '@/features/layout/layoutModelSlice';
-import { isNodeEditable } from '@/features/layout/layoutUtils';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import { SlotNameTag } from '@/features/layout/preview/NameTag';
 import SlotContextMenu, {
@@ -123,11 +117,6 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
   const visibleComponents = perContentMode
     ? filterNonMarkerComponents(slot.components)
     : slot.components;
-  // Default (template-owned, still-locked) content the editor can start editing.
-  const hasDefaultContent =
-    isPerContentExposed &&
-    !isOverridden &&
-    visibleComponents.some((c) => !isNodeEditable(c));
   // Drop gating: in per-content mode only active exposed slots accept drops,
   // overriding any inherited disableDrop from enclosing locked chrome. Elsewhere
   // the inherited disableDrop is respected.
@@ -273,31 +262,12 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
             </div>
           )
         : perContentMode
-          ? // Per-content editing: a non-overridden exposed slot with default
-            // content offers an "Edit content" affordance to start overriding.
-            // Reverting an override lives in the slot's right-click menu.
-            isPerContentExposed &&
-            !isOverridden &&
-            hasDefaultContent && (
-              <div
-                className={clsx(styles.canvasNameTag, styles.slotOverrideChip)}
-              >
-                <button
-                  type="button"
-                  className={styles.slotOverrideChipButton}
-                  onClick={() =>
-                    perContentAlias &&
-                    dispatch(overrideSlotDefaultContent(perContentAlias))
-                  }
-                  aria-label={`Edit the content of ${perContentEntry?.definition.label}`}
-                  title="This content comes from the template. Edit it to customize it for this item."
-                  data-testid={`slot-override-${slotId}`}
-                >
-                  <Pencil1Icon aria-hidden />
-                  <span>Edit content</span>
-                </button>
-              </div>
-            )
+          ? // Per-content editing: no floating chip. Overriding a slot's
+            // template default ("Edit content") is offered in the contextual
+            // panel when its locked default content is selected
+            // (@see LockedComponentPanel); reverting lives in the slot's
+            // right-click menu.
+            null
           : (targetSlot === slotId || isHovered) && (
               <div
                 className={clsx(styles.canvasNameTag, styles.canvasNameTagSlot)}

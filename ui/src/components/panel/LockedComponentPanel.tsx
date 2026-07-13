@@ -1,11 +1,22 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router';
-import { InfoCircledIcon, LockClosedIcon } from '@radix-ui/react-icons';
+import {
+  InfoCircledIcon,
+  LockClosedIcon,
+  Pencil1Icon,
+} from '@radix-ui/react-icons';
 import { Box, Button, Callout, Flex, Text } from '@radix-ui/themes';
 
-import { useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import PermissionCheck from '@/components/PermissionCheck';
-import { selectExposedSlots } from '@/features/layout/layoutModelSlice';
+import { findEnclosingExposedSlotAlias } from '@/features/layout/exposedSlots';
+import {
+  overrideSlotDefaultContent,
+  selectExposedSlots,
+  selectLayout,
+  selectSlotOverrides,
+} from '@/features/layout/layoutModelSlice';
+import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useGetContentTemplatesQuery } from '@/services/componentAndLayout';
 
@@ -56,7 +67,11 @@ const findMatchingTemplateViewMode = (
  */
 const LockedComponentPanel: React.FC = () => {
   const { entityType } = useParams();
+  const dispatch = useAppDispatch();
   const exposedSlots = useAppSelector(selectExposedSlots);
+  const layout = useAppSelector(selectLayout);
+  const slotOverrides = useAppSelector(selectSlotOverrides);
+  const selectedUuid = useAppSelector(selectSelectedComponentUuid);
   const { data: templates } = useGetContentTemplatesQuery();
   const { navigateToTemplateEditor } = useEditorNavigation();
 
@@ -70,6 +85,25 @@ const LockedComponentPanel: React.FC = () => {
     [templates, entityType, exposedSlots],
   );
 
+  // When the selected locked component is default content the template provides
+  // inside a not-yet-overridden exposed slot, offer to override it per entity
+  // ("Edit content"): a robust, discoverable home for the affordance (vs. a
+  // floating overlay chip that cannot anchor to a wrapper-less SDC slot).
+  const overrideAlias = useMemo(() => {
+    if (!selectedUuid) {
+      return undefined;
+    }
+    const enclosing = findEnclosingExposedSlotAlias(
+      layout,
+      exposedSlots,
+      selectedUuid,
+    );
+    if (!enclosing || slotOverrides?.[enclosing.alias]?.overridden) {
+      return undefined;
+    }
+    return enclosing.alias;
+  }, [selectedUuid, layout, exposedSlots, slotOverrides]);
+
   return (
     <Box my="2" data-testid="canvas-locked-component-panel">
       <Callout.Root size="1" color="gray" variant="surface">
@@ -77,10 +111,24 @@ const LockedComponentPanel: React.FC = () => {
           <LockClosedIcon />
         </Callout.Icon>
         <Callout.Text>
-          This component belongs to the template and can&rsquo;t be edited here.
-          Edit the template to change it.
+          {overrideAlias
+            ? 'This is default content from the template. Edit it to customize it for this item, or edit the template to change it everywhere.'
+            : 'This component belongs to the template and can’t be edited here. Edit the template to change it.'}
         </Callout.Text>
       </Callout.Root>
+      {overrideAlias && (
+        <Flex mt="3" justify="start">
+          <Button
+            size="1"
+            onClick={() => dispatch(overrideSlotDefaultContent(overrideAlias))}
+            className="canvas-button"
+            data-testid="canvas-locked-panel-edit-content"
+          >
+            <Pencil1Icon />
+            Edit content
+          </Button>
+        </Flex>
+      )}
       <PermissionCheck
         hasPermission="contentTemplates"
         denied={
