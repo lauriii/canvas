@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
+import { useParams } from 'react-router';
 import { Outlet } from 'react-router-dom';
-import { InfoCircledIcon } from '@radix-ui/react-icons';
+import { ExternalLinkIcon, InfoCircledIcon } from '@radix-ui/react-icons';
 import {
   Box,
   Button,
@@ -16,6 +17,8 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import PageDataForm from '@/components/PageDataForm';
 import { setCurrentComponent } from '@/features/form/formStateSlice';
+import { selectIsPerContentMode } from '@/features/layout/layoutModelSlice';
+import { buildEntityEditFormUrl } from '@/features/navigator/templatedContent';
 import {
   EditorFrameContext,
   selectEditorFrameContext,
@@ -24,6 +27,7 @@ import {
   selectSelection,
 } from '@/features/ui/uiSlice';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
+import { getBaseUrl } from '@/utils/drupal-globals';
 
 import type React from 'react';
 
@@ -37,6 +41,17 @@ const ContextualPanel: React.FC = () => {
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
   const isTemplateContext = editorFrameContext === EditorFrameContext.TEMPLATE;
   const mainTabText = isTemplateContext ? 'Template data' : 'Page data';
+
+  // Per-content mode (a templated entity with exposed slots): the panel gains
+  // a Content tab ahead of Page data. Phase 1 links out to Drupal's own edit
+  // form for the entity's content fields; Page data carries only page-level
+  // metadata (the server trims the entity form).
+  const isPerContentMode = useAppSelector(selectIsPerContentMode);
+  const { entityType, entityId } = useParams();
+  const editFormUrl =
+    isPerContentMode && entityType && entityId
+      ? buildEntityEditFormUrl(getBaseUrl(), entityType, entityId)
+      : null;
 
   const [activePanel, setActivePanel] = useState('pageData');
   const offRightClasses = useHidePanelClasses('right');
@@ -96,6 +111,14 @@ const ContextualPanel: React.FC = () => {
                   data-testid="canvas-contextual-panel--page-data"
                 >
                   {mainTabText}
+                </Tabs.Trigger>
+              )}
+              {isPerContentMode && (
+                <Tabs.Trigger
+                  value="content"
+                  data-testid="canvas-contextual-panel--content"
+                >
+                  Content
                 </Tabs.Trigger>
               )}
               {(selectedComponent || isMultiSelect) && (
@@ -169,6 +192,28 @@ const ContextualPanel: React.FC = () => {
                     <Outlet />
                   </ErrorBoundary>
                 </Tabs.Content>
+                {isPerContentMode && (
+                  <Tabs.Content value={'content'}>
+                    <Flex direction="column" gap="2" my="2" align="start">
+                      <Text size="1" color="gray">
+                        Content fields are edited in the Drupal edit form.
+                      </Text>
+                      {editFormUrl && (
+                        <Button asChild size="1" className="canvas-button">
+                          <a
+                            href={editFormUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            data-testid="canvas-content-tab-edit-form-link"
+                          >
+                            Edit content
+                            <ExternalLinkIcon />
+                          </a>
+                        </Button>
+                      )}
+                    </Flex>
+                  </Tabs.Content>
+                )}
                 {!isTemplateContext && (
                   <Tabs.Content
                     value={'pageData'}

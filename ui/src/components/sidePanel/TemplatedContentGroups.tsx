@@ -1,91 +1,30 @@
+import { useState } from 'react';
+import clsx from 'clsx';
 import { useParams } from 'react-router-dom';
-import NewTabIcon from '@assets/icons/new-tab.svg?react';
-import { ChevronDownIcon, PlusIcon } from '@radix-ui/react-icons';
-import {
-  Box,
-  Button,
-  DropdownMenu,
-  Flex,
-  Heading,
-  Skeleton,
-} from '@radix-ui/themes';
+import FolderIcon from '@assets/icons/folder.svg?react';
+import * as Collapsible from '@radix-ui/react-collapsible';
+import { ChevronRightIcon } from '@radix-ui/react-icons';
+import { Box, Flex, Skeleton, Text } from '@radix-ui/themes';
 
 import ErrorCard from '@/components/error/ErrorCard';
 import InfiniteScrollObserver from '@/components/InfiniteScrollObserver';
 import { PageListItem } from '@/components/pageInfo/PageList';
-import { getAddNewOptions } from '@/features/navigator/templatedContent';
+import { ListIndentContext } from '@/components/sidePanel/ListIndentContext';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { usePaginatedContentList } from '@/hooks/usePaginatedContentList';
-import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
 
-import type {
-  AddNewOption,
-  TemplatedEntityGroup,
-} from '@/features/navigator/templatedContent';
+import type { TemplatedEntityGroup } from '@/features/navigator/templatedContent';
 import type { ContentStub } from '@/types/Content';
 
-/**
- * "Add new" affordance for a templated group. Links out to Drupal's own entity
- * creation forms (opened in a new tab); the navigator does not create entities
- * in-app for v1. Renders nothing when the user cannot create any of the group's
- * bundles.
- */
-const AddNewContent = ({ options }: { options: AddNewOption[] }) => {
-  if (options.length === 0) {
-    return null;
-  }
-
-  if (options.length === 1) {
-    const [option] = options;
-    return (
-      <Button
-        asChild
-        variant="ghost"
-        size="1"
-        data-testid={`canvas-templated-content-add-${option.bundle}`}
-      >
-        <a href={option.url} target="_blank" rel="noreferrer">
-          <PlusIcon />
-          Add new
-          <NewTabIcon />
-        </a>
-      </Button>
-    );
-  }
-
-  return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger>
-        <Button variant="ghost" size="1">
-          <PlusIcon />
-          Add new
-          <ChevronDownIcon />
-        </Button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Content>
-        {options.map((option) => (
-          <DropdownMenu.Item
-            key={option.bundle}
-            onClick={() => window.open(option.url, '_blank')}
-            data-testid={`canvas-templated-content-add-${option.bundle}`}
-          >
-            {option.label}
-            <Flex ml="auto" align="center">
-              <NewTabIcon />
-            </Flex>
-          </DropdownMenu.Item>
-        ))}
-      </DropdownMenu.Content>
-    </DropdownMenu.Root>
-  );
-};
+import listStyles from '@/components/list/List.module.css';
 
 /**
- * One templated entity type's group: its entities (loaded from the per-entity
- * type content list, server-filtered to active-exposed-slot bundles and access
- * checked), reusing the pages row so selecting an entity opens it in the
- * per-content editor. Empty groups are hidden to keep the navigator quiet,
- * especially while searching.
+ * One templated entity type's group, rendered as a collapsible content-type
+ * folder: its entities (loaded from the per-entity type content list,
+ * server-filtered to active-exposed-slot bundles and access checked), reusing
+ * the pages row so selecting an entity opens it in the per-content editor.
+ * Empty groups are hidden to keep the panel quiet, especially while searching.
+ * Creating content is a single "Add new" control in the panel header, not here.
  */
 const TemplatedContentGroup = ({
   group,
@@ -96,22 +35,17 @@ const TemplatedContentGroup = ({
 }) => {
   const { entityType: routeEntityType, entityId } = useParams();
   const { navigateToEditor } = useEditorNavigation();
+  const [isOpen, setIsOpen] = useState(true);
   const { items, isLoading, error, hasMore, handleLoadMore } =
     usePaginatedContentList(group.entityType, searchTerm);
-
-  const addNewOptions = getAddNewOptions(
-    group,
-    getCanvasSettings()?.contentEntityCreateOperations,
-    getBaseUrl(),
-  );
 
   if (isLoading) {
     return <Skeleton height="1.2rem" width="100%" my="3" />;
   }
 
-  // Hide groups with no matching entities (and no way to add one) so the
-  // navigator does not fill up with empty bundle headings.
-  if (!error && (items?.length ?? 0) === 0 && addNewOptions.length === 0) {
+  // Hide groups with no matching entities so the panel does not fill up with
+  // empty bundle headings (especially while searching).
+  if (!error && (items?.length ?? 0) === 0) {
     return null;
   }
 
@@ -120,46 +54,82 @@ const TemplatedContentGroup = ({
   };
 
   return (
-    <Box mt="4" data-testid={`canvas-templated-content-${group.entityType}`}>
-      <Flex align="center" justify="between" mb="2">
-        <Heading as="h5" size="1" color="gray">
-          {group.title}
-        </Heading>
-        <AddNewContent options={addNewOptions} />
-      </Flex>
-      {error && (
-        <ErrorCard
-          title="An unexpected error has occurred while loading content."
-          error={String(error)}
-        />
-      )}
-      {!error && (
-        <Flex direction="column" gap="1">
-          {(items ?? []).map((item) => {
-            const isSelected =
-              routeEntityType === group.entityType &&
-              String(entityId) === String(item.id);
-            return (
-              <PageListItem
-                key={`${item.id}-${item.status}`}
-                item={item}
-                isSelected={isSelected}
-                isHomepage={false}
-                onSelect={handleSelect}
+    <Collapsible.Root open={isOpen} onOpenChange={setIsOpen} asChild>
+      <Box data-testid={`canvas-templated-content-${group.entityType}`}>
+        <Flex align="center" className={listStyles.folderTrigger} pt="2" pb="2">
+          <Collapsible.Trigger asChild>
+            <Flex
+              align="center"
+              flexGrow="1"
+              overflow="hidden"
+              role="button"
+              style={{ cursor: 'pointer', minWidth: 0 }}
+            >
+              <Flex pl="2" align="center" flexShrink="0">
+                <FolderIcon className={listStyles.folderIcon} />
+              </Flex>
+              <Flex px="2" align="center" flexGrow="1" style={{ minWidth: 0 }}>
+                <Text size="1" weight="medium" truncate>
+                  {group.title}
+                </Text>
+              </Flex>
+            </Flex>
+          </Collapsible.Trigger>
+          <Collapsible.Trigger asChild>
+            <Flex
+              px="2"
+              align="center"
+              flexShrink="0"
+              role="button"
+              aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${group.title}`}
+              style={{ cursor: 'pointer' }}
+            >
+              <ChevronRightIcon
+                className={clsx(listStyles.chevron, {
+                  [listStyles.isOpen]: isOpen,
+                })}
               />
-            );
-          })}
+            </Flex>
+          </Collapsible.Trigger>
         </Flex>
-      )}
-      {hasMore && <InfiniteScrollObserver onLoadMore={handleLoadMore} />}
-    </Box>
+        <Collapsible.Content>
+          {error && (
+            <ErrorCard
+              title="An unexpected error has occurred while loading content."
+              error={String(error)}
+            />
+          )}
+          {!error && (
+            <ListIndentContext.Provider value={1}>
+              <Flex direction="column" gap="1">
+                {(items ?? []).map((item) => {
+                  const isSelected =
+                    routeEntityType === group.entityType &&
+                    String(entityId) === String(item.id);
+                  return (
+                    <PageListItem
+                      key={`${item.id}-${item.status}`}
+                      item={item}
+                      isSelected={isSelected}
+                      isHomepage={false}
+                      onSelect={handleSelect}
+                    />
+                  );
+                })}
+              </Flex>
+            </ListIndentContext.Provider>
+          )}
+          {hasMore && <InfiniteScrollObserver onLoadMore={handleLoadMore} />}
+        </Collapsible.Content>
+      </Box>
+    </Collapsible.Root>
   );
 };
 
 /**
- * Renders the navigator's templated-entity groups (entities of templated
- * bundles with active exposed slots), one section per entity type, beneath the
- * Canvas pages list. The single shared search term filters every group.
+ * Renders the Content panel's templated-entity groups (entities of templated
+ * bundles with active exposed slots), one collapsible section per entity type.
+ * The single shared search term filters every group.
  */
 const TemplatedContentGroups = ({
   groups,

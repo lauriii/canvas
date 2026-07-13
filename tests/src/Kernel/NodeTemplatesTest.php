@@ -13,6 +13,7 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
@@ -703,7 +704,7 @@ HTML;
 
     // postSave provisioned the bundle's Canvas field; remove it to simulate a
     // missing-field edge case (e.g. config import), then render must not 500.
-    \Drupal\field\Entity\FieldStorageConfig::loadByName('node', ContentTemplate::CANVAS_FIELD_NAME)?->delete();
+    FieldStorageConfig::loadByName('node', ContentTemplate::CANVAS_FIELD_NAME)?->delete();
     $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
 
     $node = $this->createNode(['type' => 'article', 'title' => 'No field here']);

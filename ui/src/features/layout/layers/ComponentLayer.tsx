@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import LayersDropZone from '@/features/layout/layers/LayersDropZone';
 import SlotLayer from '@/features/layout/layers/SlotLayer';
+import { selectIsPerContentMode } from '@/features/layout/layoutModelSlice';
 import { isNodeEditable } from '@/features/layout/layoutUtils';
 import ComponentContextMenu, {
   ComponentContextMenuContent,
@@ -41,6 +42,10 @@ interface ComponentLayerProps {
   parentNode?: LayoutNode;
   index: number;
   disableDrop?: boolean;
+  // Per-content editing: true once an ancestor exposed slot has been entered, so
+  // this subtree (the slot's content, including locked default content) renders
+  // normally instead of being hidden as template chrome.
+  insideExposedSlot?: boolean;
 }
 
 const ComponentLayer: React.FC<ComponentLayerProps> = ({
@@ -48,8 +53,10 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
   indent,
   index,
   disableDrop = false,
+  insideExposedSlot = false,
 }) => {
   const dispatch = useAppDispatch();
+  const perContentMode = useAppSelector(selectIsPerContentMode);
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, component.uuid);
   });
@@ -121,6 +128,27 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
     dispatch(toggleCollapsedLayer(componentId));
   };
 
+  // Per-content editing: a locked template-owned component that is not inside an
+  // exposed slot is template chrome and should not appear in the layers tree.
+  // Render only its slots (promoted to this indent) so any exposed slot nested
+  // within still surfaces.
+  if (perContentMode && locked && !insideExposedSlot) {
+    return (
+      <>
+        {component.slots.map((slot) => (
+          <SlotLayer
+            key={slot.id}
+            slot={slot}
+            indent={indent}
+            parentNode={component}
+            disableDrop={disableDrop}
+            insideExposedSlot={false}
+          />
+        ))}
+      </>
+    );
+  }
+
   const layerCollapsible = (
     <Collapsible.Root
       className="canvas--collapsible-root"
@@ -190,6 +218,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
               indent={indent + 1}
               parentNode={component}
               disableDrop={disableDrop || isDragging}
+              insideExposedSlot={insideExposedSlot}
             />
           ))}
         </CollapsibleContent>
