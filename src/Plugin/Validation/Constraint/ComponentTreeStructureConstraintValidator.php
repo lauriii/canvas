@@ -7,7 +7,6 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
-use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Config\Plugin\Validation\Constraint\ConfigExistsConstraint;
 use Drupal\Core\Config\Schema\Sequence;
@@ -224,17 +223,16 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
 
     $root = $payload['root'];
 
-    // The empty-override marker is valid only as the sole, childless bonsai
-    // root of an exposed slot in a content entity: it represents "this entity's
-    // slot renders nothing". Reject it anywhere else (nested, an ordinary root,
-    // a config tree, a duplicated alias, or with descendants).
+    // The empty-override marker represents "this entity's slot renders
+    // nothing". Each exposed slot is backed by its own `component_tree` field,
+    // so the marker is valid only as the sole, childless, ordinary root row of
+    // a slot field on a templated content entity. Reject it anywhere else
+    // (nested, alongside siblings, in a config tree, or with descendants).
     if (($component_instance['component_id'] ?? NULL) === ComponentInterface::EMPTY_SLOT_MARKER_ID) {
       $host = $root instanceof EntityAdapter ? $root->getValue() : NULL;
       $is_entity_host = $host instanceof FieldableEntityInterface && !($host instanceof ComponentTreeEntityInterface);
-      $slot = $component_instance['slot'] ?? NULL;
-      $siblings_for_alias = \array_filter($tree, static fn (array $item): bool => empty($item['parent_uuid']) && ($item['slot'] ?? NULL) === $slot);
-      $has_descendants = \array_filter($tree, static fn (array $item): bool => ($item['parent_uuid'] ?? NULL) === $component_instance['uuid']) !== [];
-      if (!$is_entity_host || empty($slot) || !empty($component_instance['parent_uuid']) || \count($siblings_for_alias) > 1 || $has_descendants) {
+      $is_sole_root = \count($tree) === 1 && empty($component_instance['parent_uuid']) && empty($component_instance['slot']);
+      if (!$is_entity_host || !$is_sole_root) {
         $context->buildViolation('The %component component may only be used as the sole, empty override of an exposed slot.', [
           '%component' => ComponentInterface::EMPTY_SLOT_MARKER_ID,
         ])
@@ -245,32 +243,8 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     }
 
     if (empty($component_instance['parent_uuid'])) {
-      // An item with an empty parent_uuid is a tree root. In a content entity
-      // rendered by a content template, a root that also names a slot is the
-      // root of a per-entity subtree ("bonsai") targeting an exposed slot: that
-      // slot must reference an alias declared by the applicable template.
-      // Ordinary roots (empty slot) are unconstrained here.
-      // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem::schema()
-      if (!empty($component_instance['slot']) && $root instanceof EntityAdapter) {
-        $entity = $root->getValue();
-        if ($entity instanceof FieldableEntityInterface && !($entity instanceof ComponentTreeEntityInterface)) {
-          // Only the full view mode can expose slots.
-          $template = ContentTemplate::loadForEntity($entity, 'full');
-          // Validate against all declared aliases (including disabled ones): a
-          // disabled slot retains its stored content, so only a fully removed
-          // alias is a violation. Rows targeting a removed alias are purged on
-          // the next entity save.
-          $declared_aliases = $template instanceof ContentTemplate ? \array_keys($template->getExposedSlots()) : [];
-          if (!\in_array($component_instance['slot'], $declared_aliases, TRUE)) {
-            $context->buildViolation('Invalid component tree item with UUID %uuid targets exposed slot %slot, which is not declared by the applicable content template.', [
-              '%uuid' => $component_instance['uuid'],
-              '%slot' => $component_instance['slot'],
-            ])
-              ->atPath('slot')
-              ->addViolation();
-          }
-        }
-      }
+      // An item with an empty parent_uuid is an ordinary tree root; roots are
+      // unconstrained here.
       return;
     }
 
@@ -291,9 +265,8 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       return;
     }
 
-    // Under the alias-keyed bonsai contract, entity rows never reference a
-    // template-internal component as their parent, so the parent must exist in
-    // the same tree being validated.
+    // Each field stores an ordinary tree, so a non-root item's parent must
+    // exist in the same tree being validated.
     $parent = \array_filter($tree, static fn (array $item) => $item['uuid'] === $component_instance['parent_uuid']);
 
     if (\count($parent) === 0) {

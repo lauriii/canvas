@@ -34,11 +34,23 @@ final class ValidExposedSlotConstraint extends SymfonyConstraint {
    */
   public bool $requireEmpty = FALSE;
 
+  /**
+   * Whether each exposed slot key must name a `component_tree` field.
+   *
+   * TRUE for content templates: an exposed slot IS a `component_tree` field on
+   * the bundle, and its machine name is the slot's key. Consumers whose slots
+   * are not backed by fields (page variants, filled by route content) set it to
+   * FALSE.
+   *
+   * @var bool
+   */
+  public bool $requireFieldBacked = TRUE;
+
   public string $unknownComponentMessage = 'The component %id does not exist in the tree.';
 
   public string $slotNotEmptyMessage = 'The %slot slot must be empty.';
 
-  public string $duplicateTargetMessage = 'The %slot slot is already exposed by another exposed slot.';
+  public string $missingFieldMessage = 'The exposed slot %field must be backed by a component tree field of that machine name on the bundle.';
 
   public string $undefinedSlotMessage = 'The component %id does not have a %slot slot.';
 

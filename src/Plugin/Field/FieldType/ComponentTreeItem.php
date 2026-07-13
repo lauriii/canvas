@@ -230,13 +230,11 @@ class ComponentTreeItem extends FieldItemBase {
           'binary' => FALSE,
           // These are UUIDs
           'length' => 36,
-          // NULL represents either:
-          // - the root of the tree
-          // - or the root of a bonsai tree (a tree in a content template's
-          //   exposed slot)
-          // In the latter case, `slot` must match an exposed slot alias
-          // declared by the applicable `ContentTemplate`.
-          // @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator::validateComponentInstance()
+          // NULL represents a root of the tree (empty `slot`). An exposed
+          // slot's per-entity content is stored as an ordinary tree in its own
+          // backing `component_tree` field, merged into the template's target
+          // slot at render time.
+          // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::injectSlotContent()
           'not null' => FALSE,
         ],
         'slot' => [
