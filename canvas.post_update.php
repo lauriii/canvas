@@ -14,11 +14,13 @@ use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Config\Entity\ConfigEntityUpdater;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\field\Entity\FieldConfig;
@@ -653,4 +655,88 @@ function _canvas_coerce_block_label_display_in_raw(array &$data): bool {
     }
   }
   return $changed;
+}
+
+/**
+ * Migrates per-entity exposed-slot content to the alias-keyed bonsai shape.
+ *
+ * The unreleased "foreign-parent" shape parented each per-entity slot row to
+ * the template-internal component UUID with the real slot name. The shipped
+ * contract instead roots each slot subtree with an empty parent_uuid and the
+ * exposed slot alias. Only tests and community forks ever produced the old
+ * shape, so this is defensive insurance.
+ *
+ * ponytail: single-pass, no sandbox batching — in practice this migrates zero
+ * rows because no released code wrote the old shape. Add batching only if a
+ * real migration source ever appears.
+ */
+function canvas_post_update_0023_migrate_exposed_slot_content_to_alias_shape(): void {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $template_storage = $entity_type_manager->getStorage(ContentTemplate::ENTITY_TYPE_ID);
+
+  // Build (entity_type_id:bundle) => ["<component_uuid>:<slot_name>" => alias].
+  $targets_by_bundle = [];
+  foreach ($template_storage->loadMultiple() as $template) {
+    \assert($template instanceof ContentTemplate);
+    $exposed_slots = $template->getExposedSlots();
+    if (empty($exposed_slots)) {
+      continue;
+    }
+    $bundle_key = $template->getTargetEntityTypeId() . ':' . $template->getTargetBundle();
+    foreach ($exposed_slots as $alias => $definition) {
+      $targets_by_bundle[$bundle_key][$definition['component_uuid'] . ':' . $definition['slot_name']] = $alias;
+    }
+  }
+  if (empty($targets_by_bundle)) {
+    return;
+  }
+
+  $field_map = \Drupal::service('entity_field.manager')->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);
+  foreach ($targets_by_bundle as $bundle_key => $targets) {
+    [$entity_type_id, $bundle] = \explode(':', $bundle_key, 2);
+    $field_names = [];
+    foreach ($field_map[$entity_type_id] ?? [] as $field_name => $info) {
+      if (\in_array($bundle, $info['bundles'], TRUE)) {
+        $field_names[] = $field_name;
+      }
+    }
+    if (empty($field_names)) {
+      continue;
+    }
+    $bundle_field = $entity_type_manager->getDefinition($entity_type_id)->getKey('bundle');
+    \assert(\is_string($bundle_field));
+    $storage = $entity_type_manager->getStorage($entity_type_id);
+    $entity_ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition($bundle_field, $bundle)
+      ->execute();
+    foreach ($storage->loadMultiple($entity_ids) as $entity) {
+      if (!$entity instanceof FieldableEntityInterface) {
+        continue;
+      }
+      $changed = FALSE;
+      foreach ($field_names as $field_name) {
+        if (!$entity->hasField($field_name)) {
+          continue;
+        }
+        $items = $entity->get($field_name);
+        \assert($items instanceof ComponentTreeItemList);
+        $values = $items->getValue();
+        foreach ($values as $delta => $value) {
+          $lookup = ($value['parent_uuid'] ?? '') . ':' . ($value['slot'] ?? '');
+          if (isset($targets[$lookup])) {
+            $values[$delta]['parent_uuid'] = NULL;
+            $values[$delta]['slot'] = $targets[$lookup];
+            $changed = TRUE;
+          }
+        }
+        if ($changed) {
+          $items->setValue($values);
+        }
+      }
+      if ($changed) {
+        $entity->save();
+      }
+    }
+  }
 }
