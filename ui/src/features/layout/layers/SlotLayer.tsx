@@ -76,11 +76,7 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
     isTemplateContext && parentNode
       ? findExposedSlotEntry(exposedSlots, parentNode.uuid, slot.name)
       : null;
-  const displayName = exposed
-    ? exposed.definition.disabled
-      ? `${exposed.definition.label} (disabled)`
-      : exposed.definition.label
-    : slotName;
+  const displayName = exposed ? exposed.definition.label : slotName;
 
   // Per-content editing: hide empty-override markers, and only let active
   // exposed slots accept drops (overriding inherited disableDrop from locked
@@ -183,8 +179,8 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
         draggable={false}
         variant="slot"
         open={!isCollapsed}
-        // An active exposed slot is the editable target in per-content mode;
-        // it must never render disabled (which would grey it and block its
+        // An exposed slot is the editable target in per-content mode; it must
+        // never render disabled (which would gray it out and block its
         // contextual "Revert to default" menu via pointer-events: none).
         disabled={isPerContentExposed ? false : disableDrop}
         indent={indent}

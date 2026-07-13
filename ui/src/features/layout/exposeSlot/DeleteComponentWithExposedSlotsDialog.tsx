@@ -57,11 +57,12 @@ const DeleteComponentWithExposedSlotsDialog = () => {
         <Text size="2">
           &ldquo;{data.componentName}&rdquo; hosts exposed{' '}
           {isPlural ? 'slots' : 'slot'} {slotNames}. Deleting this component
-          also removes {isPlural ? 'those exposed slots' : 'that exposed slot'}.
+          detaches {isPlural ? 'those exposed slots' : 'that exposed slot'}.
         </Text>
         <Text size="2">
-          Any content editors placed in {isPlural ? 'these slots' : 'this slot'}{' '}
-          will be permanently purged the next time affected content is saved.
+          Content already entered by editors is preserved in{' '}
+          {isPlural ? 'their fields' : 'its field'} and reappears if{' '}
+          {isPlural ? 'these slots are' : 'this slot is'} exposed again.
         </Text>
       </Flex>
     </Dialog>

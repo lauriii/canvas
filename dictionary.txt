@@ -260,3 +260,6 @@ tabnine
 trae
 videomedia
 zencoder
+affordances
+editability
+rerooted

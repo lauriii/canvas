@@ -1,11 +1,11 @@
 /**
  * Pure helpers for the template editor's exposed-slot working set.
  *
- * The Redux slice stores exposed slots camelCased and keyed by machine-name
- * alias (@see ExposedSlotDefinition in layoutModelSlice). The server contract
- * (config normalization and the template layout POST body) uses the snake_case
- * `{component_uuid, slot_name, label, disabled?}` shape. These helpers translate
- * between the two and resolve exposed slots against layout nodes.
+ * The Redux slice stores exposed slots camelCased and keyed by the backing
+ * field machine name (@see ExposedSlotDefinition in layoutModelSlice). The
+ * server contract (config normalization and the template layout POST body) uses
+ * the snake_case `{component_uuid, slot_name, label}` shape. These helpers
+ * translate between the two and resolve exposed slots against layout nodes.
  */
 
 import { findNodeParents, recurseNodes } from '@/features/layout/layoutUtils';
@@ -59,7 +59,6 @@ export interface ExposedSlotServerDefinition {
   component_uuid: string;
   slot_name: string;
   label: string;
-  disabled?: boolean;
 }
 
 /**
@@ -95,11 +94,11 @@ export const findExposedSlotEntry = (
 };
 
 /**
- * Whether a slot node is an active (non-disabled) exposed slot.
+ * Whether a slot node is an exposed slot.
  *
- * Per-content editing gates drops on this: only active exposed slots accept
- * content, including exposed slots nested inside locked template chrome. The
- * host component UUID is derived from the slot id (`${uuid}/${slotName}`).
+ * Per-content editing gates drops on this: only exposed slots accept content,
+ * including exposed slots nested inside locked template chrome. The host
+ * component UUID is derived from the slot id (`${uuid}/${slotName}`).
  */
 export const isExposedSlotTarget = (
   slot: SlotNode,
@@ -110,7 +109,7 @@ export const isExposedSlotTarget = (
     getSlotHostComponentUuid(slot),
     slot.name,
   );
-  return !!entry && !entry.definition.disabled;
+  return !!entry;
 };
 
 /**
@@ -141,7 +140,7 @@ export const findEnclosingExposedSlotAlias = (
     const [hostUuid, ...rest] = id.split('/');
     const slotName = rest.join('/');
     const entry = findExposedSlotEntry(exposedSlots, hostUuid, slotName);
-    if (entry && !entry.definition.disabled) {
+    if (entry) {
       return { slotId: id, alias: entry.alias };
     }
   }
@@ -194,7 +193,6 @@ export const exposedSlotsToServer = (
         component_uuid: definition.componentUuid,
         slot_name: definition.slotName,
         label: definition.label,
-        ...(definition.disabled ? { disabled: true } : {}),
       },
     ]),
   );
@@ -216,24 +214,16 @@ export const exposedSlotsFromServer = (
         label: definition.label,
         slotName: definition.slot_name,
         componentUuid: definition.component_uuid,
-        disabled: Boolean(definition.disabled),
       },
     ]),
   );
 };
 
 /**
- * Counts the active (non-disabled) exposed slots in a server-side map.
+ * Counts the exposed slots in a server-side map.
  *
  * Used for the template-list count badge.
  */
-export const countActiveExposedSlots = (
+export const countExposedSlots = (
   exposedSlots: Record<string, ExposedSlotServerDefinition> | undefined,
-): number => {
-  if (!exposedSlots) {
-    return 0;
-  }
-  return Object.values(exposedSlots).filter(
-    (definition) => !definition.disabled,
-  ).length;
-};
+): number => (exposedSlots ? Object.keys(exposedSlots).length : 0);

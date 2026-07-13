@@ -13,7 +13,7 @@
  * add-form-link logic can be unit tested without a store or a backend.
  */
 
-import { countActiveExposedSlots } from '@/features/layout/exposedSlots';
+import { countExposedSlots } from '@/features/layout/exposedSlots';
 
 import type { TemplateList } from '@/services/componentAndLayout';
 
@@ -67,7 +67,7 @@ export function getTemplatedEntityGroups(
     for (const [bundle, bundleData] of Object.entries(typeData.bundles ?? {})) {
       const hasActiveExposedSlot = Object.values(
         bundleData.viewModes ?? {},
-      ).some((viewMode) => countActiveExposedSlots(viewMode.exposed_slots) > 0);
+      ).some((viewMode) => countExposedSlots(viewMode.exposed_slots) > 0);
       if (hasActiveExposedSlot) {
         bundles.push({ bundle, label: bundleData.label });
       }

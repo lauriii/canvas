@@ -47,6 +47,7 @@ import { patternApi } from '@/services/patterns';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { personalizationApi } from '@/services/personalization';
 import { previewApi } from '@/services/preview';
+import { slotFieldsApi } from '@/services/slotFields';
 import { rtkQueryErrorHandler } from '@/utils/rtkQuery-error';
 
 import type { Action, Middleware, ThunkAction } from '@reduxjs/toolkit';
@@ -166,6 +167,7 @@ const rootReducer = combineSlices(
   publishReviewSlice,
   contentApi,
   contentEntityReferenceApi,
+  slotFieldsApi,
   codeEditorSlice,
   previewSlice,
   queryErrorSlice,
@@ -257,6 +259,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         pendingChangesApi.middleware,
         contentApi.middleware,
         contentEntityReferenceApi.middleware,
+        slotFieldsApi.middleware,
         rtkQueryErrorHandler, // Add the error handling middleware
       );
     },
