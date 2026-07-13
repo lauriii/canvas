@@ -771,7 +771,11 @@ final class ApiAutoSaveController extends ApiControllerBase {
       // is never published with deleted props or an outdated version. The
       // snapshot holds only the edited translation, so reconciling updates that
       // translation's own tree in place.
-      $this->componentSourceManager->updateComponentInstances($this->componentTreeLoader->load($auto_save_entity));
+      // Reconcile every component tree the entity stores (one per exposed slot
+      // for a templated bundle; one for canvas_page).
+      foreach ($this->componentTreeLoader->loadAll($auto_save_entity) as $tree) {
+        $this->componentSourceManager->updateComponentInstances($tree);
+      }
       $fields = $auto_save_entity->getFieldDefinitions();
       // The auto-save snapshot belongs to a specific translation. Apply the
       // changes onto that same translation of the stored entity, so editing
