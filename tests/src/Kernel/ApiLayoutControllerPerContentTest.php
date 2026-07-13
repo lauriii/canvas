@@ -365,6 +365,29 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
   }
 
   /**
+   * A per-content POST carrying entity form fields applies them without 500.
+   *
+   * Regression: `writePartitionedEntityContent()` must apply `entity_form_fields`
+   * without `ClientDataToEntityConverter::convert()`, which loads a single Canvas
+   * field via `ComponentTreeLoader::getCanvasFieldName()` and throws for a
+   * templated node (whose tree lives in per-slot fields).
+   */
+  public function testPostAppliesEntityFormFields(): void {
+    $node = self::createTemplatedNode();
+    $url = $this->getLayoutUrl($node)->toString();
+
+    $post = $this->postBodyFrom(
+      self::decodeResponse($this->request(Request::create($url))),
+    );
+    $post['entity_form_fields'] = ['title[0][value]' => 'Renamed per-content'];
+    $response = $this->request(Request::create($url, method: 'POST', content: \json_encode($post, JSON_THROW_ON_ERROR)));
+
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    // The title change is applied to the auto-saved draft.
+    self::assertSame('Renamed per-content', $this->getAutoSaveDraft($node)->label());
+  }
+
+  /**
    * The per-content edit access check mirrors the exposed-slots predicate.
    *
    * @legacy-covers \Drupal\canvas\Access\ComponentTreeEditAccessCheck::access
