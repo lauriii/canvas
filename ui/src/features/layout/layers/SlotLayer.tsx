@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { CollapsibleContent } from '@radix-ui/react-collapsible';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import {
-  CheckboxIcon,
+  BoxIcon,
   TriangleDownIcon,
   TriangleRightIcon,
 } from '@radix-ui/react-icons';
@@ -195,7 +195,7 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
               data-testid={`slot-layer-exposed-marker-${slotId}`}
               aria-label="Exposed slot"
             >
-              <CheckboxIcon />
+              <BoxIcon />
             </Flex>
           ) : undefined
         }
