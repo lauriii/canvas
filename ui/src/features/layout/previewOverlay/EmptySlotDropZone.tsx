@@ -5,7 +5,12 @@ import { useDroppable } from '@dnd-kit/core';
 import { BoxModelIcon } from '@radix-ui/react-icons';
 
 import { useAppSelector } from '@/app/hooks';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
+import { isExposedSlotTarget } from '@/features/layout/exposedSlots';
+import {
+  selectExposedSlots,
+  selectIsPerContentMode,
+  selectLayout,
+} from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import useGetComponentName from '@/hooks/useGetComponentName';
 
@@ -25,9 +30,16 @@ export interface EmptySlotDropZoneProps {
 const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
   const { slot, slotName, parentComponent } = props;
   const layout = useAppSelector(selectLayout);
+  const perContentMode = useAppSelector(selectIsPerContentMode);
+  const exposedSlots = useAppSelector(selectExposedSlots);
   const [activeName, setActiveName] = useState('');
   const [activeOrigin, setActiveOrigin] = useState('');
   const parentComponentName = useGetComponentName(parentComponent);
+
+  // Per-content editing: only an active exposed slot accepts drops (including
+  // one nested inside locked template chrome).
+  const perContentDropBlocked =
+    perContentMode && !isExposedSlotTarget(slot, exposedSlots);
 
   const slotPath = findNodePathByUuid(layout, slot.id);
   if (!slotPath) {
@@ -44,7 +56,7 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
     active,
   } = useDroppable({
     id: `${slot.id}`,
-    disabled: !accepts.includes(activeOrigin),
+    disabled: !accepts.includes(activeOrigin) || perContentDropBlocked,
     data: {
       component: parentComponent,
       parentSlot: slot,

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { useDraggable } from '@dnd-kit/core';
+import { LockClosedIcon } from '@radix-ui/react-icons';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { isNodeEditable } from '@/features/layout/layoutUtils';
 import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import { ComponentNameTag } from '@/features/layout/preview/NameTag';
@@ -83,6 +85,10 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const { isDragging } = useAppSelector(selectDragging);
   const elementsInsideIframe = useRef<HTMLElement[] | []>([]);
   const name = useGetComponentName(component);
+  // Per-content editing: a template-owned component is locked. It renders
+  // read-only (selectable to show the "belongs to the template" panel) but is
+  // not draggable, has no context menu and hosts no drop zones of its own.
+  const locked = !isNodeEditable(component);
   const {
     attributes,
     listeners,
@@ -90,6 +96,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
     isDragging: isComponentDragged,
   } = useDraggable({
     id: `${component.uuid}`,
+    disabled: locked,
     data: {
       origin: 'overlay',
       component: component,
@@ -192,6 +199,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
         [styles.hovered]: isHovered,
         [styles.dragging]: isComponentDragged,
         [styles.updating]: isUpdating,
+        [styles.locked]: locked,
       })}
       style={style}
     >
@@ -199,19 +207,38 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
         Select component
       </button>
 
-      <ComponentContextMenu component={component}>
+      {locked ? (
+        // Locked template chrome: no context menu, no drag listeners.
         <div
-          aria-label={`Draggable component ${name}`}
+          aria-label={`Locked component ${name}`}
           ref={setNodeRef}
-          {...listeners}
-          {...attributes}
           className={clsx('canvas--sortable-item', styles.sortableItem)}
           data-canvas-component-id={componentType}
           data-canvas-uuid={component.uuid}
           data-canvas-type={component.nodeType}
           data-canvas-overlay="true"
+          data-canvas-locked="true"
         />
-      </ComponentContextMenu>
+      ) : (
+        <ComponentContextMenu component={component}>
+          <div
+            aria-label={`Draggable component ${name}`}
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            className={clsx('canvas--sortable-item', styles.sortableItem)}
+            data-canvas-component-id={componentType}
+            data-canvas-uuid={component.uuid}
+            data-canvas-type={component.nodeType}
+            data-canvas-overlay="true"
+          />
+        </ComponentContextMenu>
+      )}
+      {locked && (isHovered || isSelected) && (
+        <div className={styles.lockBadge} aria-hidden="true">
+          <LockClosedIcon />
+        </div>
+      )}
       {(isHovered || isSelected) && (
         <div className={clsx(styles.canvasNameTag)}>
           <ComponentNameTag
@@ -232,7 +259,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
         />
       ))}
 
-      {!isComponentDragged && !disableDrop && !isUpdating && (
+      {!isComponentDragged && !disableDrop && !isUpdating && !locked && (
         <>
           {index === 0 && (
             <ComponentDropZone
