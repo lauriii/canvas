@@ -279,11 +279,13 @@ When rendering content entities, a content template will be used to render the e
 If a `ContentTemplate` is used for rendering a content entity, then `hook_entity_display_build_alter()` will NOT be invoked for that entity, because that hook (and all its implementations) assume field formatters are used to render (all or some) fields in sequence, which is not the case when using Canvas.
 
 A `ContentTemplate` may _expose_ slots (`exposed_slots`): a Site Builder marks slots in the template's component tree as
-editable per entity, each under a stable machine-name alias. When a template exposes at least one active (non-disabled)
-slot, the bundle is opted into Drupal Canvas: its `Canvas field` is ensured to exist (see
-`\Drupal\canvas\Entity\ContentTemplate::postSave()`), so entities can store their per-entity slot content. That content is
-stored as alias-keyed "bonsai" subtrees in the entity's `Canvas field`; see the storage shape in
-[`Canvas Data Model` doc](data-model.md) and merge/rendering in `\Drupal\canvas\Entity\ContentTemplate::build()`.
+editable per entity. Each exposed slot IS a `component_tree` field on the bundle, and the field's machine name is the
+slot's key in `exposed_slots` and its stable identity. Exposing a new slot creates that field (from the expose dialog,
+`canvas_slot_`-prefixed); the template declares config dependencies on those field configs, so deleting a field through
+Field UI detaches the slot via `onDependencyRemoval()` (no bespoke healing). Each entity stores its per-entity content for
+the slot as an ordinary component tree in that field, merged into the template's target slot at render time; see the
+storage shape in [`Canvas Data Model` doc](data-model.md) and merge/rendering in
+`\Drupal\canvas\Entity\ContentTemplate::build()`.
 
 ⚠️ Still to be built:
 - A UI to create content templates, and manage existing templates: https://www.drupal.org/i/3518248
