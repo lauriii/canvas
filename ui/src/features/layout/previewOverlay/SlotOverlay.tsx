@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router';
-import { CheckboxIcon, DotsHorizontalIcon } from '@radix-ui/react-icons';
+import { BoxIcon, DotsHorizontalIcon } from '@radix-ui/react-icons';
 import { ContextMenu, DropdownMenu } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -262,7 +262,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
                     }
                     data-testid={`slot-expose-chip-${slotId}`}
                   >
-                    {exposed && <CheckboxIcon />}
+                    {exposed && <BoxIcon />}
                     <span>{chipLabel}</span>
                     <DotsHorizontalIcon />
                   </button>
