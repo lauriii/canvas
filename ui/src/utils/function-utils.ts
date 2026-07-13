@@ -137,27 +137,18 @@ export function calculateBoundingRect(
         expandedElements.push(el);
         return;
       }
-      // If the element is display: contents; we need to look at its children to find the first child that has a calculable size.
-      // Recursively traverse down children looking for the first child that is not display: contents or until finding
-      // multiple children (which suggests we are not dealing with <astro-*> elements and have traversed into the component markup itself).
-      if (el.children.length === 1) {
-        const onlyChild = el.children[0];
-        if (onlyChild.nodeType === Node.ELEMENT_NODE) {
+      // If the element is display: contents; we need to look at its children to find those with a calculable size.
+      // Recursively traverse down children until reaching elements that are not display: contents. A slot can contain
+      // multiple display: contents children (e.g. sibling <canvas-island> elements), so every child must be expanded,
+      // not just single-child chains.
+      Array.from(el.children).forEach((child) => {
+        if (child.nodeType === Node.ELEMENT_NODE) {
           collectElementsWithCalculableSize(
-            onlyChild as HTMLElement,
+            child as HTMLElement,
             expandedElements,
           );
-          return;
         }
-      } else if (el.children.length > 1) {
-        expandedElements.push(
-          ...Array.from(el.children).filter(
-            (child): child is HTMLElement =>
-              child.nodeType === Node.ELEMENT_NODE,
-          ),
-        );
-        return;
-      }
+      });
     }
 
     // Elements that are display: contents; (e.g <astro-*> elements) take on the size of their children, so in that case,
