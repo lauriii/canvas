@@ -25,6 +25,7 @@ import type {
 import type {
   ContentTemplate,
   ContentTemplateListItem,
+  ExposedSlots,
 } from '../types/ContentTemplate';
 import type { Page, PageListItem } from '../types/Page';
 import type { Region, RegionListItem } from '../types/Region';
@@ -572,6 +573,7 @@ export class ApiService {
     viewMode: string;
     status: boolean;
     component_tree: ConfigComponentTreePayload;
+    exposed_slots?: ExposedSlots;
   }): Promise<ContentTemplate> {
     try {
       const response = await this.client.post(
@@ -593,6 +595,7 @@ export class ApiService {
       label?: string;
       status?: boolean;
       component_tree?: ConfigComponentTreePayload;
+      exposed_slots?: ExposedSlots;
     },
   ): Promise<ContentTemplate> {
     try {

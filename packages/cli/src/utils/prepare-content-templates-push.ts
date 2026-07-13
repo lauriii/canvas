@@ -19,7 +19,10 @@ import type {
   CanvasComponentTree,
 } from 'drupal-canvas/json-render-utils';
 import type { ApiService } from '../services/api';
-import type { ContentTemplateListItem } from '../types/ContentTemplate';
+import type {
+  ContentTemplateListItem,
+  ExposedSlots,
+} from '../types/ContentTemplate';
 import type { Result } from '../types/Result';
 
 export interface ContentTemplatePushResult {
@@ -42,6 +45,7 @@ export interface PreparedContentTemplate {
   bundle: string;
   viewMode: string;
   components: CanvasComponentTree;
+  exposedSlots?: ExposedSlots;
   filePath: string;
 }
 
@@ -99,6 +103,7 @@ export async function prepareContentTemplates(
       bundle: string;
       viewMode: string;
       elements: AuthoredSpecElementMap;
+      exposedSlots?: ExposedSlots;
     };
 
     if (!spec.entityType || !spec.bundle || !spec.viewMode) {
@@ -135,6 +140,7 @@ export async function prepareContentTemplates(
       bundle: spec.bundle,
       viewMode: spec.viewMode,
       components: tree,
+      exposedSlots: spec.exposedSlots,
       filePath: localTemplate.path,
     };
   });
@@ -168,11 +174,18 @@ export async function pushContentTemplates(
     const component_tree = stripNullableKeysForConfigComponentTree(
       template.components,
     );
+    // The authored file stores exposed slots under a camelCase key; the server
+    // payload expects snake_case `exposed_slots`. Only send it when present so
+    // templates without exposed slots keep an unchanged request body.
+    const exposedSlotsPayload = template.exposedSlots
+      ? { exposed_slots: template.exposedSlots }
+      : {};
 
     if (remote) {
       await apiService.updateContentTemplate(template.id, {
         status: true,
         component_tree,
+        ...exposedSlotsPayload,
       });
       return {
         label: template.label,
@@ -188,6 +201,7 @@ export async function pushContentTemplates(
       viewMode: template.viewMode,
       status: true,
       component_tree,
+      ...exposedSlotsPayload,
     });
     return {
       label: template.label,
