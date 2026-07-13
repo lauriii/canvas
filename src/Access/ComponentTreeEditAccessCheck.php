@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Drupal\canvas\Access;
 
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -37,7 +39,21 @@ final class ComponentTreeEditAccessCheck implements AccessInterface {
    */
   public function access(EntityInterface $entity, AccountInterface $account): AccessResultInterface {
     if ($entity instanceof FieldableEntityInterface || $entity instanceof ComponentTreeEntityInterface) {
-      $tree = $this->componentTreeLoader->load($entity);
+      // A field-hosted component tree that is not a Canvas page: per-entity
+      // editing is only offered for templated bundles with active exposed
+      // slots (decision 6). The loader throws when the bundle has no Canvas
+      // field; translate that into a clean access denial instead of a 500. This
+      // check runs both when gating the Layout API and, via checkNamedRoute(),
+      // when building the "Layout" local task on the entity's canonical route.
+      $is_field_hosted = $entity instanceof FieldableEntityInterface && !$entity instanceof ComponentTreeEntityInterface;
+      try {
+        $tree = $this->componentTreeLoader->load($entity);
+      }
+      catch (\LogicException) {
+        \assert($is_field_hosted && $entity instanceof FieldableEntityInterface);
+        return AccessResult::forbidden('This entity has no editable component tree.')
+          ->addCacheableDependency(self::perContentCacheability($entity));
+      }
       // TRICKY: field access hooks must return AccessResult::forbidden() to
       // override the default field access. Then the forbidden field access's
       // reason would overwrite that of non-allowed entity access. Avoid that by
@@ -45,6 +61,10 @@ final class ComponentTreeEditAccessCheck implements AccessInterface {
       // @see \Drupal\Core\Field\FieldItemList::defaultAccess()
       $entity_access = $entity->access('update', $account, TRUE);
       if (!$entity_access->isAllowed()) {
+        if ($is_field_hosted) {
+          \assert($entity instanceof FieldableEntityInterface && $entity_access instanceof AccessResult);
+          $entity_access->addCacheableDependency(self::perContentCacheability($entity));
+        }
         return $entity_access;
       }
 
@@ -74,7 +94,12 @@ final class ComponentTreeEditAccessCheck implements AccessInterface {
             && $tree->getParent()->getEntity()->getConfigDependencyName() === $entity->getConfigDependencyName()
           )
         );
-        return $entity_access->andIf($tree->access('edit', $account, TRUE));
+        $access = $entity_access->andIf($tree->access('edit', $account, TRUE));
+        if ($is_field_hosted) {
+          \assert($access instanceof AccessResult);
+          $access->addCacheableDependency(self::perContentCacheability($entity));
+        }
+        return $access;
       }
 
       // Every non-fieldable entity containing a component tree has a component
@@ -86,6 +111,36 @@ final class ComponentTreeEditAccessCheck implements AccessInterface {
     }
     // No opinion.
     return AccessResult::neutral();
+  }
+
+  /**
+   * Cacheability for per-content (templated bundle) edit access decisions.
+   *
+   * The decision hinges on whether the entity's bundle has an enabled content
+   * template with active exposed slots, and on the provisioned Canvas field.
+   * Depend on those so the "Layout" local task and Layout API access
+   * re-evaluate when a template is created, deleted, or (dis)exposes slots, or
+   * the field is (de)provisioned.
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The templated content entity.
+   *
+   * @return \Drupal\Core\Cache\CacheableMetadata
+   *   The cacheability metadata to attach to the access result.
+   */
+  private static function perContentCacheability(FieldableEntityInterface $entity): CacheableMetadata {
+    $cacheability = (new CacheableMetadata())
+      ->addCacheTags([
+        ContentTemplate::ENTITY_TYPE_ID . '_list',
+        'entity_field_info',
+        'entity_bundles',
+      ]);
+    // Only the full view mode can expose slots.
+    $template = ContentTemplate::loadForEntity($entity, 'full');
+    if ($template !== NULL) {
+      $cacheability->addCacheableDependency($template);
+    }
+    return $cacheability;
   }
 
 }
