@@ -1,6 +1,9 @@
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { Theme } from '@radix-ui/themes';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import { makeStore } from '@/app/store';
 import {
@@ -39,16 +42,12 @@ import {
   validateSlotFieldName,
 } from '@/features/validation/validation';
 
-import '@/styles/radix-themes';
-import '@/styles/index.css';
-
 // The expose/detach *dialog* UI coverage (the single "Slot field" Select that
 // defaults to reusing an existing field, the "Add new slot…" create path, and
-// Detach) moved to the Playwright spec
+// Detach) lives in the Playwright spec
 // tests/src/Playwright/tests/isolatedPerTest/exposeSlot.spec.ts, because those
 // dialogs now depend on the slot-field candidate/create APIs. This file keeps
-// the pure helper, reducer and per-content coverage. Cypress is deprecated in
-// this repo: do not add new tests here (@see [[Playwright not Cypress]]).
+// the pure helper, reducer and per-content coverage.
 
 // A minimal layout with one component hosting one empty slot.
 const buildLayoutModel = () => ({
@@ -77,8 +76,8 @@ const buildLayoutModel = () => ({
   model: { 'comp-1': { resolved: {} } },
 });
 
-const mountWith = (store, ui) =>
-  cy.mount(
+const renderWith = (store, ui) =>
+  render(
     <Provider store={store}>
       <MemoryRouter>
         <Theme
@@ -95,53 +94,51 @@ const mountWith = (store, ui) =>
 
 describe('deriveSlotFieldName', () => {
   it('derives a canvas_slot_-prefixed field machine name from a label', () => {
-    expect(deriveSlotFieldName('My Hero')).to.equal('canvas_slot_my_hero');
-    expect(deriveSlotFieldName('  Featured   Area!! ')).to.equal(
+    expect(deriveSlotFieldName('My Hero')).toBe('canvas_slot_my_hero');
+    expect(deriveSlotFieldName('  Featured   Area!! ')).toBe(
       'canvas_slot_featured_area',
     );
-    expect(deriveSlotFieldName('Call-to-Action')).to.equal(
+    expect(deriveSlotFieldName('Call-to-Action')).toBe(
       'canvas_slot_call_to_action',
     );
-    expect(deriveSlotFieldName('123 Go')).to.equal('canvas_slot_123_go');
+    expect(deriveSlotFieldName('123 Go')).toBe('canvas_slot_123_go');
   });
 
   it('returns an empty string when no valid suffix remains', () => {
-    expect(deriveSlotFieldName('!!!')).to.equal('');
-    expect(deriveSlotFieldName('   ')).to.equal('');
+    expect(deriveSlotFieldName('!!!')).toBe('');
+    expect(deriveSlotFieldName('   ')).toBe('');
   });
 });
 
 describe('validateSlotFieldName', () => {
   it('accepts valid slot field names', () => {
-    expect(validateSlotFieldName('canvas_slot_my_hero')).to.equal('');
-    expect(validateSlotFieldName('canvas_slot_hero')).to.equal('');
-    expect(validateSlotFieldName('canvas_slot_abc')).to.equal('');
+    expect(validateSlotFieldName('canvas_slot_my_hero')).toBe('');
+    expect(validateSlotFieldName('canvas_slot_hero')).toBe('');
+    expect(validateSlotFieldName('canvas_slot_abc')).toBe('');
   });
 
   it('requires a value', () => {
-    expect(validateSlotFieldName('')).to.equal('Machine name is required.');
-    expect(validateSlotFieldName('   ')).to.equal('Machine name is required.');
+    expect(validateSlotFieldName('')).toBe('Machine name is required.');
+    expect(validateSlotFieldName('   ')).toBe('Machine name is required.');
   });
 
   it('requires the canvas_slot_ prefix', () => {
-    expect(validateSlotFieldName('my_hero')).to.equal(
+    expect(validateSlotFieldName('my_hero')).toBe(
       'Machine name must start with "canvas_slot_".',
     );
   });
 
   it('rejects invalid patterns', () => {
     // Trailing underscore not allowed.
-    expect(validateSlotFieldName('canvas_slot_hero_')).to.not.equal('');
+    expect(validateSlotFieldName('canvas_slot_hero_')).not.toBe('');
     // Uppercase / special characters not allowed.
-    expect(validateSlotFieldName('canvas_slot_Hero')).to.not.equal('');
-    expect(validateSlotFieldName('canvas_slot_he ro')).to.not.equal('');
+    expect(validateSlotFieldName('canvas_slot_Hero')).not.toBe('');
+    expect(validateSlotFieldName('canvas_slot_he ro')).not.toBe('');
   });
 
   it('enforces the 32-character limit', () => {
     // 'canvas_slot_' (12) + 21 chars = 33, over the 32-char field-name cap.
-    expect(validateSlotFieldName(`canvas_slot_${'a'.repeat(21)}`)).to.not.equal(
-      '',
-    );
+    expect(validateSlotFieldName(`canvas_slot_${'a'.repeat(21)}`)).not.toBe('');
   });
 
   it('enforces uniqueness within the template', () => {
@@ -150,13 +147,13 @@ describe('validateSlotFieldName', () => {
         'canvas_slot_hero',
         'canvas_slot_footer',
       ]),
-    ).to.equal('This machine name is already in use in this template.');
+    ).toBe('This machine name is already in use in this template.');
     expect(
       validateSlotFieldName('canvas_slot_sidebar', [
         'canvas_slot_hero',
         'canvas_slot_footer',
       ]),
-    ).to.equal('');
+    ).toBe('');
   });
 });
 
@@ -176,32 +173,30 @@ describe('exposedSlots helpers', () => {
 
   it('round-trips between slice and server shapes', () => {
     const server = exposedSlotsToServer(sliceShape);
-    expect(server.hero).to.deep.equal({
+    expect(server.hero).toEqual({
       component_uuid: 'comp-1',
       slot_name: 'the_body',
       label: 'Hero',
     });
-    expect(server.footer).to.deep.equal({
+    expect(server.footer).toEqual({
       component_uuid: 'comp-2',
       slot_name: 'the_footer',
       label: 'Footer',
     });
-    expect(exposedSlotsFromServer(server)).to.deep.equal(sliceShape);
+    expect(exposedSlotsFromServer(server)).toEqual(sliceShape);
   });
 
   it('finds an exposed slot by host component + slot name', () => {
-    expect(
-      findExposedSlotEntry(sliceShape, 'comp-1', 'the_body')?.alias,
-    ).to.equal('hero');
-    expect(findExposedSlotEntry(sliceShape, 'comp-1', 'nope')).to.equal(null);
-    expect(findExposedSlotEntry(undefined, 'comp-1', 'the_body')).to.equal(
-      null,
+    expect(findExposedSlotEntry(sliceShape, 'comp-1', 'the_body')?.alias).toBe(
+      'hero',
     );
+    expect(findExposedSlotEntry(sliceShape, 'comp-1', 'nope')).toBe(null);
+    expect(findExposedSlotEntry(undefined, 'comp-1', 'the_body')).toBe(null);
   });
 
   it('counts the exposed slots in a server-side map', () => {
-    expect(countExposedSlots(exposedSlotsToServer(sliceShape))).to.equal(2);
-    expect(countExposedSlots(undefined)).to.equal(0);
+    expect(countExposedSlots(exposedSlotsToServer(sliceShape))).toBe(2);
+    expect(countExposedSlots(undefined)).toBe(0);
   });
 
   it('finds exposed slots hosted anywhere within a component subtree', () => {
@@ -211,12 +206,12 @@ describe('exposedSlots helpers', () => {
       { hero: sliceShape.hero },
       component,
     );
-    expect(found).to.have.length(1);
-    expect(found[0].alias).to.equal('hero');
+    expect(found).toHaveLength(1);
+    expect(found[0].alias).toBe('hero');
     // A slot hosted by a different component is not matched.
     expect(
       findExposedSlotsInSubtree({ footer: sliceShape.footer }, component),
-    ).to.have.length(0);
+    ).toHaveLength(0);
   });
 });
 
@@ -239,7 +234,7 @@ describe('layoutModelSlice exposed-slot reducers', () => {
         componentUuid: 'comp-1',
       }),
     );
-    expect(selectExposedSlots(store.getState()).hero).to.deep.equal({
+    expect(selectExposedSlots(store.getState()).hero).toEqual({
       label: 'Hero',
       slotName: 'the_body',
       componentUuid: 'comp-1',
@@ -248,14 +243,12 @@ describe('layoutModelSlice exposed-slot reducers', () => {
     store.dispatch(
       updateExposedSlotLabel({ alias: 'hero', label: 'Hero area' }),
     );
-    expect(selectExposedSlots(store.getState()).hero.label).to.equal(
-      'Hero area',
-    );
+    expect(selectExposedSlots(store.getState()).hero.label).toBe('Hero area');
 
     // Detach (the former "Remove") deletes the working-set entry; the backing
     // field and any per-entity content survive on the server.
     store.dispatch(removeExposedSlot('hero'));
-    expect(selectExposedSlots(store.getState())).to.not.have.property('hero');
+    expect(selectExposedSlots(store.getState())).not.toHaveProperty('hero');
   });
 
   it('exposes the first slot when the server sent an empty array (regression)', () => {
@@ -277,8 +270,8 @@ describe('layoutModelSlice exposed-slot reducers', () => {
       }),
     );
     const exposed = selectExposedSlots(store.getState());
-    expect(Array.isArray(exposed)).to.equal(false);
-    expect(exposed.hero).to.deep.equal({
+    expect(Array.isArray(exposed)).toBe(false);
+    expect(exposed.hero).toEqual({
       label: 'Hero',
       slotName: 'the_body',
       componentUuid: 'comp-1',
@@ -300,8 +293,8 @@ describe('layoutModelSlice exposed-slot reducers', () => {
     );
 
     const layout = selectLayout(store.getState());
-    expect(layout[0].components).to.have.length(0);
-    expect(selectExposedSlots(store.getState())).to.not.have.property('hero');
+    expect(layout[0].components).toHaveLength(0);
+    expect(selectExposedSlots(store.getState())).not.toHaveProperty('hero');
   });
 });
 
@@ -309,7 +302,6 @@ describe('DeleteComponentWithExposedSlotsDialog', () => {
   let store;
 
   beforeEach(() => {
-    cy.viewport(600, 700);
     store = makeStore({});
     store.dispatch(
       setInitialLayoutModel({ ...buildLayoutModel(), updatePreview: false }),
@@ -322,29 +314,29 @@ describe('DeleteComponentWithExposedSlotsDialog', () => {
         componentUuid: 'comp-1',
       }),
     );
-    mountWith(store, <DeleteComponentWithExposedSlotsDialog />);
-    cy.wrap(store).then((s) =>
-      s.dispatch(
-        setDialogWithDataOpen({
-          operation: 'deleteComponentWithExposedSlots',
-          data: {
-            componentUuid: 'comp-1',
-            componentName: 'Test component',
-            aliases: ['hero'],
-            labels: ['Hero'],
-          },
-        }),
-      ),
+    store.dispatch(
+      setDialogWithDataOpen({
+        operation: 'deleteComponentWithExposedSlots',
+        data: {
+          componentUuid: 'comp-1',
+          componentName: 'Test component',
+          aliases: ['hero'],
+          labels: ['Hero'],
+        },
+      }),
     );
+    renderWith(store, <DeleteComponentWithExposedSlotsDialog />);
   });
 
-  it('names the hosted slot and deletes component + slot on confirm', () => {
-    cy.findByText(/hosts exposed slot "Hero"/).should('exist');
-    cy.findByRole('button', { name: 'Delete' }).click();
-    cy.wrap(store).then((s) => {
-      expect(selectLayout(s.getState())[0].components).to.have.length(0);
-      expect(selectExposedSlots(s.getState())).to.not.have.property('hero');
-    });
+  it('names the hosted slot and deletes component + slot on confirm', async () => {
+    expect(
+      await screen.findByText(/hosts exposed slot "Hero"/),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Delete' }),
+    );
+    expect(selectLayout(store.getState())[0].components).toHaveLength(0);
+    expect(selectExposedSlots(store.getState())).not.toHaveProperty('hero');
   });
 });
 
@@ -424,48 +416,46 @@ describe('per-content mode helpers', () => {
     const host = buildPerContentModel().layout[0].components[0];
     // Locked component is non-interactive: isNodeEditable drives disabling the
     // draggable, hiding the context menu and skipping its drop zones.
-    expect(isNodeEditable(host)).to.equal(false);
-    expect(isNodeEditable(host.slots[0].components[0])).to.equal(false);
+    expect(isNodeEditable(host)).toBe(false);
+    expect(isNodeEditable(host.slots[0].components[0])).toBe(false);
     // Absent flag (page/template editing) means editable.
     expect(
       isNodeEditable({ nodeType: 'component', uuid: 'x', type: 't' }),
-    ).to.equal(true);
-    expect(isNodeEditable({ editable: true })).to.equal(true);
+    ).toBe(true);
+    expect(isNodeEditable({ editable: true })).toBe(true);
   });
 
   it('accepts drops into an exposed slot, even nested in locked chrome', () => {
     const { layout, exposedSlots } = buildPerContentModel();
     const host = layout[0].components[0];
     // Exposed slot nested inside the locked host accepts drops.
-    expect(isExposedSlotTarget(host.slots[0], exposedSlots)).to.equal(true);
+    expect(isExposedSlotTarget(host.slots[0], exposedSlots)).toBe(true);
     // A non-exposed (template chrome) slot rejects drops.
-    expect(isExposedSlotTarget(host.slots[1], exposedSlots)).to.equal(false);
+    expect(isExposedSlotTarget(host.slots[1], exposedSlots)).toBe(false);
   });
 
   it('resolves the enclosing exposed slot alias for a component', () => {
     const { layout, exposedSlots } = buildPerContentModel();
     expect(
       findEnclosingExposedSlotAlias(layout, exposedSlots, 'default-1')?.alias,
-    ).to.equal('hero');
+    ).toBe('hero');
     // A component in locked chrome has no enclosing exposed slot.
     expect(
       findEnclosingExposedSlotAlias(layout, exposedSlots, 'chrome-1'),
-    ).to.equal(null);
+    ).toBe(null);
   });
 
   it('resolves a node at a layout path', () => {
     const { layout } = buildPerContentModel();
     const exposedSlot = layout[0].components[0].slots[0];
-    expect(getNodeAtPath(layout, [0, 0, 0])).to.equal(exposedSlot);
-    expect(getNodeAtPath(layout, [0, 0, 0, 0])).to.equal(
-      exposedSlot.components[0],
-    );
-    expect(getNodeAtPath(layout, [0, 5])).to.equal(null);
+    expect(getNodeAtPath(layout, [0, 0, 0])).toBe(exposedSlot);
+    expect(getNodeAtPath(layout, [0, 0, 0, 0])).toBe(exposedSlot.components[0]);
+    expect(getNodeAtPath(layout, [0, 5])).toBe(null);
   });
 
   it('recognizes and filters the empty-slot marker', () => {
     const host = buildPerContentModel().layout[0].components[0];
-    expect(CANVAS_SLOT_EMPTY_MARKER_TYPE.split('@')[0]).to.equal(
+    expect(CANVAS_SLOT_EMPTY_MARKER_TYPE.split('@')[0]).toBe(
       CANVAS_SLOT_EMPTY_MARKER_ID,
     );
     const marker = {
@@ -474,11 +464,11 @@ describe('per-content mode helpers', () => {
       type: CANVAS_SLOT_EMPTY_MARKER_TYPE,
       slots: [],
     };
-    expect(isEmptySlotMarkerNode(marker)).to.equal(true);
-    expect(isEmptySlotMarkerNode(host)).to.equal(false);
+    expect(isEmptySlotMarkerNode(marker)).toBe(true);
+    expect(isEmptySlotMarkerNode(host)).toBe(false);
     expect(
       filterNonMarkerComponents([marker, host]).map((c) => c.uuid),
-    ).to.deep.equal(['host-1']);
+    ).toEqual(['host-1']);
   });
 });
 
@@ -496,8 +486,8 @@ describe('per-content override reducers', () => {
   });
 
   it('enters per-content mode from the merged GET', () => {
-    expect(selectIsPerContentMode(store.getState())).to.equal(true);
-    expect(selectSlotOverrides(store.getState()).hero).to.deep.equal({
+    expect(selectIsPerContentMode(store.getState())).toBe(true);
+    expect(selectSlotOverrides(store.getState()).hero).toEqual({
       overridden: false,
       empty: false,
     });
@@ -507,17 +497,17 @@ describe('per-content override reducers', () => {
     store.dispatch(overrideSlotDefaultContent('hero'));
 
     const components = exposedSlotComponents(store.getState());
-    expect(components).to.have.length(1);
+    expect(components).toHaveLength(1);
     // Fresh UUID: no longer the template default's UUID.
-    expect(components[0].uuid).to.not.equal('default-1');
+    expect(components[0].uuid).not.toBe('default-1');
     // Forked copy is entity-owned (editable) so the server write guard accepts it.
-    expect(components[0].editable).to.equal(true);
+    expect(components[0].editable).toBe(true);
     // Its model was copied to the new UUID.
-    expect(store.getState().layoutModel.present.model).to.have.property(
+    expect(store.getState().layoutModel.present.model).toHaveProperty(
       components[0].uuid,
     );
     // The slot is now overridden and not empty.
-    expect(selectSlotOverrides(store.getState()).hero).to.deep.equal({
+    expect(selectSlotOverrides(store.getState()).hero).toEqual({
       overridden: true,
       empty: false,
     });
@@ -545,15 +535,13 @@ describe('per-content override reducers', () => {
     const components = exposedSlotComponents(store.getState());
     const uuids = components.map((c) => c.uuid);
     // The dropped component landed, and the default was forked to a fresh UUID.
-    expect(uuids).to.include('new-1');
-    expect(uuids).to.not.include('default-1');
+    expect(uuids).toContain('new-1');
+    expect(uuids).not.toContain('default-1');
     // The forked default is explicitly editable; the inserted node carries no
     // editable:false flag, so none of the slot content is locked.
-    expect(components.every((c) => isNodeEditable(c))).to.equal(true);
-    expect(components.find((c) => c.uuid !== 'new-1').editable).to.equal(true);
-    expect(selectSlotOverrides(store.getState()).hero.overridden).to.equal(
-      true,
-    );
+    expect(components.every((c) => isNodeEditable(c))).toBe(true);
+    expect(components.find((c) => c.uuid !== 'new-1').editable).toBe(true);
+    expect(selectSlotOverrides(store.getState()).hero.overridden).toBe(true);
   });
 
   it('reverts an override, clearing the entity content so the default returns on save', () => {
@@ -563,13 +551,13 @@ describe('per-content override reducers', () => {
     store.dispatch(revertSlotOverride('hero'));
 
     // The slot is cleared (no marker) => inherit the default on save.
-    expect(exposedSlotComponents(store.getState())).to.have.length(0);
-    expect(selectSlotOverrides(store.getState()).hero).to.deep.equal({
+    expect(exposedSlotComponents(store.getState())).toHaveLength(0);
+    expect(selectSlotOverrides(store.getState()).hero).toEqual({
       overridden: false,
       empty: false,
     });
     // The override content's model was removed.
-    expect(store.getState().layoutModel.present.model).to.not.have.property(
+    expect(store.getState().layoutModel.present.model).not.toHaveProperty(
       forkedUuid,
     );
   });
@@ -582,9 +570,9 @@ describe('per-content override reducers', () => {
 
     const components = exposedSlotComponents(store.getState());
     // The last real component is replaced by exactly one empty-slot marker.
-    expect(components).to.have.length(1);
-    expect(isEmptySlotMarkerNode(components[0])).to.equal(true);
-    expect(selectSlotOverrides(store.getState()).hero).to.deep.equal({
+    expect(components).toHaveLength(1);
+    expect(isEmptySlotMarkerNode(components[0])).toBe(true);
+    expect(selectSlotOverrides(store.getState()).hero).toEqual({
       overridden: true,
       empty: true,
     });
@@ -597,7 +585,7 @@ describe('per-content override reducers', () => {
     // Sanity: it is now an empty override (marker present).
     expect(
       isEmptySlotMarkerNode(exposedSlotComponents(store.getState())[0]),
-    ).to.equal(true);
+    ).toBe(true);
 
     store.dispatch(
       insertNodes({
@@ -618,9 +606,9 @@ describe('per-content override reducers', () => {
     );
 
     const components = exposedSlotComponents(store.getState());
-    expect(components.map((c) => c.uuid)).to.deep.equal(['new-2']);
-    expect(components.some((c) => isEmptySlotMarkerNode(c))).to.equal(false);
-    expect(selectSlotOverrides(store.getState()).hero).to.deep.equal({
+    expect(components.map((c) => c.uuid)).toEqual(['new-2']);
+    expect(components.some((c) => isEmptySlotMarkerNode(c))).toBe(false);
+    expect(selectSlotOverrides(store.getState()).hero).toEqual({
       overridden: true,
       empty: false,
     });
@@ -630,8 +618,8 @@ describe('per-content override reducers', () => {
     store.dispatch(overrideSlotDefaultContent('hero'));
     // The locked host and its non-exposed slot content are unchanged.
     const host = selectLayout(store.getState())[0].components[0];
-    expect(host.uuid).to.equal('host-1');
-    expect(host.editable).to.equal(false);
-    expect(host.slots[1].components[0].uuid).to.equal('chrome-1');
+    expect(host.uuid).toBe('host-1');
+    expect(host.editable).toBe(false);
+    expect(host.slots[1].components[0].uuid).toBe('chrome-1');
   });
 });
