@@ -4,17 +4,25 @@ import { ContextMenu } from '@radix-ui/themes';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import PermissionCheck from '@/components/PermissionCheck';
 import { UnifiedMenu } from '@/components/UnifiedMenu';
+import { findExposedSlotsInSubtree } from '@/features/layout/exposedSlots';
 import {
   deleteNode,
   duplicateNode,
+  selectExposedSlots,
   selectLayout,
   shiftNode,
 } from '@/features/layout/layoutModelSlice';
+import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import ComponentContextMenuMoveInto from '@/features/layout/preview/ComponentContextMenuMoveInto';
 import ComponentContextMenuRegions from '@/features/layout/preview/ComponentContextMenuRegions';
-import { setDialogOpen } from '@/features/ui/dialogSlice';
+import {
+  setDialogOpen,
+  setDialogWithDataOpen,
+} from '@/features/ui/dialogSlice';
 import {
   DEFAULT_REGION,
+  EditorFrameContext,
+  selectEditorFrameContext,
   selectEditorViewPortScale,
   selectSelectedComponentUuid,
   unsetHoveredComponent,
@@ -42,6 +50,9 @@ export const ComponentContextMenuContent: React.FC<
 > = ({ component, menuType = 'context' }) => {
   const dispatch = useAppDispatch();
   const layout = useAppSelector(selectLayout);
+  const exposedSlots = useAppSelector(selectExposedSlots);
+  const editorFrameContext = useAppSelector(selectEditorFrameContext);
+  const isTemplateContext = editorFrameContext === EditorFrameContext.TEMPLATE;
   const { data: components } = useGetComponentsQuery();
   const componentName = useGetComponentName(component);
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
@@ -71,12 +82,43 @@ export const ComponentContextMenuContent: React.FC<
     (ev: React.MouseEvent<HTMLElement>) => {
       ev.stopPropagation();
       if (componentUuid) {
+        // Template editor delete protection: if this component (or a descendant)
+        // hosts an exposed slot, warn before removing it and its slots.
+        if (isTemplateContext) {
+          const componentNode = findComponentByUuid(layout, componentUuid);
+          const hostedSlots = componentNode
+            ? findExposedSlotsInSubtree(exposedSlots, componentNode)
+            : [];
+          if (hostedSlots.length > 0) {
+            dispatch(
+              setDialogWithDataOpen({
+                operation: 'deleteComponentWithExposedSlots',
+                data: {
+                  componentUuid,
+                  componentName,
+                  aliases: hostedSlots.map((entry) => entry.alias),
+                  labels: hostedSlots.map((entry) => entry.definition.label),
+                },
+              }),
+            );
+            dispatch(unsetHoveredComponent());
+            return;
+          }
+        }
         dispatch(deleteNode(componentUuid));
         unsetSelectedComponent();
       }
       dispatch(unsetHoveredComponent());
     },
-    [componentUuid, dispatch, unsetSelectedComponent],
+    [
+      componentUuid,
+      dispatch,
+      unsetSelectedComponent,
+      isTemplateContext,
+      layout,
+      exposedSlots,
+      componentName,
+    ],
   );
 
   const handleDuplicateClick = useCallback(

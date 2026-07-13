@@ -3,12 +3,53 @@ import { createAppSlice } from '@/app/createAppSlice';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { Pattern } from '@/types/Pattern';
 
+/** Payload for the template-editor "Expose slot" / "Edit label" dialog. */
+export interface ExposeSlotDialogData {
+  mode: 'expose' | 'editLabel';
+  /** UUID of the component that hosts the slot. */
+  componentUuid: string;
+  /** Machine name of the slot within the host component. */
+  slotName: string;
+  /** Human-readable slot title, used for the dialog default label. */
+  slotTitle: string;
+  /** Present in editLabel mode: the immutable alias being relabeled. */
+  alias?: string;
+  /** Present in editLabel mode: the current label. */
+  label?: string;
+}
+
+/** Payload for the "Remove exposed slot" confirmation dialog. */
+export interface RemoveExposedSlotDialogData {
+  alias: string;
+  label: string;
+}
+
+/** Payload for the delete-protection dialog (component hosts exposed slots). */
+export interface DeleteComponentWithExposedSlotsDialogData {
+  componentUuid: string;
+  componentName: string;
+  aliases: string[];
+  labels: string[];
+}
+
 export interface DialogSliceState {
   saveAsPattern: boolean;
   extension: boolean;
   deletePatternConfirm: {
     open: boolean;
     data: Pattern | {};
+  };
+  exposeSlot: {
+    open: boolean;
+    data: ExposeSlotDialogData | {};
+  };
+  removeExposedSlotConfirm: {
+    open: boolean;
+    data: RemoveExposedSlotDialogData | {};
+  };
+  deleteComponentWithExposedSlots: {
+    open: boolean;
+    data: DeleteComponentWithExposedSlotsDialogData | {};
   };
 }
 
@@ -19,9 +60,27 @@ const initialState: DialogSliceState = {
     open: false,
     data: {},
   },
+  exposeSlot: {
+    open: false,
+    data: {},
+  },
+  removeExposedSlotConfirm: {
+    open: false,
+    data: {},
+  },
+  deleteComponentWithExposedSlots: {
+    open: false,
+    data: {},
+  },
 };
 
-type UpdateDialogPayload = keyof Omit<DialogSliceState, 'deletePatternConfirm'>;
+type UpdateDialogPayload = keyof Omit<
+  DialogSliceState,
+  | 'deletePatternConfirm'
+  | 'exposeSlot'
+  | 'removeExposedSlotConfirm'
+  | 'deleteComponentWithExposedSlots'
+>;
 
 type UpdateDialogWithDataPayload = {
   operation: keyof Omit<DialogSliceState, UpdateDialogPayload>;
