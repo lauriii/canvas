@@ -273,7 +273,10 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     else {
       $expected_heading_text = $static_heading_text;
     }
-    unset($json['isNew'], $json['isPublished'], $json['hasUnsavedStatusChange'], $json['html']);
+    // `exposedSlots` is a read-only, client-facing representation emitted in the
+    // GET response; the write path reads `exposed_slots` instead, so it cannot
+    // be POSTed back verbatim.
+    unset($json['isNew'], $json['isPublished'], $json['hasUnsavedStatusChange'], $json['html'], $json['exposedSlots']);
     $json['layout'][0]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $uuid,
@@ -360,7 +363,10 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     // Add a new component to a global region.
     $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
     $json['model'][$uuid] = self::getNewHeadingComponentModel();
-    unset($json['isNew'], $json['isPublished'], $json['hasUnsavedStatusChange'], $json['html']);
+    // `exposedSlots` is a read-only, client-facing representation emitted in the
+    // GET response; the write path reads `exposed_slots` instead, so it cannot
+    // be POSTed back verbatim.
+    unset($json['isNew'], $json['isPublished'], $json['hasUnsavedStatusChange'], $json['html'], $json['exposedSlots']);
     $json['layout'][\key($highlightedRegion)]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $uuid,
@@ -416,7 +422,10 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     // Add a new component instance to a ("global") region.
     $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
     $json['model'][$uuid] = self::getNewHeadingComponentModel();
-    unset($json['isNew'], $json['isPublished'], $json['hasUnsavedStatusChange'], $json['html']);
+    // `exposedSlots` is a read-only, client-facing representation emitted in the
+    // GET response; the write path reads `exposed_slots` instead, so it cannot
+    // be POSTed back verbatim.
+    unset($json['isNew'], $json['isPublished'], $json['hasUnsavedStatusChange'], $json['html'], $json['exposedSlots']);
     $json['layout'][1] = [
       'nodeType' => 'region',
       'id' => 'highlighted',
@@ -526,7 +535,10 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $cache->invalidateTags([\sprintf('entity.memory_cache:%s', JavaScriptComponent::ENTITY_TYPE_ID)]);
     $this->container->get(ConfigFactoryInterface::class)->reset();
 
-    unset($json['isNew'], $json['isPublished'], $json['hasUnsavedStatusChange'], $json['html']);
+    // `exposedSlots` is a read-only, client-facing representation emitted in the
+    // GET response; the write path reads `exposed_slots` instead, so it cannot
+    // be POSTed back verbatim.
+    unset($json['isNew'], $json['isPublished'], $json['hasUnsavedStatusChange'], $json['html'], $json['exposedSlots']);
     $node = Node::load(1);
     \assert($node instanceof NodeInterface);
     $json += $this->getPostContentsDefaults($node);
