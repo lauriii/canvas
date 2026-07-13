@@ -23,9 +23,22 @@ final class ValidExposedSlotConstraint extends SymfonyConstraint {
    */
   public string $viewMode = 'full';
 
+  /**
+   * Whether the exposed slot must be empty (no template default content).
+   *
+   * Content templates allow template content in an exposed slot to become that
+   * slot's per-entity-overridable default, so this is FALSE for them. Consumers
+   * that require an empty slot (page variants' content slot) set it to TRUE.
+   *
+   * @var bool
+   */
+  public bool $requireEmpty = FALSE;
+
   public string $unknownComponentMessage = 'The component %id does not exist in the tree.';
 
   public string $slotNotEmptyMessage = 'The %slot slot must be empty.';
+
+  public string $duplicateTargetMessage = 'The %slot slot is already exposed by another exposed slot.';
 
   public string $undefinedSlotMessage = 'The component %id does not have a %slot slot.';
 

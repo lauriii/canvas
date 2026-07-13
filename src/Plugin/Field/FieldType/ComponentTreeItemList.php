@@ -33,7 +33,7 @@ use Drupal\Core\Render\RenderableInterface;
  * @phpstan-import-type OptimizedSingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
  * @phpstan-type ComponentTreeItemArray array{'uuid': string, 'component_id': string, 'parent_uuid'?: string, 'slot'?: string, inputs: OptimizedSingleComponentInputArray}
  * @phpstan-type ComponentTreeItemListArray array<int, ComponentTreeItemArray>
- * @phpstan-type ExposedSlotDefinitions array<string, array{'component_uuid': string, 'slot_name': string, 'label': string}>
+ * @phpstan-type ExposedSlotDefinitions array<string, array{'component_uuid': string, 'slot_name': string, 'label': string, 'disabled'?: bool}>
  */
 final class ComponentTreeItemList extends FieldItemList implements RenderableInterface, CacheableDependencyInterface, DependentPluginInterface {
 
@@ -76,21 +76,38 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   }
 
   /**
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $host_entity
+   *   The host entity, used to resolve dynamic props into the client `model`.
+   * @param array<string, true>|null $template_owned_uuids
+   *   When building the per-content merged tree, the set of component UUIDs
+   *   owned by the applicable content template, keyed by UUID. Each component
+   *   node then gets a server-computed `editable` annotation: FALSE for
+   *   template-owned (locked) chrome, TRUE for entity/override-owned content.
+   *   When NULL (canvas_page/template editing) no `editable` key is emitted, so
+   *   existing consumers are unaffected.
+   *
    * @todo Move this into a normalizer at https://www.drupal.org/i/3499632
    */
-  public function getClientSideRepresentation(?FieldableEntityInterface $host_entity = NULL): array {
-    return $this->buildLayoutAndModel($this->componentTreeItemsIterator(self::inRootLevel()), $host_entity);
+  public function getClientSideRepresentation(?FieldableEntityInterface $host_entity = NULL, ?array $template_owned_uuids = NULL): array {
+    return $this->buildLayoutAndModel($this->componentTreeItemsIterator(self::inRootLevel()), $host_entity, $template_owned_uuids);
   }
 
   /**
    * @todo Move this into a normalizer at https://www.drupal.org/i/3499632
    */
-  private function buildLayoutAndModel(iterable $tree_tier, ?FieldableEntityInterface $host_entity = NULL): array {
+  private function buildLayoutAndModel(iterable $tree_tier, ?FieldableEntityInterface $host_entity = NULL, ?array $template_owned_uuids = NULL): array {
     $built = ['layout' => [], 'model' => []];
     /** @var \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem $item */
     foreach ($tree_tier as $item) {
       $item_layout_node = $item->getClientSideRepresentation();
       $component_instance_uuid = $item->getUuid();
+
+      // In per-content editing, stamp each component with a server-computed
+      // editability: template-owned components are locked chrome; everything
+      // else (entity-owned override content) is editable.
+      if ($template_owned_uuids !== NULL) {
+        $item_layout_node['editable'] = !\array_key_exists($component_instance_uuid, $template_owned_uuids);
+      }
 
       // Use ComponentSourceInterface::inputToClientModel() to map the server-
       // stored `inputs` data to the client-side `model`.
@@ -128,7 +145,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           'name' => $slot_name,
           'nodeType' => 'slot',
         ];
-        $child_build = self::buildLayoutAndModel($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($component_instance_uuid, (string) $slot_name)), $host_entity);
+        $child_build = self::buildLayoutAndModel($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($component_instance_uuid, (string) $slot_name)), $host_entity, $template_owned_uuids);
         $built['model'] += $child_build['model'];
         $component_instance_slot['components'] = $child_build['layout'];
         $item_layout_node['slots'][] = $component_instance_slot;
@@ -144,6 +161,115 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
 
   public static function isChildOfComponentTreeItemSlot(string $parent_uuid, string $slot_name): callable {
     return static fn (ComponentTreeItem $item) => $item->getParentUuid() === $parent_uuid && $item->getSlot() === $slot_name;
+  }
+
+  /**
+   * Filters to the roots of a per-entity subtree targeting an exposed slot.
+   *
+   * A "bonsai root" is an item with an empty `parent_uuid` and its `slot` set
+   * to an exposed slot alias: the root of a per-entity subtree filling a slot.
+   *
+   * @param string $alias
+   *   The exposed slot alias to match.
+   */
+  public static function isBonsaiRootForAlias(string $alias): callable {
+    return static fn (ComponentTreeItem $item) => $item->getParentUuid() === NULL && $item->getSlot() === $alias;
+  }
+
+  /**
+   * Collects the raw values of a set of roots plus all transitive descendants.
+   *
+   * @param \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList $list
+   *   The list to read from.
+   * @param string[] $root_uuids
+   *   The UUIDs of the subtree roots to collect.
+   *
+   * @return array<string, array<string, mixed>>
+   *   The collected item values, keyed by UUID, ordered depth-first from each
+   *   root (a root immediately followed by its descendants).
+   */
+  private static function collectSubtreeValues(ComponentTreeItemList $list, array $root_uuids): array {
+    $values_by_uuid = [];
+    $children_by_parent = [];
+    foreach ($list->componentTreeItemsIterator() as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      $values_by_uuid[$item->getUuid()] = $item->getValue();
+      $children_by_parent[$item->getParentUuid() ?? self::ROOT_UUID][] = $item->getUuid();
+    }
+    $ordered = [];
+    $walk = static function (string $uuid) use (&$walk, &$ordered, $values_by_uuid, $children_by_parent): void {
+      if (!\array_key_exists($uuid, $values_by_uuid) || \array_key_exists($uuid, $ordered)) {
+        return;
+      }
+      $ordered[$uuid] = $values_by_uuid[$uuid];
+      foreach ($children_by_parent[$uuid] ?? [] as $child_uuid) {
+        $walk($child_uuid);
+      }
+    };
+    foreach ($root_uuids as $root_uuid) {
+      $walk($root_uuid);
+    }
+    return $ordered;
+  }
+
+  /**
+   * Partitions a submitted merged tree into per-alias bonsai override rows.
+   *
+   * For each active exposed slot, the entity-owned components placed directly
+   * in that slot (the override roots) plus their transitive descendants are
+   * collected and re-rooted as "bonsai" rows: each root gets an empty
+   * `parent_uuid` and its `slot` set to the exposed slot alias, while
+   * descendants keep their nesting. Template-owned components (the locked
+   * chrome and any inherited default content) are dropped, so an alias with no
+   * entity-owned override root contributes nothing and the entity inherits the
+   * template's default.
+   *
+   * @param ExposedSlotDefinitions $exposed_slot_info
+   *   The active exposed slot definitions, keyed by alias.
+   * @param array<string, true> $template_owned_uuids
+   *   The set of component UUIDs owned by the template, keyed by UUID.
+   *
+   * @return array{rows: array<int, array<string, mixed>>, kept: array<string, true>}
+   *   - `rows`: the bonsai rows to write to the entity's Canvas field.
+   *   - `kept`: the set of submitted UUIDs partitioned into a bonsai subtree,
+   *     keyed by UUID, so callers can detect stray (non-partitioned) content.
+   */
+  public function partitionBonsaiSubtrees(array $exposed_slot_info, array $template_owned_uuids): array {
+    $rows = [];
+    $kept = [];
+    foreach ($exposed_slot_info as $alias => $slot_detail) {
+      $parent_uuid = $slot_detail['component_uuid'] ?? NULL;
+      $slot = $slot_detail['slot_name'] ?? NULL;
+      if ($parent_uuid === NULL || $slot === NULL) {
+        continue;
+      }
+
+      // Override roots: the entity-owned components placed directly in the
+      // exposed slot. Template-owned children are the inherited default and are
+      // dropped (their absence means "inherit").
+      $override_roots = [];
+      foreach ($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($parent_uuid, (string) $slot)) as $item) {
+        \assert($item instanceof ComponentTreeItem);
+        if (!\array_key_exists($item->getUuid(), $template_owned_uuids)) {
+          $override_roots[] = $item->getUuid();
+        }
+      }
+      if (\count($override_roots) === 0) {
+        continue;
+      }
+
+      foreach (self::collectSubtreeValues($this, $override_roots) as $uuid => $value) {
+        $kept[$uuid] = TRUE;
+        if (\in_array($uuid, $override_roots, TRUE)) {
+          // Re-root: a bonsai root has an empty `parent_uuid` and its `slot`
+          // set to the exposed slot alias.
+          unset($value['parent_uuid']);
+          $value['slot'] = (string) $alias;
+        }
+        $rows[] = $value;
+      }
+    }
+    return ['rows' => $rows, 'kept' => $kept];
   }
 
   public static function doesNotExistInOtherComponentTree(ComponentTreeItemList $other): callable {
@@ -574,7 +700,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
    * @return $this
    */
   public function injectSubTreeItemList(array $exposed_slot_info, ComponentTreeItemList $subTreeItemList): self {
-    foreach ($exposed_slot_info as $slot_detail) {
+    foreach ($exposed_slot_info as $alias => $slot_detail) {
       $parent_uuid = $slot_detail['component_uuid'] ?? NULL;
       $slot = $slot_detail['slot_name'] ?? NULL;
       if ($parent_uuid === NULL) {
@@ -583,20 +709,93 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       if ($slot === NULL) {
         throw new SubtreeInjectionException("Cannot inject subtree because we don't know the name of the component slot to target.");
       }
-      $existing = \count(\iterator_to_array($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($parent_uuid, $slot))));
-      // The target slot needs to be empty.
-      if ($existing !== 0) {
-        throw new SubtreeInjectionException("Cannot inject subtree because the targeted slot is not empty.");
-      }
-      foreach ($subTreeItemList->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($parent_uuid, $slot)) as $item) {
+
+      // The per-entity subtree for this exposed slot is stored as one or more
+      // "bonsai" roots (empty parent_uuid, slot = the exposed slot alias) plus
+      // their descendants. When the entity has no such rows it has not
+      // overridden the slot, so the template's default content stays in place.
+      $override_roots = [];
+      foreach ($subTreeItemList->componentTreeItemsIterator(self::isBonsaiRootForAlias((string) $alias)) as $item) {
         \assert($item instanceof ComponentTreeItem);
-        if ($this->getComponentTreeItemByUuid($item->getUuid()) !== NULL) {
+        $override_roots[] = $item->getUuid();
+      }
+      if (\count($override_roots) === 0) {
+        continue;
+      }
+
+      // The entity overrides this slot: an override replaces the slot's default
+      // content entirely, so remove the template's default subtree under the
+      // target (component_uuid, slot_name) before injecting.
+      $default_roots = [];
+      foreach ($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($parent_uuid, $slot)) as $item) {
+        \assert($item instanceof ComponentTreeItem);
+        $default_roots[] = $item->getUuid();
+      }
+      if (\count($default_roots) > 0) {
+        $remove_uuids = \array_keys(self::collectSubtreeValues($this, $default_roots));
+        // Remove by descending delta so earlier indices stay valid, and so the
+        // surviving items keep their stored form (removeItem does not re-set
+        // them, unlike a full setValue round-trip).
+        $deltas_to_remove = [];
+        foreach ($this->componentTreeItemsIterator() as $delta => $item) {
+          \assert($item instanceof ComponentTreeItem);
+          if (\in_array($item->getUuid(), $remove_uuids, TRUE)) {
+            $deltas_to_remove[] = $delta;
+          }
+        }
+        \rsort($deltas_to_remove);
+        foreach ($deltas_to_remove as $delta) {
+          $this->removeItem($delta);
+        }
+      }
+
+      // Inject the entity's subtree, rewriting each bonsai root to nest under
+      // the template's real target slot. Descendants keep their parent_uuid and
+      // slot, so the merged tree hydrates correctly.
+      foreach (self::collectSubtreeValues($subTreeItemList, $override_roots) as $uuid => $value) {
+        if ($this->getComponentTreeItemByUuid($uuid) !== NULL) {
           throw new SubtreeInjectionException("Cannot inject subtree because some of its components are already in the final tree.");
         }
-        $this->appendItem($item->getValue());
+        if (\in_array($uuid, $override_roots, TRUE)) {
+          $value['parent_uuid'] = $parent_uuid;
+          $value['slot'] = $slot;
+        }
+        $this->appendItem($value);
       }
     }
     return $this;
+  }
+
+  /**
+   * Removes per-entity slot content whose exposed slot alias is undeclared.
+   *
+   * Rows for a disabled (but still declared) alias are retained; only rows
+   * targeting an alias that no longer exists on the applicable template are
+   * dropped, together with their descendants.
+   *
+   * @param string[] $declared_aliases
+   *   The exposed slot aliases the applicable content template still declares.
+   *
+   * @return bool
+   *   TRUE if any rows were removed.
+   */
+  public function pruneRootsForRemovedAliases(array $declared_aliases): bool {
+    $orphan_roots = [];
+    foreach ($this->componentTreeItemsIterator() as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      if ($item->getParentUuid() === NULL && $item->getSlot() !== NULL && !\in_array($item->getSlot(), $declared_aliases, TRUE)) {
+        $orphan_roots[] = $item->getUuid();
+      }
+    }
+    if (\count($orphan_roots) === 0) {
+      return FALSE;
+    }
+    $remove_uuids = \array_keys(self::collectSubtreeValues($this, $orphan_roots));
+    $this->setValue(\array_values(\array_filter(
+      $this->getValue(),
+      static fn (array $value): bool => !\in_array($value['uuid'], $remove_uuids, TRUE),
+    )));
+    return TRUE;
   }
 
 }

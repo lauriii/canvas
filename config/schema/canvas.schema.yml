@@ -75,6 +75,8 @@ canvas.component.*:
           - js
           # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent
           - block
+          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\EmptySlotMarker
+          - canvas_slot_empty
     source_local_id:
       type: canvas.component_source_local_id.[%parent.source]
     versioned_properties:
@@ -746,6 +748,21 @@ canvas.component_source_settings.fallback:
     last_active_version:
       type: string
 
+# The `canvas_slot_empty` plugin ID provides a single, non-placeable Component that renders nothing.
+# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\EmptySlotMarker
+canvas.component_source_local_id.canvas_slot_empty:
+  type: canvas.component_source_local_id.*
+  label: 'Empty slot marker component ID'
+  constraints:
+    FullyValidatable: ~
+    Choice:
+      - marker
+canvas.component_source_settings.canvas_slot_empty:
+  type: canvas.component_source_settings.*
+  label: 'Empty slot marker component settings'
+  constraints:
+    FullyValidatable: ~
+
 field.value.component_tree:
   # TRICKY: `field_config_base:default_value` defines the default value as a sequence of field item values. Hence this
   # cannot be an entire component tree, but only a node (item/instance) in the component tree!
@@ -1109,6 +1126,13 @@ canvas.content_template.*.*.*:
           label:
             type: required_label
             label: 'A human-readable label for the exposed slot'
+          disabled:
+            type: boolean
+            label: 'Disabled'
+            # A disabled exposed slot retains its definition and any per-entity
+            # content, but renders and edits as if it were not exposed. Absent
+            # (or FALSE) means the slot is active.
+            requiredKey: false
       constraints:
         SequenceKeysMatchRegex:
           # Note: this is the lowercase-only subset of what slot names are allowed by Canvas: the machine names of Canvas's exposed content template slots must be simpler.
