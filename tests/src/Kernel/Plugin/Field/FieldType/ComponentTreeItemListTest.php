@@ -1719,7 +1719,26 @@ HTML,
         'slot_name' => 'the_body',
       ],
     ];
+    // The per-entity subtree is stored as a "bonsai" root: empty parent_uuid and
+    // slot = the exposed slot alias.
     $valid_subtree = [
+      [
+        'uuid' => 'caac2f59-6a47-41d5-8dc9-0fa99a7e6101',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'parent_uuid' => NULL,
+        'slot' => 'exposed',
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'This is in an exposed slot',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+    ];
+    // After injection the bonsai root is rewritten to nest under the template's
+    // real (component_uuid, slot_name).
+    $injected_subtree = [
       [
         'uuid' => 'caac2f59-6a47-41d5-8dc9-0fa99a7e6101',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
@@ -1741,54 +1760,58 @@ HTML,
       $initial_tree,
       $valid_exposed_slots,
       $valid_subtree,
-      \array_merge($initial_tree, $valid_subtree),
+      \array_merge($initial_tree, $injected_subtree),
     ];
 
-    // The subtree targets a slot that isn't exposed, so it's just ignored.
+    // A bonsai root targeting an alias that is not exposed is just ignored.
     $subtree_in_non_existent_slot = $valid_subtree;
     $subtree_in_non_existent_slot[0]['slot'] = 'not_exposed';
     yield 'No error: subtrees do not match any exposed slots' => [
       $initial_tree,
       $valid_exposed_slots,
-      [$subtree_in_non_existent_slot],
+      $subtree_in_non_existent_slot,
       $initial_tree,
     ];
 
-    $tree_with_non_empty_slot = $initial_tree;
-    $tree_with_non_empty_slot[] = [
-      'uuid' => '2b86e95d-ebc3-4cdb-a7af-b203f415f08e',
-      'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-      'parent_uuid' => '72eb7863-ea7f-4e31-8cfe-01f0d0471682',
-      'slot' => 'the_body',
-      'inputs' => [
-        'heading' => [
-          'sourceType' => 'static:field_item:string',
-          'value' => 'This is and existing thing',
-          'expression' => 'ℹ︎string␟value',
+    // An override replaces the slot's default content entirely: the template's
+    // default subtree under the target slot is removed before injecting.
+    $tree_with_default_content = \array_merge($initial_tree, [
+      [
+        'uuid' => '2b86e95d-ebc3-4cdb-a7af-b203f415f08e',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'parent_uuid' => '72eb7863-ea7f-4e31-8cfe-01f0d0471682',
+        'slot' => 'the_body',
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'This is the default content',
+            'expression' => 'ℹ︎string␟value',
+          ],
         ],
       ],
-    ];
-    yield 'Error: target slot is not empty' => [
-      $tree_with_non_empty_slot,
+    ]);
+    yield 'No error: an override replaces the default content' => [
+      $tree_with_default_content,
       $valid_exposed_slots,
       $valid_subtree,
-      "Cannot inject subtree because the targeted slot is not empty.",
+      \array_merge($initial_tree, $injected_subtree),
     ];
 
-    $tree_with_conflicting_components = $initial_tree;
-    // Add a component to our tree which will conflict with one that is in the
-    // subtree.
-    $tree_with_conflicting_components[] = [
-      'uuid' => 'caac2f59-6a47-41d5-8dc9-0fa99a7e6101',
-      'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-      'inputs' => [
-        'heading' => [
-          'sourceType' => 'static:field_item:string',
-          'value' => 'This is an existing thing in the root of the template',
-          'expression' => 'ℹ︎string␟value',
+    // A bonsai override whose UUID collides with a template component is rejected.
+    $tree_with_conflicting_components = \array_merge($initial_tree, [
+      [
+        'uuid' => 'caac2f59-6a47-41d5-8dc9-0fa99a7e6101',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'parent_uuid' => NULL,
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'This is an existing thing in the root of the template',
+            'expression' => 'ℹ︎string␟value',
+          ],
         ],
       ],
-    ];
+    ]);
     yield 'Error: subtree component already exists in the main tree' => [
       $tree_with_conflicting_components,
       $valid_exposed_slots,
@@ -1803,7 +1826,7 @@ HTML,
           'slot_name' => 'the_body',
         ],
       ],
-      [$valid_subtree],
+      $valid_subtree,
       "Cannot inject subtree because we don't know the UUID of the component instance to target.",
     ];
 
@@ -1814,7 +1837,7 @@ HTML,
           'component_uuid' => '72eb7863-ea7f-4e31-8cfe-01f0d0471682',
         ],
       ],
-      [$valid_subtree],
+      $valid_subtree,
       "Cannot inject subtree because we don't know the name of the component slot to target.",
     ];
   }
