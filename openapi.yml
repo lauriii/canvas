@@ -3962,6 +3962,9 @@ components:
           description: Client instance ID for the layout preview
         entity_form_fields:
           type: object
+        exposed_slots:
+          $ref: '#/components/schemas/ExposedSlots'
+          description: The template editor's working set of exposed slots, sent with the template layout so they persist alongside the tree.
         translations:
           type: object
           description: Translation metadata for the entity.
@@ -4704,6 +4707,9 @@ components:
         component_tree:
           $ref: '#/components/schemas/ComponentTree'
           description: Initial component tree. Defaults to an empty tree when omitted.
+        exposed_slots:
+          $ref: '#/components/schemas/ExposedSlots'
+          description: Exposed slot definitions keyed by alias. Defaults to none when omitted.
     UpdateContentTemplate:
       title: ContentTemplate fields the client may PATCH on the server side.
       type: object
@@ -4715,6 +4721,9 @@ components:
         component_tree:
           $ref: '#/components/schemas/ComponentTree'
           description: Replacement component tree.
+        exposed_slots:
+          $ref: '#/components/schemas/ExposedSlots'
+          description: Replacement exposed slot definitions keyed by alias.
     Extension:
       title: Canvas Extension metadata
       description: Canvas Extension metadata
@@ -4998,6 +5007,7 @@ components:
         - label
         - viewModeLabel
         - component_tree
+        - exposed_slots
       properties:
         entityType:
           type: string
@@ -5026,6 +5036,36 @@ components:
         component_tree:
           $ref: '#/components/schemas/ComponentTree'
           description: The persisted component tree.
+        exposed_slots:
+          $ref: '#/components/schemas/ExposedSlots'
+          description: The persisted exposed slot definitions keyed by alias.
+    ExposedSlots:
+      title: Exposed slot definitions keyed by machine-name alias.
+      description: >
+        A map of exposed slot definitions. Each key is a stable machine-name
+        alias; content entities of the templated bundle store their per-entity
+        slot content against these aliases.
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - component_uuid
+          - slot_name
+          - label
+        properties:
+          component_uuid:
+            type: string
+            description: UUID of the template component instance that contains the exposed slot.
+          slot_name:
+            type: string
+            description: Machine name of the component slot being exposed.
+          label:
+            type: string
+            description: Human-readable label for the exposed slot.
+          disabled:
+            type: boolean
+            description: When true, the slot renders and edits as if not exposed while retaining its definition and per-entity content.
     ComponentTree:
       title: A flat array of component tree items.
       description: >
