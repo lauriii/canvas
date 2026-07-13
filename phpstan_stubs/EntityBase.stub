@@ -1,0 +1,19 @@
+<?php
+
+namespace Drupal\Core\Entity;
+
+abstract class EntityBase {
+
+  /**
+   * A typed data object wrapping this entity.
+   *
+   * Corrects core's docblock: the property is NULL until ::getTypedData()
+   * populates it, and core itself assigns NULL to discard the cached wrapper.
+   *
+   * @see \Drupal\Core\Entity\EntityBase::__sleep()
+   *
+   * @var \Drupal\Core\TypedData\ComplexDataInterface|null
+   */
+  protected $typedData;
+
+}
