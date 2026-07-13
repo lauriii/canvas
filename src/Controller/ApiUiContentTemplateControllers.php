@@ -129,7 +129,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
     // The bundle's Field UI "Manage fields" URL, resolved generically from the
     // entity type (never a hardcoded per-entity-type route), gated on the
     // user's field-administration access. Shared across the bundle's entities.
-    $manage_fields_url = $this->manageFieldsUrl(
+    $manage_fields_url = self::manageFieldsUrl(
       $entity_definition->id(),
       $entity_definition->getBundleEntityType(),
       $bundle,
@@ -143,7 +143,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
         'label' => $entity->label(),
         // Present only when the user may update this entity; gates both the
         // in-Canvas "Edit exposed slots" jump and the "Edit content" edit form.
-        'editUrl' => $this->entityEditFormUrl($entity, $entity_query_cacheability),
+        'editUrl' => self::entityEditFormUrl($entity, $entity_query_cacheability),
         'manageFieldsUrl' => $manage_fields_url,
       ];
     }
@@ -155,7 +155,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
   /**
    * The entity's edit-form URL, or NULL when it has none or is not updatable.
    */
-  private function entityEditFormUrl(EntityInterface $entity, CacheableMetadata $cacheability): ?string {
+  private static function entityEditFormUrl(EntityInterface $entity, CacheableMetadata $cacheability): ?string {
     if (!$entity->hasLinkTemplate('edit-form')) {
       return NULL;
     }
@@ -177,7 +177,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
    * entity-type-specific route is hardcoded. NULL when Field UI is not enabled
    * for the entity type or the user lacks field-administration access.
    */
-  private function manageFieldsUrl(string $entity_type_id, ?string $bundle_entity_type, string $bundle, CacheableMetadata $cacheability): ?string {
+  private static function manageFieldsUrl(string $entity_type_id, ?string $bundle_entity_type, string $bundle, CacheableMetadata $cacheability): ?string {
     try {
       $url = Url::fromRoute(
         "entity.$entity_type_id.field_ui_fields",

@@ -598,7 +598,7 @@ final class ApiContentControllers extends ApiControllerBase {
         continue;
       }
       // Respect entity access: an auto-saved draft must not leak to a user who
-      // cannot view the entity. The browse path already applies accessCheck(TRUE);
+      // cannot view the entity. The browse path applies accessCheck(TRUE);
       // the search path must filter these auto-save matches equivalently.
       $access = $entity->access('view', return_as_object: TRUE);
       $cacheability->addCacheableDependency($access);
