@@ -122,7 +122,10 @@ final class BlockComponentTest extends ComponentSourceTestBase {
     // Due to BlockManagerDecorator, this should result in zero extra Block
     // Components being discovered.
     $this->generateComponentConfig();
-    $this->assertCount($this->expectedDefaultComponentInstallCount, \array_filter(
+    // One fewer than the total component count: this filters to Block
+    // Components only, and the shipped canvas_slot_empty.marker Component (an
+    // internal EmptySlotMarker source, not a Block) is excluded.
+    $this->assertCount($this->expectedDefaultComponentInstallCount - 1, \array_filter(
       $this->componentStorage->loadMultiple(),
       static function (EntityInterface $component) {
         \assert($component instanceof Component);
