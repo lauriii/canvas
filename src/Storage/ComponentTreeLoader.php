@@ -53,6 +53,59 @@ final class ComponentTreeLoader {
   }
 
   /**
+   * Loads every component tree stored on an entity.
+   *
+   * The multi-field counterpart to ::load(): for a ComponentTreeEntityInterface
+   * (canvas_page) or a single-field entity this is one list; for a templated
+   * bundle it is one list per `component_tree` field (one per exposed slot).
+   * Unlike ::load(), it never throws for multi-field entities, so callers that
+   * can run on templated entities (finding/updating a component instance,
+   * extracting inputs, reconciling versions on publish) use this instead of the
+   * single-field ::load()/::getCanvasFieldName().
+   *
+   * @param \Drupal\canvas\Entity\ComponentTreeEntityInterface|\Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity.
+   *
+   * @return \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList[]
+   *   The entity's component tree lists (empty if it has none).
+   */
+  public function loadAll(ComponentTreeEntityInterface|FieldableEntityInterface $entity): array {
+    if ($entity instanceof ComponentTreeEntityInterface) {
+      return [$entity->getComponentTree()];
+    }
+    $map = $this->entityFieldManager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);
+    $lists = [];
+    foreach ($map[$entity->getEntityTypeId()] ?? [] as $field_name => $info) {
+      if (\in_array($entity->bundle(), $info['bundles'], TRUE) && $entity->hasField($field_name)) {
+        $item = $entity->get($field_name);
+        \assert($item instanceof ComponentTreeItemList);
+        $lists[] = $item;
+      }
+    }
+    return $lists;
+  }
+
+  /**
+   * Finds the component tree list on an entity that holds a component instance.
+   *
+   * @param \Drupal\canvas\Entity\ComponentTreeEntityInterface|\Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity.
+   * @param string $componentInstanceUuid
+   *   The component instance UUID to locate.
+   *
+   * @return \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList|null
+   *   The list containing the instance, or NULL if none does.
+   */
+  public function findItemListContaining(ComponentTreeEntityInterface|FieldableEntityInterface $entity, string $componentInstanceUuid): ?ComponentTreeItemList {
+    foreach ($this->loadAll($entity) as $list) {
+      if ($list->getComponentTreeItemByUuid($componentInstanceUuid) !== NULL) {
+        return $list;
+      }
+    }
+    return NULL;
+  }
+
+  /**
    * Gets the Canvas field name from the entity.
    *
    * @param \Drupal\Core\Entity\FieldableEntityInterface $entity

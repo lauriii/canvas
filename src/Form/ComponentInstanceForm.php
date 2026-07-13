@@ -150,8 +150,9 @@ final class ComponentInstanceForm extends FormBase {
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::optimizeExplicitInput()
         $component->getComponentSource() instanceof JsonSchemaPropsComponentSourceBase && \is_array($client_model) && \array_key_exists('resolved', $client_model) => $client_model['resolved'],
         // @todo This should never occur; remove this in https://www.drupal.org/project/canvas/issues/3558721
-        $client_model === json_decode('undefined') => $this->componentTreeLoader->load($entity)
-          ->getComponentTreeItemByUuid($component_instance_uuid)
+        $client_model === json_decode('undefined') => $this->componentTreeLoader
+          ->findItemListContaining($entity, $component_instance_uuid)
+          ?->getComponentTreeItemByUuid($component_instance_uuid)
           ?->getInputs() ?? [],
         // All other component sources: all data, but converted to an array,
         // which is required for ::buildComponentInstanceForm().
