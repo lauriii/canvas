@@ -177,6 +177,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'type' => 'component',
       'weight' => 0,
       'items' => [
+        'canvas_slot_empty.marker',
         'sdc.canvas_broken_sdcs.invalid-filter',
         'sdc.canvas_broken_sdcs.malformed-image',
         'sdc.canvas_test_sdc.mixed-images-with-example',
