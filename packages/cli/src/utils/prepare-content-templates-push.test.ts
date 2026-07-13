@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
+import { contentTemplateToAuthored } from './content-templates';
 import {
   collectContentTemplateResults,
   prepareContentTemplates,
@@ -11,6 +12,11 @@ import {
 
 import type { DiscoveredContentTemplate } from '@drupal-canvas/discovery';
 import type { CanvasComponentTree } from 'drupal-canvas/json-render-utils';
+import type {
+  ContentTemplate,
+  ContentTemplateListItem,
+  ExposedSlots,
+} from '../types/ContentTemplate';
 
 vi.mock('@drupal-canvas/discovery', () => ({
   loadComponentsMetadata: vi.fn(async () => new Map()),
@@ -115,6 +121,159 @@ describe('prepareContentTemplates', () => {
     } finally {
       await fs.rm(temporaryDirectory, { recursive: true, force: true });
     }
+  });
+});
+
+describe('exposed_slots round-trip', () => {
+  // A server payload with two exposed slots, one of them soft-disabled, so the
+  // round-trip covers both the active and disabled shapes.
+  const exposedSlots: ExposedSlots = {
+    main: {
+      component_uuid: '11111111-1111-4111-8111-111111111111',
+      slot_name: 'content',
+      label: 'Main content',
+    },
+    sidebar: {
+      component_uuid: '22222222-2222-4222-8222-222222222222',
+      slot_name: 'aside',
+      label: 'Sidebar',
+      disabled: true,
+    },
+  };
+
+  const serverTemplate: ContentTemplate = {
+    id: 'node.article.full',
+    label: 'Article full',
+    status: true,
+    entityType: 'node',
+    bundle: 'article',
+    viewMode: 'full',
+    component_tree: [],
+    exposed_slots: exposedSlots,
+  };
+
+  it('preserves exposed_slots byte-for-byte through pull → push (create)', async () => {
+    // Pull: server payload → authored on-disk file.
+    const authored = contentTemplateToAuthored(serverTemplate);
+    expect(authored.exposedSlots).toEqual(exposedSlots);
+
+    // Push: authored file → server request body.
+    let createdBody: { exposed_slots?: ExposedSlots } | undefined;
+    const createContentTemplate = vi.fn(async (body) => {
+      createdBody = body;
+      return serverTemplate;
+    });
+    const updateContentTemplate = vi.fn();
+
+    await pushContentTemplates(
+      [
+        {
+          index: 0,
+          result: {
+            id: serverTemplate.id,
+            label: serverTemplate.label,
+            entityTypeId: serverTemplate.entityType,
+            bundle: serverTemplate.bundle,
+            viewMode: serverTemplate.viewMode,
+            components: [] satisfies CanvasComponentTree,
+            exposedSlots: authored.exposedSlots,
+            filePath: '/tmp/content-templates/node.article.full.json',
+          },
+        },
+      ],
+      new Map(),
+      { createContentTemplate, updateContentTemplate },
+    );
+
+    expect(createContentTemplate).toHaveBeenCalledTimes(1);
+    expect(updateContentTemplate).not.toHaveBeenCalled();
+    // The map survives unchanged, including the disabled slot.
+    expect(createdBody?.exposed_slots).toEqual(exposedSlots);
+    expect(JSON.stringify(createdBody?.exposed_slots)).toBe(
+      JSON.stringify(serverTemplate.exposed_slots),
+    );
+  });
+
+  it('sends exposed_slots on the update path when the template already exists', async () => {
+    const authored = contentTemplateToAuthored(serverTemplate);
+
+    let updatedBody: { exposed_slots?: ExposedSlots } | undefined;
+    const createContentTemplate = vi.fn();
+    const updateContentTemplate = vi.fn(async (_id, body) => {
+      updatedBody = body;
+      return serverTemplate;
+    });
+
+    const remote: ContentTemplateListItem = {
+      id: serverTemplate.id,
+      label: serverTemplate.label,
+      status: serverTemplate.status,
+      entityType: serverTemplate.entityType,
+      bundle: serverTemplate.bundle,
+      viewMode: serverTemplate.viewMode,
+    };
+
+    await pushContentTemplates(
+      [
+        {
+          index: 0,
+          result: {
+            id: serverTemplate.id,
+            label: serverTemplate.label,
+            entityTypeId: serverTemplate.entityType,
+            bundle: serverTemplate.bundle,
+            viewMode: serverTemplate.viewMode,
+            components: [] satisfies CanvasComponentTree,
+            exposedSlots: authored.exposedSlots,
+            filePath: '/tmp/content-templates/node.article.full.json',
+          },
+        },
+      ],
+      new Map([[serverTemplate.id, remote]]),
+      { createContentTemplate, updateContentTemplate },
+    );
+
+    expect(updateContentTemplate).toHaveBeenCalledTimes(1);
+    expect(createContentTemplate).not.toHaveBeenCalled();
+    expect(updatedBody?.exposed_slots).toEqual(exposedSlots);
+  });
+
+  it('omits exposed_slots from the request body when a template has none', async () => {
+    const authored = contentTemplateToAuthored({
+      ...serverTemplate,
+      exposed_slots: {},
+    });
+    // An empty map is not persisted to the authored file.
+    expect(authored.exposedSlots).toBeUndefined();
+
+    let createdBody: { exposed_slots?: ExposedSlots } | undefined;
+    const createContentTemplate = vi.fn(async (body) => {
+      createdBody = body;
+      return serverTemplate;
+    });
+
+    await pushContentTemplates(
+      [
+        {
+          index: 0,
+          result: {
+            id: serverTemplate.id,
+            label: serverTemplate.label,
+            entityTypeId: serverTemplate.entityType,
+            bundle: serverTemplate.bundle,
+            viewMode: serverTemplate.viewMode,
+            components: [] satisfies CanvasComponentTree,
+            exposedSlots: authored.exposedSlots,
+            filePath: '/tmp/content-templates/node.article.full.json',
+          },
+        },
+      ],
+      new Map(),
+      { createContentTemplate, updateContentTemplate: vi.fn() },
+    );
+
+    expect(createdBody).toBeDefined();
+    expect('exposed_slots' in (createdBody ?? {})).toBe(false);
   });
 });
 
