@@ -11,6 +11,7 @@ import { Spinner, Text } from '@radix-ui/themes';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { getPropsValues } from '@/components/form/react-hook-form/fields/componentFormData';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
+import LockedComponentPanel from '@/components/panel/LockedComponentPanel';
 import { FORM_TYPES } from '@/features/form/constants';
 import {
   clearFieldValues,
@@ -18,11 +19,15 @@ import {
 } from '@/features/form/formStateSlice';
 import {
   isEvaluatedComponentModel,
+  selectIsPerContentMode,
   selectLayout,
   selectModel,
   syncPropSourcesToResolvedValues,
 } from '@/features/layout/layoutModelSlice';
-import { findComponentByUuid } from '@/features/layout/layoutUtils';
+import {
+  findComponentByUuid,
+  isNodeEditable,
+} from '@/features/layout/layoutUtils';
 import {
   selectLatestUndoRedoActionId,
   selectSelectedComponentUuid,
@@ -285,6 +290,7 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
   const { showBoundary } = useErrorBoundary();
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const latestUndoRedoActionId = useAppSelector(selectLatestUndoRedoActionId);
+  const perContentMode = useAppSelector(selectIsPerContentMode);
 
   const [formQueryString, setFormQueryString] = useState('');
   const [emptyProp, setEmptyProp] = useState(false);
@@ -430,6 +436,16 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     layout,
     model,
   ]);
+
+  // Per-content editing: a locked (template-owned) component cannot be edited
+  // here; show the "belongs to the template" panel instead of its prop form.
+  const selectedNode = selectedComponent
+    ? findComponentByUuid(layout, selectedComponent)
+    : null;
+  if (perContentMode && selectedNode && !isNodeEditable(selectedNode)) {
+    return <LockedComponentPanel />;
+  }
+
   return (
     formQueryString &&
     renderComponentId === selectedComponent && (
