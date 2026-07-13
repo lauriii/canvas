@@ -30,7 +30,7 @@ class EntityFormControllerTest extends FunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['canvas', 'canvas_test_sdc'];
+  protected static $modules = ['canvas', 'canvas_test_sdc', 'comment'];
 
   /**
    * {@inheritdoc}

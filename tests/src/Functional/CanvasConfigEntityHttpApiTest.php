@@ -2548,6 +2548,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'id' => 'node.bunny.full',
       'suggestedPreviewEntityId' => NULL,
       'component_tree' => [],
+      'exposed_slots' => [],
     ];
 
     // The list response MUST contain unpublished ContentTemplates.
@@ -2631,6 +2632,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'id' => 'node.llama.full',
       'suggestedPreviewEntityId' => NULL,
       'component_tree' => [],
+      'exposed_slots' => [],
     ];
     $this->assertSame($expected_full_llama_normalization, $body);
     // The same normalization should be present when GETting the `Location`.

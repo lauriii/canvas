@@ -98,7 +98,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
    *
    * @see \Drupal\canvas\Block\BlockManagerDecorator
    */
-  protected const int DEFAULT_COMPONENT_INSTALL_COUNT = 14;
+  protected const int DEFAULT_COMPONENT_INSTALL_COUNT = 15;
 
   protected array $logMessages = [];
 
