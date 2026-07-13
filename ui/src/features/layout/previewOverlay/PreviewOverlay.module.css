@@ -194,9 +194,43 @@
   &.slotExposeChipButtonExposed {
     background: var(--purple-9);
   }
+}
 
-  &.slotExposeChipButtonDisabled {
-    background: var(--gray-8);
+/* The "Edit content" affordance shown over an exposed slot's template default:
+   a clear, accent-colored call to action that reads as "customize this". */
+.slotOverrideChip {
+  z-index: 1;
+  left: var(--name-tag-vertical-offset);
+  pointer-events: auto;
+}
+
+.slotOverrideChipButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 3px 8px;
+  cursor: pointer;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-3);
+  background: var(--purple-9);
+  box-shadow: 0 1px 4px rgb(0, 0, 0, 0.25);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+
+  & svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  &:hover {
+    background: var(--purple-10);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--purple-8);
+    outline-offset: 1px;
   }
 }
 
