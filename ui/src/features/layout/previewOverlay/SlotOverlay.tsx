@@ -175,7 +175,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
         [styles.selected]: slotId === selectedComponent,
         [styles.hovered]: isHovered,
         [styles.dropTarget]: slotId === targetSlot,
-        [styles.exposed]: isActiveExposed || isPerContentExposed,
+        [styles.exposed]: isActiveExposed,
       })}
       data-canvas-type="slot"
       data-canvas-exposed={exposed || isPerContentExposed ? true : undefined}
