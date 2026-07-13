@@ -1,0 +1,27 @@
+# 💡This is default config with an enforced dependency because unlike most ComponentSource plugins, the
+# EmptySlotMarker one does NOT have nor need discovery: it provides only 1 known Component.
+# 💡`status: false` keeps this Component out of the component library (which lists only status: TRUE
+# Components), so it is never placeable — while remaining loadable, referenceable and renderable in a
+# saved component tree. It represents an *empty override* of an exposed slot: a bonsai root row
+# referencing it means "this entity's slot renders nothing".
+# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\EmptySlotMarker
+# @see \Drupal\canvas\Entity\ComponentInterface::EMPTY_SLOT_MARKER_ID
+langcode: en
+status: false
+dependencies:
+  enforced:
+    module:
+      - canvas
+# 💡The active version can only change due to changes to the logic in the ComponentSource plugin, because it has no
+# settings and no logic-defined explicit inputs.
+# @see ::generateVersionHash()
+# @see `type: canvas.component_source_settings.*`
+active_version: 3b12c0b99a6caecc
+versioned_properties:
+  active:
+    settings: {  }
+label: 'Empty slot marker'
+id: canvas_slot_empty.marker
+provider: canvas
+source: canvas_slot_empty
+source_local_id: marker
