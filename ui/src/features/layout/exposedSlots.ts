@@ -15,6 +15,7 @@ import type {
   ExposedSlotDefinition,
   RegionNode,
   SlotNode,
+  SlotOverrideState,
 } from '@/features/layout/layoutModelSlice';
 
 /**
@@ -110,6 +111,31 @@ export const isExposedSlotTarget = (
     slot.name,
   );
   return !!entry;
+};
+
+/**
+ * Whether an exposed slot is a locked unit in per-content editing.
+ *
+ * A not-yet-overridden exposed slot that still shows the template's default
+ * content is one locked unit (@see decision 8 / ux-spec Phase 8): selectable
+ * only as a whole, non-droppable, its default content non-interactive until
+ * unlocked. An exposed slot with an empty default, or one the entity has
+ * overridden, is ordinary. Non-exposed slots are never locked.
+ */
+export const isLockedExposedSlot = (
+  slot: SlotNode,
+  exposedSlots: Record<string, ExposedSlotDefinition> | undefined,
+  slotOverrides: Record<string, SlotOverrideState> | undefined,
+): boolean => {
+  const entry = findExposedSlotEntry(
+    exposedSlots,
+    getSlotHostComponentUuid(slot),
+    slot.name,
+  );
+  if (!entry || slotOverrides?.[entry.alias]?.overridden) {
+    return false;
+  }
+  return filterNonMarkerComponents(slot.components).length > 0;
 };
 
 /**
