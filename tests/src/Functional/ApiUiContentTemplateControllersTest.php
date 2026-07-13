@@ -667,6 +667,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user.permissions',
       ],
       expected_cache_tags: [
+        'config:core.extension',
         'http_response',
         $content_entity_type_id . '_list:' . $bundle,
       ],
@@ -702,6 +703,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user.permissions',
       ],
       expected_cache_tags: [
+        'config:core.extension',
         'http_response',
         $content_entity_type_id . ':1',
         $content_entity_type_id . ':2',
@@ -731,6 +733,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user.permissions',
       ],
       expected_cache_tags: [
+        'config:core.extension',
         'http_response',
         $content_entity_type_id . ':1',
         $content_entity_type_id . ':2',
@@ -760,6 +763,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user.permissions',
       ],
       expected_cache_tags: [
+        'config:core.extension',
         'http_response',
         $content_entity_type_id . ':1',
         $content_entity_type_id . ':2',
@@ -826,6 +830,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user',
       ],
       expected_cache_tags: [
+        'config:core.extension',
         'http_response',
         $content_entity_type_id . ':1',
         $content_entity_type_id . ':10',
@@ -912,6 +917,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user.permissions',
       ],
       expected_cache_tags: [
+        'config:core.extension',
         'http_response',
         $content_entity_type_id . ':1',
         $content_entity_type_id . ':2',
