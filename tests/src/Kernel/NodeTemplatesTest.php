@@ -69,6 +69,7 @@ final class NodeTemplatesTest extends CanvasKernelTestBase {
     $this->installEntitySchema('user');
     $this->installEntitySchema('media');
     $this->installEntitySchema('node');
+    $this->installSchema('node', ['node_access']);
     $this->installEntitySchema('path_alias');
     $this->installConfig(['node', 'filter']);
     $this->installConfig(['canvas']);
@@ -378,6 +379,8 @@ HTML;
       'type' => 'article',
       'title' => 'The Real Deal',
       'field_component_tree' => [
+        // A "bonsai" root: empty parent_uuid, slot = the exposed slot alias.
+        // The merge resolves the alias to the template's real (component, slot).
         [
           'uuid' => '6ea0de84-858a-4f00-9ef5-de02525c8865',
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
@@ -388,25 +391,7 @@ HTML;
               'expression' => 'ℹ︎string␟value',
             ],
           ],
-          'slot' => 'the_body',
-          'parent_uuid' => '2842cc6f-9e2b-42a5-8400-e7d6363e08bf',
-        ],
-        // If the entity is targeting a slot that doesn't exist in the template,
-        // or is not exposed, it shouldn't be an error.
-        // @todo This should actually be purged when the entity is saved, so
-        //   implement that in https://www.drupal.org/i/3520517.
-        [
-          'uuid' => '9a1ec750-e016-44fb-9bd2-9a7acb497bd7',
-          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-          'slot' => 'ignore_me',
-          'parent_uuid' => '2842cc6f-9e2b-42a5-8400-e7d6363e08bf',
-          'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => "This won't show up.",
-              'expression' => 'ℹ︎string␟value',
-            ],
-          ],
+          'slot' => 'custom_content',
         ],
       ],
     ]);
@@ -416,7 +401,6 @@ HTML;
     $crawler = $this->crawlerForRenderArray($build);
     self::assertCount(1, $crawler->filter('h1:contains("The Real Deal")'));
     self::assertCount(1, $crawler->filter('h1:contains("Now we\'re cooking with gas!")'));
-    self::assertStringNotContainsString("This won't show up.", $crawler->text());
     // Note: AutoSaveManager::CACHE_TAG is NOT present because we're not on a
     // preview route. It's only added on preview routes to avoid invalidating
     // all rendered nodes on the live site when auto-saves change.
@@ -442,17 +426,346 @@ HTML;
       'with-canvas',
     ], $build['#cache']['keys']);
 
-    // Although the node targeting a nonexistent slot doesn't break rendering,
-    // it DOES mean the entity isn't valid.
+    // The bonsai-alias constraint is the publish-time backstop: an in-memory row
+    // targeting an alias the template does not declare is a violation.
+    // Inputs use the collapsed static-prop-source syntax (the stored form).
+    $node->get('field_component_tree')->appendItem([
+      'uuid' => '9a1ec750-e016-44fb-9bd2-9a7acb497bd7',
+      'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+      'inputs' => [
+        'heading' => "This won't show up.",
+      ],
+      'slot' => 'ignore_me',
+    ]);
     $violations = $node->validate();
     self::assertCount(1, $violations);
     $violation = $violations->get(0);
     self::assertSame('field_component_tree.1.slot', $violation->getPropertyPath());
-    self::assertSame('Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.canvas_test_sdc.props-slots</em>: <em class="placeholder">ignore_me</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.', (string) $violation->getMessage());
+    self::assertSame('Invalid component tree item with UUID <em class="placeholder">9a1ec750-e016-44fb-9bd2-9a7acb497bd7</em> targets exposed slot <em class="placeholder">ignore_me</em>, which is not declared by the applicable content template.', (string) $violation->getMessage());
 
-    // If we delete the field item, all good!
-    $node->get('field_component_tree')->removeItem(1);
+    // Orphan purge (#3520517): saving drops rows whose alias no longer exists on
+    // the template, leaving the valid slot content intact.
+    $node->save();
+    $tree = $node->get('field_component_tree');
+    self::assertCount(1, $tree);
+    self::assertSame('custom_content', $tree->get(0)->getSlot());
     self::assertEntityIsValid($node);
+  }
+
+  /**
+   * Tests that multiple exposed slots on one template fill independently.
+   *
+   * @legacy-covers \Drupal\canvas\Entity\ContentTemplate::build
+   * @legacy-covers \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::injectSubTreeItemList
+   */
+  public function testMultipleExposedSlotsAreIndependentlyFilled(): void {
+    $this->createComponentTreeField('node', 'article', 'field_component_tree');
+    $template_component_uuid = '2842cc6f-9e2b-42a5-8400-e7d6363e08bf';
+
+    ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [
+        [
+          'uuid' => $template_component_uuid,
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '0e79e884426a53ae',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+      ],
+      // Two aliases targeting two different slots of the same component.
+      'exposed_slots' => [
+        'slot_a' => [
+          'component_uuid' => $template_component_uuid,
+          'slot_name' => 'the_body',
+          'label' => 'Slot A',
+        ],
+        'slot_b' => [
+          'component_uuid' => $template_component_uuid,
+          'slot_name' => 'the_footer',
+          'label' => 'Slot B',
+        ],
+      ],
+    ])->setStatus(TRUE)->save();
+
+    $node = $this->createNode([
+      'type' => 'article',
+      'title' => 'Two slots',
+      'field_component_tree' => [
+        [
+          'uuid' => 'aaaaaaaa-0000-4000-8000-000000000001',
+          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'Content A',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+          'slot' => 'slot_a',
+        ],
+        [
+          'uuid' => 'bbbbbbbb-0000-4000-8000-000000000002',
+          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'Content B',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+          'slot' => 'slot_b',
+        ],
+      ],
+    ]);
+    $viewBuilder = $this->container->get(EntityTypeManagerInterface::class)->getViewBuilder('node');
+    self::assertInstanceOf(ContentTemplateAwareViewBuilder::class, $viewBuilder);
+    $build = $viewBuilder->view($node);
+    $crawler = $this->crawlerForRenderArray($build);
+    // Each slot renders its own content in its own region, independently.
+    self::assertCount(1, $crawler->filter('.component--props-slots--body h1:contains("Content A")'));
+    self::assertCount(1, $crawler->filter('.component--props-slots--footer h1:contains("Content B")'));
+    self::assertCount(0, $crawler->filter('.component--props-slots--body h1:contains("Content B")'));
+    self::assertCount(0, $crawler->filter('.component--props-slots--footer h1:contains("Content A")'));
+    self::assertEntityIsValid($node);
+  }
+
+  /**
+   * Tests that a disabled exposed slot renders as if not exposed but is retained.
+   *
+   * @legacy-covers \Drupal\canvas\Entity\ContentTemplate::getActiveExposedSlots
+   * @legacy-covers \Drupal\canvas\Hook\ContentTemplateHooks::entityPresave
+   */
+  public function testDisabledExposedSlotIsRetainedButNotRendered(): void {
+    $this->createComponentTreeField('node', 'article', 'field_component_tree');
+    $template_component_uuid = '2842cc6f-9e2b-42a5-8400-e7d6363e08bf';
+
+    ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [
+        [
+          'uuid' => $template_component_uuid,
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '0e79e884426a53ae',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+      ],
+      'exposed_slots' => [
+        'slot_a' => [
+          'component_uuid' => $template_component_uuid,
+          'slot_name' => 'the_body',
+          'label' => 'Slot A',
+          'disabled' => TRUE,
+        ],
+      ],
+    ])->setStatus(TRUE)->save();
+
+    $node = $this->createNode([
+      'type' => 'article',
+      'title' => 'Disabled slot',
+      'field_component_tree' => [
+        [
+          'uuid' => 'cccccccc-0000-4000-8000-000000000003',
+          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'Hidden content',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+          'slot' => 'slot_a',
+        ],
+      ],
+    ]);
+    $viewBuilder = $this->container->get(EntityTypeManagerInterface::class)->getViewBuilder('node');
+    $build = $viewBuilder->view($node);
+    $crawler = $this->crawlerForRenderArray($build);
+    // A disabled slot is not merged: the entity's content does not render.
+    self::assertStringNotContainsString('Hidden content', $crawler->text());
+
+    // The content is retained in storage (the alias is still declared, just
+    // disabled) and the entity stays valid.
+    $node->save();
+    $stored = $node->get('field_component_tree');
+    self::assertCount(1, $stored);
+    self::assertSame('slot_a', $stored->get(0)->getSlot());
+    self::assertEntityIsValid($node);
+  }
+
+  /**
+   * Tests the empty-override marker is pinned to sole-bonsai-root usage.
+   *
+   * @legacy-covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
+   */
+  public function testEmptyOverrideMarkerValidation(): void {
+    $this->createComponentTreeField('node', 'article', 'field_component_tree');
+    $template_component_uuid = '2842cc6f-9e2b-42a5-8400-e7d6363e08bf';
+
+    ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [
+        [
+          'uuid' => $template_component_uuid,
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '0e79e884426a53ae',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+      ],
+      'exposed_slots' => [
+        'custom_content' => [
+          'component_uuid' => $template_component_uuid,
+          'slot_name' => 'the_body',
+          'label' => 'Custom content area',
+        ],
+      ],
+    ])->setStatus(TRUE)->save();
+
+    // A marker as the sole bonsai root for an alias is a valid empty override.
+    $node = $this->createNode([
+      'type' => 'article',
+      'title' => 'Empty override',
+      'field_component_tree' => [
+        [
+          'uuid' => 'dddddddd-0000-4000-8000-000000000004',
+          'component_id' => 'canvas_slot_empty.marker',
+          'slot' => 'custom_content',
+        ],
+      ],
+    ]);
+    self::assertEntityIsValid($node);
+
+    // The marker used anywhere else (here: an ordinary root with no slot) is
+    // rejected.
+    $node->get('field_component_tree')->appendItem([
+      'uuid' => 'eeeeeeee-0000-4000-8000-000000000005',
+      'component_id' => 'canvas_slot_empty.marker',
+    ]);
+    $messages = \array_map(
+      static fn ($violation): string => \strip_tags((string) $violation->getMessage()),
+      \iterator_to_array($node->validate()),
+    );
+    self::assertContains('The canvas_slot_empty.marker component may only be used as the sole, empty override of an exposed slot.', $messages);
+  }
+
+  /**
+   * Tests rendering degrades gracefully when the bundle's Canvas field is gone.
+   *
+   * @legacy-covers \Drupal\canvas\Entity\ContentTemplate::build
+   */
+  public function testBuildDegradesWhenCanvasFieldMissing(): void {
+    $template_component_uuid = '2842cc6f-9e2b-42a5-8400-e7d6363e08bf';
+    ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [
+        [
+          'uuid' => $template_component_uuid,
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '0e79e884426a53ae',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+      ],
+      'exposed_slots' => [
+        'custom_content' => [
+          'component_uuid' => $template_component_uuid,
+          'slot_name' => 'the_body',
+          'label' => 'Custom content area',
+        ],
+      ],
+    ])->setStatus(TRUE)->save();
+
+    // postSave provisioned the bundle's Canvas field; remove it to simulate a
+    // missing-field edge case (e.g. config import), then render must not 500.
+    \Drupal\field\Entity\FieldStorageConfig::loadByName('node', ContentTemplate::CANVAS_FIELD_NAME)?->delete();
+    $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
+
+    $node = $this->createNode(['type' => 'article', 'title' => 'No field here']);
+    $viewBuilder = $this->container->get(EntityTypeManagerInterface::class)->getViewBuilder('node');
+    $build = $viewBuilder->view($node);
+    $crawler = $this->crawlerForRenderArray($build);
+    // The template still renders (its heading is the node title); no exception.
+    self::assertCount(1, $crawler->filter('h1:contains("No field here")'));
+  }
+
+  /**
+   * Tests a Canvas field is provisioned (once) when the first slot is exposed.
+   *
+   * @legacy-covers \Drupal\canvas\Entity\ContentTemplate::postSave
+   */
+  public function testFieldProvisioningOnFirstExposure(): void {
+    $field_manager = $this->container->get('entity_field.manager');
+    // The article bundle has no Canvas field yet.
+    $map = $field_manager->getFieldMapByFieldType('component_tree');
+    self::assertArrayNotHasKey(ContentTemplate::CANVAS_FIELD_NAME, $map['node'] ?? []);
+
+    $template_component_uuid = '2842cc6f-9e2b-42a5-8400-e7d6363e08bf';
+    $definition = [
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [
+        [
+          'uuid' => $template_component_uuid,
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '0e79e884426a53ae',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+      ],
+      'exposed_slots' => [
+        'custom_content' => [
+          'component_uuid' => $template_component_uuid,
+          'slot_name' => 'the_body',
+          'label' => 'Custom content area',
+        ],
+      ],
+    ];
+
+    // Exposing the first slot provisions the bundle's Canvas field.
+    ContentTemplate::create($definition)->setStatus(TRUE)->save();
+    $field_manager->clearCachedFieldDefinitions();
+    $map = $field_manager->getFieldMapByFieldType('component_tree');
+    self::assertArrayHasKey(ContentTemplate::CANVAS_FIELD_NAME, $map['node']);
+    self::assertContains('article', $map['node'][ContentTemplate::CANVAS_FIELD_NAME]['bundles']);
+
+    // Idempotent: re-saving the template does not error and keeps a single field.
+    $template = ContentTemplate::load('node.article.full');
+    self::assertInstanceOf(ContentTemplate::class, $template);
+    $template->save();
+    $field_manager->clearCachedFieldDefinitions();
+    $map = $field_manager->getFieldMapByFieldType('component_tree');
+    self::assertContains('article', $map['node'][ContentTemplate::CANVAS_FIELD_NAME]['bundles']);
   }
 
 }
