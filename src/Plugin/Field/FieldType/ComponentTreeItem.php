@@ -234,9 +234,9 @@ class ComponentTreeItem extends FieldItemBase {
           // - the root of the tree
           // - or the root of a bonsai tree (a tree in a content template's
           //   exposed slot)
-          // In the latter case, `slot` must match an exposed slot of the
-          // associated `ContentTemplate`.
-          // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidParentAndSlotConstraintValidator
+          // In the latter case, `slot` must match an exposed slot alias
+          // declared by the applicable `ContentTemplate`.
+          // @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator::validateComponentInstance()
           'not null' => FALSE,
         ],
         'slot' => [

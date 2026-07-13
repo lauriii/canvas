@@ -74,8 +74,10 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
       return;
     }
 
-    // The exposed slot has to be empty.
-    if (\count(\iterator_to_array($component_tree_item_list->componentTreeItemsIterator(ComponentTreeItemList::isChildOfComponentTreeItemSlot($value['component_uuid'], $value['slot_name'])))) !== 0) {
+    // The exposed slot has to be empty only when the consumer requires it (for
+    // example page variants); content templates allow template content in an
+    // exposed slot to become that slot's per-entity-overridable default.
+    if ($constraint->requireEmpty && \count(\iterator_to_array($component_tree_item_list->componentTreeItemsIterator(ComponentTreeItemList::isChildOfComponentTreeItemSlot($value['component_uuid'], $value['slot_name'])))) !== 0) {
       $this->context->addViolation($constraint->slotNotEmptyMessage, [
         '%slot' => $value['slot_name'],
       ]);
@@ -85,6 +87,18 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
     if ($template->getMode() !== $constraint->viewMode) {
       $this->context->addViolation($constraint->viewModeMismatchMessage, [
         '%mode' => $constraint->viewMode,
+      ]);
+    }
+
+    // Two exposed slots must not target the same (component_uuid, slot_name):
+    // entity content is keyed by alias, and a shared target would be ambiguous.
+    $sharing_target = \array_filter(
+      $template->getExposedSlots(),
+      static fn (array $slot): bool => ($slot['component_uuid'] ?? NULL) === $value['component_uuid'] && ($slot['slot_name'] ?? NULL) === $value['slot_name'],
+    );
+    if (\count($sharing_target) > 1) {
+      $this->context->addViolation($constraint->duplicateTargetMessage, [
+        '%slot' => $value['slot_name'],
       ]);
     }
   }
