@@ -11,7 +11,12 @@ import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
-import type { RootLayoutModel } from '@/features/layout/layoutModelSlice';
+import type { ExposedSlotServerDefinition } from '@/features/layout/exposedSlots';
+import type {
+  ExposedSlotDefinition,
+  RootLayoutModel,
+  SlotOverrideState,
+} from '@/features/layout/layoutModelSlice';
 import type {
   UpdateComponentQueryArg,
   UpdateComponentResultType,
@@ -35,6 +40,10 @@ export type LayoutApiResponse = RootLayoutModel & {
   html: string;
   autoSaves: AutoSavesHash;
   translations?: Record<string, any>;
+  // Per-content editing (templated entity with exposed slots), emitted by the
+  // merged Layout API GET. @see ApiLayoutController per-content mode.
+  exposedSlots?: Record<string, ExposedSlotDefinition>;
+  slotOverrides?: Record<string, SlotOverrideState>;
 };
 
 export type TemplateViewMode = {
@@ -46,6 +55,9 @@ export type TemplateViewMode = {
   status: boolean;
   id: string;
   suggestedPreviewEntityId?: number;
+  // The template's exposed slots (alias-keyed), from normalizeForClientSide().
+  // Used for the template-editor initial working set and the list count badge.
+  exposed_slots?: Record<string, ExposedSlotServerDefinition>;
 };
 
 export type TemplateInBundle = {
@@ -61,7 +73,7 @@ export type TemplatesInBundle = {
   [key: string]: TemplateInBundle;
 };
 
-type TemplateList = {
+export type TemplateList = {
   [key: string]: {
     label: string;
     bundles: TemplatesInBundle;
@@ -262,7 +274,13 @@ export const componentAndLayoutApi = createApi({
     }),
     postTemplateLayout: builder.mutation<
       { html: string; autoSaves: AutoSavesHash },
-      { layout: any; model: any; entity_form_fields: any }
+      {
+        layout: any;
+        model: any;
+        entity_form_fields: any;
+        // Template editor's exposed-slot working set, persisted with the layout.
+        exposed_slots?: Record<string, ExposedSlotServerDefinition>;
+      }
     >({
       query: (body) => ({
         url: 'canvas/api/v0/layout-content-template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}',
