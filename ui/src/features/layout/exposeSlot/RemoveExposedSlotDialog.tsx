@@ -1,11 +1,8 @@
-import { Button, Flex, Text } from '@radix-ui/themes';
+import { Flex, Text } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import Dialog from '@/components/Dialog';
-import {
-  removeExposedSlot,
-  setExposedSlotDisabled,
-} from '@/features/layout/layoutModelSlice';
+import { removeExposedSlot } from '@/features/layout/layoutModelSlice';
 import {
   selectDialogOpen,
   setDialogWithDataClosed,
@@ -23,13 +20,8 @@ const RemoveExposedSlotDialog = () => {
     dispatch(setDialogWithDataClosed('removeExposedSlotConfirm'));
   };
 
-  const handleRemove = () => {
+  const handleDetach = () => {
     dispatch(removeExposedSlot(data.alias));
-    close();
-  };
-
-  const handleDisableInstead = () => {
-    dispatch(setExposedSlotDisabled({ alias: data.alias, disabled: true }));
     close();
   };
 
@@ -41,29 +33,23 @@ const RemoveExposedSlotDialog = () => {
           close();
         }
       }}
-      title="Remove exposed slot"
+      title="Detach exposed slot"
       footer={{
         cancelText: 'Cancel',
-        confirmText: 'Remove',
-        onConfirm: handleRemove,
-        isDanger: true,
+        confirmText: 'Detach',
+        onConfirm: handleDetach,
       }}
     >
       <Flex direction="column" gap="3">
         <Text size="2">
-          Removing exposed slot &ldquo;{data.label}&rdquo; deletes its
-          definition. Any content editors placed in this slot will be
-          permanently purged the next time affected content is saved.
+          Detaching &ldquo;{data.label}&rdquo; removes it from this template.
+          Content already entered by editors is preserved and reappears if you
+          expose this slot again.
         </Text>
         <Text size="2">
-          To keep the slot and its content but hide it from content editors,
-          disable it instead.
+          To permanently delete the slot and its content, delete its field from
+          the content type&rsquo;s field settings.
         </Text>
-        <Flex justify="start">
-          <Button variant="soft" size="1" onClick={handleDisableInstead}>
-            Disable instead
-          </Button>
-        </Flex>
       </Flex>
     </Dialog>
   );

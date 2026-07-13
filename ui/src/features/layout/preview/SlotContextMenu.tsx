@@ -3,10 +3,7 @@ import { ContextMenu } from '@radix-ui/themes';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { UnifiedMenu } from '@/components/UnifiedMenu';
 import { findExposedSlotEntry } from '@/features/layout/exposedSlots';
-import {
-  selectExposedSlots,
-  setExposedSlotDisabled,
-} from '@/features/layout/layoutModelSlice';
+import { selectExposedSlots } from '@/features/layout/layoutModelSlice';
 import { setDialogWithDataOpen } from '@/features/ui/dialogSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
 
@@ -66,18 +63,6 @@ export const SlotContextMenuContent: React.FC<
     dispatch(setDialogWithDataOpen({ operation: 'exposeSlot', data }));
   };
 
-  const toggleDisabled = () => {
-    if (!exposed) {
-      return;
-    }
-    dispatch(
-      setExposedSlotDisabled({
-        alias: exposed.alias,
-        disabled: !exposed.definition.disabled,
-      }),
-    );
-  };
-
   const openRemoveDialog = () => {
     if (!exposed) {
       return;
@@ -110,13 +95,8 @@ export const SlotContextMenuContent: React.FC<
           <UnifiedMenu.Item onClick={openEditLabelDialog}>
             Edit label
           </UnifiedMenu.Item>
-          <UnifiedMenu.Item onClick={toggleDisabled}>
-            {exposed.definition.disabled ? 'Enable' : 'Disable'}
-          </UnifiedMenu.Item>
           <UnifiedMenu.Separator />
-          <UnifiedMenu.Item color="red" onClick={openRemoveDialog}>
-            Remove
-          </UnifiedMenu.Item>
+          <UnifiedMenu.Item onClick={openRemoveDialog}>Detach</UnifiedMenu.Item>
         </>
       )}
     </UnifiedMenu.Content>
