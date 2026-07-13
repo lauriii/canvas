@@ -339,13 +339,14 @@ HTML;
   }
 
   /**
-   * Tests exposed slots are filled by entity.
+   * Tests an exposed slot is filled from its backing field on the entity.
    *
    * @legacy-covers \Drupal\canvas\Entity\ContentTemplate::build
-   * @legacy-covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
+   * @legacy-covers \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::injectSlotContent
    */
   public function testExposedSlotsAreFilledByEntity(): void {
-    $this->createComponentTreeField('node', 'article', 'field_component_tree');
+    // The exposed slot is backed by its own component_tree field on the bundle.
+    $this->createComponentTreeField('node', 'article', 'canvas_slot_custom');
 
     ContentTemplate::create([
       'content_entity_type_id' => 'node',
@@ -366,8 +367,9 @@ HTML;
           ],
         ],
       ],
+      // Keyed by the backing field machine name.
       'exposed_slots' => [
-        'custom_content' => [
+        'canvas_slot_custom' => [
           'component_uuid' => '2842cc6f-9e2b-42a5-8400-e7d6363e08bf',
           'slot_name' => 'the_body',
           'label' => 'Custom content area',
@@ -375,13 +377,12 @@ HTML;
       ],
     ])->setStatus(TRUE)->save();
 
-    // Create an article that fills in the template's exposed slot.
+    // Create an article whose slot field holds an ordinary tree; the merge
+    // nests it under the template's real (component, slot).
     $node = $this->createNode([
       'type' => 'article',
       'title' => 'The Real Deal',
-      'field_component_tree' => [
-        // A "bonsai" root: empty parent_uuid, slot = the exposed slot alias.
-        // The merge resolves the alias to the template's real (component, slot).
+      'canvas_slot_custom' => [
         [
           'uuid' => '6ea0de84-858a-4f00-9ef5-de02525c8865',
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
@@ -392,7 +393,6 @@ HTML;
               'expression' => 'ℹ︎string␟value',
             ],
           ],
-          'slot' => 'custom_content',
         ],
       ],
     ]);
@@ -427,29 +427,13 @@ HTML;
       'with-canvas',
     ], $build['#cache']['keys']);
 
-    // The bonsai-alias constraint is the publish-time backstop: an in-memory row
-    // targeting an alias the template does not declare is a violation.
-    // Inputs use the collapsed static-prop-source syntax (the stored form).
-    $node->get('field_component_tree')->appendItem([
-      'uuid' => '9a1ec750-e016-44fb-9bd2-9a7acb497bd7',
-      'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-      'inputs' => [
-        'heading' => "This won't show up.",
-      ],
-      'slot' => 'ignore_me',
-    ]);
-    $violations = $node->validate();
-    self::assertCount(1, $violations);
-    $violation = $violations->get(0);
-    self::assertSame('field_component_tree.1.slot', $violation->getPropertyPath());
-    self::assertSame('Invalid component tree item with UUID <em class="placeholder">9a1ec750-e016-44fb-9bd2-9a7acb497bd7</em> targets exposed slot <em class="placeholder">ignore_me</em>, which is not declared by the applicable content template.', (string) $violation->getMessage());
-
-    // Orphan purge (#3520517): saving drops rows whose alias no longer exists on
-    // the template, leaving the valid slot content intact.
+    // The slot field stores an ordinary tree; the entity is valid.
     $node->save();
-    $tree = $node->get('field_component_tree');
+    $tree = $node->get('canvas_slot_custom');
     self::assertCount(1, $tree);
-    self::assertSame('custom_content', $tree->get(0)->getSlot());
+    $root = $tree->get(0);
+    self::assertInstanceOf(ComponentTreeItem::class, $root);
+    self::assertNull($root->getSlot());
     self::assertEntityIsValid($node);
   }
 
@@ -457,10 +441,12 @@ HTML;
    * Tests that multiple exposed slots on one template fill independently.
    *
    * @legacy-covers \Drupal\canvas\Entity\ContentTemplate::build
-   * @legacy-covers \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::injectSubTreeItemList
+   * @legacy-covers \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::injectSlotContent
    */
   public function testMultipleExposedSlotsAreIndependentlyFilled(): void {
-    $this->createComponentTreeField('node', 'article', 'field_component_tree');
+    // Each exposed slot is backed by its own component_tree field.
+    $this->createComponentTreeField('node', 'article', 'canvas_slot_a');
+    $this->createComponentTreeField('node', 'article', 'canvas_slot_b');
     $template_component_uuid = '2842cc6f-9e2b-42a5-8400-e7d6363e08bf';
 
     ContentTemplate::create([
@@ -480,14 +466,14 @@ HTML;
           ],
         ],
       ],
-      // Two aliases targeting two different slots of the same component.
+      // Two fields targeting two different slots of the same component.
       'exposed_slots' => [
-        'slot_a' => [
+        'canvas_slot_a' => [
           'component_uuid' => $template_component_uuid,
           'slot_name' => 'the_body',
           'label' => 'Slot A',
         ],
-        'slot_b' => [
+        'canvas_slot_b' => [
           'component_uuid' => $template_component_uuid,
           'slot_name' => 'the_footer',
           'label' => 'Slot B',
@@ -498,7 +484,7 @@ HTML;
     $node = $this->createNode([
       'type' => 'article',
       'title' => 'Two slots',
-      'field_component_tree' => [
+      'canvas_slot_a' => [
         [
           'uuid' => 'aaaaaaaa-0000-4000-8000-000000000001',
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
@@ -509,8 +495,9 @@ HTML;
               'expression' => 'ℹ︎string␟value',
             ],
           ],
-          'slot' => 'slot_a',
         ],
+      ],
+      'canvas_slot_b' => [
         [
           'uuid' => 'bbbbbbbb-0000-4000-8000-000000000002',
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
@@ -521,7 +508,6 @@ HTML;
               'expression' => 'ℹ︎string␟value',
             ],
           ],
-          'slot' => 'slot_b',
         ],
       ],
     ]);
@@ -538,82 +524,12 @@ HTML;
   }
 
   /**
-   * Tests that a disabled exposed slot renders as if not exposed but is retained.
-   *
-   * @legacy-covers \Drupal\canvas\Entity\ContentTemplate::getActiveExposedSlots
-   * @legacy-covers \Drupal\canvas\Hook\ContentTemplateHooks::entityPresave
-   */
-  public function testDisabledExposedSlotIsRetainedButNotRendered(): void {
-    $this->createComponentTreeField('node', 'article', 'field_component_tree');
-    $template_component_uuid = '2842cc6f-9e2b-42a5-8400-e7d6363e08bf';
-
-    ContentTemplate::create([
-      'content_entity_type_id' => 'node',
-      'content_entity_type_bundle' => 'article',
-      'content_entity_type_view_mode' => 'full',
-      'component_tree' => [
-        [
-          'uuid' => $template_component_uuid,
-          'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '0e79e884426a53ae',
-          'inputs' => [
-            'heading' => [
-              'sourceType' => PropSource::EntityField->value,
-              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
-            ],
-          ],
-        ],
-      ],
-      'exposed_slots' => [
-        'slot_a' => [
-          'component_uuid' => $template_component_uuid,
-          'slot_name' => 'the_body',
-          'label' => 'Slot A',
-          'disabled' => TRUE,
-        ],
-      ],
-    ])->setStatus(TRUE)->save();
-
-    $node = $this->createNode([
-      'type' => 'article',
-      'title' => 'Disabled slot',
-      'field_component_tree' => [
-        [
-          'uuid' => 'cccccccc-0000-4000-8000-000000000003',
-          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-          'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'Hidden content',
-              'expression' => 'ℹ︎string␟value',
-            ],
-          ],
-          'slot' => 'slot_a',
-        ],
-      ],
-    ]);
-    $viewBuilder = $this->container->get(EntityTypeManagerInterface::class)->getViewBuilder('node');
-    $build = $viewBuilder->view($node);
-    $crawler = $this->crawlerForRenderArray($build);
-    // A disabled slot is not merged: the entity's content does not render.
-    self::assertStringNotContainsString('Hidden content', $crawler->text());
-
-    // The content is retained in storage (the alias is still declared, just
-    // disabled) and the entity stays valid.
-    $node->save();
-    $stored = $node->get('field_component_tree');
-    self::assertCount(1, $stored);
-    self::assertSame('slot_a', $stored->get(0)->getSlot());
-    self::assertEntityIsValid($node);
-  }
-
-  /**
-   * Tests the empty-override marker is pinned to sole-bonsai-root usage.
+   * Tests the empty-override marker is pinned to sole-root-of-slot-field usage.
    *
    * @legacy-covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
    */
   public function testEmptyOverrideMarkerValidation(): void {
-    $this->createComponentTreeField('node', 'article', 'field_component_tree');
+    $this->createComponentTreeField('node', 'article', 'canvas_slot_custom');
     $template_component_uuid = '2842cc6f-9e2b-42a5-8400-e7d6363e08bf';
 
     ContentTemplate::create([
@@ -634,7 +550,7 @@ HTML;
         ],
       ],
       'exposed_slots' => [
-        'custom_content' => [
+        'canvas_slot_custom' => [
           'component_uuid' => $template_component_uuid,
           'slot_name' => 'the_body',
           'label' => 'Custom content area',
@@ -642,23 +558,21 @@ HTML;
       ],
     ])->setStatus(TRUE)->save();
 
-    // A marker as the sole bonsai root for an alias is a valid empty override.
+    // The marker as the sole root of the slot field is a valid empty override.
     $node = $this->createNode([
       'type' => 'article',
       'title' => 'Empty override',
-      'field_component_tree' => [
+      'canvas_slot_custom' => [
         [
           'uuid' => 'dddddddd-0000-4000-8000-000000000004',
           'component_id' => 'canvas_slot_empty.marker',
-          'slot' => 'custom_content',
         ],
       ],
     ]);
     self::assertEntityIsValid($node);
 
-    // The marker used anywhere else (here: an ordinary root with no slot) is
-    // rejected.
-    $node->get('field_component_tree')->appendItem([
+    // The marker alongside a second row (no longer the sole row) is rejected.
+    $node->get('canvas_slot_custom')->appendItem([
       'uuid' => 'eeeeeeee-0000-4000-8000-000000000005',
       'component_id' => 'canvas_slot_empty.marker',
     ]);
@@ -670,11 +584,18 @@ HTML;
   }
 
   /**
-   * Tests rendering degrades gracefully when the bundle's Canvas field is gone.
+   * Tests deleting a slot's backing field detaches it and rendering degrades.
+   *
+   * Deleting the field config through the standard field API triggers the
+   * template's onDependencyRemoval(), which drops the exposed slot definition
+   * (a non-destructive detach). Rendering then falls back to the template's own
+   * tree instead of failing.
    *
    * @legacy-covers \Drupal\canvas\Entity\ContentTemplate::build
+   * @legacy-covers \Drupal\canvas\Entity\ContentTemplate::onDependencyRemoval
    */
-  public function testBuildDegradesWhenCanvasFieldMissing(): void {
+  public function testDeletingSlotFieldDetachesAndDegrades(): void {
+    $this->createComponentTreeField('node', 'article', 'canvas_slot_custom');
     $template_component_uuid = '2842cc6f-9e2b-42a5-8400-e7d6363e08bf';
     ContentTemplate::create([
       'content_entity_type_id' => 'node',
@@ -694,7 +615,7 @@ HTML;
         ],
       ],
       'exposed_slots' => [
-        'custom_content' => [
+        'canvas_slot_custom' => [
           'component_uuid' => $template_component_uuid,
           'slot_name' => 'the_body',
           'label' => 'Custom content area',
@@ -702,10 +623,12 @@ HTML;
       ],
     ])->setStatus(TRUE)->save();
 
-    // postSave provisioned the bundle's Canvas field; remove it to simulate a
-    // missing-field edge case (e.g. config import), then render must not 500.
-    FieldStorageConfig::loadByName('node', ContentTemplate::CANVAS_FIELD_NAME)?->delete();
+    // Deleting the backing field detaches the slot from the template.
+    FieldStorageConfig::loadByName('node', 'canvas_slot_custom')?->delete();
     $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
+    $template = ContentTemplate::load('node.article.full');
+    self::assertInstanceOf(ContentTemplate::class, $template);
+    self::assertSame([], $template->getExposedSlots());
 
     $node = $this->createNode(['type' => 'article', 'title' => 'No field here']);
     $viewBuilder = $this->container->get(EntityTypeManagerInterface::class)->getViewBuilder('node');
@@ -713,60 +636,6 @@ HTML;
     $crawler = $this->crawlerForRenderArray($build);
     // The template still renders (its heading is the node title); no exception.
     self::assertCount(1, $crawler->filter('h1:contains("No field here")'));
-  }
-
-  /**
-   * Tests a Canvas field is provisioned (once) when the first slot is exposed.
-   *
-   * @legacy-covers \Drupal\canvas\Entity\ContentTemplate::postSave
-   */
-  public function testFieldProvisioningOnFirstExposure(): void {
-    $field_manager = $this->container->get('entity_field.manager');
-    // The article bundle has no Canvas field yet.
-    $map = $field_manager->getFieldMapByFieldType('component_tree');
-    self::assertArrayNotHasKey(ContentTemplate::CANVAS_FIELD_NAME, $map['node'] ?? []);
-
-    $template_component_uuid = '2842cc6f-9e2b-42a5-8400-e7d6363e08bf';
-    $definition = [
-      'content_entity_type_id' => 'node',
-      'content_entity_type_bundle' => 'article',
-      'content_entity_type_view_mode' => 'full',
-      'component_tree' => [
-        [
-          'uuid' => $template_component_uuid,
-          'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '0e79e884426a53ae',
-          'inputs' => [
-            'heading' => [
-              'sourceType' => PropSource::EntityField->value,
-              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
-            ],
-          ],
-        ],
-      ],
-      'exposed_slots' => [
-        'custom_content' => [
-          'component_uuid' => $template_component_uuid,
-          'slot_name' => 'the_body',
-          'label' => 'Custom content area',
-        ],
-      ],
-    ];
-
-    // Exposing the first slot provisions the bundle's Canvas field.
-    ContentTemplate::create($definition)->setStatus(TRUE)->save();
-    $field_manager->clearCachedFieldDefinitions();
-    $map = $field_manager->getFieldMapByFieldType('component_tree');
-    self::assertArrayHasKey(ContentTemplate::CANVAS_FIELD_NAME, $map['node']);
-    self::assertContains('article', $map['node'][ContentTemplate::CANVAS_FIELD_NAME]['bundles']);
-
-    // Idempotent: re-saving the template does not error and keeps a single field.
-    $template = ContentTemplate::load('node.article.full');
-    self::assertInstanceOf(ContentTemplate::class, $template);
-    $template->save();
-    $field_manager->clearCachedFieldDefinitions();
-    $map = $field_manager->getFieldMapByFieldType('component_tree');
-    self::assertContains('article', $map['node'][ContentTemplate::CANVAS_FIELD_NAME]['bundles']);
   }
 
 }

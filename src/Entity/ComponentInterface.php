@@ -19,10 +19,10 @@ interface ComponentInterface extends VersionedConfigEntityInterface, EntityWithP
   /**
    * The ID of the "empty slot marker" Component config entity.
    *
-   * A `status: false` (hence non-placeable) Component that renders nothing. A
-   * bonsai root row referencing it represents an *empty override* of an exposed
-   * slot: "this entity's slot renders nothing" (vs. absence of rows = inherit
-   * the template default).
+   * A `status: false` (hence non-placeable) Component that renders nothing. As
+   * the sole root row of an exposed slot's backing field it represents an
+   * *empty override*: "this entity's slot renders nothing" (vs. an empty field =
+   * inherit the template default).
    *
    * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\EmptySlotMarker
    */

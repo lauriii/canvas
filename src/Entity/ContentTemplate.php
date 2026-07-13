@@ -8,7 +8,6 @@ use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessControlHandler;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
-use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
@@ -17,7 +16,6 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityChangedInterface;
-use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -28,7 +26,6 @@ use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\field\Entity\FieldConfig;
-use Drupal\field\Entity\FieldStorageConfig;
 
 /**
  * Defines a template for content entities in a particular view mode.
@@ -77,15 +74,6 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
 
   public const string ENTITY_TYPE_ID = 'content_template';
 
-  /**
-   * The machine name of the Canvas field provisioned for templated bundles.
-   *
-   * Exposing the first slot for a bundle ensures the bundle has a Canvas field
-   * (creating this one only when the bundle has none) so entities can store
-   * their per-entity slot content.
-   */
-  public const string CANVAS_FIELD_NAME = 'canvas_components';
-
   public const string ADMIN_PERMISSION = 'administer content templates';
 
   /**
@@ -117,9 +105,9 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
   protected ?string $content_entity_type_view_mode;
 
   /**
-   * The exposed slots.
+   * The exposed slots, keyed by the machine name of the backing field.
    *
-   * @var ?array<string, array{'component_uuid': string, 'slot_name': string, 'label': string, 'disabled'?: bool}>
+   * @var ?array<string, array{'component_uuid': string, 'slot_name': string, 'label': string}>
    */
   protected ?array $exposed_slots = [];
 
@@ -188,79 +176,6 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
   /**
    * {@inheritdoc}
    */
-  public function postSave(EntityStorageInterface $storage, $update = TRUE): void {
-    parent::postSave($storage, $update);
-
-    // Exposing a slot opts the bundle into Canvas: ensure the bundle has a
-    // Canvas field so entities can store their per-entity slot content.
-    // @see docs/config-management.md
-    // Config import ships its own field config, so never provision during sync.
-    if ($this->isSyncing() || empty($this->getActiveExposedSlots())) {
-      return;
-    }
-    $this->ensureBundleCanvasField();
-  }
-
-  /**
-   * Ensures the templated bundle has a Canvas field, creating one if it has none.
-   *
-   * Idempotent: reuses any existing `component_tree` field on the bundle (so a
-   * bundle is never given a second Canvas field) and only creates storage +
-   * field config named ::CANVAS_FIELD_NAME when the bundle has none. The field
-   * is intentionally not added to any form or view display: slot content is
-   * merged into the template at render time, not rendered by a field formatter.
-   */
-  private function ensureBundleCanvasField(): void {
-    $entity_type_id = $this->getTargetEntityTypeId();
-    $bundle = $this->getTargetBundle();
-
-    $field_manager = \Drupal::service(EntityFieldManagerInterface::class);
-    \assert($field_manager instanceof EntityFieldManagerInterface);
-    $map = $field_manager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);
-    foreach ($map[$entity_type_id] ?? [] as $info) {
-      if (\in_array($bundle, $info['bundles'], TRUE)) {
-        // The bundle already has a Canvas field; reuse it.
-        return;
-      }
-    }
-
-    $field_storage = FieldStorageConfig::loadByName($entity_type_id, self::CANVAS_FIELD_NAME);
-    if ($field_storage === NULL) {
-      $field_storage = FieldStorageConfig::create([
-        'field_name' => self::CANVAS_FIELD_NAME,
-        'entity_type' => $entity_type_id,
-        'type' => ComponentTreeItem::PLUGIN_ID,
-      ]);
-      $field_storage->save();
-    }
-    if (FieldConfig::loadByName($entity_type_id, $bundle, self::CANVAS_FIELD_NAME) === NULL) {
-      $field_config = FieldConfig::create([
-        'field_storage' => $field_storage,
-        'bundle' => $bundle,
-      ]);
-      // Mirror canvas_page's symmetric translation for per-entity slot content:
-      // tree columns synchronized across translations, inputs translatable per
-      // language. Only meaningful when content_translation is installed.
-      // @see \Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer::ensureSymmetricalCanvasPageComponents()
-      if (\Drupal::moduleHandler()->moduleExists('content_translation')) {
-        $field_config->setTranslatable(TRUE);
-        $field_config->setThirdPartySetting('content_translation', 'translation_sync', [
-          'inputs' => 'inputs',
-          'tree' => '0',
-        ]);
-      }
-      $field_config->save();
-    }
-
-    // Creating field config clears cached field definitions, but the field map
-    // may still be stale within this request; refresh it so a subsequent
-    // ComponentTreeLoader::getCanvasFieldName() call sees the new field.
-    $field_manager->clearCachedFieldDefinitions();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function label(): TranslatableMarkup {
     $entity_type = $this->entityTypeManager()
       ->getDefinition($this->getTargetEntityTypeId());
@@ -309,31 +224,31 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     $view_mode = $this->getViewMode();
     $this->addDependency($view_mode->getConfigDependencyKey(), $view_mode->getConfigDependencyName());
 
+    // Each exposed slot is backed by a `component_tree` field on the bundle,
+    // keyed by that field's machine name. Depend on those field configs so
+    // deleting a field through Field UI detaches the slot via
+    // ::onDependencyRemoval() (standard core machinery, no bespoke healing).
+    $entity_type_id = $this->getTargetEntityTypeId();
+    $bundle = $this->getTargetBundle();
+    foreach (\array_keys($this->getExposedSlots()) as $field_name) {
+      $field_config = FieldConfig::loadByName($entity_type_id, $bundle, $field_name);
+      if ($field_config !== NULL) {
+        $this->addDependency($field_config->getConfigDependencyKey(), $field_config->getConfigDependencyName());
+      }
+    }
+
     return $this;
   }
 
   /**
    * Returns information about the slots exposed by this template.
    *
+   * Keyed by the machine name of the `component_tree` field backing each slot.
+   *
    * @return array<string, array{'component_uuid': string, 'slot_name': string, 'label': string}>
    */
   public function getExposedSlots(): array {
     return $this->get('exposed_slots') ?? [];
-  }
-
-  /**
-   * Returns the active (non-disabled) exposed slots, keyed by alias.
-   *
-   * A disabled exposed slot retains its definition and any per-entity content,
-   * but renders and edits as if it were not exposed.
-   *
-   * @return array<string, array{'component_uuid': string, 'slot_name': string, 'label': string, 'disabled'?: bool}>
-   */
-  public function getActiveExposedSlots(): array {
-    return \array_filter(
-      $this->getExposedSlots(),
-      static fn (array $definition): bool => empty($definition['disabled']),
-    );
   }
 
   /**
@@ -467,28 +382,26 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
       throw new \LogicException('Content templates cannot be applied to entities that have their own component trees.');
     }
 
-    // Without active (non-disabled) exposed slots, the entity has no per-entity
-    // content to merge and no Canvas field is required.
-    $active_exposed_slots = $this->getActiveExposedSlots();
-    if (empty($active_exposed_slots)) {
+    // Without exposed slots, the entity has no per-entity content to merge.
+    $exposed_slots = $this->getExposedSlots();
+    if (empty($exposed_slots)) {
       return $this->getComponentTree($entity)->toRenderable($this, $isPreview);
     }
 
-    try {
-      $canvas_field_name = \Drupal::service(ComponentTreeLoader::class)
-        ->getCanvasFieldName($entity);
+    // Each exposed slot is backed by its own `component_tree` field on the
+    // bundle; merge each field's content into the template's target slot. A
+    // slot whose backing field is missing (e.g. deleted, or not yet created)
+    // renders the template's own default.
+    $merged_tree = $this->getComponentTree($entity);
+    foreach ($exposed_slots as $field_name => $definition) {
+      if (!$entity->hasField($field_name)) {
+        continue;
+      }
+      $slot_field = $entity->get($field_name);
+      \assert($slot_field instanceof ComponentTreeItemList);
+      $merged_tree->injectSlotContent($definition['component_uuid'], $definition['slot_name'], $slot_field);
     }
-    catch (\LogicException) {
-      // The bundle has no Canvas field yet (e.g. the field has not been
-      // provisioned, or was removed): there is no per-entity content to merge,
-      // so render the template's own tree rather than failing.
-      return $this->getComponentTree($entity)->toRenderable($this, $isPreview);
-    }
-    $sub_tree_item_list = $entity->get($canvas_field_name);
-    \assert($sub_tree_item_list instanceof ComponentTreeItemList);
-    return $this->getComponentTree($entity)
-      ->injectSubTreeItemList($active_exposed_slots, $sub_tree_item_list)
-      ->toRenderable($this, $isPreview);
+    return $merged_tree->toRenderable($this, $isPreview);
   }
 
   /**
@@ -527,6 +440,29 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     }
     if ($changed) {
       $this->setComponentTree($tree->getValue());
+    }
+
+    // Detach exposed slots whose backing `component_tree` field config is being
+    // removed: drop the definition, leaving the template valid. Entity content
+    // is not touched (the field API purges it), matching the editor's detach
+    // semantics.
+    $removed_config_names = [];
+    foreach ($dependencies['config'] ?? [] as $dependency) {
+      $removed_config_names[$dependency instanceof ConfigEntityInterface ? $dependency->getConfigDependencyName() : $dependency] = TRUE;
+    }
+    if ($removed_config_names !== []) {
+      $entity_type_id = $this->getTargetEntityTypeId();
+      $bundle = $this->getTargetBundle();
+      $exposed_slots = $this->getExposedSlots();
+      $kept = \array_filter(
+        $exposed_slots,
+        static fn (array $definition, string $field_name): bool => !isset($removed_config_names["field.field.$entity_type_id.$bundle.$field_name"]),
+        ARRAY_FILTER_USE_BOTH,
+      );
+      if (\count($kept) !== \count($exposed_slots)) {
+        $this->set('exposed_slots', $kept);
+        $changed = TRUE;
+      }
     }
 
     $changed |= parent::onDependencyRemoval($dependencies);
@@ -584,8 +520,8 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
         'id' => $this->id(),
         'suggestedPreviewEntityId' => $preview_entity ? (int) $preview_entity->id() : NULL,
         'component_tree' => $component_tree,
-        // The full set (including disabled slots) so the editor and CLI can
-        // manage them without data loss.
+        // Keyed by backing field machine name; the editor and CLI manage them
+        // as opaque slot keys.
         'exposed_slots' => $this->getExposedSlots(),
       ],
       preview: NULL,

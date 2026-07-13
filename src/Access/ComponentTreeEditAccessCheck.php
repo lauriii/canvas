@@ -40,12 +40,24 @@ final class ComponentTreeEditAccessCheck implements AccessInterface {
   public function access(EntityInterface $entity, AccountInterface $account): AccessResultInterface {
     if ($entity instanceof FieldableEntityInterface || $entity instanceof ComponentTreeEntityInterface) {
       // A field-hosted component tree that is not a Canvas page: per-entity
-      // editing is only offered for templated bundles with active exposed
-      // slots (decision 6). The loader throws when the bundle has no Canvas
-      // field; translate that into a clean access denial instead of a 500. This
-      // check runs both when gating the Layout API and, via checkNamedRoute(),
-      // when building the "Layout" local task on the entity's canonical route.
+      // editing is only offered for templated bundles with exposed slots
+      // (decision 6). This check runs both when gating the Layout API and, via
+      // checkNamedRoute(), when building the "Layout" local task on the entity's
+      // canonical route.
       $is_field_hosted = $entity instanceof FieldableEntityInterface && !$entity instanceof ComponentTreeEntityInterface;
+
+      // Per-content editing (templated bundle): slot content lives in internal
+      // per-slot `component_tree` fields merged at render time, so there is no
+      // single tree to field-access-check. Gate on entity update access.
+      if ($is_field_hosted && $this->componentTreeLoader->hasContentTemplateWithExposedSlots($entity)) {
+        \assert($entity instanceof FieldableEntityInterface);
+        $entity_access = $entity->access('update', $account, TRUE);
+        \assert($entity_access instanceof AccessResult);
+        return $entity_access->addCacheableDependency(self::perContentCacheability($entity));
+      }
+
+      // The loader throws when a field-hosted entity has no Canvas field and is
+      // not templated; translate that into a clean access denial, not a 500.
       try {
         $tree = $this->componentTreeLoader->load($entity);
       }
@@ -117,10 +129,9 @@ final class ComponentTreeEditAccessCheck implements AccessInterface {
    * Cacheability for per-content (templated bundle) edit access decisions.
    *
    * The decision hinges on whether the entity's bundle has an enabled content
-   * template with active exposed slots, and on the provisioned Canvas field.
-   * Depend on those so the "Layout" local task and Layout API access
-   * re-evaluate when a template is created, deleted, or (dis)exposes slots, or
-   * the field is (de)provisioned.
+   * template with exposed slots. Depend on that so the "Layout" local task and
+   * Layout API access re-evaluate when a template is created, deleted, or
+   * (un)exposes slots.
    *
    * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
    *   The templated content entity.

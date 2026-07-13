@@ -20,9 +20,9 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  *
  * This source powers a single, non-placeable Component config entity (the
  * "empty slot marker") that represents an *empty override* of an exposed slot:
- * a bonsai root row referencing it means "this entity's slot renders nothing",
- * as opposed to the absence of rows, which means "inherit the template
- * default".
+ * as the sole root row of the slot's backing field it means "this entity's slot
+ * renders nothing", as opposed to an empty field, which means "inherit the
+ * template default".
  *
  * It is shipped as a `status: false` Component config entity, which excludes it
  * from the component library (only `status: TRUE` Components are listed) while

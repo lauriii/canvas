@@ -42,7 +42,7 @@ use Symfony\Component\Routing\Route;
  * @legacy-covers \Drupal\canvas\Controller\ApiLayoutController::get
  * @legacy-covers \Drupal\canvas\Controller\ApiLayoutController::patch
  * @legacy-covers \Drupal\canvas\Controller\ApiLayoutController::post
- * @legacy-covers \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::partitionBonsaiSubtrees
+ * @legacy-covers \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::partitionSlotFields
  */
 #[RunTestsInSeparateProcesses]
 #[Group('canvas')]
@@ -53,9 +53,10 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
   use CanvasFieldTrait;
 
   private const string BUNDLE = 'templated';
-  private const string FIELD_NAME = 'field_bonsai';
+  // The exposed slot is backed by its own component_tree field; the field
+  // machine name is the slot's key everywhere on the wire.
+  private const string SLOT_FIELD = 'canvas_slot_main';
   private const string HOST_UUID = '11111111-1111-4111-8111-111111111111';
-  private const string ALIAS = 'main';
 
   /**
    * The active version of the exposed-slot host component (props-slots).
@@ -89,9 +90,8 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
     // A dedicated bundle so per-content mode does not affect the shared article
     // entities used by the other Layout API tests.
     NodeType::create(['type' => self::BUNDLE, 'name' => 'Templated'])->save();
-    // Provision the entity's single Canvas (bonsai) field before enabling the
-    // template so the template reuses it instead of provisioning a second one.
-    $this->createComponentTreeField('node', self::BUNDLE, self::FIELD_NAME);
+    // The exposed slot's backing component_tree field on the bundle.
+    $this->createComponentTreeField('node', self::BUNDLE, self::SLOT_FIELD);
 
     ContentTemplate::create([
       'content_entity_type_id' => 'node',
@@ -110,8 +110,9 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
           ],
         ],
       ],
+      // Keyed by the backing field machine name.
       'exposed_slots' => [
-        self::ALIAS => [
+        self::SLOT_FIELD => [
           'component_uuid' => self::HOST_UUID,
           'slot_name' => 'the_body',
           'label' => 'Main content',
@@ -123,23 +124,24 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
   }
 
   /**
-   * Creates a templated node, optionally with per-entity bonsai slot content.
+   * Creates a templated node, optionally with per-entity slot content.
    *
-   * @param array<int, array<string, mixed>> $bonsai
-   *   Raw component tree rows for the entity's Canvas field.
+   * @param array<int, array<string, mixed>> $slot_content
+   *   Raw component tree rows for the exposed slot's backing field (an ordinary
+   *   tree: roots have an empty parent_uuid and empty slot).
    */
-  private static function createTemplatedNode(array $bonsai = []): NodeInterface {
+  private static function createTemplatedNode(array $slot_content = []): NodeInterface {
     $node = Node::create([
       'type' => self::BUNDLE,
       'title' => 'A templated node',
-      self::FIELD_NAME => $bonsai,
+      self::SLOT_FIELD => $slot_content,
     ]);
     $node->save();
     return $node;
   }
 
   /**
-   * Returns a bonsai override row: a static-heading component filling the slot.
+   * Returns an override row: a static-heading component, an ordinary slot root.
    */
   private function overrideRow(string $uuid, string $heading): array {
     return [
@@ -153,7 +155,6 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
           'expression' => 'ℹ︎string␟value',
         ],
       ],
-      'slot' => self::ALIAS,
     ];
   }
 
@@ -170,18 +171,17 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
 
     // Exposed slot metadata (top-level).
     self::assertSame([
-      self::ALIAS => [
+      self::SLOT_FIELD => [
         'label' => 'Main content',
         'slotName' => 'the_body',
         'componentUuid' => self::HOST_UUID,
-        'disabled' => FALSE,
       ],
     ], $json['exposedSlots']);
 
     // Per-slot override state (top-level): the entity overrides the slot with
     // real content, so it is overridden but not empty.
     self::assertSame([
-      self::ALIAS => ['overridden' => TRUE, 'empty' => FALSE],
+      self::SLOT_FIELD => ['overridden' => TRUE, 'empty' => FALSE],
     ], $json['slotOverrides']);
 
     // The content region: the template host is locked (editable: false); the
@@ -210,7 +210,7 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
 
     $json = self::decodeResponse($this->request(Request::create($this->getLayoutUrl($node)->toString())));
     self::assertSame([
-      self::ALIAS => ['overridden' => FALSE, 'empty' => FALSE],
+      self::SLOT_FIELD => ['overridden' => FALSE, 'empty' => FALSE],
     ], $json['slotOverrides']);
 
     // The exposed slot is present (empty, no default here) and the host is still
@@ -243,7 +243,7 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
       self::assertStringContainsString('belongs to the template', $e->getMessage());
     }
 
-    // PATCH the entity-owned override component: writes through to the bonsai
+    // PATCH the entity-owned override component: writes through to the slot
     // field's auto-save.
     $patch_body = [
       'componentInstanceUuid' => $override_uuid,
@@ -261,29 +261,29 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
     $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode($patch_body, JSON_THROW_ON_ERROR)));
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
 
-    // The auto-saved node's bonsai field holds only the (updated) override row.
+    // The auto-saved node's slot field holds only the (updated) override row.
     $draft = $this->getAutoSaveDraft($node);
-    $field = $draft->get(self::FIELD_NAME);
+    $field = $draft->get(self::SLOT_FIELD);
     self::assertInstanceOf(ComponentTreeItemList::class, $field);
     self::assertCount(1, $field);
     $item = $field->get(0);
     self::assertInstanceOf(ComponentTreeItem::class, $item);
     self::assertSame($override_uuid, $item->getUuid());
     self::assertNull($item->getParentUuid());
-    self::assertSame(self::ALIAS, $item->getSlot());
+    self::assertNull($item->getSlot());
     self::assertStringContainsString('Patched content', (string) \json_encode($item->getInputs(), JSON_THROW_ON_ERROR));
   }
 
   /**
-   * POST partitions the merged tree into per-alias bonsai rows.
+   * POST partitions the merged tree into per-slot fields.
    */
-  public function testPostPartitionsIntoBonsaiRows(): void {
+  public function testPostPartitionsIntoSlotFields(): void {
     $node = self::createTemplatedNode();
     $url = $this->getLayoutUrl($node)->toString();
 
     // The inherited slot has no override yet.
     $get = self::decodeResponse($this->request(Request::create($url)));
-    self::assertFalse($get['slotOverrides'][self::ALIAS]['overridden']);
+    self::assertFalse($get['slotOverrides'][self::SLOT_FIELD]['overridden']);
 
     // Add an entity-owned component into the exposed slot and POST the merged
     // tree back.
@@ -307,24 +307,24 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
     $response = $this->request(Request::create($url, method: 'POST', content: \json_encode($post, JSON_THROW_ON_ERROR)));
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
 
-    // Round-trip: the auto-saved bonsai field contains only the entity content,
-    // re-rooted (empty parent_uuid, slot = alias); the template host is absent.
-    $field = $this->getAutoSaveDraft($node)->get(self::FIELD_NAME);
+    // Round-trip: the auto-saved slot field contains only the entity content,
+    // as an ordinary root (empty parent_uuid, empty slot); the host is absent.
+    $field = $this->getAutoSaveDraft($node)->get(self::SLOT_FIELD);
     self::assertInstanceOf(ComponentTreeItemList::class, $field);
     self::assertCount(1, $field);
     $item = $field->get(0);
     self::assertInstanceOf(ComponentTreeItem::class, $item);
     self::assertSame($new_uuid, $item->getUuid());
     self::assertNull($item->getParentUuid());
-    self::assertSame(self::ALIAS, $item->getSlot());
+    self::assertNull($item->getSlot());
     self::assertSame('sdc.canvas_test_sdc.props-no-slots', $item->getComponentId());
     // No template-owned row leaked into the entity field.
     self::assertNull($field->getComponentTreeItemByUuid(self::HOST_UUID));
 
     // A follow-up GET now reports the slot as overridden.
     $get2 = self::decodeResponse($this->request(Request::create($url)));
-    self::assertTrue($get2['slotOverrides'][self::ALIAS]['overridden']);
-    self::assertFalse($get2['slotOverrides'][self::ALIAS]['empty']);
+    self::assertTrue($get2['slotOverrides'][self::SLOT_FIELD]['overridden']);
+    self::assertFalse($get2['slotOverrides'][self::SLOT_FIELD]['empty']);
   }
 
   /**
@@ -347,20 +347,20 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
     ]);
     $this->request(Request::create($url, method: 'POST', content: \json_encode($post, JSON_THROW_ON_ERROR)));
 
-    // The entity field stores exactly the marker as the sole bonsai root.
-    $field = $this->getAutoSaveDraft($node)->get(self::FIELD_NAME);
+    // The slot field stores exactly the marker as its sole root.
+    $field = $this->getAutoSaveDraft($node)->get(self::SLOT_FIELD);
     self::assertCount(1, $field);
     $item = $field->get(0);
     self::assertInstanceOf(ComponentTreeItem::class, $item);
     self::assertSame(ComponentInterface::EMPTY_SLOT_MARKER_ID, $item->getComponentId());
     self::assertNull($item->getParentUuid());
-    self::assertSame(self::ALIAS, $item->getSlot());
+    self::assertNull($item->getSlot());
 
     // GET reports the slot as an empty override.
     $get = self::decodeResponse($this->request(Request::create($url)));
     self::assertSame(
       ['overridden' => TRUE, 'empty' => TRUE],
-      $get['slotOverrides'][self::ALIAS],
+      $get['slotOverrides'][self::SLOT_FIELD],
     );
   }
 

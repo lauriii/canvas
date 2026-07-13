@@ -1089,9 +1089,12 @@ canvas.content_template.*.*.*:
       label: 'Component tree'
     exposed_slots:
       type: sequence
-      # This is ordered by key because the keys are the machine names assigned to the
-      # exposed slots. These machine names are, essentially, "aliases" for a particular
-      # slot in a particular component in the component tree.
+      # Ordered by key. For content templates each key is the machine name of a
+      # `component_tree` field on the template's bundle: that field IS the slot's
+      # storage and stable identity, and each entity stores its per-entity content
+      # for the slot in that field. (Page variants reuse this schema with a
+      # non-field-backed key; the field-backing requirement is validated only for
+      # content templates. @see ValidExposedSlotConstraintValidator.)
       orderby: key
       # If this sequence is empty, the site builder that crafted this template has not
       # exposed any slots to content creators, which means there's nothing for content
@@ -1105,11 +1108,11 @@ canvas.content_template.*.*.*:
           # for where core makes this assumption). Example:
           #
           # exposed_slots:
-          #  profile_bio:
+          #  canvas_slot_profile_bio:
           #    label: 'Profile Bio!'
           #    component_uuid: 28bcab26-e434-4ad4-9eaf-0520bdb32fcc
           #    slot_name: column_two
-          #  intro:
+          #  canvas_slot_intro:
           #    label: 'Intro'
           #    component_uuid: 98bcab26-e434-4ad4-9eaf-0520bdb32fcc
           #    slot_name: body
@@ -1126,13 +1129,6 @@ canvas.content_template.*.*.*:
           label:
             type: required_label
             label: 'A human-readable label for the exposed slot'
-          disabled:
-            type: boolean
-            label: 'Disabled'
-            # A disabled exposed slot retains its definition and any per-entity
-            # content, but renders and edits as if it were not exposed. Absent
-            # (or FALSE) means the slot is active.
-            requiredKey: false
       constraints:
         SequenceKeysMatchRegex:
           # Note: this is the lowercase-only subset of what slot names are allowed by Canvas: the machine names of Canvas's exposed content template slots must be simpler.

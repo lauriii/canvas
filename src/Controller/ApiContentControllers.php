@@ -240,7 +240,7 @@ final class ApiContentControllers extends ApiControllerBase {
     // permission-string heuristics.
     $active_bundles = $entity_type === Page::ENTITY_TYPE_ID
       ? []
-      : $this->componentTreeLoader->getBundlesWithActiveExposedSlots($entity_type);
+      : $this->componentTreeLoader->getBundlesWithExposedSlots($entity_type);
     if ($entity_type !== Page::ENTITY_TYPE_ID && $active_bundles === []) {
       throw new BadRequestHttpException('Only the `canvas_page` content entity type and bundles with active exposed slots are supported right now, will be generalized in a child issue of https://www.drupal.org/project/canvas/issues/3498525.');
     }
