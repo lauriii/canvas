@@ -28,3 +28,17 @@ entity.canvas_page.edit_form:
   title: 'Edit'
   base_route: entity.canvas_page.canonical
   route_name: entity.canvas_page.edit_form
+
+# The "Layout" tab opens a templated content entity in the Canvas editor. It is
+# shown only when the bundle has an enabled content template with active exposed
+# slots and the user may update the entity: that predicate is enforced by the
+# access requirements of the linked `canvas.boot.entity` route.
+# @todo Generalize `base_route` beyond node once other entity types support
+#   content templates, see https://www.drupal.org/i/3498525.
+# @see \Drupal\canvas\Plugin\Menu\ContentTemplateLayoutTask
+canvas.content.layout:
+  title: 'Layout'
+  route_name: canvas.boot.entity
+  base_route: entity.node.canonical
+  class: Drupal\canvas\Plugin\Menu\ContentTemplateLayoutTask
+  weight: 10
