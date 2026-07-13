@@ -278,10 +278,15 @@ When rendering content entities, a content template will be used to render the e
 
 If a `ContentTemplate` is used for rendering a content entity, then `hook_entity_display_build_alter()` will NOT be invoked for that entity, because that hook (and all its implementations) assume field formatters are used to render (all or some) fields in sequence, which is not the case when using Canvas.
 
+A `ContentTemplate` may _expose_ slots (`exposed_slots`): a Site Builder marks slots in the template's component tree as
+editable per entity, each under a stable machine-name alias. When a template exposes at least one active (non-disabled)
+slot, the bundle is opted into Drupal Canvas: its `Canvas field` is ensured to exist (see
+`\Drupal\canvas\Entity\ContentTemplate::postSave()`), so entities can store their per-entity slot content. That content is
+stored as alias-keyed "bonsai" subtrees in the entity's `Canvas field`; see the storage shape in
+[`Canvas Data Model` doc](data-model.md) and merge/rendering in `\Drupal\canvas\Entity\ContentTemplate::build()`.
+
 ⚠️ Still to be built:
 - A UI to create content templates, and manage existing templates: https://www.drupal.org/i/3518248
-- Later, when support for exposed slots is added, a second requirement will be added: "The entity is opted into Drupal
-Canvas, which means it has an `Canvas field`."
 - Later, after https://www.drupal.org/i/3498525, remove the second requirement: support more than just `Node`.
 
 ### 3.6 `StagedConfigUpdate` config entity
