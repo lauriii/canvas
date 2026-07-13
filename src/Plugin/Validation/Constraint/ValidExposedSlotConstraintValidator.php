@@ -6,10 +6,12 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
+use Drupal\field\Entity\FieldConfig;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
@@ -90,16 +92,18 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
       ]);
     }
 
-    // Two exposed slots must not target the same (component_uuid, slot_name):
-    // entity content is keyed by alias, and a shared target would be ambiguous.
-    $sharing_target = \array_filter(
-      $template->getExposedSlots(),
-      static fn (array $slot): bool => ($slot['component_uuid'] ?? NULL) === $value['component_uuid'] && ($slot['slot_name'] ?? NULL) === $value['slot_name'],
-    );
-    if (\count($sharing_target) > 1) {
-      $this->context->addViolation($constraint->duplicateTargetMessage, [
-        '%slot' => $value['slot_name'],
-      ]);
+    // The exposed slot's key must name a `component_tree` field on the bundle:
+    // that field is the slot's per-entity storage and stable identity.
+    if ($constraint->requireFieldBacked) {
+      $field_name = \array_search($value, $template->getExposedSlots(), TRUE);
+      $field_config = \is_string($field_name)
+        ? FieldConfig::loadByName($template->getTargetEntityTypeId(), $template->getTargetBundle(), $field_name)
+        : NULL;
+      if ($field_config === NULL || $field_config->getType() !== ComponentTreeItem::PLUGIN_ID) {
+        $this->context->addViolation($constraint->missingFieldMessage, [
+          '%field' => \is_string($field_name) ? $field_name : '',
+        ]);
+      }
     }
   }
 

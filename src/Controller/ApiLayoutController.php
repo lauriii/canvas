@@ -263,7 +263,7 @@ final class ApiLayoutController {
     if ($per_content_template !== NULL) {
       \assert($entity instanceof FieldableEntityInterface);
       $data['exposedSlots'] = self::normalizeExposedSlotsForClient($per_content_template);
-      $data['slotOverrides'] = $this->computeSlotOverrides($entity, $per_content_template);
+      $data['slotOverrides'] = self::computeSlotOverrides($entity, $per_content_template);
     }
     elseif ($entity instanceof ContentTemplate) {
       // Template editor: surface the template's own exposed slots (including a
@@ -291,7 +291,7 @@ final class ApiLayoutController {
       // Skip this in per-content mode ($template_owned_uuids !== NULL): $items
       // is the MERGED template + entity tree the entity does not own, so
       // auto-saving it would persist template-owned rows into the entity's
-      // bonsai field (or clobber a region entity from the wrong tree).
+      // slot fields (or clobber a region entity from the wrong tree).
       if ($wasModified && $template_owned_uuids === NULL) {
         $entity = $items->getParent()?->getValue();
         \assert($entity instanceof ComponentTreeEntityInterface || $entity instanceof FieldableEntityInterface);
@@ -589,7 +589,7 @@ final class ApiLayoutController {
     // - the component tree in the entity (using `layout` and `model`)
     // - the fields in the entity, if any (using `entity_form_fields`)
     // In per-content mode the submitted merged tree is guarded (template chrome
-    // is immutable) and partitioned into per-alias bonsai rows before writing.
+    // is immutable) and partitioned into per-slot fields before writing.
     $per_content_template = $this->getPerContentTemplate($entity);
     if ($per_content_template !== NULL) {
       \assert($entity instanceof FieldableEntityInterface);
@@ -814,12 +814,62 @@ final class ApiLayoutController {
 
   private function getEntityWithComponentInstance(array $entities, string $componentInstanceUuid): ComponentTreeEntityInterface|FieldableEntityInterface {
     foreach ($entities as $entity) {
-      $tree = $this->componentTreeLoader->load($entity);
-      if ($tree->getComponentTreeItemByUuid($componentInstanceUuid)) {
+      if ($this->findComponentTreeItemListContaining($entity, $componentInstanceUuid) !== NULL) {
         return $entity;
       }
     }
     throw new NotFoundHttpException('No such component in model: ' . $componentInstanceUuid);
+  }
+
+  /**
+   * Returns the component tree item list(s) that hold an entity's editable rows.
+   *
+   * For a single-field entity (canvas_page) this is the one Canvas field. For a
+   * per-content templated entity, editable rows live in the per-slot backing
+   * fields, so all of them are returned.
+   *
+   * @param \Drupal\canvas\Entity\ComponentTreeEntityInterface|\Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity.
+   *
+   * @return \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList[]
+   *   The item lists to search or mutate.
+   */
+  private function getEditableComponentTreeItemLists(ComponentTreeEntityInterface|FieldableEntityInterface $entity): array {
+    if ($entity instanceof FieldableEntityInterface && !$entity instanceof ComponentTreeEntityInterface) {
+      $template = $this->getPerContentTemplate($entity);
+      if ($template !== NULL) {
+        $lists = [];
+        foreach (\array_keys($template->getExposedSlots()) as $field_name) {
+          if ($entity->hasField($field_name)) {
+            $list = $entity->get($field_name);
+            \assert($list instanceof ComponentTreeItemList);
+            $lists[] = $list;
+          }
+        }
+        return $lists;
+      }
+    }
+    return [$this->componentTreeLoader->load($entity)];
+  }
+
+  /**
+   * Finds the item list holding a given component instance, or NULL.
+   *
+   * @param \Drupal\canvas\Entity\ComponentTreeEntityInterface|\Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity.
+   * @param string $componentInstanceUuid
+   *   The component instance UUID.
+   *
+   * @return \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList|null
+   *   The item list containing the instance, or NULL if none does.
+   */
+  private function findComponentTreeItemListContaining(ComponentTreeEntityInterface|FieldableEntityInterface $entity, string $componentInstanceUuid): ?ComponentTreeItemList {
+    foreach ($this->getEditableComponentTreeItemLists($entity) as $list) {
+      if ($list->getComponentTreeItemByUuid($componentInstanceUuid) !== NULL) {
+        return $list;
+      }
+    }
+    return NULL;
   }
 
   /**
@@ -833,8 +883,8 @@ final class ApiLayoutController {
    * @return void
    */
   private function updateComponentInstance(ComponentTreeEntityInterface|FieldableEntityInterface $entity, string $componentInstanceUuid, string $version, array $client_model, ?FieldableEntityInterface $host_entity): void {
-    $tree = $this->componentTreeLoader->load($entity);
-    if ($item = $tree->getComponentTreeItemByUuid($componentInstanceUuid)) {
+    $tree = $this->findComponentTreeItemListContaining($entity, $componentInstanceUuid);
+    if ($tree !== NULL && $item = $tree->getComponentTreeItemByUuid($componentInstanceUuid)) {
       // We might be not only updating the inputs, but also the component
       // instance version (if automatically updating is feasible).
       // @see \Drupal\canvas\ComponentSource\ComponentInstanceUpdaterInterface
@@ -919,11 +969,11 @@ final class ApiLayoutController {
       return NULL;
     }
     $template = ContentTemplate::loadForEntity($entity, 'full');
-    if (!$template instanceof ContentTemplate || !$template->status() || empty($template->getActiveExposedSlots())) {
+    if (!$template instanceof ContentTemplate || !$template->status() || empty($template->getExposedSlots())) {
       return NULL;
     }
     $draft = $this->autoSaveManager->getAutoSaveEntity($template)->entity;
-    if ($draft instanceof ContentTemplate && !empty($draft->getActiveExposedSlots())) {
+    if ($draft instanceof ContentTemplate && !empty($draft->getExposedSlots())) {
       return $draft;
     }
     return $template;
@@ -944,11 +994,18 @@ final class ApiLayoutController {
    */
   private function buildPerContentContentRegion(FieldableEntityInterface $entity, ContentTemplate $template, ?array &$model = NULL): array {
     $template_owned_uuids = self::collectTemplateOwnedUuids($template);
-    $entity_field = $this->componentTreeLoader->load($entity);
     // getComponentTree() returns a fresh dangling copy, so merging into it does
-    // not mutate the stored template.
-    $merged_tree = $template->getComponentTree($entity)
-      ->injectSubTreeItemList($template->getActiveExposedSlots(), $entity_field);
+    // not mutate the stored template. Each exposed slot is backed by its own
+    // field on the entity; merge each into the target slot.
+    $merged_tree = $template->getComponentTree($entity);
+    foreach ($template->getExposedSlots() as $field_name => $definition) {
+      if (!$entity->hasField($field_name)) {
+        continue;
+      }
+      $slot_field = $entity->get($field_name);
+      \assert($slot_field instanceof ComponentTreeItemList);
+      $merged_tree->injectSlotContent($definition['component_uuid'], $definition['slot_name'], $slot_field);
+    }
     return $this->buildRegion(
       CanvasPageVariant::MAIN_CONTENT_REGION,
       $merged_tree,
@@ -960,13 +1017,15 @@ final class ApiLayoutController {
   }
 
   /**
-   * Writes the submitted per-content layout into the entity's Canvas field.
+   * Writes the submitted per-content layout into the entity's slot fields.
    *
    * The submitted layout is the merged template + entity tree. Template chrome
    * is immutable (moves are rejected) and only the entity-owned override
-   * content is partitioned into per-alias bonsai rows and written to the
-   * entity's single Canvas field. This bypasses the whole-tree converter, which
-   * would otherwise clobber the field with template-owned rows.
+   * content is partitioned into per-slot fields, one `component_tree` field per
+   * exposed slot. Every exposed slot's field is written (empty when not
+   * overridden), so reverting an override clears its field. This bypasses the
+   * whole-tree converter, which would otherwise clobber a field with
+   * template-owned rows.
    *
    * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
    *   The edited entity, updated by reference.
@@ -992,9 +1051,9 @@ final class ApiLayoutController {
     self::assertTemplateOwnedComponentsUnmoved($submitted, $template, $template_owned_uuids);
 
     [
-      'rows' => $bonsai_rows,
+      'fields' => $slot_fields,
       'kept' => $kept,
-    ] = $submitted->partitionBonsaiSubtrees($template->getActiveExposedSlots(), $template_owned_uuids);
+    ] = $submitted->partitionSlotFields($template->getExposedSlots(), $template_owned_uuids);
 
     // Reject content placed outside an exposed slot: any submitted component
     // that is neither template chrome nor part of an exposed-slot override.
@@ -1007,8 +1066,7 @@ final class ApiLayoutController {
     }
 
     // Process the entity's own fields (title, etc.) via the shared converter,
-    // then overwrite the Canvas field with only the partitioned bonsai rows.
-    $field_name = $this->componentTreeLoader->getCanvasFieldName($entity);
+    // then overwrite each slot field with only its partitioned rows.
     if (\count($entity_form_fields) > 0) {
       $this->converter->convert([
         'layout' => $layout,
@@ -1016,7 +1074,11 @@ final class ApiLayoutController {
         'entity_form_fields' => $entity_form_fields,
       ], $entity, validate: FALSE);
     }
-    $entity->set($field_name, \array_values($bonsai_rows));
+    foreach ($slot_fields as $field_name => $rows) {
+      if ($entity->hasField($field_name)) {
+        $entity->set($field_name, \array_values($rows));
+      }
+    }
   }
 
   /**
@@ -1025,17 +1087,16 @@ final class ApiLayoutController {
    * @param \Drupal\canvas\Entity\ContentTemplate $template
    *   The applicable content template.
    *
-   * @return array<string, array{label: string, slotName: string, componentUuid: string, disabled: bool}>
-   *   Exposed slot metadata keyed by alias.
+   * @return array<string, array{label: string, slotName: string, componentUuid: string}>
+   *   Exposed slot metadata keyed by the backing field machine name.
    */
   private static function normalizeExposedSlotsForClient(ContentTemplate $template): array {
     $slots = [];
-    foreach ($template->getExposedSlots() as $alias => $definition) {
-      $slots[$alias] = [
+    foreach ($template->getExposedSlots() as $slot_key => $definition) {
+      $slots[$slot_key] = [
         'label' => (string) ($definition['label'] ?? ''),
         'slotName' => (string) ($definition['slot_name'] ?? ''),
         'componentUuid' => (string) ($definition['component_uuid'] ?? ''),
-        'disabled' => !empty($definition['disabled']),
       ];
     }
     return $slots;
@@ -1050,19 +1111,25 @@ final class ApiLayoutController {
    *   The applicable content template.
    *
    * @return array<string, array{overridden: bool, empty: bool}>
-   *   For each exposed slot alias: whether the entity overrides it, and whether
-   *   that override is empty (its sole bonsai root is the empty-slot marker).
+   *   For each exposed slot (keyed by backing field machine name): whether the
+   *   entity overrides it, and whether that override is empty (its sole root is
+   *   the empty-slot marker).
    */
-  private function computeSlotOverrides(FieldableEntityInterface $entity, ContentTemplate $template): array {
-    $entity_field = $this->componentTreeLoader->load($entity);
+  private static function computeSlotOverrides(FieldableEntityInterface $entity, ContentTemplate $template): array {
     $overrides = [];
-    foreach (\array_keys($template->getExposedSlots()) as $alias) {
+    foreach (\array_keys($template->getExposedSlots()) as $field_name) {
+      if (!$entity->hasField($field_name)) {
+        $overrides[$field_name] = ['overridden' => FALSE, 'empty' => FALSE];
+        continue;
+      }
+      $slot_field = $entity->get($field_name);
+      \assert($slot_field instanceof ComponentTreeItemList);
       $roots = [];
-      foreach ($entity_field->componentTreeItemsIterator(ComponentTreeItemList::isBonsaiRootForAlias((string) $alias)) as $item) {
+      foreach ($slot_field->componentTreeItemsIterator(ComponentTreeItemList::inRootLevel()) as $item) {
         \assert($item instanceof ComponentTreeItem);
         $roots[] = $item;
       }
-      $overrides[(string) $alias] = [
+      $overrides[$field_name] = [
         'overridden' => \count($roots) > 0,
         'empty' => \count($roots) === 1 && $roots[0]->getComponentId() === ComponentInterface::EMPTY_SLOT_MARKER_ID,
       ];
