@@ -1,19 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import PageList from '@/components/pageInfo/PageList';
+import TemplatedContentGroups from '@/components/sidePanel/TemplatedContentGroups';
 import {
   extractHomepagePathFromStagedConfig,
   selectHomepagePath,
   selectHomepageStagedConfigExists,
   setHomepagePath,
 } from '@/features/configuration/configurationSlice';
+import { getTemplatedEntityGroups } from '@/features/navigator/templatedContent';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { usePaginatedContentList } from '@/hooks/usePaginatedContentList';
 import { useSmartRedirect } from '@/hooks/useSmartRedirect';
-import { componentAndLayoutApi } from '@/services/componentAndLayout';
+import {
+  componentAndLayoutApi,
+  useGetContentTemplatesQuery,
+} from '@/services/componentAndLayout';
 import {
   useCreateContentMutation,
   useDeleteContentMutation,
@@ -46,6 +51,17 @@ const Pages = () => {
     hasMore,
     handleLoadMore,
   } = usePaginatedContentList('canvas_page', searchTerm);
+
+  // Beyond Canvas pages, the navigator lists entities of templated bundles with
+  // active exposed slots (exposed-slots decision 6). The templated entity types
+  // and their bundle labels are derived from the content-templates listing; the
+  // entities are fetched per entity type by TemplatedContentGroups.
+  const { data: contentTemplates } = useGetContentTemplatesQuery();
+  const templatedGroups = useMemo(
+    () => getTemplatedEntityGroups(contentTemplates),
+    [contentTemplates],
+  );
+  const hasTemplatedContent = templatedGroups.length > 0;
 
   const [
     createContent,
@@ -208,6 +224,15 @@ const Pages = () => {
       pageItemsError={pageItemsError ? String(pageItemsError) : null}
       homepagePath={homepagePath}
       selectedPageId={selectedPageId}
+      pagesHeading={hasTemplatedContent ? 'Pages' : undefined}
+      additionalGroups={
+        hasTemplatedContent ? (
+          <TemplatedContentGroups
+            groups={templatedGroups}
+            searchTerm={searchTerm}
+          />
+        ) : null
+      }
       canCreatePages={canCreatePages}
       onNewPage={handleNewPage}
       onDeletePage={handleDeletePage}
