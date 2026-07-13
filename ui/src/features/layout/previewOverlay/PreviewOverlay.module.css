@@ -154,9 +154,10 @@
     outline: 1px solid var(--purple-9);
   }
 
-  /* Template editor: an exposed slot renders with a solid accent border. */
+  /* Template editor: an exposed slot stays highlighted, using the same
+     outline as a hovered slot. */
   &.exposed {
-    outline: 2px solid var(--purple-9);
+    outline: 1px solid var(--purple-9);
     outline-offset: -1px;
   }
 }
