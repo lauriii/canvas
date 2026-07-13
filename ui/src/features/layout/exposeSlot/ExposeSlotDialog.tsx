@@ -1,12 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
-import {
-  Flex,
-  SegmentedControl,
-  Select,
-  Text,
-  TextField,
-} from '@radix-ui/themes';
+import { Flex, Select, Text, TextField } from '@radix-ui/themes';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -31,7 +25,9 @@ import {
 
 import type { ExposeSlotDialogData } from '@/features/ui/dialogSlice';
 
-type Tab = 'create' | 'existing';
+// The "Add new slot" option in the slot-field Select (any real field machine
+// name is a valid choice; this sentinel is the only reserved one).
+const NEW_SLOT = '__new__';
 
 const ExposeSlotDialog = () => {
   const dispatch = useAppDispatch();
@@ -47,52 +43,68 @@ const ExposeSlotDialog = () => {
 
   const isEditMode = open && data.mode === 'editLabel';
 
-  const [tab, setTab] = useState<Tab>('create');
   const [label, setLabel] = useState('');
   const [fieldName, setFieldName] = useState('');
   // Once the machine name is edited by hand it stops tracking the label.
   const [fieldNameEdited, setFieldNameEdited] = useState(false);
-  const [existingField, setExistingField] = useState('');
+  // The chosen slot field, or NEW_SLOT to create a new one.
+  const [slotChoice, setSlotChoice] = useState<string>(NEW_SLOT);
   const [submitError, setSubmitError] = useState('');
 
   const [createSlotField, { isLoading: isCreating }] =
     useCreateSlotFieldMutation();
-  // The bundle's existing component_tree fields, for the "use existing" path.
-  const { data: candidates } = useGetSlotFieldCandidatesQuery(
-    !isEditMode && open && contentTemplateId ? contentTemplateId : skipToken,
-  );
+  // The entity type's reusable component_tree fields (this bundle's plus slot
+  // fields on other bundles, which share storage), for the "use existing" path.
+  const { data: candidates, isFetching: candidatesLoading } =
+    useGetSlotFieldCandidatesQuery(
+      !isEditMode && open && contentTemplateId ? contentTemplateId : skipToken,
+    );
 
-  // Initialize field state whenever the dialog is (re)opened.
+  // Initialize field state whenever the dialog is (re)opened. slotChoice starts
+  // empty (no real value) so the default-selection effect below can pick an
+  // existing slot once candidates load, rather than defaulting to "add new".
   useEffect(() => {
     if (open) {
       const initialLabel = data.label ?? data.slotTitle ?? '';
       setLabel(initialLabel);
       setFieldName(data.alias ?? deriveSlotFieldName(initialLabel));
       setFieldNameEdited(data.mode === 'editLabel');
-      setTab('create');
-      setExistingField('');
+      setSlotChoice('');
       setSubmitError('');
     }
   }, [open, data.mode, data.alias, data.label, data.slotTitle]);
 
   // Slot field names already referenced by this template (the working set).
   const referencedFields = Object.keys(exposedSlots ?? {});
-  // "Use existing" offers the bundle's fields not already referenced here.
+  // Fields offered for reuse: those not already referenced here. Server-sorted
+  // content-first, so the first is the most useful existing slot.
   const availableCandidates = (candidates ?? []).filter(
     (candidate) => !referencedFields.includes(candidate.fieldName),
   );
 
+  // Default to reusing an existing slot (the content-first candidate), not
+  // creating a new one; fall back to "add new" only when none exist. Runs once
+  // per open, after candidates load (slotChoice is '' until then).
+  useEffect(() => {
+    if (open && !isEditMode && slotChoice === '' && !candidatesLoading) {
+      setSlotChoice(availableCandidates[0]?.fieldName ?? NEW_SLOT);
+    }
+  }, [open, isEditMode, slotChoice, candidatesLoading, availableCandidates]);
+  const isCreatingNew = !isEditMode && slotChoice === NEW_SLOT;
+  const chosenCandidate = availableCandidates.find(
+    (candidate) => candidate.fieldName === slotChoice,
+  );
+
   const trimmedLabel = label.trim();
   const labelError = !trimmedLabel ? 'This field is required.' : '';
-  const fieldNameError =
-    isEditMode || tab === 'existing'
-      ? ''
-      : validateSlotFieldName(fieldName, referencedFields);
+  const fieldNameError = isCreatingNew
+    ? validateSlotFieldName(fieldName, referencedFields)
+    : '';
 
   const handleLabelChange = (value: string) => {
     setLabel(value);
     // Auto-derive the machine name from the label until it is edited by hand.
-    if (!isEditMode && tab === 'create' && !fieldNameEdited) {
+    if (isCreatingNew && !fieldNameEdited) {
       setFieldName(deriveSlotFieldName(value));
     }
   };
@@ -108,9 +120,9 @@ const ExposeSlotDialog = () => {
 
   const canSubmit = isEditMode
     ? !!trimmedLabel
-    : tab === 'existing'
-      ? !!existingField
-      : !!trimmedLabel && !!fieldName.trim() && !fieldNameError && !isCreating;
+    : isCreatingNew
+      ? !!trimmedLabel && !!fieldName.trim() && !fieldNameError && !isCreating
+      : !!chosenCandidate && !isCreating;
 
   const handleConfirm = async () => {
     if (!canSubmit) {
@@ -126,17 +138,32 @@ const ExposeSlotDialog = () => {
       return;
     }
 
-    if (tab === 'existing') {
-      const chosen = availableCandidates.find(
-        (candidate) => candidate.fieldName === existingField,
-      );
-      if (!chosen) {
+    if (!isCreatingNew) {
+      if (!chosenCandidate) {
         return;
+      }
+      // A slot field defined only on another bundle shares its storage but has
+      // no field config here yet; attach it to this bundle before referencing.
+      if (!chosenCandidate.onThisBundle) {
+        if (!contentTemplateId) {
+          setSubmitError('Could not determine the content template.');
+          return;
+        }
+        try {
+          await createSlotField({
+            contentTemplateId,
+            fieldName: chosenCandidate.fieldName,
+            label: chosenCandidate.label,
+          }).unwrap();
+        } catch {
+          setSubmitError('Could not add the slot field to this content type.');
+          return;
+        }
       }
       dispatch(
         addExposedSlot({
-          alias: chosen.fieldName,
-          label: chosen.label,
+          alias: chosenCandidate.fieldName,
+          label: chosenCandidate.label,
           slotName: data.slotName,
           componentUuid: data.componentUuid,
         }),
@@ -175,6 +202,9 @@ const ExposeSlotDialog = () => {
   return (
     <Dialog
       open={open}
+      // Wider than the default so slot-field options ("Label (machine_name) —
+      // N with content") fit without truncating.
+      width={isEditMode ? undefined : '380px'}
       onOpenChange={(isOpen) => {
         if (!isOpen) {
           close();
@@ -184,7 +214,7 @@ const ExposeSlotDialog = () => {
       description={
         isEditMode
           ? 'Rename this exposed slot. The machine name cannot be changed.'
-          : 'Exposes a slot so a content editor can add items to this area of their content.'
+          : 'Exposes this slot so content editors can override its content, or add their own, on each item.'
       }
       footer={{
         cancelText: 'Cancel',
@@ -201,58 +231,52 @@ const ExposeSlotDialog = () => {
       >
         <Flex direction="column" gap="2">
           {!isEditMode && (
-            <SegmentedControl.Root
-              value={tab}
-              onValueChange={(value) => setTab(value as Tab)}
-              size="1"
-              mb="1"
-            >
-              <SegmentedControl.Item value="create">
-                Create new slot
-              </SegmentedControl.Item>
-              <SegmentedControl.Item value="existing">
-                Use existing slot
-              </SegmentedControl.Item>
-            </SegmentedControl.Root>
+            <>
+              <DialogFieldLabel htmlFor="exposedSlotChoice">
+                Slot field
+              </DialogFieldLabel>
+              <Select.Root
+                size="1"
+                value={slotChoice}
+                onValueChange={setSlotChoice}
+              >
+                <Select.Trigger
+                  id="exposedSlotChoice"
+                  placeholder="Select a slot field"
+                />
+                {/* Popper positioning + a capped height keep the list scrollable
+                    and bounded no matter how many slot fields exist. */}
+                <Select.Content
+                  position="popper"
+                  style={{ maxHeight: '320px' }}
+                >
+                  {availableCandidates.map((candidate) => (
+                    <Select.Item
+                      key={candidate.fieldName}
+                      value={candidate.fieldName}
+                    >
+                      {candidate.label} ({candidate.fieldName})
+                      {candidate.contentCount > 0 &&
+                        ` — ${candidate.contentCount} with content`}
+                    </Select.Item>
+                  ))}
+                  {availableCandidates.length > 0 && <Select.Separator />}
+                  <Select.Item value={NEW_SLOT}>Add new slot…</Select.Item>
+                </Select.Content>
+              </Select.Root>
+              {!isCreatingNew && chosenCandidate && (
+                <Text size="1" color="gray">
+                  {chosenCandidate.contentCount > 0
+                    ? `Reusing this field restores content already stored in it by ${chosenCandidate.contentCount} ${chosenCandidate.contentCount === 1 ? 'entity' : 'entities'}.`
+                    : chosenCandidate.onThisBundle
+                      ? 'Reusing a field restores any content entities already stored in it.'
+                      : 'This slot field is defined on another content type. Exposing it here adds it to this content type too, sharing the same storage.'}
+                </Text>
+              )}
+            </>
           )}
 
-          {!isEditMode && tab === 'existing' ? (
-            availableCandidates.length === 0 ? (
-              <Text size="1" color="gray">
-                This content type has no reusable slot fields. Create a new slot
-                instead.
-              </Text>
-            ) : (
-              <>
-                <DialogFieldLabel htmlFor="exposedSlotExisting">
-                  Slot field
-                </DialogFieldLabel>
-                <Select.Root
-                  value={existingField}
-                  onValueChange={setExistingField}
-                >
-                  <Select.Trigger
-                    id="exposedSlotExisting"
-                    placeholder="Select a slot field"
-                  />
-                  <Select.Content>
-                    {availableCandidates.map((candidate) => (
-                      <Select.Item
-                        key={candidate.fieldName}
-                        value={candidate.fieldName}
-                      >
-                        {candidate.label} ({candidate.fieldName})
-                      </Select.Item>
-                    ))}
-                  </Select.Content>
-                </Select.Root>
-                <Text size="1" color="gray">
-                  Reusing a field restores any content entities already stored
-                  in it.
-                </Text>
-              </>
-            )
-          ) : (
+          {(isEditMode || isCreatingNew) && (
             <>
               <DialogFieldLabel htmlFor="exposedSlotLabel">
                 Slot name

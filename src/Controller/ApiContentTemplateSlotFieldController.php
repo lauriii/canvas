@@ -7,6 +7,7 @@ namespace Drupal\canvas\Controller;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -14,6 +15,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * HTTP API for the `component_tree` fields backing a template's exposed slots.
@@ -41,13 +43,22 @@ final class ApiContentTemplateSlotFieldController extends ApiControllerBase {
   public function __construct(
     private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly ModuleHandlerInterface $moduleHandler,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   /**
-   * Lists the bundle's `component_tree` fields (the "use existing slot" set).
+   * Lists the entity type's reusable slot fields (the "use existing slot" set).
    *
-   * The client excludes fields already referenced by the working set of exposed
-   * slots; the server returns every `component_tree` field on the bundle.
+   * Returns every `component_tree` field on this bundle, plus slot fields on
+   * *other* bundles of the same entity type (fields can be shared across
+   * bundles: they use one field storage). Each is flagged with `onThisBundle`,
+   * so the client knows whether selecting it just references an existing field
+   * config or must first attach the shared storage to this bundle, and carries
+   * `contentCount`: how many of *this bundle's* entities already hold content
+   * in it (what a reuse would restore). Cross-bundle fields report 0 (this
+   * bundle has no content in them yet). Results are sorted content-first, so
+   * the client can default to the most useful existing slot. The client
+   * excludes fields already referenced by the working set of exposed slots.
    */
   public function candidates(ContentTemplate $content_template): JsonResponse {
     $entity_type_id = $content_template->getTargetEntityTypeId();
@@ -56,15 +67,29 @@ final class ApiContentTemplateSlotFieldController extends ApiControllerBase {
     $map = $this->entityFieldManager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);
     $fields = [];
     foreach ($map[$entity_type_id] ?? [] as $field_name => $info) {
-      if (!\in_array($bundle, $info['bundles'], TRUE)) {
+      $on_this_bundle = \in_array($bundle, $info['bundles'], TRUE);
+      // A field on another bundle is reusable here only by attaching its shared
+      // storage, which the create path allows only for slot fields; skip any
+      // other component_tree field. Fields already on this bundle are listed
+      // as-is.
+      if (!$on_this_bundle && !\str_starts_with($field_name, self::FIELD_NAME_PREFIX)) {
         continue;
       }
-      $field_config = FieldConfig::loadByName($entity_type_id, $bundle, $field_name);
+      // Take the label from this bundle's field config, or any bundle's if the
+      // field is not on this one yet.
+      $label_bundle = $on_this_bundle ? $bundle : \reset($info['bundles']);
+      $label = \is_string($label_bundle)
+        ? FieldConfig::loadByName($entity_type_id, $label_bundle, $field_name)?->label()
+        : NULL;
       $fields[] = [
         'fieldName' => $field_name,
-        'label' => $field_config?->label() ?? $field_name,
+        'label' => $label ?? $field_name,
+        'onThisBundle' => $on_this_bundle,
+        'contentCount' => $this->countContentEntities($entity_type_id, $bundle, $field_name),
       ];
     }
+    // Content-first: the slot fields that would restore the most content lead.
+    \usort($fields, static fn(array $a, array $b): int => $b['contentCount'] <=> $a['contentCount']);
     return new JsonResponse(['fields' => $fields]);
   }
 
@@ -136,6 +161,56 @@ final class ApiContentTemplateSlotFieldController extends ApiControllerBase {
     $this->entityFieldManager->clearCachedFieldDefinitions();
 
     return new JsonResponse(['fieldName' => $field_name, 'label' => $label], JsonResponse::HTTP_CREATED);
+  }
+
+  /**
+   * Reports how many of the bundle's entities have overridden a slot.
+   *
+   * An entity overrides an exposed slot when its backing `component_tree` field
+   * holds content (including the empty-slot marker, a deliberate "render
+   * nothing"); an entity whose field is empty inherits the template default.
+   * The count is derived at read time from stored entity data, so nothing needs
+   * invalidating on entity save, publish, or revert.
+   *
+   * The query joins the (small) backing-field table, so it scales with the
+   * number of *overriding* entities, not the bundle size: inheriting entities
+   * have no row there and are never scanned. Only the numerator is reported (no
+   * "N of M"): a bundle-wide total would full-scan the bundle, because core
+   * does not index the bundle column on the data table.
+   */
+  public function usage(ContentTemplate $content_template, string $field_name): JsonResponse {
+    $entity_type_id = $content_template->getTargetEntityTypeId();
+    $bundle = $content_template->getTargetBundle();
+
+    if (FieldConfig::loadByName($entity_type_id, $bundle, $field_name) === NULL) {
+      throw new NotFoundHttpException(\sprintf('The %s bundle has no %s slot field.', $bundle, $field_name));
+    }
+
+    return new JsonResponse(['overridden' => $this->countContentEntities($entity_type_id, $bundle, $field_name)]);
+  }
+
+  /**
+   * Counts a bundle's entities that hold content in a `component_tree` field.
+   *
+   * The query joins the (small) backing-field table, so it scales with the
+   * number of content-bearing entities, not the bundle size: entities with an
+   * empty field have no row there and are never scanned. `component_tree` has
+   * no main property, so `exists($field_name)` cannot be used; every real row
+   * carries a `uuid`, so its presence marks a non-empty field. A slot may hold
+   * a multi-row subtree, but the field-table join makes the query non-simple,
+   * so the entity query groups by entity id: the count is per-entity, not
+   * per-row. Bundle-scoped in case the field storage is shared across bundles.
+   * Access-check-free: an aggregate count for a template author leaks only a
+   * number, and per-entity grants would add an expensive node-grants join.
+   */
+  private function countContentEntities(string $entity_type_id, string $bundle, string $field_name): int {
+    $query = $this->entityTypeManager->getStorage($entity_type_id)->getQuery()
+      ->accessCheck(FALSE)
+      ->exists("$field_name.uuid");
+    if ($bundle_key = $this->entityTypeManager->getDefinition($entity_type_id)->getKey('bundle')) {
+      $query->condition($bundle_key, $bundle);
+    }
+    return (int) $query->count()->execute();
   }
 
 }

@@ -12,7 +12,6 @@ import {
 
 import {
   CANVAS_SLOT_EMPTY_MARKER_TYPE,
-  findEnclosingExposedSlotAlias,
   findExposedSlotEntry,
   getSlotHostComponentUuid,
   isEmptySlotMarkerNode,
@@ -380,32 +379,6 @@ function forkSlotToOverride(
 }
 
 /**
- * Fork the exposed slot enclosing a target component, if it is not yet
- * overridden. Invoked (defensively) by mutating reducers keyed on a component
- * UUID; a no-op for already-overridden (editable) content.
- */
-function ensureOverriddenForUuid(
-  state: LayoutModelSliceState,
-  uuid: string | undefined,
-): void {
-  if (!state.perContentMode || !uuid) {
-    return;
-  }
-  const enclosing = findEnclosingExposedSlotAlias(
-    state.layout,
-    state.exposedSlots,
-    uuid,
-  );
-  if (!enclosing || state.slotOverrides?.[enclosing.alias]?.overridden) {
-    return;
-  }
-  const slot = findSlotById(state.layout, enclosing.slotId);
-  if (slot) {
-    forkSlotToOverride(state, slot, enclosing.alias);
-  }
-}
-
-/**
  * Fork the exposed slot at a destination path, if it is not yet overridden.
  * Invoked by insert/move reducers so dropping into a still-defaulted exposed
  * slot materializes the override before the new content lands.
@@ -502,9 +475,6 @@ export const layoutModelSlice = createSlice({
       }),
     ),
     deleteNode: create.reducer((state, action: PayloadAction<string>) => {
-      // Per-content editing: fork the enclosing exposed slot's default before a
-      // first edit (no-op for already-overridden/editable content).
-      ensureOverriddenForUuid(state, action.payload);
       const deletedComponent = findComponentByUuid(
         state.layout,
         action.payload,
@@ -543,10 +513,6 @@ export const layoutModelSlice = createSlice({
           );
           return;
         }
-
-        // Per-content editing: fork the enclosing exposed slot's default before
-        // a first edit (no-op for already-overridden/editable content).
-        ensureOverriddenForUuid(state, uuid);
 
         const { updatedNode, updatedModel } = replaceUUIDsAndUpdateModel(
           nodeToDuplicate,
@@ -669,10 +635,6 @@ export const layoutModelSlice = createSlice({
           return;
         }
 
-        // Per-content editing: fork the enclosing exposed slot's default before
-        // a first edit (no-op for already-overridden/editable content).
-        ensureOverriddenForUuid(state, uuid);
-
         const cloneNode = JSON.parse(
           JSON.stringify(findComponentByUuid(state.layout, uuid)),
         );
@@ -706,10 +668,6 @@ export const layoutModelSlice = createSlice({
           );
           return;
         }
-
-        // Per-content editing: fork the enclosing exposed slot's default before
-        // a first edit (no-op for already-overridden/editable content).
-        ensureOverriddenForUuid(state, uuid);
 
         const cloneNode = JSON.parse(
           JSON.stringify(findComponentByUuid(state.layout, uuid)),
@@ -803,9 +761,12 @@ export const layoutModelSlice = createSlice({
         state.updatePreview = true;
       },
     ),
-    // Per-content editing: materialize an entity-owned, editable copy of a
-    // slot's template default content so it can be edited (the "override" /
-    // "Edit content" affordance). No-op if already overridden.
+    // Per-content editing: unlock a locked exposed slot. Materializes an
+    // entity-owned, editable copy of the slot's template default content (fresh
+    // UUIDs) and marks the slot overridden, so it becomes ordinary editable
+    // content. The fork is applied in a single reducer and selection stays on
+    // the slot, so no follow-up edit ever addresses a pre-fork UUID the server
+    // has not stored (@see decision 4, task 11.4). No-op if already overridden.
     overrideSlotDefaultContent: create.reducer(
       (state, action: PayloadAction<string>) => {
         const alias = action.payload;

@@ -96,6 +96,12 @@ export type ViewModesList = {
 export type PreviewContentEntity = {
   id: string;
   label: string;
+  // Present only when the current user may update this entity: the entity's
+  // edit-form URL. Gates the "Edit exposed slots" jump and "Edit content" link.
+  editUrl?: string | null;
+  // Present only when the user may administer this bundle's fields: the Field
+  // UI "Manage fields" URL. Gates the "Edit fields" link.
+  manageFieldsUrl?: string | null;
 };
 
 export type PreviewContentEntitiesResponse = {

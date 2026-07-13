@@ -11,9 +11,7 @@ import LanguageSelect from '@/components/languageSelect/LanguageSelect';
 import PreviewControls from '@/components/PreviewControls';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import ContentPreviewSelector from '@/components/templates/ContentPreviewSelector';
-import TemplateContentEditMenu from '@/components/templates/TemplateContentEditMenu';
 import UndoRedo from '@/components/UndoRedo';
-import { selectExposedSlots } from '@/features/layout/layoutModelSlice';
 import NotificationBell from '@/features/notifications/NotificationBell';
 import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
@@ -37,10 +35,6 @@ const Topbar = () => {
   const isSegments = location.pathname.includes('/segments');
   const isTemplateEditorContext =
     useAppSelector(selectEditorFrameContext) === 'template';
-  const exposedSlots = useAppSelector(selectExposedSlots);
-  // The template exposes per-content editing only when it has an exposed slot;
-  // gate the "Edit content" cross-nav on that.
-  const hasActiveExposedSlots = Object.keys(exposedSlots ?? {}).length > 0;
   const { setTemplatePreviewEntityId } = useEditorNavigation();
 
   let hasAiExtensionAvailable = false;
@@ -147,18 +141,11 @@ const Topbar = () => {
           <Flex align="center" justify="center" gap="2">
             <PageInfo />
             {isTemplateEditorContext && (
-              <>
-                <ContentPreviewSelector
-                  items={previewEntities}
-                  selectedItemId={previewEntityId}
-                  onSelectionChange={handlePreviewEntityChange}
-                />
-                <TemplateContentEditMenu
-                  items={previewEntities}
-                  entityType={entityType}
-                  hasActiveExposedSlots={hasActiveExposedSlots}
-                />
-              </>
+              <ContentPreviewSelector
+                items={previewEntities}
+                selectedItemId={previewEntityId}
+                onSelectionChange={handlePreviewEntityChange}
+              />
             )}
           </Flex>
           <Flex align="center" justify="end" gap="2">

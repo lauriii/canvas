@@ -145,6 +145,72 @@ export function buildEntityEditFormUrl(
   return `${normalized}node/${entityId}/edit`;
 }
 
+/** A minimal templated content entity carrying the server's edit URLs. */
+export interface ContentEntityEditTarget {
+  id: string;
+  // The entity's edit-form URL; the server omits it unless the user may update
+  // the entity, so its presence is the permission gate.
+  editUrl?: string | null;
+  // The bundle's Field UI URL; omitted unless the user may administer fields.
+  manageFieldsUrl?: string | null;
+}
+
+/** One permission-gated edit action for a templated content entity. */
+export interface ContentEditAction {
+  key: 'slots' | 'content' | 'fields';
+  label: string;
+  // External actions open a new tab (Drupal admin); internal ones navigate the
+  // Canvas SPA.
+  external: boolean;
+  run: () => void;
+}
+
+/**
+ * The edit actions available for a templated content entity, in menu order:
+ * edit its exposed slots in Canvas, edit its content in the CMS, or manage the
+ * bundle's fields. Each action is included only when its backing URL is present
+ * (the server omits URLs the user has no access to), so gating is generic and
+ * entity-type-agnostic. `navigateToEditor` is injected so this stays a pure,
+ * hook-free builder usable inside list renders.
+ */
+export function buildContentEditActions(
+  navigateToEditor: (entityType: string, entityId: string) => void,
+  entityType: string | undefined,
+  entity: ContentEntityEditTarget | undefined,
+): ContentEditAction[] {
+  if (!entityType || !entity) {
+    return [];
+  }
+  const openExternal = (url: string) =>
+    window.open(url, '_blank', 'noopener,noreferrer');
+  const actions: ContentEditAction[] = [];
+  if (entity.editUrl) {
+    const editUrl = entity.editUrl;
+    actions.push({
+      key: 'slots',
+      label: 'Edit exposed slots',
+      external: false,
+      run: () => navigateToEditor(entityType, entity.id),
+    });
+    actions.push({
+      key: 'content',
+      label: 'Edit content',
+      external: true,
+      run: () => openExternal(editUrl),
+    });
+  }
+  if (entity.manageFieldsUrl) {
+    const fieldsUrl = entity.manageFieldsUrl;
+    actions.push({
+      key: 'fields',
+      label: 'Edit fields',
+      external: true,
+      run: () => openExternal(fieldsUrl),
+    });
+  }
+  return actions;
+}
+
 /** A creatable bundle in a group: its label and Drupal add-form URL. */
 export interface AddNewOption {
   bundle: string;
