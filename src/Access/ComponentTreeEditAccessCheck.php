@@ -42,7 +42,7 @@ final class ComponentTreeEditAccessCheck implements AccessInterface {
       // A field-hosted component tree that is not a Canvas page: per-entity
       // editing is only offered for templated bundles with exposed slots
       // (decision 6). This check runs both when gating the Layout API and, via
-      // checkNamedRoute(), when building the "Layout" local task on the entity's
+      // checkNamedRoute(), when building the "Layout" task on the entity's
       // canonical route.
       $is_field_hosted = $entity instanceof FieldableEntityInterface && !$entity instanceof ComponentTreeEntityInterface;
 

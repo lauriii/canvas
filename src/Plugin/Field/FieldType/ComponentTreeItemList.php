@@ -218,7 +218,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
    *
    * @return array{fields: array<string, array<int, array<string, mixed>>>, kept: array<string, true>}
    *   - `fields`: the rows to write, keyed by backing field machine name. Every
-   *     exposed slot is present (empty array when not overridden), so a reverted
+   *     exposed slot is present (empty when not overridden), so a reverted
    *     slot clears its field.
    *   - `kept`: the set of submitted UUIDs partitioned into a slot field, keyed
    *     by UUID, so callers can detect stray (non-partitioned) content.

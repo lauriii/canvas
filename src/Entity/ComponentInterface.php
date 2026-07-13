@@ -21,7 +21,7 @@ interface ComponentInterface extends VersionedConfigEntityInterface, EntityWithP
    *
    * A `status: false` (hence non-placeable) Component that renders nothing. As
    * the sole root row of an exposed slot's backing field it represents an
-   * *empty override*: "this entity's slot renders nothing" (vs. an empty field =
+   * *empty override*: "this entity's slot renders nothing" (vs. empty field =
    * inherit the template default).
    *
    * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\EmptySlotMarker
