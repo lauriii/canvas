@@ -101,20 +101,15 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
   const exposed = isTemplateContext
     ? findExposedSlotEntry(exposedSlots, parentComponent.uuid, slot.name)
     : null;
-  const isActiveExposed = !!exposed && !exposed.definition.disabled;
-  const chipLabel = exposed
-    ? exposed.definition.disabled
-      ? `${exposed.definition.label} (disabled)`
-      : exposed.definition.label
-    : slotName;
+  const isActiveExposed = !!exposed;
+  const chipLabel = exposed ? exposed.definition.label : slotName;
 
-  // Per-content editing: this slot's exposed-slot definition (if it is an active
+  // Per-content editing: this slot's exposed-slot definition (if it is an
   // exposed slot the content editor can fill) and its override state.
   const perContentEntry = perContentMode
     ? findExposedSlotEntry(exposedSlots, parentComponent.uuid, slot.name)
     : null;
-  const isPerContentExposed =
-    !!perContentEntry && !perContentEntry.definition.disabled;
+  const isPerContentExposed = !!perContentEntry;
   const perContentAlias = perContentEntry?.alias;
   const perContentOverride = perContentAlias
     ? slotOverrides?.[perContentAlias]
@@ -252,8 +247,6 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
                     type="button"
                     className={clsx(styles.slotExposeChipButton, {
                       [styles.slotExposeChipButtonExposed]: isActiveExposed,
-                      [styles.slotExposeChipButtonDisabled]:
-                        exposed?.definition.disabled,
                     })}
                     aria-label={
                       exposed

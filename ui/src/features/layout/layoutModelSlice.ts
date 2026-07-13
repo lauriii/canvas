@@ -99,7 +99,6 @@ export interface ExposedSlotDefinition {
   label: string;
   slotName: string;
   componentUuid: UUID;
-  disabled: boolean;
 }
 
 /**
@@ -188,11 +187,6 @@ type AddExposedSlotPayload = {
 type UpdateExposedSlotLabelPayload = {
   alias: string;
   label: string;
-};
-
-type SetExposedSlotDisabledPayload = {
-  alias: string;
-  disabled: boolean;
 };
 
 type DeleteComponentAndExposedSlotsPayload = {
@@ -432,11 +426,7 @@ function ensureOverriddenForPath(
     getSlotHostComponentUuid(container),
     container.name,
   );
-  if (
-    !entry ||
-    entry.definition.disabled ||
-    state.slotOverrides?.[entry.alias]?.overridden
-  ) {
+  if (!entry || state.slotOverrides?.[entry.alias]?.overridden) {
     return;
   }
   forkSlotToOverride(state, container, entry.alias);
@@ -454,9 +444,6 @@ function syncOverriddenSlotEmptiness(state: LayoutModelSliceState): void {
     return;
   }
   for (const [alias, def] of Object.entries(state.exposedSlots)) {
-    if (def.disabled) {
-      continue;
-    }
     const override = state.slotOverrides[alias];
     if (!override?.overridden) {
       continue;
@@ -764,7 +751,6 @@ export const layoutModelSlice = createSlice({
           label,
           slotName,
           componentUuid,
-          disabled: false,
         };
         // Persist the working set with the next template save.
         state.updatePreview = true;
@@ -781,19 +767,8 @@ export const layoutModelSlice = createSlice({
         }
       },
     ),
-    // Template editor: soft-disable / re-enable an exposed slot. Disabling keeps
-    // the alias (and any per-entity content) but renders as if not exposed.
-    setExposedSlotDisabled: create.reducer(
-      (state, action: PayloadAction<SetExposedSlotDisabledPayload>) => {
-        const { alias, disabled } = action.payload;
-        const existing = state.exposedSlots?.[alias];
-        if (existing) {
-          existing.disabled = disabled;
-          state.updatePreview = true;
-        }
-      },
-    ),
-    // Template editor: remove an exposed slot definition (destructive).
+    // Template editor: detach an exposed slot definition. The backing field and
+    // any per-entity content survive; re-exposing the field restores them.
     removeExposedSlot: create.reducer(
       (state, action: PayloadAction<string>) => {
         if (state.exposedSlots) {
@@ -835,7 +810,7 @@ export const layoutModelSlice = createSlice({
       (state, action: PayloadAction<string>) => {
         const alias = action.payload;
         const def = state.exposedSlots?.[alias];
-        if (!def || def.disabled) {
+        if (!def) {
           return;
         }
         if (state.slotOverrides?.[alias]?.overridden) {
@@ -1293,7 +1268,6 @@ export const {
   insertNodes,
   addExposedSlot,
   updateExposedSlotLabel,
-  setExposedSlotDisabled,
   removeExposedSlot,
   deleteComponentAndExposedSlots,
   overrideSlotDefaultContent,

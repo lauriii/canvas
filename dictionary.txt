@@ -269,3 +269,6 @@ unwindowed
 videomedia
 wrappable
 zencoder
+affordances
+editability
+rerooted

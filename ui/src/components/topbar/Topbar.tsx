@@ -40,11 +40,9 @@ const Topbar = () => {
   const isTemplateEditorContext =
     useAppSelector(selectEditorFrameContext) === 'template';
   const exposedSlots = useAppSelector(selectExposedSlots);
-  // The template exposes per-content editing only when it has an active
-  // (non-disabled) slot; gate the "Edit content" cross-nav on that.
-  const hasActiveExposedSlots = Object.values(exposedSlots ?? {}).some(
-    (definition) => !definition.disabled,
-  );
+  // The template exposes per-content editing only when it has an exposed slot;
+  // gate the "Edit content" cross-nav on that.
+  const hasActiveExposedSlots = Object.keys(exposedSlots ?? {}).length > 0;
   const { setTemplatePreviewEntityId } = useEditorNavigation();
 
   let hasAiExtensionAvailable = false;

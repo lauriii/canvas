@@ -7,7 +7,7 @@ import Dialog from '@/components/Dialog';
 import SidebarFolder from '@/components/sidePanel/SidebarFolder';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
-import { countActiveExposedSlots } from '@/features/layout/exposedSlots';
+import { countExposedSlots } from '@/features/layout/exposedSlots';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useGetEditedTemplateId } from '@/hooks/useGetEditedTemplateId';
 import { useSmartRedirect } from '@/hooks/useSmartRedirect';
@@ -188,7 +188,7 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
     }
   }, [isError, error]);
 
-  const exposedSlotCount = countActiveExposedSlots(viewMode.exposed_slots);
+  const exposedSlotCount = countExposedSlots(viewMode.exposed_slots);
 
   const menuItems = (
     <>
