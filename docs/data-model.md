@@ -106,7 +106,10 @@ Canvas defines a new `Canvas field type` with the following `field prop`s:
 - _slot_ — If this `component instance` is placed inside another `component instance` in the tree, the machine name of the `component slot` in which it is placed. This slot must exist in the parent `component instance`.
 - _inputs_ — see 3.2.2
 
-When _parent_uuid_ and _slot_ are empty, the `component instance` is at the root of the `component tree`.
+When _parent_uuid_ and _slot_ are empty, the `component instance` is at the root of the `component tree`. In a content
+entity whose bundle is rendered by a `ContentTemplate`, a `component instance` with an empty _parent_uuid_ and a non-empty
+_slot_ is the root of a per-entity subtree targeting the `ContentTemplate`'s exposed slot whose alias equals _slot_ (a
+"bonsai" root); at render time it is merged into the template under that exposed slot's real component instance and slot.
 
 Additionally there are three computed `field prop`s:
 - _component_ - this is an entity reference to the `Component config entity` the `component instance` uses, meaning also the appropriate version will be loaded. Any methods on the `Component config entity` can be chained. E.g. `$item->get('component')?->getComponentSource()`.
@@ -162,7 +165,7 @@ These columns always meet the following requirements
   - the value for "component_id" being the ID of a `Component config entity` (NOT that of the underlying `component`)
   - the value for "component_version" being a version on the (versioned!) `Component config entity` (see `\Drupal\canvas\Entity\VersionedConfigEntityInterface::getVersions()`)
   - the "uuid" being a randomly generated UUID
-2. Any top-level items have NULL for both the `parent_uuid` and `slot`.
+2. Any top-level items have NULL for both the `parent_uuid` and `slot`. Exception: in a content entity of a bundle rendered by a `ContentTemplate`, a top-level item MAY have a NULL `parent_uuid` and a non-empty `slot` — it is then the root of a per-entity subtree ("bonsai" root) targeting the exposed slot whose alias equals `slot`. In published data the alias must be declared by the applicable template (see `\Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator`).
 3. Nested components must have a value for both the `parent_uuid` and `slot`.
     1. The `parent_uuid` must exist in a sibling field item in the `ComponentTreeItemList`.
     2. The `slot` must be present in the parent `component`'s slot definitions
