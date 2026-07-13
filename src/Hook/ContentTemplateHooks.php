@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\ContentTemplateRoutes;
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -62,6 +65,36 @@ final class ContentTemplateHooks {
       // auto-saved changes.
       // @see \Drupal\canvas\Controller\ApiAutoSaveController::post()
       $form_display->removeComponent($published_key);
+    }
+  }
+
+  /**
+   * Implements hook_entity_presave().
+   *
+   * Purges per-entity exposed-slot content whose alias the applicable content
+   * template no longer declares (#3520517). Rows targeting a disabled but
+   * still-declared alias are retained.
+   */
+  #[Hook('entity_presave')]
+  public function entityPresave(EntityInterface $entity): void {
+    if (!($entity instanceof FieldableEntityInterface) || $entity instanceof ComponentTreeEntityInterface) {
+      return;
+    }
+    // Only the full view mode can expose slots.
+    $template = ContentTemplate::loadForEntity($entity, 'full');
+    if (!$template instanceof ContentTemplate) {
+      return;
+    }
+    $declared_aliases = \array_keys($template->getExposedSlots());
+    $field_definitions = $this->entityFieldManager->getFieldDefinitions($entity->getEntityTypeId(), $entity->bundle());
+    foreach ($field_definitions as $field_name => $field_definition) {
+      if (!\is_a($field_definition->getItemDefinition()->getClass(), ComponentTreeItem::class, TRUE)) {
+        continue;
+      }
+      $item_list = $entity->get($field_name);
+      if ($item_list instanceof ComponentTreeItemList) {
+        $item_list->pruneRootsForRemovedAliases($declared_aliases);
+      }
     }
   }
 
