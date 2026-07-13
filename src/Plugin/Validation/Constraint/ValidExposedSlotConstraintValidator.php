@@ -93,15 +93,21 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
     }
 
     // The exposed slot's key must name a `component_tree` field on the bundle:
-    // that field is the slot's per-entity storage and stable identity.
+    // that field is the slot's per-entity storage and stable identity. The key
+    // is the final segment of this item's property path (e.g. the `test_slot`
+    // in `exposed_slots.test_slot`). Derive it from there rather than matching
+    // $value against the base template's exposed slots: a translation override
+    // changes the translatable `label`, so the merged value validated here no
+    // longer equals any base value and a value-based lookup would fail.
     if ($constraint->requireFieldBacked) {
-      $field_name = \array_search($value, $template->getExposedSlots(), TRUE);
-      $field_config = \is_string($field_name)
+      $segments = \preg_split('/[.\[\]]+/', $this->context->getPropertyPath(), -1, \PREG_SPLIT_NO_EMPTY);
+      $field_name = $segments === FALSE || $segments === [] ? '' : (string) \end($segments);
+      $field_config = $field_name !== ''
         ? FieldConfig::loadByName($template->getTargetEntityTypeId(), $template->getTargetBundle(), $field_name)
         : NULL;
       if ($field_config === NULL || $field_config->getType() !== ComponentTreeItem::PLUGIN_ID) {
         $this->context->addViolation($constraint->missingFieldMessage, [
-          '%field' => \is_string($field_name) ? $field_name : '',
+          '%field' => $field_name,
         ]);
       }
     }
