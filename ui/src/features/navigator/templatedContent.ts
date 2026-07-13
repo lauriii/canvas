@@ -113,6 +113,38 @@ export function buildEntityAddFormUrl(
   return `${normalized}node/add/${bundle}`;
 }
 
+/**
+ * Builds the URL of Drupal's own edit form for an entity.
+ *
+ * In per-content mode the contextual panel's Content tab links out to
+ * Drupal's edit form for the entity's content fields (exposed-slots decision
+ * 10, phase 1); rendering those widgets inline in the panel is phase 2. Only
+ * `node` is supported, matching `buildEntityAddFormUrl` and the current
+ * templated-entity scope; other entity types return null.
+ *
+ * @param baseUrl
+ *   The Drupal base URL (`drupalSettings.path.baseUrl`, e.g. `/` or `/sub/`).
+ * @param entityType
+ *   The entity type machine name.
+ * @param entityId
+ *   The entity ID.
+ *
+ * @return
+ *   The edit-form URL, or null when the entity type is unsupported.
+ */
+export function buildEntityEditFormUrl(
+  baseUrl: string | undefined,
+  entityType: string,
+  entityId: string,
+): string | null {
+  if (entityType !== 'node') {
+    return null;
+  }
+  const base = baseUrl && baseUrl.length > 0 ? baseUrl : '/';
+  const normalized = base.endsWith('/') ? base : `${base}/`;
+  return `${normalized}node/${entityId}/edit`;
+}
+
 /** A creatable bundle in a group: its label and Drupal add-form URL. */
 export interface AddNewOption {
   bundle: string;
@@ -155,6 +187,45 @@ export function getAddNewOptions(
       continue;
     }
     options.push({ bundle, label, url });
+  }
+  return options;
+}
+
+/**
+ * Every content type editable in Canvas that the current user may create, for
+ * the Content panel's single "Add new" control next to the search field.
+ *
+ * Enumerates all of `contentEntityCreateOperations` (entity type -> bundle ->
+ * label), which the server already scopes to Canvas-editable bundles the user
+ * can create (create access + a Canvas field on the bundle) — so this is not
+ * limited to bundles with an active exposed slot. Canvas pages are excluded
+ * (they have their own creation in the Pages panel). Entries whose entity type
+ * has no derivable add-form URL are dropped.
+ *
+ * @param createOperations
+ *   `contentEntityCreateOperations`: entity type -> bundle -> label.
+ * @param baseUrl
+ *   The Drupal base URL.
+ *
+ * @return
+ *   The creatable bundles, with labels and add-form URLs, one per bundle.
+ */
+export function getAllAddNewOptions(
+  createOperations: Record<string, Record<string, string>> | undefined,
+  baseUrl: string | undefined,
+): AddNewOption[] {
+  const options: AddNewOption[] = [];
+  for (const [entityType, bundles] of Object.entries(createOperations ?? {})) {
+    if (entityType === PAGE_ENTITY_TYPE) {
+      continue;
+    }
+    for (const [bundle, label] of Object.entries(bundles)) {
+      const url = buildEntityAddFormUrl(baseUrl, entityType, bundle);
+      if (url === null) {
+        continue;
+      }
+      options.push({ bundle, label, url });
+    }
   }
   return options;
 }

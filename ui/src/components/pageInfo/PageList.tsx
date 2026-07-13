@@ -14,7 +14,6 @@ import {
   ContextMenu,
   DropdownMenu,
   Flex,
-  Heading,
   Skeleton,
   TextField,
   Tooltip,
@@ -26,7 +25,7 @@ import InfiniteScrollObserver from '@/components/InfiniteScrollObserver';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
 
-import type { FormEvent, ReactNode } from 'react';
+import type { FormEvent } from 'react';
 import type { ContentStub } from '@/types/Content';
 
 const hasPermission = (
@@ -349,13 +348,6 @@ interface PageListProps {
   pageItemsError?: string | null;
   homepagePath?: string;
   selectedPageId?: string | number;
-  // Heading shown above the pages group. Set only when additional (templated
-  // bundle) groups are rendered below, so the single-list layout is unchanged
-  // for sites without templated content.
-  pagesHeading?: string;
-  // Templated-entity groups rendered after the pages group (see
-  // TemplatedContentGroups). Kept as a slot so PageList stays page-focused.
-  additionalGroups?: ReactNode;
   // Permissions
   canCreatePages?: boolean;
   // Pagination
@@ -378,8 +370,6 @@ const PageList = ({
   pageItemsError = null,
   homepagePath,
   selectedPageId,
-  pagesHeading,
-  additionalGroups,
   canCreatePages = false,
   hasMore = false,
   onLoadMore,
@@ -463,11 +453,6 @@ const PageList = ({
         my="3"
       >
         <Box>
-          {pagesHeading && (
-            <Heading as="h5" size="1" color="gray" mb="2">
-              {pagesHeading}
-            </Heading>
-          )}
           {!pageItemsError && (
             <ContentGroup
               items={pageItems}
@@ -488,7 +473,6 @@ const PageList = ({
             />
           )}
           {hasMore && <InfiniteScrollObserver onLoadMore={onLoadMore} />}
-          {additionalGroups}
         </Box>
       </Skeleton>
       <Skeleton
