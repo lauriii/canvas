@@ -643,8 +643,13 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
   public function postSave(EntityStorageInterface $storage, $update = TRUE): void {
     parent::postSave($storage, $update);
 
-    // For new Components, auto-create Folders based on their category.
-    if (!$update) {
+    // For new Components, auto-create Folders based on their category. The
+    // empty slot marker is a non-placeable, internal Component that is excluded
+    // from the component library by design, so it is not sorted into a Folder.
+    // (This is distinct from a merely disabled Component, e.g. an initially
+    // `status: FALSE` block, which remains placeable and is sorted normally.)
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\EmptySlotMarker
+    if (!$update && $this->id() !== ComponentInterface::EMPTY_SLOT_MARKER_ID) {
       $category = $this->getComponentSource()->determineDefaultFolder();
 
       $folder = Folder::loadByNameAndConfigEntityTypeId((string) $category, self::ENTITY_TYPE_ID);
