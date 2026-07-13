@@ -6,7 +6,7 @@ import { makeStore } from '@/app/store';
 import {
   CANVAS_SLOT_EMPTY_MARKER_ID,
   CANVAS_SLOT_EMPTY_MARKER_TYPE,
-  countActiveExposedSlots,
+  countExposedSlots,
   exposedSlotsFromServer,
   exposedSlotsToServer,
   filterNonMarkerComponents,
@@ -17,8 +17,6 @@ import {
   isExposedSlotTarget,
 } from '@/features/layout/exposedSlots';
 import DeleteComponentWithExposedSlotsDialog from '@/features/layout/exposeSlot/DeleteComponentWithExposedSlotsDialog';
-import ExposeSlotDialog from '@/features/layout/exposeSlot/ExposeSlotDialog';
-import RemoveExposedSlotDialog from '@/features/layout/exposeSlot/RemoveExposedSlotDialog';
 import {
   addExposedSlot,
   deleteComponentAndExposedSlots,
@@ -31,19 +29,26 @@ import {
   selectIsPerContentMode,
   selectLayout,
   selectSlotOverrides,
-  setExposedSlotDisabled,
   setInitialLayoutModel,
   updateExposedSlotLabel,
 } from '@/features/layout/layoutModelSlice';
 import { getNodeAtPath, isNodeEditable } from '@/features/layout/layoutUtils';
 import { setDialogWithDataOpen } from '@/features/ui/dialogSlice';
 import {
-  deriveExposedSlotAlias,
-  validateExposedSlotAlias,
+  deriveSlotFieldName,
+  validateSlotFieldName,
 } from '@/features/validation/validation';
 
 import '@/styles/radix-themes';
 import '@/styles/index.css';
+
+// The expose/detach *dialog* UI coverage (the single "Slot field" Select that
+// defaults to reusing an existing field, the "Add new slot…" create path, and
+// Detach) moved to the Playwright spec
+// tests/src/Playwright/tests/isolatedPerTest/exposeSlot.spec.ts, because those
+// dialogs now depend on the slot-field candidate/create APIs. This file keeps
+// the pure helper, reducer and per-content coverage. Cypress is deprecated in
+// this repo: do not add new tests here (@see [[Playwright not Cypress]]).
 
 // A minimal layout with one component hosting one empty slot.
 const buildLayoutModel = () => ({
@@ -88,49 +93,70 @@ const mountWith = (store, ui) =>
     </Provider>,
   );
 
-describe('deriveExposedSlotAlias', () => {
-  it('derives a Drupal-style machine name from a label', () => {
-    expect(deriveExposedSlotAlias('My Hero')).to.equal('my_hero');
-    expect(deriveExposedSlotAlias('  Featured   Area!! ')).to.equal(
-      'featured_area',
+describe('deriveSlotFieldName', () => {
+  it('derives a canvas_slot_-prefixed field machine name from a label', () => {
+    expect(deriveSlotFieldName('My Hero')).to.equal('canvas_slot_my_hero');
+    expect(deriveSlotFieldName('  Featured   Area!! ')).to.equal(
+      'canvas_slot_featured_area',
     );
-    expect(deriveExposedSlotAlias('Call-to-Action')).to.equal('call_to_action');
-    expect(deriveExposedSlotAlias('123 Go')).to.equal('123_go');
+    expect(deriveSlotFieldName('Call-to-Action')).to.equal(
+      'canvas_slot_call_to_action',
+    );
+    expect(deriveSlotFieldName('123 Go')).to.equal('canvas_slot_123_go');
+  });
+
+  it('returns an empty string when no valid suffix remains', () => {
+    expect(deriveSlotFieldName('!!!')).to.equal('');
+    expect(deriveSlotFieldName('   ')).to.equal('');
   });
 });
 
-describe('validateExposedSlotAlias', () => {
-  it('accepts valid aliases', () => {
-    expect(validateExposedSlotAlias('my_hero')).to.equal('');
-    expect(validateExposedSlotAlias('hero-area')).to.equal('');
-    expect(validateExposedSlotAlias('abc')).to.equal('');
+describe('validateSlotFieldName', () => {
+  it('accepts valid slot field names', () => {
+    expect(validateSlotFieldName('canvas_slot_my_hero')).to.equal('');
+    expect(validateSlotFieldName('canvas_slot_hero')).to.equal('');
+    expect(validateSlotFieldName('canvas_slot_abc')).to.equal('');
   });
 
   it('requires a value', () => {
-    expect(validateExposedSlotAlias('')).to.equal('Machine name is required.');
-    expect(validateExposedSlotAlias('   ')).to.equal(
-      'Machine name is required.',
+    expect(validateSlotFieldName('')).to.equal('Machine name is required.');
+    expect(validateSlotFieldName('   ')).to.equal('Machine name is required.');
+  });
+
+  it('requires the canvas_slot_ prefix', () => {
+    expect(validateSlotFieldName('my_hero')).to.equal(
+      'Machine name must start with "canvas_slot_".',
     );
   });
 
   it('rejects invalid patterns', () => {
-    // Too short (pattern requires at least 3 chars).
-    expect(validateExposedSlotAlias('ab')).to.not.equal('');
-    // Leading/trailing underscore not allowed.
-    expect(validateExposedSlotAlias('_hero')).to.not.equal('');
-    expect(validateExposedSlotAlias('hero_')).to.not.equal('');
+    // Trailing underscore not allowed.
+    expect(validateSlotFieldName('canvas_slot_hero_')).to.not.equal('');
     // Uppercase / special characters not allowed.
-    expect(validateExposedSlotAlias('Hero')).to.not.equal('');
-    expect(validateExposedSlotAlias('he ro')).to.not.equal('');
+    expect(validateSlotFieldName('canvas_slot_Hero')).to.not.equal('');
+    expect(validateSlotFieldName('canvas_slot_he ro')).to.not.equal('');
+  });
+
+  it('enforces the 32-character limit', () => {
+    // 'canvas_slot_' (12) + 21 chars = 33, over the 32-char field-name cap.
+    expect(validateSlotFieldName(`canvas_slot_${'a'.repeat(21)}`)).to.not.equal(
+      '',
+    );
   });
 
   it('enforces uniqueness within the template', () => {
-    expect(validateExposedSlotAlias('hero', ['hero', 'footer'])).to.equal(
-      'This machine name is already in use in this template.',
-    );
-    expect(validateExposedSlotAlias('sidebar', ['hero', 'footer'])).to.equal(
-      '',
-    );
+    expect(
+      validateSlotFieldName('canvas_slot_hero', [
+        'canvas_slot_hero',
+        'canvas_slot_footer',
+      ]),
+    ).to.equal('This machine name is already in use in this template.');
+    expect(
+      validateSlotFieldName('canvas_slot_sidebar', [
+        'canvas_slot_hero',
+        'canvas_slot_footer',
+      ]),
+    ).to.equal('');
   });
 });
 
@@ -140,13 +166,11 @@ describe('exposedSlots helpers', () => {
       label: 'Hero',
       slotName: 'the_body',
       componentUuid: 'comp-1',
-      disabled: false,
     },
     footer: {
       label: 'Footer',
       slotName: 'the_footer',
       componentUuid: 'comp-2',
-      disabled: true,
     },
   };
 
@@ -161,7 +185,6 @@ describe('exposedSlots helpers', () => {
       component_uuid: 'comp-2',
       slot_name: 'the_footer',
       label: 'Footer',
-      disabled: true,
     });
     expect(exposedSlotsFromServer(server)).to.deep.equal(sliceShape);
   });
@@ -176,11 +199,9 @@ describe('exposedSlots helpers', () => {
     );
   });
 
-  it('counts only active (non-disabled) exposed slots', () => {
-    expect(countActiveExposedSlots(exposedSlotsToServer(sliceShape))).to.equal(
-      1,
-    );
-    expect(countActiveExposedSlots(undefined)).to.equal(0);
+  it('counts the exposed slots in a server-side map', () => {
+    expect(countExposedSlots(exposedSlotsToServer(sliceShape))).to.equal(2);
+    expect(countExposedSlots(undefined)).to.equal(0);
   });
 
   it('finds exposed slots hosted anywhere within a component subtree', () => {
@@ -209,7 +230,7 @@ describe('layoutModelSlice exposed-slot reducers', () => {
     );
   });
 
-  it('adds, relabels, disables and removes an exposed slot', () => {
+  it('adds, relabels and detaches an exposed slot', () => {
     store.dispatch(
       addExposedSlot({
         alias: 'hero',
@@ -222,7 +243,6 @@ describe('layoutModelSlice exposed-slot reducers', () => {
       label: 'Hero',
       slotName: 'the_body',
       componentUuid: 'comp-1',
-      disabled: false,
     });
 
     store.dispatch(
@@ -232,9 +252,8 @@ describe('layoutModelSlice exposed-slot reducers', () => {
       'Hero area',
     );
 
-    store.dispatch(setExposedSlotDisabled({ alias: 'hero', disabled: true }));
-    expect(selectExposedSlots(store.getState()).hero.disabled).to.equal(true);
-
+    // Detach (the former "Remove") deletes the working-set entry; the backing
+    // field and any per-entity content survive on the server.
     store.dispatch(removeExposedSlot('hero'));
     expect(selectExposedSlots(store.getState())).to.not.have.property('hero');
   });
@@ -263,7 +282,6 @@ describe('layoutModelSlice exposed-slot reducers', () => {
       label: 'Hero',
       slotName: 'the_body',
       componentUuid: 'comp-1',
-      disabled: false,
     });
   });
 
@@ -284,154 +302,6 @@ describe('layoutModelSlice exposed-slot reducers', () => {
     const layout = selectLayout(store.getState());
     expect(layout[0].components).to.have.length(0);
     expect(selectExposedSlots(store.getState())).to.not.have.property('hero');
-  });
-});
-
-describe('ExposeSlotDialog', () => {
-  let store;
-
-  beforeEach(() => {
-    cy.viewport(600, 700);
-    store = makeStore({});
-    store.dispatch(
-      setInitialLayoutModel({ ...buildLayoutModel(), updatePreview: false }),
-    );
-    mountWith(store, <ExposeSlotDialog />);
-  });
-
-  const openExpose = () =>
-    cy.wrap(store).then((s) =>
-      s.dispatch(
-        setDialogWithDataOpen({
-          operation: 'exposeSlot',
-          data: {
-            mode: 'expose',
-            componentUuid: 'comp-1',
-            slotName: 'the_body',
-            slotTitle: 'The body',
-          },
-        }),
-      ),
-    );
-
-  it('derives the machine name from the label and exposes the slot', () => {
-    openExpose();
-
-    cy.findByLabelText('Slot name').type('My Hero');
-    cy.findByLabelText('Machine name').should('have.value', 'my_hero');
-
-    cy.findByRole('button', { name: 'Expose slot' }).click();
-
-    cy.wrap(store).then((s) => {
-      const exposed = selectExposedSlots(s.getState());
-      expect(exposed).to.have.property('my_hero');
-      expect(exposed.my_hero).to.deep.equal({
-        label: 'My Hero',
-        slotName: 'the_body',
-        componentUuid: 'comp-1',
-        disabled: false,
-      });
-    });
-  });
-
-  it('requires a label and validates the machine name', () => {
-    openExpose();
-
-    // Empty label: required error, confirm disabled.
-    cy.findByText('This field is required.').should('exist');
-    cy.findByRole('button', { name: 'Expose slot' }).should('be.disabled');
-
-    // A hand-edited, too-short machine name is rejected.
-    cy.findByLabelText('Slot name').type('Hero');
-    cy.findByLabelText('Machine name').clear();
-    cy.findByLabelText('Machine name').type('ab');
-    cy.findByText(/Machine name may only contain/).should('exist');
-    cy.findByRole('button', { name: 'Expose slot' }).should('be.disabled');
-  });
-
-  it('edits the label of an existing exposed slot without touching the alias', () => {
-    cy.wrap(store).then((s) =>
-      s.dispatch(
-        addExposedSlot({
-          alias: 'hero',
-          label: 'Hero',
-          slotName: 'the_body',
-          componentUuid: 'comp-1',
-        }),
-      ),
-    );
-    cy.wrap(store).then((s) =>
-      s.dispatch(
-        setDialogWithDataOpen({
-          operation: 'exposeSlot',
-          data: {
-            mode: 'editLabel',
-            componentUuid: 'comp-1',
-            slotName: 'the_body',
-            slotTitle: 'The body',
-            alias: 'hero',
-            label: 'Hero',
-          },
-        }),
-      ),
-    );
-
-    cy.findByLabelText('Machine name').should('be.disabled');
-    cy.findByLabelText('Slot name').clear();
-    cy.findByLabelText('Slot name').type('Hero banner');
-    cy.findByRole('button', { name: 'Save' }).click();
-
-    cy.wrap(store).then((s) => {
-      const exposed = selectExposedSlots(s.getState());
-      expect(exposed.hero.label).to.equal('Hero banner');
-      // Alias unchanged.
-      expect(Object.keys(exposed)).to.deep.equal(['hero']);
-    });
-  });
-});
-
-describe('RemoveExposedSlotDialog', () => {
-  let store;
-
-  beforeEach(() => {
-    cy.viewport(600, 700);
-    store = makeStore({});
-    store.dispatch(
-      setInitialLayoutModel({ ...buildLayoutModel(), updatePreview: false }),
-    );
-    store.dispatch(
-      addExposedSlot({
-        alias: 'hero',
-        label: 'Hero',
-        slotName: 'the_body',
-        componentUuid: 'comp-1',
-      }),
-    );
-    mountWith(store, <RemoveExposedSlotDialog />);
-    cy.wrap(store).then((s) =>
-      s.dispatch(
-        setDialogWithDataOpen({
-          operation: 'removeExposedSlotConfirm',
-          data: { alias: 'hero', label: 'Hero' },
-        }),
-      ),
-    );
-  });
-
-  it('disables the slot as a reversible alternative to removal', () => {
-    cy.findByRole('button', { name: 'Disable instead' }).click();
-    cy.wrap(store).then((s) => {
-      const exposed = selectExposedSlots(s.getState());
-      expect(exposed).to.have.property('hero');
-      expect(exposed.hero.disabled).to.equal(true);
-    });
-  });
-
-  it('removes the exposed slot on confirmation', () => {
-    cy.findByRole('button', { name: 'Remove' }).click();
-    cy.wrap(store).then((s) => {
-      expect(selectExposedSlots(s.getState())).to.not.have.property('hero');
-    });
   });
 });
 
@@ -540,7 +410,6 @@ const buildPerContentModel = () => ({
       label: 'Hero',
       slotName: 'exposed_slot',
       componentUuid: 'host-1',
-      disabled: false,
     },
   },
   slotOverrides: { hero: { overridden: false, empty: false } },
@@ -564,19 +433,13 @@ describe('per-content mode helpers', () => {
     expect(isNodeEditable({ editable: true })).to.equal(true);
   });
 
-  it('accepts drops only into an active exposed slot, even nested in locked chrome', () => {
+  it('accepts drops into an exposed slot, even nested in locked chrome', () => {
     const { layout, exposedSlots } = buildPerContentModel();
     const host = layout[0].components[0];
     // Exposed slot nested inside the locked host accepts drops.
     expect(isExposedSlotTarget(host.slots[0], exposedSlots)).to.equal(true);
     // A non-exposed (template chrome) slot rejects drops.
     expect(isExposedSlotTarget(host.slots[1], exposedSlots)).to.equal(false);
-    // A disabled exposed slot behaves as not exposed.
-    expect(
-      isExposedSlotTarget(host.slots[0], {
-        hero: { ...exposedSlots.hero, disabled: true },
-      }),
-    ).to.equal(false);
   });
 
   it('resolves the enclosing exposed slot alias for a component', () => {

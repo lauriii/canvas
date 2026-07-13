@@ -117,11 +117,15 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     $persistent_prop_shape_repository = $this->container->get(PropShapeRepositoryInterface::class);
     self::assertInstanceOf(PersistentPropShapeRepository::class, $persistent_prop_shape_repository);
 
-    // Empty prop shape repositories at the start. And only Block Components,
-    // which do not use prop shapes.
+    // Empty prop shape repositories at the start. And only Block Components
+    // (which do not use prop shapes) plus the shipped empty slot marker
+    // Component (source `canvas_slot_empty`, `status: false`, non-placeable,
+    // internal, renders nothing and has no prop shapes).
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\EmptySlotMarker
+    // @see config/install/canvas.component.canvas_slot_empty.marker.yml
     self::assertEmpty($ephemeral_prop_shape_repository->getUniquePropShapes());
     self::assertEmpty($persistent_prop_shape_repository->getUniquePropShapes());
-    self::assertSame(['block'], \array_values(\array_unique(\array_map(
+    self::assertSame(['block', 'canvas_slot_empty'], \array_values(\array_unique(\array_map(
       fn (ComponentEntity $component): string => $component->get('source'),
       ComponentEntity::loadMultiple()
     ))));
