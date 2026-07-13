@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import ConflictWarning from '@/features/editor/ConflictWarning';
+import ContentNotEditable from '@/features/editor/ContentNotEditable';
 import EditorFrame from '@/features/editorFrame/EditorFrame';
 import { selectLatestError } from '@/features/error-handling/queryErrorSlice';
 import LayoutLoader from '@/features/layout/LayoutLoader';
@@ -56,6 +57,15 @@ const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
   if (latestError) {
     if (latestError.status === '409') {
       return <ConflictWarning />;
+    }
+    // Per-content editing: the entity became non-editable in Canvas (its
+    // template stopped exposing slots) while it was open. Degrade gracefully
+    // instead of the generic "unexpected error" boundary.
+    if (
+      latestError.status === '403' &&
+      latestError.message.includes('no editable component tree')
+    ) {
+      return <ContentNotEditable />;
     }
   }
 
