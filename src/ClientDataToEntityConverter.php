@@ -69,20 +69,7 @@ class ClientDataToEntityConverter {
 
     // The current user may not have access any other fields on the entity or
     // this function may have been called to only update the layout.
-    $form_validation = new EntityConstraintViolationList($entity);
-    if (\count($entity_form_fields) > 0) {
-      try {
-        $this->setEntityFields($entity, $entity_form_fields);
-        $this->autoSaveManager->saveEntityFormViolations($entity);
-      }
-      catch (ConstraintViolationException $e) {
-        if (!$validate) {
-          // @todo Remove this in https://drupal.org/i/3505018
-          $this->autoSaveManager->saveEntityFormViolations($entity, $e->getConstraintViolationList());
-        }
-        $form_validation->addAll($e->getConstraintViolationList());
-      }
-    }
+    $form_validation = $this->applyEntityFormFields($entity, $entity_form_fields, $validate);
 
     // Validate the updated entity:
     // - at minimum the component tree field has been updated based on `layout`
@@ -103,6 +90,43 @@ class ClientDataToEntityConverter {
         "$field_name.0.inputs" => 'model',
       ]);
     }
+  }
+
+  /**
+   * Applies the entity's page-data form fields, without a single Canvas field.
+   *
+   * Unlike ::convert(), this does not load or write a single Canvas
+   * `component_tree` field, so it is safe for per-content templated entities
+   * whose component tree lives in per-slot fields (which the caller writes
+   * separately). It sets the submitted `entity_form_fields` (title, path, menu
+   * settings, ...) and records any form violations.
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity to update, by reference.
+   * @param array<string, mixed> $entity_form_fields
+   *   The submitted entity form field values.
+   * @param bool $validate
+   *   Whether validation errors should surface (vs. be recorded on auto-save).
+   *
+   * @return \Drupal\canvas\Entity\EntityConstraintViolationList
+   *   The form-field constraint violations, if any.
+   */
+  public function applyEntityFormFields(FieldableEntityInterface $entity, array $entity_form_fields, bool $validate = TRUE): EntityConstraintViolationList {
+    $form_validation = new EntityConstraintViolationList($entity);
+    if (\count($entity_form_fields) > 0) {
+      try {
+        $this->setEntityFields($entity, $entity_form_fields);
+        $this->autoSaveManager->saveEntityFormViolations($entity);
+      }
+      catch (ConstraintViolationException $e) {
+        if (!$validate) {
+          // @todo Remove this in https://drupal.org/i/3505018
+          $this->autoSaveManager->saveEntityFormViolations($entity, $e->getConstraintViolationList());
+        }
+        $form_validation->addAll($e->getConstraintViolationList());
+      }
+    }
+    return $form_validation;
   }
 
   /**

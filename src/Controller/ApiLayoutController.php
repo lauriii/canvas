@@ -822,7 +822,7 @@ final class ApiLayoutController {
   }
 
   /**
-   * Returns the component tree item list(s) that hold an entity's editable rows.
+   * Returns the component tree item list(s) holding an entity's editable rows.
    *
    * For a single-field entity (canvas_page) this is the one Canvas field. For a
    * per-content templated entity, editable rows live in the per-slot backing
@@ -1065,14 +1065,12 @@ final class ApiLayoutController {
       }
     }
 
-    // Process the entity's own fields (title, etc.) via the shared converter,
-    // then overwrite each slot field with only its partitioned rows.
+    // Process the entity's own page-data fields (title, etc.). This must NOT go
+    // through the whole ::convert() (which loads a single Canvas field the
+    // templated entity does not have); the component tree is written to the
+    // per-slot fields below instead.
     if (\count($entity_form_fields) > 0) {
-      $this->converter->convert([
-        'layout' => $layout,
-        'model' => $model,
-        'entity_form_fields' => $entity_form_fields,
-      ], $entity, validate: FALSE);
+      $this->converter->applyEntityFormFields($entity, $entity_form_fields, validate: FALSE);
     }
     foreach ($slot_fields as $field_name => $rows) {
       if ($entity->hasField($field_name)) {
