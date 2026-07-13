@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use ColinODell\PsrTestLogger\TestLogger;
+use Drupal\canvas\Controller\ApiContentTemplateSlotFieldController;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -13,6 +14,7 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\node\NodeInterface;
@@ -26,6 +28,7 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\TestWith;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Tests Node Templates.
@@ -435,6 +438,173 @@ HTML;
     self::assertInstanceOf(ComponentTreeItem::class, $root);
     self::assertNull($root->getSlot());
     self::assertEntityIsValid($node);
+  }
+
+  /**
+   * Tests slot usage statistics: how many entities override an exposed slot.
+   *
+   * @legacy-covers \Drupal\canvas\Controller\ApiContentTemplateSlotFieldController::usage
+   */
+  public function testSlotUsageStatistics(): void {
+    $this->createComponentTreeField('node', 'article', 'canvas_slot_custom');
+    // The same field storage is attached to a second bundle (fields can be
+    // shared across bundles), so its rows live in the same table. A page entity
+    // that fills the slot must not be counted for the article template.
+    $this->createContentType(['type' => 'page']);
+    FieldConfig::create([
+      'field_storage' => FieldStorageConfig::loadByName('node', 'canvas_slot_custom'),
+      'bundle' => 'page',
+    ])->save();
+
+    ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [
+        [
+          'uuid' => '2842cc6f-9e2b-42a5-8400-e7d6363e08bf',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '0e79e884426a53ae',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+      ],
+      'exposed_slots' => [
+        'canvas_slot_custom' => [
+          'component_uuid' => '2842cc6f-9e2b-42a5-8400-e7d6363e08bf',
+          'slot_name' => 'the_body',
+          'label' => 'Custom content area',
+        ],
+      ],
+    ])->setStatus(TRUE)->save();
+
+    $filled = [
+      [
+        'uuid' => '6ea0de84-858a-4f00-9ef5-de02525c8865',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'Filled',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+    ];
+    // Two articles override the slot with content. B holds two root components
+    // (a two-row field), so if the count were per-row instead of per-entity it
+    // would be inflated.
+    $this->createNode(['type' => 'article', 'title' => 'A', 'canvas_slot_custom' => $filled]);
+    $this->createNode([
+      'type' => 'article',
+      'title' => 'B',
+      'canvas_slot_custom' => [
+        $filled[0],
+        [
+          'uuid' => '7b1f0e00-0000-4000-8000-000000000002',
+          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'Second row',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+        ],
+      ],
+    ]);
+    // ...one overrides it empty (the render-nothing marker counts as overridden)...
+    $this->createNode([
+      'type' => 'article',
+      'title' => 'C',
+      'canvas_slot_custom' => [
+        [
+          'uuid' => 'dddddddd-0000-4000-8000-000000000004',
+          'component_id' => 'canvas_slot_empty.marker',
+        ],
+      ],
+    ]);
+    // ...two inherit the default (no slot content)...
+    $this->createNode(['type' => 'article', 'title' => 'D']);
+    $this->createNode(['type' => 'article', 'title' => 'E']);
+    // ...and a page entity fills the shared field: it must not be counted for
+    // the article template (proves the count is bundle-specific, not just
+    // field-specific).
+    $this->createNode(['type' => 'page', 'title' => 'P', 'canvas_slot_custom' => $filled]);
+
+    $template = ContentTemplate::load('node.article.full');
+    self::assertInstanceOf(ContentTemplate::class, $template);
+    $controller = $this->container->get('class_resolver')
+      ->getInstanceFromDefinition(ApiContentTemplateSlotFieldController::class);
+    // Three articles override the slot (two filled, one empty marker); the two
+    // inheriting articles and the page node (different bundle, same field) are
+    // not counted.
+    $data = \json_decode((string) $controller->usage($template, 'canvas_slot_custom')->getContent(), TRUE);
+    self::assertSame(['overridden' => 3], $data);
+
+    // An unknown field is a 404.
+    $this->expectException(NotFoundHttpException::class);
+    $controller->usage($template, 'canvas_slot_missing');
+  }
+
+  /**
+   * Tests "use existing slot" candidates include slot fields of other bundles.
+   *
+   * @legacy-covers \Drupal\canvas\Controller\ApiContentTemplateSlotFieldController::candidates
+   */
+  public function testSlotFieldCandidatesIncludeOtherBundles(): void {
+    // A slot field defined only on 'article'.
+    $this->createComponentTreeField('node', 'article', 'canvas_slot_shared');
+    // A non-slot component_tree field on 'article' must not be offered elsewhere.
+    $this->createComponentTreeField('node', 'article', 'legacy_tree');
+    $this->createContentType(['type' => 'page']);
+    // A slot field on 'page' with content in one page entity.
+    $this->createComponentTreeField('node', 'page', 'canvas_slot_page');
+    $this->createNode([
+      'type' => 'page',
+      'title' => 'A page',
+      'canvas_slot_page' => [
+        [
+          'uuid' => 'aaaaaaaa-0000-4000-8000-000000000001',
+          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'Page content',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+        ],
+      ],
+    ]);
+
+    // candidates() reads only the template's target type + bundle (no save
+    // needed, avoiding template validation).
+    $page_template = ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'page',
+      'content_entity_type_view_mode' => 'full',
+    ]);
+    $controller = $this->container->get('class_resolver')
+      ->getInstanceFromDefinition(ApiContentTemplateSlotFieldController::class);
+    $data = \json_decode((string) $controller->candidates($page_template)->getContent(), TRUE);
+    $by_name = \array_column($data['fields'], NULL, 'fieldName');
+
+    // The page's own slot field is on this bundle and has one entity's content.
+    self::assertTrue($by_name['canvas_slot_page']['onThisBundle']);
+    self::assertSame(1, $by_name['canvas_slot_page']['contentCount']);
+    // The article slot field is offered as an attachable (cross-bundle) option;
+    // the page bundle has no content in it yet.
+    self::assertFalse($by_name['canvas_slot_shared']['onThisBundle']);
+    self::assertSame(0, $by_name['canvas_slot_shared']['contentCount']);
+    // A non-slot component_tree field on another bundle is not offered.
+    self::assertArrayNotHasKey('legacy_tree', $by_name);
+    // Content-first: the field with content is listed before the empty one.
+    self::assertSame('canvas_slot_page', $data['fields'][0]['fieldName']);
   }
 
   /**

@@ -124,11 +124,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px;
+  padding: 2px 4px;
   pointer-events: none;
   color: var(--gray-12);
   border-radius: var(--radius-1);
   background: var(--gray-3);
+  font-size: 11px;
+  line-height: 1.4;
+  gap: var(--space-1);
   mix-blend-mode: multiply;
 }
 @keyframes shine {
@@ -160,6 +163,36 @@
     outline: 1px solid var(--purple-9);
     outline-offset: -1px;
   }
+
+  /* A selected slot (an exposed slot in the template editor, or a locked
+     exposed slot in per-content editing) is clearly distinct from a hovered or
+     merely-exposed one: a thicker outline plus a subtle fill. Declared last so
+     it wins over .hovered / .exposed at equal specificity. */
+  &.selected {
+    outline: 2px solid var(--purple-9);
+    outline-offset: -2px;
+    background-color: var(--purple-a3);
+  }
+
+  /* Per-content editing: a locked exposed slot reads as one selectable,
+     read-only unit. */
+  &.locked {
+    cursor: pointer;
+  }
+}
+
+/* Per-content editing: full-cover click/hover target that makes a locked
+   exposed slot selectable as a single unit. Overrides the slot container's
+   pointer-events:none so the whole slot area is clickable. */
+.lockedSlotTrigger {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  pointer-events: auto;
+  border: none;
+  background: transparent;
+  inset: 0;
 }
 
 /* Template editor: full-cover right-click target for the slot context menu.

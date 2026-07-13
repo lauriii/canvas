@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import NewTabIcon from '@assets/icons/new-tab.svg?react';
-import { Badge, ContextMenu, Flex, Skeleton } from '@radix-ui/themes';
+import { ContextMenu, Flex, Skeleton } from '@radix-ui/themes';
 
 import Dialog from '@/components/Dialog';
 import SidebarFolder from '@/components/sidePanel/SidebarFolder';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
-import { countExposedSlots } from '@/features/layout/exposedSlots';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useGetEditedTemplateId } from '@/hooks/useGetEditedTemplateId';
 import { useSmartRedirect } from '@/hooks/useSmartRedirect';
@@ -188,8 +187,6 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
     }
   }, [isError, error]);
 
-  const exposedSlotCount = countExposedSlots(viewMode.exposed_slots);
-
   const menuItems = (
     <>
       <UnifiedMenu.Label>{viewMode.viewModeLabel}</UnifiedMenu.Label>
@@ -213,21 +210,6 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
             key={viewMode.id}
             title={`${viewMode.viewModeLabel} template`}
             variant="template"
-            trailingContent={
-              exposedSlotCount > 0 ? (
-                <Badge
-                  color="purple"
-                  variant="soft"
-                  radius="full"
-                  aria-label={`${exposedSlotCount} exposed ${
-                    exposedSlotCount === 1 ? 'slot' : 'slots'
-                  }`}
-                  data-testid={`template-exposed-slot-count-${viewMode.id}`}
-                >
-                  {exposedSlotCount}
-                </Badge>
-              ) : undefined
-            }
             dropdownMenuContent={
               <UnifiedMenu.Content menuType="dropdown">
                 {menuItems}

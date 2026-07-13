@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router';
 import { Outlet } from 'react-router-dom';
@@ -16,8 +16,25 @@ import {
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import PageDataForm from '@/components/PageDataForm';
+import LockedSlotPanel from '@/components/panel/LockedSlotPanel';
+import SlotExposePanel from '@/components/panel/SlotExposePanel';
+import SlotUsagePanel from '@/components/panel/SlotUsagePanel';
 import { setCurrentComponent } from '@/features/form/formStateSlice';
-import { selectIsPerContentMode } from '@/features/layout/layoutModelSlice';
+import {
+  findExposedSlotEntry,
+  getSlotHostComponentUuid,
+  isLockedExposedSlot,
+} from '@/features/layout/exposedSlots';
+import {
+  selectExposedSlots,
+  selectIsPerContentMode,
+  selectLayout,
+  selectSlotOverrides,
+} from '@/features/layout/layoutModelSlice';
+import {
+  findComponentByUuid,
+  findSlotById,
+} from '@/features/layout/layoutUtils';
 import { buildEntityEditFormUrl } from '@/features/navigator/templatedContent';
 import {
   EditorFrameContext,
@@ -26,6 +43,7 @@ import {
   selectSelectedComponentUuid,
   selectSelection,
 } from '@/features/ui/uiSlice';
+import useGetComponentName from '@/hooks/useGetComponentName';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
 import { getBaseUrl } from '@/utils/drupal-globals';
 
@@ -47,11 +65,73 @@ const ContextualPanel: React.FC = () => {
   // form for the entity's content fields; Page data carries only page-level
   // metadata (the server trims the entity form).
   const isPerContentMode = useAppSelector(selectIsPerContentMode);
-  const { entityType, entityId } = useParams();
+  const { entityType, entityId, bundle, viewMode } = useParams();
   const editFormUrl =
     isPerContentMode && entityType && entityId
       ? buildEntityEditFormUrl(getBaseUrl(), entityType, entityId)
       : null;
+  const contentTemplateId =
+    isTemplateContext && entityType && bundle && viewMode
+      ? `${entityType}.${bundle}.${viewMode}`
+      : undefined;
+
+  // Per-content editing: a locked exposed slot is selected as a whole (its id,
+  // which contains a slash, is not a routable component uuid, so it is held in
+  // redux only). When that is the selection, the Settings tab shows the
+  // LockedSlot panel (Unlock + template jump) instead of a component form.
+  const layout = useAppSelector(selectLayout);
+  const exposedSlots = useAppSelector(selectExposedSlots);
+  const slotOverrides = useAppSelector(selectSlotOverrides);
+  const lockedSlotAlias = useMemo(() => {
+    if (!isPerContentMode || !selectedComponent) {
+      return undefined;
+    }
+    const slot = findSlotById(layout, selectedComponent);
+    if (!slot || !isLockedExposedSlot(slot, exposedSlots, slotOverrides)) {
+      return undefined;
+    }
+    return findExposedSlotEntry(
+      exposedSlots,
+      getSlotHostComponentUuid(slot),
+      slot.name,
+    )?.alias;
+  }, [
+    isPerContentMode,
+    selectedComponent,
+    layout,
+    exposedSlots,
+    slotOverrides,
+  ]);
+
+  // Template editor: the selected slot node, if a slot is selected (its id
+  // contains a slash, so it is held in redux only, not routable). A selected
+  // slot's Settings tab replaces the component form with slot controls: usage
+  // statistics if it is exposed, or an Expose slot action if it is not.
+  const templateSlot = useMemo(
+    () =>
+      isTemplateContext && selectedComponent
+        ? (findSlotById(layout, selectedComponent) ?? undefined)
+        : undefined,
+    [isTemplateContext, selectedComponent, layout],
+  );
+  const templateSlotEntry = useMemo(
+    () =>
+      templateSlot
+        ? (findExposedSlotEntry(
+            exposedSlots,
+            getSlotHostComponentUuid(templateSlot),
+            templateSlot.name,
+          ) ?? undefined)
+        : undefined,
+    [templateSlot, exposedSlots],
+  );
+  const templateSlotHost = templateSlot
+    ? findComponentByUuid(layout, getSlotHostComponentUuid(templateSlot))
+    : null;
+  const templateSlotTitle = useGetComponentName(
+    templateSlot ?? null,
+    templateSlotHost,
+  );
 
   const [activePanel, setActivePanel] = useState('pageData');
   const offRightClasses = useHidePanelClasses('right');
@@ -188,9 +268,25 @@ const ContextualPanel: React.FC = () => {
                       </Flex>
                     </Box>
                   )}
-                  <ErrorBoundary title="An unexpected error has occurred while rendering the component's form.">
-                    <Outlet />
-                  </ErrorBoundary>
+                  {lockedSlotAlias ? (
+                    <LockedSlotPanel alias={lockedSlotAlias} />
+                  ) : templateSlot ? (
+                    templateSlotEntry && contentTemplateId ? (
+                      <SlotUsagePanel
+                        contentTemplateId={contentTemplateId}
+                        fieldName={templateSlotEntry.alias}
+                      />
+                    ) : (
+                      <SlotExposePanel
+                        slot={templateSlot}
+                        slotTitle={templateSlotTitle}
+                      />
+                    )
+                  ) : (
+                    <ErrorBoundary title="An unexpected error has occurred while rendering the component's form.">
+                      <Outlet />
+                    </ErrorBoundary>
+                  )}
                 </Tabs.Content>
                 {isPerContentMode && (
                   <Tabs.Content value={'content'}>

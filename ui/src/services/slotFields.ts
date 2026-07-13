@@ -15,6 +15,17 @@ import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 export interface SlotFieldCandidate {
   fieldName: string;
   label: string;
+  /**
+   * Whether the field already has a config on this template's bundle. False for
+   * a slot field defined only on another bundle (shared storage): selecting it
+   * attaches the storage to this bundle first.
+   */
+  onThisBundle: boolean;
+  /**
+   * How many of this bundle's entities already hold content in the field (what
+   * reusing it would restore). Candidates are returned sorted content-first.
+   */
+  contentCount: number;
 }
 
 interface CandidatesResponse {
@@ -26,6 +37,12 @@ interface CreateSlotFieldRequest {
   contentTemplateId: string;
   fieldName: string;
   label: string;
+}
+
+/** How many of a bundle's entities have overridden an exposed slot. */
+export interface SlotUsage {
+  /** Entities whose backing field holds content (filled or deliberately empty). */
+  overridden: number;
 }
 
 export const slotFieldsApi = createApi({
@@ -55,8 +72,19 @@ export const slotFieldsApi = createApi({
         { type: 'SlotFields', id: contentTemplateId },
       ],
     }),
+    getSlotFieldUsage: builder.query<
+      SlotUsage,
+      { contentTemplateId: string; fieldName: string }
+    >({
+      query: ({ contentTemplateId, fieldName }) => ({
+        url: `/canvas/api/v0/config/content_template/${contentTemplateId}/slot-fields/${fieldName}/usage`,
+      }),
+    }),
   }),
 });
 
-export const { useGetSlotFieldCandidatesQuery, useCreateSlotFieldMutation } =
-  slotFieldsApi;
+export const {
+  useGetSlotFieldCandidatesQuery,
+  useCreateSlotFieldMutation,
+  useGetSlotFieldUsageQuery,
+} = slotFieldsApi;

@@ -227,6 +227,22 @@ canvas.api.content_template.slot_field.create:
         type: entity:content_template
   methods: [POST]
 
+# Usage statistics for one exposed slot's backing field: how many of the
+# bundle's entities have overridden it.
+canvas.api.content_template.slot_field.usage:
+  path: '/canvas/api/v0/config/content_template/{content_template}/slot-fields/{field_name}/usage'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiContentTemplateSlotFieldController::usage'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _entity_access: 'content_template.update'
+    _canvas_ui_access: 'TRUE'
+  options:
+    parameters:
+      content_template:
+        type: entity:content_template
+  methods: [GET]
+
 canvas.api.config.patch:
   path: '/canvas/api/v0/config/{canvas_config_entity_type_id}/{canvas_config_entity}'
   defaults:

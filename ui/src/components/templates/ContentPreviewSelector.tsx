@@ -1,11 +1,34 @@
-import { ChevronDownIcon, EyeOpenIcon } from '@radix-ui/react-icons';
-import { Button, DropdownMenu, Flex, Tooltip } from '@radix-ui/themes';
+import { useState } from 'react';
+import { useParams } from 'react-router';
+import {
+  ChevronDownIcon,
+  DotsVerticalIcon,
+  ExternalLinkIcon,
+  EyeOpenIcon,
+} from '@radix-ui/react-icons';
+import {
+  Button,
+  DropdownMenu,
+  Flex,
+  IconButton,
+  Popover,
+  ScrollArea,
+  Text,
+  Tooltip,
+} from '@radix-ui/themes';
+
+import { buildContentEditActions } from '@/features/navigator/templatedContent';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 
 import type React from 'react';
+
+import styles from './ContentPreviewSelector.module.css';
 
 interface ContentItem {
   id: string;
   label: string;
+  editUrl?: string | null;
+  manageFieldsUrl?: string | null;
 }
 
 interface ContentPreviewSelectorProps {
@@ -19,9 +42,9 @@ const ContentPreviewSelector: React.FC<ContentPreviewSelectorProps> = ({
   selectedItemId,
   onSelectionChange,
 }) => {
-  // Convert items object to array for easier handling
   const itemsArray = Object.values(items);
   const itemsCount = itemsArray.length;
+  const [open, setOpen] = useState(false);
 
   // Default to first item if no selection and items are available
   const effectiveSelectedId =
@@ -30,13 +53,17 @@ const ContentPreviewSelector: React.FC<ContentPreviewSelectorProps> = ({
     (item) => item.id === effectiveSelectedId,
   );
 
+  // Cross-nav per entity: edit its exposed slots in Canvas, its content in the
+  // CMS, or the bundle's fields. Each action is permission-gated by the server
+  // (it omits URLs the user cannot use).
+  const { entityType } = useParams();
+  const { navigateToEditor } = useEditorNavigation();
+
   const handleItemSelect = (itemId: string) => {
-    if (onSelectionChange) {
-      onSelectionChange(itemId);
-    }
+    onSelectionChange?.(itemId);
+    setOpen(false);
   };
 
-  // Custom trigger content
   const triggerContent = (
     <Flex gap="2" align="center">
       <EyeOpenIcon />
@@ -49,41 +76,93 @@ const ContentPreviewSelector: React.FC<ContentPreviewSelectorProps> = ({
     </Flex>
   );
 
+  if (itemsCount === 0) {
+    return (
+      <Tooltip content="Preview content" side="bottom">
+        <Button variant="soft" size="1" disabled color="blue">
+          {triggerContent}
+        </Button>
+      </Tooltip>
+    );
+  }
+
+  // Mirrors the page navigator (PageInfo): a popover listing entities, each row
+  // opening the entity in preview on click, with a "..." contextual menu for
+  // the edit actions rather than a submenu.
   return (
-    <Flex>
-      {itemsCount === 0 ? (
-        <Tooltip content="Preview content" side="bottom">
-          <Button variant="soft" size="1" disabled color="blue">
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Tooltip content="Preview content" side="bottom">
+        <Popover.Trigger>
+          <Button
+            variant="soft"
+            size="1"
+            color="blue"
+            data-testid="select-content-preview-item"
+          >
             {triggerContent}
           </Button>
-        </Tooltip>
-      ) : (
-        <DropdownMenu.Root>
-          <Tooltip content="Preview content" side="bottom">
-            <DropdownMenu.Trigger>
-              <Button
-                variant="soft"
-                size="1"
-                color="blue"
-                data-testid="select-content-preview-item"
-              >
-                {triggerContent}
-              </Button>
-            </DropdownMenu.Trigger>
-          </Tooltip>
-          <DropdownMenu.Content>
-            {itemsArray.map((item) => (
-              <DropdownMenu.Item
-                key={item.id}
-                onSelect={() => handleItemSelect(item.id)}
-              >
-                {item.label}
-              </DropdownMenu.Item>
-            ))}
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
-      )}
-    </Flex>
+        </Popover.Trigger>
+      </Tooltip>
+      <Popover.Content size="1" width="280px" align="center">
+        <ScrollArea scrollbars="vertical" style={{ maxHeight: 240 }}>
+          <Flex direction="column" gap="1">
+            {itemsArray.map((item) => {
+              const editActions = buildContentEditActions(
+                navigateToEditor,
+                entityType,
+                item,
+              );
+              return (
+                <Flex key={item.id} align="center" className={styles.item}>
+                  <button
+                    type="button"
+                    className={styles.itemLabel}
+                    onClick={() => handleItemSelect(item.id)}
+                    data-testid={`preview-item-${item.id}`}
+                    data-selected={
+                      item.id === effectiveSelectedId ? true : undefined
+                    }
+                  >
+                    <Text size="1" truncate>
+                      {item.label}
+                    </Text>
+                  </button>
+                  {editActions.length > 0 && (
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger>
+                        <IconButton
+                          variant="ghost"
+                          color="gray"
+                          size="1"
+                          aria-label={`Options for ${item.label}`}
+                          data-testid={`preview-item-options-${item.id}`}
+                        >
+                          <DotsVerticalIcon />
+                        </IconButton>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Content>
+                        {editActions.map((action) => (
+                          <DropdownMenu.Item
+                            key={action.key}
+                            onSelect={action.run}
+                            data-testid={`preview-${action.key}-${item.id}`}
+                          >
+                            <Flex gap="2" align="center">
+                              {action.label}
+                              {action.external && <ExternalLinkIcon />}
+                            </Flex>
+                          </DropdownMenu.Item>
+                        ))}
+                      </DropdownMenu.Content>
+                    </DropdownMenu.Root>
+                  )}
+                </Flex>
+              );
+            })}
+          </Flex>
+        </ScrollArea>
+      </Popover.Content>
+    </Popover.Root>
   );
 };
 
