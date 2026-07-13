@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router';
 import { CheckboxIcon, DotsHorizontalIcon } from '@radix-ui/react-icons';
-import { DropdownMenu } from '@radix-ui/themes';
+import { ContextMenu, DropdownMenu } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { UnifiedMenu } from '@/components/UnifiedMenu';
 import {
   filterNonMarkerComponents,
   findExposedSlotEntry,
@@ -205,6 +206,41 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
           />
         </SlotContextMenu>
       )}
+      {/* Per-content editing: reverting an override is a rare action, so it
+          lives in the slot's right-click menu rather than a persistent chip.
+          A full-cover trigger (under the drop zones / child overlays, which
+          stay interactive on top) opens it on right-click. */}
+      {perContentMode &&
+        isPerContentExposed &&
+        isOverridden &&
+        perContentAlias && (
+          <ContextMenu.Root>
+            <ContextMenu.Trigger>
+              <div
+                aria-label={`Slot ${slotName} (${parentComponentName})`}
+                className={styles.slotContextTrigger}
+                data-canvas-overlay="true"
+              />
+            </ContextMenu.Trigger>
+            <UnifiedMenu.Content
+              menuType="context"
+              align="start"
+              side="right"
+              aria-label={`Options for ${perContentEntry?.definition.label}`}
+            >
+              <UnifiedMenu.Label>
+                {perContentEntry?.definition.label}
+              </UnifiedMenu.Label>
+              <UnifiedMenu.Separator />
+              <UnifiedMenu.Item
+                onClick={() => dispatch(revertSlotOverride(perContentAlias))}
+                data-testid={`slot-revert-${slotId}`}
+              >
+                Revert to default
+              </UnifiedMenu.Item>
+            </UnifiedMenu.Content>
+          </ContextMenu.Root>
+        )}
       {isTemplateContext
         ? // Template editor: exposed slots show a persistent marker chip; other
           // slots reveal it on hover to offer the "Expose slot" action.
@@ -240,45 +276,27 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
             </div>
           )
         : perContentMode
-          ? // Per-content editing: an active exposed slot offers an override /
-            // revert affordance; other (locked chrome) slots show nothing.
+          ? // Per-content editing: a non-overridden exposed slot with default
+            // content offers an "Edit content" affordance to start overriding.
+            // Reverting an override lives in the slot's right-click menu.
             isPerContentExposed &&
-            (isOverridden || hasDefaultContent || isHovered) && (
+            !isOverridden &&
+            hasDefaultContent && (
               <div
                 className={clsx(styles.canvasNameTag, styles.slotExposeChip)}
               >
-                {isOverridden ? (
-                  <button
-                    type="button"
-                    className={clsx(
-                      styles.slotExposeChipButton,
-                      styles.slotExposeChipButtonExposed,
-                    )}
-                    onClick={() =>
-                      perContentAlias &&
-                      dispatch(revertSlotOverride(perContentAlias))
-                    }
-                    aria-label={`Revert ${perContentEntry.definition.label} to the template default`}
-                    data-testid={`slot-revert-${slotId}`}
-                  >
-                    <span>Revert to default</span>
-                  </button>
-                ) : (
-                  hasDefaultContent && (
-                    <button
-                      type="button"
-                      className={styles.slotExposeChipButton}
-                      onClick={() =>
-                        perContentAlias &&
-                        dispatch(overrideSlotDefaultContent(perContentAlias))
-                      }
-                      aria-label={`Edit the content of ${perContentEntry.definition.label}`}
-                      data-testid={`slot-override-${slotId}`}
-                    >
-                      <span>Edit content</span>
-                    </button>
-                  )
-                )}
+                <button
+                  type="button"
+                  className={styles.slotExposeChipButton}
+                  onClick={() =>
+                    perContentAlias &&
+                    dispatch(overrideSlotDefaultContent(perContentAlias))
+                  }
+                  aria-label={`Edit the content of ${perContentEntry?.definition.label}`}
+                  data-testid={`slot-override-${slotId}`}
+                >
+                  <span>Edit content</span>
+                </button>
               </div>
             )
           : (targetSlot === slotId || isHovered) && (

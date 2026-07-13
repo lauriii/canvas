@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { useParams } from 'react-router';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import BrandKitIcon from '@assets/icons/brand-kit.svg?react';
+import CmsIcon from '@assets/icons/cms.svg?react';
 import ExtensionIcon from '@assets/icons/extension-sm.svg?react';
 import TemplateIcon from '@assets/icons/template.svg?react';
 import {
@@ -137,6 +138,14 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       id: 'pages',
       icon: <FileTextIcon />,
       label: 'Pages',
+      enabled: true,
+      hidden: false,
+    },
+    {
+      type: 'button',
+      id: 'content',
+      icon: <CmsIcon />,
+      label: 'Content',
       enabled: true,
       hidden: false,
     },

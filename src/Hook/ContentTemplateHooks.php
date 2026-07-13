@@ -11,8 +11,10 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
+use Drupal\Core\Entity\ContentEntityFormInterface;
 use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -21,7 +23,9 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
 
@@ -35,6 +39,7 @@ final class ContentTemplateHooks {
     private readonly RouteMatchInterface $routeMatch,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EntityFieldManagerInterface $entityFieldManager,
+    private readonly ComponentTreeLoader $componentTreeLoader,
   ) {
   }
 
@@ -66,6 +71,106 @@ final class ContentTemplateHooks {
       // @see \Drupal\canvas\Controller\ApiAutoSaveController::post()
       $form_display->removeComponent($published_key);
     }
+  }
+
+  /**
+   * Implements hook_form_alter().
+   *
+   * Trims the entity form served to the Canvas editor for templated entities
+   * (per-content mode) down to page-level metadata: the entity's label field
+   * plus the elements the form attaches to its sidebar groups (URL alias,
+   * menu settings, authoring information, promotion options, comment
+   * settings). Content field widgets are removed; the editor's Content tab
+   * links to Drupal's own edit form instead. Only applies to entity forms
+   * built under `canvas.api.*` routes (the same scoping as
+   * ::entityFormDisplayAlter()), so Drupal's own entity forms are unaffected.
+   */
+  #[Hook('form_alter')]
+  public function formAlter(array &$form, FormStateInterface $form_state): void {
+    if (!\str_starts_with((string) $this->routeMatch->getRouteName(), 'canvas.api.')) {
+      return;
+    }
+    $form_object = $form_state->getFormObject();
+    if (!$form_object instanceof ContentEntityFormInterface) {
+      return;
+    }
+    $entity = $form_object->getEntity();
+    if ($entity instanceof ComponentTreeEntityInterface
+      || !$entity instanceof FieldableEntityInterface
+      || !$this->componentTreeLoader->hasContentTemplateWithExposedSlots($entity)) {
+      return;
+    }
+    $label_key = $entity->getEntityType()->getKey('label');
+    foreach (\array_keys($form_object->getFormDisplay($form_state)->getComponents()) as $name) {
+      if ($name === $label_key || !isset($form[$name]) || !\is_array($form[$name])) {
+        continue;
+      }
+      if (!self::isPageDataElement($form[$name], $form)) {
+        $form[$name]['#access'] = FALSE;
+      }
+    }
+    // The read-only meta block (published state, last-saved time, author) is
+    // noise inside the editor, which has its own publish state UI.
+    // @see \Drupal\node\Form\NodeForm::form()
+    // Removed via unset() rather than `#access` because the grouped element
+    // still renders under `advanced` when only access-hidden here (matching
+    // how ModuleHooks::formAlter() removes the revision elements).
+    unset($form['meta']);
+    // Surface the URL alias right below the title, rendered exactly as on
+    // the canvas_page page-data form: a plain field, not a sidebar details.
+    // PathWidget only wraps its element in a details attached to the
+    // `advanced` tab-set when the form has one, so strip that conditional
+    // wrapper (keeping the `#access` it set from field edit access).
+    // @see \Drupal\path\Plugin\Field\FieldWidget\PathWidget::formElement()
+    if (isset($form['path']) && \is_array($form['path'])) {
+      if (\is_array($form['path']['widget'] ?? NULL)) {
+        foreach (Element::children($form['path']['widget']) as $delta) {
+          $path_element = &$form['path']['widget'][$delta];
+          if (\is_array($path_element) && ($path_element['#type'] ?? NULL) === 'details') {
+            unset($path_element['#type'], $path_element['#title'], $path_element['#open'], $path_element['#group'], $path_element['#attributes'], $path_element['#attached'], $path_element['#weight']);
+          }
+          unset($path_element);
+        }
+      }
+      $label_weight = $form[$label_key]['#weight'] ?? NULL;
+      $form['path']['#weight'] = (\is_numeric($label_weight) ? $label_weight : 0) + 1;
+    }
+  }
+
+  /**
+   * Whether a widget element belongs to the page-data (sidebar) partition.
+   *
+   * TRUE when the element or any descendant is attached, directly or through
+   * a chain of group containers, to the form's `advanced` (sidebar) or
+   * `footer` group. Examples on node forms: `path` (URL alias, nested
+   * `#group: advanced`), `uid`/`created` (grouped into `author`, which is
+   * grouped into `advanced`), `promote`/`sticky` (via `options`), `status`
+   * (`footer`), and a comment widget's "Comment settings" details.
+   *
+   * @param array<string, mixed> $element
+   *   The widget element to check.
+   * @param array<string, mixed> $complete_form
+   *   The complete form, used to resolve chains of group containers.
+   *
+   * @return bool
+   *   TRUE if the element belongs to the page-data partition.
+   */
+  private static function isPageDataElement(array $element, array $complete_form): bool {
+    $group = $element['#group'] ?? NULL;
+    $visited = [];
+    while (\is_string($group) && !isset($visited[$group])) {
+      if ($group === 'advanced' || $group === 'footer') {
+        return TRUE;
+      }
+      $visited[$group] = TRUE;
+      $group = $complete_form[$group]['#group'] ?? NULL;
+    }
+    foreach (Element::children($element) as $key) {
+      if (\is_array($element[$key]) && self::isPageDataElement($element[$key], $complete_form)) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
   /**

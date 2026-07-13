@@ -4,6 +4,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { LockClosedIcon } from '@radix-ui/react-icons';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { selectIsPerContentMode } from '@/features/layout/layoutModelSlice';
 import { isNodeEditable } from '@/features/layout/layoutUtils';
 import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
@@ -85,10 +86,10 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const { isDragging } = useAppSelector(selectDragging);
   const elementsInsideIframe = useRef<HTMLElement[] | []>([]);
   const name = useGetComponentName(component);
-  // Per-content editing: a template-owned component is locked. It renders
-  // read-only (selectable to show the "belongs to the template" panel) but is
-  // not draggable, has no context menu and hosts no drop zones of its own.
+  // Per-content editing: a template-owned component is locked. It is not
+  // draggable, has no context menu and hosts no drop zones of its own.
   const locked = !isNodeEditable(component);
+  const perContentMode = useAppSelector(selectIsPerContentMode);
   const {
     attributes,
     listeners,
@@ -184,6 +185,32 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   }
 
   const [componentType] = component.type.split('@');
+
+  // Per-content editing (#10): when a content editor fills exposed slots, the
+  // surrounding template chrome should not display its editing affordances.
+  // Render a locked template-owned component as a transparent, non-interactive
+  // pass-through (no outline, hover, selection, name tag or lock badge), while
+  // still mounting its nested slot overlays so exposed slots inside remain
+  // fillable.
+  if (perContentMode && locked) {
+    return (
+      <div
+        className={styles.componentOverlay}
+        style={{ ...style, pointerEvents: 'none' }}
+      >
+        {component.slots.map((slot: SlotNode) => (
+          <SlotOverlay
+            key={slot.name}
+            iframeRef={iframeRef}
+            parentComponent={component}
+            slot={slot}
+            disableDrop={disableDrop}
+            forceRecalculate={forceRecalculateChildren}
+          />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div

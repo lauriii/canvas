@@ -192,6 +192,26 @@ export function CanvasNavigationMixin<TBase extends Constructor<CanvasBase>>(
       }
     }
 
+    async openContentPanel() {
+      await this.page
+        .getByTestId('canvas-side-menu')
+        .getByLabel('Content')
+        .click();
+      try {
+        await expect(
+          this.page.getByRole('heading', { name: 'Content' }),
+        ).toBeVisible();
+        await expect(
+          this.page.locator('[data-testid="canvas-content-panel"]'),
+        ).toBeVisible();
+      } catch (error) {
+        throw new Error(
+          'openContentPanel: Content panel did not open - was it already open?\n' +
+            (error instanceof Error ? error.message : String(error)),
+        );
+      }
+    }
+
     async openContentNavigation() {
       await this.page.getByTestId('canvas-navigation-button').click();
       await expect(

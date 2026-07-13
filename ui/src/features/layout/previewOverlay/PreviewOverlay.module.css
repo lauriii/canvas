@@ -139,6 +139,10 @@
 
 .slotOverlay {
   position: absolute;
+  /* Per-content editing: an exposed slot lives inside locked template chrome,
+     which sets cursor:not-allowed. Reset it here so the editable slot (and its
+     entity-owned contents) don't inherit the "forbidden" cursor. */
+  cursor: auto;
   outline: 1px solid transparent;
 
   &.dropTarget {
