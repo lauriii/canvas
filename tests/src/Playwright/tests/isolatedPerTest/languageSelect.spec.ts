@@ -186,15 +186,18 @@ test.describe('Language Select', () => {
       ),
     ).toHaveCount(0);
 
-    // The editor role has edit (update) access, so the delete-translation
-    // options trigger is rendered for the existing French translation - and
-    // only for it (the default English and untranslated Spanish have none).
-    await expect(
-      page.locator('[aria-label="More options for French"]'),
-    ).toBeVisible();
+    // The editor does NOT have 'delete content translations', so the backend
+    // omits the delete-form link entirely. Without any links for French, the
+    // dots (⋮) options trigger is not rendered at all.
     await expect(
       page.locator('[data-testid="language-options-popover-trigger"]'),
-    ).toHaveCount(1);
+    ).toHaveCount(0);
+    await expect(
+      page.locator('[aria-label="More options for French"]'),
+    ).not.toBeAttached();
+    await expect(
+      page.locator('[data-testid="language-options-delete"]'),
+    ).not.toBeAttached();
     // The current permissions include 'administer languages' so the configure
     // button should be present.
     await expect(
