@@ -814,62 +814,11 @@ final class ApiLayoutController {
 
   private function getEntityWithComponentInstance(array $entities, string $componentInstanceUuid): ComponentTreeEntityInterface|FieldableEntityInterface {
     foreach ($entities as $entity) {
-      if ($this->findComponentTreeItemListContaining($entity, $componentInstanceUuid) !== NULL) {
+      if ($this->componentTreeLoader->findItemListContaining($entity, $componentInstanceUuid) !== NULL) {
         return $entity;
       }
     }
     throw new NotFoundHttpException('No such component in model: ' . $componentInstanceUuid);
-  }
-
-  /**
-   * Returns the component tree item list(s) holding an entity's editable rows.
-   *
-   * For a single-field entity (canvas_page) this is the one Canvas field. For a
-   * per-content templated entity, editable rows live in the per-slot backing
-   * fields, so all of them are returned.
-   *
-   * @param \Drupal\canvas\Entity\ComponentTreeEntityInterface|\Drupal\Core\Entity\FieldableEntityInterface $entity
-   *   The entity.
-   *
-   * @return \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList[]
-   *   The item lists to search or mutate.
-   */
-  private function getEditableComponentTreeItemLists(ComponentTreeEntityInterface|FieldableEntityInterface $entity): array {
-    if ($entity instanceof FieldableEntityInterface && !$entity instanceof ComponentTreeEntityInterface) {
-      $template = $this->getPerContentTemplate($entity);
-      if ($template !== NULL) {
-        $lists = [];
-        foreach (\array_keys($template->getExposedSlots()) as $field_name) {
-          if ($entity->hasField($field_name)) {
-            $list = $entity->get($field_name);
-            \assert($list instanceof ComponentTreeItemList);
-            $lists[] = $list;
-          }
-        }
-        return $lists;
-      }
-    }
-    return [$this->componentTreeLoader->load($entity)];
-  }
-
-  /**
-   * Finds the item list holding a given component instance, or NULL.
-   *
-   * @param \Drupal\canvas\Entity\ComponentTreeEntityInterface|\Drupal\Core\Entity\FieldableEntityInterface $entity
-   *   The entity.
-   * @param string $componentInstanceUuid
-   *   The component instance UUID.
-   *
-   * @return \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList|null
-   *   The item list containing the instance, or NULL if none does.
-   */
-  private function findComponentTreeItemListContaining(ComponentTreeEntityInterface|FieldableEntityInterface $entity, string $componentInstanceUuid): ?ComponentTreeItemList {
-    foreach ($this->getEditableComponentTreeItemLists($entity) as $list) {
-      if ($list->getComponentTreeItemByUuid($componentInstanceUuid) !== NULL) {
-        return $list;
-      }
-    }
-    return NULL;
   }
 
   /**
@@ -883,7 +832,7 @@ final class ApiLayoutController {
    * @return void
    */
   private function updateComponentInstance(ComponentTreeEntityInterface|FieldableEntityInterface $entity, string $componentInstanceUuid, string $version, array $client_model, ?FieldableEntityInterface $host_entity): void {
-    $tree = $this->findComponentTreeItemListContaining($entity, $componentInstanceUuid);
+    $tree = $this->componentTreeLoader->findItemListContaining($entity, $componentInstanceUuid);
     if ($tree !== NULL && $item = $tree->getComponentTreeItemByUuid($componentInstanceUuid)) {
       // We might be not only updating the inputs, but also the component
       // instance version (if automatically updating is feasible).
