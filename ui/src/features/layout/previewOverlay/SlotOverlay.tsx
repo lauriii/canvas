@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router';
-import { BoxIcon, DotsHorizontalIcon } from '@radix-ui/react-icons';
+import {
+  BoxIcon,
+  DotsHorizontalIcon,
+  Pencil1Icon,
+} from '@radix-ui/react-icons';
 import { ContextMenu, DropdownMenu } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -276,18 +280,20 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
             !isOverridden &&
             hasDefaultContent && (
               <div
-                className={clsx(styles.canvasNameTag, styles.slotExposeChip)}
+                className={clsx(styles.canvasNameTag, styles.slotOverrideChip)}
               >
                 <button
                   type="button"
-                  className={styles.slotExposeChipButton}
+                  className={styles.slotOverrideChipButton}
                   onClick={() =>
                     perContentAlias &&
                     dispatch(overrideSlotDefaultContent(perContentAlias))
                   }
                   aria-label={`Edit the content of ${perContentEntry?.definition.label}`}
+                  title="This content comes from the template. Edit it to customize it for this item."
                   data-testid={`slot-override-${slotId}`}
                 >
+                  <Pencil1Icon aria-hidden />
                   <span>Edit content</span>
                 </button>
               </div>
