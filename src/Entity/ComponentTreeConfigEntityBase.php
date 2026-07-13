@@ -165,7 +165,9 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
    */
   public function createDuplicate() {
     $duplicate = parent::createDuplicate();
-    unset($duplicate->typedData);
+    // Matches \Drupal\Core\Entity\EntityBase::__sleep(): ::getTypedData()
+    // checks isset(), so NULL discards the cached wrapper.
+    $duplicate->typedData = NULL;
     return $duplicate;
   }
 
@@ -221,7 +223,9 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
    * @todo Works around Typed Data static caching bugs in core's EntityBase, remove after https://www.drupal.org/project/drupal/issues/3571532 is fixed.
    */
   public function postSave(EntityStorageInterface $storage, $update = TRUE): void {
-    unset($this->typedData);
+    // Matches \Drupal\Core\Entity\EntityBase::__sleep(): ::getTypedData()
+    // checks isset(), so NULL discards the cached wrapper.
+    $this->typedData = NULL;
     parent::postSave($storage, $update);
   }
 

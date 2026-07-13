@@ -553,7 +553,7 @@ final class EntityFieldPropSourceMatcher {
       // sources. Only the explicit flag is checked, because ::isInternal()
       // falls back to ::isComputed(), which would also exclude persisted
       // computed fields such as `path`.
-      if ($field_definition instanceof BaseFieldDefinition && $field_definition['internal'] === TRUE) {
+      if (TypedDataHelper::isExplicitlyInternal($field_definition)) {
         continue;
       }
       foreach (self::IGNORE_FIELD_TYPES as ['class' => $field_type_class, 'exceptions' => $allowed_schemas]) {

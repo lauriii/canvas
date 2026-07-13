@@ -253,15 +253,13 @@ final class WorkspaceAutoSave {
         }
       }
       $staged->enforceIsNew(FALSE);
-      if ($staged instanceof RevisionableInterface) {
-        $staged->updateLoadedRevisionId();
-        // ::create() pre-marks the entity as a new revision, which makes the
-        // later setNewRevision(TRUE) in workspaces' entity_presave a no-op
-        // that skips clearing the revision key; the save would then insert a
-        // duplicate of the grafted revision id. Reset the flag so that
-        // transition runs and a fresh revision id is assigned.
-        $staged->setNewRevision(FALSE);
-      }
+      $staged->updateLoadedRevisionId();
+      // ::create() pre-marks the entity as a new revision, which makes the
+      // later setNewRevision(TRUE) in workspaces' entity_presave a no-op
+      // that skips clearing the revision key; the save would then insert a
+      // duplicate of the grafted revision id. Reset the flag so that
+      // transition runs and a fresh revision id is assigned.
+      $staged->setNewRevision(FALSE);
     }
     // Pass the legacy entry through so its metadata (owner, updated,
     // original_hash, conflict retention) survives the migration.
@@ -429,7 +427,13 @@ final class WorkspaceAutoSave {
     }
     $metadata = $this->getStagedEntryMetadata($key);
     if (\is_array($metadata) && \array_key_exists(self::DRAFT_PATH_KEY, $metadata)) {
-      $entity->set('path', $metadata[self::DRAFT_PATH_KEY] ?: NULL);
+      $draft_path = $metadata[self::DRAFT_PATH_KEY];
+      if (!$draft_path) {
+        // A cleared alias is recorded as an empty value; explicit NULL resets
+        // the computed path field instead of assigning the empty value.
+        $draft_path = NULL;
+      }
+      $entity->set('path', $draft_path);
     }
   }
 

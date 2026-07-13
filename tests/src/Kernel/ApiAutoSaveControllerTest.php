@@ -116,8 +116,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ]);
     $anonAccountContent->save();
     \assert($anonAccountContent instanceof NodeInterface);
-    // Trigger a new hash.
-    $anonAccountContent->setRevisionUserId(2);
+    // Trigger a new hash with a content (non-label) change: revision
+    // bookkeeping fields are excluded from auto-save content hashing.
+    // @see \Drupal\canvas\AutoSave\AutoSaveManager::normalizeEntity()
+    $anonAccountContent->setSticky(TRUE);
     /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
     $autoSave->saveEntity($anonAccountContent);
@@ -161,7 +163,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // Empty data.
     $account2content = Node::load(2);
     \assert($account2content instanceof NodeInterface);
-    $account2content->setRevisionUser($account2);
+    // Trigger a new hash with a content (non-label) change: revision
+    // bookkeeping fields are excluded from auto-save content hashing.
+    // @see \Drupal\canvas\AutoSave\AutoSaveManager::normalizeEntity()
+    $account2content->setSticky(TRUE);
     $this->setCurrentUser($account2);
     $autoSave->saveEntity($account2content);
     $code_component = JavaScriptComponent::create(
@@ -612,8 +617,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ]);
     $article->save();
     \assert($article instanceof NodeInterface);
-    // Trigger a new hash.
-    $article->setRevisionUserId(2);
+    // Trigger a new hash with a content (non-label) change: revision
+    // bookkeeping fields are excluded from auto-save content hashing.
+    // @see \Drupal\canvas\AutoSave\AutoSaveManager::normalizeEntity()
+    $article->setSticky(TRUE);
     /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
     $autoSave->saveEntity($article);

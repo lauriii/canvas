@@ -34,6 +34,7 @@ CODEOWNERS
 codespaces
 cookieless
 cqmr
+CRDT
 cset
 csstree
 cycache
@@ -48,6 +49,7 @@ devizzent
 dhta
 diaclone
 demi
+discardable
 domcontentloaded
 drupalcode
 drupaldev
@@ -101,7 +103,9 @@ leftbar
 liftup
 lightningcss
 Linkit
+Loro
 Mautic
+Mercure
 metacharacter
 metatag
 microlink
@@ -158,6 +162,9 @@ reparse
 reparsed
 requiredness
 rescanning
+retag
+retagging
+retags
 rightbar
 rightclick
 roundtripped
@@ -203,6 +210,9 @@ ultrawide
 uncollapse
 uncollapsed
 uncollapses
+unconfigured
+unfork
+unforking
 unhydrated
 unlayered
 unloadable

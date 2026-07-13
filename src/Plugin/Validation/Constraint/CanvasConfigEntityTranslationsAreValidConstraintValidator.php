@@ -106,8 +106,6 @@ final class CanvasConfigEntityTranslationsAreValidConstraintValidator extends Co
       // base to get the full picture that will be served to consumers.
       // @see \Drupal\Core\Config\Config::setOverriddenData()
       $merged = NestedArray::mergeDeepArray([$base_data, $override_data], TRUE);
-      // CANVASDBG
-      \file_put_contents('/tmp/canvas-merge.log', "name=$name lang=$langcode\nbase_tree=" . \json_encode(\array_keys($base_data['component_tree'] ?? [])) . "\noverride_tree_keys=" . \json_encode(\array_keys($override_data['component_tree'] ?? [])) . "\n\n", FILE_APPEND);
       $typed = $this->typedConfigManager->createFromNameAndData($name, $merged);
       $violations = $typed->validate();
 

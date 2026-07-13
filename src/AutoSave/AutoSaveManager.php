@@ -349,7 +349,6 @@ class AutoSaveManager implements EventSubscriberInterface {
         // publishing), whose trees must stay keyed by component instance
         // UUID.
         $entity = clone $entity;
-        \assert($entity instanceof ComponentTreeEntityInterface && $entity instanceof ConfigEntityInterface);
         $tree = $entity->getComponentTree();
         foreach ($tree as $component) {
           \assert($component instanceof ComponentTreeItem);

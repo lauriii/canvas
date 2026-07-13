@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
+use Drupal\Core\Entity\RevisionableInterface;
+use Drupal\workspaces\Plugin\Validation\Constraint\EntityWorkspaceConflictConstraint;
 use Drupal\workspaces\Plugin\Validation\Constraint\EntityWorkspaceConflictConstraintValidator;
 use Symfony\Component\Validator\Constraint;
 
@@ -24,9 +26,12 @@ final class CanvasAwareEntityWorkspaceConflictConstraintValidator extends Entity
   /**
    * {@inheritdoc}
    */
-  public function validate($entity, Constraint $constraint): void {
-    /** @var \Drupal\Core\Entity\EntityInterface $entity */
-    if (!isset($entity) || $entity->isNew()) {
+  public function validate(mixed $entity, Constraint $constraint): void {
+    \assert($constraint instanceof EntityWorkspaceConflictConstraint);
+    // Workspaces only tracks revisionable entities; anything else can never
+    // conflict.
+    // @see \Drupal\workspaces\WorkspaceTrackerInterface::getEntityTrackingWorkspaceIds()
+    if (!$entity instanceof RevisionableInterface || $entity->isNew()) {
       return;
     }
 
