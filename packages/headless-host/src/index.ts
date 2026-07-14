@@ -31,14 +31,20 @@
  * outgoing messages are addressed to that origin, never '*'.
  */
 
-/** App → host: draft session state, sent on load and on every change. */
-export const HEADLESS_STATUS_MESSAGE = 'canvas-headless:status';
+import {
+  HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_RENEW_REQUEST_MESSAGE,
+  HEADLESS_STATUS_MESSAGE,
+} from '@drupal-canvas/headless';
 
-/** App → host: mint a fresh assertion (sent before the token expires). */
-export const HEADLESS_RENEW_REQUEST_MESSAGE = 'canvas-headless:renew-request';
-
-/** Host → app: a freshly minted assertion, to redeem in place. */
-export const HEADLESS_ASSERTION_MESSAGE = 'canvas-headless:assertion';
+// The protocol message types are declared once, in @drupal-canvas/headless
+// (whose client entry implements the app side); re-exported here so host
+// implementers need only this package.
+export {
+  HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_RENEW_REQUEST_MESSAGE,
+  HEADLESS_STATUS_MESSAGE,
+};
 
 /**
  * Session lifecycle events the host reports to its consumer.

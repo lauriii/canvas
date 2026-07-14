@@ -107,6 +107,7 @@ mymodule
 navigations
 naïvely
 networkidle
+nitropack
 nodepath
 nodepaths
 nums
@@ -123,6 +124,8 @@ opsz
 phpat
 placehold
 Postel
+preflight
+preflights
 replayable
 slugified
 slugifies
@@ -167,6 +170,7 @@ sparkline
 STACKLIMIT
 Starshot
 subcontent
+subresource
 subroute
 subtrigger
 subtyping
@@ -181,6 +185,7 @@ toctou
 toolset
 topbar
 trackpad
+transpiles
 tsconfigs
 tseslint
 unbuilt
@@ -195,6 +200,7 @@ unlayered
 unmixable
 unmodeled
 unparseable
+unpartitioned
 unrooted
 unstorable
 unstub

@@ -1,0 +1,58 @@
+---
+import Layout from '../layouts/Layout.astro';
+import {
+  articlePath,
+  canvasPagePath,
+  getArticles,
+  getCanvasPages,
+} from '../lib/content';
+
+const [canvasPages, articles] = await Promise.all([
+  getCanvasPages(Astro),
+  getArticles(Astro),
+]);
+---
+
+<Layout>
+  <main class="mx-auto w-full max-w-2xl px-6 py-10">
+    <h1 class="mb-6 text-3xl font-bold">Canvas pages</h1>
+    {
+      canvasPages.length === 0 ? (
+        <p>No Canvas pages are visible.</p>
+      ) : (
+        <ul class="space-y-3">
+          {canvasPages.map((page) => (
+            <li>
+              <a href={canvasPagePath(page)} class="underline">
+                {page.attributes.title}
+              </a>{' '}
+              <span class="text-xs text-gray-500">
+                {page.attributes.status ? 'published' : 'unpublished'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    <h1 class="mt-10 mb-6 text-3xl font-bold">Articles</h1>
+    {
+      articles.length === 0 ? (
+        <p>No articles are visible.</p>
+      ) : (
+        <ul class="space-y-3">
+          {articles.map((article) => (
+            <li>
+              <a href={articlePath(article)} class="underline">
+                {article.attributes.title}
+              </a>{' '}
+              <span class="text-xs text-gray-500">
+                {article.attributes.status ? 'published' : 'unpublished'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </main>
+</Layout>

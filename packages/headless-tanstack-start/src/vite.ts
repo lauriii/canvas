@@ -1,0 +1,138 @@
+import { loadEnv } from 'vite';
+import {
+  readComponentManifest,
+  writeComponentManifest,
+} from '@drupal-canvas/headless/components-endpoint';
+
+import type { Plugin } from 'vite';
+
+/**
+ * The environment variables the SDK reads through process.env (see
+ * resolveDraftConfig() and the CSP middleware). Vite's own .env loading
+ * targets import.meta.env, which the framework-agnostic core cannot read,
+ * so the plugin bridges these keys across.
+ */
+const ENV_KEYS = ['DRUPAL_BASE_URL', 'DRAFT_ALLOWED_FRAME_ANCESTORS'] as const;
+
+/**
+ * The virtual module createComponentMetadataHandlers() imports the
+ * production manifest from (see ./virtual.d.ts). Inlining the manifest
+ * into the server bundle removes any filesystem assumption from the
+ * deployed shape.
+ */
+const MANIFEST_VIRTUAL_ID =
+  'virtual:@drupal-canvas/headless-tanstack-start/manifest';
+const RESOLVED_MANIFEST_VIRTUAL_ID = `\0${MANIFEST_VIRTUAL_ID}`;
+
+/**
+ * The raw-TypeScript SDK packages the app's server build must compile
+ * rather than externalize.
+ */
+const SDK_PACKAGES = [
+  '@drupal-canvas/headless',
+  '@drupal-canvas/headless-react',
+  '@drupal-canvas/headless-tanstack-start',
+  '@drupal-canvas/discovery',
+];
+
+/**
+ * The Drupal Canvas headless Vite plugin for TanStack Start — the
+ * counterpart of @drupal-canvas/headless-next's withCanvas():
+ *
+ * - Compiles the raw-TypeScript SDK packages into the SSR build
+ *   (`ssr.noExternal`).
+ * - Bridges the SDK's environment variables from the project's .env files
+ *   into process.env, where the framework-agnostic core reads them.
+ * - Generates the component manifest (`.canvas/components.manifest.json`)
+ *   at build time and inlines it into the server bundle — in production
+ *   the metadata endpoint serves this manifest, so the registry always
+ *   describes the deployed build and the built output is self-contained.
+ *   A malformed component.yml fails the build; a broken registry never
+ *   ships silently.
+ *
+ * ```ts
+ * // vite.config.ts
+ * import { canvas } from '@drupal-canvas/headless-tanstack-start/vite';
+ * export default defineConfig({
+ *   plugins: [canvas(), tanstackStart(), viteReact()],
+ * });
+ * ```
+ */
+export function canvas(): Plugin {
+  let projectRoot = process.cwd();
+  let isDev = false;
+  let manifestWritten = false;
+
+  return {
+    name: '@drupal-canvas/headless-tanstack-start',
+
+    config() {
+      return {
+        // Vite's dev-server CORS middleware answers cross-origin preflights
+        // itself, and its default origin policy (localhost-only) omits
+        // Access-Control-Allow-Origin for the embedding Drupal origin —
+        // the browser then fails the fetch before the component metadata
+        // route's own CORS handling (embedder-allowlist-gated) ever runs.
+        // Disabling it lets OPTIONS reach the route; Vite then adds no
+        // CORS headers of its own anywhere, so nothing else becomes
+        // cross-origin readable. Production has no Vite server and is
+        // unaffected.
+        server: {
+          cors: false,
+        },
+        ssr: {
+          noExternal: [...SDK_PACKAGES],
+        },
+      };
+    },
+
+    configResolved(config) {
+      projectRoot = config.root;
+      isDev = config.command === 'serve';
+      // Vite's loadEnv merges the project's .env files with the actual
+      // process environment, real environment variables winning — so
+      // assigning the result back preserves the usual precedence.
+      const env = loadEnv(config.mode, projectRoot, '');
+      for (const key of ENV_KEYS) {
+        if (env[key] !== undefined) {
+          process.env[key] = env[key];
+        }
+      }
+    },
+
+    async buildStart() {
+      // Once per build, not once per Vite environment (client, ssr).
+      if (isDev || manifestWritten) {
+        return;
+      }
+      manifestWritten = true;
+      const manifest = await writeComponentManifest({ projectRoot });
+      this.info(
+        `Wrote the component manifest: ${manifest.components.length} component(s), ${manifest.warnings.length} warning(s).`,
+      );
+      for (const warning of manifest.warnings) {
+        this.warn(warning.message);
+      }
+    },
+
+    resolveId(id) {
+      return id === MANIFEST_VIRTUAL_ID
+        ? RESOLVED_MANIFEST_VIRTUAL_ID
+        : undefined;
+    },
+
+    async load(id) {
+      if (id !== RESOLVED_MANIFEST_VIRTUAL_ID) {
+        return undefined;
+      }
+      if (isDev) {
+        return 'export default null;';
+      }
+      // buildStart wrote the manifest before modules load.
+      const manifest = await readComponentManifest({ projectRoot });
+      return `export default ${JSON.stringify(manifest)};`;
+    },
+  };
+}
+
+export default canvas;

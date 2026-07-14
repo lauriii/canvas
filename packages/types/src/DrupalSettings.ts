@@ -74,7 +74,7 @@ export interface DrupalSettings {
     personalizationExtensionAvailable: boolean;
     // ⚠️ This is highly experimental and *will* be refactored.
     canvasAiMaxFileSize: number;
-    // Present when the canvas_headless module embeds a frontend app in the
+    // Present when the Canvas Headless module embeds a frontend app in the
     // editor frame instead of the Drupal-rendered preview.
     headless?: HeadlessSettings;
   };

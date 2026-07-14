@@ -16,5 +16,8 @@
   "license": "GPL-2.0-or-later",
   "devDependencies": {
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@drupal-canvas/headless": "*"
   }
 }

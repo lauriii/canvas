@@ -271,7 +271,7 @@ Two facts about this format matter more than everything else:
    signature proves *who wrote it* and *that it wasn't altered*, nothing
    more. This is why the SDK can safely decode `path` and
    `resourceVersion` out of the assertion
-   (`modules/canvas_headless/examples/nextjs-app/lib/drupal-draft/assertion.ts`)
+   (`packages/headless/src/assertion.ts`)
    — and also why no secret must ever be put in a claim.
 2. **The signature covers header + payload exactly as encoded.** Change
    one character of either and verification fails. The tamper refusal
@@ -462,7 +462,7 @@ assertions minted for the app.
 ### 3.3 The exchange: one POST, no secrets
 
 The app's `/api/draft` route
-(`modules/canvas_headless/examples/nextjs-app/lib/drupal-draft/draft.ts`,
+(`packages/headless/src/server/flows.ts`,
 `enableDraftMode()`) sends the whole credential story in one
 form-encoded request — the shape prescribed by
 [RFC 7523 §2.1](https://datatracker.ietf.org/doc/html/rfc7523#section-2.1):
@@ -660,7 +660,7 @@ interesting part is *who does the minting*, because the app cannot: its
 requests to Drupal never carry the editor's `SameSite=Lax` session
 cookie. Embedded, the host page (which *is* inside that session) relays
 over origin-checked postMessage — the app side lives in
-`modules/canvas_headless/examples/nextjs-app/components/draft-session-client.tsx`,
+`packages/headless/src/client/draft-session.ts`,
 the host side in `packages/headless-host/src/index.ts`, wired into the
 Canvas editor by
 `ui/src/features/layout/preview/useHeadlessDraftSession.ts`. Standalone,
@@ -832,10 +832,10 @@ Module paths are relative to `modules/canvas_headless`.
 | `canvas_headless.install` | Auto-provisions the public consumer, and removes it on uninstall only if it provisioned it |
 | `packages/headless-host/src/index.ts` | Host side of the renewal/recovery protocol, as a reusable package |
 | `ui/src/features/layout/preview/useHeadlessDraftSession.ts` | Wires the host protocol into the Canvas editor (CSRF, activation per edited entity) |
-| `examples/nextjs-app/lib/drupal-draft/draft.ts` | The exchange (activation and in-place renewal), cookie handling, session recovery |
-| `examples/nextjs-app/lib/drupal-draft/pkce.ts` | Generates and hashes the verifier binding the next renewal to the app server |
-| `examples/nextjs-app/lib/drupal-draft/assertion.ts` | Post-redemption claim decoding (the string-identity trust argument) |
-| `examples/nextjs-app/components/draft-session-client.tsx` | App side of the protocol: renewal scheduling, status reporting, the banner |
+| `packages/headless/src/server/flows.ts` | The exchange (activation and in-place renewal), cookie handling, session recovery |
+| `packages/headless/src/server/pkce.ts` | Generates and hashes the verifier binding the next renewal to the app server |
+| `packages/headless/src/assertion.ts` | Post-redemption claim decoding (the string-identity trust argument) |
+| `packages/headless/src/client/draft-session.ts` | App side of the protocol: renewal scheduling, status reporting (the example app's banner renders from its events) |
 
 ### 5.4 Reading list
 

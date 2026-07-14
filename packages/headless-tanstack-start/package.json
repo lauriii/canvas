@@ -1,0 +1,53 @@
+{
+  "name": "@drupal-canvas/headless-tanstack-start",
+  "version": "0.1.0",
+  "description": "TanStack Start adapter for the Drupal Canvas Headless SDK: cookie-based draft sessions, server route handler factories, the canvas() Vite plugin, a CSP request middleware, and the <DraftSession> client component.",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./middleware": {
+      "import": "./src/middleware.ts",
+      "types": "./src/middleware.ts",
+      "default": "./src/middleware.ts"
+    },
+    "./client": {
+      "import": "./src/client/index.ts",
+      "types": "./src/client/index.ts",
+      "default": "./src/client/index.ts"
+    },
+    "./vite": {
+      "import": "./src/vite.ts",
+      "types": "./src/vite.ts",
+      "default": "./src/vite.ts"
+    }
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit --pretty"
+  },
+  "license": "GPL-2.0-or-later",
+  "dependencies": {
+    "@drupal-canvas/headless": "*",
+    "@drupal-canvas/headless-react": "*"
+  },
+  "peerDependencies": {
+    "@tanstack/react-router": ">=1.130.0",
+    "@tanstack/react-start": ">=1.130.0",
+    "react": ">=18.0.0",
+    "vite": ">=7.0.0"
+  },
+  "devDependencies": {
+    "@tanstack/react-router": "^1.132.0",
+    "@tanstack/react-start": "^1.168.27",
+    "@types/react": "^19.2.0",
+    "react": "^19.2.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.0.0"
+  },
+  "sideEffects": false
+}

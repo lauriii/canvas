@@ -1,0 +1,71 @@
+---
+import {
+  getDraftData,
+  getDraftConfig,
+  isDraftModeEnabled,
+  isDraftSessionExpired,
+} from '../server';
+
+/**
+ * The Astro lifecycle around the draft session: gathers the session state
+ * server-side and hands it to the <canvas-draft-session> custom element
+ * from @drupal-canvas/headless/client, which owns the machine (expiry
+ * timing, the renewal protocol with the embedding host, re-arming after a
+ * renewal). Renders nothing when draft mode is off.
+ *
+ * The slot owns presentation: children marked
+ * `data-draft-session-view="active"` show while the session is live and
+ * the page is standalone (embedded, the host owns the session chrome);
+ * `data-draft-session-view="expired"` children show once the session has
+ * expired, embedded or not. A `data-draft-session-renew-link` anchor gets
+ * its href pointed at Drupal's renew route for the current path. A
+ * headless page that only needs the renewal protocol leaves the slot
+ * empty.
+ */
+
+interface Props {
+  /**
+   * The app route that redeems a fresh assertion into the session; align
+   * with the integration's injectRoutes: false custom mounting when used.
+   */
+  renewEndpoint?: string;
+}
+
+const { renewEndpoint = '/api/draft/renew' } = Astro.props;
+
+const enabled = isDraftModeEnabled(Astro);
+const draftData = enabled ? await getDraftData(Astro) : null;
+const expired = !draftData || isDraftSessionExpired(draftData);
+---
+
+{
+  enabled && (
+    <canvas-draft-session
+      token-expires-at={draftData?.tokenExpiresAt}
+      initial-expired={expired ? '' : undefined}
+      renew-url={draftData?.renewUrl}
+      embedder-origins={getDraftConfig().embedderOrigins.join(' ')}
+      renew-endpoint={renewEndpoint}
+    >
+      <slot />
+    </canvas-draft-session>
+  )
+}
+
+<style is:global>
+  /* Until the element connects and applies the visibility rules, every
+     state view stays hidden — the server cannot know whether the page is
+     embedded, so first paint shows nothing, matching the client-decided
+     Next.js banner. The [hidden] rule keeps the element's toggling
+     authoritative over display properties the app's own styles set. */
+  canvas-draft-session:not(:defined) [data-draft-session-view],
+  canvas-draft-session [hidden] {
+    display: none !important;
+  }
+</style>
+
+<script>
+  import { defineDraftSessionElement } from '@drupal-canvas/headless/client';
+
+  defineDraftSessionElement();
+</script>

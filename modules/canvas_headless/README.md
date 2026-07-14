@@ -13,8 +13,13 @@ hooks, and configuration may change without a deprecation path.
 - The [Lupus Decoupled](https://lupus-decoupled.org/) CE API stack (`custom_elements`, `lupus_ce_renderer`,
   `lupus_decoupled_ce_api`), declared as module dependencies; it provides the rendered-routes endpoint
   (`/ce-api/{path}`).
-- A frontend app implementing the draft SDK and the host protocol. The bundled example app (`examples/nextjs-app`)
-  is a working Next.js reference; see its README for setup. It additionally expects JSON:API for listings.
+- A frontend app built on the Drupal Canvas Headless SDK. The SDK ships as the workspace package
+  `@drupal-canvas/headless` (framework-agnostic core) plus one adapter per framework —
+  `@drupal-canvas/headless-next` (Next.js), `@drupal-canvas/headless-astro` (Astro),
+  `@drupal-canvas/headless-nuxt` (Nuxt), and `@drupal-canvas/headless-tanstack-start` (TanStack Start) — with
+  `@drupal-canvas/headless-react` as the shared React binding. The bundled example apps (`examples/next`, `examples/astro`, `examples/nuxt`,
+  `examples/tanstack-start`) are working references built on them; see their READMEs for setup. They additionally
+  expect JSON:API for listings.
 
 ## Setup
 
@@ -57,8 +62,9 @@ hook documentation, including the site-policy `_alter` hook.
 
 ## Known limitations
 
-- The CE API serves the default revision: an unpublished entity previews fully, but a published entity's forward
-  revision appears only in JSON:API-driven listings (the SDK hydrates working copies), not on CE-rendered pages.
+- The rendered-content endpoint serves the default revision: an unpublished entity previews fully, but a published entity's forward
+  revision appears only in JSON:API-driven listings (the SDK hydrates working copies), not on pages rendered
+  through `fetchPage()`.
 - Core JSON:API filtered collections exclude unpublished content regardless of permissions; the example app avoids
   filtered collection queries for draft content.
 - Content gated by a view permission not declared preview-safe is invisible in previews until the owning module

@@ -49,5 +49,8 @@ await host.activate({ entity_type: 'canvas_page', entity: '5' });
 // Later: host.destroy();
 ```
 
-The app side of the protocol ships with the example app in the `canvas_headless`
-module (`lib/drupal-draft` and `components/draft-session-client.tsx`).
+The app side of the protocol ships in the Drupal Canvas Headless SDK:
+`@drupal-canvas/headless` (the `./client` entry's draft session state machine),
+with framework bindings in the adapter packages (`@drupal-canvas/headless-next`,
+`-astro`, `-nuxt`, `-tanstack-start`); the message-type constants this package
+re-exports are declared there.

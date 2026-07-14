@@ -12,6 +12,15 @@ export default function Image(
 ) {
   const { src, loader } = props;
 
+  // `src` is a URL string in this integration; a statically imported image
+  // arrives as an object carrying its URL.
+  const srcString =
+    typeof src === 'string'
+      ? src
+      : 'default' in src
+        ? src.default.src
+        : src.src;
+
   if (!loader) {
     //
     const defaultLoader = ({ width, imageProps }: ImageLoaderParams) => {
@@ -20,8 +29,9 @@ export default function Image(
         // Example `src` value:
         // /sites/default/files/2025-07/maple-street.jpg?alternateWidths=/sites/default/files/styles/canvas_parametrized_width--{width}/public/2025-07/maple-street.jpg.webp?itok=…
         // A base URL is passed to the `URL` constructor to handle the relative
-        // path. This is only so we can easily parse the
-        let result = new URL(src, 'https://example.com').searchParams.get(
+        // path. This is only so we can easily parse the query string; the
+        // base itself is never used.
+        let result = new URL(srcString, 'https://example.com').searchParams.get(
           'alternateWidths',
         );
         if (!result) {
@@ -42,7 +52,14 @@ export default function Image(
           // which gives us access to the intrinsic image dimensions.
           // Based on those we can also calculate the appropriate height for the
           // resized placeholder image.
-          const { width: intrinsicWidth, height: intrinsicHeight } = imageProps;
+          // The dimension props admit numeric strings and may be absent.
+          const intrinsicWidth = Number(imageProps.width);
+          const intrinsicHeight = Number(imageProps.height);
+          if (!intrinsicWidth || !intrinsicHeight) {
+            throw new Error(
+              'Height calculation requires intrinsic image dimensions.',
+            );
+          }
           const height = Math.round(width / (intrinsicWidth / intrinsicHeight));
           result = result.replace('{height}', height.toString());
         }
@@ -57,7 +74,7 @@ export default function Image(
           { src, error },
         );
         // Fallback to original `src` if parsing fails.
-        return src;
+        return srcString;
       }
     };
     return (

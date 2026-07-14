@@ -12,6 +12,14 @@ export interface DiscoveryOptions {
   contentTemplatesRoot?: string;
   regionsRoot?: string;
   projectRoot?: string;
+  /**
+   * Extensions accepted for a component's entry file, in precedence order.
+   * Default: the JavaScript extensions (JS_EXTENSIONS). Consumers that only
+   * read component metadata — not the entry's code — widen this to
+   * framework single-file components (.astro, .vue, .svelte), whose entries
+   * the Canvas build pipeline could not compile.
+   */
+  entryExtensions?: readonly string[];
 }
 
 export interface DiscoveryWarning {

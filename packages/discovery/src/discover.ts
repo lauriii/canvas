@@ -137,8 +137,9 @@ function parseRegionFilename(filename: string): { region: string } | null {
  * emitted.
  *
  * For each active metadata file, it resolves the JavaScript entry by extension
- * precedence (`.ts`, `.tsx`, `.js`, `.jsx`) and emits warnings for missing or
- * duplicate entries. It also attaches an optional `.css` entry when present.
+ * precedence (`.ts`, `.tsx`, `.js`, `.jsx` by default; see
+ * `entryExtensions`) and emits warnings for missing or duplicate entries.
+ * It also attaches an optional `.css` entry when present.
  *
  * Page discovery scans top-level `.json` files from `pagesRoot`, which defaults
  * to `<componentRoot>/pages`.
@@ -161,6 +162,7 @@ export async function discoverCanvasProject(
   const regionsRoot = path.resolve(
     options.regionsRoot ?? path.join(componentRoot, 'regions'),
   );
+  const entryExtensions = options.entryExtensions ?? JS_EXTENSIONS;
   const gitignoreMatcher = await readGitignore(projectRoot);
 
   const allCandidates = await getCandidateMetadataFiles(componentRoot);
@@ -373,7 +375,7 @@ export async function discoverCanvasProject(
       const metadataPath = path.resolve(absoluteDirectory, metadataFilename);
 
       const jsCandidates = await Promise.all(
-        JS_EXTENSIONS.map(async (extension) => {
+        entryExtensions.map(async (extension) => {
           const candidatePath = path.resolve(
             absoluteDirectory,
             `${componentBaseName}${extension}`,
@@ -390,15 +392,19 @@ export async function discoverCanvasProject(
         (candidate) => candidate.exists,
       );
 
-      if (existingJsCandidates.length > 1) {
+      // Destructured (the emptiness check follows) so consumers compiling
+      // with noUncheckedIndexedAccess see no undefined.
+      const [entryCandidate] = existingJsCandidates;
+
+      if (entryCandidate && existingJsCandidates.length > 1) {
         warnings.push({
           code: 'duplicate_definition',
-          message: `Multiple JavaScript entry files found for ${metadataFilename}. Using ${path.basename(existingJsCandidates[0].candidatePath)} by extension precedence.`,
+          message: `Multiple JavaScript entry files found for ${metadataFilename}. Using ${path.basename(entryCandidate.candidatePath)} by extension precedence.`,
           path: metadataPath,
         });
       }
 
-      if (existingJsCandidates.length === 0) {
+      if (!entryCandidate) {
         warnings.push({
           code: 'missing_js_entry',
           message: `Missing JavaScript entry file for ${metadataFilename}.`,
@@ -423,7 +429,7 @@ export async function discoverCanvasProject(
           path.relative(projectRoot, absoluteDirectory),
         ),
         metadataPath,
-        jsEntryPath: existingJsCandidates[0].candidatePath,
+        jsEntryPath: entryCandidate.candidatePath,
         cssEntryPath,
       });
     }

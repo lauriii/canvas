@@ -1,0 +1,31 @@
+{
+  "name": "@drupal-canvas/headless-react",
+  "version": "0.1.0",
+  "description": "Shared React binding for the Drupal Canvas Headless SDK: the <DraftSession> client component React frameworks (Next.js, TanStack Start) wire to their routers.",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit --pretty"
+  },
+  "license": "GPL-2.0-or-later",
+  "dependencies": {
+    "@drupal-canvas/headless": "*"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "react": "^19.2.0",
+    "typescript": "^5.9.3"
+  },
+  "sideEffects": false
+}

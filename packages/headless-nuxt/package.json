@@ -1,0 +1,66 @@
+{
+  "name": "@drupal-canvas/headless-nuxt",
+  "version": "0.1.0",
+  "description": "Nuxt adapter for the Drupal Canvas Headless SDK: the drupalCanvas module (draft and component metadata routes, CSP middleware, build-time manifest), h3-based draft sessions, and the <DraftSession> banner component.",
+  "private": true,
+  "type": "module",
+  "main": "./src/module.ts",
+  "exports": {
+    ".": {
+      "import": "./src/module.ts",
+      "types": "./src/module.ts",
+      "default": "./src/module.ts"
+    },
+    "./server": {
+      "import": "./src/runtime/server/session.ts",
+      "types": "./src/runtime/server/session.ts",
+      "default": "./src/runtime/server/session.ts"
+    },
+    "./routes/draft": {
+      "import": "./src/runtime/server/routes/draft.ts",
+      "types": "./src/runtime/server/routes/draft.ts",
+      "default": "./src/runtime/server/routes/draft.ts"
+    },
+    "./routes/draft-renew": {
+      "import": "./src/runtime/server/routes/draft-renew.ts",
+      "types": "./src/runtime/server/routes/draft-renew.ts",
+      "default": "./src/runtime/server/routes/draft-renew.ts"
+    },
+    "./routes/disable-draft": {
+      "import": "./src/runtime/server/routes/disable-draft.ts",
+      "types": "./src/runtime/server/routes/disable-draft.ts",
+      "default": "./src/runtime/server/routes/disable-draft.ts"
+    },
+    "./routes/session-state": {
+      "import": "./src/runtime/server/routes/session-state.ts",
+      "types": "./src/runtime/server/routes/session-state.ts",
+      "default": "./src/runtime/server/routes/session-state.ts"
+    },
+    "./routes/components": {
+      "import": "./src/runtime/server/routes/components.ts",
+      "types": "./src/runtime/server/routes/components.ts",
+      "default": "./src/runtime/server/routes/components.ts"
+    }
+  },
+  "scripts": {
+    "type-check": "vue-tsc --noEmit --pretty"
+  },
+  "license": "GPL-2.0-or-later",
+  "dependencies": {
+    "@drupal-canvas/headless": "*",
+    "@nuxt/kit": "^4.4.8",
+    "h3": "^1.15.0"
+  },
+  "peerDependencies": {
+    "nuxt": ">=4.0.0",
+    "vue": ">=3.4.0"
+  },
+  "devDependencies": {
+    "@nuxt/nitro-server": "^4.4.8",
+    "nuxt": "^4.4.8",
+    "typescript": "^5.9.3",
+    "vue": "^3.5.39",
+    "vue-tsc": "^3.2.2"
+  },
+  "sideEffects": false
+}
