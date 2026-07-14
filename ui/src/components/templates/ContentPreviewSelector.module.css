@@ -1,4 +1,29 @@
+/* Truncate the selected node title so a long one does not overflow the topbar
+   and overlap the template label. */
+/* ponytail: fixed 20ch cap; widen if the topbar gains room. */
+.triggerLabel {
+  overflow: hidden;
+  max-width: 20ch;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* overflow-x: hidden (not the default visible) because setting only overflow-y
+   makes the browser compute overflow-x to auto, adding a stray horizontal
+   scrollbar; labels truncate so nothing is lost. */
+.list {
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 240px;
+}
+
 .item {
+  /* padding-right offsets the ghost "..." IconButton's -4px optical margin,
+     which would otherwise poke past the row edge (horizontal scrollbar, or a
+     clipped button once overflow-x is hidden). */
+  width: 100%;
+  min-width: 0;
+  padding-right: var(--space-1);
   border-radius: var(--radius-2);
 
   &:hover {
@@ -7,8 +32,11 @@
 }
 
 .itemLabel {
+  /* flex-basis 0 (not auto) so the label sizes from the leftover width after
+     the fixed "..." button and truncates exactly, instead of basing on the full
+     label and overflowing the row by a few px. */
   display: flex;
-  flex-grow: 1;
+  flex: 1 1 0;
   align-items: center;
   min-width: 0;
   padding: var(--space-1) var(--space-2);
