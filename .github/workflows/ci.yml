@@ -61,8 +61,13 @@ jobs:
           ddev composer create-project "drupal/recommended-project:^11.3" --no-install
           mv ../canvas ./canvas
           ddev composer config minimum-stability dev
+          # symlink:false => composer COPIES the module into
+          # web/modules/contrib/canvas as a real directory. A symlink breaks the
+          # module's tooling, which derives the Drupal root by walking `..` /
+          # realpath from the module dir (phpunit.sh, the Playwright/Cypress
+          # `find core/` helpers) and would otherwise escape the docroot.
           ddev composer config --json repositories.canvas \
-            '{"type":"path","url":"./canvas","options":{"symlink":true}}'
+            '{"type":"path","url":"./canvas","options":{"symlink":false}}'
           ddev composer require "drupal/canvas:@dev" "drupal/core-dev:^11.3" -W --no-interaction
           # Install Canvas's own require-dev (phpstan/phpcs toolchain + the
           # contrib modules the static analysis and kernel/functional suites
@@ -94,6 +99,11 @@ jobs:
           cd site && ddev start
           ddev exec 'cd web/modules/contrib/canvas && composer validate --strict || true'
           ddev exec 'cd web/modules/contrib/canvas && composer run lint:phpcs'
+          # Regenerate the "non-min-core-version" phpstan ignore baseline for the
+          # core version actually installed here (CI resolves ^11.3 to the latest
+          # patch, which may differ from the committed baseline's target). GitLab
+          # does the same; without it phpstan reports stale-baseline mismatches.
+          ddev exec 'cd web/modules/contrib/canvas && composer run phpstan-regenerate-ignores-for-non-min-core-version-features'
           ddev exec 'cd web/modules/contrib/canvas && composer run lint:phpstan'
 
   phpunit:
