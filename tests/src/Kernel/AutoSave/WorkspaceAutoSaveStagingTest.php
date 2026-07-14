@@ -21,6 +21,8 @@ use Drupal\user\Entity\User;
 use Drupal\workspaces\Entity\Workspace;
 use Drupal\workspaces\WorkspacePublishException;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
  * Workspace-backed auto-save staging invariants.
@@ -125,6 +127,38 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
     $staged = $manager->getAutoSaveEntity($entity)->entity;
     self::assertInstanceOf(EntityTestMulRevPub::class, $staged);
     self::assertSame('draft two', $staged->get('name')->value);
+  }
+
+  /**
+   * A draft identical to Live but with form violations is a pending change.
+   *
+   * Entity form values that fail validation are stored only as violations;
+   * the staged content stays equal to the Live entity. The draft must still
+   * be listed so publishing can surface the violations.
+   *
+   * @see \Drupal\canvas\ClientDataToEntityConverter::convert()
+   */
+  public function testContentIdenticalDraftWithFormViolationsIsListed(): void {
+    $entity = EntityTestMulRevPub::create(['name' => 'live', 'status' => TRUE]);
+    $entity->save();
+    $manager = $this->autoSaveManager();
+    $key = AutoSaveManager::getAutoSaveKey($entity);
+
+    $draft = clone $entity;
+    $manager->saveEntityFormViolations($draft, new ConstraintViolationList([
+      new ConstraintViolation('There are no users matching "El Duderino".', NULL, [], NULL, 'name', 'El Duderino'),
+    ]));
+    $manager->saveEntity($draft, 'client-a');
+
+    self::assertFalse($manager->getAutoSaveEntity($entity)->isEmpty(), 'A content-identical draft with stored form violations is a pending change.');
+    self::assertArrayHasKey($key, $manager->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE));
+
+    // Clearing the violations and re-sending the identical payload resets
+    // the draft.
+    $manager->saveEntityFormViolations($draft);
+    $manager->saveEntity($draft, 'client-a');
+    self::assertTrue($manager->getAutoSaveEntity($entity)->isEmpty());
+    self::assertArrayNotHasKey($key, $manager->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE));
   }
 
   /**

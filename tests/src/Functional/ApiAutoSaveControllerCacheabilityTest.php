@@ -89,7 +89,13 @@ final class ApiAutoSaveControllerCacheabilityTest extends FunctionalTestBase {
     $this->drupalGet($url);
     $this->assertSession()->responseHeaderEquals(DynamicPageCacheSubscriber::HEADER, 'HIT');
 
-    $node1->save();
+    // Save the node without adopting the auto-saved draft's values: a staged
+    // draft whose content is identical to the live entity no longer counts as
+    // a pending change, so it would disappear from the list.
+    // @see \Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave::appendWorkspaceTrackedContentEntities()
+    $node1_unchanged = \Drupal::entityTypeManager()->getStorage('node')->loadUnchanged(1);
+    \assert($node1_unchanged instanceof NodeInterface);
+    $node1_unchanged->save();
 
     // Saving node should invalidate cache and cache MISS.
     $this->drupalGet($url);

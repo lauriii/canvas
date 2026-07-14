@@ -226,7 +226,7 @@ final class WorkspaceAutoSave {
       $this->applyRecordedDraftPath($active, $key);
       $hash = AutoSaveManager::generateHashFromData(AutoSaveManager::normalizeEntity($active));
       $unchanged_hash = AutoSaveManager::generateHashFromData(AutoSaveManager::normalizeEntity($original));
-      if (\hash_equals($unchanged_hash, $hash)) {
+      if (\hash_equals($unchanged_hash, $hash) && !$this->hasStoredFormViolations($key)) {
         return AutoSaveEntity::empty();
       }
       $auto_save_entity = new AutoSaveEntity($active, $hash, $this->getStagedClientId($key), $this->stagedRevisionTime($active));
@@ -435,6 +435,21 @@ final class WorkspaceAutoSave {
       }
       $entity->set('path', $draft_path);
     }
+  }
+
+  /**
+   * Whether stored entity form violations exist for an auto-save key.
+   *
+   * A draft whose persisted content equals the Live entity is still a pending
+   * change when the client submitted entity form values that failed
+   * validation: the recorded violations (with their invalid values) are the
+   * only thing distinguishing the draft, and publishing must surface them.
+   *
+   * @see \Drupal\canvas\AutoSave\AutoSaveManager::saveEntityFormViolations()
+   * @see \Drupal\canvas\Controller\ApiLayoutController::getFilteredEntityData()
+   */
+  private function hasStoredFormViolations(string $key): bool {
+    return $this->keyValueFactory->get(AutoSaveManager::FORM_VIOLATIONS_STORE)->has($key);
   }
 
   /**
@@ -753,7 +768,7 @@ final class WorkspaceAutoSave {
             $data_hash = AutoSaveManager::generateHashFromData(AutoSaveManager::normalizeEntity($translation));
             if ($canonical instanceof ContentEntityInterface && $canonical->hasTranslation($langcode)) {
               $canonical_hash = AutoSaveManager::generateHashFromData(AutoSaveManager::normalizeEntity($canonical->getTranslation($langcode)));
-              if (\hash_equals($canonical_hash, $data_hash)) {
+              if (\hash_equals($canonical_hash, $data_hash) && !$this->hasStoredFormViolations($key)) {
                 continue;
               }
             }

@@ -208,7 +208,13 @@ final class ApiContentControllers extends ApiControllerBase {
           return $validation_errors_response;
         }
       }
-      $new->save();
+      // The created entity is a new Live entity, not a workspace-staged
+      // draft: saving it inside the active auto-save workspace would track
+      // its initial (default) revision in the workspace, and discarding that
+      // staging later would fail because a default revision cannot be
+      // deleted.
+      // @see \Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave::discardWorkspaceStagedContentEntity()
+      $this->executeOutsideWorkspace(static fn () => $new->save());
     }
     \assert($new instanceof ContentEntityInterface && $new instanceof EntityPublishedInterface);
     $data = $this->normalizeWithMetadataAndComponents($new, new CacheableMetadata());

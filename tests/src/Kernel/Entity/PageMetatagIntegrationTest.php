@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Entity;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave;
 use Drupal\canvas\Controller\EntityFormController;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
@@ -154,7 +155,7 @@ final class PageMetatagIntegrationTest extends CanvasKernelTestBase {
     self::assertSaveWithoutViolations($page);
     $themeHandler = $this->container->get(ThemeHandlerInterface::class);
     \assert($themeHandler instanceof ThemeHandlerInterface);
-    $sut = new EntityFormController($this->container->get(AutoSaveManager::class), $this->container->get(RequestStack::class), $themeHandler);
+    $sut = new EntityFormController($this->container->get(AutoSaveManager::class), $this->container->get(RequestStack::class), $themeHandler, $this->container->get(WorkspaceAutoSave::class));
     $form = $sut->form(Page::ENTITY_TYPE_ID, $page, 'default');
     self::assertArrayHasKey('image', $form['seo_settings']);
     self::assertArrayHasKey('description', $form['seo_settings']);

@@ -13,12 +13,14 @@ use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\canvas\Form\ClientFormSubmissionHelper;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Storage\ComponentTreeLoader;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\content_translation\FieldTranslationSynchronizerInterface;
 use Drupal\Core\Access\AccessException;
 use Drupal\Core\Access\CsrfTokenGenerator;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -45,6 +47,7 @@ class ClientDataToEntityConverter {
     private readonly CsrfTokenGenerator $csrfTokenGenerator,
     private readonly ComponentTreeLoader $componentTreeLoader,
     private readonly AutoSaveManager $autoSaveManager,
+    private readonly TimeInterface $time,
     // The synchronizer belongs to content_translation, an optional dependency,
     // so it is NULL when that module is not installed.
     // @see \Drupal\canvas\CanvasServiceProvider
@@ -195,7 +198,31 @@ class ClientDataToEntityConverter {
       // Drupal Canvas which would use timestamps provided by the server.
       // \Drupal\Core\Entity\EntityChangedInterface::setChangedTime().
       // @see \Drupal\Core\Entity\ContentEntityForm::updateChangedTime()
-      unset($entity_form_fields['changed']);
+      // Instead of only ignoring the received value, submit the request time,
+      // and raise the entity object's own timestamp to it: the form
+      // submission below validates the entity, and core's
+      // EntityChangedConstraint compares the validated 'changed' against the
+      // stored copy via loadUnchanged(). During Canvas API requests the
+      // stored copy is the workspace-staged draft revision, which another
+      // preview request's deferred flush advances at any moment — a stale
+      // build-time timestamp (the AJAX-cached form's entity, or an entity
+      // loaded earlier in this request) records a false "modified by another
+      // user" conflict that blocks publishing. The request time can never be
+      // behind a flush, and matches what ::updateChangedTime() persists on
+      // submission anyway. Genuine client staleness is enforced separately,
+      // through the autoSaves hashes.
+      // @see \Drupal\Core\Entity\Plugin\Validation\Constraint\EntityChangedConstraintValidator
+      // @see \Drupal\canvas\AutoSave\Workspace\DeferredAutoSaveFlusher
+      // @see \Drupal\canvas\Controller\ApiLayoutController::validateAutoSaves()
+      $request_time = $this->time->getRequestTime();
+      $entity_form_fields['changed'] = (string) $request_time;
+      if ($entity instanceof ContentEntityInterface && !$entity->isNew()) {
+        foreach (\array_keys($entity->getTranslationLanguages()) as $langcode) {
+          $translation = $entity->getTranslation($langcode);
+          \assert($translation instanceof EntityChangedInterface);
+          $translation->setChangedTime(\max($translation->getChangedTime() ?? 0, $request_time));
+        }
+      }
       $expect_form_to_update_changed = TRUE;
     }
     // Create a form state from the received entity fields.
@@ -328,6 +355,12 @@ class ClientDataToEntityConverter {
     $form_state->setUserInput($entity_form_fields);
 
     $form = $this->formBuilder->buildForm($form_object, $form_state);
+    // 'changed' was injected into the submitted input above solely so entity
+    // validation compares a current timestamp; it is not a client-updated
+    // field, so exclude it from the field access checks below.
+    if ($expect_form_to_update_changed) {
+      unset($entity_form_fields['changed']);
+    }
     $violations_list = new EntityConstraintViolationList($entity);
     $errors = $form_state->getErrors();
     $invalid_fields = [];
