@@ -2,7 +2,10 @@ import { createSelector } from '@reduxjs/toolkit';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
-import { setLayoutModel } from '@/features/layout/layoutModelSlice';
+import {
+  setLayoutModel,
+  setTranslations,
+} from '@/features/layout/layoutModelSlice';
 import { setHtml, setSnapshotHTML } from '@/features/pagePreview/previewSlice';
 import {
   baseQueryWithAutoSaves,
@@ -91,7 +94,7 @@ export const previewApi = createApi({
     // Snapshot preview updates the preview frame without changing the active
     // model in the UI.
     getSnapshotPreview: builder.query<
-      { html: string },
+      { html: string; translations?: Record<string, any> },
       {
         entityType: string;
         entityId: string;
@@ -116,9 +119,12 @@ export const previewApi = createApi({
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          const { html } = data;
+          const { html, translations } = data;
           // Update the snapshot HTML for preview-only display.
           dispatch(setSnapshotHTML(html));
+          if (translations) {
+            dispatch(setTranslations(translations));
+          }
         } catch {
           // Error is handled by the component.
         }

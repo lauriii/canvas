@@ -238,13 +238,38 @@ test.describe('Language Select', () => {
     // Verify page region is in French.
     await expect(previewFrame.locator('html')).toHaveAttribute('lang', /^fr/i);
 
-    // Switch to Spanish language (which has no translation).
+    // Simulate a browser refresh on the preview URL.
+    await page.reload();
+
+    // French content must still render after the reload.
+    previewFrame = page.frameLocator('iframe[title="Page preview"]');
+    await expect(previewFrame.locator('text=Bonjour, Canvas!')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Open the language dropdown and verify translation indicators survived
+    // the reload.
     languageButton = page.locator(
       '[data-testid="canvas-topbar"] [data-testid="language-select-trigger"]',
     );
     await expect(languageButton).toBeVisible();
     await languageButton.click();
 
+    // French has a translation: checkmark and options trigger must still be
+    // present after reload.
+    await expect(
+      page.locator(
+        '[data-testid="language-option-fr"] [data-canvas-has-translation="true"]',
+      ),
+    ).toHaveAttribute('data-canvas-has-translation', 'true');
+    await expect(
+      page.locator('[aria-label="More options for French"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-testid="language-options-popover-trigger"]'),
+    ).toHaveCount(1);
+
+    // Switch to Spanish language (which has no translation).
     const spanishOption = page.locator('[data-testid="language-option-es"]');
     await expect(spanishOption).toBeVisible();
     await spanishOption.click();
