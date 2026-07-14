@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+// cspell:ignore Duderino
+
 namespace Drupal\Tests\canvas\Kernel\AutoSave;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
