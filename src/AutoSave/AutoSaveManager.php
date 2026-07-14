@@ -96,6 +96,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     self::AUTO_SAVE_STORED_ENTITY_HASH_KEY,
     self::AUTO_SAVE_CONFLICT_KEY,
     'is_default_translation',
+    WorkspaceAutoSave::DRAFT_PATH_KEY,
   ];
   const ENTITY_DUPLICATE_SUFFIX = ' (Copy)';
 

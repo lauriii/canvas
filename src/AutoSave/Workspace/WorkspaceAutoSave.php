@@ -664,7 +664,12 @@ final class WorkspaceAutoSave {
       $storage = $this->entityTypeManager->getStorage($row['entity_type']);
       $created = $storage->create($row['data']);
       $langcode = $row['langcode'] ?? NULL;
-      $out[$kv_key] = self::entryMetadata($row) + [
+      $metadata = self::entryMetadata($row);
+      // The recorded draft path is already part of the row's 'data'; it is
+      // staging bookkeeping, not a list row property.
+      // @see ::appendWorkspaceTrackedContentEntities()
+      unset($metadata[self::DRAFT_PATH_KEY]);
+      $out[$kv_key] = $metadata + [
         'entity_type' => $row['entity_type'],
         'entity_id' => $row['entity_id'],
         'data' => $row['data'],

@@ -8,6 +8,7 @@ use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\language\ConfigurableLanguageManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -21,6 +22,11 @@ final class ApiTranslationControllers extends ApiControllerBase {
 
   public function __construct(
     private readonly LanguageManagerInterface $languageManager,
+    /**
+     * @var \Drupal\workspaces\WorkspaceManagerInterface|null
+     */
+    #[Autowire(service: 'workspaces.manager')]
+    private readonly ?object $workspaceManager = NULL,
   ) {}
 
   /**
@@ -33,7 +39,7 @@ final class ApiTranslationControllers extends ApiControllerBase {
    *   204 No Content on success, 400 if attempting to delete the default
    *   translation.
    */
-  public static function delete(ContentEntityInterface $canvas_page): JsonResponse {
+  public function delete(ContentEntityInterface $canvas_page): JsonResponse {
     // Guard: cannot delete the default (original/untranslated) language via
     // this endpoint. Callers should use the full entity delete route instead.
     // @see \Drupal\canvas\Controller\ApiContentControllers::delete()
@@ -45,7 +51,16 @@ final class ApiTranslationControllers extends ApiControllerBase {
     }
     $untranslated = $canvas_page->getUntranslated();
     $untranslated->removeTranslation($canvas_page->language()->getId());
-    $untranslated->save();
+    // This endpoint deletes the translation from the Live entity: with the
+    // auto-save workspace active for Canvas API requests, an unscoped save
+    // would be forced into a workspace-pending revision, and deleting the
+    // translation's URL alias (a workspace-supported entity) is forbidden
+    // while a workspace is active.
+    // @see \Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspaceActivationSubscriber
+    // @see \Drupal\workspaces\Provider\WorkspaceProviderBase::entityPredelete()
+    $this->workspaceManager !== NULL
+      ? $this->workspaceManager->executeOutsideWorkspace(static fn () => $untranslated->save())
+      : $untranslated->save();
     return new JsonResponse(status: Response::HTTP_NO_CONTENT);
   }
 

@@ -53,9 +53,24 @@ final class AutoSaveWorkspaceActivationSubscriber implements EventSubscriberInte
     if ($this->workspaceManager === NULL || !$this->workspaceManager->hasActiveWorkspace()) {
       return;
     }
-    if ($this->workspaceManager->getActiveWorkspace()?->id() === AutoSaveWorkspace::ID) {
-      $this->workspaceManager->switchToLive();
+    if ($this->workspaceManager->getActiveWorkspace()?->id() !== AutoSaveWorkspace::ID) {
+      return;
     }
+    // WorkspaceManager::switchToLive() also unsets the active workspace on
+    // every negotiator, and the session negotiator (re)starts the session to
+    // do that. Once the response has been streamed to the client, starting a
+    // session throws a RuntimeException ("headers have already been sent"),
+    // and under SAPIs that keep the output stream open through terminate
+    // (e.g. Apache mod_php) the resulting error page is appended to the
+    // already-sent response body, corrupting it for the client. Headers being
+    // sent also means this is a plain per-request web process whose runtime
+    // workspace state dies with the request, so there is nothing to reset;
+    // the reset below is for processes where headers are never sent (kernel
+    // tests, CLI, long-running workers).
+    if (\headers_sent()) {
+      return;
+    }
+    $this->workspaceManager->switchToLive();
   }
 
   public function onKernelRequest(RequestEvent $event): void {

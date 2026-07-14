@@ -122,33 +122,45 @@ final class ApiContentControllers extends ApiControllerBase {
     // them.
     // @see \Drupal\canvas\EventSubscriber\ApiExceptionSubscriber
 
-    // Ensure the path field carries the existing PID so Drupal updates the
-    // alias in place rather than creating a duplicate.
-    if (isset($body['path'])) {
-      $existing_pid = $canvas_page->get('path')->first()?->getValue()['pid'] ?? NULL;
-      $body['path'] = ['alias' => $body['path'], 'pid' => $existing_pid];
-    }
+    // This endpoint updates the Live entity: with the auto-save workspace
+    // active for Canvas API requests, an unscoped save would be redirected
+    // into a workspace-pending revision (replacing the staged draft), and the
+    // alias and changed-time lookups below would resolve staged state instead
+    // of Live.
+    // @see ::executeOutsideWorkspace()
+    $validation_errors_response = $this->executeOutsideWorkspace(function () use ($body, $canvas_page): ?JsonResponse {
+      // Ensure the path field carries the existing PID so Drupal updates the
+      // alias in place rather than creating a duplicate.
+      if (isset($body['path'])) {
+        $existing_pid = $canvas_page->get('path')->first()?->getValue()['pid'] ?? NULL;
+        $body['path'] = ['alias' => $body['path'], 'pid' => $existing_pid];
+      }
 
-    foreach (['title', 'status', 'path', 'components', 'description'] as $field_name) {
-      if (!\array_key_exists($field_name, $body)) {
-        continue;
+      foreach (['title', 'status', 'path', 'components', 'description'] as $field_name) {
+        if (!\array_key_exists($field_name, $body)) {
+          continue;
+        }
+        $field_access = $canvas_page->get($field_name)->access(operation: 'edit', return_as_object: TRUE);
+        if ($field_access->isForbidden()) {
+          throw new CacheableAccessDeniedHttpException(
+            (new CacheableMetadata())->addCacheableDependency($field_access),
+            \sprintf('Unable to update field %s for entity "%s".', $field_name, $canvas_page->id()),
+          );
+        }
+        $canvas_page->set($field_name, $body[$field_name]);
       }
-      $field_access = $canvas_page->get($field_name)->access(operation: 'edit', return_as_object: TRUE);
-      if ($field_access->isForbidden()) {
-        throw new CacheableAccessDeniedHttpException(
-          (new CacheableMetadata())->addCacheableDependency($field_access),
-          \sprintf('Unable to update field %s for entity "%s".', $field_name, $canvas_page->id()),
-        );
+      $violations = $canvas_page->validate();
+      if ($violations->count() > 0) {
+        if ($validation_errors_response = self::createJsonResponseFromViolationSets($violations)) {
+          return $validation_errors_response;
+        }
       }
-      $canvas_page->set($field_name, $body[$field_name]);
+      $canvas_page->save();
+      return NULL;
+    });
+    if ($validation_errors_response !== NULL) {
+      return $validation_errors_response;
     }
-    $violations = $canvas_page->validate();
-    if ($violations->count() > 0) {
-      if ($validation_errors_response = self::createJsonResponseFromViolationSets($violations)) {
-        return $validation_errors_response;
-      }
-    }
-    $canvas_page->save();
 
     // The response is never cacheable, so it will be discarded.
     $data = $this->normalizeWithMetadataAndComponents($canvas_page, new CacheableMetadata());

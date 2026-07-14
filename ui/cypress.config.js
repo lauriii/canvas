@@ -52,6 +52,11 @@ export default defineConfig({
   },
   e2e: {
     experimentalRunAllSpecs: true,
+    // Free renderer memory between tests: specs exercising many AJAX form
+    // rebuilds (e.g. multivalue form design specs) can otherwise crash the
+    // Electron renderer ("We detected that the Electron Renderer process just
+    // crashed") on memory-constrained runners.
+    experimentalMemoryManagement: true,
     baseUrl: process.env.BASE_URL,
     setupNodeEvents(on, config) {
       installLogsPrinter(on);

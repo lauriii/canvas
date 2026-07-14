@@ -17,6 +17,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigInstallerInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ClassResolverInterface;
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -55,6 +56,7 @@ final class ComponentSourceManager extends DefaultPluginManager {
     private readonly ComponentIncompatibilityReasonRepository $reasonRepository,
     private readonly ClassResolverInterface $classResolver,
     private readonly ConfigInstallerInterface $configInstaller,
+    private readonly TypedConfigManagerInterface $typedConfigManager,
     DrupalKernel $kernel,
   ) {
     parent::__construct(
@@ -102,6 +104,26 @@ final class ComponentSourceManager extends DefaultPluginManager {
       // upstream bug is fixed.
       // @phpstan-ignore-next-line function.alreadyNarrowedType
       \assert(!$this->configInstaller->isSyncing());
+      return $this;
+    }
+
+    // TRICKY: since Drupal 11.4, ModuleInstaller installs modules in groups
+    // that share a single container rebuild: every module in a group has its
+    // services available before any module in that group is installed. While
+    // Canvas is being installed, another module's hook_module_preinstall()
+    // can therefore trigger component generation — e.g. Workspaces applies
+    // entity definition updates, whose `entity_field_info` cache tag
+    // invalidation makes Layout Builder (if present) clear the block plugin
+    // definitions, which reaches this method via BlockManagerDecorator — at a
+    // point where the typed config manager still holds definitions cached
+    // before Canvas was added. Version hashes cannot be computed without
+    // Canvas's config schema, so skip; component generation happens in
+    // hook_modules_installed() at the end of every module install, after all
+    // plugin caches (including config schema) have been cleared.
+    // @see \Drupal\canvas\Block\BlockManagerDecorator::clearCachedDefinitions()
+    // @see \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
+    // @see \Drupal\canvas\Hook\ComponentSourceHooks::modulesInstalled()
+    if (!$this->typedConfigManager->hasConfigSchema('canvas.component_source_settings.*')) {
       return $this;
     }
 
