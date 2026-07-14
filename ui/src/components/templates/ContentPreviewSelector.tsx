@@ -7,12 +7,12 @@ import {
   EyeOpenIcon,
 } from '@radix-ui/react-icons';
 import {
+  Box,
   Button,
   DropdownMenu,
   Flex,
   IconButton,
   Popover,
-  ScrollArea,
   Text,
   Tooltip,
 } from '@radix-ui/themes';
@@ -67,7 +67,7 @@ const ContentPreviewSelector: React.FC<ContentPreviewSelectorProps> = ({
   const triggerContent = (
     <Flex gap="2" align="center">
       <EyeOpenIcon />
-      <span>
+      <span className={styles.triggerLabel}>
         {itemsCount === 0
           ? 'No content available'
           : (selectedItem?.label ?? 'Select content to preview')}
@@ -103,9 +103,14 @@ const ContentPreviewSelector: React.FC<ContentPreviewSelectorProps> = ({
           </Button>
         </Popover.Trigger>
       </Tooltip>
-      <Popover.Content size="1" width="280px" align="center">
-        <ScrollArea scrollbars="vertical" style={{ maxHeight: 240 }}>
-          <Flex direction="column" gap="1">
+      <Popover.Content size="1" width="360px" align="center">
+        {/* Plain overflow Box, not Radix ScrollArea: the ScrollArea viewport
+            wraps its children in a display:table element that shrink-wraps to
+            content width, so a long label widens the row past the popover and
+            clips each row's "..." menu off the right edge. A block Box lets the
+            labels truncate (min-width:0 below) and keeps the "..." reachable. */}
+        <Box className={styles.list}>
+          <Flex direction="column" gap="1" width="100%" style={{ minWidth: 0 }}>
             {itemsArray.map((item) => {
               const editActions = buildContentEditActions(
                 navigateToEditor,
@@ -160,7 +165,7 @@ const ContentPreviewSelector: React.FC<ContentPreviewSelectorProps> = ({
               );
             })}
           </Flex>
-        </ScrollArea>
+        </Box>
       </Popover.Content>
     </Popover.Root>
   );
