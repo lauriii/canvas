@@ -47,7 +47,16 @@ jobs:
         with:
           path: canvas
       - name: Install ddev
-        run: curl -fsSL https://ddev.com/install.sh | bash
+        # Retry + verify: the installer host intermittently 503s, and
+        # `curl | bash` without pipefail swallows that (empty stdin -> bash exits
+        # 0), leaving ddev missing until a later step fails with "command not
+        # found". Confirm the binary actually landed before continuing.
+        run: |
+          for i in 1 2 3; do
+            curl -fsSL https://ddev.com/install.sh | bash && command -v ddev && exit 0
+            echo "ddev install attempt $i failed; retrying in 15s"; sleep 15
+          done
+          exit 1
       - name: Create Drupal 11.3 project with Canvas
         run: |
           mkdir site && cd site
@@ -99,7 +108,16 @@ jobs:
         with: { name: built-site }
       - run: tar -xzf site.tgz
       - name: Install ddev
-        run: curl -fsSL https://ddev.com/install.sh | bash
+        # Retry + verify: the installer host intermittently 503s, and
+        # `curl | bash` without pipefail swallows that (empty stdin -> bash exits
+        # 0), leaving ddev missing until a later step fails with "command not
+        # found". Confirm the binary actually landed before continuing.
+        run: |
+          for i in 1 2 3; do
+            curl -fsSL https://ddev.com/install.sh | bash && command -v ddev && exit 0
+            echo "ddev install attempt $i failed; retrying in 15s"; sleep 15
+          done
+          exit 1
       - name: phpcs + phpstan + validate
         run: |
           cd site && ddev start
@@ -136,7 +154,16 @@ jobs:
         with: { name: built-site }
       - run: tar -xzf site.tgz
       - name: Install ddev
-        run: curl -fsSL https://ddev.com/install.sh | bash
+        # Retry + verify: the installer host intermittently 503s, and
+        # `curl | bash` without pipefail swallows that (empty stdin -> bash exits
+        # 0), leaving ddev missing until a later step fails with "command not
+        # found". Confirm the binary actually landed before continuing.
+        run: |
+          for i in 1 2 3; do
+            curl -fsSL https://ddev.com/install.sh | bash && command -v ddev && exit 0
+            echo "ddev install attempt $i failed; retrying in 15s"; sleep 15
+          done
+          exit 1
       - name: Run PHPUnit-${{ matrix.suite }}
         run: |
           cd site && ddev start
@@ -155,7 +182,16 @@ jobs:
         with: { name: built-site }
       - run: tar -xzf site.tgz
       - name: Install ddev
-        run: curl -fsSL https://ddev.com/install.sh | bash
+        # Retry + verify: the installer host intermittently 503s, and
+        # `curl | bash` without pipefail swallows that (empty stdin -> bash exits
+        # 0), leaving ddev missing until a later step fails with "command not
+        # found". Confirm the binary actually landed before continuing.
+        run: |
+          for i in 1 2 3; do
+            curl -fsSL https://ddev.com/install.sh | bash && command -v ddev && exit 0
+            echo "ddev install attempt $i failed; retrying in 15s"; sleep 15
+          done
+          exit 1
       - name: Add headless-browser runtime libs, then start + build UI
         run: |
           cd site
