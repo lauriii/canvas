@@ -50,24 +50,28 @@ final class AutoSaveWorkspaceActivationSubscriber implements EventSubscriberInte
    * workspace-pending revisions.
    */
   public function onKernelTerminate(): void {
-    if ($this->workspaceManager === NULL || !$this->workspaceManager->hasActiveWorkspace()) {
+    // Touching the workspace manager at terminate can (re)start the session:
+    // WorkspaceManager::getActiveWorkspace() runs the negotiators when no
+    // active workspace has been determined yet (e.g. after a mid-request
+    // container rebuild, such as a cache clear or theme install), and
+    // WorkspaceManager::switchToLive() unsets the active workspace on every
+    // negotiator — in both cases the session negotiator reads or writes the
+    // session, which restarts it. Once the response has been streamed to the
+    // client, starting a session throws a RuntimeException ("headers have
+    // already been sent"), and under SAPIs that keep the output stream open
+    // through terminate (e.g. Apache mod_php) the resulting error page is
+    // appended to the already-sent response body, corrupting it for the
+    // client. Headers being sent also means this is a plain per-request web
+    // process whose runtime workspace state dies with the request, so there
+    // is nothing to reset; the reset below is for processes where headers are
+    // never sent (kernel tests, CLI, long-running workers).
+    if ($this->workspaceManager === NULL || \headers_sent()) {
+      return;
+    }
+    if (!$this->workspaceManager->hasActiveWorkspace()) {
       return;
     }
     if ($this->workspaceManager->getActiveWorkspace()?->id() !== AutoSaveWorkspace::ID) {
-      return;
-    }
-    // WorkspaceManager::switchToLive() also unsets the active workspace on
-    // every negotiator, and the session negotiator (re)starts the session to
-    // do that. Once the response has been streamed to the client, starting a
-    // session throws a RuntimeException ("headers have already been sent"),
-    // and under SAPIs that keep the output stream open through terminate
-    // (e.g. Apache mod_php) the resulting error page is appended to the
-    // already-sent response body, corrupting it for the client. Headers being
-    // sent also means this is a plain per-request web process whose runtime
-    // workspace state dies with the request, so there is nothing to reset;
-    // the reset below is for processes where headers are never sent (kernel
-    // tests, CLI, long-running workers).
-    if (\headers_sent()) {
       return;
     }
     $this->workspaceManager->switchToLive();
