@@ -360,31 +360,8 @@ test.describe('Templates - General', () => {
       page.locator('[data-testid="canvas-navigation-button"]'),
     ).toHaveText('Article - Full content template');
 
-    // Verify that translation indicators survive a page reload on the preview
-    // route.
-    await languageButton.click();
-    // English is the only config translation at this point: the French config
-    // translation was deleted earlier in this test, Spanish never had one.
-    await expect(
-      page.locator(
-        '[data-testid="language-option-en"] [data-canvas-has-translation="true"]',
-      ),
-    ).toHaveAttribute('data-canvas-has-translation', 'true');
-    await expect(
-      page.locator(
-        '[data-testid="language-option-fr"] [data-canvas-has-translation="true"]',
-      ),
-    ).toHaveCount(0);
-    await expect(
-      page.locator(
-        '[data-testid="language-option-es"] [data-canvas-has-translation="true"]',
-      ),
-    ).toHaveCount(0);
-    await expect(
-      page.locator('[data-testid="language-options-popover-trigger"]'),
-    ).toHaveCount(0);
-
     // Switch back to English (default) which returns to the editor.
+    await languageButton.click();
     await page.locator('[data-testid="language-option-en"]').click();
     await page.waitForURL(/\/canvas\/template\/node\/article\/full\/\d+/, {
       timeout: 10000,

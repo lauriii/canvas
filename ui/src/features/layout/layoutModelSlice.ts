@@ -527,11 +527,6 @@ export const layoutModelSlice = createSlice({
         state.translations = translations || {};
       },
     ),
-    setTranslations: create.reducer(
-      (state, action: PayloadAction<Record<string, any>>) => {
-        state.translations = action.payload;
-      },
-    ),
   }),
 });
 
@@ -887,7 +882,6 @@ export const {
   setLayoutModel,
   setInitialized,
   setInitialLayoutModel,
-  setTranslations,
   duplicateNode,
   moveNode,
   shiftNode,
