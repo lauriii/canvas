@@ -73,7 +73,7 @@ jobs:
           # non-min-core ignore file is empty), so a newer core (^11.3 resolves
           # to the latest 11.x) drifts and phpstan reports unmatched ignores.
           ddev composer require "drupal/canvas:@dev" \
-            "drupal/core-recommended:~11.3.0" "drupal/core-dev:~11.3.0" \
+            "drupal/core-recommended:~11.3.0" "drupal/core-composer-scaffold:~11.3.0" "drupal/core-project-message:~11.3.0" "drupal/core-dev:~11.3.0" \
             -W --no-interaction
           # Install Canvas's own require-dev (phpstan/phpcs toolchain + the
           # contrib modules the static analysis and kernel/functional suites
