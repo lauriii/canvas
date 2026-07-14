@@ -68,7 +68,13 @@ jobs:
           # `find core/` helpers) and would otherwise escape the docroot.
           ddev composer config --json repositories.canvas \
             '{"type":"path","url":"./canvas","options":{"symlink":false}}'
-          ddev composer require "drupal/canvas:@dev" "drupal/core-dev:^11.3" -W --no-interaction
+          # Pin core to the 11.3 series. The module's phpstan baselines/inline
+          # ignores target the minimum supported core (the committed
+          # non-min-core ignore file is empty), so a newer core (^11.3 resolves
+          # to the latest 11.x) drifts and phpstan reports unmatched ignores.
+          ddev composer require "drupal/canvas:@dev" \
+            "drupal/core-recommended:~11.3.0" "drupal/core-dev:~11.3.0" \
+            -W --no-interaction
           # Install Canvas's own require-dev (phpstan/phpcs toolchain + the
           # contrib modules the static analysis and kernel/functional suites
           # need). Without this, phpstan/phpcs and many tests cannot run.
@@ -99,11 +105,6 @@ jobs:
           cd site && ddev start
           ddev exec 'cd web/modules/contrib/canvas && composer validate --strict || true'
           ddev exec 'cd web/modules/contrib/canvas && composer run lint:phpcs'
-          # Regenerate the "non-min-core-version" phpstan ignore baseline for the
-          # core version actually installed here (CI resolves ^11.3 to the latest
-          # patch, which may differ from the committed baseline's target). GitLab
-          # does the same; without it phpstan reports stale-baseline mismatches.
-          ddev exec 'cd web/modules/contrib/canvas && composer run phpstan-regenerate-ignores-for-non-min-core-version-features'
           ddev exec 'cd web/modules/contrib/canvas && composer run lint:phpstan'
 
   phpunit:
@@ -157,7 +158,10 @@ jobs:
           webimage_extra_packages: [chromium, libgtk-3-0, libnss3, libasound2t64, libxtst6, libgbm1, libxss1, libatk-bridge2.0-0, libatspi2.0-0, libcups2, libdrm2, libxkbcommon0, libpango-1.0-0, fonts-liberation, xvfb, xauth]
           YAML
           ddev start
-          ddev exec 'cd web/modules/contrib/canvas && npm ci && npm run build --workspace=drupal-canvas'
+          # Build the `ui` workspace = the Canvas editor app the browser tests
+          # drive (this is GitLab's `.canvas-ui` step). Building only the
+          # `drupal-canvas` library is not enough — the editor never renders.
+          ddev exec 'cd web/modules/contrib/canvas && npm ci && npm run build -w ui'
       - name: Playwright (one spec, headless chromium)
         if: matrix.tool == 'playwright'
         run: |
