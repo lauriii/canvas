@@ -4,7 +4,10 @@ on:
   pull_request:
     branches: [1.x]
   push:
-    branches: [1.x]
+    # `ci/github-actions` is included so the workflow runs on this branch before
+    # it is merged to 1.x (pull_request events use the workflow from the base
+    # branch, which does not yet have this file).
+    branches: [1.x, ci/github-actions]
 
 concurrency:
   group: ci-${{ github.ref }}
