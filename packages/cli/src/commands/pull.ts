@@ -200,7 +200,14 @@ export function createComponentsPullTask(
         discoverCanvasProject({ componentRoot: componentDir }),
       ]);
 
-      components = fetchedComponents;
+      // External components are implemented by the configured external
+      // application and synced into Drupal as metadata only: pulling them
+      // would create phantom local components without an implementation.
+      components = Object.fromEntries(
+        Object.entries(fetchedComponents).filter(
+          ([, component]) => component.type !== 'external',
+        ),
+      );
 
       for (const discovered of discoveryResult.components) {
         localComponentMap.set(discovered.name, discovered);

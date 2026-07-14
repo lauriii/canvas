@@ -93,7 +93,13 @@ final class JsComponentDiscovery extends JsonSchemaPropsComponentDiscoveryBase i
    */
   public function computeComponentSettings(string $source_specific_id): array {
     \assert(\array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
-    $js_component = $this->discover()[$source_specific_id];
+    return $this->computeComponentSettingsForEntity($this->discover()[$source_specific_id]);
+  }
+
+  /**
+   * Computes component settings for a possibly unsaved Code Component.
+   */
+  public function computeComponentSettingsForEntity(JavaScriptComponent $js_component): array {
     $ephemeral_sdc_component = self::buildEphemeralSdcPluginInstance($js_component);
     // @see `type: canvas.component_source_settings.sdc`
     return [

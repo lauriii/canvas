@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import path from 'node:path';
 import {
   discoverCanvasProject,
@@ -64,12 +63,6 @@ export interface ComponentMetadataEntry {
    * layout beyond the component tree leaks.
    */
   relativeDirectory: string;
-  /**
-   * Content hash of the entry's metadata (all fields above). Stable across
-   * builds while the metadata is unchanged, so a reader syncing components
-   * can skip no-op updates without deep-comparing payloads.
-   */
-  hash: string;
 }
 
 export interface ComponentMetadataPayload {
@@ -147,7 +140,7 @@ export async function buildComponentMetadataPayload(
   // loadComponentsMetadata() returns entries positionally parallel to the
   // discovered components.
   const components = metadata.map((componentMetadata, index) => {
-    const entry: Omit<ComponentMetadataEntry, 'hash'> = {
+    const entry: ComponentMetadataEntry = {
       machineName: componentMetadata.machineName,
       name: componentMetadata.name,
       status: componentMetadata.status,
@@ -162,10 +155,7 @@ export async function buildComponentMetadataPayload(
       // consumers compiling with noUncheckedIndexedAccess.
       relativeDirectory: result.components[index]?.relativeDirectory ?? '',
     };
-    return {
-      ...entry,
-      hash: createHash('sha256').update(JSON.stringify(entry)).digest('hex'),
-    };
+    return entry;
   });
 
   return {

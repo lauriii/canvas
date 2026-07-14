@@ -16,14 +16,14 @@ trait CanvasAssetLibraryTrait {
    *
    * @var array{original?: string, compiled?: string}|null
    */
-  protected ?array $css;
+  protected ?array $css = NULL;
 
   /**
    * The JavaScript configuration for the Canvas config entity.
    *
    * @var array{original?: string, compiled?: string}|null
    */
-  protected ?array $js;
+  protected ?array $js = NULL;
 
   public function hasCss(): bool {
     return trim($this->getCss()) !== '';

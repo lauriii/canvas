@@ -85,24 +85,6 @@ describe('buildComponentMetadataPayload', () => {
       title: 'Title',
     });
     expect(component.slots.content).toMatchObject({ title: 'Content' });
-    expect(component.hash).toMatch(/^[0-9a-f]{64}$/);
-  });
-
-  it('hashes stably across runs and distinctly across content', async () => {
-    const root = await makeProjectRoot();
-    await writeComponent(root, 'hello-card');
-
-    const first = await buildComponentMetadataPayload({ projectRoot: root });
-    const second = await buildComponentMetadataPayload({ projectRoot: root });
-    expect(second.components[0].hash).toBe(first.components[0].hash);
-
-    await writeComponent(
-      root,
-      'hello-card',
-      HELLO_CARD_YML.replace('Hello Card', 'Hello Card Renamed'),
-    );
-    const third = await buildComponentMetadataPayload({ projectRoot: root });
-    expect(third.components[0].hash).not.toBe(first.components[0].hash);
   });
 
   it('answers an empty component set for an empty project', async () => {

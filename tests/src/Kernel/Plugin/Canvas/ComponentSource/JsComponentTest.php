@@ -1184,6 +1184,53 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     }
   }
 
+  public function testRenderExternalComponent(): void {
+    $external = JavaScriptComponent::create([
+      'machineName' => 'external_test',
+      'name' => 'External test',
+      'status' => TRUE,
+      'type' => 'external',
+      'required' => [],
+      'props' => [
+        'title' => [
+          'type' => 'string',
+          'title' => 'Title',
+          'examples' => ['External title'],
+        ],
+      ],
+      'slots' => [
+        'content' => [
+          'title' => 'Content',
+        ],
+      ],
+      'dataDependencies' => [],
+    ]);
+    $external->save();
+
+    $component = Component::load('js.external_test');
+    self::assertInstanceOf(Component::class, $component);
+    $source = $component->getComponentSource();
+    self::assertInstanceOf(JsComponent::class, $source);
+    $inputs = [
+      JsComponent::EXPLICIT_INPUT_NAME => [
+        'title' => new EvaluationResult('Rendered by the app'),
+      ],
+    ];
+
+    $preview = $source->renderComponent($inputs, [], 'external-uuid', TRUE);
+    self::assertSame('', $preview['#markup']);
+    self::assertArrayNotHasKey('#attached', $preview);
+
+    $build = $source->renderComponent($inputs, [], 'external-uuid', FALSE);
+    self::assertSame('component', $build['#type']);
+    self::assertSame('js.external_test', $build['#component']);
+    self::assertSame(['title' => 'Rendered by the app'], $build['#props']);
+    self::assertArrayNotHasKey('#attached', $build);
+    $client_side_info = $source->getClientSideInfo($component);
+    self::assertArrayHasKey('type', $client_side_info);
+    self::assertSame('external', $client_side_info['type']);
+  }
+
   /**
    * Tests calculate dependencies.
    *

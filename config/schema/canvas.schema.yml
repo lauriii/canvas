@@ -163,6 +163,14 @@ canvas.js_component.*:
     name:
       type: required_label
       label: 'Name'
+    type:
+      type: string
+      label: 'Code component type'
+      requiredKey: false
+      constraints:
+        Choice:
+          - react
+          - external
     # See core/assets/schemas/v1/metadata-full.schema.json#properties.props.properties.required
     required:
       type: sequence
@@ -195,9 +203,11 @@ canvas.js_component.*:
     js:
       type: canvas.compilable_code
       label: 'JS'
+      requiredKey: false
     css:
       type: canvas.compilable_code
       label: 'CSS'
+      requiredKey: false
     dataDependencies:
       type: mapping
       label: 'Data dependencies'

@@ -11,6 +11,7 @@ use Drupal\canvas\CodeComponentDataProvider;
 use Drupal\canvas\ComponentSource\UrlRewriteInterface;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\GlobalImports;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -158,6 +159,16 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     catch (\Exception) {
       return new TranslatableMarkup('Invalid/broken code component');
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getClientSideInfo(Component $component): array {
+    $info = parent::getClientSideInfo($component);
+    return $this->getJavaScriptComponent()->isExternal()
+      ? $info + ['type' => 'external']
+      : $info;
   }
 
   /**
@@ -328,6 +339,25 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
    */
   public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview = FALSE): array {
     $component = $this->getJavaScriptComponent();
+
+    if ($component->isExternal()) {
+      [$props, $props_cacheability] = self::getResolvedPropsAndCacheability($inputs[self::EXPLICIT_INPUT_NAME] ?? []);
+      $build = $isPreview
+        // The configured external application owns Canvas previews. Keep the
+        // Drupal-rendered preview empty while preserving component metadata.
+        ? ['#markup' => '']
+        // Decoupled render converters recognize this standard component shape
+        // and serialize its props and slots for the external application.
+        : [
+          '#type' => 'component',
+          '#component' => JsComponentDiscovery::getComponentConfigEntityId($component->id()),
+          '#props' => $props,
+        ];
+      CacheableMetadata::createFromObject($component)
+        ->addCacheableDependency($props_cacheability)
+        ->applyTo($build);
+      return $build;
+    }
 
     // Rendering will validate the props against the version that is published,
     // but on preview the auto-saved version will be used for those components

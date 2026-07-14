@@ -47,12 +47,14 @@ class SettingsValidationTest extends CanvasKernelTestBase {
   public function testConstraintsRejectInvalidValues(): void {
     $violations = $this->validate([
       'frontend_url' => 'http://localhost:3000/',
+      'component_metadata_url' => 'component-metadata.json',
       'draft_path' => 'api/draft',
       'assertion_expiration' => 3600,
     ]);
 
     $this->assertSame([
       'assertion_expiration' => ['This value should be between <em class="placeholder">10</em> and <em class="placeholder">300</em>.'],
+      'component_metadata_url' => ['The component metadata URL must be an absolute path or an HTTP(S) URL.'],
       'draft_path' => ['The draft path must begin with a slash.'],
       'frontend_url' => [self::MESSAGE],
     ], $violations);
@@ -130,7 +132,7 @@ class SettingsValidationTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Tests that every key is required and no other key is allowed.
+   * Tests that required keys are present and no other key is allowed.
    */
   public function testUnknownAndMissingKeysAreRejected(): void {
     $violations = $this->validate([

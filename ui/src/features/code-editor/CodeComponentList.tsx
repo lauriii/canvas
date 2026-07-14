@@ -37,10 +37,13 @@ const CodeComponentList = ({ searchTerm }: { searchTerm: string }) => {
   // Map machineName to id for compatibility with LibraryItemList's generic
   const codeComponentsWithId = codeComponents
     ? Object.fromEntries(
-        Object.entries(codeComponents).map(([key, component]) => [
-          key,
-          { ...component, id: component.machineName },
-        ]),
+        Object.entries(codeComponents)
+          // External components can't be managed in code editor.
+          .filter(([, component]) => component.type !== 'external')
+          .map(([key, component]) => [
+            key,
+            { ...component, id: component.machineName },
+          ]),
       )
     : undefined;
 

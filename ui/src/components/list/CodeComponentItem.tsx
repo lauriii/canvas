@@ -59,6 +59,7 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
   const { navigateToCodeEditor, urlForCodeEditor } = useEditorNavigation();
   const { codeComponentId: selectedComponent } = useParams();
   const activePanel = useAppSelector(selectActivePanel);
+  const isExternal = component.type === 'external';
 
   // Menu item handlers
   const handleRemoveFromComponentsClick = (
@@ -90,24 +91,36 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
     navigateToCodeEditor(machineName);
   };
 
-  // Menu items for exposed code components
+  // Menu items for exposed code components. External components offer no
+  // management actions: the external application owns their implementation,
+  // name, and status, and the synchronization would revert any change.
   const exposedMenuItems = (
     <>
       {activePanel === 'library' && insertMenuItem}
-      <PermissionCheck
-        hasPermission="codeComponents"
-        denied={
-          activePanel !== 'library' && (
-            <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
-          )
-        }
-      >
-        <UnifiedMenu.Item onClick={handleRemoveFromComponentsClick}>
-          Remove from components
-        </UnifiedMenu.Item>
-        <UnifiedMenu.Item onClick={handleEditClick}>Edit code</UnifiedMenu.Item>
-        <UnifiedMenu.Item onClick={handleRenameClick}>Rename</UnifiedMenu.Item>
-      </PermissionCheck>
+      {isExternal ? (
+        activePanel !== 'library' && (
+          <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
+        )
+      ) : (
+        <PermissionCheck
+          hasPermission="codeComponents"
+          denied={
+            activePanel !== 'library' && (
+              <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
+            )
+          }
+        >
+          <UnifiedMenu.Item onClick={handleRemoveFromComponentsClick}>
+            Remove from components
+          </UnifiedMenu.Item>
+          <UnifiedMenu.Item onClick={handleEditClick}>
+            Edit code
+          </UnifiedMenu.Item>
+          <UnifiedMenu.Item onClick={handleRenameClick}>
+            Rename
+          </UnifiedMenu.Item>
+        </PermissionCheck>
+      )}
     </>
   );
 
@@ -119,8 +132,12 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
         <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
       }
     >
-      <UnifiedMenu.Item onClick={handleEditClick}>Edit code</UnifiedMenu.Item>
-      <UnifiedMenu.Item onClick={handleRenameClick}>Rename</UnifiedMenu.Item>
+      {!isExternal && (
+        <UnifiedMenu.Item onClick={handleEditClick}>Edit code</UnifiedMenu.Item>
+      )}
+      {!isExternal && (
+        <UnifiedMenu.Item onClick={handleRenameClick}>Rename</UnifiedMenu.Item>
+      )}
       {/* @todo: Add this item back in https://drupal.org/i/3524274.}
       {/* <UnifiedMenu.Item*/}
       {/*  onClick={(e: React.MouseEvent<HTMLDivElement>) => {*/}
@@ -172,7 +189,9 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
           onMenuOpenChange={onMenuOpenChange}
           draggable={true}
           to={
-            activePanel === 'code' ? urlForCodeEditor(machineName) : undefined
+            activePanel === 'code' && !isExternal
+              ? urlForCodeEditor(machineName)
+              : undefined
           }
         />
       </ContextMenu.Trigger>

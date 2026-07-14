@@ -975,6 +975,36 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame($expected_disabled_js_component_normalization, $body_without_preview);
     $jsComponent->delete();
 
+    // External code components contain metadata only: their implementation is
+    // owned by the configured external application.
+    $external_component = [
+      'machineName' => 'external_component',
+      'name' => 'External component',
+      'status' => FALSE,
+      'type' => 'external',
+      'required' => [],
+      'props' => [],
+      'slots' => [],
+      'importedJsComponents' => [],
+      'dataDependencies' => [],
+    ];
+    $request_options[RequestOptions::JSON] = $external_component;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL);
+    self::assertIsArray($body);
+    self::assertSame([
+      'machineName' => 'external_component',
+      'name' => 'External component',
+      'status' => FALSE,
+      'type' => 'external',
+      'props' => [],
+      'required' => [],
+      'slots' => [],
+      'dataDependencies' => [],
+      'links' => [],
+    ], $body);
+    self::assertArrayNotHasKey('default_markup', $body);
+    JavaScriptComponent::load('external_component')?->delete();
+
     // Create a Code Component via the Canvas HTTP API, but forget crucial data: 500, courtesy of OpenAPI.
     $code_component_to_send = [];
     $request_options[RequestOptions::JSON] = $code_component_to_send;

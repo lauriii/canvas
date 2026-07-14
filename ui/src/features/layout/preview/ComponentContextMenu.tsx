@@ -60,6 +60,12 @@ export const ComponentContextMenuContent: React.FC<
     componentType &&
     components &&
     components[componentType]?.source === 'Code component';
+  const isExternal = Boolean(
+    componentType &&
+    components?.[componentType] &&
+    'type' in components[componentType] &&
+    components[componentType].type === 'external',
+  );
 
   const handleDeleteClick = useCallback(
     (ev: React.MouseEvent<HTMLElement>) => {
@@ -177,7 +183,7 @@ export const ComponentContextMenuContent: React.FC<
       side="right"
     >
       <UnifiedMenu.Label>{componentName}</UnifiedMenu.Label>
-      {isCodeComponent && (
+      {isCodeComponent && !isExternal && (
         <PermissionCheck hasPermission="codeComponents">
           <UnifiedMenu.Item onClick={handleEditCodeClick}>
             Edit code

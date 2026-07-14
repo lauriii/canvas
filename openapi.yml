@@ -3733,6 +3733,10 @@ components:
           description: The footer JS for default_markup.
         transforms:
           $ref: '#/components/schemas/ClientSideTransforms'
+        type:
+          type: string
+          enum: [react, external]
+          description: The Code Component implementation type. An omitted value means react.
         broken:
           type: boolean
           description: Whether this Component is safe to instantiate (false) or broken (true).
@@ -3776,6 +3780,10 @@ components:
                   type: string
         status:
           type: boolean
+        type:
+          type: string
+          enum: [react, external]
+          description: The Code Component implementation type. External components have no Canvas-managed JavaScript or CSS assets. An omitted value means react.
         sourceCodeJs:
           type: string
         sourceCodeCss:
@@ -3811,6 +3819,20 @@ components:
               additionalProperties:
                 type: string
                 format: uri-reference
+        # The source and compiled code fields are required for all code
+        # components except external ones, whose implementation lives in the
+        # configured external application.
+        - oneOf:
+            - properties:
+                type:
+                  enum: [external]
+              required:
+                - type
+            - required:
+                - sourceCodeJs
+                - sourceCodeCss
+                - compiledJs
+                - compiledCss
       required:
         - name
         - machineName
@@ -3818,10 +3840,6 @@ components:
         - props
         - slots
         - status
-        - sourceCodeJs
-        - sourceCodeCss
-        - compiledJs
-        - compiledCss
         - dataDependencies
         - links
       # @todo Additional key-value pairs should be reported as invalid by OpenAPI validation, but aren't today.

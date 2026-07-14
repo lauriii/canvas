@@ -172,4 +172,119 @@ class JavascriptComponentTest extends CanvasKernelTestBase {
     ], $js_component->getCacheTags());
   }
 
+  /**
+   * Tests the client-side representation of an external component.
+   *
+   * @legacy-covers ::createFromClientSide
+   * @legacy-covers ::updateFromClientSide
+   * @legacy-covers ::normalizeForClientSide
+   */
+  public function testExternalComponent(): void {
+    $client_data = [
+      'machineName' => 'external_test',
+      'name' => 'External test',
+      'status' => TRUE,
+      'type' => 'external',
+      'required' => [],
+      'props' => [],
+      'slots' => [],
+      'dataDependencies' => [],
+    ];
+    $component = JavaScriptComponent::createFromClientSide($client_data);
+
+    self::assertTrue($component->isExternal());
+    self::assertSame('external', $component->getComponentType());
+    self::assertNull($component->get('js'));
+    self::assertNull($component->get('css'));
+    self::assertEntityIsValid($component);
+
+    $representation = $component->normalizeForClientSide();
+    self::assertNull($representation->preview);
+    self::assertSame('external', $representation->values['type']);
+    self::assertArrayNotHasKey('sourceCodeJs', $representation->values);
+    self::assertArrayNotHasKey('sourceCodeCss', $representation->values);
+    self::assertArrayNotHasKey('compiledJs', $representation->values);
+    self::assertArrayNotHasKey('compiledCss', $representation->values);
+
+    $this->expectException(ConstraintViolationException::class);
+    $this->expectExceptionMessage('External code components cannot contain JavaScript or CSS.');
+    $component->updateFromClientSide([
+      ...$client_data,
+      'sourceCodeJs' => 'export default function ExternalTest() {}',
+    ]);
+  }
+
+  /**
+   * Tests that saved external components reject identity changes.
+   *
+   * The external application's component metadata owns the name, status, and
+   * type of an external component; client-side changes would be reverted by
+   * the next synchronization and are rejected.
+   *
+   * @legacy-covers ::updateFromClientSide
+   */
+  public function testExternalComponentIdentityIsLocked(): void {
+    $client_data = [
+      'machineName' => 'external_locked',
+      'name' => 'External locked',
+      'status' => TRUE,
+      'type' => 'external',
+      'required' => [],
+      'props' => [],
+      'slots' => [],
+      'dataDependencies' => [],
+    ];
+    $component = JavaScriptComponent::createFromClientSide($client_data);
+    $component->save();
+
+    // Resending the same identity values along with metadata changes is fine.
+    $component->updateFromClientSide([
+      ...$client_data,
+      'props' => [
+        'title' => [
+          'type' => 'string',
+          'title' => 'Title',
+          'examples' => ['A title'],
+        ],
+      ],
+    ]);
+    self::assertSame(['title'], \array_keys($component->getProps() ?? []));
+
+    $identity_changes = [
+      [['name' => 'Renamed'], 'External code components cannot be renamed'],
+      [['status' => FALSE], 'External code components cannot be exposed or unexposed'],
+      [['type' => 'react'], 'The code component type cannot be changed.'],
+    ];
+    foreach ($identity_changes as [$identity_change, $expected_message]) {
+      try {
+        $component->updateFromClientSide($identity_change + $client_data);
+        $this->fail("Expected a constraint violation containing '$expected_message'.");
+      }
+      catch (ConstraintViolationException $e) {
+        self::assertStringContainsString($expected_message, $e->getMessage());
+      }
+    }
+
+    // The type of a saved React component is locked, too: flipping it to
+    // external would silently discard its source code.
+    $react_component = JavaScriptComponent::createFromClientSide([
+      'machineName' => 'react_locked',
+      'name' => 'React locked',
+      'status' => TRUE,
+      'required' => [],
+      'props' => [],
+      'slots' => [],
+      'sourceCodeJs' => 'console.log("hey");',
+      'sourceCodeCss' => '.big { font-size: 3rem; }',
+      'compiledJs' => 'console.log("hey");',
+      'compiledCss' => '.big{font-size:3rem;}',
+      'importedJsComponents' => [],
+      'dataDependencies' => [],
+    ]);
+    $react_component->save();
+    $this->expectException(ConstraintViolationException::class);
+    $this->expectExceptionMessage('The code component type cannot be changed.');
+    $react_component->updateFromClientSide(['type' => 'external']);
+  }
+
 }

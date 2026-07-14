@@ -11,3 +11,5 @@ services:
       - '@simple_oauth.oauth2_scope.provider'
     tags:
       - { name: access_policy }
+  Drupal\canvas_headless\ExternalComponentSync: {}
+  Drupal\canvas_headless\EventSubscriber\ExternalComponentSyncSubscriber: {}

@@ -547,8 +547,14 @@ export function deserializeCodeComponent(
   }
   return {
     ...codeComponent,
+    type: codeComponent.type ?? 'react',
     props,
     slots: deserializeSlots(codeComponent.slots),
+    sourceCodeJs: codeComponent.sourceCodeJs ?? '',
+    sourceCodeCss: codeComponent.sourceCodeCss ?? '',
+    compiledJs: codeComponent.compiledJs ?? '',
+    compiledCss: codeComponent.compiledCss ?? '',
+    importedJsComponents: codeComponent.importedJsComponents ?? [],
     dataFetches: {},
     dataDependencies,
   };

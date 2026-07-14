@@ -11,6 +11,7 @@ use Drupal\canvas_headless\PreviewUrlGeneratorInterface;
 use Drupal\consumers\Entity\Consumer;
 use Drupal\Core\Url;
 use Drupal\simple_oauth\Authentication\TokenAuthUser;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\simple_oauth\Kernel\AuthorizedRequestBase;
 use Drupal\user\UserInterface;
@@ -35,7 +36,10 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  *
  * Note this cannot use CanvasKernelTestBase because the Simple OAuth token
  * endpoint needs the fixtures its own kernel test base provides (signing
- * keys, entity schemas, and a baseline consumer).
+ * keys, entity schemas, and a baseline consumer). The canvas module itself
+ * must still be installed: the container cannot compile without it because
+ * canvas_headless's ExternalComponentSync service references canvas
+ * services.
  */
 #[RunTestsInSeparateProcesses]
 #[Group('canvas_headless')]
@@ -52,6 +56,7 @@ class PreviewAssertionGrantTest extends AuthorizedRequestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
+    ...CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
     'canvas_headless',
   ];
 
@@ -59,6 +64,15 @@ class PreviewAssertionGrantTest extends AuthorizedRequestBase {
    * The editor whose Drupal presence the assertions assert.
    */
   protected UserInterface $editor;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function bootKernel(): void {
+    parent::bootKernel();
+    // AuthorizedRequestBase generates a URL before this class's setUp() runs.
+    $this->installEntitySchema('path_alias');
+  }
 
   /**
    * {@inheritdoc}

@@ -30,6 +30,22 @@ canvas_headless.settings:
         Regex:
           pattern: '~^https?://(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?)(?::\d+)?(/[^\s\\@?#]*[^/\s\\@?#])?$~i'
           message: 'The frontend URL must be an absolute http:// or https:// URL whose host is a hostname or a dotted-quad IPv4 address, with no credentials, query, fragment, or trailing slash.'
+    component_metadata_url:
+      type: string
+      label: 'URL or absolute path to the external application''s component metadata endpoint'
+      requiredKey: false
+      constraints:
+        AtLeastOneOf:
+          message: 'The component metadata URL must be an absolute path or an HTTP(S) URL.'
+          includeInternalMessages: false
+          constraints:
+            - Regex:
+                pattern: '@^/@'
+            - Sequentially:
+                constraints:
+                  - Uri:
+                      allowReferences: false
+                  - UriScheme: ['http', 'https']
     draft_path:
       type: path
       label: 'Path on the frontend that enables draft mode'

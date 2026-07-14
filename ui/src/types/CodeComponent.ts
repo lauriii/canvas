@@ -6,10 +6,13 @@ export interface DataFetch {
   error: boolean;
 }
 
+export type CodeComponentType = 'react' | 'external';
+
 export interface CodeComponent {
   machineName: string;
   name: string;
   status: boolean;
+  type: CodeComponentType;
   props: CodeComponentProp[];
   required: string[];
   slots: any[];
@@ -32,11 +35,25 @@ export interface DataDependencies {
 
 export interface CodeComponentSerialized extends Omit<
   CodeComponent,
-  'props' | 'slots' | 'dataFetches'
+  | 'props'
+  | 'slots'
+  | 'dataFetches'
+  | 'type'
+  | 'sourceCodeJs'
+  | 'sourceCodeCss'
+  | 'compiledJs'
+  | 'compiledCss'
+  | 'importedJsComponents'
 > {
   props: Record<string, CodeComponentPropSerialized>;
   slots: Record<string, CodeComponentSlotSerialized>;
   dataDependencies: DataDependencies;
+  type?: CodeComponentType;
+  sourceCodeJs?: string;
+  sourceCodeCss?: string;
+  compiledJs?: string;
+  compiledCss?: string;
+  importedJsComponents?: string[];
   links?: Record<string, string>;
 }
 
