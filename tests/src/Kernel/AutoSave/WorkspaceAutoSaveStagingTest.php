@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-// cspell:ignore Duderino
-
 namespace Drupal\Tests\canvas\Kernel\AutoSave;
+
+// cspell:ignore Duderino
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\AutoSave\Workspace\AutoSaveRevisionPruner;
@@ -13,6 +13,9 @@ use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
 use Drupal\canvas\AutoSave\Workspace\CanvasWorkspaceProvider;
 use Drupal\canvas\AutoSave\Workspace\PendingContentAutoSaveBuffer;
 use Drupal\canvas\Entity\CanvasAutoSaveSnapshot;
+use Drupal\canvas\Entity\Page;
+use Drupal\Core\Entity\EntityConstraintViolationListInterface;
+use Drupal\Core\Entity\Plugin\Validation\Constraint\EntityChangedConstraint;
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\entity_test\Entity\EntityTestMulRevPub;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -24,6 +27,7 @@ use Drupal\workspaces\Entity\Workspace;
 use Drupal\workspaces\WorkspacePublishException;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
@@ -388,6 +392,66 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
     $staged = $this->autoSaveManager()->getAutoSaveEntity($entity)->entity;
     self::assertInstanceOf(EntityTestMulRevPub::class, $staged);
     self::assertSame('staged draft', $staged->get('name')->value);
+  }
+
+  /**
+   * EntityChanged validation compares against Live, not the staged draft.
+   *
+   * Every staged auto-save flush writes a draft revision whose changed
+   * timestamp advances to that request's time. The auto-save workspace is
+   * active during Canvas API requests, so core's workspace-aware
+   * loadUnchanged() would compare a client edit against the staged draft and
+   * record a false "modified by another user" conflict — blocking entity form
+   * submissions and, because such violations are stored, publishing too. A
+   * genuine external edit to the Live entity must still be detected.
+   *
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\CanvasAwareEntityChangedConstraintValidator
+   * @see \Drupal\canvas\Hook\WorkspaceAutoSaveHooks::validationConstraintAlter()
+   */
+  public function testEntityChangedValidationComparesAgainstLive(): void {
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $live_changed = $this->container->get('datetime.time')->getRequestTime() - 100;
+    $page = Page::create(['title' => 'live', 'components' => []]);
+    $page->setChangedTime($live_changed);
+    $page->save();
+    $live = Page::load($page->id());
+    self::assertInstanceOf(Page::class, $live);
+    self::assertSame($live_changed, $live->getChangedTime());
+
+    // Stage a draft: the staged revision's changed timestamp advances.
+    $draft = clone $live;
+    $draft->set('title', 'staged draft');
+    $this->autoSaveManager()->saveEntity($draft);
+    /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
+    $workspace_manager = $this->container->get('workspaces.manager');
+    $staged_changed = $workspace_manager->executeInWorkspace(AutoSaveWorkspace::ID, static function () use ($page): int {
+      $staged = Page::load($page->id());
+      self::assertInstanceOf(Page::class, $staged);
+      return (int) $staged->getChangedTime();
+    });
+    self::assertGreaterThan($live_changed, $staged_changed, 'The staged draft revision advanced the changed timestamp.');
+
+    $entity_changed_violations = static fn (EntityConstraintViolationListInterface $violations): array => \array_filter(
+      \iterator_to_array($violations),
+      static fn (ConstraintViolationInterface $violation): bool => $violation->getConstraint() instanceof EntityChangedConstraint,
+    );
+
+    // A client edit whose changed timestamp matches Live must validate
+    // cleanly inside the auto-save workspace, staged draft notwithstanding.
+    $edit = clone $live;
+    $edit->set('title', 'client edit');
+    $violations = $workspace_manager->executeInWorkspace(AutoSaveWorkspace::ID, static fn () => $edit->validate());
+    self::assertCount(0, $entity_changed_violations($violations), 'An edit based on the Live entity validates despite a newer staged draft revision.');
+
+    // A genuine external edit to Live is still detected.
+    $external = clone $live;
+    $external->set('title', 'externally edited');
+    $external->save();
+    $reloaded_live = $this->container->get('entity_type.manager')->getStorage(Page::ENTITY_TYPE_ID)->loadUnchanged((string) $page->id());
+    self::assertInstanceOf(Page::class, $reloaded_live);
+    self::assertGreaterThan($live_changed, $reloaded_live->getChangedTime());
+    $violations = $workspace_manager->executeInWorkspace(AutoSaveWorkspace::ID, static fn () => $edit->validate());
+    self::assertCount(1, $entity_changed_violations($violations), 'An edit based on an outdated Live entity is still a conflict.');
   }
 
 }

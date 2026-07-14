@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
+use Drupal\canvas\Plugin\Validation\Constraint\CanvasAwareEntityChangedConstraint;
 use Drupal\canvas\Plugin\Validation\Constraint\CanvasAwareEntityWorkspaceConflictConstraint;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Hook\Attribute\Hook;
@@ -61,6 +62,15 @@ final class WorkspaceAutoSaveHooks {
     // @see \Drupal\canvas\Plugin\Validation\Constraint\CanvasAwareEntityWorkspaceConflictConstraintValidator
     if (isset($definitions['EntityWorkspaceConflict'])) {
       $definitions['EntityWorkspaceConflict']['class'] = CanvasAwareEntityWorkspaceConflictConstraint::class;
+    }
+    // The changed timestamp of an entity's staged draft revision advances on
+    // every auto-save flush, so with the Canvas auto-save workspace active,
+    // core's workspace-aware loadUnchanged() makes concurrent Canvas preview
+    // requests record false "modified by another user" conflicts against each
+    // other. Compare against the Live entity instead.
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\CanvasAwareEntityChangedConstraintValidator
+    if (isset($definitions['EntityChanged'])) {
+      $definitions['EntityChanged']['class'] = CanvasAwareEntityChangedConstraint::class;
     }
   }
 
