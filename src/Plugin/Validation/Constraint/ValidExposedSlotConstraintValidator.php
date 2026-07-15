@@ -98,12 +98,17 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
     }
 
     // The exposed slot's key must name a `component_tree` field on the bundle:
-    // that field is the slot's per-entity storage and stable identity. The key
-    // is the final segment of this item's property path (e.g. the `test_slot`
-    // in `exposed_slots.test_slot`). Derive it from there rather than matching
-    // $value against the base template's exposed slots: a translation override
-    // changes the translatable `label`, so the merged value validated here no
-    // longer equals any base value and a value-based lookup would fail.
+    // that field is the slot's per-entity storage and stable identity. For
+    // example: when the `article` bundle's template exposes a slot under the
+    // key `canvas_slot_hero`, this validator runs at the property path
+    // `exposed_slots.canvas_slot_hero`, so the key is that path's final
+    // segment (`canvas_slot_hero`) — and a `component_tree` field named
+    // `canvas_slot_hero` must exist on article nodes. The key is derived from
+    // the property path rather than by matching $value against the base
+    // template's exposed slots because that would break for translations: a
+    // translation override changes the translatable `label`, so the merged
+    // value being validated here no longer equals any base value and a
+    // value-based lookup would fail.
     if ($constraint->requireFieldBacked) {
       $segments = \preg_split('/[.\[\]]+/', $this->context->getPropertyPath(), -1, \PREG_SPLIT_NO_EMPTY);
       $field_name = $segments === FALSE || $segments === [] ? '' : (string) \end($segments);
