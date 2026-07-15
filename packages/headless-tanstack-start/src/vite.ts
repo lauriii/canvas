@@ -3,6 +3,7 @@ import {
   readComponentManifest,
   writeComponentManifest,
 } from '@drupal-canvas/headless/components-endpoint';
+import { resolveDraftConfig } from '@drupal-canvas/headless/server';
 import { canvasComponentRegistry } from '@drupal-canvas/headless/vite';
 
 import type { Plugin } from 'vite';
@@ -76,6 +77,13 @@ function canvasTanStackStart(): Plugin {
 
     config() {
       return {
+        // Vite's dev-server CORS middleware answers preflights before the
+        // component metadata route, and its localhost-only origin policy
+        // omits Access-Control-Allow-Origin for the Drupal editor. Let the
+        // route own its claim-bound CORS contract instead.
+        server: {
+          cors: false,
+        },
         ssr: {
           noExternal: [...SDK_PACKAGES],
         },
@@ -93,6 +101,9 @@ function canvasTanStackStart(): Plugin {
         if (env[key] !== undefined) {
           process.env[key] = env[key];
         }
+      }
+      if (isDev) {
+        resolveDraftConfig();
       }
     },
 

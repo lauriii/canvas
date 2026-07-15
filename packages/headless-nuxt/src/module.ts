@@ -2,6 +2,7 @@ import {
   readComponentManifest,
   writeComponentManifest,
 } from '@drupal-canvas/headless/components-endpoint';
+import { resolveDraftConfig } from '@drupal-canvas/headless/server';
 import { canvasComponentRegistry } from '@drupal-canvas/headless/vite';
 import {
   addComponent,
@@ -87,6 +88,9 @@ export default defineNuxtModule<CanvasModuleOptions>({
   },
   setup(options, nuxt) {
     const resolver = createResolver(import.meta.url);
+    if (nuxt.options.dev) {
+      resolveDraftConfig();
+    }
 
     // The Vue build compiles the SDK's raw TypeScript.
     nuxt.options.build.transpile.push(...SDK_PACKAGES);
@@ -163,7 +167,6 @@ export default defineNuxtModule<CanvasModuleOptions>({
       });
       addServerHandler({
         route: options.componentsRoutePath,
-        method: 'get',
         handler: resolver.resolve('./runtime/server/routes/components'),
       });
     }

@@ -52,7 +52,7 @@ import { createComponentMetadataHandler } from '@drupal-canvas/headless-next';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const { GET } = createComponentMetadataHandler();
+export const { GET, OPTIONS } = createComponentMetadataHandler();
 ```
 
 **3. The session banner** — a server component gathers the session state
@@ -75,7 +75,8 @@ implementation, and the renderer consumes it automatically. During development,
 the registry updates when components are added, removed, or renamed, so the
 application does not maintain a registry manually.
 
-Environment: `CANVAS_SITE_URL` (required).
+Environment: `CANVAS_SITE_URL` (required). The development server fails at
+startup when it is missing.
 
 The CSP is `'self'`-only without a draft session. During a draft session, it
 also admits the exact editor origin derived from the signed renewal URL. The
@@ -93,8 +94,10 @@ draft-session-aware.
 `@drupal-canvas/headless/components-endpoint` for the payload shape. Callers
 authenticate by presenting a fresh, single-use Drupal preview assertion as a
 Bearer token, verified by redeeming it at Drupal's own token endpoint
-(proof-by-redemption — the app holds no key material). Drupal calls this
-endpoint server-to-server; it does not expose a browser CORS contract.
+(proof-by-redemption — the app holds no key material). Drupal coordinates the
+request in the editor's browser so it can reach local frontends. `OPTIONS`
+allows the authorization preflight, and the authenticated response is exposed
+only to the editor origin carried in the assertion's signed renewal URL.
 
 In production the endpoint serves the manifest `withCanvas()` wrote at
 `next build` (component sources are typically absent at runtime, and the

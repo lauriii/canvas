@@ -85,15 +85,16 @@ register the app's components.
   deployed build. In development it scans the codebase live on every
   request.
 
-Drupal calls the endpoint server-to-server. For a manual check, first verify
-the unauthenticated response:
+The Canvas editor fetches the endpoint in the browser so it can reach local
+frontends. First verify the unauthenticated response from the shell:
 
 ```bash
 # 401 without an assertion:
 curl -i http://localhost:4321/api/canvas/components
 ```
 
-Then mint a fresh assertion in the Drupal origin's browser console:
+Then exercise the authenticated CORS request in the Drupal origin's browser
+console:
 
 ```js
 // Run this in the Drupal origin's browser console, where the session cookie
@@ -105,12 +106,10 @@ const { assertion } = await (
     headers: { 'X-CSRF-Token': csrf },
   })
 ).json();
-console.log(assertion);
-```
-
-Copy it immediately into a server-side request:
-
-```bash
-curl -i -H 'Authorization: Bearer <fresh-assertion>' \
-  http://localhost:4321/api/canvas/components
+const registry = await (
+  await fetch('http://localhost:4321/api/canvas/components', {
+    headers: { Authorization: `Bearer ${assertion}` },
+  })
+).json();
+console.log(registry);
 ```

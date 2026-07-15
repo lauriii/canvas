@@ -33,3 +33,4 @@ const handler = createComponentMetadataHandler({
 });
 
 export const GET: APIRoute = ({ request }) => handler.GET(request);
+export const OPTIONS: APIRoute = ({ request }) => handler.OPTIONS(request);
