@@ -129,6 +129,54 @@ describe('NotificationToastManager', () => {
     expect(screen.queryByText('Dup toast')).not.toBeInTheDocument();
   });
 
+  it('does not toast component synchronization progress', () => {
+    mockNotifications = [
+      makeNotification({
+        id: 'component-sync-processing',
+        type: 'processing',
+        key: 'headless-component-sync',
+        title: 'Component sync in progress',
+      }),
+    ];
+
+    renderManager();
+
+    expect(
+      screen.queryByText('Component sync in progress'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('replaces a keyed processing toast with its result', () => {
+    mockNotifications = [
+      makeNotification({
+        id: 'sync-processing',
+        type: 'processing',
+        key: 'component-sync',
+        title: 'Sync in progress',
+      }),
+    ];
+    const { rerender } = renderManager();
+    expect(screen.getByText('Sync in progress')).toBeInTheDocument();
+
+    mockNotifications = [
+      makeNotification({
+        id: 'sync-complete',
+        type: 'success',
+        key: 'component-sync',
+        title: 'Sync completed',
+      }),
+    ];
+    const store = makeStore();
+    rerender(
+      <Provider store={store}>
+        <NotificationToastManager />
+      </Provider>,
+    );
+
+    expect(screen.queryByText('Sync in progress')).not.toBeInTheDocument();
+    expect(screen.getByText('Sync completed')).toBeInTheDocument();
+  });
+
   it('auto-dismisses after 15 seconds', () => {
     mockNotifications = [
       makeNotification({
@@ -145,6 +193,25 @@ describe('NotificationToastManager', () => {
     });
 
     expect(screen.queryByText('Auto toast')).not.toBeInTheDocument();
+  });
+
+  it('auto-dismisses success notifications after 5 seconds', () => {
+    mockNotifications = [
+      makeNotification({
+        id: 'success1',
+        type: 'success',
+        title: 'Success toast',
+        timestamp: now + 5000,
+      }),
+    ];
+    renderManager();
+    expect(screen.getByText('Success toast')).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    expect(screen.queryByText('Success toast')).not.toBeInTheDocument();
   });
 
   it('calls markRead when dismiss button is clicked', async () => {

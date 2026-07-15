@@ -17,12 +17,12 @@ import {
   selectPreviewHtml,
   setSnapshotHTML,
 } from '@/features/pagePreview/previewSlice';
+import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import {
   useGetSnapshotPreviewQuery,
   useQueuedPostPreviewMutation,
 } from '@/services/preview';
-import { getCanvasHeadlessSettings } from '@/utils/drupal-globals';
 import { getViewportSizes } from '@/utils/viewports';
 
 import type React from 'react';
@@ -94,13 +94,14 @@ const PagePreview = () => {
   // Determine template context from the URL path.
   const isContentTemplate = location.pathname.includes('/preview/template');
 
+  const canvasHeadlessSettings = useCanvasHeadlessSettings();
   // The same gate as useHeadlessPreviewSettings, keyed on the URL instead of
   // the editor frame context, which is not set on this route: content
   // templates have no public path for the app to enter at, so they keep the
   // Drupal-rendered preview.
   const headlessSettings = isContentTemplate
     ? undefined
-    : getCanvasHeadlessSettings();
+    : canvasHeadlessSettings;
 
   // Only fetch the language preview when we are on a preview route.
   const isPreview = isContentTemplate || location.pathname.includes('/preview');

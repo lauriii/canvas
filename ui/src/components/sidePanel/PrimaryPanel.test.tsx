@@ -11,6 +11,10 @@ vi.mock('@/hooks/useHidePanelClasses', () => ({
   default: () => [],
 }));
 
+vi.mock('@/hooks/useCanvasHeadlessSettings', () => ({
+  useCanvasHeadlessSettings: () => undefined,
+}));
+
 vi.mock('@/utils/permissions', () => ({
   hasPermission: (...args: Parameters<typeof hasPermissionMock>) =>
     hasPermissionMock(...args),

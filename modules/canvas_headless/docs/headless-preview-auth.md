@@ -822,7 +822,7 @@ Module paths are relative to `modules/canvas_headless`.
 | --- | --- |
 | `src/PreviewAssertionFactory.php` | Mints assertions (claims + RS256 signature) |
 | `src/PreviewUrlGenerator.php` | Permission gate + wraps the assertion in the frontend URL |
-| `src/FrontendUrl.php` | Canonicalizes `frontend_url` into one origin + base URL; refuses ambiguous or non-web values |
+| `src/FrontendUrl.php` | Canonicalizes a frontend list URL into one origin + base URL; refuses ambiguous or non-web values |
 | `src/Controller/AssertionController.php` | Minting endpoints: activation/renewal assertions (JSON, CSRF header, cookie auth only) + the standalone renew redirect |
 | `src/Grant/PreviewAssertionGrant.php` | The league grant: the fifteen checks, then token issuance |
 | `src/Plugin/Oauth2Grant/PreviewAssertion.php` | Registers the grant with Simple OAuth; wires Drupal services |

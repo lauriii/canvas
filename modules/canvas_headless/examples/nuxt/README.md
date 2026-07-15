@@ -51,12 +51,11 @@ npm run dev             # http://localhost:3000
 DDEV's mkcert certificate by default. To use the https URL instead, run
 with `NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem"`.
 
-The `canvas_headless` module's default `frontend_url`
-(`http://localhost:3000`) matches this app's dev server (the Next.js
-example uses the same port; run one at a time, or move one). Embedded
-draft mode relies on CHIPS partitioned cookies; on a plain-http localhost
-origin that works in Chromium-based browsers (localhost is a trustworthy
-origin).
+Add `http://localhost:3000` from Canvas's **Headless frontends** screen
+(the Next.js example uses the same port; run one at a time, or move one).
+Embedded draft mode relies on CHIPS partitioned cookies; on a plain-http
+localhost origin that works in Chromium-based browsers (localhost is a
+trustworthy origin).
 
 The production build runs the Nitro Node server:
 

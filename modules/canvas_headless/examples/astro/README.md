@@ -50,11 +50,10 @@ npm run dev             # http://localhost:4321
 DDEV's mkcert certificate by default. To use the https URL instead, run
 with `NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem"`.
 
-Point the `canvas_headless` module's `frontend_url` at this app's dev
-server (`http://localhost:4321`; the module's default port 3000 is the
-Next.js example's). Embedded draft mode relies on CHIPS partitioned
-cookies; on a plain-http localhost origin that works in Chromium-based
-browsers (localhost is a trustworthy origin).
+Add `http://localhost:4321` from Canvas's **Headless frontends** screen.
+Embedded draft mode relies on CHIPS partitioned cookies; on a plain-http
+localhost origin that works in Chromium-based browsers (localhost is a
+trustworthy origin).
 
 The production build runs the standalone Node adapter:
 

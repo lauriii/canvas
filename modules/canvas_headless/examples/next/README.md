@@ -49,10 +49,10 @@ npm run dev                 # http://localhost:3000
 DDEV's mkcert certificate by default. To use the https URL instead, run
 with `NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem"`.
 
-The `canvas_headless` module's default `frontend_url`
-(`http://localhost:3000`) points at this app's dev server. Embedded draft
-mode relies on CHIPS partitioned cookies; on a plain-http localhost origin
-that works in Chromium-based browsers (localhost is a trustworthy origin).
+Add `http://localhost:3000` from Canvas's **Headless frontends** screen.
+Embedded draft mode relies on CHIPS partitioned cookies; on a plain-http
+localhost origin that works in Chromium-based browsers (localhost is a
+trustworthy origin).
 
 To copy this app out of the repository, replace the `file:` specifiers in
 package.json with published package versions (the packages are not yet

@@ -12,4 +12,4 @@ services:
     tags:
       - { name: access_policy }
   Drupal\canvas_headless\ExternalComponentSync: {}
-  Drupal\canvas_headless\EventSubscriber\ExternalComponentSyncSubscriber: {}
+  Drupal\canvas_headless\Controller\ExternalComponentSyncController: {}
