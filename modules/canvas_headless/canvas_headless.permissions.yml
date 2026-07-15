@@ -2,3 +2,7 @@ access canvas headless preview:
   title: 'Access Canvas Headless preview'
   description: 'Generate signed draft-mode preview assertions for the embedded frontend app.'
   restrict access: true
+administer canvas headless frontends:
+  title: 'Administer Canvas Headless frontends'
+  description: 'Add, reorder, and remove the frontend apps connected to Drupal Canvas.'
+  restrict access: true

@@ -1,3 +1,4 @@
 {
-  "componentDir": "components/canvas"
+  "componentDir": "components/canvas",
+  "globalCssPath": "app/globals.css"
 }

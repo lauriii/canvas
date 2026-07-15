@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 
 import ListItem from '@/components/list/ListItem';
@@ -15,9 +15,13 @@ import type { FolderData } from './FolderList';
 
 interface ComponentListProps {
   searchTerm: string;
+  externalComponentsOnly: boolean;
 }
 
-const ComponentList = ({ searchTerm }: ComponentListProps) => {
+const ComponentList = ({
+  searchTerm,
+  externalComponentsOnly,
+}: ComponentListProps) => {
   const { data: components, error, isLoading } = useGetComponentsQuery();
   const {
     data: folders,
@@ -25,6 +29,19 @@ const ComponentList = ({ searchTerm }: ComponentListProps) => {
     isLoading: foldersLoading,
   } = useGetFoldersQuery();
   const { showBoundary } = useErrorBoundary();
+  const visibleComponents = useMemo(() => {
+    if (!externalComponentsOnly) {
+      return components;
+    }
+
+    return Object.fromEntries(
+      Object.entries(components ?? {}).filter(
+        ([, component]) =>
+          component.library === 'primary_components' &&
+          component.type === 'external',
+      ),
+    );
+  }, [components, externalComponentsOnly]);
 
   useEffect(() => {
     if (error || foldersError) {
@@ -38,7 +55,7 @@ const ComponentList = ({ searchTerm }: ComponentListProps) => {
 
   return (
     <LibraryItemList<CanvasComponent>
-      items={components as ComponentsList}
+      items={visibleComponents as ComponentsList}
       folders={folders as FolderData}
       isLoading={isLoading || foldersLoading}
       searchTerm={searchTerm}

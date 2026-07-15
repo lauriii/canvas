@@ -92,8 +92,7 @@ class AssertionControllerTest extends KernelTestBase {
       ->save();
 
     $this->config('canvas_headless.settings')
-      ->set('frontend_url', 'http://localhost:3000')
-      ->set('draft_path', '/api/draft')
+      ->set('frontends', [['url' => 'http://localhost:3000']])
       ->set('assertion_expiration', 60)
       ->save();
     $this->config('system.site')

@@ -21,6 +21,16 @@ interface PreviewUrlGeneratorInterface {
   const PREVIEW_PERMISSION = 'access canvas headless preview';
 
   /**
+   * The path on the frontend that enables draft mode.
+   *
+   * This is a fixed convention of the adapter contract, not configuration:
+   * every framework adapter (and the documentation custom adapters follow)
+   * mounts the draft session routes at this path, so a configurable value
+   * could only break the exchange.
+   */
+  const DRAFT_PATH = '/api/draft';
+
+  /**
    * Generates a preview URL whose session enters at the given path.
    *
    * Used by session renewal, where the entry point is wherever the editor

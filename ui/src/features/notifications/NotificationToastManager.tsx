@@ -7,12 +7,14 @@ import {
   useMarkNotificationsReadMutation,
 } from '@/services/notificationsApi';
 
-import { TOAST_DURATION } from './constants';
+import { SUCCESS_TOAST_DURATION, TOAST_DURATION } from './constants';
 import NotificationToast from './NotificationToast';
 
 import type { Notification } from '@/services/notificationsApi';
 
 import styles from './NotificationToastManager.module.css';
+
+const COMPONENT_SYNC_NOTIFICATION_KEY = 'headless-component-sync';
 
 const NotificationToastManager = () => {
   const { data } = useGetNotificationsQuery();
@@ -58,19 +60,56 @@ const NotificationToastManager = () => {
       if (shownIds.current.has(notification.id)) continue;
 
       shownIds.current.add(notification.id);
+      // Component synchronization has an in-context spinner next to the
+      // frontend selector. Keep its processing state in the activity center,
+      // but do not flash a redundant toast for short synchronizations.
+      if (
+        notification.type === 'processing' &&
+        notification.key === COMPONENT_SYNC_NOTIFICATION_KEY
+      ) {
+        continue;
+      }
       newToasts.push(notification);
 
+      const duration =
+        notification.type === 'success'
+          ? SUCCESS_TOAST_DURATION
+          : TOAST_DURATION;
       const timer = setTimeout(() => {
         timers.current.delete(notification.id);
         setVisibleToasts((prev) =>
           prev.filter((n) => n.id !== notification.id),
         );
-      }, TOAST_DURATION);
+      }, duration);
       timers.current.set(notification.id, timer);
     }
 
     if (newToasts.length > 0) {
-      setVisibleToasts((prev) => [...newToasts, ...prev]);
+      // A keyed notification represents a lifecycle transition. Replace the
+      // prior toast for that operation instead of showing, for example,
+      // "completed" above a stale "in progress" toast.
+      setVisibleToasts((prev) => {
+        const replacedIds = new Set(
+          newToasts.flatMap((notification) =>
+            notification.key
+              ? prev
+                  .filter((visible) => visible.key === notification.key)
+                  .map((visible) => visible.id)
+              : [],
+          ),
+        );
+        for (const id of replacedIds) {
+          const timer = timers.current.get(id);
+          if (timer) {
+            clearTimeout(timer);
+            timers.current.delete(id);
+          }
+        }
+        return [
+          ...newToasts,
+          ...prev.filter((notification) => !replacedIds.has(notification.id)),
+        ];
+      });
     }
   }, [data?.data.notifications, pageOpenedAt]);
 

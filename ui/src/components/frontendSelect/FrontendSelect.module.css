@@ -1,0 +1,62 @@
+.checkIconContainer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+}
+
+.frontendUrl {
+  overflow: hidden;
+  padding-inline-start: 4px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.triggerLabel {
+  overflow: hidden;
+  max-width: 220px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.syncIndicator {
+  display: inline-flex;
+  transition: opacity 300ms ease-out;
+  opacity: 1;
+}
+
+.syncIndicatorFading {
+  opacity: 0;
+}
+
+.dropdown.dropdown {
+  min-width: 240px;
+  max-width: 400px;
+}
+
+.row {
+  border-radius: 4px;
+}
+
+.row > [data-radix-collection-item] {
+  flex: 1;
+  min-width: 0;
+}
+
+.row:hover {
+  color: var(--gray-12);
+  background: var(--gray-a3);
+}
+
+/* Mirror hover styles on keyboard-focused items for accessibility. */
+.row [data-highlighted] {
+  color: inherit !important;
+  background: transparent !important;
+}
+
+/* Show a custom focus indicator when navigating with the keyboard. */
+.row:not(:hover):has([data-radix-collection-item][data-highlighted]) {
+  outline: 2px solid var(--accent-9);
+  outline-offset: 2px;
+}
