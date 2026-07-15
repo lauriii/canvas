@@ -90,9 +90,12 @@ export const useComponentTransforms = () => {
 
 interface ComponentInstanceFormRendererProps {
   queryString: string;
-  // Set when this renderer is an escape-hatch island for a single prop
+  // Set when this renderer is an escape-hatch island for a run of props
   // composed among native widgets, rather than the whole component form.
   islandPropName?: string;
+  // Called once the island's form content has rendered; used to mount the
+  // next island (islands mount sequentially to avoid asset races).
+  onFormRendered?: () => void;
 }
 interface ComponentInstanceFormProps {}
 
@@ -109,13 +112,58 @@ const islandQueryString = (queryString: string, propNames: string[]): string =>
 const hatchPropClass = (propName: string): string =>
   `field--name-${propName.toLowerCase().replace(/_/g, '-')}`;
 
+// One escape-hatch island: a scoped server-built form for a contiguous run of
+// hatch props, composed in prop order among the native widgets.
+const HatchIsland: React.FC<{
+  runProps: string[];
+  disabledProps: string[];
+  queryString: string;
+  onFormRendered: () => void;
+}> = ({ runProps, disabledProps, queryString, onFormRendered }) => {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // A disabled (`enabled: false`) state rule must also block keyboard
+  // interaction, not just pointer input; `inert` covers focus and assistive
+  // technology. Applied imperatively because the wrappers live inside
+  // hyperscriptified server markup. Re-applied whenever the disabled set or
+  // the island content changes; AJAX rebuilds inside the island re-trigger
+  // this via the parent's state-driven re-renders.
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) {
+      return;
+    }
+    runProps.forEach((propName) => {
+      wrapper
+        .querySelectorAll(`.${hatchPropClass(propName)}`)
+        .forEach((element) =>
+          element.toggleAttribute('inert', disabledProps.includes(propName)),
+        );
+    });
+  });
+
+  return (
+    <div
+      ref={wrapperRef}
+      data-canvas-hatch-island
+      data-testid={`canvas-hatch-island-${runProps.join('-')}`}
+    >
+      <ComponentInstanceFormRenderer
+        queryString={queryString}
+        islandPropName={runProps.join(',')}
+        onFormRendered={onFormRendered}
+      />
+    </div>
+  );
+};
+
 const ComponentInstanceFormRenderer: React.FC<
   ComponentInstanceFormRendererProps
 > = (props) => {
   const formState = useAppSelector((state) =>
     selectFormValues(state, FORM_TYPES.COMPONENT_INSTANCE_FORM),
   );
-  const { queryString, islandPropName } = props;
+  const { queryString, islandPropName, onFormRendered } = props;
   const { showBoundary } = useErrorBoundary();
   const inputAndUiData: InputUIData = useInputUIData();
   const {
@@ -228,6 +276,8 @@ const ComponentInstanceFormRenderer: React.FC<
     if (componentId && !islandPropName) {
       measureFormInteractive(componentId, 'server-form');
     }
+    onFormRendered?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [html, originalArgs, islandPropName]);
 
   // Listen for updates to form state from ajax.
@@ -392,13 +442,27 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     dispatch(clearFieldValues('component_instance_form'));
   }, [dispatch, selectedComponent]);
 
-  // Start the selection-to-form-interactive measure as soon as the selection
-  // changes; the native composition (or the server-form renderer) ends it.
-  useEffect(() => {
-    if (selectedComponent) {
-      markSelectionStart(selectedComponent);
-    }
-  }, [selectedComponent]);
+  // Start the selection-to-form-interactive measure during the render phase
+  // of the first panel render for a new selection, not in a passive effect
+  // (which would only run after the form already committed and make the
+  // measure meaningless). The measured span still excludes the selection
+  // dispatch itself; see formInteractiveMetrics.ts for the boundary.
+  const lastMarkedSelection = useRef<string | null>(null);
+  if (selectedComponent && lastMarkedSelection.current !== selectedComponent) {
+    lastMarkedSelection.current = selectedComponent;
+    markSelectionStart(selectedComponent);
+  }
+
+  // Native widget edits that have not yet round-tripped through the debounced
+  // PATCH, mirrored here so prop-state rules react in the same render cycle
+  // instead of lagging by the debounce and network round trip.
+  const [pendingStateValues, setPendingStateValues] = useState<
+    Record<string, unknown>
+  >({});
+  // Escape-hatch islands mount sequentially (island N+1 only after island N
+  // has rendered) so concurrent form fetches cannot race on shared form
+  // assets such as the rich text editor's libraries.
+  const [readyIslands, setReadyIslands] = useState(1);
 
   // Selection changes and undo/redo make the store model authoritative again:
   // drop any in-flight native widget edits so they cannot shadow it.
@@ -406,6 +470,8 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     if (selectedComponent) {
       clearPendingWrites(selectedComponent);
     }
+    setPendingStateValues({});
+    setReadyIslands(1);
   }, [selectedComponent, latestUndoRedoActionId]);
 
   const selectedNode = selectedComponent
@@ -474,14 +540,16 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
   );
   const propStates = useMemo(
     () =>
-      evaluatePropStates(
-        compiledPropStates,
-        (model?.[selectedComponent ?? '']?.resolved ?? {}) as Record<
+      evaluatePropStates(compiledPropStates, {
+        ...((model?.[selectedComponent ?? '']?.resolved ?? {}) as Record<
           string,
           unknown
-        >,
-      ),
-    [compiledPropStates, model, selectedComponent],
+        >),
+        // In-flight native edits win over the (older) store model so
+        // dependent slots react immediately.
+        ...pendingStateValues,
+      }),
+    [compiledPropStates, model, selectedComponent, pendingStateValues],
   );
 
   const isNativeComposition = composition !== null;
@@ -610,22 +678,31 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
         onSubmit={(e) => e.preventDefault()}
       >
         {(() => {
-          // All escape-hatch props share ONE island (a single scoped form
-          // fetch): parallel island fetches would race on shared form assets
-          // (e.g. CKEditor), and one fetch matches the whole-form path's
-          // asset semantics. The island renders at the first hatch prop's
-          // position; the server builds only the filtered props.
-          const hatchPropNames = composition
-            .filter((slot) => !slot.definition)
-            .map((slot) => slot.propName);
+          // Escape-hatch props are grouped into islands per CONTIGUOUS run of
+          // hatch props, so all props render in their defined order. Islands
+          // mount sequentially (see readyIslands) because concurrent island
+          // fetches race on shared form assets (e.g. the rich text editor's
+          // libraries); each island is still a single scoped form fetch.
+          const islandRuns: string[][] = [];
+          composition.forEach((slot, index) => {
+            if (slot.definition) {
+              return;
+            }
+            const previous = composition[index - 1];
+            if (previous && !previous.definition) {
+              islandRuns[islandRuns.length - 1].push(slot.propName);
+            } else {
+              islandRuns.push([slot.propName]);
+            }
+          });
           const islandReady =
             formQueryString && renderComponentId === selectedComponent;
-          const firstHatchProp = hatchPropNames[0];
 
           // Prop states for hatch props target the server-rendered per-prop
-          // wrappers inside the island, so a hidden hatch prop keeps its
+          // wrappers inside the islands, so a hidden hatch prop keeps its
           // value without any form request.
-          const hatchStateCss = hatchPropNames
+          const hatchStateCss = islandRuns
+            .flat()
             .map((propName) => {
               const slotState = propStates[propName] ?? DEFAULT_SLOT_STATE;
               if (!slotState.visible) {
@@ -638,42 +715,71 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
             })
             .filter(Boolean)
             .join('\n');
+          const disabledHatchProps = islandRuns
+            .flat()
+            .filter(
+              (propName) =>
+                !(propStates[propName] ?? DEFAULT_SLOT_STATE).enabled,
+            );
 
-          return composition.map(({ propName, context, definition }) => {
-            const slotState = propStates[propName] ?? DEFAULT_SLOT_STATE;
-            if (definition) {
+          let islandIndex = -1;
+          const rendered = composition.map(
+            ({ propName, context, definition }, index) => {
+              const slotState = propStates[propName] ?? DEFAULT_SLOT_STATE;
+              if (definition) {
+                return (
+                  <NativePropSlot
+                    key={`${selectedComponent}-${propName}`}
+                    context={context}
+                    definition={definition}
+                    slotState={slotState}
+                    onResolvedValueChange={(resolvedValue) =>
+                      setPendingStateValues((current) => ({
+                        ...current,
+                        [propName]: resolvedValue,
+                      }))
+                    }
+                  />
+                );
+              }
+              // Only the first prop of a run renders the run's island.
+              const previous = composition[index - 1];
+              if (previous && !previous.definition) {
+                return null;
+              }
+              islandIndex += 1;
+              // Capture per-island values: islandIndex keeps mutating across
+              // the loop, but the callback below runs much later.
+              const currentIslandIndex = islandIndex;
+              const runProps = islandRuns[currentIslandIndex];
+              // Sequential mounting: this island waits until all earlier
+              // islands have rendered their form.
+              if (!islandReady || currentIslandIndex >= readyIslands) {
+                return null;
+              }
               return (
-                <NativePropSlot
-                  key={`${selectedComponent}-${propName}`}
-                  context={context}
-                  definition={definition}
-                  slotState={slotState}
+                <HatchIsland
+                  key={`${selectedComponent}-hatch-island-${runProps[0]}`}
+                  runProps={runProps}
+                  disabledProps={disabledHatchProps}
+                  queryString={islandQueryString(formQueryString, runProps)}
+                  onFormRendered={() =>
+                    setReadyIslands((current) =>
+                      current > currentIslandIndex + 1
+                        ? current
+                        : currentIslandIndex + 2,
+                    )
+                  }
                 />
               );
-            }
-            // The island mounts once, at the first hatch prop's slot. It is
-            // lazily fetched and its arrival cannot reset native widget
-            // state: the native slots are separate subtrees.
-            if (propName !== firstHatchProp || !islandReady) {
-              return null;
-            }
-            return (
-              <div
-                key={`${selectedComponent}-hatch-island`}
-                data-canvas-hatch-island
-                data-testid={`canvas-hatch-island-${hatchPropNames.join('-')}`}
-              >
-                {hatchStateCss && <style>{hatchStateCss}</style>}
-                <ComponentInstanceFormRenderer
-                  queryString={islandQueryString(
-                    formQueryString,
-                    hatchPropNames,
-                  )}
-                  islandPropName={hatchPropNames.join(',')}
-                />
-              </div>
-            );
-          });
+            },
+          );
+          return (
+            <>
+              {hatchStateCss && <style>{hatchStateCss}</style>}
+              {rendered}
+            </>
+          );
         })()}
       </form>
     );

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Controller;
 
+use Drupal\canvas\ComponentSource\ComponentSourceInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Controller\ApiFileUploadController;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
@@ -142,6 +144,59 @@ final class ApiFileUploadControllerTest extends CanvasKernelTestBase {
     self::assertNotNull($file);
     self::assertTrue($file->isPermanent());
     self::assertSame($data['uuid'], $file->uuid());
+  }
+
+  /**
+   * Tests that stored resolution limits are enforced, matching image_image.
+   *
+   * The `image_image` widget adds the `FileImageDimensions` validator from
+   * the field's `max_resolution`/`min_resolution` settings, so the native
+   * endpoint must enforce the same limits from the stored prop settings.
+   *
+   * @see \Drupal\image\Plugin\Field\FieldWidget\ImageWidget::formElement()
+   */
+  public function testPostImageDimensions(): void {
+    // The stored minimum resolution exceeds the 3000x2595 test image, so the
+    // upload is rejected and no File entity is created.
+    $this->setImagePropResolutionLimits('', '4000x4000');
+    $response = $this->requestUpload([], 'gracie-big.jpg');
+    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    $data = self::decodeResponse($response);
+    self::assertSame('The image is too small. The minimum dimensions are <em class="placeholder">4000x4000</em> pixels and the image size is <em class="placeholder">3000</em>x<em class="placeholder">2595</em> pixels.', $data['errors'][0]['detail']);
+    self::assertNull(File::load(1));
+
+    // An image within the stored limits is accepted.
+    $this->setImagePropResolutionLimits('4000x4000', '100x100');
+    $response = $this->requestUpload([], 'gracie-big.jpg');
+    self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+    $data = self::decodeResponse($response);
+    self::assertSame(3000, $data['width']);
+    self::assertSame(2595, $data['height']);
+  }
+
+  /**
+   * Stores resolution limits on the image prop, as a new component version.
+   *
+   * Follows the same pattern existing tests use to modify a component's
+   * stored prop field definitions: compute the version hash for the changed
+   * settings, then save them as a new (active) version.
+   *
+   * @see \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceUpdaterTest
+   */
+  private function setImagePropResolutionLimits(string $max_resolution, string $min_resolution): void {
+    $component = Component::load(self::COMPONENT_ID);
+    \assert($component instanceof ComponentInterface);
+    $settings = $component->getSettings();
+    $settings['prop_field_definitions']['image']['field_instance_settings']['max_resolution'] = $max_resolution;
+    $settings['prop_field_definitions']['image']['field_instance_settings']['min_resolution'] = $min_resolution;
+    $source = $this->container->get(ComponentSourceManager::class)->createInstance(
+      $component->getComponentSource()->getPluginId(),
+      ['local_source_id' => $component->get('source_local_id'), ...$settings],
+    );
+    \assert($source instanceof ComponentSourceInterface);
+    $component->createVersion($source->generateVersionHash())->setSettings($settings);
+    $component->save();
+    $this->version = $component->getActiveVersion();
   }
 
   /**

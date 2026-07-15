@@ -38,6 +38,9 @@ final class ApiMediaControllersListTest extends CanvasKernelTestBase {
    */
   protected static $modules = [
     'field',
+    // Provides a key-value-driven hook that denies view access to specific
+    // media entities, making per-entity access stricter than query access.
+    'canvas_test_access',
   ];
 
   private const string URL = '/canvas/api/v0/media/%s';
@@ -48,6 +51,16 @@ final class ApiMediaControllersListTest extends CanvasKernelTestBase {
    * @var array<string, int>
    */
   private array $mediaIds = [];
+
+  /**
+   * The name of the image media type's source field.
+   */
+  private string $sourceFieldName;
+
+  /**
+   * The ID of the single image file backing all media entities.
+   */
+  private int $fileId;
 
   /**
    * {@inheritdoc}
@@ -83,29 +96,34 @@ final class ApiMediaControllersListTest extends CanvasKernelTestBase {
 
     $source_field_definition = $media_type->getSource()->getSourceFieldDefinition($media_type);
     \assert($source_field_definition !== NULL);
-    $source_field_name = $source_field_definition->getName();
+    $this->sourceFieldName = $source_field_definition->getName();
+    $this->fileId = (int) $file->id();
 
     // 26 published "Dog NN" media, with descending `changed` timestamps so
     // "Dog 01" is the most recently changed, plus one published "Cat 01" (the
     // oldest) and one unpublished "Secret Dog".
     $base_changed = 2_000_000_000;
-    $create_media = function (string $label, int $changed, bool $published) use ($file, $source_field_name): int {
-      $media = Media::create([
-        'bundle' => 'image',
-        'name' => $label,
-        'status' => $published ? 1 : 0,
-        'changed' => $changed,
-        $source_field_name => ['target_id' => $file->id(), 'alt' => 'Test image'],
-      ]);
-      $media->save();
-      return (int) $media->id();
-    };
     for ($i = 1; $i <= 26; $i++) {
       $label = \sprintf('Dog %02d', $i);
-      $this->mediaIds[$label] = $create_media($label, $base_changed - $i, TRUE);
+      $this->mediaIds[$label] = $this->createMediaEntity($label, $base_changed - $i, TRUE);
     }
-    $this->mediaIds['Cat 01'] = $create_media('Cat 01', $base_changed - 27, TRUE);
-    $this->mediaIds['Secret Dog'] = $create_media('Secret Dog', $base_changed - 28, FALSE);
+    $this->mediaIds['Cat 01'] = $this->createMediaEntity('Cat 01', $base_changed - 27, TRUE);
+    $this->mediaIds['Secret Dog'] = $this->createMediaEntity('Secret Dog', $base_changed - 28, FALSE);
+  }
+
+  /**
+   * Creates an image media entity and returns its ID.
+   */
+  private function createMediaEntity(string $label, int $changed, bool $published): int {
+    $media = Media::create([
+      'bundle' => 'image',
+      'name' => $label,
+      'status' => $published ? 1 : 0,
+      'changed' => $changed,
+      $this->sourceFieldName => ['target_id' => $this->fileId, 'alt' => 'Test image'],
+    ]);
+    $media->save();
+    return (int) $media->id();
   }
 
   /**
@@ -193,6 +211,39 @@ final class ApiMediaControllersListTest extends CanvasKernelTestBase {
     $data = $this->requestList(['ids' => $ids, 'page' => 5]);
     self::assertSame(['page' => 0, 'perPage' => 24, 'total' => 2], $data['pager']);
     self::assertSame(['Dog 26', 'Cat 01'], \array_column($data['items'], 'label'));
+  }
+
+  /**
+   * Tests that entities denied by per-entity access do not consume page slots.
+   *
+   * Entity query access and per-entity access can diverge (e.g. a contrib
+   * access hook): denied entities must not consume page slots, while the
+   * pager total — computed from the count query — may overcount them.
+   */
+  public function testListPerEntityAccessDivergence(): void {
+    // A published media entity that query access allows but per-entity access
+    // denies; it is the most recently changed, so it is the first query row
+    // of page 0.
+    $forbidden_id = $this->createMediaEntity('Forbidden Dog', 2_000_000_000, TRUE);
+    $this->container->get('keyvalue')->get('canvas_test_access')->set('deny_view_media_ids', [$forbidden_id]);
+
+    // Page 0 is still filled with 24 accessible items: the denied entity does
+    // not consume a page slot. The total (28) comes from the count query, so
+    // it includes the denied entity.
+    $data = $this->requestList();
+    self::assertSame(['page' => 0, 'perPage' => 24, 'total' => 28], $data['pager']);
+    self::assertSame(
+      \array_map(static fn (int $i): string => \sprintf('Dog %02d', $i), \range(1, 24)),
+      \array_column($data['items'], 'label'),
+    );
+
+    // The next page contains the remaining accessible entities. Page offsets
+    // are computed in query-row space, so "Dog 24" — pulled forward onto page
+    // 0 to fill the slot the denied entity would have consumed — appears
+    // again: an accepted consequence of keeping the page scan bounded.
+    $data = $this->requestList(['page' => 1]);
+    self::assertSame(['page' => 1, 'perPage' => 24, 'total' => 28], $data['pager']);
+    self::assertSame(['Dog 24', 'Dog 25', 'Dog 26', 'Cat 01'], \array_column($data['items'], 'label'));
   }
 
 }

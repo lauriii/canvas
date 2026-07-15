@@ -41,6 +41,15 @@ final class ApiMediaControllers extends ApiControllerBase {
   private const int PER_PAGE = 24;
 
   /**
+   * The maximum number of query chunks ::list() scans to fill one page.
+   *
+   * Bounds the work done when per-entity access denies many entities that
+   * query-level access allowed; if the cap is hit, the page is returned
+   * short.
+   */
+  private const int MAX_SCANNED_CHUNKS = 4;
+
+  /**
    * The image style used for browse thumbnails in ::list().
    *
    * Hardcoded v1 decision: the `medium` style ships with the `image` module
@@ -82,28 +91,56 @@ final class ApiMediaControllers extends ApiControllerBase {
       $page = 0;
     }
     $count_query = clone $query;
+    // The total reflects entity query access. A per-entity access hook (e.g.
+    // in a contrib module) can be stricter than query access, making this an
+    // overcount. That is harmless — a trailing page may come back short — and
+    // the kill switch (`canvas.settings`, `prop_forms.native`) covers sites
+    // needing exact parity with the server-rendered widget.
     $total = (int) $count_query->count()->execute();
     $query->sort('changed', 'DESC');
-    if ($ids === []) {
-      $query->range($page * self::PER_PAGE, self::PER_PAGE);
-    }
 
     $is_image_source = $media_type->getSource()->getPluginId() === 'image';
     $items = [];
-    foreach ($media_storage->loadMultiple($query->execute()) as $media) {
-      \assert($media instanceof MediaInterface);
-      // The entity query already applied access, but double-check on the
-      // loaded entities: entity query access and entity access can diverge.
-      if (!$media->access('view')) {
-        continue;
+    if ($ids !== []) {
+      // The `ids` mode loads exactly the requested set, without paging.
+      foreach ($media_storage->loadMultiple($query->execute()) as $media) {
+        \assert($media instanceof MediaInterface);
+        // The entity query already applied access, but double-check on the
+        // loaded entities: entity query access and entity access can diverge.
+        if (!$media->access('view')) {
+          continue;
+        }
+        $items[] = $this->buildListItem($media, $is_image_source);
       }
-      $items[] = [
-        'id' => (int) $media->id(),
-        'uuid' => $media->uuid(),
-        'label' => (string) $media->label(),
-        'thumbnailUrl' => $this->buildThumbnailUrl($media),
-        'inputs_resolved' => $is_image_source ? $this->getInputsResolved($media) : NULL,
-      ];
+    }
+    else {
+      // Fill the page by scanning the query result in chunks from the
+      // requested page's offset: the entity query already applied query-level
+      // access, but per-entity access can be stricter, and entities it
+      // rejects must not consume page slots. The scan is capped so a
+      // pathological divergence between query access and entity access
+      // cannot make this request unbounded; if the cap is hit, return what
+      // was collected.
+      $offset = $page * self::PER_PAGE;
+      for ($chunk = 0; $chunk < self::MAX_SCANNED_CHUNKS; $chunk++) {
+        $chunk_query = clone $query;
+        $chunk_ids = $chunk_query->range($offset + $chunk * self::PER_PAGE, self::PER_PAGE)->execute();
+        \assert(\is_array($chunk_ids));
+        foreach ($media_storage->loadMultiple($chunk_ids) as $media) {
+          \assert($media instanceof MediaInterface);
+          if (!$media->access('view')) {
+            continue;
+          }
+          $items[] = $this->buildListItem($media, $is_image_source);
+          if (\count($items) === self::PER_PAGE) {
+            break 2;
+          }
+        }
+        if (\count($chunk_ids) < self::PER_PAGE) {
+          // The query rows are exhausted.
+          break;
+        }
+      }
     }
 
     // Deliberately not cacheable: the list is user-specific (entity access)
@@ -116,6 +153,22 @@ final class ApiMediaControllers extends ApiControllerBase {
         'total' => $total,
       ],
     ]);
+  }
+
+  /**
+   * Builds a single ::list() item for a media entity.
+   *
+   * @return array<string, mixed>
+   *   The list item.
+   */
+  private function buildListItem(MediaInterface $media, bool $is_image_source): array {
+    return [
+      'id' => (int) $media->id(),
+      'uuid' => $media->uuid(),
+      'label' => (string) $media->label(),
+      'thumbnailUrl' => $this->buildThumbnailUrl($media),
+      'inputs_resolved' => $is_image_source ? $this->getInputsResolved($media) : NULL,
+    ];
   }
 
   /**

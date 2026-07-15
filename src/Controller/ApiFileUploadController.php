@@ -112,6 +112,20 @@ final class ApiFileUploadController extends ApiControllerBase {
     if ($field_type === 'image') {
       // Ensure that the file contents, not only the extension, is an image.
       $validators['FileIsImage'] = [];
+      // Enforce the stored resolution limits, mirroring how the `image_image`
+      // widget composes the dimensions validator from the field settings. The
+      // field type's default for both settings is an empty string, meaning no
+      // limit, so an unset setting adds no validator — same as the widget.
+      // @see \Drupal\image\Plugin\Field\FieldWidget\ImageWidget::formElement()
+      // @see \Drupal\image\Plugin\Field\FieldType\ImageItem::defaultFieldSettings()
+      $max_resolution = (string) ($instance_settings['max_resolution'] ?? '');
+      $min_resolution = (string) ($instance_settings['min_resolution'] ?? '');
+      if ($max_resolution !== '' || $min_resolution !== '') {
+        $validators['FileImageDimensions'] = [
+          'maxDimensions' => $max_resolution,
+          'minDimensions' => $min_resolution,
+        ];
+      }
     }
 
     $file = $request->files->get('file');

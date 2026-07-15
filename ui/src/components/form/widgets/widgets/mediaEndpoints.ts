@@ -90,6 +90,28 @@ const getBaseUrl = (): string => getDrupalSettings()?.path?.baseUrl ?? '/';
 
 const apiBase = (): string => `${getBaseUrl()}canvas/api/v0`;
 
+/**
+ * Renders one entry of an error payload's `errors` list as text.
+ *
+ * Canvas endpoints mix formats: plain strings, per-field string arrays, and
+ * JSON:API error objects such as `{detail, source}`. Prefer the
+ * human-readable `detail` (then `message`, then `title`), mirroring the RTK
+ * Query error normalization, so validation messages don't collapse to
+ * `[object Object]`.
+ */
+const toErrorText = (entry: unknown): string => {
+  if (entry !== null && typeof entry === 'object') {
+    const record = entry as Record<string, unknown>;
+    for (const key of ['detail', 'message', 'title']) {
+      const candidate = record[key];
+      if (typeof candidate === 'string' && candidate !== '') {
+        return candidate;
+      }
+    }
+  }
+  return String(entry);
+};
+
 const throwEndpointError = async (response: Response): Promise<never> => {
   let message = `Request failed with status ${response.status}.`;
   let errors: string[] = [];
@@ -102,9 +124,9 @@ const throwEndpointError = async (response: Response): Promise<never> => {
       message = payload.message;
     }
     if (Array.isArray(payload.errors)) {
-      errors = payload.errors.map(String);
+      errors = payload.errors.map(toErrorText);
     } else if (payload.errors !== null && typeof payload.errors === 'object') {
-      errors = Object.values(payload.errors).flat().map(String);
+      errors = Object.values(payload.errors).flat().map(toErrorText);
     }
   } catch {
     // A non-JSON error body keeps the generic status message.

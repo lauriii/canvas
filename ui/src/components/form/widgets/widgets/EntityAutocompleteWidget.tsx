@@ -149,6 +149,11 @@ const EntityReferenceAutocompleteWidget = (props: ClientWidgetProps) => {
         return;
       }
       const data = (await response.json()) as { results?: Suggestion[] };
+      // A response that lost the race to an abort must not repopulate the
+      // list with stale results.
+      if (controller.signal.aborted) {
+        return;
+      }
       const results = data.results ?? [];
       setSuggestions(results);
       setActiveIndex(-1);
@@ -167,10 +172,15 @@ const EntityReferenceAutocompleteWidget = (props: ClientWidgetProps) => {
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
+    // Drop stale suggestions immediately: abort any in-flight request and
+    // clear the open list so Enter or a click cannot select a result for the
+    // previous text, and a late response cannot reopen the list, while the
+    // new query waits out the debounce.
+    abortController.current?.abort();
+    setSuggestions([]);
+    closeList();
     const trimmed = text.trim();
     if (trimmed === '') {
-      setSuggestions([]);
-      closeList();
       return;
     }
     debounceTimer.current = setTimeout(
