@@ -78,6 +78,63 @@ test.describe('Native prop forms', () => {
     expect(formRequests).toEqual([]);
   });
 
+  test('Formatted text renders CKEditor 5 natively from the format configuration', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.openCanvas(await canvas.createCanvas());
+    await canvas.openLibraryPanel();
+
+    // Form-endpoint requests must stay at zero; the (session-cached) text
+    // editor settings fetch is a different, format-scoped endpoint and may
+    // occur at most once.
+    const formRequests: string[] = [];
+    const settingsRequests: string[] = [];
+    page.on('request', (request) => {
+      if (FORM_ENDPOINT_PATTERN.test(request.url())) {
+        formRequests.push(request.url());
+      }
+      if (request.url().includes('/canvas/api/v0/text-editor-settings')) {
+        settingsRequests.push(request.url());
+      }
+    });
+
+    await canvas.addComponent({ id: 'sdc.canvas_test_sdc.banner' });
+    await canvas.clickPreviewComponent('sdc.canvas_test_sdc.banner');
+
+    const panel = page.locator(
+      '[data-drupal-selector="component-instance-form"]',
+    );
+    const textSlot = panel.locator(
+      '[data-canvas-native-widget="text_textarea"]',
+    );
+    await expect(textSlot).toBeVisible();
+
+    // CKEditor 5 mounts with the toolbar configured on the prop's text
+    // format (canvas_html_block), not a hardcoded one.
+    // @see config/install/editor.editor.canvas_html_block.yml
+    const editable = textSlot.locator('.ck-editor__editable');
+    await expect(editable).toBeVisible();
+    await expect(textSlot.getByRole('button', { name: 'Bold' })).toBeVisible();
+
+    // Rich text edits flow to the preview through the same model pipeline.
+    await editable.click();
+    await editable.fill('Edited rich text');
+    await canvas.testInPreviewFrame(
+      '[data-component-id="canvas_test_sdc:banner"]',
+      async (banner) => {
+        await expect(banner).toContainText('Edited rich text');
+      },
+    );
+
+    // The CI guard: no form-endpoint requests, and at most one settings
+    // fetch for the whole session.
+    expect(formRequests).toEqual([]);
+    expect(settingsRequests.length).toBeLessThanOrEqual(1);
+  });
+
   test('Undo restores native widget values', async ({
     page,
     drupal,

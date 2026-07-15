@@ -190,6 +190,27 @@ Delivery of client widgets from contrib modules (outside the UI bundle) is defer
   keep client-side ajv validation expectations modest: object-shaped props are validated by the server, matching
   the server-form path's behavior.
 
+## Formatted text props
+
+Formatted text props (`contentMediaType: text/html`, stored as `text`/`text_long` with the `text_textfield`,
+`text_textarea`, or `text_textarea_with_summary` widgets) render natively, and their editing UI derives entirely
+from the text format configuration — nothing about the editor is hardcoded client-side:
+
+- The permitted-format list (id, label, editor plugin id) ships with the editor boot settings
+  (`drupalSettings.canvas.propForms.textFormats`), so eligibility resolves synchronously at render time. Each
+  prop's choices are that list intersected with its stored `allowed_formats` instance settings.
+- When the active format has a CKEditor 5 editor configured, the shared CKEditor host
+  ([`CKEditorHost`](../ui/src/components/form/components/CKEditorHost.tsx), also used by the escape hatch) mounts
+  with the format's configured toolbar, plugins, and settings. Those settings and the editor's asset libraries are
+  fetched once per session from `GET /canvas/api/v0/text-editor-settings`, which returns exactly what the editor
+  module attaches to a server-built `text_format` element, restricted to formats the current user may use.
+- A format with no editor renders the plain input. `text_textfield` never mounts an editor (editors attach to
+  textareas only, matching `\Drupal\editor\Element::preRenderTextFormat()`).
+- A prop whose formats include a non-CKEditor-5 editor plugin (a contrib editor) renders via the escape hatch,
+  where that editor's attach pipeline works unchanged.
+- The codec writes `{value, format}` as the source value with the raw markup as the optimistic resolved value; the
+  server's evaluation of the format's filters is authoritative on the patch echo, like the media widgets.
+
 ## Conditional prop states (`x-canvas-states`)
 
 Props can declare conditional visibility and enablement directly in the component schema, evaluated client-side for

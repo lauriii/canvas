@@ -139,6 +139,16 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'entity_bundles',
       'entity_types',
       'config:configurable_language_list',
+      // The permitted text formats and their editors ship with the boot
+      // settings, so format and editor configuration changes invalidate the
+      // editor page.
+      // @see \Drupal\canvas\Controller\ApiTextEditorSettingsController
+      'config:filter_format_list',
+      'config:editor_list',
+      'config:filter.format.canvas_html_block',
+      'config:editor.editor.canvas_html_block',
+      'config:filter.format.canvas_html_inline',
+      'config:editor.editor.canvas_html_inline',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
 
@@ -201,6 +211,16 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'entity_bundles',
       'entity_types',
       'config:configurable_language_list',
+      // The permitted text formats and their editors ship with the boot
+      // settings, so format and editor configuration changes invalidate the
+      // editor page.
+      // @see \Drupal\canvas\Controller\ApiTextEditorSettingsController
+      'config:filter_format_list',
+      'config:editor_list',
+      'config:filter.format.canvas_html_block',
+      'config:editor.editor.canvas_html_block',
+      'config:filter.format.canvas_html_inline',
+      'config:editor.editor.canvas_html_inline',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
   }
@@ -357,6 +377,16 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'entity_bundles',
       'entity_types',
       'config:configurable_language_list',
+      // The permitted text formats and their editors ship with the boot
+      // settings, so format and editor configuration changes invalidate the
+      // editor page.
+      // @see \Drupal\canvas\Controller\ApiTextEditorSettingsController
+      'config:filter_format_list',
+      'config:editor_list',
+      'config:filter.format.canvas_html_block',
+      'config:editor.editor.canvas_html_block',
+      'config:filter.format.canvas_html_inline',
+      'config:editor.editor.canvas_html_inline',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
   }
@@ -437,6 +467,16 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'entity_bundles',
       'entity_types',
       'config:configurable_language_list',
+      // The permitted text formats and their editors ship with the boot
+      // settings, so format and editor configuration changes invalidate the
+      // editor page.
+      // @see \Drupal\canvas\Controller\ApiTextEditorSettingsController
+      'config:filter_format_list',
+      'config:editor_list',
+      'config:filter.format.canvas_html_block',
+      'config:editor.editor.canvas_html_block',
+      'config:filter.format.canvas_html_inline',
+      'config:editor.editor.canvas_html_inline',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
 
@@ -465,10 +505,27 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
     // CanvasKernelTestBase::setUp() imports the module's default config, so
     // the shipped canvas.settings defaults apply: native prop forms enabled,
     // no widgets disabled.
+    // The text formats the current user may use, with their editor plugin
+    // ids, ship with the boot settings so formatted text props resolve to a
+    // native widget (or the escape hatch) without a request.
+    // @see \Drupal\canvas\Controller\ApiTextEditorSettingsController
+    $expected_text_formats = [
+      [
+        'id' => 'canvas_html_block',
+        'label' => 'Drupal Canvas — Block HTML (locked)',
+        'editor' => 'ckeditor5',
+      ],
+      [
+        'id' => 'canvas_html_inline',
+        'label' => 'Drupal Canvas — Inline HTML (locked)',
+        'editor' => 'ckeditor5',
+      ],
+    ];
     $this->request(Request::create($canvas_url));
     $this->assertSame([
       'native' => TRUE,
       'disabledWidgets' => [],
+      'textFormats' => $expected_text_formats,
     ], $this->drupalSettings['canvas']['propForms']);
 
     // Flipping the kill switch and disabling a widget must be reflected in the
@@ -481,6 +538,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
     $this->assertSame([
       'native' => FALSE,
       'disabledWidgets' => ['string_textfield'],
+      'textFormats' => $expected_text_formats,
     ], $this->drupalSettings['canvas']['propForms']);
   }
 

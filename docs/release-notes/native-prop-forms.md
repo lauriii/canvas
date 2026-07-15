@@ -12,7 +12,8 @@ instead of waiting on a server-built Form API form (previously a roughly 300 ms 
 whose widget id has no registered client counterpart render via a server-built form island scoped to exactly those
 props (the escape hatch), and whole server-built forms remain for Blocks, Personalization, Fallback sources, and
 content templates.
-Formatted text widgets stay on the escape hatch in this release.
+Formatted text widgets render natively as of the follow-up [native rich text widget](native-rich-text-widget.md)
+change.
 
 Documentation: [Client-side widgets](../client-side-widgets.md),
 [Component instance and page data forms](../component-and-entity-forms.md), and
