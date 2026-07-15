@@ -79,11 +79,16 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
     // The exposed slot has to be empty only when the consumer requires it (for
     // example page variants); content templates allow template content in an
     // exposed slot to become that slot's per-entity-overridable default.
-    if ($constraint->requireEmpty && \count(\iterator_to_array($component_tree_item_list->componentTreeItemsIterator(ComponentTreeItemList::isChildOfComponentTreeItemSlot($value['component_uuid'], $value['slot_name'])))) !== 0) {
-      $this->context->addViolation($constraint->slotNotEmptyMessage, [
-        '%slot' => $value['slot_name'],
-      ]);
-      return;
+    if ($constraint->requireEmpty) {
+      $items_in_exposed_slot = $component_tree_item_list->componentTreeItemsIterator(
+        ComponentTreeItemList::isChildOfComponentTreeItemSlot($value['component_uuid'], $value['slot_name']),
+      );
+      if (\iterator_count($items_in_exposed_slot) > 0) {
+        $this->context->addViolation($constraint->slotNotEmptyMessage, [
+          '%slot' => $value['slot_name'],
+        ]);
+        return;
+      }
     }
 
     if ($template->getMode() !== $constraint->viewMode) {
