@@ -25,3 +25,18 @@ function canvas_test_access_canvas_page_access(EntityInterface $entity, string $
 
   return AccessResult::neutral();
 }
+
+/**
+ * Implements hook_ENTITY_TYPE_access() for media.
+ *
+ * Denies view access to the media entities whose IDs a test stored in the
+ * `canvas_test_access` key-value collection under `deny_view_media_ids`.
+ * This lets tests make per-entity access stricter than entity query access.
+ */
+function canvas_test_access_media_access(EntityInterface $entity, string $operation, AccountInterface $account): AccessResultInterface {
+  $denied_ids = \Drupal::keyValue('canvas_test_access')->get('deny_view_media_ids', []);
+  if ($operation === 'view' && \in_array((int) $entity->id(), $denied_ids, TRUE)) {
+    return AccessResult::forbidden('Denied by the canvas_test_access test module.');
+  }
+  return AccessResult::neutral();
+}

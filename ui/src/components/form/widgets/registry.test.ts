@@ -129,7 +129,10 @@ describe('client widget registry', () => {
       resolveNativeWidgetForProp(multiContext('single_only_widget'), settings),
     ).toBeUndefined();
     expect(
-      resolveNativeWidgetForProp(multiContext('multi_capable_widget'), settings),
+      resolveNativeWidgetForProp(
+        multiContext('multi_capable_widget'),
+        settings,
+      ),
     ).toBeDefined();
     // Array-typed props behave like multi-cardinality props.
     const arrayContext = buildClientWidgetContext(
@@ -144,9 +147,7 @@ describe('client widget registry', () => {
         } as FieldDataItem['jsonSchema'],
       }),
     );
-    expect(
-      resolveNativeWidgetForProp(arrayContext, settings),
-    ).toBeUndefined();
+    expect(resolveNativeWidgetForProp(arrayContext, settings)).toBeUndefined();
   });
 
   it('derives cardinality and requiredness in the context', () => {

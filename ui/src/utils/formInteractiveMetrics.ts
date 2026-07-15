@@ -1,11 +1,16 @@
 /**
  * Instrumentation for the `selection-to-form-interactive` measure: the time
- * from selecting a component instance to its prop form being interactive.
+ * from the prop panel starting to render a new selection to its prop form
+ * being interactive.
  *
- * On the native path this is one React render from cached metadata; on the
- * server-form path it includes the form endpoint round trip. The measure is
- * tracked as a monitored metric against the recorded baseline (~300 ms on the
- * server-form path), not as a per-commit gate.
+ * Boundary: the start mark is placed in the panel's render phase on the
+ * first render for a new selection, so the measured span covers panel
+ * rendering and (on the server-form path) the form endpoint round trip; it
+ * excludes the selection click handling and Redux dispatch that precede the
+ * panel render. On the native path the span is one React render from cached
+ * metadata. The measure is tracked as a monitored metric against the
+ * recorded baseline (~300 ms on the server-form path), not as a per-commit
+ * gate; the deterministic CI gate is the zero-form-request assertion.
  */
 const MEASURE = 'canvas:selection-to-form-interactive';
 const START_MARK = `${MEASURE}:start`;

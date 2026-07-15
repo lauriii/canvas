@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { ImageIcon, UploadIcon } from '@radix-ui/react-icons';
 import { Box, Button, Flex, Grid, Spinner, Text } from '@radix-ui/themes';
 
-import Dialog from '@/components/Dialog';
+import Dialog, { DialogFieldLabel } from '@/components/Dialog';
 import TextField from '@/components/form/components/TextField';
 
 import {
@@ -84,8 +84,9 @@ interface MediaBrowserProps {
 
 /**
  * The media widget's browse dialog: text search, a thumbnail grid with
- * click-to-toggle selection, Previous/Next pagination, and an upload button
- * that creates a new media entity and auto-selects it.
+ * click-to-toggle selection, Previous/Next pagination, and an upload flow
+ * that collects required alternative text, creates a new media entity, and
+ * auto-selects it.
  */
 const MediaBrowser = ({
   open,
@@ -101,12 +102,15 @@ const MediaBrowser = ({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingAlt, setPendingAlt] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [selection, setSelection] = useState<MediaSelectionItem[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const wasOpen = useRef(false);
+  const altInputId = useId();
 
   // Re-seed dialog state from the widget's current selection each time the
   // dialog opens; edits inside the dialog stay local until Insert.
@@ -114,6 +118,8 @@ const MediaBrowser = ({
     if (open && !wasOpen.current) {
       setSelection(initialSelection);
       setUploadError(null);
+      setPendingFile(null);
+      setPendingAlt('');
       setSearchInput('');
       setSearch('');
       setPage(0);
@@ -188,23 +194,41 @@ const MediaBrowser = ({
     addToSelection(toSelectionItem(item));
   };
 
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChosen = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     // Reset the input so re-selecting the same file re-fires the event.
     event.target.value = '';
     if (!file) {
       return;
     }
+    // Hold the file and collect alternative text before posting; the upload
+    // endpoint accepts `alt`, and image media types commonly require it.
+    setPendingFile(file);
+    setPendingAlt('');
+    setUploadError(null);
+  };
+
+  const cancelPendingUpload = () => {
+    setPendingFile(null);
+    setPendingAlt('');
+    setUploadError(null);
+  };
+
+  const handleUpload = async () => {
+    const alt = pendingAlt.trim();
+    if (!pendingFile || alt === '') {
+      return;
+    }
     setUploading(true);
     setUploadError(null);
     try {
-      const response = await uploadMedia(mediaType, file);
+      const response = await uploadMedia(mediaType, pendingFile, { alt });
       const item: MediaBrowseItem = {
         id: response.id,
         uuid: response.uuid,
         // The upload response carries no label; the file name matches what
         // Drupal names the media entity by default.
-        label: file.name,
+        label: pendingFile.name,
         thumbnailUrl: response.inputs_resolved?.src ?? null,
         inputs_resolved: response.inputs_resolved,
       };
@@ -215,6 +239,8 @@ const MediaBrowser = ({
         ),
       ]);
       addToSelection(toSelectionItem(item));
+      setPendingFile(null);
+      setPendingAlt('');
     } catch (error) {
       setUploadError(formatEndpointError(error));
     } finally {
@@ -260,7 +286,7 @@ const MediaBrowser = ({
           <Button
             size="1"
             variant="soft"
-            loading={uploading}
+            disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
           >
             <UploadIcon /> Upload
@@ -269,10 +295,60 @@ const MediaBrowser = ({
             ref={fileInputRef}
             type="file"
             hidden
-            onChange={handleUpload}
+            onChange={handleFileChosen}
             data-testid="canvas-media-upload-input"
           />
         </Flex>
+        {pendingFile && (
+          <Flex
+            direction="column"
+            gap="1"
+            data-testid="canvas-media-upload-form"
+          >
+            <Text size="1" title={pendingFile.name} style={tileLabelStyle}>
+              {pendingFile.name}
+            </Text>
+            <DialogFieldLabel htmlFor={altInputId}>
+              Alternative text
+            </DialogFieldLabel>
+            <TextField
+              attributes={{
+                id: altInputId,
+                type: 'text',
+                required: true,
+                autoFocus: true,
+                value: pendingAlt,
+                'data-testid': 'canvas-media-upload-alt',
+                onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
+                  setPendingAlt(event.target.value),
+                onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    void handleUpload();
+                  }
+                },
+              }}
+            />
+            <Flex gap="2" justify="end">
+              <Button
+                size="1"
+                variant="soft"
+                disabled={uploading}
+                onClick={cancelPendingUpload}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="1"
+                loading={uploading}
+                disabled={pendingAlt.trim() === ''}
+                onClick={() => void handleUpload()}
+              >
+                Upload
+              </Button>
+            </Flex>
+          </Flex>
+        )}
         {uploadError && (
           <Text size="1" color="red">
             {uploadError}

@@ -32,6 +32,10 @@ interface NativePropSlotProps {
   context: ClientWidgetContext;
   definition: ClientWidgetDefinition;
   slotState: PropSlotState;
+  // Reports each valid edit's resolved value immediately (before the
+  // debounced model write) so prop-state rules can react in the same render
+  // cycle. `undefined` means the edit emptied the prop.
+  onResolvedValueChange?: (resolvedValue: unknown) => void;
 }
 
 /**
@@ -46,6 +50,7 @@ const NativePropSlot = ({
   context,
   definition,
   slotState,
+  onResolvedValueChange,
 }: NativePropSlotProps) => {
   const { propName, jsonSchema, required } = context;
   const { write, inputAndUiData } = useNativePropWrite(context);
@@ -148,6 +153,11 @@ const NativePropSlot = ({
         return;
       }
       setError(null);
+      // Sibling prop-state rules react to the new value in this same render
+      // cycle, ahead of the debounced model write.
+      onResolvedValueChange?.(
+        codecResult === null ? undefined : codecResult.resolved,
+      );
       // Discrete inputs (booleans, enums, selections) commit immediately;
       // free-typing inputs are debounced.
       const immediate =
@@ -157,7 +167,14 @@ const NativePropSlot = ({
         jsonSchema.type === 'array';
       write(codecResult, { immediate });
     },
-    [context, definition, jsonSchema, validateResolved, write],
+    [
+      context,
+      definition,
+      jsonSchema,
+      validateResolved,
+      write,
+      onResolvedValueChange,
+    ],
   );
 
   if (!slotState.visible) {

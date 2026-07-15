@@ -4,16 +4,16 @@ import { useAppDispatch } from '@/app/hooks';
 import { DEBOUNCE_TIMEOUT } from '@/components/form/react-hook-form/fields/componentFormData';
 import { POLLED_BACKGROUND_TIMEOUT } from '@/components/form/react-hook-form/fields/componentFormHandlers';
 import { ComponentPreviewUpdateEvent } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
-import {
-  isEvaluatedComponentModel,
-  syncPropSourcesToResolvedValues,
-} from '@/features/layout/layoutModelSlice';
+import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
 import { setPreviewBackgroundUpdate } from '@/features/pagePreview/previewSlice';
 import useInputUIData from '@/hooks/useInputUIData';
 import { usePatchComponent } from '@/services/preview';
 import { isPropSourceComponent } from '@/types/Component';
 
-import type { Sources } from '@/features/layout/layoutModelSlice';
+import type {
+  Sources,
+  StaticPropSource,
+} from '@/features/layout/layoutModelSlice';
 import type { ClientWidgetContext, WidgetCodecResult } from './types';
 
 // In-flight edits per component instance, keyed by prop. The Redux model only
@@ -120,28 +120,34 @@ export function useNativePropWrite(context: ClientWidgetContext) {
           isEvaluatedComponentModel(selectedModel) &&
           isPropSourceComponent(currentComponent)
         ) {
-          let source: Sources = syncPropSourcesToResolvedValues(
-            selectedModel.source,
-            currentComponent,
-            resolved,
-          );
-          // Widgets whose stored source value differs from the resolved value
-          // (e.g. media/entity references store target ids while resolved
-          // carries the evaluated object) override the synced source value.
+          // Update source entries for PENDING props only. Untouched props
+          // keep their stored source entries verbatim: after a server
+          // evaluation echo their resolved values are evaluated objects
+          // (image URLs, entity data), and syncing those into `source` would
+          // corrupt stored reference ids.
+          const source: Sources = { ...selectedModel.source };
           componentPending.forEach((pendingResult, pendingProp) => {
-            if (
-              pendingResult !== null &&
-              pendingResult.source !== undefined &&
-              pendingProp in source
-            ) {
-              source = {
-                ...source,
-                [pendingProp]: {
-                  ...source[pendingProp],
-                  value: pendingResult.source,
-                },
-              };
+            if (pendingResult === null) {
+              // An empty value removes the prop's source entry so the server
+              // does not evaluate it, matching syncPropSourcesToResolvedValues.
+              delete source[pendingProp];
+              return;
             }
+            // A prop edited from empty has no source entry yet; seed it from
+            // the prop's metadata like the server-form path does.
+            const existingSource =
+              source[pendingProp] ??
+              (currentComponent.propSources[
+                pendingProp
+              ] as unknown as Sources[string]);
+            source[pendingProp] = {
+              ...existingSource,
+              // Widgets whose stored source value differs from the resolved
+              // value (media/entity references store target ids while
+              // resolved carries the evaluated object) provide it explicitly.
+              value: (pendingResult.source ??
+                pendingResult.resolved) as StaticPropSource['value'],
+            } as Sources[string];
           });
           patchComponent(uiData, { source, resolved });
           return;

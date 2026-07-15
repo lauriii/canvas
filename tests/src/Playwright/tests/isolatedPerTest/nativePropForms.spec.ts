@@ -27,9 +27,10 @@ test.describe('Native prop forms', () => {
     await drupal.login({ username: 'editor', password: 'editor' });
     await canvas.openCanvas(await canvas.createCanvas());
     await canvas.openLibraryPanel();
-    await canvas.addComponent({ id: 'sdc.canvas_test_sdc.heading' });
 
-    // Track form-endpoint requests from the moment the component is selected.
+    // Track form-endpoint requests BEFORE insertion: inserting a component
+    // selects it and renders its prop form, so the listener must already be
+    // attached for the zero-request guard to be meaningful.
     const formRequests: string[] = [];
     page.on('request', (request) => {
       if (FORM_ENDPOINT_PATTERN.test(request.url())) {
@@ -37,6 +38,7 @@ test.describe('Native prop forms', () => {
       }
     });
 
+    await canvas.addComponent({ id: 'sdc.canvas_test_sdc.heading' });
     await canvas.clickPreviewComponent('sdc.canvas_test_sdc.heading');
 
     // The native prop form renders with all three heading props as native

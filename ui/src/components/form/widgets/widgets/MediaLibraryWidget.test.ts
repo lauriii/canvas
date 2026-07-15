@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   browseMedia,
+  formatEndpointError,
   getMediaTypeFromContext,
   MediaEndpointError,
   uploadMedia,
@@ -243,5 +244,42 @@ describe('media endpoints', () => {
     expect((error as MediaEndpointError).errors).toEqual([
       'Only PNG files are allowed.',
     ]);
+  });
+
+  it('extracts the detail from JSON:API error objects', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).endsWith('session/token')) {
+        return { ok: true, status: 200, text: async () => 'token123' };
+      }
+      return {
+        ok: false,
+        status: 422,
+        json: async () => ({
+          message: 'Validation failed.',
+          errors: [
+            {
+              detail: 'Alternative text field is required.',
+              source: { pointer: 'field_media_image.0.alt' },
+            },
+            { title: 'Unprocessable entity' },
+          ],
+        }),
+      };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const file = new File(['data'], 'cat.png', { type: 'image/png' });
+    const error = await uploadMedia('image', file).catch(
+      (caught: unknown) => caught,
+    );
+
+    expect(error).toBeInstanceOf(MediaEndpointError);
+    expect((error as MediaEndpointError).errors).toEqual([
+      'Alternative text field is required.',
+      'Unprocessable entity',
+    ]);
+    expect(formatEndpointError(error)).toBe(
+      'Validation failed. Alternative text field is required. Unprocessable entity',
+    );
   });
 });
