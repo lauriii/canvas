@@ -758,6 +758,16 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
       elseif (isset($schema['items']) && \is_array($schema['items'])) {
         yield from self::imagesInExamples($schema['items'] + ['examples' => $value]);
       }
+      // Custom object props ("groups") may contain image sub-properties.
+      elseif (isset($schema['properties']) && \is_array($schema['properties'])) {
+        foreach ($schema['properties'] as $sub_property_name => $sub_property_schema) {
+          if (\is_array($sub_property_schema) && isset($value[$sub_property_name])) {
+            // TRICKY: the group's example value must take precedence over any
+            // `examples` the sub-property schema itself declares.
+            yield from self::imagesInExamples(['examples' => [$value[$sub_property_name]]] + $sub_property_schema);
+          }
+        }
+      }
     }
   }
 

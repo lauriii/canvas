@@ -17,6 +17,7 @@ use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
 use Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
+use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Url;
@@ -648,7 +649,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     $prop_shape_repository = $this->container->get(PropShapeRepositoryInterface::class);
     $image_prop_shape = JsonSchemaObjectRef::Image->asPropShape();
     $storable_prop_shape = $prop_shape_repository->getStorablePropShape($image_prop_shape);
-    $this->assertNotNull($storable_prop_shape, 'Expected a storable prop shape for the image prop shape.');
+    $this->assertInstanceOf(StorablePropShape::class, $storable_prop_shape, 'Expected a storable prop shape for the image prop shape.');
     $this->assertSame('media_library_widget', $storable_prop_shape->fieldWidget);
 
     $prop_source = $storable_prop_shape->toStaticPropSource();

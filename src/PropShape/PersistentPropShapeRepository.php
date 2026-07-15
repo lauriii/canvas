@@ -118,11 +118,11 @@ class PersistentPropShapeRepository extends CacheCollector implements PropShapeR
   /**
    * {@inheritdoc}
    */
-  public function get($key): ?StorablePropShape {
+  public function get($key): StorablePropShape|ObjectPropsStorablePropShape|null {
     if (!\array_key_exists($key, $this->lookup)) {
       throw new \LogicException('Calling ' . __METHOD__ . ' without calling ::getStorablePropShape is not supported.');
     }
-    /** @var array{storable: ?\Drupal\canvas\PropShape\StorablePropShape, tags: string[]} $storable */
+    /** @var array{storable: \Drupal\canvas\PropShape\StorablePropShape|\Drupal\canvas\PropShape\ObjectPropsStorablePropShape|null, tags: string[]} $storable */
     $storable = parent::get($key);
     return $storable['storable'];
   }
@@ -136,10 +136,10 @@ class PersistentPropShapeRepository extends CacheCollector implements PropShapeR
     if (!$cacheWasLoaded && $this->cacheLoaded) {
       // After retrieving the cache entry, reconstruct the tag lookup and lookup
       // maps.
-      /** @var array{storable: ?\Drupal\canvas\PropShape\StorablePropShape, tags: string[]} $value */
+      /** @var array{storable: \Drupal\canvas\PropShape\StorablePropShape|\Drupal\canvas\PropShape\ObjectPropsStorablePropShape|null, tags: string[]} $value */
       foreach ($this->storage as $key => $value) {
         $this->tagLookup[$key] = $value['tags'];
-        if ($value['storable'] instanceof StorablePropShape) {
+        if ($value['storable'] instanceof StorablePropShape || $value['storable'] instanceof ObjectPropsStorablePropShape) {
           $this->lookup[$key] = $value['storable']->shape;
         }
       }
@@ -150,7 +150,7 @@ class PersistentPropShapeRepository extends CacheCollector implements PropShapeR
   /**
    * {@inheritdoc}
    *
-   * @phpstan-return array{storable: ?\Drupal\canvas\PropShape\StorablePropShape, tags: string[]}
+   * @phpstan-return array{storable: \Drupal\canvas\PropShape\StorablePropShape|\Drupal\canvas\PropShape\ObjectPropsStorablePropShape|null, tags: string[]}
    */
   protected function resolveCacheMiss($key): ?array {
     try {
@@ -161,6 +161,17 @@ class PersistentPropShapeRepository extends CacheCollector implements PropShapeR
       $shape = $this->lookup[$key];
 
       $alterable = $this->readOnlyPropShapeRepository->getCandidateStorablePropShape($shape);
+      // Custom object shapes ("groups") bypass the candidate/alter flow.
+      // @see \Drupal\canvas\PropShape\EphemeralPropShapeRepository::getCandidateStorablePropShape()
+      if ($alterable instanceof ObjectPropsStorablePropShape) {
+        $this->tagLookup[$key] = [];
+        $this->storage[$key] = [
+          'storable' => $alterable,
+          'tags' => [],
+        ];
+        $this->persist($key);
+        return $this->storage[$key];
+      }
       $cacheTags = $alterable->getCacheTags();
       // Update the cache tags for the cache entry to include any new tags.
       $this->tags = \array_unique(\array_merge($this->tags, $cacheTags));
@@ -193,13 +204,12 @@ class PersistentPropShapeRepository extends CacheCollector implements PropShapeR
   /**
    * {@inheritdoc}
    */
-  public function getStorablePropShape(PropShape $shape): ?StorablePropShape {
+  public function getStorablePropShape(PropShape $shape): StorablePropShape|ObjectPropsStorablePropShape|null {
     $key = $shape->uniquePropSchemaKey();
     // Store the association between this shape and its unique schema key so
     // we can retrieve it from `::resolveCacheMiss` if needed.
     $this->lookup[$key] = $shape;
     ksort($this->lookup);
-    /** @var ?\Drupal\canvas\PropShape\StorablePropShape */
     return $this->get($key);
   }
 

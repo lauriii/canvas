@@ -543,3 +543,48 @@ entity type and bundle live in the JavaScriptComponent config entity's `dataDepe
 truth). At runtime, `JavaScriptComponent::toSdcDefinition()` **projects** these keys into the SDC definition so it matches the
 shape above. The persisted config entity is never mutated; the projection produces a local copy of the props for the SDC
 definition. See ADR 11.
+
+#### 3.2.4 Custom object shapes ("groups") in code components
+
+Code components may define custom `type: object` props with an inline `properties` map, at most one level deep: a
+"group". Sub-properties may use any supported prop shape except another inline object: scalar types (including enums
+and supported string formats), arrays of those scalars, and the well-known `$ref` shapes (image, video, content entity
+reference). String sub-properties are plain strings: `contentMediaType` is not supported inside `properties`. Groups
+support multiple values via `type: array` + `items` carrying the inline `properties` map. See
+[ADR 0021](adr/0021-object-props-in-code-components.md).
+
+```yaml
+ingredient:
+  type: object
+  title: Ingredient
+  properties:
+    name:
+      type: string
+      title: Name
+    amount:
+      type: number
+      title: Amount
+    unit:
+      type: string
+      title: Unit
+      enum: [g, ml]
+      meta:enum:
+        g: Grams
+        ml: Milliliters
+  required: [name]
+  examples:
+    - name: Flour
+      amount: 500.5
+      unit: g
+```
+
+There is no compound `field type` for such shapes. Instead, each sub-property resolves through the existing
+shape-to-field-type mapping (`JsonSchemaType::computeStorablePropShape()`), and the composed result
+(`\Drupal\canvas\PropShape\ObjectPropsStorablePropShape`) conjures one `static prop source` per sub-property, wrapped
+in a composite `\Drupal\canvas\PropSource\ObjectPropsSource` that evaluates to a single JSON object value (or an array
+of objects for multi-value groups).
+
+For shape matching, a custom object shape is matched via its scalar leaves
+(`EntityFieldPropSourceMatcher::matchEntityPropsForObjectUsingScalars()`), exactly like the well-known object shapes:
+each `entity field` whose `field prop`s cover the group's required sub-properties is suggested as a
+`field object props expression` (e.g. `ℹ︎␜entity:node:article␝field_duration␞␟{from↠value,to↠end_value}`).

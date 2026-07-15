@@ -5984,4 +5984,134 @@ describe('props in code editor', () => {
       });
     });
   });
+  describe('group object props', () => {
+    const openNestedPropDialog = async () => {
+      await userEvent.click(screen.getByRole('button', { name: 'New prop' }));
+      return await screen.findByRole('dialog');
+    };
+
+    it('adds a group prop with nested props via the dialog', async () => {
+      await addProp('Group object', 'Author');
+
+      // The group renders its summary and its own "New prop" action.
+      expect(screen.getByText(/Group object · Single/)).toBeInTheDocument();
+
+      // Add a nested prop through the dialog.
+      const dialog = await openNestedPropDialog();
+      expect(
+        within(dialog).getByRole('combobox', { name: 'Prop type' }),
+      ).toBeInTheDocument();
+      // The save button is disabled until a name is entered.
+      expect(
+        within(dialog).getByRole('button', { name: 'Save' }),
+      ).toBeDisabled();
+      await userEvent.type(
+        within(dialog).getByRole('textbox', { name: 'Prop name' }),
+        'Author name',
+      );
+      // The machine name is auto-derived from the prop name.
+      expect(
+        within(dialog).getByRole('textbox', { name: 'Machine name' }),
+      ).toHaveValue('authorName');
+      await userEvent.type(
+        within(dialog).getByRole('textbox', { name: 'Example value' }),
+        'Ada',
+      );
+      await userEvent.click(
+        within(dialog).getByRole('switch', { name: 'Required' }),
+      );
+      await userEvent.click(
+        within(dialog).getByRole('button', { name: 'Save' }),
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
+
+      const props = selectCodeComponentProperty('props')(store.getState());
+      expect(props).toHaveLength(1);
+      expect(props[0].derivedType).toBe('group');
+      expect(props[0].properties).toHaveLength(1);
+      expect(props[0].properties![0]).toMatchObject({
+        name: 'Author name',
+        machineName: 'authorName',
+        derivedType: 'text',
+        example: 'Ada',
+        required: true,
+      });
+
+      // The nested prop is listed on the group card.
+      expect(screen.getByText('Author name')).toBeInTheDocument();
+
+      // The serialized prop schema contains `type: object` + `properties`.
+      expect(serializeProps(props)).toEqual({
+        author: {
+          title: 'Author',
+          type: 'object',
+          properties: {
+            authorName: { title: 'Author name', type: 'string' },
+          },
+          required: ['authorName'],
+          examples: [{ authorName: 'Ada' }],
+        },
+      });
+    });
+
+    it('restricts nested prop types', async () => {
+      await addProp('Group object', 'Author');
+      const dialog = await openNestedPropDialog();
+      await userEvent.click(
+        within(dialog).getByRole('combobox', { name: 'Prop type' }),
+      );
+      const options = (await screen.findAllByRole('option')).map(
+        (option) => option.textContent,
+      );
+      expect(options).toContain('Text');
+      expect(options).toContain('Image');
+      expect(options).not.toContain('Group object');
+      expect(options).not.toContain('Formatted text');
+      expect(options).not.toContain('Content entity reference');
+    });
+
+    it('serializes a multi-value group as an array of objects', async () => {
+      await addProp('Group object', 'Authors');
+      const dialog = await openNestedPropDialog();
+      await userEvent.type(
+        within(dialog).getByRole('textbox', { name: 'Prop name' }),
+        'Name',
+      );
+      await userEvent.click(
+        within(dialog).getByRole('button', { name: 'Save' }),
+      );
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
+
+      // Enable "Allow multiple values" on the group.
+      fireEvent.click(
+        screen.getByRole('checkbox', { name: 'Allow multiple values' }),
+      );
+
+      await waitFor(() => {
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0]
+            .allowMultiple,
+        ).toBe(true);
+      });
+      const props = selectCodeComponentProperty('props')(store.getState());
+      expect(screen.getByText(/Group object · Multiple/)).toBeInTheDocument();
+      expect(serializeProps(props)).toEqual({
+        authors: {
+          title: 'Authors',
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { title: 'Name', type: 'string' },
+            },
+          },
+        },
+      });
+    });
+  });
 });

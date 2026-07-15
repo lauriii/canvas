@@ -34,6 +34,7 @@ import FormPropTypeContentEntityReference from '@/features/code-editor/component
 import FormPropTypeDate from '@/features/code-editor/component-data/forms/FormPropTypeDate';
 import FormPropTypeEnum from '@/features/code-editor/component-data/forms/FormPropTypeEnum';
 import FormPropTypeFormattedText from '@/features/code-editor/component-data/forms/FormPropTypeFormattedText';
+import FormPropTypeGroupObject from '@/features/code-editor/component-data/forms/FormPropTypeGroupObject';
 import FormPropTypeImage from '@/features/code-editor/component-data/forms/FormPropTypeImage';
 import FormPropTypeLink, {
   DEFAULT_LINK_EXAMPLES,
@@ -231,6 +232,7 @@ export default function Props() {
                           'x-allowed-entity-type-id': undefined,
                           'x-allowed-bundle': undefined,
                           entityFieldExpressions: undefined,
+                          properties: undefined,
                           example: defaultExample,
                           allowMultiple: false,
                           items: undefined,
@@ -399,6 +401,15 @@ export default function Props() {
                   expressions={prop.entityFieldExpressions ?? []}
                   targetEntityType={prop['x-allowed-entity-type-id'] ?? null}
                   targetBundle={prop['x-allowed-bundle'] ?? null}
+                  isDisabled={disabledPropIds.has(prop.id)}
+                />
+              );
+            case 'group':
+              return (
+                <FormPropTypeGroupObject
+                  id={prop.id}
+                  properties={prop.properties ?? []}
+                  allowMultiple={prop.allowMultiple}
                   isDisabled={disabledPropIds.has(prop.id)}
                 />
               );

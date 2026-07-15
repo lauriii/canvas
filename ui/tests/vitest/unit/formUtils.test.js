@@ -437,6 +437,87 @@ Value`,
     expect(propsValues.entityReferenceAutocomplete).to.deep.equal(['3', '42']);
   });
 
+  it('Composes group object sub-property values into nested objects', () => {
+    // Sub-properties of "Group object" props use dotted form state keys:
+    // `groupName.subPropName` for single-value groups and
+    // `groupName.delta.subPropName` for multi-value groups.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildObjectPropForm()
+    const groupFormState = {
+      'canvas_component_props[all-props][ingredient.name][0][value]': 'Flour',
+      'canvas_component_props[all-props][ingredient.amount][0][value]': '500.5',
+      'canvas_component_props[all-props][ingredient.unit]': '',
+      'canvas_component_props[all-props][authors.0.name][0][value]': 'Ada',
+      'canvas_component_props[all-props][authors.1.name][0][value]': 'Grace',
+      form_build_id: 'this-is-a-form-build-id',
+      form_token: 'this-is-a-form-token',
+      form_id: 'component_instance_form',
+    };
+    const groupInputAndUiData = {
+      ...inputAndUiData,
+      model: {
+        'all-props': {
+          resolved: {},
+          source: {
+            ingredient: { sourceType: 'object-props' },
+            authors: { sourceType: 'object-props' },
+          },
+        },
+      },
+      components: {
+        'sdc.sdc_test_all_props.all-props': {
+          propSources: {
+            ingredient: {
+              sourceType: 'object-props',
+              jsonSchema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  amount: { type: 'number' },
+                  unit: { type: 'string', enum: ['g', 'ml'] },
+                },
+                required: ['name'],
+              },
+            },
+            authors: {
+              sourceType: 'object-props',
+              jsonSchema: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const groupTransformConfig = {
+      'ingredient.name': { mainProperty: { multiple: false } },
+      'ingredient.amount': { mainProperty: { multiple: false } },
+      'ingredient.unit': {},
+      'authors.0.name': { mainProperty: { multiple: false } },
+      'authors.1.name': { mainProperty: { multiple: false } },
+    };
+
+    const { propsValues } = getPropsValues(
+      groupFormState,
+      groupInputAndUiData,
+      groupTransformConfig,
+    );
+
+    expect(propsValues).to.deep.equal({
+      // One nested object under the single-value group's prop name; the
+      // emptied `unit` sub-property is omitted. The `amount` sub-property is
+      // cast per its sub-schema.
+      ingredient: { name: 'Flour', amount: 500.5 },
+      // An ordered list of per-item objects for the multi-value group.
+      authors: [{ name: 'Ada' }, { name: 'Grace' }],
+    });
+  });
+
   it('Should pass through an already-extracted entity autocomplete id', () => {
     // The transform runs on every commit, so values that were extracted on a
     // prior pass (a bare id like '3') must round-trip unchanged rather than

@@ -536,6 +536,15 @@ canvas.json_schema_props:
       orderby: ~
       sequence:
         type: mapping
+        # A prop field definition is either:
+        # - scalar (a single field type + widget + expression + default value), or
+        # - composite (a custom object prop aka "group": one scalar definition per sub-property under `sub_definitions`,
+        #   with no top-level field type, widget, expression, or default value).
+        # The keys below are marked optional to allow the composite variant; this constraint restores the requiredness
+        # of the scalar keys for scalar definitions.
+        # @see docs/adr/0021-object-props-in-code-components.md
+        constraints:
+          ValidPropFieldDefinition: ~
         mapping:
           required:
             type: boolean
@@ -543,6 +552,7 @@ canvas.json_schema_props:
             constraints:
               MatchesComponentPropRequiredness: ~
           field_type:
+            requiredKey: false
             type: string
             label: 'Default field type'
             constraints:
@@ -577,6 +587,7 @@ canvas.json_schema_props:
           # After a field type is selected, a field widget must be picked.
           # @todo MUCH later: widget settings.
           field_widget:
+            requiredKey: false
             type: string
             label: 'Default field widget'
             constraints:
@@ -589,6 +600,7 @@ canvas.json_schema_props:
           # @see \Drupal\canvas\PropSource\StaticPropSource::denormalizeValue()
           # @see \Drupal\canvas\PropSource\StaticPropSource::isMinimalRepresentation()
           default_value:
+            requiredKey: false
             # TRICKY: this MUST be a sequence, to allow for a multi-value default for `type: array` prop shapes.
             type: sequence
             label: 'Default values'
@@ -600,6 +612,7 @@ canvas.json_schema_props:
               NotNullIfRequiredComponentProp: ~
           # The default value must be retrievable
           expression:
+            requiredKey: false
             type: string
             label: 'The expression that contains the field evaluation instructions'
             constraints:
@@ -612,6 +625,56 @@ canvas.json_schema_props:
                   - FieldTypeObjectPropsExpression
                   - ReferenceFieldTypePropExpression
                 message: 'The expression is valid, but not one of the allowed types: %choices.'
+          # Composite prop field definitions (custom object props aka "groups"): one scalar definition per
+          # sub-property. Groups have no top-level field type, widget, expression, or default value: sub-property
+          # values are composed by an ObjectPropsSource, and default values come from the component's `examples`.
+          # @see \Drupal\canvas\PropSource\ObjectPropsSource
+          # @see \Drupal\canvas\PropShape\ObjectPropsStorablePropShape
+          # @see docs/adr/0021-object-props-in-code-components.md
+          sub_definitions:
+            requiredKey: false
+            type: sequence
+            orderby: ~
+            sequence:
+              type: mapping
+              mapping:
+                field_type:
+                  type: string
+                  label: 'Default field type'
+                  constraints:
+                    PluginExists:
+                      manager: plugin.manager.field.field_type
+                      interface: '\Drupal\Core\Field\FieldItemInterface'
+                cardinality:
+                  # Optional *if* the default of cardinality = 1 should be used.
+                  requiredKey: false
+                  type: integer
+                  label: 'Maximum number of values accepted by this sub-property'
+                field_storage_settings:
+                  type: field.storage_settings.[%parent.field_type]
+                  # Optional *if* the default storage settings should be used.
+                  requiredKey: false
+                field_instance_settings:
+                  type: field.field_settings.[%parent.field_type]
+                  # Optional *if* the default instance settings should be used.
+                  requiredKey: false
+                field_widget:
+                  type: string
+                  label: 'Default field widget'
+                  constraints:
+                    PluginExists:
+                      manager: plugin.manager.field.widget
+                      interface: '\Drupal\Core\Field\WidgetInterface'
+                expression:
+                  type: string
+                  label: 'The expression that contains the field evaluation instructions'
+                  constraints:
+                    ValidStructuredDataPropExpression:
+                      choices:
+                        - FieldTypePropExpression
+                        - FieldTypeObjectPropsExpression
+                        - ReferenceFieldTypePropExpression
+                      message: 'The expression is valid, but not one of the allowed types: %choices.'
           # Implementation metadata for this prop at this specific component version. Deliberately NOT part of the
           # component version hash: anything in `derived_schema_metadata` CANNOT cause changes to component instances;
           # it MUST be derived from information in ::getExplicitInputDefinitions() (which includes detailed schema

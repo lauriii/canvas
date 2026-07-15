@@ -101,13 +101,37 @@ final class JsonSchemaPropsComponentInstanceUpdater implements ComponentInstance
         fieldInstanceSettings: $prop_field_definition['field_instance_settings'] ?? NULL,
       );
     };
+    // Custom object props ("groups") have no single field type: apply the
+    // same field-data-fits-in rules per sub-property. Added sub-properties
+    // are safe; removed sub-properties are acceptable data loss (stale stored
+    // sub-values are ignored when loading).
+    // @see \Drupal\canvas\PropSource\ObjectPropsSource::withValue()
+    $prop_field_definition_fits_in = static function (array $from_definition, array $to_definition) use ($prop_field_definition_to_storable_prop_shape): bool {
+      $from_is_composite = \array_key_exists('sub_definitions', $from_definition);
+      $to_is_composite = \array_key_exists('sub_definitions', $to_definition);
+      // Changing between a group and a single field type is a prop shape
+      // change: unsafe.
+      if ($from_is_composite !== $to_is_composite) {
+        return FALSE;
+      }
+      if (!$from_is_composite) {
+        return $prop_field_definition_to_storable_prop_shape($from_definition)->fieldDataFitsIn($prop_field_definition_to_storable_prop_shape($to_definition));
+      }
+      $common_sub_property_names = \array_keys(\array_intersect_key($to_definition['sub_definitions'], $from_definition['sub_definitions']));
+      foreach ($common_sub_property_names as $sub_property_name) {
+        $from_sub = $prop_field_definition_to_storable_prop_shape($from_definition['sub_definitions'][$sub_property_name]);
+        $to_sub = $prop_field_definition_to_storable_prop_shape($to_definition['sub_definitions'][$sub_property_name]);
+        if (!$from_sub->fieldDataFitsIn($to_sub)) {
+          return FALSE;
+        }
+      }
+      return TRUE;
+    };
     [$from_props, $to_props] = self::getPropDefinitions($component, $from_version, $to_version);
-    $from_props = \array_map($prop_field_definition_to_storable_prop_shape, $from_props);
-    $to_props = \array_map($prop_field_definition_to_storable_prop_shape, $to_props);
     $common_props_names = \array_keys(\array_intersect_key($to_props, $from_props));
     $common_props_names_with_changed_definition = \array_any(
       $common_props_names,
-      fn (string $prop_name): bool => !$from_props[$prop_name]->fieldDataFitsIn($to_props[$prop_name]),
+      fn (string $prop_name): bool => !$prop_field_definition_fits_in($from_props[$prop_name], $to_props[$prop_name]),
     );
     if ($common_props_names_with_changed_definition) {
       return FALSE;

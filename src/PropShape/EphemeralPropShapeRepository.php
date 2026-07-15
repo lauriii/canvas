@@ -35,11 +35,15 @@ class EphemeralPropShapeRepository implements PropShapeRepositoryInterface {
   /**
    * {@inheritdoc}
    */
-  public function getStorablePropShape(PropShape $shape): ?StorablePropShape {
-    return $this->getCandidateStorablePropShape($shape)->toStorablePropShape();
+  public function getStorablePropShape(PropShape $shape): StorablePropShape|ObjectPropsStorablePropShape|null {
+    $candidate = $this->getCandidateStorablePropShape($shape);
+    if ($candidate instanceof ObjectPropsStorablePropShape) {
+      return $candidate;
+    }
+    return $candidate->toStorablePropShape();
   }
 
-  public function getCandidateStorablePropShape(PropShape $shape): CandidateStorablePropShape {
+  public function getCandidateStorablePropShape(PropShape $shape): CandidateStorablePropShape|ObjectPropsStorablePropShape {
     $this->seen[$shape->uniquePropSchemaKey()] = $shape;
     ksort($this->seen);
     // The default storable prop shape, if any. Prefer the original prop
@@ -54,6 +58,14 @@ class EphemeralPropShapeRepository implements PropShapeRepositoryInterface {
     if ($storable_prop_shape === NULL) {
       $resolved_prop_shape = PropShape::normalize($shape->resolvedSchema);
       $storable_prop_shape = $json_schema_type->computeStorablePropShape($resolved_prop_shape, $this);
+    }
+
+    // Custom object shapes ("groups") bypass the candidate/alter flow: each
+    // sub-property's storable shape already went through it, when it was
+    // resolved through this repository.
+    // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
+    if ($storable_prop_shape instanceof ObjectPropsStorablePropShape) {
+      return $storable_prop_shape;
     }
 
     $alterable = $storable_prop_shape

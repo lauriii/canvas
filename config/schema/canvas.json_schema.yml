@@ -24,9 +24,11 @@
 #    generate an input UX for.
 #    Note: the official JSON Schema spec only defines formats for `type: string`, but formats for other types are
 #    possible in principle.
-# 2. Defining _arbitrary_ `type: object` shapes is not yet supported. Currently only two `type: object`s are supported:
-#    images, by specifying `$ref: json-schema-definitions://canvas.module/image`, and videos. Consequently, `$ref` is
-#    required for only this JSON schema type.
+# 2. A `type: object` shape must declare exactly one of:
+#    - `$ref`: one of the well-known object shapes (image, video, content-entity-reference), or
+#    - `properties`: a custom object shape ("group") with named sub-properties, at most 1 level deep. Sub-properties
+#      may use any supported prop shape except another inline object, and must be plain strings (no
+#      `contentMediaType`). Enforced by the ValidCanvasObjectPropShape constraint.
 
 canvas.json_schema.prop.*:
   type: canvas.json_schema.prop_shape.[type]
@@ -206,6 +208,10 @@ canvas.json_schema.prop_shape.object:
   type: canvas.json_schema.prop_shape.*
   constraints:
     FullyValidatable: ~
+    # Enforces that exactly one of `$ref` or `properties` is declared, and that
+    # custom object shapes stay 1 level deep (no inline objects and no
+    # `contentMediaType` inside `properties`).
+    ValidCanvasObjectPropShape: ~
   mapping:
     enum:
       requiredKey: false
@@ -227,8 +233,11 @@ canvas.json_schema.prop_shape.object:
         constraints:
           NotNull: ~
     '$ref':
-      # ⚠️ Note the absence of `requiredKey: false` here: Canvas does not (yet) support arbitrary `type: object` shapes, so
-      # `$ref` is actually REQUIRED for such props!
+      # Required unless `properties` is declared: enforced by the
+      # ValidCanvasObjectPropShape constraint above, because Canvas only
+      # supports the well-known object shapes below and custom object shapes
+      # with inline `properties`.
+      requiredKey: false
       type: string
       constraints:
         # @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
@@ -243,6 +252,26 @@ canvas.json_schema.prop_shape.object:
             - 'json-schema-definitions://canvas.module/video'
             # @see \Drupal\canvas\Entity\JavaScriptComponent::getContentEntityReferenceProps()
             - 'json-schema-definitions://canvas.module/content-entity-reference'
+    # Custom object shapes ("groups"): named sub-properties, each a full prop
+    # definition (so it can carry a `title` for the generated input UX). The
+    # 1-level depth limit and the plain-strings-only rule are enforced by the
+    # ValidCanvasObjectPropShape constraint above.
+    # @see docs/adr/0021-object-props-in-code-components.md
+    properties:
+      requiredKey: false
+      type: sequence
+      sequence:
+        type: canvas.json_schema.prop.[type]
+    # Which sub-properties must be populated (only) when the group (or, for
+    # multi-value groups, an item) is populated at all.
+    # @see https://json-schema.org/understanding-json-schema/reference/object#required
+    required:
+      requiredKey: false
+      type: sequence
+      sequence:
+        type: string
+        constraints:
+          NotNull: ~
 
 canvas.json_schema.object:
   class: '\Drupal\canvas\Config\Schema\JsonSchemaObject'

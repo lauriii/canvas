@@ -25,6 +25,14 @@ export interface FieldDataItem {
     enum?: any[];
     format?: string;
     maxItems?: number;
+    // For `type: array` props: the item schema. Multi-value group object
+    // props carry their sub-property schemas in `items.properties`.
+    items?: {
+      type: 'number' | 'integer' | 'string' | 'boolean' | 'array' | 'object';
+      properties?: object;
+      enum?: any[];
+      format?: string;
+    };
   };
   default_values: DefaultValues;
   [x: string | number | symbol]: unknown;

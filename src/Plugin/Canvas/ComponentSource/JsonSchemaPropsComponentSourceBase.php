@@ -23,6 +23,7 @@ use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\canvas\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropSource\LinkablePropSourceInterface;
+use Drupal\canvas\PropSource\ObjectPropsSource;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\PropSourceBase;
 use Drupal\canvas\PropSource\StaticPropSource;
@@ -32,6 +33,7 @@ use Drupal\canvas\Utility\ComponentMetadataHelper;
 use Drupal\canvas\Utility\TypedDataHelper;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Plugin\DependentPluginInterface;
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -95,6 +97,11 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
    * @var array<string, \Drupal\canvas\PropSource\StaticPropSource>
    */
   private array $defaultStaticPropSources = [];
+
+  /**
+   * @var array<string, \Drupal\canvas\PropSource\ObjectPropsSource>
+   */
+  private array $defaultObjectPropsSources = [];
 
   /**
    * @var array<string, \Drupal\canvas\PropSource\DefaultRelativeUrlPropSource>
@@ -165,13 +172,17 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     \assert(\array_key_exists('prop_field_definitions', $this->configuration));
     \assert(\is_array($this->configuration['prop_field_definitions']));
     $dependencies = [];
-    foreach ($this->configuration['prop_field_definitions'] as $prop_name => [
-      'field_type' => $field_type,
-      'field_widget' => $field_widget,
-    ]) {
-      $field_widget_definition = $this->fieldWidgetPluginManager->getDefinition($field_widget);
-      $dependencies['module'][] = $field_widget_definition['provider'];
-      $prop_source = $this->getDefaultStaticPropSource($prop_name, FALSE);
+    foreach ($this->configuration['prop_field_definitions'] as $prop_name => $prop_field_definition) {
+      // Custom object props ("groups") declare one field widget per
+      // sub-property.
+      $field_widgets = \array_key_exists('sub_definitions', $prop_field_definition)
+        ? \array_column($prop_field_definition['sub_definitions'], 'field_widget')
+        : [$prop_field_definition['field_widget']];
+      foreach ($field_widgets as $field_widget) {
+        $field_widget_definition = $this->fieldWidgetPluginManager->getDefinition($field_widget);
+        $dependencies['module'][] = $field_widget_definition['provider'];
+      }
+      $prop_source = $this->getDefaultPropSource($prop_name, FALSE);
       $dependencies = NestedArray::mergeDeep($dependencies, \array_diff_key($prop_source->calculateDependencies(), \array_flip(['plugin'])));
     }
 
@@ -233,6 +244,64 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     $static_prop_source = StaticPropSource::parse($sdc_prop_source);
     $this->defaultStaticPropSources[$prop_name] = $static_prop_source;
     return $static_prop_source;
+  }
+
+  /**
+   * Build the default prop source for a prop: scalar or composite.
+   *
+   * The composite-aware counterpart of ::getDefaultStaticPropSource(): custom
+   * object props ("groups") get an ObjectPropsSource composed from their
+   * `sub_definitions`, every other prop a StaticPropSource.
+   *
+   * @internal
+   */
+  public function getDefaultPropSource(string $prop_name, bool $validate_prop_name): StaticPropSource|ObjectPropsSource {
+    $prop_field_definitions = $this->configuration['prop_field_definitions'] ?? [];
+    \assert(\is_array($prop_field_definitions));
+    if (\array_key_exists($prop_name, $prop_field_definitions) && \array_key_exists('sub_definitions', $prop_field_definitions[$prop_name])) {
+      return $this->getDefaultObjectPropsSource($prop_name, $validate_prop_name);
+    }
+    return $this->getDefaultStaticPropSource($prop_name, $validate_prop_name);
+  }
+
+  /**
+   * Builds the default (empty) composite prop source for a custom object prop.
+   *
+   * @see \Drupal\canvas\PropSource\ObjectPropsSource
+   */
+  private function getDefaultObjectPropsSource(string $prop_name, bool $validate_prop_name): ObjectPropsSource {
+    if ($validate_prop_name && !\array_key_exists($prop_name, $this->getMetadata()->schema['properties'] ?? [])) {
+      throw new \OutOfRangeException(\sprintf("'%s' is not a prop on the code powering the component '%s'.", $prop_name, $this->getComponentDescription()));
+    }
+
+    if (\array_key_exists($prop_name, $this->defaultObjectPropsSources)) {
+      return $this->defaultObjectPropsSources[$prop_name];
+    }
+
+    $prop_field_definition = $this->configuration['prop_field_definitions'][$prop_name];
+    \assert(\array_key_exists('sub_definitions', $prop_field_definition));
+    $sub_prototypes = [];
+    foreach ($prop_field_definition['sub_definitions'] as $sub_property_name => $sub_definition) {
+      $sub_prop_source = [
+        'sourceType' => 'static:field_item:' . $sub_definition['field_type'],
+        'value' => NULL,
+        'expression' => $sub_definition['expression'],
+      ];
+      if (!empty($sub_definition['field_storage_settings'])) {
+        $sub_prop_source['sourceTypeSettings']['storage'] = $sub_definition['field_storage_settings'];
+      }
+      if (!empty($sub_definition['field_instance_settings'])) {
+        $sub_prop_source['sourceTypeSettings']['instance'] = $sub_definition['field_instance_settings'];
+      }
+      if (\array_key_exists('cardinality', $sub_definition)) {
+        $sub_prop_source['sourceTypeSettings']['cardinality'] = $sub_definition['cardinality'];
+      }
+      $sub_prototypes[$sub_property_name] = StaticPropSource::parse($sub_prop_source);
+    }
+    \assert($sub_prototypes !== []);
+    $object_props_source = ObjectPropsSource::generate($sub_prototypes, $prop_field_definition['cardinality'] ?? NULL);
+    $this->defaultObjectPropsSources[$prop_name] = $object_props_source;
+    return $object_props_source;
   }
 
   private function getDefaultRelativeUrlPropSource(string $component_id, string $prop_name): DefaultRelativeUrlPropSource {
@@ -369,20 +438,40 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
    */
   public function getOptionsForExplicitInputEnumProp(string $prop_name): array {
     $explicit_input_definitions = $this->getExplicitInputDefinitions();
-    if (!\array_key_exists($prop_name, $explicit_input_definitions['shapes'])) {
+
+    // Sub-properties of custom object props ("groups") are identified by
+    // `propName.subPropName` — or `propName.delta.subPropName`, for items of
+    // multi-value groups.
+    // @see ::buildObjectPropForm()
+    $sub_property_name = NULL;
+    $lookup_prop_name = $prop_name;
+    if (!\array_key_exists($prop_name, $explicit_input_definitions['shapes']) && \str_contains($prop_name, '.')) {
+      $name_parts = \explode('.', $prop_name);
+      $lookup_prop_name = $name_parts[0];
+      $sub_property_name = \end($name_parts);
+    }
+    if (!\array_key_exists($lookup_prop_name, $explicit_input_definitions['shapes'])) {
       throw new \LogicException("`$prop_name` is not an explicit input prop on `{$this->getPluginId()}.{$this->getSourceSpecificComponentId()}`.");
     }
 
     // Retrieve the JSON schema for this explicit input prop.
-    $schema = (new PropShape($explicit_input_definitions['shapes'][$prop_name]))->resolvedSchema;
+    $schema = (new PropShape($explicit_input_definitions['shapes'][$lookup_prop_name]))->resolvedSchema;
 
     // For array types, enum is inside items; for non-array types,
-    // enum is at root.
-    $get_enum_schema = static function (array $search_schema): array {
+    // enum is at root. For sub-properties of groups, it is inside the
+    // (possibly array-wrapped) object shape's `properties`.
+    $get_enum_schema = static function (array $search_schema) use ($sub_property_name): array {
       $is_array_type = ($search_schema['type'] ?? NULL) === 'array';
       if ($is_array_type) {
         \assert(\array_key_exists('items', $search_schema), 'Array type props must have an items schema.');
-        return $search_schema['items'];
+        $search_schema = $search_schema['items'];
+      }
+      if ($sub_property_name !== NULL) {
+        $search_schema = $search_schema['properties'][$sub_property_name] ?? [];
+        // The sub-property itself may allow multiple values.
+        if (($search_schema['type'] ?? NULL) === 'array' && \array_key_exists('items', $search_schema)) {
+          $search_schema = $search_schema['items'];
+        }
       }
       return $search_schema;
     };
@@ -393,7 +482,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       throw new \LogicException("`enum` is missing for schema of `$prop_name` explicit input prop of `{$this->getPluginId()}.{$this->getSourceSpecificComponentId()}`.");
     }
     // @todo Simplify in https://www.drupal.org/project/canvas/issues/3518247
-    $raw_schema = $this->getMetadata()->schema['properties'][$prop_name] ?? [];
+    $raw_schema = $this->getMetadata()->schema['properties'][$lookup_prop_name] ?? [];
     $raw_enum_schema = $get_enum_schema($raw_schema);
 
     if (!\array_key_exists('meta:enum', $enum_schema)) {
@@ -458,7 +547,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
         $cardinality = $definition['cardinality'] ?? 1;
         if ($cardinality === -1 || $cardinality > 1) {
           // Represent the absence of values as an empty array.
-          $values[$prop_name] = $this->getDefaultStaticPropSource($prop_name, FALSE)->toArray();
+          $values[$prop_name] = $this->getDefaultPropSource($prop_name, FALSE)->toArray();
           $values[$prop_name]['value'] = [];
         }
       }
@@ -511,6 +600,13 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $is_required = $prop_field_definitions[$prop]['required'];
       if (!$is_required && $resolved_value->value === NULL) {
         unset($hydrated[self::EXPLICIT_INPUT_NAME][$prop]);
+        continue;
+      }
+      // Custom object props ("groups") have no top-level expression; their
+      // composite source already evaluates fully empty groups to NULL (handled
+      // above) and omits empty items from multi-value groups.
+      // @see \Drupal\canvas\PropSource\ObjectPropsSource::evaluate()
+      if (!\array_key_exists('expression', $prop_field_definitions[$prop])) {
         continue;
       }
       // Special case: optional `type: object`-shaped props if all key-value
@@ -631,7 +727,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
         continue;
       }
       \assert(\is_string($prop_name));
-      $inputs[$prop_name] = $this->getDefaultStaticPropSource($prop_name, validate_prop_name: FALSE)->toArray();
+      $inputs[$prop_name] = $this->getDefaultPropSource($prop_name, validate_prop_name: FALSE)->toArray();
     }
     return $inputs;
   }
@@ -882,6 +978,14 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       // @see https://www.drupal.org/i/3529788
       \assert(\array_key_exists($sdc_prop_name, $inputValues) || !\in_array($sdc_prop_name, $this->getExplicitInputDefinitions()['required'], TRUE));
       $source = $this->uncollapse($inputValues[$sdc_prop_name] ?? NULL, $sdc_prop_name);
+
+      // Custom object props ("groups") render as one labeled group containing
+      // one widget per sub-property; multi-value groups as an item list.
+      if (\array_key_exists('sub_definitions', $static_prop_source_field_definition)) {
+        $form[$sdc_prop_name] = $this->buildObjectPropForm($form, $form_state, $component, $sdc_prop_name, $static_prop_source_field_definition, $source, $entity_object_for_field_widget, $component_schema, $transforms);
+        continue;
+      }
+
       // Any component instance with props populated with a StaticPropSource
       // MUST use the StaticPropSource shape stored in the Component version. If
       // it does not, it is corrupt. Rather than building a potentially broken
@@ -988,6 +1092,217 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     return $form;
   }
 
+  /**
+   * Builds the form for one custom object prop ("group").
+   *
+   * Single-value groups render as one labeled group containing one
+   * Redux-integrated widget per sub-property, with form state keyed
+   * `propName.subPropName`. Multi-value groups render as an item list with
+   * add and remove, where each item contains the group's widgets, with form
+   * state keyed `propName.delta.subPropName`.
+   *
+   * @see docs/adr/0021-object-props-in-code-components.md
+   */
+  private function buildObjectPropForm(array &$form, FormStateInterface $form_state, Component $component, string $sdc_prop_name, array $prop_field_definition, PropSourceBase $source, FieldableEntityInterface $entity_object_for_field_widget, array $component_schema, array &$transforms): array {
+    $default_source = $this->getDefaultPropSource($sdc_prop_name, FALSE);
+    \assert($default_source instanceof ObjectPropsSource);
+    if ($source instanceof ObjectPropsSource && !$source->hasSameShapeAs($default_source)) {
+      // This should never occur: ignore this use of a HTTP-level exception.
+      // @phpstan-ignore-next-line phpat.jsonSchemaPropsComponentSourceBase
+      throw new NotAcceptableHttpException(\sprintf(
+        "Corrupted component instance detected: an instance of the %s Component (version %s) is being populated using a deviating storage shape for the %s prop. Manually recreate this component in the UI to resolve this.",
+        $component->id(),
+        $component->getActiveVersion(),
+        $sdc_prop_name,
+      ));
+    }
+    $disabled = FALSE;
+    if (!$source instanceof ObjectPropsSource) {
+      // Values of a DefaultRelativeUrlPropSource (the component's example) are
+      // not stored in the composite source; the Content Creator starts from
+      // empty widgets, like image props do.
+      // @see ::clientModelToInput()
+      $disabled = !$source instanceof DefaultRelativeUrlPropSource;
+      $source = $default_source;
+    }
+
+    $prop_schema = $component_schema['properties'][$sdc_prop_name] ?? [];
+    $label = $prop_schema['title'] ?? Unicode::ucfirst($sdc_prop_name);
+    $is_required = $prop_field_definition['required'];
+    $is_multiple = $source->getCardinality() !== 1;
+    // For multi-value groups, the object schema is the item schema.
+    $object_schema = $is_multiple ? $prop_schema['items'] ?? [] : $prop_schema;
+
+    $element = [
+      '#type' => 'fieldset',
+      '#title' => $label,
+      '#disabled' => $disabled,
+    ];
+    if (isset($prop_schema['description'])) {
+      $element['#description'] = $prop_schema['description'];
+    }
+
+    if (!$is_multiple) {
+      foreach ($source->getSubSources() as $sub_property_name => $sub_source) {
+        $element[$sub_property_name] = $this->buildObjectPropSubForm($component, $sdc_prop_name . '.' . $sub_property_name, $sub_property_name, $prop_field_definition['sub_definitions'][$sub_property_name], $sub_source, $is_required, $entity_object_for_field_widget, $object_schema, $form, $form_state, $transforms);
+      }
+      return $element;
+    }
+
+    // Multi-value group: an item list with add and remove; each item contains
+    // the group's widgets. Item state (added/removed items) lives in the form
+    // state, mirroring how core's multiple-value widgets manage their
+    // "items_count" widget state.
+    // @see \Drupal\Core\Field\WidgetBase::formMultipleElements()
+    $wrapper_id = Html::getId('canvas-object-props-' . $sdc_prop_name);
+    $element['#prefix'] = '<div id="' . $wrapper_id . '">';
+    $element['#suffix'] = '</div>';
+    $storage_key = ['canvas_object_props', $sdc_prop_name];
+    $state = $form_state->get($storage_key);
+    if ($state === NULL) {
+      $state = [
+        'items_count' => max($source->countItems(), 1),
+        'removed' => [],
+      ];
+      $form_state->set($storage_key, $state);
+    }
+    // Stored values may contain more items than the tracked count (e.g. when
+    // the client model gained items).
+    $items_count = max($state['items_count'], $source->countItems());
+
+    $shown_items = 0;
+    for ($delta = 0; $delta < $items_count; $delta++) {
+      if (\in_array($delta, $state['removed'], TRUE)) {
+        continue;
+      }
+      $shown_items++;
+      $element[$delta] = [
+        '#type' => 'fieldset',
+        '#title' => new TranslatableMarkup('@group_label item', ['@group_label' => $label]),
+      ];
+      foreach ($source->getSubSources($delta) as $sub_property_name => $sub_source) {
+        $element[$delta][$sub_property_name] = $this->buildObjectPropSubForm($component, $sdc_prop_name . '.' . $delta . '.' . $sub_property_name, $sub_property_name, $prop_field_definition['sub_definitions'][$sub_property_name], $sub_source, $is_required, $entity_object_for_field_widget, $object_schema, $form, $form_state, $transforms);
+      }
+      $element[$delta]['_remove'] = [
+        '#type' => 'submit',
+        '#name' => \str_replace('.', '_', $sdc_prop_name) . '_' . $delta . '_object_props_remove',
+        '#value' => new TranslatableMarkup('Remove'),
+        '#limit_validation_errors' => [],
+        '#submit' => [[static::class, 'objectPropsRemoveItemSubmit']],
+        '#ajax' => [
+          'callback' => [static::class, 'objectPropsAjax'],
+          'wrapper' => $wrapper_id,
+        ],
+        '#canvas_object_props' => [
+          'storage_key' => $storage_key,
+          'delta' => $delta,
+          'element_depth' => 2,
+        ],
+      ];
+    }
+
+    $cardinality = $prop_field_definition['cardinality'];
+    // -1 means unlimited cardinality.
+    // @see \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
+    if ($cardinality === -1 || $shown_items < $cardinality) {
+      $element['add_more'] = [
+        '#type' => 'submit',
+        '#name' => \str_replace('.', '_', $sdc_prop_name) . '_object_props_add_more',
+        '#value' => new TranslatableMarkup('Add new'),
+        '#limit_validation_errors' => [],
+        '#submit' => [[static::class, 'objectPropsAddMoreSubmit']],
+        '#ajax' => [
+          'callback' => [static::class, 'objectPropsAjax'],
+          'wrapper' => $wrapper_id,
+        ],
+        '#canvas_object_props' => [
+          'storage_key' => $storage_key,
+          'element_depth' => 1,
+        ],
+      ];
+    }
+
+    return $element;
+  }
+
+  /**
+   * Builds the widget form for one sub-property of a custom object prop.
+   */
+  private function buildObjectPropSubForm(Component $component, string $field_name, string $sub_property_name, array $sub_definition, StaticPropSource $sub_source, bool $group_is_required, FieldableEntityInterface $entity_object_for_field_widget, array $object_schema, array &$form, FormStateInterface $form_state, array &$transforms): array {
+    $sub_property_schema = $object_schema['properties'][$sub_property_name] ?? [];
+    $sub_label = $sub_property_schema['title'] ?? Unicode::ucfirst($sub_property_name);
+    $sub_description = $sub_property_schema['description'] ?? NULL;
+    $field_widget_plugin_id = $sub_definition['field_widget'];
+    $widget = $sub_source->getWidget($component->id(), $component->getLoadedVersion(), $field_name, $sub_label, $field_widget_plugin_id, $sub_description);
+    // A required sub-property of an optional group is only enforced when any
+    // sub-property of the group (item) is populated — which cannot be
+    // expressed in a widget. Only mark sub-properties of required groups as
+    // required; the conditional semantics are enforced by JSON Schema
+    // validation when publishing.
+    // @see \Drupal\canvas\PropSource\ObjectPropsSource::evaluate()
+    $sub_is_required = $group_is_required && \in_array($sub_property_name, $object_schema['required'] ?? [], TRUE);
+    $sub_form = $sub_source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $field_name, $sub_is_required, $entity_object_for_field_widget, $form, $form_state);
+
+    $widget_definition = $this->fieldWidgetPluginManager->getDefinition($widget->getPluginId());
+    if (!(\array_key_exists('canvas', $widget_definition) && \array_key_exists('transforms', $widget_definition['canvas']))) {
+      throw new \LogicException(\sprintf(
+        "Drupal Canvas determined the `%s` field widget plugin must be used to populate the `%s` prop on the `%s` component. However, no `canvas.transforms` metadata is defined on the field widget plugin definition. This makes it impossible for this widget to work. Please define the missing metadata. See %s for guidance.",
+        $field_widget_plugin_id,
+        $this->getSourceSpecificComponentId(),
+        $field_name,
+        'https://git.drupalcode.org/project/canvas/-/raw/0.x/canvas.api.php?ref_type=heads',
+      ));
+    }
+    $transforms[$field_name] = \array_map(
+      static fn (array $transform): array =>
+      [
+        ...$transform,
+        'multiple' => $sub_source->getCardinality() !== 1,
+      ],
+      $widget_definition['canvas']['transforms']);
+
+    return $sub_form;
+  }
+
+  /**
+   * Submission handler for the "Add new" button of a multi-value group.
+   */
+  public static function objectPropsAddMoreSubmit(array $form, FormStateInterface $form_state): void {
+    $button = $form_state->getTriggeringElement();
+    \assert(\is_array($button));
+    ['storage_key' => $storage_key] = $button['#canvas_object_props'];
+    $state = $form_state->get($storage_key);
+    $state['items_count']++;
+    $form_state->set($storage_key, $state);
+    $form_state->setRebuild();
+  }
+
+  /**
+   * Submission handler for the "Remove" button of a multi-value group item.
+   */
+  public static function objectPropsRemoveItemSubmit(array $form, FormStateInterface $form_state): void {
+    $button = $form_state->getTriggeringElement();
+    \assert(\is_array($button));
+    ['storage_key' => $storage_key, 'delta' => $delta] = $button['#canvas_object_props'];
+    $state = $form_state->get($storage_key);
+    $state['removed'][] = $delta;
+    $form_state->set($storage_key, $state);
+    $form_state->setRebuild();
+  }
+
+  /**
+   * AJAX callback for the add and remove buttons of a multi-value group.
+   */
+  public static function objectPropsAjax(array $form, FormStateInterface $form_state): array {
+    $button = $form_state->getTriggeringElement();
+    \assert(\is_array($button));
+    ['element_depth' => $element_depth] = $button['#canvas_object_props'];
+    \assert(\is_int($element_depth));
+    $element = NestedArray::getValue($form, \array_slice($button['#array_parents'], 0, -$element_depth));
+    \assert(\is_array($element));
+    return $element;
+  }
+
   public static function moveSuggestionsToLabel(array $element, FormStateInterface $form_state): array {
     // Recursively traverse elements and add prop_link_data to title attributes
     static::processElementTreeLinkerLabels($element);
@@ -1046,6 +1361,31 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     foreach ($prop_field_definitions as $prop_name => $static_prop_source_field_definition) {
       $component_prop_expression = new ComponentPropExpression($component->id(), $prop_name);
       $prop_shape = $prop_shapes[(string) $component_prop_expression];
+
+      // Custom object props ("groups"): no single field type + widget. The
+      // default resolved value comes from the component's example, with
+      // relative URLs rewritten — same as other prop shapes whose example
+      // values cannot be stored in a field type.
+      // @see \Drupal\canvas\PropSource\DefaultRelativeUrlPropSource
+      if (\array_key_exists('sub_definitions', $static_prop_source_field_definition)) {
+        $default_object_props_source = $this->getDefaultPropSource($prop_name, TRUE);
+        \assert($default_object_props_source instanceof ObjectPropsSource);
+        $field_data[$prop_name] = [
+          'required' => \in_array($prop_name, $this->getMetadata()->schema['required'] ?? [], TRUE),
+          'jsonSchema' => self::simplifySchemaForAjvClient($prop_shape->resolvedSchema),
+        ] + \array_diff_key($default_object_props_source->toArray(), \array_flip(['value']));
+        $example = $this->getMetadata()->schema['properties'][$prop_name]['examples'][0] ?? NULL;
+        if ($example !== NULL) {
+          $default_resolved = $this->getDefaultRelativeUrlPropSource($component->id(), $prop_name)->evaluate(NULL, is_required: FALSE);
+          $default_props_for_default_markup[$prop_name] = $default_resolved;
+          $field_data[$prop_name]['default_values']['resolved'] = $default_resolved->value;
+        }
+        else {
+          $unpopulated_props_for_default_markup[$prop_name] = NULL;
+        }
+        continue;
+      }
+
       $storable_prop_shape = $this->propShapeRepository->getStorablePropShape($prop_shape);
       \assert($storable_prop_shape instanceof StorablePropShape);
 
@@ -1271,6 +1611,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       // corresponding source but may not.
       $prop_value = $client_model['resolved'][$prop] ?? NULL;
       $is_static_prop_source = str_starts_with($prop_source['sourceType'] ?? '', PropSource::getTypePrefix(StaticPropSource::class));
+      $is_object_props_source = ($prop_source['sourceType'] ?? '') === PropSource::ObjectProps->value;
       try {
         // TRICKY: this is always set, *except* in the case of an auto-saved
         // code component that just gained a new prop.
@@ -1344,11 +1685,37 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
           }
         }
 
+        // Custom object props ("groups"): like other props whose example value
+        // cannot be stored in a field type, fall back to the example (with
+        // relative URLs rewritten) as long as the Content Creator has not
+        // specified their own value.
+        // @see \Drupal\canvas\PropSource\DefaultRelativeUrlPropSource
+        if ($is_object_props_source
+          && !\array_key_exists('default_value', $this->configuration['prop_field_definitions'][$prop] ?? [])
+          && \array_key_exists(0, $this->getMetadata()->schema['properties'][$prop]['examples'] ?? [])
+        ) {
+          $client_side_info = $this->getClientSideInfo($component);
+          $default_resolved = $client_side_info['propSources'][$prop]['default_values']['resolved'] ?? NULL;
+          $user_explicitly_set_value = \array_key_exists('value', $prop_source) && $prop_source['value'] !== $default_resolved;
+          if ($user_explicitly_set_value && !$is_required_prop && empty($prop_value)) {
+            // User explicitly emptied the optional group: persist the deletion
+            // intent.
+            $empty_object_props_source = $this->getDefaultPropSource($prop, FALSE);
+            \assert($empty_object_props_source instanceof ObjectPropsSource && $empty_object_props_source->isEmpty());
+            $props[$prop] = $this->collapse($empty_object_props_source, $prop);
+            continue;
+          }
+          elseif (empty($prop_value) || $prop_value == $default_resolved) {
+            $props[$prop] = $this->getDefaultRelativeUrlPropSource($component->id(), $prop)->toArray();
+            continue;
+          }
+        }
+
         // @see PropSourceComponent type-script definition.
         // @see EvaluatedComponentModel type-script definition.
         // For static props undo what ::inputToClientModel() did: restore the
         // omitted `'value'` in cases where it is the same as the source value.
-        if ($is_static_prop_source && !\array_key_exists('value', $prop_source)) {
+        if (($is_static_prop_source || $is_object_props_source) && !\array_key_exists('value', $prop_source)) {
           $prop_source['value'] = $prop_value;
         }
         // Required integer/float static props must never be stored with a NULL
@@ -1379,7 +1746,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
 
         // Optional component props that evaluate to nothing can be omitted:
         // storing these would be a waste of storage space.
-        if ($source instanceof StaticPropSource) {
+        if ($source instanceof StaticPropSource || $source instanceof ObjectPropsSource) {
           $prop_evaluates_to_nothing = match ($source->getCardinality()) {
             // Nothing for single-cardinality prop: NULL evaluation result.
             1 => $evaluated === NULL,
@@ -1467,8 +1834,16 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       if (!\is_array($input) || !\array_key_exists('sourceType', $input)) {
         // The inputs have already been stored collapsed. Prove using assertions
         // (which does not have a production performance impact).
-        \assert($this->uncollapse($input, $prop) instanceof StaticPropSource);
-        \assert($this->uncollapse($input, $prop)->hasSameShapeAs($this->getDefaultStaticPropSource($prop, FALSE)));
+        \assert($this->uncollapse($input, $prop) instanceof StaticPropSource || $this->uncollapse($input, $prop) instanceof ObjectPropsSource);
+        \assert((function () use ($input, $prop): bool {
+          $uncollapsed = $this->uncollapse($input, $prop);
+          $default = $this->getDefaultPropSource($prop, FALSE);
+          return match (TRUE) {
+            $uncollapsed instanceof StaticPropSource && $default instanceof StaticPropSource => $uncollapsed->hasSameShapeAs($default),
+            $uncollapsed instanceof ObjectPropsSource && $default instanceof ObjectPropsSource => $uncollapsed->hasSameShapeAs($default),
+            default => FALSE,
+          };
+        })());
         continue;
       }
       // phpcs:ignore
@@ -1484,6 +1859,18 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       if ($source instanceof StaticPropSource) {
         $default_source = $this->getDefaultStaticPropSource($prop, FALSE);
         if (!$source->hasSameShapeAs($default_source)) {
+          throw new InvalidComponentInputsPropSourceException(\sprintf(
+            "The shape of prop %s of component %s has the following shape: '%s', but must match the default, which is '%s'.",
+            $prop,
+            $this->getPluginId() . '.' . $this->getSourceSpecificComponentId(),
+            json_encode(array_diff_key($source->toArray(), array_flip(['value']))),
+            json_encode(array_diff_key($default_source->toArray(), array_flip(['value']))),
+          ));
+        }
+      }
+      if ($source instanceof ObjectPropsSource) {
+        $default_source = $this->getDefaultPropSource($prop, FALSE);
+        if (!$default_source instanceof ObjectPropsSource || !$source->hasSameShapeAs($default_source)) {
           throw new InvalidComponentInputsPropSourceException(\sprintf(
             "The shape of prop %s of component %s has the following shape: '%s', but must match the default, which is '%s'.",
             $prop,
@@ -1525,6 +1912,25 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
    * @see ::uncollapse()
    */
   private function collapse(PropSourceBase $source, string $prop_name): mixed {
+    // Custom object props ("groups") collapse to their nested object value —
+    // or list of object values, for multi-value groups.
+    if ($source instanceof ObjectPropsSource) {
+      try {
+        $default_source = $this->getDefaultPropSource($prop_name, FALSE);
+        if (!$default_source instanceof ObjectPropsSource || !$source->hasSameShapeAs($default_source)) {
+          throw new \LogicException(\sprintf(
+            "The prop %s of component %s has an object props source whose shape does not match the default.",
+            $prop_name,
+            $this->getPluginId() . '.' . $this->getSourceSpecificComponentId(),
+          ));
+        }
+        return $source->getValue();
+      }
+      catch (\OutOfRangeException) {
+        // See the identical catch for StaticPropSource below.
+        return $source->toArray();
+      }
+    }
     // @todo Simplify this to just `if ($source instanceof StaticPropSource && $source->hasSameShapeAs($this->getDefaultStaticPropSource($prop_name))) { return $source->getValue(); }` in https://www.drupal.org/project/canvas/issues/3532414
     if ($source instanceof StaticPropSource) {
       try {
@@ -1595,7 +2001,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
    */
   private function uncollapse(mixed $value, string $prop_name): PropSourceBase {
     if (!\is_array($value) || !\array_key_exists('sourceType', $value)) {
-      return $this->getDefaultStaticPropSource($prop_name, validate_prop_name: FALSE)->withValue($value, allow_empty: TRUE);
+      return $this->getDefaultPropSource($prop_name, validate_prop_name: FALSE)->withValue($value, allow_empty: TRUE);
     }
     // phpcs:ignore
     /** @var PropSourceArray $value */

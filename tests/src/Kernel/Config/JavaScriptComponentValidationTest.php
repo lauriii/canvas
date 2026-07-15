@@ -628,10 +628,10 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       ],
     ];
 
-    // `type: object` without `$ref` fails at the config schema level because
-    // $ref is required in canvas.json_schema.item.object, matching the same
-    // requirement as canvas.json_schema.prop_shape.object.
-    yield 'Invalid: object items without $ref — config schema required key + no storable prop shape' => [
+    // `type: object` without `$ref` or `properties` fails at the config schema
+    // level: an object shape must declare exactly one of the two.
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidCanvasObjectPropShapeConstraint
+    yield 'Invalid: object items without $ref or properties — constraint violation + no storable prop shape' => [
       [
         'type' => 'array',
         'title' => 'Objects',
@@ -639,7 +639,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       ],
       [
         '' => 'Drupal Canvas does not know of a field type/widget to allow populating the <code>array_prop_name</code> prop, with the shape <code>{"type":"array","items":{"type":"object"}}</code>.',
-        'props.array_prop_name.items' => "'\$ref' is a required key because props.array_prop_name.items.type is object (see config schema type canvas.json_schema.prop_shape.object).",
+        'props.array_prop_name.items' => 'An object prop must declare exactly one of "$ref" or "properties", but neither is declared.',
       ],
     ];
   }
@@ -751,6 +751,173 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         ...JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
       ],
     ], $this->entity->getContentEntityReferenceProps());
+  }
+
+  /**
+   * Tests custom `type: object` props ("groups") with inline `properties`.
+   *
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\ValidCanvasObjectPropShapeConstraint
+   * @see docs/adr/0021-object-props-in-code-components.md
+   */
+  #[DataProvider('providerTestObjectGroupPropDefinition')]
+  public function testObjectGroupPropDefinition(array $props, array $required, array $expected_errors): void {
+    $this->entity->set('props', $props);
+    $this->entity->set('required', $required);
+    $this->assertValidationErrors($expected_errors);
+  }
+
+  public static function providerTestObjectGroupPropDefinition(): \Generator {
+    $ingredient = [
+      'title' => 'Ingredient',
+      'type' => 'object',
+      'properties' => [
+        'name' => ['title' => 'Name', 'type' => 'string'],
+        'amount' => ['title' => 'Amount', 'type' => 'number'],
+        'unit' => ['title' => 'Unit', 'type' => 'string', 'enum' => ['g', 'ml'], 'meta:enum' => ['g' => 'Grams', 'ml' => 'Milliliters']],
+      ],
+      'required' => ['name'],
+      'examples' => [
+        ['name' => 'Flour', 'amount' => 500.0, 'unit' => 'g'],
+      ],
+    ];
+
+    yield 'Valid: single-value group of scalars' => [
+      ['ingredient' => $ingredient],
+      ['ingredient'],
+      [],
+    ];
+
+    yield 'Valid: multi-value group with an image sub-property' => [
+      [
+        'authors' => [
+          'title' => 'Authors',
+          'type' => 'array',
+          'items' => [
+            'type' => 'object',
+            'properties' => [
+              'name' => ['title' => 'Name', 'type' => 'string'],
+              'image' => ['title' => 'Image', 'type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'],
+              'link' => ['title' => 'Link', 'type' => 'string', 'format' => 'uri'],
+            ],
+            'required' => ['name'],
+          ],
+          'examples' => [
+            [
+              ['name' => 'Ada', 'image' => ['src' => 'https://placehold.co/100x100.png'], 'link' => 'https://example.com/ada'],
+              ['name' => 'Grace'],
+            ],
+          ],
+        ],
+      ],
+      [],
+      [],
+    ];
+
+    yield 'Invalid: both $ref and properties' => [
+      [
+        'broken' => [
+          'title' => 'Broken',
+          'type' => 'object',
+          '$ref' => 'json-schema-definitions://canvas.module/image',
+          'properties' => ['name' => ['title' => 'Name', 'type' => 'string']],
+        ],
+      ],
+      [],
+      [
+        'props.broken' => 'An object prop must declare exactly one of "$ref" or "properties", but both are declared.',
+      ],
+    ];
+
+    yield 'Invalid: group inside group (depth limit)' => [
+      [
+        'nested' => [
+          'title' => 'Nested',
+          'type' => 'object',
+          'properties' => [
+            'inner' => [
+              'title' => 'Inner',
+              'type' => 'object',
+              'properties' => ['x' => ['title' => 'X', 'type' => 'string']],
+            ],
+          ],
+        ],
+      ],
+      [],
+      [
+        '' => 'Drupal Canvas does not know of a field type/widget to allow populating the <code>inner</code> sub-property of the <code>nested</code> prop, with the shape <code>{"type":"object","properties":{"x":{"type":"string"}}}</code>.',
+        'props.nested' => 'The "inner" sub-property declares an inline object. Object props are limited to one level of depth: use a well-known "$ref" shape or a scalar type instead.',
+      ],
+    ];
+
+    yield 'Invalid: formatted text sub-property' => [
+      [
+        'group_with_html' => [
+          'title' => 'Group',
+          'type' => 'object',
+          'properties' => [
+            'body' => ['title' => 'Body', 'type' => 'string', 'contentMediaType' => 'text/html'],
+          ],
+        ],
+      ],
+      [],
+      [
+        '' => 'Drupal Canvas does not know of a field type/widget to allow populating the <code>group_with_html</code> prop, with the shape <code>{"type":"object","properties":{"body":{"type":"string","contentMediaType":"text/html"}}}</code>.',
+        'props.group_with_html' => 'The "body" sub-property declares "contentMediaType". Formatted text is not supported inside object props: use a plain string instead.',
+      ],
+    ];
+
+    yield 'Invalid: required lists an undeclared sub-property' => [
+      [
+        'group' => [
+          'title' => 'Group',
+          'type' => 'object',
+          'properties' => [
+            'name' => ['title' => 'Name', 'type' => 'string'],
+          ],
+          'required' => ['name', 'nonexistent'],
+        ],
+      ],
+      [],
+      [
+        'props.group' => 'The "required" key lists "nonexistent", which is not one of the declared "properties".',
+      ],
+    ];
+
+    yield 'Invalid: required on a well-known $ref shape' => [
+      [
+        'image' => [
+          'title' => 'Image',
+          'type' => 'object',
+          '$ref' => 'json-schema-definitions://canvas.module/image',
+          'required' => ['src'],
+          'examples' => [
+            ['src' => 'https://placehold.co/100x100.png'],
+          ],
+        ],
+      ],
+      [],
+      [
+        'props.image' => 'The "required" key is only supported for object props that declare "properties".',
+      ],
+    ];
+
+    yield 'Invalid: group example missing a required sub-property' => [
+      [
+        'ingredient' => [
+          'title' => 'Ingredient',
+          'type' => 'object',
+          'properties' => $ingredient['properties'],
+          'required' => ['name'],
+          'examples' => [
+            ['amount' => 500.0],
+          ],
+        ],
+      ],
+      [],
+      [
+        '' => 'Prop "ingredient" has invalid example value: [name] The property name is required',
+      ],
+    ];
   }
 
   /**
@@ -1177,7 +1344,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         ],
         [
           '' => 'Drupal Canvas does not know of a field type/widget to allow populating the <code>image</code> prop, with the shape <code>{"type":"object"}</code>.',
-          'props.image' => '\'$ref\' is a required key because props.image.type is object (see config schema type canvas.json_schema.prop.*||canvas.json_schema.prop_shape.object).',
+          'props.image' => 'An object prop must declare exactly one of "$ref" or "properties", but neither is declared.',
           'props.image.examples.0.alt' => "'alt' is not a supported key.",
           'props.image.examples.0.height' => "'height' is not a supported key.",
           'props.image.examples.0.src' => "'src' is not a supported key.",

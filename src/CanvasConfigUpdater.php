@@ -466,6 +466,11 @@ class CanvasConfigUpdater {
       $settings = $component->getSettings();
       \assert(\array_key_exists('prop_field_definitions', $settings));
       foreach ($settings['prop_field_definitions'] as $prop_field_definition) {
+        // Custom object props ("groups") have no top-level expression; they
+        // postdate the data this update path fixes.
+        if (\array_key_exists('sub_definitions', $prop_field_definition)) {
+          continue;
+        }
         \assert(isset($prop_field_definition['expression']) && isset($prop_field_definition['field_type']));
         $expression = ComponentPropExpression::fromString($prop_field_definition['expression']);
         $needs_updating = match(TRUE) {
@@ -516,6 +521,11 @@ class CanvasConfigUpdater {
     \assert(\array_key_exists('prop_field_definitions', $settings));
     $active_version_updated = FALSE;
     foreach ($settings['prop_field_definitions'] as &$prop_field_definition) {
+      // Custom object props ("groups") have no top-level expression; they
+      // postdate the data this update path fixes.
+      if (\array_key_exists('sub_definitions', $prop_field_definition)) {
+        continue;
+      }
       \assert(isset($prop_field_definition['expression']) && isset($prop_field_definition['field_type']));
       $expression = ComponentPropExpression::fromString($prop_field_definition['expression']);
       $needs_updating = match(TRUE) {
@@ -561,6 +571,11 @@ class CanvasConfigUpdater {
       $settings = $component->getSettings();
       \assert(\array_key_exists('prop_field_definitions', $settings));
       foreach ($settings['prop_field_definitions'] as &$prop_field_definition) {
+        // Custom object props ("groups") have no top-level expression; they
+        // postdate the data this update path fixes.
+        if (\array_key_exists('sub_definitions', $prop_field_definition)) {
+          continue;
+        }
         \assert(isset($prop_field_definition['expression']) && isset($prop_field_definition['field_type']));
         $expression = ComponentPropExpression::fromString($prop_field_definition['expression']);
         $needs_updating = match(TRUE) {
@@ -708,6 +723,11 @@ class CanvasConfigUpdater {
       $settings = $component->getSettings();
       \assert(\array_key_exists('prop_field_definitions', $settings));
       foreach ($settings['prop_field_definitions'] as $prop_field_definition) {
+        // Custom object props ("groups") have no top-level expression; they
+        // postdate the data this update path fixes.
+        if (\array_key_exists('sub_definitions', $prop_field_definition)) {
+          continue;
+        }
         \assert(isset($prop_field_definition['expression']) && isset($prop_field_definition['field_type']));
         $expression = StructuredDataPropExpression::fromString($prop_field_definition['expression']);
         \assert($expression instanceof FieldTypeBasedPropExpressionInterface);
@@ -755,6 +775,11 @@ class CanvasConfigUpdater {
     \assert(\array_key_exists('prop_field_definitions', $settings));
     $active_version_updated = FALSE;
     foreach ($settings['prop_field_definitions'] as &$prop_field_definition) {
+      // Custom object props ("groups") have no top-level expression; they
+      // postdate the data this update path fixes.
+      if (\array_key_exists('sub_definitions', $prop_field_definition)) {
+        continue;
+      }
       \assert(isset($prop_field_definition['expression']) && isset($prop_field_definition['field_type']));
       $expression = StructuredDataPropExpression::fromString($prop_field_definition['expression']);
       \assert($expression instanceof FieldTypeBasedPropExpressionInterface);
@@ -801,6 +826,11 @@ class CanvasConfigUpdater {
       $settings = $component->getSettings();
       \assert(\array_key_exists('prop_field_definitions', $settings));
       foreach ($settings['prop_field_definitions'] as &$prop_field_definition) {
+        // Custom object props ("groups") have no top-level expression; they
+        // postdate the data this update path fixes.
+        if (\array_key_exists('sub_definitions', $prop_field_definition)) {
+          continue;
+        }
         \assert(isset($prop_field_definition['expression']) && isset($prop_field_definition['field_type']));
         $expression = StructuredDataPropExpression::fromString($prop_field_definition['expression']);
         \assert($expression instanceof FieldTypeBasedPropExpressionInterface);

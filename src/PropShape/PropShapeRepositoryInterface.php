@@ -29,9 +29,10 @@ interface PropShapeRepositoryInterface {
    * @param \Drupal\canvas\PropShape\PropShape $shape
    *   The prop shape we wish to store.
    *
-   * @return \Drupal\canvas\PropShape\StorablePropShape|null
-   *   A storable prop shape, if one can be calculated.
+   * @return \Drupal\canvas\PropShape\StorablePropShape|\Drupal\canvas\PropShape\ObjectPropsStorablePropShape|null
+   *   A storable prop shape, if one can be calculated. For custom object
+   *   shapes ("groups"): a composite of per-sub-property storable shapes.
    */
-  public function getStorablePropShape(PropShape $shape): ?StorablePropShape;
+  public function getStorablePropShape(PropShape $shape): StorablePropShape|ObjectPropsStorablePropShape|null;
 
 }

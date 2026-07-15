@@ -9,6 +9,7 @@ use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\PropShape\ObjectPropsStorablePropShape;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\PropShape\StorablePropShape;
@@ -216,14 +217,18 @@ enum JsonSchemaType: string {
    *   a single-cardinality prop shape for its multiple-cardinality equivalent
    *   (i.e. `type: array`).
    *
-   * @return \Drupal\canvas\PropShape\StorablePropShape|null
+   * @return \Drupal\canvas\PropShape\StorablePropShape|\Drupal\canvas\PropShape\ObjectPropsStorablePropShape|null
    *   NULL is returned to indicate that Drupal Canvas + Drupal core do not
    *   support a field type that provides a good UX for entering a value of this
-   *   shape. Otherwise, a StorablePropShape is returned that specifies that UX.
+   *   shape. Otherwise, a StorablePropShape is returned that specifies that
+   *   UX — or, for custom object shapes ("groups"), an
+   *   ObjectPropsStorablePropShape composing one StorablePropShape per
+   *   sub-property.
    *
    * @see \Drupal\canvas\PropSource\StaticPropSource
+   * @see \Drupal\canvas\PropSource\ObjectPropsSource
    */
-  public function computeStorablePropShape(PropShape $shape, PropShapeRepositoryInterface $shape_repository): ?StorablePropShape {
+  public function computeStorablePropShape(PropShape $shape, PropShapeRepositoryInterface $shape_repository): StorablePropShape|ObjectPropsStorablePropShape|null {
     $schema = $shape->schema;
 
     // Arrays containing items of a particular shape map beautifully onto multi-
@@ -273,6 +278,18 @@ enum JsonSchemaType: string {
           'The "maxItems" value must be at least 2 for array types, but got %d. Use a non-array type for single-value props.',
           $schema['maxItems'],
         ));
+      }
+      // Multi-value groups: arrays whose items are a custom object shape. The
+      // per-item composite shape wraps the same sub-shapes, but reflects the
+      // requested cardinality.
+      // @see docs/adr/0021-object-props-in-code-components.md
+      if ($item_storable_prop_shape instanceof ObjectPropsStorablePropShape) {
+        return new ObjectPropsStorablePropShape(
+          // The original shape, not the item shape.
+          $shape,
+          $item_storable_prop_shape->subShapes,
+          $schema['maxItems'] ?? FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+        );
       }
       return new StorablePropShape(
         // The original shape, not the item shape.
@@ -453,9 +470,54 @@ enum JsonSchemaType: string {
           ),
           default => NULL,
         },
+        // Custom object shapes ("groups"): inline `properties`, composed from
+        // the sub-properties' own storable shapes.
+        // @see docs/adr/0021-object-props-in-code-components.md
+        \array_key_exists('properties', $schema) => self::computeObjectPropsStorablePropShape($shape, $shape_repository),
         default => NULL,
       },
     };
+  }
+
+  /**
+   * Computes the composite storable shape for a custom object shape ("group").
+   *
+   * Each sub-property resolves through the existing shape-to-field-type
+   * mapping (scalar branches, the array branch for multi-value sub-properties,
+   * and the object branch for well-known `$ref` sub-properties such as image).
+   *
+   * @see docs/adr/0021-object-props-in-code-components.md
+   */
+  private static function computeObjectPropsStorablePropShape(PropShape $shape, PropShapeRepositoryInterface $shape_repository): ?ObjectPropsStorablePropShape {
+    // Only `type`, `properties` and `required` are supported for custom object
+    // shapes.
+    if (!empty(array_diff(\array_keys($shape->schema), ['type', 'properties', 'required']))) {
+      return NULL;
+    }
+    $sub_shapes = [];
+    foreach ($shape->schema['properties'] as $sub_property_name => $sub_property_schema) {
+      // Formatted text is not supported inside groups: string sub-properties
+      // are plain strings. (For code components this is also enforced by the
+      // ValidCanvasObjectPropShape constraint.)
+      $sub_item_schema = ($sub_property_schema['type'] ?? NULL) === 'array' ? $sub_property_schema['items'] ?? [] : $sub_property_schema;
+      if (\array_key_exists('contentMediaType', $sub_item_schema)) {
+        return NULL;
+      }
+      $sub_storable_prop_shape = $shape_repository->getStorablePropShape(PropShape::normalize($sub_property_schema));
+      // Groups inside groups are rejected by validation; this also guards
+      // against sub-properties without a storable shape. The requirements
+      // checker names the unsupported sub-property.
+      // @see \Drupal\canvas\ComponentMetadataRequirementsChecker::check()
+      // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidCanvasObjectPropShapeConstraint
+      if (!$sub_storable_prop_shape instanceof StorablePropShape) {
+        return NULL;
+      }
+      $sub_shapes[$sub_property_name] = $sub_storable_prop_shape;
+    }
+    if ($sub_shapes === []) {
+      return NULL;
+    }
+    return new ObjectPropsStorablePropShape($shape, $sub_shapes);
   }
 
   /**

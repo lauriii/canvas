@@ -8,6 +8,9 @@ use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropShape\EphemeralPropShapeRepository;
+use Drupal\canvas\PropShape\ObjectPropsStorablePropShape;
+use Drupal\canvas\PropShape\PropShape;
+use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\canvas\Validation\JsonSchema\ContentEntityReferenceObjectConstraint;
 use Drupal\Core\Template\Attribute;
@@ -103,14 +106,16 @@ final class ComponentMetadataRequirementsChecker {
       if (isset($prop['examples'][0])) {
         $example = $prop['examples'][0];
         // PHP's "associative arrays" are JSON's "objects". The JSON Schema
-        // validator expects such "objects" to be \stdClass objects.
+        // validator expects such "objects" to be \stdClass objects — at every
+        // level of nesting, because custom object shapes may contain
+        // object-shaped sub-properties (e.g. an image inside a group).
         if ($prop['type'] === ['object'] && \is_array($example)) {
-          $example = (object) $example;
+          $example = self::exampleToValidatable($example);
         }
         // Similarly, for `type: array, items: {type: object}`.
         if ($prop['type'][0] === 'array' && $prop['items']['type'] === 'object' && \is_array($example)) {
           $example = \array_map(
-            fn (array|object $item) => (object) $item,
+            fn (array|object $item) => self::exampleToValidatable((array) $item),
             $example,
           );
         }
@@ -183,7 +188,48 @@ final class ComponentMetadataRequirementsChecker {
     foreach ($props_for_metadata as $cpe => $prop_shape) {
       $prop_name = ComponentPropExpression::fromString($cpe)->propName;
       $storable_prop_shape = $prop_shape_repository->getStorablePropShape($prop_shape);
+      // Custom object shapes ("groups"): composed per-sub-property shapes. If
+      // an example is provided, each sub-property's example value must be
+      // usable by that sub-property's field type — except entity-referencing
+      // sub-properties (e.g. images), whose example values are resolved at
+      // runtime instead of being stored.
+      // @see \Drupal\canvas\PropSource\DefaultRelativeUrlPropSource
+      if ($storable_prop_shape instanceof ObjectPropsStorablePropShape) {
+        $example = $metadata->schema['properties'][$prop_name]['examples'][0] ?? NULL;
+        if (!\is_array($example)) {
+          // A missing example is allowed (for optional props); a non-array
+          // example was already rejected by the JSON Schema validation above.
+          continue;
+        }
+        $example_items = $storable_prop_shape->cardinality === NULL ? [$example] : $example;
+        foreach ($example_items as $example_item) {
+          if (!\is_array($example_item)) {
+            continue;
+          }
+          foreach ($storable_prop_shape->subShapes as $sub_property_name => $sub_storable_prop_shape) {
+            if (!\array_key_exists($sub_property_name, $example_item)) {
+              continue;
+            }
+            if (JsonSchemaPropsComponentSourceBase::exampleValueRequiresEntity($sub_storable_prop_shape)) {
+              continue;
+            }
+            try {
+              $sub_storable_prop_shape->toStaticPropSource()->withValue($example_item[$sub_property_name]);
+            }
+            catch (\LogicException) {
+              $messages[] = \sprintf('Prop "%s" example value `%s` for the "%s" sub-property cannot be used as a default.', $prop_name, \json_encode($example_item[$sub_property_name]), $sub_property_name);
+            }
+          }
+        }
+        continue;
+      }
       if (!$storable_prop_shape instanceof StorablePropShape) {
+        // For custom object shapes, name the unsupported sub-properties.
+        $sub_property_messages = self::checkObjectPropSubProperties($prop_name, $prop_shape, $prop_shape_repository);
+        if ($sub_property_messages !== []) {
+          $messages = [...$messages, ...$sub_property_messages];
+          continue;
+        }
         $messages[] = \sprintf('Drupal Canvas does not know of a field type/widget to allow populating the <code>%s</code> prop, with the shape <code>%s</code>.', $prop_name, json_encode($prop_shape->schema, JSON_UNESCAPED_SLASHES));
         continue;
       }
@@ -207,6 +253,47 @@ final class ComponentMetadataRequirementsChecker {
     if (!empty($messages)) {
       throw new ComponentDoesNotMeetRequirementsException($messages);
     }
+  }
+
+  /**
+   * Names the unsupported sub-properties of a custom object shape, if any.
+   *
+   * @return list<string>
+   *   One message per unsupported sub-property; empty when the given prop
+   *   shape is not a custom object shape, or when all of its sub-properties
+   *   are supported.
+   */
+  private static function checkObjectPropSubProperties(string $prop_name, PropShape $prop_shape, PropShapeRepositoryInterface $prop_shape_repository): array {
+    $schema = $prop_shape->schema;
+    // For multi-value groups, the object shape is the item shape.
+    $object_schema = ($schema['type'] ?? NULL) === 'array' ? $schema['items'] ?? [] : $schema;
+    if (($object_schema['type'] ?? NULL) !== 'object' || !\is_array($object_schema['properties'] ?? NULL)) {
+      return [];
+    }
+    $messages = [];
+    foreach ($object_schema['properties'] as $sub_property_name => $sub_property_schema) {
+      $sub_shape = PropShape::normalize($sub_property_schema);
+      // Nested custom object shapes resolve to a composite, which is not
+      // supported inside a group: the 1-level depth limit.
+      if (!$prop_shape_repository->getStorablePropShape($sub_shape) instanceof StorablePropShape) {
+        $messages[] = \sprintf('Drupal Canvas does not know of a field type/widget to allow populating the <code>%s</code> sub-property of the <code>%s</code> prop, with the shape <code>%s</code>.', $sub_property_name, $prop_name, json_encode($sub_shape->schema, JSON_UNESCAPED_SLASHES));
+      }
+    }
+    return $messages;
+  }
+
+  /**
+   * Recursively converts an object example to what the JSON validator expects.
+   *
+   * PHP associative arrays become \stdClass objects; lists stay arrays.
+   *
+   * @param array<string, mixed> $example
+   *   An object-shaped example value.
+   */
+  private static function exampleToValidatable(array $example): object {
+    // The top level is always an object, even when the example is (invalidly)
+    // empty or a list: the JSON Schema validator then reports the mismatch.
+    return (object) \json_decode(\json_encode($example, \JSON_THROW_ON_ERROR), FALSE, flags: \JSON_THROW_ON_ERROR);
   }
 
 }

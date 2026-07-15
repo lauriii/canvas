@@ -28,12 +28,16 @@ use Drupal\Core\TypedData\TypedData;
  * @phpstan-import-type PropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
  * @phpstan-import-type AdaptedPropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
  * @phpstan-import-type DefaultRelativeUrlPropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
- * @phpstan-type SingleComponentInputArray array<string, PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray>
+ * @phpstan-import-type ObjectPropsSourceArray from \Drupal\canvas\PropSource\ObjectPropsSource
+ * @phpstan-type SingleComponentInputArray array<string, PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray|ObjectPropsSourceArray>
  * @see \Drupal\canvas\ComponentSource\ComponentSourceInterface::optimizeExplicitInput()
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::optimizeExplicitInput()
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::collapse()
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::uncollapse()
- * @phpstan-type OptimizedExplicitInput bool|int|float|string|bool[]|int[]|float[]|string[]
+ * Custom object props ("groups") collapse to a nested object value — or a list
+ * of object values, for multi-value groups — and NULL when explicitly emptied.
+ * @see \Drupal\canvas\PropSource\ObjectPropsSource::getValue()
+ * @phpstan-type OptimizedExplicitInput bool|int|float|string|bool[]|int[]|float[]|string[]|array<string, mixed>|list<array<string, mixed>>|null
  * @phpstan-type OptimizedSingleComponentInputArray array<string, PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray|OptimizedExplicitInput>
  */
 #[DataType(
