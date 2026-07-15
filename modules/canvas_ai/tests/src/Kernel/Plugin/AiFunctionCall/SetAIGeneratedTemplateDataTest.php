@@ -44,7 +44,7 @@ final class SetAIGeneratedTemplateDataTest extends CanvasKernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    ...CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
+    ...self::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
     'ai',
     'ai_agents',
     'canvas_ai',

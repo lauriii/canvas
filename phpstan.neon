@@ -102,6 +102,7 @@ rules:
   - Canvas\PHPStan\Rules\NoOptionalParametersInDataProviderTestsRule
   - Canvas\PHPStan\Rules\NoJsonEncodedHttpExceptionMessageInApiControllersRule
   - Canvas\PHPStan\Rules\RequireStaticMethodsRule
+  - Canvas\PHPStan\Rules\SelfConstantReferenceRule
   - Canvas\PHPStan\Rules\ComponentPreSaveUpdateMethodsRule
   - Canvas\PHPStan\Rules\ComponentConfigUpdaterMustDeclarePreSaveIntentRule
   - Canvas\PHPStan\Rules\RequireTypedDataHelperForInternalCheckRule
