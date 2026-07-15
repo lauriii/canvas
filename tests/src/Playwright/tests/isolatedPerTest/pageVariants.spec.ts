@@ -262,8 +262,69 @@ test.describe('Page variants', () => {
     await variantSelect.selectOption({ label: 'Marketing' });
     await autoSave;
 
-    // The preview now renders the page through the pending variant, so its
-    // chrome appears — without publishing the selection.
+    // Reopen the page so the preview iframe finalizes. It now renders the page
+    // through the pending (auto-saved, unpublished) template selection, so the
+    // variant's chrome appears — before the selection is published.
+    await canvas.openCanvas(canvasPage);
+    await canvas.waitForEditorFrame();
     await expect(previewFrame.getByText('MarketingChrome')).toBeVisible();
+  });
+
+  test('the Edit template link opens the currently selected template', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    const canvasPage = await canvas.createCanvas({ title: 'Edit link host' });
+    await canvas.openCanvas(canvasPage);
+
+    // Two variants: one is saved on the page, another is selected but unsaved.
+    await createMarketingVariant(page);
+    // Remount the Templates panel (toggle to Pages and back) before creating a
+    // second variant: the list can get stuck with an already-fulfilled cache.
+    await page
+      .getByTestId('canvas-side-menu')
+      .getByRole('button', { name: 'Pages' })
+      .click();
+    await page
+      .getByTestId('canvas-side-menu')
+      .getByRole('button', { name: 'Templates' })
+      .click();
+    await page.getByTestId('canvas-page-variant-new-button').click();
+    await page.getByTestId('canvas-page-variant-label-input').fill('Landing');
+    await page.getByRole('button', { name: 'Create template' }).click();
+    await expect(page.getByTestId('canvas-page-variant-landing')).toBeVisible();
+
+    // Save "Marketing" as the page's template so the Edit link is rendered for
+    // it, then reload to pick up the server-rendered link.
+    await canvas.openCanvas(canvasPage);
+    const pageDataForm = page.getByTestId('canvas-page-data-form');
+    await pageDataForm
+      .locator('button')
+      .filter({ hasText: 'Page template' })
+      .click();
+    const variantSelect = pageDataForm.getByLabel('Page template');
+    await expect(variantSelect).toBeVisible();
+    const savedMarketing = page.waitForResponse(
+      (response) =>
+        response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+        response.request().method() === 'POST' &&
+        (response.request().postData() ?? '').includes('marketing'),
+    );
+    await variantSelect.selectOption({ label: 'Marketing' });
+    await savedMarketing;
+    await canvas.openCanvas(canvasPage);
+
+    // Select "Landing" without saving, then use the Edit template link. It must
+    // open the pending selection (Landing), not the saved one (Marketing).
+    await pageDataForm
+      .locator('button')
+      .filter({ hasText: 'Page template' })
+      .click();
+    await expect(variantSelect).toBeVisible();
+    await variantSelect.selectOption({ label: 'Landing' });
+    await pageDataForm.getByTestId('canvas-page-template-edit').click();
+    await expect(page).toHaveURL(/\/canvas\/editor\/page_variant\/landing/);
   });
 });
