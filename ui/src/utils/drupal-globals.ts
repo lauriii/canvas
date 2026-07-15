@@ -104,6 +104,16 @@ export const restoreCanvasHeadlessFrontend = () => {
   }
 };
 
+// Native prop form settings. Absent settings (e.g. in tests) mean native
+// rendering is enabled with no widgets disabled, matching the server default.
+export const getPropFormsSettings = (): {
+  native: boolean;
+  disabledWidgets: string[];
+} => ({
+  native: drupalSettings?.canvas?.propForms?.native ?? true,
+  disabledWidgets: drupalSettings?.canvas?.propForms?.disabledWidgets ?? [],
+});
+
 export const setCanvasDrupalSetting = (
   property: 'layoutUtils' | 'navUtils',
   value: PropsValues,

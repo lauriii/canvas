@@ -1,0 +1,30 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Prop states
+description: An SDC whose second prop is only visible when the first prop is TRUE, expressed via the `x-canvas-states` vocabulary.
+props:
+  type: object
+  required:
+    - show_text
+  properties:
+    show_text:
+      type: boolean
+      title: Show text
+      examples:
+        - true
+    text:
+      type: string
+      title: Text
+      # The `x-canvas-states` vocabulary is evaluated client-side only; the
+      # server must accept, preserve, and otherwise ignore it.
+      # @see docs/client-side-widgets.md
+      x-canvas-states:
+        - effect: visible
+          when:
+            type: object
+            properties:
+              show_text:
+                const: true
+            required:
+              - show_text
+      examples:
+        - 'Hello, world!'
