@@ -25,6 +25,7 @@ export {
 } from './constants';
 export {
   EXPIRY_SLACK_MS,
+  getDraftEditorOrigin,
   isDraftSessionExpired,
   parseDraftData,
   serializeDraftData,

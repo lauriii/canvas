@@ -1,8 +1,4 @@
-import {
-  resolveCorsHeaders,
-  resolveDraftConfig,
-  verifyAssertionByRedemption,
-} from '../server';
+import { resolveDraftConfig, verifyAssertionByRedemption } from '../server';
 
 import type { DraftConfig } from '../server';
 import type { ComponentMetadataPayload } from './component-metadata';
@@ -13,9 +9,9 @@ export type { ComponentMetadataPayload };
 export interface ComponentMetadataHandlerOptions {
   /**
    * Configuration provider; default resolves the environment per request
-   * (DRUPAL_BASE_URL, DRAFT_ALLOWED_FRAME_ANCESTORS).
+   * (CANVAS_SITE_URL).
    */
-  config?: () => Pick<DraftConfig, 'baseUrl' | 'embedderOrigins'>;
+  config?: () => Pick<DraftConfig, 'baseUrl'>;
   /**
    * Whether to serve the build-time manifest (production) instead of
    * scanning the codebase live (development). Frameworks signal the mode
@@ -50,16 +46,16 @@ export interface ComponentMetadataHandlerOptions {
 /**
  * The component metadata endpoint as framework-free fetch handlers
  * (Request → Response): GET answers the codebase's component registry to
- * the embedding Drupal Canvas instance; OPTIONS answers the CORS preflight.
- * Framework adapters mount these on their routing systems.
+ * the Drupal Canvas instance. Framework adapters mount it on their routing
+ * systems.
  *
  * Protection is proof-by-redemption: the caller presents a Drupal-minted
  * preview assertion as a Bearer token, and the endpoint verifies it by
  * redeeming it at Drupal's own token endpoint — only the embedding Drupal
  * can mint one, assertions are single-use, and the minted access token is
- * discarded. Browser callers are additionally CORS-gated to the embedder
- * origin allowlist; server-to-server callers (no Origin header) skip CORS
- * and stand on the assertion alone.
+ * discarded. The Drupal module calls this endpoint server-to-server, so it
+ * does not expose a browser CORS contract; the assertion is the request's
+ * authorization boundary.
  *
  * In production the payload comes from the manifest written at build time
  * (see ./manifest) — component sources are typically absent at runtime, and
@@ -72,7 +68,6 @@ export function createComponentMetadataHandler(
   options: ComponentMetadataHandlerOptions = {},
 ): {
   GET: (request: Request) => Promise<Response>;
-  OPTIONS: (request: Request) => Promise<Response>;
 } {
   const getConfig = options.config ?? (() => resolveDraftConfig());
   const isProduction = () =>
@@ -103,17 +98,6 @@ export function createComponentMetadataHandler(
         });
       }
 
-      const cors = resolveCorsHeaders(
-        request.headers.get('origin'),
-        config.embedderOrigins,
-      );
-      if (!cors.allowed) {
-        return json(403, {
-          error: 'origin_not_allowed',
-          message: 'This origin is not in the embedder allowlist.',
-        });
-      }
-
       const authorization = request.headers.get('authorization');
       const assertion = authorization?.match(/^Bearer\s+(\S+)$/i)?.[1] ?? null;
       if (!assertion) {
@@ -124,23 +108,19 @@ export function createComponentMetadataHandler(
             message:
               'Provide a Drupal preview assertion as a Bearer token. Assertions are single-use; mint a fresh one per request.',
           },
-          { ...cors.headers, 'WWW-Authenticate': 'Bearer' },
+          { 'WWW-Authenticate': 'Bearer' },
         );
       }
 
       const verification = await verifyAssertionByRedemption(assertion, config);
       if (!verification.ok) {
-        return json(
-          verification.status,
-          {
-            error:
-              verification.status === 502
-                ? 'drupal_unreachable'
-                : 'invalid_assertion',
-            message: verification.message,
-          },
-          cors.headers,
-        );
+        return json(verification.status, {
+          error:
+            verification.status === 502
+              ? 'drupal_unreachable'
+              : 'invalid_assertion',
+          message: verification.message,
+        });
       }
 
       let payload: ComponentMetadataPayload;
@@ -150,59 +130,30 @@ export function createComponentMetadataHandler(
             ? await options.loadManifest()
             : null;
           if (manifest === null) {
-            return json(
-              500,
-              {
-                error: 'manifest_missing',
-                message:
-                  'No component manifest found. Build the app with the Canvas integration enabled so the manifest is generated at build time.',
-              },
-              cors.headers,
-            );
+            return json(500, {
+              error: 'manifest_missing',
+              message:
+                'No component manifest found. Build the app with the Canvas integration enabled so the manifest is generated at build time.',
+            });
           }
           payload = manifest;
         } else if (options.scanComponents) {
           payload = await options.scanComponents();
         } else {
-          return json(
-            500,
-            {
-              error: 'configuration_error',
-              message:
-                'No component scanner is wired for development. Pass scanComponents to createComponentMetadataHandler().',
-            },
-            cors.headers,
-          );
+          return json(500, {
+            error: 'configuration_error',
+            message:
+              'No component scanner is wired for development. Pass scanComponents to createComponentMetadataHandler().',
+          });
         }
       } catch (error) {
-        return json(
-          500,
-          {
-            error: 'discovery_failed',
-            message: error instanceof Error ? error.message : String(error),
-          },
-          cors.headers,
-        );
+        return json(500, {
+          error: 'discovery_failed',
+          message: error instanceof Error ? error.message : String(error),
+        });
       }
 
-      return json(200, payload, cors.headers);
-    },
-
-    async OPTIONS(request: Request): Promise<Response> {
-      let embedderOrigins: string[];
-      try {
-        embedderOrigins = getConfig().embedderOrigins;
-      } catch {
-        embedderOrigins = [];
-      }
-      const cors = resolveCorsHeaders(
-        request.headers.get('origin'),
-        embedderOrigins,
-      );
-      return new Response(null, {
-        status: cors.allowed ? 204 : 403,
-        headers: { 'Cache-Control': 'no-store', ...cors.headers },
-      });
+      return json(200, payload);
     },
   };
 }

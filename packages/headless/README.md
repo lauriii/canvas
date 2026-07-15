@@ -47,7 +47,7 @@ The subpaths keep browser bundles free of Node-only code and vice versa:
   activation/renewal/exit flows, the RFC 7523 token exchange with its PKCE
   session proof (RFC 7636, binding in-place renewal to the app server), the
   draft-aware JSON:API client and rendered-content fetcher, the
-  proof-by-redemption request verifier, and CORS resolution.
+  proof-by-redemption request verifier, and session-aware CSP helpers.
 - `@drupal-canvas/headless/components-endpoint` — Node-only (component discovery
   reads the filesystem): the component metadata endpoint handler,
   `buildComponentMetadataPayload()` on top of `@drupal-canvas/discovery`, and
@@ -90,9 +90,9 @@ mostly wiring. The four in this repository are worked examples of every step.
 
 4. **Wire the client side**: render the `<canvas-draft-session>` element (or the
    React `<DraftSession>` from `@drupal-canvas/headless-react`) with the session
-   state your server gathered — token expiry, embedder origins, the renew URL.
-   It runs the renewal protocol with the embedding editor and drives the app's
-   session banner.
+   state your server gathered — token expiry, the exact editor origin derived
+   from the signed renewal URL, and the renewal URL itself. It runs the renewal
+   protocol with the embedding editor and drives the app's session banner.
 
 5. **Expose data access**: `server.getClient()` (draft-aware JSON:API) and
    `server.fetchPage()` (rendered content, resolved through Drupal's routing),

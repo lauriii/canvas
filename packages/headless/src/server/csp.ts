@@ -7,17 +7,37 @@
  * app, and discarding them would silently weaken its security posture.
  */
 
+import { getDraftEditorOrigin } from '../draft-data';
+
+import type { DraftData } from '../draft-data';
+
 /**
- * The frame-ancestors source list: 'self' (always allowed) plus the
- * origins from DRAFT_ALLOWED_FRAME_ANCESTORS, read per call so dev
- * servers pick up .env changes. Empty variable leaves a valid 'self'-only
- * list. ('none' cannot be combined with other sources, so it is not used
- * as the fallback.)
+ * The frame-ancestors source list: 'self' always, plus the exact editor
+ * origin from a draft session's signed renewal URL. Without a draft
+ * session, or when its URL is invalid, the policy remains 'self'-only.
+ * ('none' cannot be combined with other sources, so it is not used as the
+ * fallback.)
  */
-export function resolveFrameAncestors(): string {
-  const extraFrameAncestors =
-    process.env.DRAFT_ALLOWED_FRAME_ANCESTORS?.trim() ?? '';
-  return ["'self'", extraFrameAncestors].filter(Boolean).join(' ');
+export function resolveFrameAncestors(
+  draftData?: Pick<DraftData, 'renewUrl'> | null,
+): string {
+  return ["'self'", getDraftEditorOrigin(draftData)].filter(Boolean).join(' ');
+}
+
+/** Whether any policy already defines its own frame-ancestors directive. */
+export function hasFrameAncestors(
+  policies: string | ReadonlyArray<string> | null | undefined,
+): boolean {
+  const values = Array.isArray(policies) ? policies : [policies ?? ''];
+  return values.some((value) =>
+    String(value)
+      .split(',')
+      .some((policy) =>
+        policy
+          .split(';')
+          .some((part) => /^frame-ancestors(\s|$)/i.test(part.trim())),
+      ),
+  );
 }
 
 /**
@@ -27,14 +47,12 @@ export function resolveFrameAncestors(): string {
  *
  * CSP headers may repeat: multiple header fields, an array value (h3),
  * or one field carrying a comma-separated policy list all mean several
- * policies, each enforced independently. The merge therefore works per
- * policy: any existing frame-ancestors directive is removed from each
- * (embedder policy is this SDK's to own — framing is allowed only when
- * every policy that restricts it allows it, so a leftover stale
- * directive could veto the embedder), the remaining directives are kept
- * as their own policies, and the SDK's frame-ancestors is appended as
- * one more. Commas cannot appear inside directive values, so splitting
- * on them is safe.
+ * policies, each enforced independently. An application-owned
+ * frame-ancestors directive therefore remains authoritative: when one is
+ * present, this function returns the existing policies unchanged. When
+ * none is present, the SDK appends its directive as one more policy.
+ * Commas cannot appear inside directive values, so splitting on them is
+ * safe.
  *
  * Returns the policy list; single-header-line consumers join it with
  * ', ' (the standard serialization of repeated fields).
@@ -46,15 +64,12 @@ export function mergeFrameAncestors(
   const values = Array.isArray(existingPolicies)
     ? existingPolicies
     : [existingPolicies ?? ''];
-  const preserved = values
+  const policies = values
     .flatMap((value) => String(value).split(','))
-    .map((policy) =>
-      policy
-        .split(';')
-        .map((part) => part.trim())
-        .filter((part) => part !== '' && !/^frame-ancestors(\s|$)/i.test(part))
-        .join('; '),
-    )
+    .map((policy) => policy.trim())
     .filter((policy) => policy !== '');
-  return [...preserved, `frame-ancestors ${frameAncestors}`];
+  if (hasFrameAncestors(policies)) {
+    return policies;
+  }
+  return [...policies, `frame-ancestors ${frameAncestors}`];
 }

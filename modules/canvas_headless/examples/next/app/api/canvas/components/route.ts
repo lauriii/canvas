@@ -12,4 +12,4 @@ export const dynamic = "force-dynamic";
  * per request). In production this serves the manifest withCanvas() wrote
  * at build time; in development it scans the codebase live.
  */
-export const { GET, OPTIONS } = createComponentMetadataHandler();
+export const { GET } = createComponentMetadataHandler();

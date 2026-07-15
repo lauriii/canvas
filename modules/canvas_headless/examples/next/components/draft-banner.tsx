@@ -22,7 +22,7 @@ export function DraftBanner(props: {
   tokenExpiresAt: number | null;
   initialExpired: boolean;
   renewUrl: string | null;
-  embedderOrigins: string[];
+  editorOrigin: string | null;
 }) {
   return (
     <DraftSession {...props}>

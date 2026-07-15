@@ -8,11 +8,11 @@ import type { Plugin } from 'vite';
 
 /**
  * The environment variables the SDK reads through process.env (see
- * resolveDraftConfig() and the CSP middleware). Vite's own .env loading
+ * resolveDraftConfig()). Vite's own .env loading
  * targets import.meta.env, which the framework-agnostic core cannot read,
  * so the plugin bridges these keys across.
  */
-const ENV_KEYS = ['DRUPAL_BASE_URL', 'DRAFT_ALLOWED_FRAME_ANCESTORS'] as const;
+const ENV_KEYS = ['CANVAS_SITE_URL'] as const;
 
 /**
  * The virtual module createComponentMetadataHandlers() imports the
@@ -68,18 +68,6 @@ export function canvas(): Plugin {
 
     config() {
       return {
-        // Vite's dev-server CORS middleware answers cross-origin preflights
-        // itself, and its default origin policy (localhost-only) omits
-        // Access-Control-Allow-Origin for the embedding Drupal origin —
-        // the browser then fails the fetch before the component metadata
-        // route's own CORS handling (embedder-allowlist-gated) ever runs.
-        // Disabling it lets OPTIONS reach the route; Vite then adds no
-        // CORS headers of its own anywhere, so nothing else becomes
-        // cross-origin readable. Production has no Vite server and is
-        // unaffected.
-        server: {
-          cors: false,
-        },
         ssr: {
           noExternal: [...SDK_PACKAGES],
         },

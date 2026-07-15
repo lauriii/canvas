@@ -63,6 +63,32 @@ export interface DraftData {
 }
 
 /**
+ * Returns the exact editor origin carried by the redeemed assertion's
+ * signed renewal URL. Only HTTP(S) URLs without credentials are accepted.
+ */
+export function getDraftEditorOrigin(
+  draftData: Pick<DraftData, 'renewUrl'> | null | undefined,
+): string | null {
+  if (!draftData) {
+    return null;
+  }
+
+  try {
+    const renewUrl = new URL(draftData.renewUrl);
+    if (
+      (renewUrl.protocol !== 'http:' && renewUrl.protocol !== 'https:') ||
+      renewUrl.username !== '' ||
+      renewUrl.password !== ''
+    ) {
+      return null;
+    }
+    return renewUrl.origin;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * How much earlier than `tokenExpiresAt` a session counts as expired, so
  * nothing acts on a token that will be dead by the time a request reaches
  * Drupal. The client-side state machine applies the same slack, so the

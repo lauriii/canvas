@@ -30,6 +30,7 @@ export {
 
 // Core helpers and types app code commonly needs alongside the adapter.
 export {
+  getDraftEditorOrigin,
   getSessionToken,
   isDraftSessionExpired,
   type AccessToken,

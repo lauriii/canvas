@@ -12,7 +12,6 @@ import type { DraftCookie } from './cookies';
 
 const CONFIG: DraftConfig = {
   baseUrl: 'https://drupal.example',
-  embedderOrigins: ['https://drupal.example'],
 };
 
 const FLAG_COOKIE = '__test_bypass';

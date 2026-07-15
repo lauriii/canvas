@@ -55,8 +55,12 @@ import DraftSession from '@drupal-canvas/headless-astro/DraftSession.astro';
 </DraftSession>
 ```
 
-Environment: `DRUPAL_BASE_URL` (required) and `DRAFT_ALLOWED_FRAME_ANCESTORS`
-(the embedder origin allowlist).
+Environment: `CANVAS_SITE_URL` (required).
+
+The CSP is `'self'`-only without a draft session. During a draft session, it
+also admits the exact editor origin derived from the signed renewal URL. The
+same origin is the only `postMessage` peer. An application-defined
+`frame-ancestors` directive remains authoritative.
 
 Data access from app code: `getClient(Astro)` (draft-aware JSON:API client) and
 `fetchPage(Astro, path)` (rendered content, resolved through Drupal's routing),

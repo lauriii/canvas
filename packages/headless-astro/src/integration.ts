@@ -4,7 +4,6 @@ import {
   readComponentManifest,
   writeComponentManifest,
 } from '@drupal-canvas/headless/components-endpoint';
-import { parseEmbedderOrigins } from '@drupal-canvas/headless/server';
 
 import type { AstroIntegration } from 'astro';
 import type { Plugin as VitePlugin } from 'vite';
@@ -50,11 +49,11 @@ function manifestPlugin(
 
 /**
  * The environment variables the SDK reads through process.env (see
- * resolveDraftConfig() and the CSP middleware). Astro's own .env loading
+ * resolveDraftConfig()). Astro's own .env loading
  * targets import.meta.env, which the framework-agnostic core cannot read,
  * so the integration bridges these keys across.
  */
-const ENV_KEYS = ['DRUPAL_BASE_URL', 'DRAFT_ALLOWED_FRAME_ANCESTORS'] as const;
+const ENV_KEYS = ['CANVAS_SITE_URL'] as const;
 
 export interface CanvasIntegrationOptions {
   /**
@@ -77,8 +76,9 @@ export interface CanvasIntegrationOptions {
  *   /api/disable-draft) and the component metadata endpoint
  *   (/api/canvas/components). All are server-rendered
  *   (`prerender = false`), so they work from a fully static project too.
- * - Registers the CSP `frame-ancestors` middleware, restricting who may
- *   embed the app to DRAFT_ALLOWED_FRAME_ANCESTORS (plus 'self').
+ * - Registers the CSP `frame-ancestors` middleware. Responses are
+ *   'self'-only by default; draft sessions also admit the exact editor
+ *   origin from the signed renewal URL.
  * - Bundles the raw-TypeScript SDK packages into the SSR build
  *   (`vite.ssr.noExternal` — the Astro counterpart of Next.js's
  *   `transpilePackages`).
@@ -133,28 +133,8 @@ export function canvas(
           }
         }
 
-        // The embedding Drupal origin must be able to call the component
-        // metadata endpoint cross-origin in dev too: Astro's dev server
-        // blocks cross-site subresource requests (Sec-Fetch-Site) unless
-        // the Origin matches security.allowedDomains, so the embedder
-        // allowlist doubles as that list. (In production the endpoint's
-        // own CORS handling is the only gate.)
-        const embedderDomains = parseEmbedderOrigins(
-          process.env.DRAFT_ALLOWED_FRAME_ANCESTORS,
-        ).map((origin) => {
-          const url = new URL(origin);
-          return {
-            protocol: url.protocol.slice(0, -1),
-            hostname: url.hostname,
-            ...(url.port ? { port: url.port } : {}),
-          };
-        });
-
         const configRoot = fileURLToPath(config.root);
         updateConfig({
-          security: {
-            allowedDomains: embedderDomains,
-          },
           vite: {
             plugins: [
               manifestPlugin(() => ({
@@ -162,18 +142,6 @@ export function canvas(
                 projectRoot: projectRoot ?? configRoot,
               })),
             ],
-            // Vite's dev-server CORS middleware answers cross-origin
-            // preflights itself, and its default origin policy
-            // (localhost-only) omits Access-Control-Allow-Origin for the
-            // embedding Drupal origin — the browser then fails the fetch
-            // before the component metadata route's own CORS handling
-            // (embedder-allowlist-gated) ever runs. Disabling it lets
-            // OPTIONS reach the route; Vite then adds no CORS headers of
-            // its own anywhere, so nothing else becomes cross-origin
-            // readable. Production has no Vite server and is unaffected.
-            server: {
-              cors: false,
-            },
             ssr: {
               noExternal: [
                 '@drupal-canvas/headless',

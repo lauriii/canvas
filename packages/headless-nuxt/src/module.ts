@@ -50,8 +50,9 @@ export interface CanvasModuleOptions {
  *   /api/disable-draft, /api/draft/session) and the component metadata
  *   endpoint (/api/canvas/components).
  * - Merges the CSP `frame-ancestors` directive into every response,
- *   restricting who may embed the app to DRAFT_ALLOWED_FRAME_ANCESTORS
- *   (plus 'self') while preserving the app's own policy.
+ *   keeping responses 'self'-only by default and admitting the exact
+ *   editor origin from a draft session's signed renewal URL while
+ *   preserving the app's own policy.
  * - Registers the <DraftSession> component and teaches the Vue compiler
  *   about the SDK's <canvas-draft-session> custom element.
  * - Adds the raw-TypeScript SDK packages to the Vue and Nitro builds.
@@ -149,10 +150,9 @@ export default defineNuxtModule<CanvasModuleOptions>({
         method: 'post',
         handler: resolver.resolve('./runtime/server/routes/disable-draft'),
       });
-      // No method restriction: the handler answers the CORS preflight
-      // (OPTIONS) itself.
       addServerHandler({
         route: options.componentsRoutePath,
+        method: 'get',
         handler: resolver.resolve('./runtime/server/routes/components'),
       });
     }

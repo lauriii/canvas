@@ -134,9 +134,7 @@ export class DraftSessionElement extends BaseElement {
       initialExpired: this.#expired,
       embedded: this.#embedded,
       path: this.#path,
-      embedderOrigins: (this.getAttribute('embedder-origins') ?? '')
-        .split(/\s+/)
-        .filter(Boolean),
+      editorOrigin: this.getAttribute('editor-origin'),
       renewEndpoint: this.getAttribute('renew-endpoint') ?? undefined,
       onEvent: (event) => {
         if (event.type === 'renewed') {

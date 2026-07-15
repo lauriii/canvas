@@ -46,7 +46,7 @@ npm install
 npm run dev             # http://localhost:4321
 ```
 
-`DRUPAL_BASE_URL` uses DDEV's http URL because Node.js does not trust
+`CANVAS_SITE_URL` uses DDEV's http URL because Node.js does not trust
 DDEV's mkcert certificate by default. To use the https URL instead, run
 with `NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem"`.
 
@@ -84,17 +84,19 @@ register the app's components.
   deployed build. In development it scans the codebase live on every
   request.
 
-Try it against a running Drupal (the first request must come from a
-session holding `access canvas headless preview`):
+Drupal calls the endpoint server-to-server. For a manual check, first verify
+the unauthenticated response:
 
 ```bash
 # 401 without an assertion:
 curl -i http://localhost:4321/api/canvas/components
 ```
 
+Then mint a fresh assertion in the Drupal origin's browser console:
+
 ```js
-// Mint an assertion and call the endpoint (from the Drupal origin's
-// browser console, where the session cookie lives):
+// Run this in the Drupal origin's browser console, where the session cookie
+// lives.
 const csrf = await (await fetch('/session/token')).text();
 const { assertion } = await (
   await fetch('/canvas-headless/assertion?path=/', {
@@ -102,9 +104,12 @@ const { assertion } = await (
     headers: { 'X-CSRF-Token': csrf },
   })
 ).json();
-const registry = await (
-  await fetch('http://localhost:4321/api/canvas/components', {
-    headers: { Authorization: `Bearer ${assertion}` },
-  })
-).json();
+console.log(assertion);
+```
+
+Copy it immediately into a server-side request:
+
+```bash
+curl -i -H 'Authorization: Bearer <fresh-assertion>' \
+  http://localhost:4321/api/canvas/components
 ```
