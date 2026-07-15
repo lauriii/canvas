@@ -4,6 +4,7 @@ import {
   readComponentManifest,
   writeComponentManifest,
 } from '@drupal-canvas/headless/components-endpoint';
+import { resolveDraftConfig } from '@drupal-canvas/headless/server';
 import { canvasComponentRegistry } from '@drupal-canvas/headless/vite';
 
 import type { AstroIntegration } from 'astro';
@@ -122,6 +123,7 @@ export function canvas(
         updateConfig,
         config,
         command,
+        logger,
       }) => {
         // Vite's loadEnv merges the project's .env files with the actual
         // process environment, real environment variables winning — so
@@ -136,10 +138,31 @@ export function canvas(
             process.env[key] = env[key];
           }
         }
+        if (command === 'dev') {
+          try {
+            resolveDraftConfig();
+          } catch (error) {
+            logger.error(
+              error instanceof Error ? error.message : String(error),
+            );
+            throw error;
+          }
+        }
 
         const configRoot = fileURLToPath(config.root);
         updateConfig({
+          // Astro's dev server rejects cross-site subresource requests before
+          // routing. Let the browser reach the metadata handler in development;
+          // that route still owns CORS and binds authenticated responses to the
+          // editor origin in the accepted assertion. Production host validation
+          // remains unchanged.
+          ...(command === 'dev' ? { security: { allowedDomains: [{}] } } : {}),
           vite: {
+            // Vite's CORS middleware otherwise answers the authorization
+            // preflight before Astro routes it, using a localhost-only origin
+            // policy. The metadata endpoint must answer its own claim-bound
+            // CORS contract.
+            ...(command === 'dev' ? { server: { cors: false } } : {}),
             plugins: [
               canvasComponentRegistry(),
               manifestPlugin(() => ({

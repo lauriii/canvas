@@ -1,3 +1,5 @@
+import { decodeAssertionClaims } from '../assertion';
+import { getDraftEditorOrigin } from '../draft-data';
 import { resolveDraftConfig, verifyAssertionByRedemption } from '../server';
 
 import type { DraftConfig } from '../server';
@@ -46,16 +48,17 @@ export interface ComponentMetadataHandlerOptions {
 /**
  * The component metadata endpoint as framework-free fetch handlers
  * (Request → Response): GET answers the codebase's component registry to
- * the Drupal Canvas instance. Framework adapters mount it on their routing
- * systems.
+ * the Drupal Canvas instance, and OPTIONS answers the browser's CORS
+ * preflight. Framework adapters mount both on their routing systems.
  *
  * Protection is proof-by-redemption: the caller presents a Drupal-minted
  * preview assertion as a Bearer token, and the endpoint verifies it by
  * redeeming it at Drupal's own token endpoint — only the embedding Drupal
  * can mint one, assertions are single-use, and the minted access token is
- * discarded. The Drupal module calls this endpoint server-to-server, so it
- * does not expose a browser CORS contract; the assertion is the request's
- * authorization boundary.
+ * discarded. Drupal coordinates the request in the editor's browser so local
+ * frontends remain reachable. The authenticated response is CORS-readable
+ * only by the editor origin carried in the accepted assertion's signed
+ * renewUrl claim; no separate origin configuration is needed.
  *
  * In production the payload comes from the manifest written at build time
  * (see ./manifest) — component sources are typically absent at runtime, and
@@ -68,6 +71,7 @@ export function createComponentMetadataHandler(
   options: ComponentMetadataHandlerOptions = {},
 ): {
   GET: (request: Request) => Promise<Response>;
+  OPTIONS: (request: Request) => Promise<Response>;
 } {
   const getConfig = options.config ?? (() => resolveDraftConfig());
   const isProduction = () =>
@@ -86,16 +90,40 @@ export function createComponentMetadataHandler(
       headers: { 'Cache-Control': 'no-store', ...headers },
     });
 
+  const corsHeaders = (origin: string | null): Record<string, string> =>
+    origin === null
+      ? {}
+      : {
+          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Authorization',
+          'Access-Control-Max-Age': '3600',
+          Vary: 'Origin',
+        };
+
+  const assertionEditorOrigin = (assertion: string): string | null => {
+    const renewUrl = decodeAssertionClaims(assertion)?.renewUrl;
+    return typeof renewUrl === 'string'
+      ? getDraftEditorOrigin({ renewUrl })
+      : null;
+  };
+
   return {
     async GET(request: Request): Promise<Response> {
+      const origin = request.headers.get('origin');
+      const cors = corsHeaders(origin);
       let config: ReturnType<typeof getConfig>;
       try {
         config = getConfig();
       } catch (error) {
-        return json(500, {
-          error: 'configuration_error',
-          message: error instanceof Error ? error.message : String(error),
-        });
+        return json(
+          500,
+          {
+            error: 'configuration_error',
+            message: error instanceof Error ? error.message : String(error),
+          },
+          cors,
+        );
       }
 
       const authorization = request.headers.get('authorization');
@@ -108,19 +136,38 @@ export function createComponentMetadataHandler(
             message:
               'Provide a Drupal preview assertion as a Bearer token. Assertions are single-use; mint a fresh one per request.',
           },
-          { 'WWW-Authenticate': 'Bearer' },
+          { ...cors, 'WWW-Authenticate': 'Bearer' },
+        );
+      }
+
+      // Decode only to reject a mismatched browser origin before spending the
+      // single-use assertion. Redemption below remains the authorization and
+      // turns the same assertion's signed claim into trusted input.
+      if (origin !== null && assertionEditorOrigin(assertion) !== origin) {
+        return json(
+          403,
+          {
+            error: 'origin_not_allowed',
+            message:
+              'The request origin does not match the editor origin in the preview assertion.',
+          },
+          cors,
         );
       }
 
       const verification = await verifyAssertionByRedemption(assertion, config);
       if (!verification.ok) {
-        return json(verification.status, {
-          error:
-            verification.status === 502
-              ? 'drupal_unreachable'
-              : 'invalid_assertion',
-          message: verification.message,
-        });
+        return json(
+          verification.status,
+          {
+            error:
+              verification.status === 502
+                ? 'drupal_unreachable'
+                : 'invalid_assertion',
+            message: verification.message,
+          },
+          cors,
+        );
       }
 
       let payload: ComponentMetadataPayload;
@@ -130,30 +177,52 @@ export function createComponentMetadataHandler(
             ? await options.loadManifest()
             : null;
           if (manifest === null) {
-            return json(500, {
-              error: 'manifest_missing',
-              message:
-                'No component manifest found. Build the app with the Canvas integration enabled so the manifest is generated at build time.',
-            });
+            return json(
+              500,
+              {
+                error: 'manifest_missing',
+                message:
+                  'No component manifest found. Build the app with the Canvas integration enabled so the manifest is generated at build time.',
+              },
+              cors,
+            );
           }
           payload = manifest;
         } else if (options.scanComponents) {
           payload = await options.scanComponents();
         } else {
-          return json(500, {
-            error: 'configuration_error',
-            message:
-              'No component scanner is wired for development. Pass scanComponents to createComponentMetadataHandler().',
-          });
+          return json(
+            500,
+            {
+              error: 'configuration_error',
+              message:
+                'No component scanner is wired for development. Pass scanComponents to createComponentMetadataHandler().',
+            },
+            cors,
+          );
         }
       } catch (error) {
-        return json(500, {
-          error: 'discovery_failed',
-          message: error instanceof Error ? error.message : String(error),
-        });
+        return json(
+          500,
+          {
+            error: 'discovery_failed',
+            message: error instanceof Error ? error.message : String(error),
+          },
+          cors,
+        );
       }
 
-      return json(200, payload);
+      return json(200, payload, cors);
+    },
+
+    async OPTIONS(request: Request): Promise<Response> {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Cache-Control': 'no-store',
+          ...corsHeaders(request.headers.get('origin')),
+        },
+      });
     },
   };
 }

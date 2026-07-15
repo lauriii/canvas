@@ -37,7 +37,7 @@ export const Route = createFileRoute('/api/draft')({
 // src/routes/api/draft.renew.ts     -> draftRenew.POST
 // src/routes/api/disable-draft.ts   -> disableDraft.POST
 // src/routes/api/canvas.components.ts:
-//   const { GET } = createComponentMetadataHandlers();
+//   const { GET, OPTIONS } = createComponentMetadataHandlers();
 ```
 
 **3. src/start.ts** — the session-aware CSP `frame-ancestors` middleware:
@@ -73,7 +73,8 @@ the shared headless Vite registry, and the renderer consumes it automatically.
 During development, the registry updates when components are added, removed, or
 renamed, so the application does not maintain a registry manually.
 
-Environment: `CANVAS_SITE_URL` (required).
+Environment: `CANVAS_SITE_URL` (required). The development server fails at
+startup when it is missing.
 
 The CSP is `'self'`-only without a draft session. During a draft session, it
 also admits the exact editor origin derived from the signed renewal URL. The
@@ -105,6 +106,11 @@ cross-site (CHIPS) attributes as the session data cookie.
 `component.yml` under the `canvas.config.json` `componentDir`) in a versioned
 envelope; see `@drupal-canvas/headless/components-endpoint` for the payload
 shape and the proof-by-redemption protection.
+
+Drupal coordinates the request in the editor's browser so it can reach local
+frontends. `OPTIONS` allows the authorization preflight, and the authenticated
+response is exposed only to the editor origin carried in the assertion's signed
+renewal URL.
 
 In production the endpoint serves the manifest the canvas() plugin inlined into
 the server bundle at `vite build` (component sources are typically absent at

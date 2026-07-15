@@ -92,7 +92,9 @@ mostly wiring. The four in this repository are worked examples of every step.
    Nitro's `virtual`, Next.js env injection — the handler itself never touches
    the filesystem, so bundlers' file tracers have nothing to over-trace), and a
    `scanComponents` that runs `buildComponentMetadataPayload()` for
-   development's live scanning.
+   development's live scanning. Mount both its `GET` and `OPTIONS` handlers:
+   Drupal coordinates the authenticated metadata request in the editor's browser
+   so it can reach local frontends.
 
 4. **Provide the component implementation registry and tree renderer**:
    Vite-based adapters should register `canvasComponentRegistry()` from

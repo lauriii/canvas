@@ -29,11 +29,14 @@ const handler = createComponentMetadataHandler({
 
 export default defineEventHandler((event) => {
   const request = toWebRequest(event);
+  if (event.method === 'OPTIONS') {
+    return handler.OPTIONS(request);
+  }
   if (event.method === 'GET') {
     return handler.GET(request);
   }
   return new Response(null, {
     status: 405,
-    headers: { Allow: 'GET' },
+    headers: { Allow: 'GET, OPTIONS' },
   });
 });

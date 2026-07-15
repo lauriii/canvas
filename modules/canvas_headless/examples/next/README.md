@@ -78,16 +78,16 @@ register the app's components.
   serves that manifest in production — the registry describes the deployed
   build. In development it scans the codebase live on every request.
 
-Drupal calls the endpoint server-to-server. For a manual check, first verify
-the unauthenticated response:
+The Canvas editor fetches the endpoint in the browser so it can reach local
+frontends. First verify the unauthenticated response from the shell:
 
 ```bash
 # 401 without an assertion:
 curl -i http://localhost:3000/api/canvas/components
 ```
 
-Then mint a fresh assertion in the Drupal origin's browser console, where the
-session cookie lives:
+Then exercise the authenticated CORS request in the Drupal origin's browser
+console, where the session cookie lives:
 
 ```js
 const csrf = await (await fetch('/session/token')).text();
@@ -97,12 +97,10 @@ const { assertion } = await (
     headers: { 'X-CSRF-Token': csrf },
   })
 ).json();
-console.log(assertion);
-```
-
-Copy it immediately into a server-side request:
-
-```bash
-curl -i -H 'Authorization: Bearer <fresh-assertion>' \
-  http://localhost:3000/api/canvas/components
+const registry = await (
+  await fetch('http://localhost:3000/api/canvas/components', {
+    headers: { Authorization: `Bearer ${assertion}` },
+  })
+).json();
+console.log(registry);
 ```

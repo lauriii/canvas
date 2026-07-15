@@ -4,6 +4,7 @@ import { writeComponentManifest } from '@drupal-canvas/headless/components-endpo
 import {
   hasFrameAncestors,
   mergeFrameAncestors,
+  resolveDraftConfig,
   resolveFrameAncestors,
 } from '@drupal-canvas/headless/server';
 
@@ -127,6 +128,9 @@ export function withCanvas(
         ? await nextConfig(phase, context)
         : nextConfig;
     const projectRoot = path.resolve(options.projectRoot ?? process.cwd());
+    if (phase === PHASE_DEVELOPMENT_SERVER) {
+      resolveDraftConfig();
+    }
     const componentRegistryPath =
       await writeComponentRegistryModule(projectRoot);
     if (phase === PHASE_DEVELOPMENT_SERVER) {

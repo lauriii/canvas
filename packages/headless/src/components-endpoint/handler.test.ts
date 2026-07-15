@@ -46,6 +46,12 @@ function request(headers: Record<string, string> = {}): Request {
   return new Request('https://app.example/api/canvas/components', { headers });
 }
 
+function assertionForOrigin(origin: string): string {
+  const encode = (value: unknown) =>
+    Buffer.from(JSON.stringify(value)).toString('base64url');
+  return `${encode({ alg: 'RS256', typ: 'JWT' })}.${encode({ renewUrl: `${origin}/canvas-headless/renew` })}.signature`;
+}
+
 beforeEach(() => {
   verifyAssertionByRedemption.mockReset();
 });
@@ -59,11 +65,28 @@ describe('createComponentMetadataHandler', () => {
     expect(verifyAssertionByRedemption).not.toHaveBeenCalled();
   });
 
-  it('does not expose browser CORS headers', async () => {
+  it('exposes the assertion challenge to a browser readiness check', async () => {
     const { GET } = createComponentMetadataHandler({ config });
-    const response = await GET(request({ origin: 'https://browser.example' }));
+    const response = await GET(request({ origin: ORIGIN }));
     expect(response.status).toBe(401);
-    expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN);
+    expect(response.headers.get('WWW-Authenticate')).toBe('Bearer');
+  });
+
+  it('refuses a browser origin outside the assertion editor origin', async () => {
+    const assertion = assertionForOrigin(ORIGIN);
+    const { GET } = createComponentMetadataHandler({ config });
+    const response = await GET(
+      request({
+        origin: 'https://other.example',
+        authorization: `Bearer ${assertion}`,
+      }),
+    );
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({
+      error: 'origin_not_allowed',
+    });
+    expect(verifyAssertionByRedemption).not.toHaveBeenCalled();
   });
 
   it('passes a refused verification through', async () => {
@@ -95,6 +118,30 @@ describe('createComponentMetadataHandler', () => {
       components: Array<{ machineName: string }>;
     };
     expect(payload.components.map((c) => c.machineName)).toEqual(['hello']);
+  });
+
+  it('exposes metadata to the accepted assertion editor origin', async () => {
+    verifyAssertionByRedemption.mockResolvedValue({ ok: true });
+    const assertion = assertionForOrigin(ORIGIN);
+    const manifest = {
+      version: 1 as const,
+      components: [],
+      warnings: [],
+    };
+    const { GET } = createComponentMetadataHandler({
+      config,
+      isProduction: true,
+      loadManifest: async () => manifest,
+    });
+    const response = await GET(
+      request({
+        origin: ORIGIN,
+        authorization: `Bearer ${assertion}`,
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN);
+    expect(await response.json()).toEqual(manifest);
   });
 
   it('serves an injected manifest loader in production', async () => {
@@ -148,5 +195,24 @@ describe('createComponentMetadataHandler', () => {
     expect(await response.json()).toMatchObject({
       error: 'configuration_error',
     });
+  });
+
+  it('answers the browser authorization preflight', async () => {
+    const { OPTIONS } = createComponentMetadataHandler({ config });
+    const response = await OPTIONS(
+      request({
+        origin: ORIGIN,
+        'access-control-request-method': 'GET',
+        'access-control-request-headers': 'authorization',
+      }),
+    );
+    expect(response.status).toBe(204);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN);
+    expect(response.headers.get('Access-Control-Allow-Methods')).toBe(
+      'GET, OPTIONS',
+    );
+    expect(response.headers.get('Access-Control-Allow-Headers')).toBe(
+      'Authorization',
+    );
   });
 });
