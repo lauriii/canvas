@@ -115,7 +115,7 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
       $field_config = $field_name !== ''
         ? FieldConfig::loadByName($template->getTargetEntityTypeId(), $template->getTargetBundle(), $field_name)
         : NULL;
-      if ($field_config === NULL || $field_config->getType() !== ComponentTreeItem::PLUGIN_ID) {
+      if ($field_config?->getType() !== ComponentTreeItem::PLUGIN_ID) {
         $this->context->addViolation($constraint->missingFieldMessage, [
           '%field' => $field_name,
         ]);
