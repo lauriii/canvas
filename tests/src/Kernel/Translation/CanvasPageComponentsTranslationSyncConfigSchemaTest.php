@@ -53,7 +53,7 @@ final class CanvasPageComponentsTranslationSyncConfigSchemaTest extends CanvasKe
    * {@inheritdoc}
    */
   protected static $modules = [
-    ...CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
+    ...self::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
     'language',
     'content_translation',
   ];
