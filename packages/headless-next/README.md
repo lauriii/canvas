@@ -7,7 +7,7 @@ registers the app's components from.
 
 ## Setup
 
-Three pieces, all wiring:
+Four pieces, all wiring:
 
 **1. next.config.ts** — the config wrapper generates the component manifest at
 build time, transpiles the raw-TypeScript SDK packages, and sends a
@@ -60,6 +60,20 @@ export const { GET } = createComponentMetadataHandler();
 renders `<DraftSession>` from `@drupal-canvas/headless-next/client` with a
 render prop that owns the banner markup. The component runs the renewal protocol
 either way; the render prop is optional.
+
+**4. The component tree renderer** — pass the structured content returned by
+`fetchPage()` to `<CanvasComponentTree>`:
+
+```tsx
+import { CanvasComponentTree } from '@drupal-canvas/headless-next/CanvasComponentTree';
+
+<CanvasComponentTree tree={page.content} />;
+```
+
+`withCanvas()` generates a registry containing every discovered component
+implementation, and the renderer consumes it automatically. During development,
+the registry updates when components are added, removed, or renamed, so the
+application does not maintain a registry manually.
 
 Environment: `CANVAS_SITE_URL` (required).
 

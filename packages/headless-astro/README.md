@@ -11,7 +11,7 @@ prerendered; the SDK's own routes opt out of prerendering themselves.
 
 ## Setup
 
-Two pieces, all wiring:
+Three pieces, all wiring:
 
 **1. astro.config.mjs** — the integration injects the draft routes
 (`/api/draft`, `/api/draft/renew`, `/api/disable-draft`) and the component
@@ -54,6 +54,22 @@ import DraftSession from '@drupal-canvas/headless-astro/DraftSession.astro';
   </div>
 </DraftSession>
 ```
+
+**3. The component tree renderer** — pass the structured content returned by
+`fetchPage()` to `CanvasComponentTree.astro`:
+
+```astro
+---
+import CanvasComponentTree from '@drupal-canvas/headless-astro/CanvasComponentTree.astro';
+---
+
+<CanvasComponentTree tree={page.content} />
+```
+
+The Astro integration supplies every discovered component implementation through
+the shared headless Vite registry, and the renderer consumes it automatically.
+During development, the registry updates when components are added, removed, or
+renamed, so the application does not maintain a registry manually.
 
 Environment: `CANVAS_SITE_URL` (required).
 

@@ -20,6 +20,11 @@
       "import": "./src/config/index.ts",
       "types": "./src/config/index.ts",
       "default": "./src/config/index.ts"
+    },
+    "./CanvasComponentTree": {
+      "import": "./src/canvas-component-tree.tsx",
+      "types": "./src/canvas-component-tree.tsx",
+      "default": "./src/canvas-component-tree.tsx"
     }
   },
   "scripts": {

@@ -7,11 +7,15 @@ namespace Drupal\Tests\canvas_headless\Kernel;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas_headless\ExternalComponentSync;
+use Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter;
 use Drupal\Core\Config\ConfigCrudEvent;
 use Drupal\Core\Config\ConfigEvents;
 use Drupal\Core\Config\TypedConfigManagerInterface;
+use Drupal\custom_elements\CustomElement;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -32,6 +36,7 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     'user',
     'path_alias',
     'serialization',
+    'custom_elements',
     'consumers',
     'simple_oauth',
     'canvas_headless',
@@ -53,7 +58,7 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     $this->installConfig(['canvas_headless']);
 
     JavaScriptComponent::create([
-      'machineName' => 'localComponent',
+      'machineName' => 'cardWithSlot',
       'name' => 'Local component',
       'status' => TRUE,
       'props' => [],
@@ -91,7 +96,7 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     $this->container->get('event_dispatcher')->addListener(
       ConfigEvents::SAVE,
       static function (ConfigCrudEvent $event) use ($code_component_saves): void {
-        if ($event->getConfig()->getName() === 'canvas.js_component.baseAnchor') {
+        if ($event->getConfig()->getName() === 'canvas.js_component.heroBanner') {
           $code_component_saves->count++;
         }
       },
@@ -104,7 +109,7 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     self::assertCount(2, $result['warnings']);
     self::assertCount(2, $result['errors']);
 
-    $component = JavaScriptComponent::load('baseAnchor');
+    $component = JavaScriptComponent::load('heroBanner');
     self::assertInstanceOf(JavaScriptComponent::class, $component);
     self::assertSame('Original name', $component->label());
     self::assertTrue($component->status());
@@ -123,11 +128,86 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
         'examples' => [2],
       ],
     ], $component->getProps());
+    self::assertSame([
+      'content' => [
+        'title' => 'Content',
+      ],
+    ], $component->get('slots'));
     self::assertNull(JavaScriptComponent::load('invalidComponent'));
-    $first_version = Component::load('js.baseAnchor')?->getActiveVersion();
+    $first_version = Component::load('js.heroBanner')?->getActiveVersion();
     self::assertNotNull($first_version);
     self::assertSame(1, $code_component_saves->count);
 
+    // Drupal keeps app-owned components renderless, while the headless
+    // Custom Elements converter exposes their props, identity, and slots.
+    $canvas_component = Component::load('js.heroBanner');
+    self::assertInstanceOf(Component::class, $canvas_component);
+    $source = $canvas_component->getComponentSource();
+    self::assertInstanceOf(JsComponent::class, $source);
+    $build = $source->renderComponent([
+      JsComponent::EXPLICIT_INPUT_NAME => [
+        'anchorId' => new EvaluationResult('features'),
+        'level' => new EvaluationResult(3),
+      ],
+    ], $canvas_component->getSlotDefinitions(), 'component-uuid');
+    self::assertSame('', $build['#markup']);
+    $source->setSlots($build, [
+      'content' => [
+        JsComponent::EXTERNAL_RENDER_METADATA => [
+          'component_id' => 'js.child',
+          'component_uuid' => 'child-uuid',
+          'props' => ['label' => 'Nested component'],
+        ],
+        '#markup' => '',
+      ],
+    ]);
+    $converter = $this->container->get('custom_elements.canvas_render_converter');
+    self::assertInstanceOf(JsComponentCanvasRenderConverter::class, $converter);
+    $element = $converter->convertRenderArray([
+      '#type' => 'component_container',
+      '#component' => $build,
+      '#component_uuid' => 'component-uuid',
+    ]);
+    self::assertSame('js-herobanner', $element->getTag());
+    self::assertSame('features', $element->getAttribute('anchorId'));
+    self::assertSame(3, $element->getAttribute('level'));
+    self::assertSame('component-uuid', $element->getAttribute('canvasUuid'));
+    $slot = $element->getSlot('content');
+    self::assertInstanceOf(CustomElement::class, $slot['content'] ?? NULL);
+    self::assertSame('js-child', $slot['content']->getTag());
+    self::assertSame('child-uuid', $slot['content']->getAttribute('canvasUuid'));
+
+    // Standard JS components keep their Drupal implementation, but the
+    // headless converter represents their Astro islands as app-rendered
+    // Custom Elements without leaking island-only runtime props.
+    $element = $converter->convertRenderArray([
+      '#type' => 'component_container',
+      '#component' => [
+        '#type' => 'astro_island',
+        '#machine_name' => 'cardWithSlot',
+        '#uuid' => 'card-with-slot-uuid',
+        '#props' => [
+          'title' => 'Standard component',
+          'canvas_uuid' => 'card-with-slot-uuid',
+          'canvas_slot_ids' => [],
+          'canvas_is_preview' => FALSE,
+        ],
+      ],
+      '#component_uuid' => 'card-with-slot-uuid',
+    ]);
+    self::assertSame('js-cardwithslot', $element->getTag());
+    self::assertSame('Standard component', $element->getAttribute('title'));
+    self::assertSame('card-with-slot-uuid', $element->getAttribute('canvasUuid'));
+    self::assertNull($element->getAttribute('canvas_uuid'));
+    self::assertNull($element->getAttribute('canvas_slot_ids'));
+    self::assertNull($element->getAttribute('canvas_is_preview'));
+
+    // The payload's own warnings are surfaced in the Drupal log, and the
+    // duplicate HeroBanner definition is skipped: heroBanner keeps the name
+    // of the first definition in the payload (asserted above).
+    // Substitute only @-prefixed placeholders: the logger channel injects
+    // extra string context (channel, ip, referer, ...) whose bare keys would
+    // otherwise also be replaced wherever they appear in the message text.
     $logged_messages = \array_map(
       static fn(array $record): string => strtr($record[1], \array_filter(
         $record[2],
@@ -136,16 +216,16 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
       )),
       $logs->records,
     );
-    self::assertContains('The component metadata payload reported a warning (duplicate-machine-name): Duplicate machine name baseAnchor. [base-anchor-copy]', $logged_messages);
-    self::assertContains("Skipped a duplicate definition for the external component 'baseAnchor': the first definition in the payload wins.", $logged_messages);
+    self::assertContains('The component metadata payload reported a warning (duplicate-machine-name): Duplicate machine name heroBanner. [hero-banner-copy]', $logged_messages);
+    self::assertContains("Skipped a duplicate definition for the external component 'heroBanner': the first definition in the payload wins.", $logged_messages);
 
     $result = $synchronizer->synchronize(self::metadataPayload('Updated name', 'number'));
     self::assertSame(1, $result['updated']);
-    $component = JavaScriptComponent::load('baseAnchor');
+    $component = JavaScriptComponent::load('heroBanner');
     self::assertInstanceOf(JavaScriptComponent::class, $component);
     self::assertSame('Updated name', $component->label());
-    self::assertSame('Local component', JavaScriptComponent::load('localComponent')?->label());
-    $second_version = Component::load('js.baseAnchor')?->getActiveVersion();
+    self::assertSame('Local component', JavaScriptComponent::load('cardWithSlot')?->label());
+    $second_version = Component::load('js.heroBanner')?->getActiveVersion();
     self::assertNotNull($second_version);
     self::assertNotSame($first_version, $second_version);
     self::assertSame(2, $code_component_saves->count);
@@ -156,10 +236,10 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
 
     // Recreate the Component config entity paired with an unchanged external
     // component when it is missing.
-    Component::load('js.baseAnchor')?->delete();
+    Component::load('js.heroBanner')?->delete();
     $result = $synchronizer->synchronize(self::metadataPayload('Updated name', 'number'));
     self::assertSame(1, $result['updated']);
-    self::assertInstanceOf(Component::class, Component::load('js.baseAnchor'));
+    self::assertInstanceOf(Component::class, Component::load('js.heroBanner'));
     self::assertSame(3, $code_component_saves->count);
   }
 
@@ -171,7 +251,7 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
       'version' => 1,
       'components' => [
         [
-          'machineName' => 'baseAnchor',
+          'machineName' => 'heroBanner',
           'name' => $name,
           'status' => TRUE,
           'required' => ['anchorId'],
@@ -190,8 +270,12 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
               'unsupported' => 'drop me',
             ],
           ],
-          'slots' => [],
-          'relativeDirectory' => 'base-anchor',
+          'slots' => [
+            'content' => [
+              'title' => 'Content',
+            ],
+          ],
+          'relativeDirectory' => 'hero-banner',
         ],
         [
           'machineName' => 'invalidComponent',
@@ -209,31 +293,31 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
           'relativeDirectory' => 'invalid-component',
         ],
         [
-          'machineName' => 'localComponent',
+          'machineName' => 'cardWithSlot',
           'name' => 'Remote component',
           'status' => TRUE,
           'required' => [],
           'props' => [],
           'slots' => [],
-          'relativeDirectory' => 'local-component',
+          'relativeDirectory' => 'card-with-slot',
         ],
-        // Collides with baseAnchor after lcfirst() normalization: the first
+        // Collides with heroBanner after lcfirst() normalization: the first
         // definition in the payload wins, this one is skipped.
         [
-          'machineName' => 'BaseAnchor',
+          'machineName' => 'HeroBanner',
           'name' => 'Duplicate definition',
           'status' => TRUE,
           'required' => [],
           'props' => [],
           'slots' => [],
-          'relativeDirectory' => 'base-anchor-copy',
+          'relativeDirectory' => 'hero-banner-copy',
         ],
       ],
       'warnings' => [
         [
           'code' => 'duplicate-machine-name',
-          'message' => 'Duplicate machine name baseAnchor.',
-          'path' => 'base-anchor-copy',
+          'message' => 'Duplicate machine name heroBanner.',
+          'path' => 'hero-banner-copy',
         ],
       ],
     ];

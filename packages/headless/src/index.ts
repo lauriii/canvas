@@ -33,3 +33,13 @@ export {
 } from './draft-data';
 export { decodeAssertionClaims } from './assertion';
 export { getSessionToken, type AccessToken } from './token';
+export {
+  CANVAS_COMPONENT_UUID_PROP,
+  componentElementFromName,
+  componentNameFromElement,
+  findCanvasComponent,
+  getCanvasComponentRenderData,
+  normalizeCanvasComponentTreeSlot,
+  reportMissingCanvasComponent,
+  type CanvasComponentRenderData,
+} from './render';

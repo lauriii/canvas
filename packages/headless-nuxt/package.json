@@ -40,6 +40,11 @@
       "import": "./src/runtime/server/routes/components.ts",
       "types": "./src/runtime/server/routes/components.ts",
       "default": "./src/runtime/server/routes/components.ts"
+    },
+    "./CanvasComponentTree": {
+      "import": "./src/runtime/components/CanvasComponentTree.ts",
+      "types": "./src/runtime/components/CanvasComponentTree.ts",
+      "default": "./src/runtime/components/CanvasComponentTree.ts"
     }
   },
   "scripts": {

@@ -29,9 +29,10 @@ export {
 export { getDraftClient, getPublicClient } from './json-api-client';
 export {
   fetchPage,
+  type CanvasComponentTreeElement,
+  type CanvasComponentTreeSlot,
   type JsonValue,
   type Page,
-  type PageElement,
 } from './content-api';
 export {
   verifyAssertionByRedemption,

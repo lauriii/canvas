@@ -4,6 +4,7 @@ import {
   readComponentManifest,
   writeComponentManifest,
 } from '@drupal-canvas/headless/components-endpoint';
+import { canvasComponentRegistry } from '@drupal-canvas/headless/vite';
 
 import type { AstroIntegration } from 'astro';
 import type { Plugin as VitePlugin } from 'vite';
@@ -27,6 +28,7 @@ function manifestPlugin(
 ): VitePlugin {
   return {
     name: '@drupal-canvas/headless-astro:manifest',
+    enforce: 'pre',
     resolveId(id) {
       return id === MANIFEST_VIRTUAL_ID
         ? RESOLVED_MANIFEST_VIRTUAL_ID
@@ -90,6 +92,8 @@ export interface CanvasIntegrationOptions {
  *   manifest, so the registry always describes the deployed build and no
  *   file outside `dist/` is needed at runtime. A malformed component.yml
  *   fails the build; a broken registry never ships silently.
+ * - Registers the shared Vite component implementation registry, which updates
+ *   when local components are added, removed, or renamed during development.
  *
  * ```ts
  * // astro.config.mjs
@@ -137,6 +141,7 @@ export function canvas(
         updateConfig({
           vite: {
             plugins: [
+              canvasComponentRegistry(),
               manifestPlugin(() => ({
                 isDev: command === 'dev',
                 projectRoot: projectRoot ?? configRoot,

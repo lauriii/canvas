@@ -7,7 +7,7 @@ the app's components from.
 
 ## Setup
 
-Two pieces, all wiring:
+Three pieces, all wiring:
 
 **1. nuxt.config.ts** — the module mounts the draft routes (`/api/draft`,
 `/api/draft/renew`, `/api/disable-draft`, `/api/draft/session`) and the
@@ -41,6 +41,18 @@ visibility of the marked children:
   </div>
 </DraftSession>
 ```
+
+**3. The component tree renderer** — pass the structured content returned by
+`fetchPage()` to the globally registered `<CanvasComponentTree>`:
+
+```vue
+<CanvasComponentTree :tree="page.content" />
+```
+
+The Nuxt module supplies every discovered component implementation through the
+shared headless Vite registry, and the renderer consumes it automatically.
+During development, the registry updates when components are added, removed, or
+renamed, so the application does not maintain a registry manually.
 
 Environment: `CANVAS_SITE_URL` (required).
 

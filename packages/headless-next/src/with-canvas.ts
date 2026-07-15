@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { DRAFT_DATA_COOKIE_NAME } from '@drupal-canvas/headless';
 import { writeComponentManifest } from '@drupal-canvas/headless/components-endpoint';
 import {
@@ -6,12 +7,18 @@ import {
   resolveFrameAncestors,
 } from '@drupal-canvas/headless/server';
 
+import { writeComponentRegistryModule } from './component-registry';
+import { watchComponentRegistry } from './component-registry-watcher';
+
 import type { NextConfig } from 'next';
 
 // Mirrors PHASE_PRODUCTION_BUILD from next/constants without importing it:
 // the value is a stable public constant, and next/constants has no exports
 // map entry resolvable from a raw-TS package in every consumer setup.
 const PHASE_PRODUCTION_BUILD = 'phase-production-build';
+const PHASE_DEVELOPMENT_SERVER = 'phase-development-server';
+const COMPONENTS_MODULE_ID =
+  '@drupal-canvas/headless-next-generated-components';
 const CSP_HEADER = 'content-security-policy';
 
 // Next.js header rules can capture a named group from a cookie and insert it
@@ -92,6 +99,8 @@ export const MANIFEST_ENV_VARIABLE = 'CANVAS_COMPONENT_MANIFEST_JSON';
  *   outside the build output is needed at runtime. A malformed
  *   component.yml fails the build; a broken registry never ships
  *   silently.
+ * - Watches local component definitions in development and updates the
+ *   generated implementation registry when components are added or removed.
  * - Adds the SDK packages to `transpilePackages` (they ship raw
  *   TypeScript).
  * - Sends a `Content-Security-Policy: frame-ancestors` header. Responses
@@ -117,13 +126,23 @@ export function withCanvas(
       typeof nextConfig === 'function'
         ? await nextConfig(phase, context)
         : nextConfig;
+    const projectRoot = path.resolve(options.projectRoot ?? process.cwd());
+    const componentRegistryPath =
+      await writeComponentRegistryModule(projectRoot);
+    if (phase === PHASE_DEVELOPMENT_SERVER) {
+      watchComponentRegistry(projectRoot);
+    }
+    const turbopackComponentRegistryPath = `./${path
+      .relative(projectRoot, componentRegistryPath)
+      .split(path.sep)
+      .join('/')}`;
 
     if (
       phase === PHASE_PRODUCTION_BUILD &&
       !process.env[MANIFEST_ENV_VARIABLE]
     ) {
       const manifest = await writeComponentManifest({
-        projectRoot: options.projectRoot,
+        projectRoot,
       });
       // Set only after the write succeeded: a failed generation must not
       // be skipped on the next config evaluation.
@@ -198,10 +217,32 @@ export function withCanvas(
         ...mergedUserRules,
       ];
     };
+    const userWebpack = config.webpack;
+    const webpack: NonNullable<NextConfig['webpack']> = (
+      webpackConfig,
+      webpackOptions,
+    ) => {
+      const resolvedConfig = userWebpack
+        ? userWebpack(webpackConfig, webpackOptions)
+        : webpackConfig;
+      resolvedConfig.resolve ??= {};
+      resolvedConfig.resolve.alias = {
+        ...(resolvedConfig.resolve.alias ?? {}),
+        [COMPONENTS_MODULE_ID]: componentRegistryPath,
+      };
+      return resolvedConfig;
+    };
 
     return {
       ...config,
       transpilePackages,
+      turbopack: {
+        ...config.turbopack,
+        resolveAlias: {
+          ...config.turbopack?.resolveAlias,
+          [COMPONENTS_MODULE_ID]: turbopackComponentRegistryPath,
+        },
+      },
       env: {
         ...config.env,
         // Present on build-phase evaluations; undefined in dev, where the
@@ -211,6 +252,7 @@ export function withCanvas(
           : {}),
       },
       headers,
+      webpack,
     };
   };
 }

@@ -1,0 +1,15 @@
+<script setup lang="ts">
+defineProps<{
+  value: string;
+  label: string;
+  detail?: string;
+}>();
+</script>
+
+<template>
+  <article class="rounded-2xl border border-cyan-400/20 bg-slate-900 p-6">
+    <p class="text-4xl font-bold text-cyan-300">{{ value }}</p>
+    <h2 class="mt-2 text-lg font-semibold text-white">{{ label }}</h2>
+    <p v-if="detail" class="mt-2 leading-6 text-slate-400">{{ detail }}</p>
+  </article>
+</template>

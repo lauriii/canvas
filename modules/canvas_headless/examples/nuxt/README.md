@@ -11,8 +11,10 @@ the module's draft-preview authentication end to end:
   sessions see working copies), fetched through the app's own server
   route (`server/api/content.get.ts`) where the session cookies live.
 - Every other path resolves through Drupal's routing via the SDK's
-  `fetchPage()` (proxied by `server/api/page/[...path].get.ts`) and renders
-  the returned data.
+  `fetchPage()` (proxied by `server/api/page/[...path].get.ts`).
+  `<CanvasComponentTree>` recursively renders the returned tree using every
+  local component implementation discovered by the SDK. Adding or removing a
+  component updates the registry without restarting `nuxt dev`.
 - The session renews in place over an origin-checked postMessage protocol
   with the embedding Canvas editor. A Nitro-rendered page has no
   Next.js-style server refresh, so the SDK's `<canvas-draft-session>`
@@ -23,8 +25,8 @@ the module's draft-preview authentication end to end:
 - Exiting draft mode is a `POST`, submitted by a form in the banner: it
   clears the session cookies, and a `GET` link to it would be eligible for
   prefetching.
-- `/api/canvas/components` exposes the app's component registry (one demo
-  component, `components/canvas/hello-card` — a `.vue` entry) to the
+- `/api/canvas/components` exposes the app's component registry (every
+  component under `components/canvas`) to the
   embedding Drupal Canvas site, protected by proof-by-redemption.
 
 The Drupal Canvas Headless SDK lives in the workspace packages

@@ -41,7 +41,8 @@
       "types": "./src/routes/components.ts",
       "default": "./src/routes/components.ts"
     },
-    "./DraftSession.astro": "./src/components/DraftSession.astro"
+    "./DraftSession.astro": "./src/components/DraftSession.astro",
+    "./CanvasComponentTree.astro": "./src/components/CanvasComponentTree.astro"
   },
   "scripts": {
     "type-check": "astro check --tsconfig ./tsconfig.json && tsc --noEmit --pretty"

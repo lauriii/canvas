@@ -53,6 +53,12 @@ The subpaths keep browser bundles free of Node-only code and vice versa:
   `buildComponentMetadataPayload()` on top of `@drupal-canvas/discovery`, and
   the build-time component manifest (`writeComponentManifest()` /
   `readComponentManifest()`).
+- `@drupal-canvas/headless/component-registry` — Node-only: generates static
+  component implementation registry source. Framework adapters can expose it
+  through a virtual module or write it to a file.
+- `@drupal-canvas/headless/vite` — Node-only: shared component registry
+  implementation for framework adapters using Vite. It uses a virtual module
+  with automatic refreshes during development.
 
 ## Writing a framework adapter
 
@@ -88,13 +94,27 @@ mostly wiring. The four in this repository are worked examples of every step.
    `scanComponents` that runs `buildComponentMetadataPayload()` for
    development's live scanning.
 
-4. **Wire the client side**: render the `<canvas-draft-session>` element (or the
+4. **Provide the component implementation registry and tree renderer**:
+   Vite-based adapters should register `canvasComponentRegistry()` from
+   `@drupal-canvas/headless/vite`. It supplies
+   `virtual:@drupal-canvas/headless/components` and refreshes it when components
+   are added, removed, renamed, or reconfigured. Other adapters can generate
+   registry source with `buildComponentRegistryModule()` from
+   `@drupal-canvas/headless/component-registry`; the adapter owns where that
+   source is written and how it is refreshed.
+
+   Expose a framework-specific `CanvasComponentTree` that consumes the registry
+   and recursively renders the Custom Elements tree returned by `fetchPage()`.
+   It should resolve implementations by component machine name, pass props,
+   render named slots recursively, and insert trusted Drupal markup nodes.
+
+5. **Wire the client side**: render the `<canvas-draft-session>` element (or the
    React `<DraftSession>` from `@drupal-canvas/headless-react`) with the session
    state your server gathered — token expiry, the exact editor origin derived
    from the signed renewal URL, and the renewal URL itself. It runs the renewal
    protocol with the embedding editor and drives the app's session banner.
 
-5. **Expose data access**: `server.getClient()` (draft-aware JSON:API) and
+6. **Expose data access**: `server.getClient()` (draft-aware JSON:API) and
    `server.fetchPage()` (rendered content, resolved through Drupal's routing),
    surfaced however your framework reaches per-request state.
 

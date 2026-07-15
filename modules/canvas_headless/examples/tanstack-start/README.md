@@ -12,7 +12,9 @@ demonstrating the module's draft-preview authentication end to end:
   (`src/server/canvas.ts`) where the session cookies live — loaders are
   isomorphic and never touch the session directly.
 - Every other path resolves through Drupal's routing via the SDK's
-  `fetchPage()` and renders the returned data.
+  `fetchPage()`. `<CanvasComponentTree>` recursively renders the returned tree
+  using every local component implementation discovered by the SDK. Adding or
+  removing a component updates the registry without restarting the Vite server.
 - The session renews in place over an origin-checked postMessage protocol
   with the embedding Canvas editor. No server refresh is wired: the shared
   React component re-arms from the renew endpoint's `{tokenExpiresAt}`
@@ -22,8 +24,8 @@ demonstrating the module's draft-preview authentication end to end:
 - Exiting draft mode is a `POST`, submitted by a form in the banner: it
   clears the session cookies, and a `GET` link to it would be eligible for
   prefetching.
-- `/api/canvas/components` exposes the app's component registry (one demo
-  component, `components/canvas/hello-card`) to the embedding Drupal
+- `/api/canvas/components` exposes the app's component registry (every
+  component under `components/canvas`) to the embedding Drupal
   Canvas site, protected by proof-by-redemption.
 
 The draft SDK lives in the workspace packages `@drupal-canvas/headless`

@@ -3,6 +3,7 @@ import {
   readComponentManifest,
   writeComponentManifest,
 } from '@drupal-canvas/headless/components-endpoint';
+import { canvasComponentRegistry } from '@drupal-canvas/headless/vite';
 
 import type { Plugin } from 'vite';
 
@@ -49,6 +50,8 @@ const SDK_PACKAGES = [
  *   describes the deployed build and the built output is self-contained.
  *   A malformed component.yml fails the build; a broken registry never
  *   ships silently.
+ * - Registers the shared Vite component implementation registry, which updates
+ *   when local components are added, removed, or renamed during development.
  *
  * ```ts
  * // vite.config.ts
@@ -58,13 +61,18 @@ const SDK_PACKAGES = [
  * });
  * ```
  */
-export function canvas(): Plugin {
+export function canvas(): Plugin[] {
+  return [canvasComponentRegistry(), canvasTanStackStart()];
+}
+
+function canvasTanStackStart(): Plugin {
   let projectRoot = process.cwd();
   let isDev = false;
   let manifestWritten = false;
 
   return {
     name: '@drupal-canvas/headless-tanstack-start',
+    enforce: 'pre',
 
     config() {
       return {
