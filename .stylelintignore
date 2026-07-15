@@ -10,3 +10,5 @@ modules/canvas_headless/examples/**/.astro/**
 modules/canvas_headless/examples/**/.nuxt/**
 modules/canvas_headless/examples/**/.output/**
 modules/canvas_headless/examples/**/.next/**
+# Example app styles are checked by their framework-specific toolchains.
+modules/canvas_headless/examples/**/*.css

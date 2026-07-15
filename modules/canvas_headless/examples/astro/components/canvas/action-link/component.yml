@@ -1,0 +1,22 @@
+name: Action Link
+machineName: action-link
+status: true
+required:
+  - label
+  - href
+props:
+  properties:
+    label:
+      type: string
+      title: Label
+      description: Text displayed inside the link.
+      examples:
+        - Open the Canvas editor
+    href:
+      type: string
+      format: uri-reference
+      title: URL
+      description: An absolute or site-relative destination.
+      examples:
+        - /canvas
+slots: {  }

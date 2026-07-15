@@ -31,8 +31,9 @@ export {
   type DraftData,
 } from '@drupal-canvas/headless';
 export type {
+  CanvasComponentTreeElement,
+  CanvasComponentTreeSlot,
   Page,
-  PageElement,
   DraftConfig,
   DraftServer,
 } from '@drupal-canvas/headless/server';

@@ -1,0 +1,28 @@
+---
+import CanvasElement from './CanvasElement.astro';
+
+import type { CanvasComponentTreeElement } from '@drupal-canvas/headless/server';
+
+interface Props {
+  name: string;
+  children: Array<string | CanvasComponentTreeElement>;
+  components: Record<string, unknown>;
+  path: string;
+}
+
+const { name, children, components, path } = Astro.props;
+---
+
+{
+  children.map((child, index) =>
+    typeof child === 'string' ? (
+      <Fragment set:html={child} />
+    ) : (
+      <CanvasElement
+        node={child}
+        components={components}
+        path={`${path}:${name}:${index}`}
+      />
+    ),
+  )
+}

@@ -57,6 +57,7 @@ class PreviewAssertionGrantTest extends AuthorizedRequestBase {
    */
   protected static $modules = [
     ...CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
+    'custom_elements',
     'canvas_headless',
   ];
 

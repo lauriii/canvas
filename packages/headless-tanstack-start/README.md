@@ -7,7 +7,7 @@ endpoint Drupal Canvas registers the app's components from.
 
 ## Setup
 
-Four pieces, all wiring:
+Five pieces, all wiring:
 
 **1. vite.config.ts** — the canvas() plugin compiles the raw-TypeScript SDK
 packages into the SSR build, bridges the SDK's `.env` keys into `process.env`,
@@ -58,6 +58,20 @@ component renders `<DraftSession>` from
 `@drupal-canvas/headless-tanstack-start/client` with a render prop that owns the
 banner markup. The component runs the renewal protocol either way; the render
 prop is optional.
+
+**5. The component tree renderer** — pass the structured content returned by
+`fetchPage()` to `<CanvasComponentTree>`:
+
+```tsx
+import { CanvasComponentTree } from '@drupal-canvas/headless-tanstack-start/CanvasComponentTree';
+
+<CanvasComponentTree tree={page.content} />;
+```
+
+The `canvas()` plugin supplies every discovered component implementation through
+the shared headless Vite registry, and the renderer consumes it automatically.
+During development, the registry updates when components are added, removed, or
+renamed, so the application does not maintain a registry manually.
 
 Environment: `CANVAS_SITE_URL` (required).
 

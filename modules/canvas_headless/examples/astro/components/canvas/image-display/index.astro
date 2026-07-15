@@ -1,0 +1,22 @@
+---
+interface CanvasImage {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+}
+
+interface Props {
+  image: CanvasImage;
+}
+
+const { image } = Astro.props;
+---
+
+<img
+  class="h-auto w-full rounded-2xl md:col-span-2"
+  src={image.src}
+  alt={image.alt}
+  width={image.width}
+  height={image.height}
+/>

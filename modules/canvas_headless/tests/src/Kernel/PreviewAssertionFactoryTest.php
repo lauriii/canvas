@@ -33,6 +33,7 @@ class PreviewAssertionFactoryTest extends CanvasKernelTestBase {
     'serialization',
     'consumers',
     'simple_oauth',
+    'custom_elements',
     'canvas_headless',
   ];
 

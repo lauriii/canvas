@@ -2,10 +2,12 @@ import {
   readComponentManifest,
   writeComponentManifest,
 } from '@drupal-canvas/headless/components-endpoint';
+import { canvasComponentRegistry } from '@drupal-canvas/headless/vite';
 import {
   addComponent,
   addServerHandler,
   addServerPlugin,
+  addVitePlugin,
   createResolver,
   defineNuxtModule,
 } from '@nuxt/kit';
@@ -61,6 +63,8 @@ export interface CanvasModuleOptions {
  *   manifest, so the registry always describes the deployed build. A
  *   malformed component.yml fails the build; a broken registry never
  *   ships silently.
+ * - Registers the shared Vite component implementation registry, which updates
+ *   when local components are added, removed, or renamed during development.
  *
  * ```ts
  * // nuxt.config.ts
@@ -122,6 +126,13 @@ export default defineNuxtModule<CanvasModuleOptions>({
       name: 'DraftSession',
       filePath: resolver.resolve('./runtime/components/DraftSession.vue'),
     });
+    addComponent({
+      name: 'CanvasComponentTree',
+      filePath: resolver.resolve('./runtime/components/CanvasComponentTree.ts'),
+    });
+    addVitePlugin(
+      canvasComponentRegistry({ projectRoot: nuxt.options.rootDir }),
+    );
 
     addServerPlugin(resolver.resolve('./runtime/server/plugins/csp'));
 

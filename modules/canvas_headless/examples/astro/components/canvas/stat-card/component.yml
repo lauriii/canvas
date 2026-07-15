@@ -1,0 +1,27 @@
+name: Stat Card
+machineName: stat-card
+status: true
+required:
+  - value
+  - label
+props:
+  properties:
+    value:
+      type: string
+      title: Value
+      description: The primary value displayed by the card.
+      examples:
+        - '100%'
+    label:
+      type: string
+      title: Label
+      description: A short label explaining the value.
+      examples:
+        - Server rendered
+    detail:
+      type: string
+      title: Detail
+      description: Optional supporting text.
+      examples:
+        - Registry props reached the Astro component.
+slots: {  }
