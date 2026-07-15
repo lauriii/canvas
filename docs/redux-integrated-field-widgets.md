@@ -1,5 +1,16 @@
 # Drupal Canvas's Redux-integrated field widgets
 
+> **Scope: this document describes the escape-hatch path.** By default, component props render natively as
+> client-side React widgets, without a server-built Drupal form — see the
+> [Client-side widgets](client-side-widgets.md) guide and [ADR-0017](adr/0017-client-side-field-widgets.md). The
+> Redux-integrated server-form infrastructure documented here remains in use for: props whose configured widget has
+> no registered client counterpart (rendered as per-prop form islands), widgets disabled via `canvas.settings`
+> `prop_forms.disabled_widgets`, Form API-based component sources (Blocks, Personalization, Fallback), content
+> templates, and site-wide when the kill switch is on (`prop_forms.native: false`). The `canvas.transforms`
+> metadata requirement on widget plugins (section [3.4](#34-transforms)) stays in place — including for widgets
+> that have native counterparts — because it is what keeps the escape hatch and the kill switch working for every
+> configured widget.
+
 In the rest of this document, `Drupal Canvas` will be written as `Canvas`.
 
 ## Finding issues 🐛, code 🤖 & people 👯‍♀️

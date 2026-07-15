@@ -1264,3 +1264,28 @@ plugin.plugin_configuration.search_api_processor.canvas_component_tree_inputs:
       sequence:
         type: string
         label: 'Prop name'
+
+canvas.settings:
+  type: config_object
+  label: 'Drupal Canvas settings'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    prop_forms:
+      type: mapping
+      label: 'Component prop form rendering'
+      mapping:
+        native:
+          type: boolean
+          label: 'Render prop forms natively (client-side); FALSE forces server-built Drupal forms for all props'
+        disabled_widgets:
+          type: sequence
+          label: 'Field widget plugin ids excluded from native rendering'
+          orderby: value
+          sequence:
+            type: string
+            label: 'Field widget plugin id'
+            constraints:
+              PluginExists:
+                manager: plugin.manager.field.widget
+                interface: '\Drupal\Core\Field\WidgetInterface'

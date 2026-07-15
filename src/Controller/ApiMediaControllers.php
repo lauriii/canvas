@@ -10,9 +10,12 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\file\FileInterface;
 use Drupal\file\Upload\FileUploadHandlerInterface;
 use Drupal\file\Upload\FileUploadLocationTrait;
 use Drupal\file\Upload\FormUploadedFile;
+use Drupal\image\ImageStyleInterface;
 use Drupal\media\MediaInterface;
 use Drupal\media\MediaTypeInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -32,11 +35,164 @@ final class ApiMediaControllers extends ApiControllerBase {
 
   use FileUploadLocationTrait;
 
+  /**
+   * The number of media items per page in ::list().
+   */
+  private const int PER_PAGE = 24;
+
+  /**
+   * The maximum number of query chunks ::list() scans to fill one page.
+   *
+   * Bounds the work done when per-entity access denies many entities that
+   * query-level access allowed; if the cap is hit, the page is returned
+   * short.
+   */
+  private const int MAX_SCANNED_CHUNKS = 4;
+
+  /**
+   * The image style used for browse thumbnails in ::list().
+   *
+   * Hardcoded v1 decision: the `medium` style ships with the `image` module
+   * (a Canvas dependency), so it exists on install; it is also what core's
+   * Media Library uses for its grid thumbnails.
+   */
+  private const string THUMBNAIL_IMAGE_STYLE = 'medium';
+
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly FileUploadHandlerInterface $fileUploadHandler,
     private readonly FileSystemInterface $fileSystem,
+    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
   ) {}
+
+  /**
+   * Lists media entities of a media type, for the native media browse widget.
+   *
+   * Query parameters:
+   * - search: filters on the media label (CONTAINS).
+   * - page: 0-based page number, 24 items per page.
+   * - ids: comma-separated media entity IDs; when present, exactly those
+   *   entities of this bundle are returned, without paging.
+   */
+  public function list(MediaTypeInterface $media_type, Request $request): JsonResponse {
+    $media_storage = $this->entityTypeManager->getStorage('media');
+    $query = $media_storage->getQuery()
+      ->accessCheck(TRUE)
+      ->condition('bundle', $media_type->id())
+      ->condition('status', 1);
+    $search = $request->query->getString('search');
+    if ($search !== '') {
+      $query->condition('name', $search, 'CONTAINS');
+    }
+    $page = \max(0, $request->query->getInt('page'));
+    $ids = \array_filter(\array_map(\trim(...), \explode(',', $request->query->getString('ids'))), static fn (string $id): bool => $id !== '');
+    if ($ids !== []) {
+      $query->condition('mid', $ids, 'IN');
+      $page = 0;
+    }
+    $count_query = clone $query;
+    // The total reflects entity query access. A per-entity access hook (e.g.
+    // in a contrib module) can be stricter than query access, making this an
+    // overcount. That is harmless — a trailing page may come back short — and
+    // the kill switch (`canvas.settings`, `prop_forms.native`) covers sites
+    // needing exact parity with the server-rendered widget.
+    $total = (int) $count_query->count()->execute();
+    $query->sort('changed', 'DESC');
+
+    $is_image_source = $media_type->getSource()->getPluginId() === 'image';
+    $items = [];
+    if ($ids !== []) {
+      // The `ids` mode loads exactly the requested set, without paging.
+      foreach ($media_storage->loadMultiple($query->execute()) as $media) {
+        \assert($media instanceof MediaInterface);
+        // The entity query already applied access, but double-check on the
+        // loaded entities: entity query access and entity access can diverge.
+        if (!$media->access('view')) {
+          continue;
+        }
+        $items[] = $this->buildListItem($media, $is_image_source);
+      }
+    }
+    else {
+      // Fill the page by scanning the query result in chunks from the
+      // requested page's offset: the entity query already applied query-level
+      // access, but per-entity access can be stricter, and entities it
+      // rejects must not consume page slots. The scan is capped so a
+      // pathological divergence between query access and entity access
+      // cannot make this request unbounded; if the cap is hit, return what
+      // was collected.
+      $offset = $page * self::PER_PAGE;
+      for ($chunk = 0; $chunk < self::MAX_SCANNED_CHUNKS; $chunk++) {
+        $chunk_query = clone $query;
+        $chunk_ids = $chunk_query->range($offset + $chunk * self::PER_PAGE, self::PER_PAGE)->execute();
+        \assert(\is_array($chunk_ids));
+        foreach ($media_storage->loadMultiple($chunk_ids) as $media) {
+          \assert($media instanceof MediaInterface);
+          if (!$media->access('view')) {
+            continue;
+          }
+          $items[] = $this->buildListItem($media, $is_image_source);
+          if (\count($items) === self::PER_PAGE) {
+            break 2;
+          }
+        }
+        if (\count($chunk_ids) < self::PER_PAGE) {
+          // The query rows are exhausted.
+          break;
+        }
+      }
+    }
+
+    // Deliberately not cacheable: the list is user-specific (entity access)
+    // and changes with every media change.
+    return new JsonResponse([
+      'items' => $items,
+      'pager' => [
+        'page' => $page,
+        'perPage' => self::PER_PAGE,
+        'total' => $total,
+      ],
+    ]);
+  }
+
+  /**
+   * Builds a single ::list() item for a media entity.
+   *
+   * @return array<string, mixed>
+   *   The list item.
+   */
+  private function buildListItem(MediaInterface $media, bool $is_image_source): array {
+    return [
+      'id' => (int) $media->id(),
+      'uuid' => $media->uuid(),
+      'label' => (string) $media->label(),
+      'thumbnailUrl' => $this->buildThumbnailUrl($media),
+      'inputs_resolved' => $is_image_source ? $this->getInputsResolved($media) : NULL,
+    ];
+  }
+
+  /**
+   * Builds the browse thumbnail URL for a media entity.
+   *
+   * Uses the media thumbnail (which every media source provides, falling back
+   * to a generic icon) rendered through the hardcoded thumbnail image style.
+   *
+   * @return string|null
+   *   A root-relative thumbnail URL, or NULL if the media has no thumbnail.
+   */
+  private function buildThumbnailUrl(MediaInterface $media): ?string {
+    $thumbnail_file = $media->get('thumbnail')->entity;
+    if (!$thumbnail_file instanceof FileInterface) {
+      return NULL;
+    }
+    $uri = $thumbnail_file->getFileUri();
+    \assert(\is_string($uri));
+    $image_style = $this->entityTypeManager->getStorage('image_style')->load(self::THUMBNAIL_IMAGE_STYLE);
+    if ($image_style instanceof ImageStyleInterface && $image_style->supportsUri($uri)) {
+      return $this->fileUrlGenerator->transformRelative($image_style->buildUrl($uri));
+    }
+    return $this->fileUrlGenerator->generateString($uri);
+  }
 
   public function upload(MediaTypeInterface $media_type, Request $request): JsonResponse {
     \assert($request->getContentTypeFormat() === 'form');

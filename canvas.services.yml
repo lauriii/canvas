@@ -196,6 +196,8 @@ services:
       - { name: twig.extension }
 
   # Controllers.
+  Drupal\canvas\Controller\ApiAutocompleteController: ~
+  Drupal\canvas\Controller\ApiFileUploadController: ~
   Drupal\canvas\Controller\ApiConfigControllers: ~
   Drupal\canvas\Controller\ApiConfigAutoSaveControllers: ~
   Drupal\canvas\Controller\ApiContentAutoSaveControllers: ~

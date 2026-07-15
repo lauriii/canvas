@@ -65,6 +65,14 @@ export interface DrupalSettings {
     configTranslationEnabled: boolean;
     languages: Language[];
     dialogCss: string[];
+    // Native prop form settings: `native` is the site-wide kill switch
+    // (FALSE forces the full server-form path for every prop), and
+    // `disabledWidgets` lists field widget plugin ids that render via the
+    // escape hatch while everything else stays native.
+    propForms?: {
+      native: boolean;
+      disabledWidgets: string[];
+    };
     extensionsAvailable: boolean;
     pageExtensions: PageExtension[];
     // ⚠️ This is highly experimental and *will* be refactored.

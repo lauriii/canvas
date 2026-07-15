@@ -1042,7 +1042,6 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     $field_data = [];
     $default_props_for_default_markup = [];
     $unpopulated_props_for_default_markup = [];
-    $transforms = [];
     foreach ($prop_field_definitions as $prop_name => $static_prop_source_field_definition) {
       $component_prop_expression = new ComponentPropExpression($component->id(), $prop_name);
       $prop_shape = $prop_shapes[(string) $component_prop_expression];
@@ -1146,9 +1145,34 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
         $field_data[$prop_name]['default_values']['resolved'] = $default_props_for_default_markup[$prop_name]->value;
       }
 
-      // Build transforms from widget metadata.
+      // Native enum widgets (`options_select`) render their options from the
+      // cached metadata instead of recomputing allowed values server-side, so
+      // deliver the `meta:enum` labels alongside the enum values.
+      // @see \canvas_load_allowed_values_for_component_prop()
+      $enum_schema_key = ($field_data[$prop_name]['jsonSchema']['type'] ?? NULL) === 'array' ? ['jsonSchema', 'items'] : ['jsonSchema'];
+      $enum_schema = NestedArray::getValue($field_data[$prop_name], $enum_schema_key);
+      if (\is_array($enum_schema) && \array_key_exists('enum', $enum_schema)) {
+        try {
+          $enum_labels = \array_map(fn (string|TranslatableMarkup $label): string => (string) $label, $this->getOptionsForExplicitInputEnumProp($prop_name));
+          NestedArray::setValue($field_data[$prop_name], [...$enum_schema_key, 'meta:enum'], $enum_labels);
+        }
+        catch (\LogicException) {
+          // No `meta:enum` labels exist for this enum; the client falls back
+          // to rendering the enum values as labels.
+        }
+      }
+
+      // Expose the configured widget plugin id so the client can resolve a
+      // native client-side widget for this prop, or fall back to the
+      // server-built Drupal widget (the escape hatch).
+      // @see docs/adr/0017-client-side-field-widgets.md
       $field_widget_plugin_id = $prop_field_definitions[$prop_name]['field_widget'];
+      $field_data[$prop_name]['field_widget'] = $field_widget_plugin_id;
       $widget_definition = $this->fieldWidgetPluginManager->getDefinition($field_widget_plugin_id);
+      // The `canvas.transforms` metadata requirement is kept deliberately even
+      // though natively rendered widgets do not use transforms: it is what
+      // keeps the escape hatch, per-widget disable, and kill switch able to
+      // render and sync every configured widget.
       if (!(\array_key_exists('canvas', $widget_definition) && \array_key_exists('transforms', $widget_definition['canvas']))) {
         throw new \LogicException(\sprintf(
           "Drupal Canvas determined the `%s` field widget plugin must be used to populate the `%s` prop on the `%s` component. However, no `canvas.transforms` metadata is defined on the field widget plugin definition. This makes it impossible for this widget to work. Please define the missing metadata. See %s for guidance.",
@@ -1172,7 +1196,6 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       // @todo UI does not use any other metadata - should `slots` move to top level?
       'metadata' => ['slots' => $this->getSlotDefinitions()],
       'propSources' => $field_data,
-      'transforms' => $transforms,
     ];
   }
 

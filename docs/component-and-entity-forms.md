@@ -2,11 +2,29 @@
 
 ## TL;DR
 
-Canvas has two special forms rendered in React that are based on Drupal render arrays: the **Component Instance Form** (for configuring component props) and the **Page Data Form** (the entity edit form within Canvas). Each input is integrated with Redux via React Hook Form (RHF), enabling real-time validation, debounced auto-save back to Drupal, and undo/redo support — all while preserving Drupal behaviors like AJAX and autocomplete.
+Canvas has two special forms in the editor: the **Component Instance Form** (for configuring component props) and the **Page Data Form** (the entity edit form within Canvas).
+
+The component instance form has two render paths. By default, props render **natively** as typed React client widgets resolved from each prop's configured Drupal field widget id, with no form request — see [Client-side widgets](client-side-widgets.md) and [ADR-0017](adr/0017-client-side-field-widgets.md). Props without a registered client widget, and whole forms for Form API-based sources, render via the **server-built path** described in the rest of this document: Drupal render arrays converted to React, with each input integrated with Redux via React Hook Form (RHF), enabling real-time validation, debounced auto-save back to Drupal, and undo/redo support — all while preserving Drupal behaviors like AJAX and autocomplete. The page data form always uses the server-built path.
+
+---
+
+## Component instance form render paths
+
+When a component instance is selected, `ComponentInstanceForm` (`ui/src/components/ComponentInstanceForm.tsx`) decides how each prop renders:
+
+1. **Native client widgets (default).** Each prop's configured Drupal field widget id (`propSources[<prop>].field_widget` in the cached `GET /canvas/api/v0/config/component` payload) is resolved against the client widget registry (`ui/src/components/form/widgets/registry.ts`). Registered ids render instantly as typed React widgets from cached metadata; writes go through codecs into the same model pipeline (resolved merge, source sync, debounced `patchComponent()`). See [Client-side widgets](client-side-widgets.md).
+2. **Per-prop escape-hatch islands.** Props whose widget id is unregistered, disabled via `canvas.settings` `prop_forms.disabled_widgets`, or declined by the widget's own eligibility check render as server-built form islands, composed in prop order among the native widgets. The island request is the regular form endpoint call plus a `form_canvas_props_filter` query parameter that scopes the Form API build to the listed props.
+3. **Whole server-built form.** The full-form path (everything documented below) remains for component sources that are Form API forms (Blocks, Personalization, Fallback), for content templates, for components where no prop resolves to a native widget, and site-wide when the kill switch is on (`canvas.settings` `prop_forms.native: false`).
+
+Conditional prop visibility and enablement (`x-canvas-states`) is evaluated client-side at the prop slot and applies uniformly to native props and hatch islands; see [Client-side widgets](client-side-widgets.md#conditional-prop-states-x-canvas-states).
+
+Note that `hook_form_alter()` and media library contrib integrations apply only to the server-built paths (2 and 3), not to natively rendered props. The rationale, the compatibility bridges, and the deferred contrib delivery mechanism are recorded in [ADR-0017](adr/0017-client-side-field-widgets.md).
 
 ---
 
 ## Architecture Overview
+
+The diagram below describes the server-built path: the whole component instance form, the escape-hatch island (same flow, scoped to the hatch props by `form_canvas_props_filter`), and the page data form. Natively rendered props skip the form HTML endpoints entirely and only use the layout endpoints.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -127,11 +145,15 @@ The server renders the full page with the updated data and returns the HTML. A r
 ### Component Instance Form
 Edits individual component instances within a layout. When you select a component in the Canvas editor, this form appears in the sidebar showing the component's configurable props.
 
+By default props render natively (see [Component instance form render paths](#component-instance-form-render-paths)); the description below covers the server-built form, which is used for escape-hatch props (scoped with `form_canvas_props_filter`), Form API-based sources, content templates, and the kill switch.
+
 - **Form ID**: `component_instance_form`
 - **Endpoint**: `PATCH /canvas/api/v0/form/component-instance/{entity_type}/{entity}`
 - **Returns**: The Drupal Form API form markup (which is then converted to React)
 - **Input Validation**: JSON Schema validation via AJV against the component's prop schema
 - **Data flow**: Form values → Transforms → `patchComponent()` → Layout API
+
+On the native path there is no Drupal form: cached metadata renders the widgets, codecs replace transforms, and validation is the same AJV pass — but the data flow converges on the identical `patchComponent()` → Layout API pipeline, so the server-side write and validation contract is shared by both paths.
 
 ### Page Data Form
 The Drupal entity edit form (e.g., node title, path, publishing options) rendered within Canvas rather than as a separate admin page.

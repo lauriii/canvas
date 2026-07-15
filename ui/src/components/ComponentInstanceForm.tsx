@@ -2,6 +2,7 @@ import React, {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -11,6 +12,18 @@ import { Spinner, Text } from '@radix-ui/themes';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { getPropsValues } from '@/components/form/react-hook-form/fields/componentFormData';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
+import NativePropSlot from '@/components/form/widgets/NativePropSlot';
+import {
+  compilePropStates,
+  DEFAULT_SLOT_STATE,
+  evaluatePropStates,
+} from '@/components/form/widgets/propStates';
+import { registerDefaultWidgets } from '@/components/form/widgets/registerDefaultWidgets';
+import {
+  buildClientWidgetContext,
+  resolveNativeWidgetForProp,
+} from '@/components/form/widgets/registry';
+import { clearPendingWrites } from '@/components/form/widgets/useNativePropWrite';
 import { FORM_TYPES } from '@/features/form/constants';
 import {
   clearFieldValues,
@@ -24,6 +37,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import {
+  selectEditorFrameContext,
   selectLatestUndoRedoActionId,
   selectSelectedComponentUuid,
 } from '@/features/ui/uiSlice';
@@ -39,17 +53,34 @@ import {
 } from '@/services/preview';
 import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
 import { isPropSourceComponent } from '@/types/Component';
+import { getPropFormsSettings } from '@/utils/drupal-globals';
+import {
+  markSelectionStart,
+  measureFormInteractive,
+} from '@/utils/formInteractiveMetrics';
 import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
 
+import type {
+  ClientWidgetContext,
+  ClientWidgetDefinition,
+} from '@/components/form/widgets/types';
 import type {
   ComponentModel,
   EvaluatedComponentModel,
   RegionNode,
 } from '@/features/layout/layoutModelSlice';
 import type { AjaxUpdateFormStateEvent } from '@/types/Ajax';
-import type { CanvasComponent, FieldData } from '@/types/Component';
+import type {
+  CanvasComponent,
+  FieldData,
+  PropSourceComponent,
+} from '@/types/Component';
 import type { InputUIData } from '@/types/Form';
 import type { TransformConfig } from '@/utils/transforms';
+
+// Client widgets must be registered before the first form render; render-time
+// resolution is a synchronous map lookup.
+registerDefaultWidgets();
 
 const TransformsContext = createContext<TransformConfig | undefined>(undefined);
 
@@ -59,8 +90,72 @@ export const useComponentTransforms = () => {
 
 interface ComponentInstanceFormRendererProps {
   queryString: string;
+  // Set when this renderer is an escape-hatch island for a run of props
+  // composed among native widgets, rather than the whole component form.
+  islandPropName?: string;
+  // Called once the island's form content has rendered; used to mount the
+  // next island (islands mount sequentially to avoid asset races).
+  onFormRendered?: () => void;
 }
 interface ComponentInstanceFormProps {}
+
+// Builds the query string for the escape-hatch island: the whole-form query
+// plus the props filter that scopes the server build to the listed props.
+const islandQueryString = (queryString: string, propNames: string[]): string =>
+  `${queryString}&form_canvas_props_filter=${encodeURIComponent(
+    JSON.stringify(propNames),
+  )}`;
+
+// The server-rendered form marks each prop's wrapper with a
+// field--name-<prop> class; prop states use it to hide or disable individual
+// hatch props inside the island.
+const hatchPropClass = (propName: string): string =>
+  `field--name-${propName.toLowerCase().replace(/_/g, '-')}`;
+
+// One escape-hatch island: a scoped server-built form for a contiguous run of
+// hatch props, composed in prop order among the native widgets.
+const HatchIsland: React.FC<{
+  runProps: string[];
+  disabledProps: string[];
+  queryString: string;
+  onFormRendered: () => void;
+}> = ({ runProps, disabledProps, queryString, onFormRendered }) => {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // A disabled (`enabled: false`) state rule must also block keyboard
+  // interaction, not just pointer input; `inert` covers focus and assistive
+  // technology. Applied imperatively because the wrappers live inside
+  // hyperscriptified server markup. Re-applied whenever the disabled set or
+  // the island content changes; AJAX rebuilds inside the island re-trigger
+  // this via the parent's state-driven re-renders.
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) {
+      return;
+    }
+    runProps.forEach((propName) => {
+      wrapper
+        .querySelectorAll(`.${hatchPropClass(propName)}`)
+        .forEach((element) =>
+          element.toggleAttribute('inert', disabledProps.includes(propName)),
+        );
+    });
+  });
+
+  return (
+    <div
+      ref={wrapperRef}
+      data-canvas-hatch-island
+      data-testid={`canvas-hatch-island-${runProps.join('-')}`}
+    >
+      <ComponentInstanceFormRenderer
+        queryString={queryString}
+        islandPropName={runProps.join(',')}
+        onFormRendered={onFormRendered}
+      />
+    </div>
+  );
+};
 
 const ComponentInstanceFormRenderer: React.FC<
   ComponentInstanceFormRendererProps
@@ -68,7 +163,7 @@ const ComponentInstanceFormRenderer: React.FC<
   const formState = useAppSelector((state) =>
     selectFormValues(state, FORM_TYPES.COMPONENT_INSTANCE_FORM),
   );
-  const { queryString } = props;
+  const { queryString, islandPropName, onFormRendered } = props;
   const { showBoundary } = useErrorBoundary();
   const inputAndUiData: InputUIData = useInputUIData();
   const {
@@ -161,7 +256,11 @@ const ComponentInstanceFormRenderer: React.FC<
       // A `<div>` is used instead of `React.Fragment` so a test ID can be added.
       <div
         key={`${componentId}-${latestUndoRedoActionId}`}
-        data-testid={`canvas-component-form-${componentId}`}
+        data-testid={
+          islandPropName
+            ? `canvas-component-form-island-${componentId}-${islandPropName}`
+            : `canvas-component-form-${componentId}`
+        }
       >
         {hyperscriptify(
           template,
@@ -172,7 +271,14 @@ const ComponentInstanceFormRenderer: React.FC<
         )}
       </div>,
     );
-  }, [html, originalArgs]);
+    // Escape-hatch islands do not conclude the selection-to-form-interactive
+    // measure: the native widgets around them are already interactive.
+    if (componentId && !islandPropName) {
+      measureFormInteractive(componentId, 'server-form');
+    }
+    onFormRendered?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [html, originalArgs, islandPropName]);
 
   // Listen for updates to form state from ajax.
   useEffect(() => {
@@ -277,6 +383,15 @@ const ComponentInstanceFormRenderer: React.FC<
   );
 };
 
+// One prop slot in the native composition: a native client widget when the
+// prop's configured widget id resolved to one, otherwise an escape-hatch
+// island.
+interface CompositionSlot {
+  propName: string;
+  context: ClientWidgetContext;
+  definition: ClientWidgetDefinition | undefined;
+}
+
 const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
   const dispatch = useAppDispatch();
   const model = useAppSelector(selectModel);
@@ -285,6 +400,7 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
   const { showBoundary } = useErrorBoundary();
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const latestUndoRedoActionId = useAppSelector(selectLatestUndoRedoActionId);
+  const editorFrameContext = useAppSelector(selectEditorFrameContext);
 
   const [formQueryString, setFormQueryString] = useState('');
   const [emptyProp, setEmptyProp] = useState(false);
@@ -325,6 +441,125 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
   useEffect(() => {
     dispatch(clearFieldValues('component_instance_form'));
   }, [dispatch, selectedComponent]);
+
+  // Start the selection-to-form-interactive measure during the render phase
+  // of the first panel render for a new selection, not in a passive effect
+  // (which would only run after the form already committed and make the
+  // measure meaningless). The measured span still excludes the selection
+  // dispatch itself; see formInteractiveMetrics.ts for the boundary.
+  const lastMarkedSelection = useRef<string | null>(null);
+  if (selectedComponent && lastMarkedSelection.current !== selectedComponent) {
+    lastMarkedSelection.current = selectedComponent;
+    markSelectionStart(selectedComponent);
+  }
+
+  // Native widget edits that have not yet round-tripped through the debounced
+  // PATCH, mirrored here so prop-state rules react in the same render cycle
+  // instead of lagging by the debounce and network round trip.
+  const [pendingStateValues, setPendingStateValues] = useState<
+    Record<string, unknown>
+  >({});
+  // Escape-hatch islands mount sequentially (island N+1 only after island N
+  // has rendered) so concurrent form fetches cannot race on shared form
+  // assets such as the rich text editor's libraries.
+  const [readyIslands, setReadyIslands] = useState(1);
+
+  // Selection changes and undo/redo make the store model authoritative again:
+  // drop any in-flight native widget edits so they cannot shadow it.
+  useEffect(() => {
+    if (selectedComponent) {
+      clearPendingWrites(selectedComponent);
+    }
+    setPendingStateValues({});
+    setReadyIslands(1);
+  }, [selectedComponent, latestUndoRedoActionId]);
+
+  const selectedNode = selectedComponent
+    ? findComponentByUuid(layout, selectedComponent)
+    : null;
+  const [selectedTypeId, selectedTypeVersion] = (
+    selectedNode ? (selectedNode.type as string) : ''
+  ).split('@');
+  const selectedTypeComponent = selectedTypeId
+    ? components?.[selectedTypeId]
+    : undefined;
+
+  // Decide how each prop renders: a native client widget resolved from the
+  // registry, or an escape-hatch island. The whole-form server path remains
+  // for form-API-dependent sources (Blocks, Personalization, Fallback),
+  // content templates (prop linking UX), fully hatch-rendered components, and
+  // when the kill switch is on.
+  const propFormsSettings = useMemo(() => getPropFormsSettings(), []);
+  const composition: CompositionSlot[] | null = useMemo(() => {
+    if (
+      !propFormsSettings.native ||
+      editorFrameContext !== 'entity' ||
+      !selectedTypeComponent ||
+      selectedTypeComponent.broken ||
+      !isPropSourceComponent(selectedTypeComponent)
+    ) {
+      return null;
+    }
+    const propSources = selectedTypeComponent.propSources;
+    const slots = Object.entries(propSources).map(
+      ([propName, fieldData]): CompositionSlot => {
+        const context = buildClientWidgetContext(
+          propName,
+          selectedTypeId,
+          selectedTypeVersion ?? '',
+          fieldData,
+        );
+        return {
+          propName,
+          context,
+          definition: resolveNativeWidgetForProp(context, propFormsSettings),
+        };
+      },
+    );
+    // When no prop is natively renderable, the existing whole-form request is
+    // both simpler and cheaper than per-prop islands.
+    return slots.some((slot) => slot.definition) ? slots : null;
+  }, [
+    propFormsSettings,
+    editorFrameContext,
+    selectedTypeComponent,
+    selectedTypeId,
+    selectedTypeVersion,
+  ]);
+
+  // Declarative prop states: compile once per component version, evaluate
+  // synchronously against the current resolved values on every model change.
+  const compiledPropStates = useMemo(
+    () =>
+      isPropSourceComponent(selectedTypeComponent)
+        ? compilePropStates(
+            (selectedTypeComponent as PropSourceComponent).propSources,
+          )
+        : {},
+    [selectedTypeComponent],
+  );
+  const propStates = useMemo(
+    () =>
+      evaluatePropStates(compiledPropStates, {
+        ...((model?.[selectedComponent ?? '']?.resolved ?? {}) as Record<
+          string,
+          unknown
+        >),
+        // In-flight native edits win over the (older) store model so
+        // dependent slots react immediately.
+        ...pendingStateValues,
+      }),
+    [compiledPropStates, model, selectedComponent, pendingStateValues],
+  );
+
+  const isNativeComposition = composition !== null;
+  // Conclude the measure once the native slots have rendered: this is the
+  // interactive moment on the native path (no network involved).
+  useEffect(() => {
+    if (isNativeComposition && selectedComponent) {
+      measureFormInteractive(selectedComponent, 'native');
+    }
+  }, [isNativeComposition, selectedComponent]);
 
   useEffect(() => {
     if (error) {
@@ -430,6 +665,126 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     layout,
     model,
   ]);
+  if (composition && selectedComponent) {
+    return (
+      // A <form> with the same data-form-id and data-drupal-selector as the
+      // server-rendered form, so existing tests and styling hooks keep
+      // addressing the prop form the same way on both paths. It never
+      // submits; native widgets write straight to the model.
+      <form
+        data-testid={`canvas-component-form-${selectedComponent}`}
+        data-drupal-selector="component-instance-form"
+        data-form-id="component_instance_form"
+        onSubmit={(e) => e.preventDefault()}
+      >
+        {(() => {
+          // Escape-hatch props are grouped into islands per CONTIGUOUS run of
+          // hatch props, so all props render in their defined order. Islands
+          // mount sequentially (see readyIslands) because concurrent island
+          // fetches race on shared form assets (e.g. the rich text editor's
+          // libraries); each island is still a single scoped form fetch.
+          const islandRuns: string[][] = [];
+          composition.forEach((slot, index) => {
+            if (slot.definition) {
+              return;
+            }
+            const previous = composition[index - 1];
+            if (previous && !previous.definition) {
+              islandRuns[islandRuns.length - 1].push(slot.propName);
+            } else {
+              islandRuns.push([slot.propName]);
+            }
+          });
+          const islandReady =
+            formQueryString && renderComponentId === selectedComponent;
+
+          // Prop states for hatch props target the server-rendered per-prop
+          // wrappers inside the islands, so a hidden hatch prop keeps its
+          // value without any form request.
+          const hatchStateCss = islandRuns
+            .flat()
+            .map((propName) => {
+              const slotState = propStates[propName] ?? DEFAULT_SLOT_STATE;
+              if (!slotState.visible) {
+                return `[data-canvas-hatch-island] .${hatchPropClass(propName)} { display: none; }`;
+              }
+              if (!slotState.enabled) {
+                return `[data-canvas-hatch-island] .${hatchPropClass(propName)} { pointer-events: none; opacity: 0.5; }`;
+              }
+              return '';
+            })
+            .filter(Boolean)
+            .join('\n');
+          const disabledHatchProps = islandRuns
+            .flat()
+            .filter(
+              (propName) =>
+                !(propStates[propName] ?? DEFAULT_SLOT_STATE).enabled,
+            );
+
+          let islandIndex = -1;
+          const rendered = composition.map(
+            ({ propName, context, definition }, index) => {
+              const slotState = propStates[propName] ?? DEFAULT_SLOT_STATE;
+              if (definition) {
+                return (
+                  <NativePropSlot
+                    key={`${selectedComponent}-${propName}`}
+                    context={context}
+                    definition={definition}
+                    slotState={slotState}
+                    onResolvedValueChange={(resolvedValue) =>
+                      setPendingStateValues((current) => ({
+                        ...current,
+                        [propName]: resolvedValue,
+                      }))
+                    }
+                  />
+                );
+              }
+              // Only the first prop of a run renders the run's island.
+              const previous = composition[index - 1];
+              if (previous && !previous.definition) {
+                return null;
+              }
+              islandIndex += 1;
+              // Capture per-island values: islandIndex keeps mutating across
+              // the loop, but the callback below runs much later.
+              const currentIslandIndex = islandIndex;
+              const runProps = islandRuns[currentIslandIndex];
+              // Sequential mounting: this island waits until all earlier
+              // islands have rendered their form.
+              if (!islandReady || currentIslandIndex >= readyIslands) {
+                return null;
+              }
+              return (
+                <HatchIsland
+                  key={`${selectedComponent}-hatch-island-${runProps[0]}`}
+                  runProps={runProps}
+                  disabledProps={disabledHatchProps}
+                  queryString={islandQueryString(formQueryString, runProps)}
+                  onFormRendered={() =>
+                    setReadyIslands((current) =>
+                      current > currentIslandIndex + 1
+                        ? current
+                        : currentIslandIndex + 2,
+                    )
+                  }
+                />
+              );
+            },
+          );
+          return (
+            <>
+              {hatchStateCss && <style>{hatchStateCss}</style>}
+              {rendered}
+            </>
+          );
+        })()}
+      </form>
+    );
+  }
+
   return (
     formQueryString &&
     renderComponentId === selectedComponent && (
