@@ -755,8 +755,9 @@ canvas.component_source_local_id.canvas_slot_empty:
   label: 'Empty slot marker component ID'
   constraints:
     FullyValidatable: ~
-    Choice:
-      - marker
+    # There is exactly one valid value: the plugin provides a single component.
+    IdenticalTo:
+      value: marker
 canvas.component_source_settings.canvas_slot_empty:
   type: canvas.component_source_settings.*
   label: 'Empty slot marker component settings'
