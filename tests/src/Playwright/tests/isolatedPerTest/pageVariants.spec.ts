@@ -208,4 +208,62 @@ test.describe('Page variants', () => {
     await variantRow.click();
     await expect(page).toHaveURL(/\/canvas\/editor\/page_variant\/marketing/);
   });
+
+  test('selecting a page template updates the preview before publishing', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    const canvasPage = await canvas.createCanvas({
+      title: 'Variant preview host',
+    });
+    await canvas.openCanvas(canvasPage);
+
+    // Give the variant a distinctive heading so its chrome is recognizable when
+    // it wraps a page's content.
+    await createMarketingVariant(page);
+    await page.getByTestId('canvas-page-variant-marketing').click();
+    await expect(page).toHaveURL(/\/canvas\/editor\/page_variant\/marketing/);
+    await canvas.waitForEditorFrame();
+    await canvas.openLibraryPanel();
+    await canvas.addComponent(
+      { id: 'sdc.canvas_test_sdc.heading' },
+      { hasInputs: true },
+    );
+    await canvas.editComponentProp('text', 'MarketingChrome');
+    await canvas.publishAllChanges(['Marketing']);
+
+    // Reopen the page. It still uses the default template, so the variant's
+    // chrome is absent from the preview.
+    await canvas.openCanvas(canvasPage);
+    await canvas.waitForEditorFrame();
+    const previewFrame = page
+      .locator(
+        '[data-testid="canvas-editor-frame-scaling"] iframe[data-test-canvas-content-initialized="true"][data-canvas-swap-active="true"]',
+      )
+      .contentFrame();
+    await expect(previewFrame.getByText('MarketingChrome')).toHaveCount(0);
+
+    // Select the variant for the page through the Page data form.
+    const pageDataForm = page.getByTestId('canvas-page-data-form');
+    await pageDataForm
+      .locator('button')
+      .filter({ hasText: 'Page template' })
+      .click();
+    const variantSelect = pageDataForm.getByLabel('Page template');
+    await expect(variantSelect).toBeVisible();
+    const autoSave = page.waitForResponse(
+      (response) =>
+        response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+        response.request().method() === 'POST' &&
+        (response.request().postData() ?? '').includes('marketing'),
+    );
+    await variantSelect.selectOption({ label: 'Marketing' });
+    await autoSave;
+
+    // The preview now renders the page through the pending variant, so its
+    // chrome appears — without publishing the selection.
+    await expect(previewFrame.getByText('MarketingChrome')).toBeVisible();
+  });
 });

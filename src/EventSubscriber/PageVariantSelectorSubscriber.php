@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EventSubscriber;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
@@ -28,6 +29,7 @@ final class PageVariantSelectorSubscriber implements EventSubscriberInterface {
     private readonly PageVariantResolver $resolver,
     private readonly ThemeManagerInterface $themeManager,
     private readonly ConfigFactoryInterface $configFactory,
+    private readonly AutoSaveManager $autoSaveManager,
   ) {}
 
   /**
@@ -57,7 +59,25 @@ final class PageVariantSelectorSubscriber implements EventSubscriberInterface {
       }
     }
 
-    $variant = $this->resolver->resolve(self::getRouteEntity($event->getRouteMatch()));
+    // The layout API and preview routes opt into rendering the auto-saved
+    // (unpublished) draft.
+    $is_preview = (bool) $event->getRouteMatch()->getRouteObject()?->getOption('_canvas_use_template_draft');
+
+    $route_entity = self::getRouteEntity($event->getRouteMatch());
+    if ($is_preview && $route_entity !== NULL) {
+      // In the editor preview, honor the page's pending (auto-saved) template
+      // selection so switching templates updates the preview before it is
+      // published. The route entity is the published version, whose
+      // `page_variant` value still points at the previously selected template.
+      // Mirrors CanvasPageVariant::build(), which swaps in the auto-saved
+      // variant's own chrome for previews.
+      $auto_save = $this->autoSaveManager->getAutoSaveEntity($route_entity);
+      if (!$auto_save->isEmpty() && $auto_save->entity instanceof FieldableEntityInterface) {
+        $route_entity = $auto_save->entity;
+      }
+    }
+
+    $variant = $this->resolver->resolve($route_entity);
 
     // Which variant resolves depends on the default-variant setting (and, for a
     // selection, on the entity or template). Vary the selection on the setting
@@ -71,7 +91,7 @@ final class PageVariantSelectorSubscriber implements EventSubscriberInterface {
 
     $event->setPluginId(CanvasPageVariant::PLUGIN_ID);
     $event->setPluginConfiguration([
-      CanvasPageVariant::PREVIEW_KEY => $event->getRouteMatch()->getRouteObject()?->getOption('_canvas_use_template_draft'),
+      CanvasPageVariant::PREVIEW_KEY => $is_preview,
       CanvasPageVariant::VARIANT_ID_KEY => $variant->id(),
     ]);
   }
