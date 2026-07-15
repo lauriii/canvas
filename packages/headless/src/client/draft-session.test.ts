@@ -38,7 +38,7 @@ function makeHarness(overrides: Partial<DraftSessionOptions> = {}) {
     initialExpired: false,
     embedded: true,
     path: '/node/1',
-    embedderOrigins: [ORIGIN, OTHER_ORIGIN],
+    editorOrigin: ORIGIN,
     refreshData,
     onEvent: (event) => events.push(event),
     hostWindow,
@@ -86,12 +86,18 @@ afterEach(() => {
 });
 
 describe('createDraftSession', () => {
-  it('reports the initial status to every allowlisted origin', () => {
+  it('reports the initial status to the signed editor origin', () => {
     const { postMessage } = makeHarness();
     const initial = statusMessages(postMessage);
-    expect(initial).toHaveLength(2);
+    expect(initial).toHaveLength(1);
     expect(initial[0][0]).toMatchObject({ status: 'active', path: '/node/1' });
-    expect(initial.map(([, origin]) => origin)).toEqual([ORIGIN, OTHER_ORIGIN]);
+    expect(initial[0][1]).toBe(ORIGIN);
+  });
+
+  it('posts nothing without a signed editor origin', () => {
+    const { postMessage } = makeHarness({ editorOrigin: null });
+    vi.advanceTimersByTime(600_000);
+    expect(postMessage).not.toHaveBeenCalled();
   });
 
   it('posts nothing when standalone', () => {
@@ -265,7 +271,7 @@ describe('createDraftSession', () => {
 
   it.each([
     ['a non-host source', { source: { postMessage: vi.fn() } }],
-    ['a non-allowlisted origin', { origin: 'https://evil.example' }],
+    ['a different origin', { origin: OTHER_ORIGIN }],
     ['a different message type', { data: { type: 'other', assertion: 'x' } }],
     [
       'a non-string assertion',

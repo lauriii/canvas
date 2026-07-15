@@ -38,7 +38,7 @@ function mount(options: MountOptions = {}) {
   if (renewUrl !== null) {
     element.setAttribute('renew-url', renewUrl);
   }
-  element.setAttribute('embedder-origins', ORIGIN);
+  element.setAttribute('editor-origin', ORIGIN);
 
   element.innerHTML = `
     <div data-draft-session-view="active">active banner</div>
@@ -117,7 +117,7 @@ describe('DraftSessionElement', () => {
   it('reads a stringified initial-expired="false" as not expired', () => {
     const element = document.createElement(DRAFT_SESSION_ELEMENT_TAG);
     element.setAttribute('initial-expired', 'false');
-    element.setAttribute('embedder-origins', ORIGIN);
+    element.setAttribute('editor-origin', ORIGIN);
     document.body.appendChild(element);
     expect(element.hasAttribute('expired')).toBe(false);
   });
@@ -161,7 +161,7 @@ describe('DraftSessionElement', () => {
   it('honors an initial path attribute over window.location', () => {
     const element = document.createElement(DRAFT_SESSION_ELEMENT_TAG);
     element.setAttribute('path', '/start/here');
-    element.setAttribute('embedder-origins', ORIGIN);
+    element.setAttribute('editor-origin', ORIGIN);
     const snapshots: DraftSessionElementSnapshot[] = [];
     element.addEventListener(DRAFT_SESSION_CHANGE_EVENT, (event) => {
       snapshots.push(

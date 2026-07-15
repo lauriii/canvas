@@ -64,11 +64,12 @@ alive. Framework and platform deletion helpers commonly emit deletions without `
 exit while cookie-jar-based tests (curl) keep passing; the SDK therefore deactivates by overwriting both cookies
 with expired equivalents carrying the original attributes.
 
-Additionally, the app always sends `Content-Security-Policy: frame-ancestors 'self' <allowlist>`, with the allowlist
-configurable (an unset allowlist leaves a `'self'`-only policy). Adding an embedding surface is a config change, not
-a code change,
-and the same allowlist doubles as the app's postMessage peer list for the renewal protocol
-([ADR-0015](0015-headless-draft-preview-session-renewal-re-anchored-in-drupal-session.md)).
+Additionally, every app response is protected by a Content Security Policy `frame-ancestors` directive. An
+application-defined directive remains authoritative. Otherwise, responses without a draft session allow only
+`'self'`; responses with a draft session also allow the exact Drupal editor origin derived from the signed `renewUrl`
+claim in that session. The origin is therefore cryptographically bound to activation and scoped to the session,
+rather than repeated in a second environment setting. The same exact origin is the app's sole postMessage peer for
+the renewal protocol ([ADR-0015](0015-headless-draft-preview-session-renewal-re-anchored-in-drupal-session.md)).
 
 ## Alternatives considered
 

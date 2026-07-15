@@ -19,7 +19,6 @@ const ORIGIN = 'https://drupal.example';
 
 const config = () => ({
   baseUrl: ORIGIN,
-  embedderOrigins: [ORIGIN],
 });
 
 /**
@@ -52,21 +51,19 @@ beforeEach(() => {
 });
 
 describe('createComponentMetadataHandler', () => {
-  it('refuses a browser caller from outside the embedder allowlist', async () => {
-    const { GET } = createComponentMetadataHandler({ config });
-    const response = await GET(request({ origin: 'https://evil.example' }));
-    expect(response.status).toBe(403);
-    expect(await response.json()).toMatchObject({
-      error: 'origin_not_allowed',
-    });
-  });
-
   it('demands a Bearer assertion', async () => {
     const { GET } = createComponentMetadataHandler({ config });
     const response = await GET(request());
     expect(response.status).toBe(401);
     expect(response.headers.get('WWW-Authenticate')).toBe('Bearer');
     expect(verifyAssertionByRedemption).not.toHaveBeenCalled();
+  });
+
+  it('does not expose browser CORS headers', async () => {
+    const { GET } = createComponentMetadataHandler({ config });
+    const response = await GET(request({ origin: 'https://browser.example' }));
+    expect(response.status).toBe(401);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
   });
 
   it('passes a refused verification through', async () => {
@@ -151,13 +148,5 @@ describe('createComponentMetadataHandler', () => {
     expect(await response.json()).toMatchObject({
       error: 'configuration_error',
     });
-  });
-
-  it('answers the CORS preflight by allowlist', async () => {
-    const { OPTIONS } = createComponentMetadataHandler({ config });
-    expect((await OPTIONS(request({ origin: ORIGIN }))).status).toBe(204);
-    expect(
-      (await OPTIONS(request({ origin: 'https://evil.example' }))).status,
-    ).toBe(403);
   });
 });

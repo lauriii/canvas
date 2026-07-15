@@ -37,11 +37,10 @@ export const Route = createFileRoute('/api/draft')({
 // src/routes/api/draft.renew.ts     -> draftRenew.POST
 // src/routes/api/disable-draft.ts   -> disableDraft.POST
 // src/routes/api/canvas.components.ts:
-//   const { GET, OPTIONS } = createComponentMetadataHandlers();
+//   const { GET } = createComponentMetadataHandlers();
 ```
 
-**3. src/start.ts** — the CSP `frame-ancestors` middleware, restricting who may
-embed the app to DRAFT_ALLOWED_FRAME_ANCESTORS (plus 'self'):
+**3. src/start.ts** — the session-aware CSP `frame-ancestors` middleware:
 
 ```ts
 import { cspMiddleware } from '@drupal-canvas/headless-tanstack-start/middleware';
@@ -53,15 +52,19 @@ export const startInstance = createStart(() => ({
 ```
 
 **4. The session banner** — a server function gathers the session state
-(`isDraftModeEnabled()`, `getDraftData()`, `getDraftConfig()`,
+(`isDraftModeEnabled()`, `getDraftData()`, `getDraftEditorOrigin()`,
 `isDraftSessionExpired()`), the root route's loader calls it, and the root
 component renders `<DraftSession>` from
 `@drupal-canvas/headless-tanstack-start/client` with a render prop that owns the
 banner markup. The component runs the renewal protocol either way; the render
 prop is optional.
 
-Environment: `DRUPAL_BASE_URL` (required) and `DRAFT_ALLOWED_FRAME_ANCESTORS`
-(the embedder origin allowlist).
+Environment: `CANVAS_SITE_URL` (required).
+
+The CSP is `'self'`-only without a draft session. During a draft session, it
+also admits the exact editor origin derived from the signed renewal URL. The
+same origin is the only `postMessage` peer. An application-defined
+`frame-ancestors` directive remains authoritative.
 
 Data access from app code: `getClient()` (draft-aware JSON:API client) and
 `fetchPage()` (rendered content, resolved through Drupal's routing), both

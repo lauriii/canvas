@@ -29,15 +29,14 @@ type ServerRouteHandler = (context: { request: Request }) => Promise<Response>;
  * import { createFileRoute } from '@tanstack/react-router';
  * import { createComponentMetadataHandlers } from '@drupal-canvas/headless-tanstack-start';
  *
- * const { GET, OPTIONS } = createComponentMetadataHandlers();
+ * const { GET } = createComponentMetadataHandlers();
  * export const Route = createFileRoute('/api/canvas/components')({
- *   server: { handlers: { GET, OPTIONS } },
+ *   server: { handlers: { GET } },
  * });
  * ```
  */
 export function createComponentMetadataHandlers(): {
   GET: ServerRouteHandler;
-  OPTIONS: ServerRouteHandler;
 } {
   const handler = createComponentMetadataHandler({
     isProduction: import.meta.env.PROD,
@@ -46,6 +45,5 @@ export function createComponentMetadataHandlers(): {
   });
   return {
     GET: ({ request }) => handler.GET(request),
-    OPTIONS: ({ request }) => handler.OPTIONS(request),
   };
 }

@@ -28,7 +28,7 @@ export function DraftBanner({ session }: { session: DraftSessionState }) {
       tokenExpiresAt={session.tokenExpiresAt}
       initialExpired={session.expired}
       renewUrl={session.renewUrl}
-      embedderOrigins={session.embedderOrigins}
+      editorOrigin={session.editorOrigin}
     >
       {({ embedded, expired, path, renewUrl }) => {
         if (expired) {

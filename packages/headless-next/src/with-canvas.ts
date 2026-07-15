@@ -1,5 +1,7 @@
+import { DRAFT_DATA_COOKIE_NAME } from '@drupal-canvas/headless';
 import { writeComponentManifest } from '@drupal-canvas/headless/components-endpoint';
 import {
+  hasFrameAncestors,
   mergeFrameAncestors,
   resolveFrameAncestors,
 } from '@drupal-canvas/headless/server';
@@ -10,6 +12,13 @@ import type { NextConfig } from 'next';
 // the value is a stable public constant, and next/constants has no exports
 // map entry resolvable from a raw-TS package in every consumer setup.
 const PHASE_PRODUCTION_BUILD = 'phase-production-build';
+const CSP_HEADER = 'content-security-policy';
+
+// Next.js header rules can capture a named group from a cookie and insert it
+// into a header value. The cookie parser has already URL-decoded the JSON.
+// Capture only a URL-serialized HTTP(S) origin from the signed renewal URL;
+// the restricted host and port grammar cannot inject CSP delimiters.
+const DRAFT_EDITOR_ORIGIN_COOKIE_PATTERN = String.raw`.*"renewUrl":"(?<editorOrigin>https?://(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?)(?:/[^"\\]*)?".*`;
 
 type NextConfigInput =
   | NextConfig
@@ -17,6 +26,41 @@ type NextConfigInput =
       phase: string,
       context: { defaultConfig: NextConfig },
     ) => NextConfig | Promise<NextConfig>);
+
+type HeaderRule = Awaited<
+  ReturnType<NonNullable<NextConfig['headers']>>
+>[number];
+
+const draftSessionCookieMatch = {
+  type: 'cookie' as const,
+  key: DRAFT_DATA_COOKIE_NAME,
+  value: DRAFT_EDITOR_ORIGIN_COOKIE_PATTERN,
+};
+
+function mergeRuleFrameAncestors(
+  rule: HeaderRule,
+  frameAncestors: string,
+): HeaderRule {
+  return {
+    ...rule,
+    headers: rule.headers.map((header) =>
+      header.key.toLowerCase() === CSP_HEADER
+        ? {
+            ...header,
+            value: mergeFrameAncestors(header.value, frameAncestors).join(', '),
+          }
+        : header,
+    ),
+  };
+}
+
+function ruleNeedsDraftEditorOrigin(rule: HeaderRule): boolean {
+  return rule.headers.some(
+    (header) =>
+      header.key.toLowerCase() === CSP_HEADER &&
+      !hasFrameAncestors(header.value),
+  );
+}
 
 export interface WithCanvasOptions {
   /**
@@ -50,10 +94,10 @@ export const MANIFEST_ENV_VARIABLE = 'CANVAS_COMPONENT_MANIFEST_JSON';
  *   silently.
  * - Adds the SDK packages to `transpilePackages` (they ship raw
  *   TypeScript).
- * - Sends the `Content-Security-Policy: frame-ancestors` header from
- *   DRAFT_ALLOWED_FRAME_ANCESTORS, restricting who may embed the app —
- *   'self' is always included; without the variable, the policy is
- *   'self'-only.
+ * - Sends a `Content-Security-Policy: frame-ancestors` header. Responses
+ *   are 'self'-only by default; a draft session also admits the exact
+ *   editor origin carried by its signed renewal URL. An application-owned
+ *   frame-ancestors directive remains authoritative.
  *
  * ```ts
  * // next.config.ts
@@ -104,32 +148,33 @@ export function withCanvas(
 
     const userHeaders = config.headers;
     const headers: NonNullable<NextConfig['headers']> = async () => {
-      // Read at header-resolution time, not at config load, so the dev
-      // server picks up .env changes the same way the rest of the SDK
-      // does; see resolveFrameAncestors() for the source list rules.
-      //
       // When several header rules match a path and set the same key,
       // Next.js keeps the LAST value — it does not emit repeated fields.
       // So the SDK's catch-all rule goes first, and every user rule that
       // sets a Content-Security-Policy gets the frame-ancestors directive
       // merged into its value: on paths the app's own CSP rules match,
       // the app's (merged) value wins; everywhere else the catch-all
-      // applies. Either way no app directive is discarded.
+      // applies. A second cookie-matched rule admits the signed editor
+      // origin only for requests carrying a draft session. Either way no
+      // app directive is discarded.
       const frameAncestors = resolveFrameAncestors();
       const userRules = userHeaders ? await userHeaders() : [];
-      const mergedUserRules = userRules.map((rule) => ({
-        ...rule,
-        headers: rule.headers.map((header) =>
-          header.key.toLowerCase() === 'content-security-policy'
-            ? {
-                ...header,
-                value: mergeFrameAncestors(header.value, frameAncestors).join(
-                  ', ',
-                ),
-              }
-            : header,
-        ),
-      }));
+      const mergedUserRules = userRules.flatMap((rule) => {
+        const fallback = mergeRuleFrameAncestors(rule, frameAncestors);
+        if (!ruleNeedsDraftEditorOrigin(rule)) {
+          return [fallback];
+        }
+        return [
+          fallback,
+          mergeRuleFrameAncestors(
+            {
+              ...rule,
+              has: [...(rule.has ?? []), draftSessionCookieMatch],
+            },
+            "'self' :editorOrigin",
+          ),
+        ];
+      });
       return [
         {
           source: '/:path*',
@@ -137,6 +182,16 @@ export function withCanvas(
             {
               key: 'Content-Security-Policy',
               value: mergeFrameAncestors(null, frameAncestors).join(', '),
+            },
+          ],
+        },
+        {
+          source: '/:path*',
+          has: [draftSessionCookieMatch],
+          headers: [
+            {
+              key: 'Content-Security-Policy',
+              value: "frame-ancestors 'self' :editorOrigin",
             },
           ],
         },

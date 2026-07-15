@@ -14,8 +14,7 @@ import {
  * The component metadata endpoint (see the framework-free handler in
  * @drupal-canvas/headless/components-endpoint for the payload and its
  * proof-by-redemption protection). Mounted at /api/canvas/components by
- * the module, methods unrestricted so the handler can answer the CORS
- * preflight itself.
+ * the module.
  *
  * `import.meta.dev` is Nitro's build-time mode flag: `nuxt dev` scans the
  * codebase live on every request, while a production build serves the
@@ -30,14 +29,11 @@ const handler = createComponentMetadataHandler({
 
 export default defineEventHandler((event) => {
   const request = toWebRequest(event);
-  if (event.method === 'OPTIONS') {
-    return handler.OPTIONS(request);
-  }
   if (event.method === 'GET') {
     return handler.GET(request);
   }
   return new Response(null, {
     status: 405,
-    headers: { Allow: 'GET, OPTIONS' },
+    headers: { Allow: 'GET' },
   });
 });

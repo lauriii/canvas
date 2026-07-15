@@ -26,8 +26,7 @@ export interface DraftRouteHandlers {
 /**
  * Creates the three draft-mode route handlers: activation (redeems the
  * `?assertion=` preview URL), in-place renewal (POST `{assertion}`), and
- * exit. Configuration defaults to the environment (DRUPAL_BASE_URL,
- * DRAFT_ALLOWED_FRAME_ANCESTORS), resolved per request.
+ * exit. Configuration defaults to CANVAS_SITE_URL, resolved per request.
  *
  * ```ts
  * // src/routes/api/draft.ts

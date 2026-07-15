@@ -15,7 +15,7 @@ import {
  * the request's cookies (reached through the request-scoped helpers from
  * @tanstack/react-start/server), and the configuration is resolved from
  * the environment lazily per call — nothing here touches the request or
- * the environment at import time, so builds without DRUPAL_BASE_URL set do
+ * the environment at import time, so builds without CANVAS_SITE_URL set do
  * not throw.
  */
 const server = createDraftServer({ adapter: tanstackDraftAdapter });

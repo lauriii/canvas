@@ -25,8 +25,8 @@
  * prop-driven state resets with a plain lifecycle, which is what keeps
  * non-React consumers trivial.
  *
- * Messages are origin-checked in both directions against the embedder
- * allowlist (the same origins the CSP frame-ancestors policy admits).
+ * Messages are origin-checked in both directions against the exact editor
+ * origin carried by the redeemed assertion's signed renewal URL.
  *
  * The design record behind this protocol, in the Drupal Canvas repository:
  * docs/adr/0015-headless-draft-preview-session-renewal-re-anchored-in-drupal-session.md.
@@ -100,8 +100,8 @@ export interface DraftSessionOptions {
   embedded: boolean;
   /** The current app path, reported to the host; update via setPath(). */
   path: string;
-  /** Origins allowed to embed the app (postMessage peers, both directions). */
-  embedderOrigins: string[];
+  /** The signed editor origin used as the postMessage peer in both directions. */
+  editorOrigin: string | null;
   /** The app endpoint that redeems a fresh assertion into the session. */
   renewEndpoint?: string;
   /**
@@ -141,7 +141,7 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
     tokenExpiresAt,
     initialExpired,
     embedded,
-    embedderOrigins,
+    editorOrigin,
     renewEndpoint = DEFAULT_RENEW_ENDPOINT,
     refreshData,
     onEvent,
@@ -176,10 +176,8 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
   };
 
   const postToHost = (message: Record<string, unknown>) => {
-    // postMessage takes a single targetOrigin; address every allowlisted
-    // embedder — the browser delivers only to the one that matches.
-    for (const origin of embedderOrigins) {
-      hostWindow?.postMessage(message, origin);
+    if (editorOrigin) {
+      hostWindow?.postMessage(message, editorOrigin);
     }
   };
 
@@ -234,12 +232,12 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
   const onMessage = embedded
     ? (event: MessageEvent) => {
         // Only the embedding host may hand us assertions: the source must be
-        // the parent window, not merely any window on an allowlisted origin
+        // the parent window, not merely any window on the editor origin
         // (a popup opener, a nested frame). Mirrors the host checking
         // event.source === iframe.contentWindow in the other direction.
         if (
           event.source !== hostWindow ||
-          !embedderOrigins.includes(event.origin) ||
+          event.origin !== editorOrigin ||
           !event.data ||
           event.data.type !== HEADLESS_ASSERTION_MESSAGE ||
           typeof event.data.assertion !== 'string'
