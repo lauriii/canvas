@@ -178,17 +178,14 @@ final class ComponentTreeLoader {
       return $this->exposedSlotBundles[$entity_type_id];
     }
     $storage = $this->entityTypeManager->getStorage(ContentTemplate::ENTITY_TYPE_ID);
-    $ids = $storage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('content_entity_type_id', $entity_type_id)
-      ->execute();
-    if (empty($ids)) {
-      return $this->exposedSlotBundles[$entity_type_id] = [];
-    }
+    $enabled_templates = $storage->loadByProperties([
+      'content_entity_type_id' => $entity_type_id,
+      'status' => TRUE,
+    ]);
     $bundles = [];
-    foreach ($storage->loadMultiple($ids) as $template) {
+    foreach ($enabled_templates as $template) {
       \assert($template instanceof ContentTemplate);
-      if ($template->status() && !empty($template->getExposedSlots())) {
+      if (!empty($template->getExposedSlots())) {
         $bundles[$template->getTargetBundle()] = $template->getTargetBundle();
       }
     }
