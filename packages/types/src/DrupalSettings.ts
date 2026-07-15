@@ -72,6 +72,15 @@ export interface DrupalSettings {
     propForms?: {
       native: boolean;
       disabledWidgets: string[];
+      // Text formats the current user may use, each with its associated
+      // editor plugin id (null when the format has no editor), so formatted
+      // text props resolve to a native widget or the escape hatch without a
+      // request.
+      textFormats?: {
+        id: string;
+        label: string;
+        editor: string | null;
+      }[];
     };
     extensionsAvailable: boolean;
     pageExtensions: PageExtension[];

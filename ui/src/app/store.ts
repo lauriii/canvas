@@ -45,6 +45,7 @@ import { patternApi } from '@/services/patterns';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { personalizationApi } from '@/services/personalization';
 import { previewApi } from '@/services/preview';
+import { textEditorSettingsApi } from '@/services/textEditorSettings';
 import { rtkQueryErrorHandler } from '@/utils/rtkQuery-error';
 
 import type { Action, Middleware, ThunkAction } from '@reduxjs/toolkit';
@@ -149,6 +150,7 @@ const rootReducer = combineSlices(
   componentInstanceFormApi,
   pageDataFormApi,
   extensionsApi,
+  textEditorSettingsApi,
   configurationSlice,
   primaryPanelSlice,
   dialogSlice,
@@ -246,6 +248,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         componentInstanceFormApi.middleware,
         pageDataFormApi.middleware,
         extensionsApi.middleware,
+        textEditorSettingsApi.middleware,
         notificationsApi.middleware,
         undoRedoActionIdMiddleware,
         pendingChangesApi.middleware,

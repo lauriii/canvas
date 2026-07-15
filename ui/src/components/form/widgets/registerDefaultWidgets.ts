@@ -6,6 +6,10 @@ import {
 } from './widgets/DateTimeWidgets';
 import { entityReferenceAutocompleteWidget } from './widgets/EntityAutocompleteWidget';
 import { fileGenericWidget } from './widgets/FileWidget';
+import {
+  formattedTextAreaWidget,
+  formattedTextFieldWidget,
+} from './widgets/FormattedTextWidgets';
 import { imageImageWidget } from './widgets/ImageWidget';
 import { linkDefaultWidget } from './widgets/LinkWidget';
 import { mediaLibraryWidget } from './widgets/MediaLibraryWidget';
@@ -52,6 +56,9 @@ export function registerDefaultWidgets(): void {
   registerClientWidget('media_library_widget', mediaLibraryWidget);
   registerClientWidget('image_image', imageImageWidget);
   registerClientWidget('file_generic', fileGenericWidget);
+  registerClientWidget('text_textarea', formattedTextAreaWidget);
+  registerClientWidget('text_textarea_with_summary', formattedTextAreaWidget);
+  registerClientWidget('text_textfield', formattedTextFieldWidget);
 
   document.dispatchEvent(
     new CustomEvent(REGISTER_CLIENT_WIDGETS_EVENT, {
