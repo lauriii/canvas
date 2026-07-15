@@ -130,6 +130,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
 
     self::assertCanvasControllerCacheContexts($response);
     self::assertSame([
+      'config:canvas.settings',
       'config:system.site',
       'test_create_access_cache_tag',
       'entity_field_info',
@@ -191,6 +192,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
     $this->assertSame($expectedPermissionFlags, $this->drupalSettings['canvas']['permissions']);
     self::assertCanvasControllerCacheContexts($response);
     self::assertSame([
+      'config:canvas.settings',
       'config:system.site',
       'test_create_access_cache_tag',
       'entity_field_info',
@@ -329,6 +331,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
     $this->assertSame($expectedCreateOperations, $this->drupalSettings['canvas']['contentEntityCreateOperations']);
     self::assertCanvasControllerCacheContexts($response);
     self::assertSame([
+      'config:canvas.settings',
       'config:system.site',
       'test_create_access_cache_tag',
       'entity_field_info',
@@ -408,6 +411,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
 
     self::assertCanvasControllerCacheContexts($response);
     self::assertSame([
+      'config:canvas.settings',
       'config:system.site',
       'test_create_access_cache_tag',
       'entity_field_info',
@@ -417,6 +421,48 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
 
+  }
+
+  /**
+   * Tests the exposed native prop form settings.
+   *
+   * @see \Drupal\canvas\Controller\CanvasController
+   */
+  public function testControllerExposedPropFormsSettings(): void {
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $this->setUpCurrentUser([], [
+      'access content',
+      Page::CREATE_PERMISSION,
+      Page::EDIT_PERMISSION,
+      Page::DELETE_PERMISSION,
+    ]);
+
+    $canvas_url = Url::fromRoute('canvas.boot.empty', [
+      'entity_type' => '',
+      'entity' => '',
+    ])->toString();
+    self::assertEquals("/canvas", $canvas_url);
+
+    // CanvasKernelTestBase::setUp() imports the module's default config, so
+    // the shipped canvas.settings defaults apply: native prop forms enabled,
+    // no widgets disabled.
+    $this->request(Request::create($canvas_url));
+    $this->assertSame([
+      'native' => TRUE,
+      'disabledWidgets' => [],
+    ], $this->drupalSettings['canvas']['propForms']);
+
+    // Flipping the kill switch and disabling a widget must be reflected in the
+    // exposed settings.
+    $this->config('canvas.settings')
+      ->set('prop_forms.native', FALSE)
+      ->set('prop_forms.disabled_widgets', ['string_textfield'])
+      ->save();
+    $this->request(Request::create($canvas_url));
+    $this->assertSame([
+      'native' => FALSE,
+      'disabledWidgets' => ['string_textfield'],
+    ], $this->drupalSettings['canvas']['propForms']);
   }
 
   /**

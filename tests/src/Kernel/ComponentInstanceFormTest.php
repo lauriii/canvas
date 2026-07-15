@@ -78,6 +78,61 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     self::assertStringContainsString('The title for the cta', $crawler->text());
   }
 
+  /**
+   * Tests scoping the form to a subset of props via form_canvas_props_filter.
+   *
+   * The native prop forms UI renders most widgets client-side and only
+   * requests server-built Drupal widgets for the (escape hatch) props that
+   * need them.
+   *
+   * @see \Drupal\canvas\Form\ComponentInstanceForm::buildForm()
+   */
+  public function testPropsFilter(): void {
+    $node = $this->createNode(['type' => 'article', 'title' => 'Test node']);
+    self::assertCount(0, $node->validate());
+    $node->save();
+
+    $uuid = '5f18db31-fa2f-4f4e-a377-dc0c6a0b7dc4';
+    $component_id = 'sdc.canvas_test_sdc.my-cta';
+    $form_canvas_props = $this->getFormCanvasPropsForComponent($component_id);
+    $component_entity = Component::load($component_id);
+    \assert($component_entity instanceof ComponentInterface);
+    $has_widget = static fn (Crawler $crawler, string $prop_name): bool => $crawler->filter(\sprintf('[name^="canvas_component_props[%s][%s]"]', $uuid, $prop_name))->count() > 0;
+
+    // A request without the filter builds every prop's widget.
+    $crawler = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/node/1', $component_entity, $form_canvas_props);
+    foreach (['text', 'href', 'target'] as $prop_name) {
+      self::assertTrue($has_widget($crawler, $prop_name), \sprintf('The unfiltered form is missing the `%s` prop widget.', $prop_name));
+    }
+    self::assertCount(0, $crawler->filter('input[name="form_canvas_props_filter"]'));
+
+    // A request with the filter builds only the requested props' widgets;
+    // unknown prop names are silently ignored.
+    $props_filter = \json_encode(['href', 'not_a_real_prop'], JSON_THROW_ON_ERROR);
+    $json = self::decodeResponse($this->request(Request::create('/canvas/api/v0/form/component-instance/node/1', 'PATCH', [
+      'form_canvas_tree' => json_encode([
+        'nodeType' => 'component',
+        'slots' => [],
+        'type' => "{$component_id}@{$component_entity->getActiveVersion()}",
+        'uuid' => $uuid,
+      ], JSON_THROW_ON_ERROR),
+      'form_canvas_props' => json_encode($form_canvas_props, JSON_THROW_ON_ERROR),
+      'form_canvas_selected' => $uuid,
+      'form_canvas_props_filter' => $props_filter,
+    ])));
+    self::assertArrayHasKey('html', $json);
+    $filtered_crawler = new Crawler($json['html']);
+    self::assertTrue($has_widget($filtered_crawler, 'href'), 'The filtered form is missing the `href` prop widget.');
+    self::assertFalse($has_widget($filtered_crawler, 'text'), 'The filtered form must not contain the `text` prop widget.');
+    self::assertFalse($has_widget($filtered_crawler, 'target'), 'The filtered form must not contain the `target` prop widget.');
+
+    // The filter is re-emitted as a hidden field, so AJAX rebuilds keep the
+    // scope.
+    $filter_hidden_field = $filtered_crawler->filter('input[name="form_canvas_props_filter"]');
+    self::assertCount(1, $filter_hidden_field);
+    self::assertSame($props_filter, $filter_hidden_field->attr('value'));
+  }
+
   #[DataProvider('providerOptionalImages')]
   public function testOptionalImageAndHeading(string $component, array $values_to_set, array $expected_form_canvas_props): void {
     $actual_form_canvas_props = $this->getFormCanvasPropsForComponent($component);

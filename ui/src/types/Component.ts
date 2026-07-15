@@ -1,6 +1,5 @@
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import type { PatternsList } from '@/types/Pattern';
-import type { TransformConfig } from '@/utils/transforms';
 
 export interface FieldData {
   [key: string]: FieldDataItem;
@@ -14,6 +13,10 @@ export interface DefaultValues {
 export interface FieldDataItem {
   expression: string;
   sourceType: string;
+  // The Drupal field widget plugin id configured for this prop. The client
+  // widget registry resolves this to a native client-side widget, or falls
+  // back to the server-built Drupal widget (the escape hatch).
+  field_widget: string;
   sourceTypeSettings?: {
     storage?: object;
     instance?: object;
@@ -60,7 +63,6 @@ export interface JSComponent extends BaseComponent {
   library: 'primary_components';
   source: 'Code component';
   type?: CodeComponentSerialized['type'];
-  transforms: any[];
 }
 
 export interface PropSourceComponent extends BaseComponent {
@@ -75,7 +77,6 @@ export interface PropSourceComponent extends BaseComponent {
     };
     [key: string]: any;
   };
-  transforms: TransformConfig;
 }
 // Union type for any component
 export type CanvasComponent =

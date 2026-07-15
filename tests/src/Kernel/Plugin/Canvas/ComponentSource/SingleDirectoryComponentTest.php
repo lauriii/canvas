@@ -3911,9 +3911,9 @@ HTML
               ],
               'resolved' => 'The not-attributes SDC prop!',
             ],
+            'field_widget' => 'string_textfield',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.banner' => [
         'expected_output_selectors' => [
@@ -3938,6 +3938,7 @@ HTML
               ],
               'resolved' => 'My banner title',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'text' => [
             'required' => FALSE,
@@ -3964,6 +3965,7 @@ HTML
               ],
               'resolved' => '<p>In a curious work, published in <em>Paris</em> in 1863 by <strong>Delaville Dedreux</strong>, there is a suggestion for reaching the North Pole by an aerostat.</p>',
             ],
+            'field_widget' => 'text_textarea',
           ],
           'image' => [
             'required' => FALSE,
@@ -4007,9 +4009,9 @@ HTML
                 'height' => 427,
               ],
             ],
+            'field_widget' => 'image_image',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.card' => [
         'expected_output_selectors' => [
@@ -4034,6 +4036,7 @@ HTML
               ],
               'resolved' => 'Card',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'content' => [
             'required' => FALSE,
@@ -4050,6 +4053,7 @@ HTML
               ],
               'resolved' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'footer' => [
             'required' => FALSE,
@@ -4066,6 +4070,7 @@ HTML
               ],
               'resolved' => 'I have a footer!',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'date' => [
             'required' => FALSE,
@@ -4080,6 +4085,7 @@ HTML
                 'datetime_type' => 'date',
               ],
             ],
+            'field_widget' => 'datetime_default',
           ],
           'image' => [
             'required' => TRUE,
@@ -4123,6 +4129,7 @@ HTML
                 'height' => 427,
               ],
             ],
+            'field_widget' => 'image_image',
           ],
           'sizes' => [
             'required' => FALSE,
@@ -4139,6 +4146,7 @@ HTML
               ],
               'resolved' => 'auto 50vw',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'loading' => [
             'required' => TRUE,
@@ -4147,6 +4155,10 @@ HTML
               'enum' => [
                 0 => 'lazy',
                 1 => 'eager',
+              ],
+              'meta:enum' => [
+                'lazy' => 'Lazy',
+                'eager' => 'Eager',
               ],
             ],
             'sourceType' => 'static:field_item:list_string',
@@ -4164,9 +4176,9 @@ HTML
               ],
               'resolved' => 'eager',
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.card-with-local-image' => [
         'expected_output_selectors' => [
@@ -4191,6 +4203,7 @@ HTML
               ],
               'resolved' => 'Card with local image',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'content' => [
             'required' => FALSE,
@@ -4207,6 +4220,7 @@ HTML
               ],
               'resolved' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'footer' => [
             'required' => FALSE,
@@ -4223,6 +4237,7 @@ HTML
               ],
               'resolved' => 'I have a footer!',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'src' => [
             'required' => TRUE,
@@ -4239,6 +4254,7 @@ HTML
               'source' => [],
               'resolved' => '/core/misc/druplicon.png',
             ],
+            'field_widget' => 'image_image',
           ],
           'alt' => [
             'required' => TRUE,
@@ -4255,6 +4271,7 @@ HTML
               ],
               'resolved' => 'A classic druplicon',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'loading' => [
             'required' => TRUE,
@@ -4263,6 +4280,10 @@ HTML
               'enum' => [
                 0 => 'lazy',
                 1 => 'eager',
+              ],
+              'meta:enum' => [
+                'lazy' => 'Lazy',
+                'eager' => 'Eager',
               ],
             ],
             'sourceType' => 'static:field_item:list_string',
@@ -4280,9 +4301,9 @@ HTML
               ],
               'resolved' => 'lazy',
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.card-with-remote-image' => [
         'expected_output_selectors' => [
@@ -4307,6 +4328,7 @@ HTML
               ],
               'resolved' => 'Card with remote image',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'content' => [
             'required' => FALSE,
@@ -4323,6 +4345,7 @@ HTML
               ],
               'resolved' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'footer' => [
             'required' => FALSE,
@@ -4339,6 +4362,7 @@ HTML
               ],
               'resolved' => 'I have a footer!',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'src' => [
             'required' => TRUE,
@@ -4355,6 +4379,7 @@ HTML
               'source' => [],
               'resolved' => 'https://mdn.github.io/shared-assets/images/examples/balloons.jpg',
             ],
+            'field_widget' => 'image_image',
           ],
           'alt' => [
             'required' => TRUE,
@@ -4371,6 +4396,7 @@ HTML
               ],
               'resolved' => 'Hot air balloons',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'width' => [
             'required' => TRUE,
@@ -4387,6 +4413,7 @@ HTML
               ],
               'resolved' => 640,
             ],
+            'field_widget' => 'number',
           ],
           'height' => [
             'required' => TRUE,
@@ -4403,6 +4430,7 @@ HTML
               ],
               'resolved' => 427,
             ],
+            'field_widget' => 'number',
           ],
           'loading' => [
             'required' => FALSE,
@@ -4411,6 +4439,10 @@ HTML
               'enum' => [
                 0 => 'lazy',
                 1 => 'eager',
+              ],
+              'meta:enum' => [
+                'lazy' => 'Lazy',
+                'eager' => 'Eager',
               ],
             ],
             'sourceType' => 'static:field_item:list_string',
@@ -4428,9 +4460,9 @@ HTML
               ],
               'resolved' => 'lazy',
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.card-with-stream-wrapper-image' => [
         'expected_output_selectors' => [
@@ -4455,6 +4487,7 @@ HTML
               ],
               'resolved' => 'Card with stream wrapper',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'content' => [
             'required' => FALSE,
@@ -4471,6 +4504,7 @@ HTML
               ],
               'resolved' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'footer' => [
             'required' => FALSE,
@@ -4487,6 +4521,7 @@ HTML
               ],
               'resolved' => 'I have a footer!',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'src' => [
             'required' => TRUE,
@@ -4503,6 +4538,7 @@ HTML
               'source' => [],
               'resolved' => 'public://balloons.png',
             ],
+            'field_widget' => 'image_image',
           ],
           'alt' => [
             'required' => TRUE,
@@ -4519,6 +4555,7 @@ HTML
               ],
               'resolved' => 'Hot air balloons',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'loading' => [
             'required' => FALSE,
@@ -4527,6 +4564,10 @@ HTML
               'enum' => [
                 0 => 'lazy',
                 1 => 'eager',
+              ],
+              'meta:enum' => [
+                'lazy' => 'Lazy',
+                'eager' => 'Eager',
               ],
             ],
             'sourceType' => 'static:field_item:list_string',
@@ -4544,9 +4585,9 @@ HTML
               ],
               'resolved' => 'lazy',
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.code-example' => [
         'expected_output_selectors' => [
@@ -4560,6 +4601,15 @@ HTML
             'jsonSchema' => [
               'type' => 'string',
               'enum' => ['php', 'html', 'md', 'js', 'ts', 'jsx', 'tsx'],
+              'meta:enum' => [
+                'php' => 'PHP',
+                'html' => 'HTML',
+                'md' => 'Markdown',
+                'js' => 'JavaScript',
+                'ts' => 'TypeScript',
+                'jsx' => 'JSX',
+                'tsx' => 'TSX',
+              ],
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -4574,6 +4624,7 @@ HTML
               ],
               'resolved' => 'php',
             ],
+            'field_widget' => 'options_select',
           ],
           'code' => [
             'required' => TRUE,
@@ -4589,9 +4640,9 @@ HTML
               ],
               'resolved' => "<?php\necho 'Hello, world!';\n",
             ],
+            'field_widget' => 'string_textarea',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.columns' => [
         'expected_output_selectors' => [
@@ -4640,6 +4691,14 @@ HTML
             'jsonSchema' => [
               'type' => 'integer',
               'enum' => [1, 2, 3, 4, 5, 6],
+              'meta:enum' => [
+                1 => '1',
+                2 => '2',
+                3 => '3',
+                4 => '4',
+                5 => '5',
+                6 => '6',
+              ],
             ],
             'sourceType' => 'static:field_item:list_integer',
             'expression' => 'ℹ︎list_integer␟value',
@@ -4654,9 +4713,9 @@ HTML
               ],
               'resolved' => 2,
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.component-mismatch-meta-enum' => [
         'expected_output_selectors' => [
@@ -4676,6 +4735,12 @@ HTML
                 // @see \Drupal\Tests\canvas\Kernel\Config\ComponentValidationTest::testUnmatchedEnumAndMetaEnum()
                 'contains.dots',
               ],
+              'meta:enum' => [
+                'small' => 'Small',
+                'big' => 'big',
+                'huge' => 'huge',
+                'contains.dots' => 'Contains dots',
+              ],
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -4690,6 +4755,7 @@ HTML
               ],
               'resolved' => 'small',
             ],
+            'field_widget' => 'options_select',
           ],
           'numbers' => [
             'required' => FALSE,
@@ -4698,6 +4764,10 @@ HTML
               'enum' => [
                 '7',
                 '3.14',
+              ],
+              'meta:enum' => [
+                7 => 'Seven',
+                '3.14' => 'Pi',
               ],
             ],
             'sourceType' => 'static:field_item:list_string',
@@ -4713,9 +4783,9 @@ HTML
               ],
               'resolved' => '3.14',
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.component-mismatch-meta-enum-array-items' => [
         'expected_output_selectors' => [
@@ -4737,6 +4807,12 @@ HTML
                   'green_light',
                   'yellow',
                 ],
+                'meta:enum' => [
+                  'red' => 'Red',
+                  'blue' => 'Blue',
+                  'green.light' => 'Light Green',
+                  'yellow' => 'Yellow',
+                ],
               ],
             ],
             'sourceType' => 'static:field_item:list_string',
@@ -4754,9 +4830,9 @@ HTML
               ],
               'resolved' => ['red', 'blue'],
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.component-no-meta-enum' => [
         'expected_output_selectors' => [
@@ -4774,6 +4850,11 @@ HTML
                 'big',
                 'huge',
               ],
+              'meta:enum' => [
+                'small' => 'small',
+                'big' => 'big',
+                'huge' => 'huge',
+              ],
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -4788,9 +4869,9 @@ HTML
               ],
               'resolved' => 'small',
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.crash' => [
         'expected_output_selectors' => [
@@ -4812,9 +4893,9 @@ HTML
               ],
               'resolved' => FALSE,
             ],
+            'field_widget' => 'boolean_checkbox',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.date' => [
         'expected_output_selectors' => [
@@ -4836,6 +4917,7 @@ HTML
                 'datetime_type' => DateTimeItem::DATETIME_TYPE_DATE,
               ],
             ],
+            'field_widget' => 'datetime_default',
           ],
           'caption' => [
             'required' => FALSE,
@@ -4848,9 +4930,9 @@ HTML
               ],
               'resolved' => 'Birthday',
             ],
+            'field_widget' => 'string_textfield',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.deprecated' => [
         'expected_output_selectors' => [
@@ -4873,9 +4955,9 @@ HTML
               ],
               'resolved' => 'A text field',
             ],
+            'field_widget' => 'string_textfield',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.druplicon' => [
         'expected_output_selectors' => [
@@ -4884,7 +4966,6 @@ HTML
         'source' => 'Module component',
         'metadata' => ['slots' => []],
         'propSources' => [],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.experimental' => [
         'expected_output_selectors' => [
@@ -4907,9 +4988,9 @@ HTML
               ],
               'resolved' => 'A text field',
             ],
+            'field_widget' => 'string_textfield',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.grid-container' => [
         'expected_output_selectors' => [
@@ -4936,6 +5017,10 @@ HTML
                 0 => 'horizontal',
                 1 => 'vertical',
               ],
+              'meta:enum' => [
+                'horizontal' => 'Horizontal',
+                'vertical' => 'Vertical',
+              ],
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -4950,9 +5035,9 @@ HTML
               ],
               'resolved' => 'horizontal',
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.heading' => [
         'expected_output_selectors' => [
@@ -4978,6 +5063,7 @@ HTML
               ],
               'resolved' => 'A heading element',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'style' => [
             'required' => FALSE,
@@ -4986,6 +5072,10 @@ HTML
               'enum' => [
                 0 => 'primary',
                 1 => 'secondary',
+              ],
+              'meta:enum' => [
+                'primary' => 'Primary',
+                'secondary' => 'Secondary',
               ],
             ],
             'sourceType' => 'static:field_item:list_string',
@@ -5003,6 +5093,7 @@ HTML
               ],
               'resolved' => 'primary',
             ],
+            'field_widget' => 'options_select',
           ],
           'element' => [
             'required' => TRUE,
@@ -5017,6 +5108,15 @@ HTML
                 4 => 'h4',
                 5 => 'h5',
                 6 => 'h6',
+              ],
+              'meta:enum' => [
+                'div' => 'Container',
+                'h1' => 'Header 1',
+                'h2' => 'Header 2',
+                'h3' => 'Header 3',
+                'h4' => 'Header 4',
+                'h5' => 'Header 5',
+                'h6' => 'Header 6',
               ],
             ],
             'sourceType' => 'static:field_item:list_string',
@@ -5034,9 +5134,9 @@ HTML
               ],
               'resolved' => 'h1',
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.image' => [
         'expected_output_selectors' => [
@@ -5089,9 +5189,9 @@ HTML
                 'height' => 400,
               ],
             ],
+            'field_widget' => 'image_image',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.image-gallery' => [
         'expected_output_selectors' => [
@@ -5109,6 +5209,7 @@ HTML
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
+            'field_widget' => 'string_textfield',
           ],
           'images' => [
             'required' => TRUE,
@@ -5173,9 +5274,9 @@ HTML
                 ],
               ],
             ],
+            'field_widget' => 'image_image',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.image-optional-with-example' => [
         'expected_output_selectors' => [
@@ -5226,9 +5327,9 @@ HTML
                 'height' => 400,
               ],
             ],
+            'field_widget' => 'image_image',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop' => [
         'expected_output_selectors' => [
@@ -5244,6 +5345,7 @@ HTML
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
+            'field_widget' => 'string_textfield',
           ],
           'image' => [
             'required' => FALSE,
@@ -5287,9 +5389,9 @@ HTML
                 'height' => 402,
               ],
             ],
+            'field_widget' => 'image_image',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.image-optional-without-example' => [
         'expected_output_selectors' => [],
@@ -5329,9 +5431,9 @@ HTML
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'field_widget' => 'image_image',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.image-required-with-example' => [
         'expected_output_selectors' => [
@@ -5382,9 +5484,9 @@ HTML
                 'height' => 400,
               ],
             ],
+            'field_widget' => 'image_image',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.image-without-ref' => [
         'expected_output_selectors' => [
@@ -5435,9 +5537,9 @@ HTML
                 'height' => 600,
               ],
             ],
+            'field_widget' => 'image_image',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.mixed-images-with-example' => [
         'expected_output_selectors' => [
@@ -5479,6 +5581,7 @@ HTML
                 'height' => 400,
               ],
             ],
+            'field_widget' => 'image_image',
           ],
           'secondary_image' => [
             'required' => FALSE,
@@ -5511,6 +5614,7 @@ HTML
                 'height' => 400,
               ],
             ],
+            'field_widget' => 'image_image',
           ],
           'required_image' => [
             'required' => TRUE,
@@ -5543,9 +5647,9 @@ HTML
                 'height' => 400,
               ],
             ],
+            'field_widget' => 'image_image',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.multivalue-props' => [
         'expected_output_selectors' => [
@@ -5581,6 +5685,7 @@ HTML
                 1 => 'Sample Text',
               ],
             ],
+            'field_widget' => 'string_textfield',
           ],
           'text_limited' => [
             'required' => FALSE,
@@ -5610,6 +5715,7 @@ HTML
                 1 => 'Sample Text',
               ],
             ],
+            'field_widget' => 'string_textfield',
           ],
           'text_required' => [
             'required' => TRUE,
@@ -5639,6 +5745,7 @@ HTML
                 1 => 'Required Text 2',
               ],
             ],
+            'field_widget' => 'string_textfield',
           ],
           'link' => [
             'required' => FALSE,
@@ -5674,6 +5781,7 @@ HTML
                 1 => 'https://example.com',
               ],
             ],
+            'field_widget' => 'link_default',
           ],
           'link_limited' => [
             'required' => FALSE,
@@ -5710,6 +5818,7 @@ HTML
                 1 => 'https://example.com',
               ],
             ],
+            'field_widget' => 'link_default',
           ],
           'relative_link' => [
             'required' => FALSE,
@@ -5745,6 +5854,7 @@ HTML
                 1 => '/contact',
               ],
             ],
+            'field_widget' => 'link_default',
           ],
           'relative_link_limited' => [
             'required' => FALSE,
@@ -5781,6 +5891,7 @@ HTML
                 1 => '/contact',
               ],
             ],
+            'field_widget' => 'link_default',
           ],
           'number' => [
             'required' => FALSE,
@@ -5813,6 +5924,7 @@ HTML
                 2 => 0.0,
               ],
             ],
+            'field_widget' => 'number',
           ],
           'number_limited' => [
             'required' => FALSE,
@@ -5842,6 +5954,7 @@ HTML
                 1 => 100.0,
               ],
             ],
+            'field_widget' => 'number',
           ],
           'integer' => [
             'required' => FALSE,
@@ -5870,6 +5983,7 @@ HTML
                 1 => 14,
               ],
             ],
+            'field_widget' => 'number',
           ],
           'integer_limited' => [
             'required' => FALSE,
@@ -5899,6 +6013,7 @@ HTML
                 1 => 14,
               ],
             ],
+            'field_widget' => 'number',
           ],
           'datetime' => [
             'required' => FALSE,
@@ -5917,6 +6032,7 @@ HTML
               ],
               'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
             ],
+            'field_widget' => 'datetime_default',
           ],
           'datetime_limited' => [
             'required' => FALSE,
@@ -5936,6 +6052,7 @@ HTML
               ],
               'cardinality' => 3,
             ],
+            'field_widget' => 'datetime_default',
           ],
           'date' => [
             'required' => FALSE,
@@ -5954,6 +6071,7 @@ HTML
               ],
               'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
             ],
+            'field_widget' => 'datetime_default',
           ],
           'date_limited' => [
             'required' => FALSE,
@@ -5973,6 +6091,7 @@ HTML
               ],
               'cardinality' => 3,
             ],
+            'field_widget' => 'datetime_default',
           ],
           'list_text' => [
             'required' => FALSE,
@@ -5986,6 +6105,12 @@ HTML
                   'option_three',
                   'option_four',
                 ],
+                'meta:enum' => [
+                  'option_one' => 'Option One',
+                  'option_two' => 'Option Two',
+                  'option_three' => 'Option Three',
+                  'option_four' => 'Option Four',
+                ],
               ],
             ],
             'sourceType' => 'static:field_item:list_string',
@@ -6003,6 +6128,7 @@ HTML
               ],
               'resolved' => ['option_one', 'option_two'],
             ],
+            'field_widget' => 'options_select',
           ],
           'list_text_limited' => [
             'required' => FALSE,
@@ -6015,6 +6141,12 @@ HTML
                   'option_two',
                   'option_three',
                   'option_four',
+                ],
+                'meta:enum' => [
+                  'option_one' => 'Option One',
+                  'option_two' => 'Option Two',
+                  'option_three' => 'Option Three',
+                  'option_four' => 'Option Four',
                 ],
               ],
               'maxItems' => 3,
@@ -6034,6 +6166,7 @@ HTML
               ],
               'resolved' => ['option_one', 'option_two'],
             ],
+            'field_widget' => 'options_select',
           ],
           'list_int' => [
             'required' => FALSE,
@@ -6042,6 +6175,12 @@ HTML
               'items' => [
                 'type' => 'integer',
                 'enum' => [10, 20, 30, 40],
+                'meta:enum' => [
+                  10 => 'Ten',
+                  20 => 'Twenty',
+                  30 => 'Thirty',
+                  40 => 'Forty',
+                ],
               ],
             ],
             'sourceType' => 'static:field_item:list_integer',
@@ -6059,6 +6198,7 @@ HTML
               ],
               'resolved' => [10, 20],
             ],
+            'field_widget' => 'options_select',
           ],
           'list_int_limited' => [
             'required' => FALSE,
@@ -6067,6 +6207,12 @@ HTML
               'items' => [
                 'type' => 'integer',
                 'enum' => [10, 20, 30, 40],
+                'meta:enum' => [
+                  10 => 'Ten',
+                  20 => 'Twenty',
+                  30 => 'Thirty',
+                  40 => 'Forty',
+                ],
               ],
               'maxItems' => 3,
             ],
@@ -6085,9 +6231,9 @@ HTML
               ],
               'resolved' => [10, 20],
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.my-cta' => [
         'expected_output_selectors' => [
@@ -6114,6 +6260,7 @@ HTML
               ],
               'resolved' => 'Press',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'href' => [
             'required' => TRUE,
@@ -6138,6 +6285,7 @@ HTML
               ],
               'resolved' => 'https://www.drupal.org',
             ],
+            'field_widget' => 'link_default',
           ],
           'target' => [
             'required' => FALSE,
@@ -6147,6 +6295,10 @@ HTML
                 0 => '_self',
                 1 => '_blank',
               ],
+              'meta:enum' => [
+                '_self' => 'Open in same window',
+                '_blank' => 'Open in a new window',
+              ],
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -6155,9 +6307,9 @@ HTML
                 'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
               ],
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.my-hero' => [
         'expected_output_selectors' => [
@@ -6185,6 +6337,7 @@ HTML
               ],
               'resolved' => 'There goes my hero',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'subheading' => [
             'required' => FALSE,
@@ -6201,6 +6354,7 @@ HTML
               ],
               'resolved' => 'Watch him as he goes!',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'cta1' => [
             'required' => FALSE,
@@ -6217,6 +6371,7 @@ HTML
               ],
               'resolved' => 'View',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'cta1href' => [
             'required' => TRUE,
@@ -6241,6 +6396,7 @@ HTML
               ],
               'resolved' => 'https://example.com',
             ],
+            'field_widget' => 'link_default',
           ],
           'cta2' => [
             'required' => FALSE,
@@ -6257,9 +6413,9 @@ HTML
               ],
               'resolved' => 'Click',
             ],
+            'field_widget' => 'string_textfield',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.my-section' => [
         'expected_output_selectors' => [
@@ -6285,9 +6441,9 @@ HTML
               ],
               'resolved' => 'Our mission is to deliver the best products and services to our customers. We strive to exceed expectations and continuously improve our offerings.',
             ],
+            'field_widget' => 'string_textfield',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.one_column' => [
         'expected_output_selectors' => [
@@ -6313,6 +6469,12 @@ HTML
                 2 => 'normal',
                 3 => 'narrow',
               ],
+              'meta:enum' => [
+                'full' => 'Full',
+                'wide' => 'Wide',
+                'normal' => 'Normal',
+                'narrow' => 'Narrow',
+              ],
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -6329,9 +6491,9 @@ HTML
               ],
               'resolved' => 'full',
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.props-no-slots' => [
         'expected_output_selectors' => [
@@ -6354,9 +6516,9 @@ HTML
               ],
               'resolved' => 'There goes my hero',
             ],
+            'field_widget' => 'string_textfield',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.props-slots' => [
         'expected_output_selectors' => [
@@ -6404,9 +6566,9 @@ HTML
               ],
               'resolved' => 'There goes my hero',
             ],
+            'field_widget' => 'string_textfield',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.required-formatted-body' => [
         'expected_output_selectors' => [
@@ -6440,9 +6602,9 @@ HTML
               ],
               'resolved' => '<p>Example</p>',
             ],
+            'field_widget' => 'text_textarea',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.required-integer' => [
         'expected_output_selectors' => [
@@ -6466,9 +6628,9 @@ HTML
               ],
               'resolved' => 42,
             ],
+            'field_widget' => 'number',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.required-plain-string' => [
         'expected_output_selectors' => [
@@ -6492,9 +6654,9 @@ HTML
               ],
               'resolved' => 'Hello',
             ],
+            'field_widget' => 'string_textfield',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.select-fields' => [
         'expected_output_selectors' => [
@@ -6514,6 +6676,11 @@ HTML
                 'medium',
                 'large',
               ],
+              'meta:enum' => [
+                'small' => 'Small',
+                'medium' => 'Medium',
+                'large' => 'Large',
+              ],
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -6528,6 +6695,7 @@ HTML
               ],
               'resolved' => 'medium',
             ],
+            'field_widget' => 'options_select',
           ],
           'colors' => [
             'required' => FALSE,
@@ -6540,6 +6708,12 @@ HTML
                   'green',
                   'blue',
                   'yellow',
+                ],
+                'meta:enum' => [
+                  'red' => 'Red',
+                  'green' => 'Green',
+                  'blue' => 'Blue',
+                  'yellow' => 'Yellow',
                 ],
               ],
             ],
@@ -6558,9 +6732,9 @@ HTML
               ],
               'resolved' => ['red', 'blue'],
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.shoe_badge' => [
         'expected_output_selectors' => [
@@ -6590,6 +6764,13 @@ HTML
                 3 => 'warning',
                 4 => 'danger',
               ],
+              'meta:enum' => [
+                'primary' => 'Primary',
+                'success' => 'Success',
+                'neutral' => 'Neutral',
+                'warning' => 'Warning',
+                'danger' => 'Danger',
+              ],
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -6606,6 +6787,7 @@ HTML
               ],
               'resolved' => 'primary',
             ],
+            'field_widget' => 'options_select',
           ],
           'pill' => [
             'required' => FALSE,
@@ -6622,6 +6804,7 @@ HTML
               ],
               'resolved' => TRUE,
             ],
+            'field_widget' => 'boolean_checkbox',
           ],
           'pulse' => [
             'required' => FALSE,
@@ -6638,9 +6821,9 @@ HTML
               ],
               'resolved' => TRUE,
             ],
+            'field_widget' => 'boolean_checkbox',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.shoe_tab' => [
         'expected_output_selectors' => [
@@ -6666,6 +6849,7 @@ HTML
               ],
               'resolved' => 'Tab 1',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'panel' => [
             'required' => TRUE,
@@ -6682,6 +6866,7 @@ HTML
               ],
               'resolved' => 'tab_1',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'active' => [
             'required' => FALSE,
@@ -6690,6 +6875,7 @@ HTML
             ],
             'sourceType' => 'static:field_item:boolean',
             'expression' => 'ℹ︎boolean␟value',
+            'field_widget' => 'boolean_checkbox',
           ],
           'closable' => [
             'required' => FALSE,
@@ -6698,6 +6884,7 @@ HTML
             ],
             'sourceType' => 'static:field_item:boolean',
             'expression' => 'ℹ︎boolean␟value',
+            'field_widget' => 'boolean_checkbox',
           ],
           'disabled' => [
             'required' => FALSE,
@@ -6706,9 +6893,9 @@ HTML
             ],
             'sourceType' => 'static:field_item:boolean',
             'expression' => 'ℹ︎boolean␟value',
+            'field_widget' => 'boolean_checkbox',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.shoe_tab_group' => [
         'expected_output_selectors' => [
@@ -6738,6 +6925,12 @@ HTML
                 2 => 'start',
                 3 => 'end',
               ],
+              'meta:enum' => [
+                'top' => 'Top',
+                'bottom' => 'Bottom',
+                'start' => 'Start',
+                'end' => 'End',
+              ],
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -6754,6 +6947,7 @@ HTML
               ],
               'resolved' => 'top',
             ],
+            'field_widget' => 'options_select',
           ],
           'activation' => [
             'required' => FALSE,
@@ -6762,6 +6956,10 @@ HTML
               'enum' => [
                 0 => 'auto',
                 1 => 'manual',
+              ],
+              'meta:enum' => [
+                'auto' => 'Auto',
+                'manual' => 'Manual',
               ],
             ],
             'sourceType' => 'static:field_item:list_string',
@@ -6779,6 +6977,7 @@ HTML
               ],
               'resolved' => 'auto',
             ],
+            'field_widget' => 'options_select',
           ],
           'no_scroll' => [
             'required' => FALSE,
@@ -6795,9 +6994,9 @@ HTML
               ],
               'resolved' => FALSE,
             ],
+            'field_widget' => 'boolean_checkbox',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.shoe_tab_panel' => [
         'expected_output_selectors' => [
@@ -6831,6 +7030,7 @@ HTML
               ],
               'resolved' => 'tab_name',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'active' => [
             'required' => FALSE,
@@ -6839,9 +7039,9 @@ HTML
             ],
             'sourceType' => 'static:field_item:boolean',
             'expression' => 'ℹ︎boolean␟value',
+            'field_widget' => 'boolean_checkbox',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.sparkline' => [
         'expected_output_selectors' => [
@@ -6884,9 +7084,9 @@ HTML
                 0, 10, 20, 30, -40, -50, 5, 7, 9,
               ],
             ],
+            'field_widget' => 'number',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.tags' => [
         'expected_output_selectors' => [
@@ -6918,9 +7118,9 @@ HTML
               ],
               'resolved' => ['foo', 'bar', 'baz'],
             ],
+            'field_widget' => 'string_textfield',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.two_column' => [
         'expected_output_selectors' => [
@@ -6958,6 +7158,13 @@ HTML
                 3 => 66,
                 4 => 75,
               ],
+              'meta:enum' => [
+                25 => '25%',
+                33 => '33%',
+                50 => '50%',
+                66 => '66%',
+                75 => '75%',
+              ],
             ],
             'sourceType' => 'static:field_item:list_integer',
             'expression' => 'ℹ︎list_integer␟value',
@@ -6974,9 +7181,9 @@ HTML
               ],
               'resolved' => 25,
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.canvas_test_sdc.video' => [
         'expected_output_selectors' => [
@@ -7028,6 +7235,7 @@ HTML
                 'poster' => 'https://example.com/600x400.png',
               ],
             ],
+            'field_widget' => 'file_generic',
           ],
           'display_width' => [
             'required' => FALSE,
@@ -7043,9 +7251,9 @@ HTML
                 'max' => NULL,
               ],
             ],
+            'field_widget' => 'number',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.sdc_theme_test.bar' => [
         'expected_output_selectors' => [
@@ -7054,7 +7262,6 @@ HTML
         'source' => 'Theme component',
         'metadata' => ['slots' => []],
         'propSources' => [],
-        'transforms' => [],
       ],
       'sdc.sdc_theme_test.lib-overrides' => [
         'expected_output_selectors' => [
@@ -7063,7 +7270,6 @@ HTML
         'source' => 'Theme component',
         'metadata' => ['slots' => []],
         'propSources' => [],
-        'transforms' => [],
       ],
       'sdc.sdc_theme_test.my-card' => [
         'expected_output_selectors' => [
@@ -7095,9 +7301,9 @@ HTML
               ],
               'resolved' => 'I am a header!',
             ],
+            'field_widget' => 'string_textfield',
           ],
         ],
-        'transforms' => [],
       ],
       'sdc.sdc_theme_test_base.my-card-no-schema' => [
         'expected_output_selectors' => [
@@ -7106,7 +7312,6 @@ HTML
         'source' => 'Theme component',
         'metadata' => ['slots' => []],
         'propSources' => [],
-        'transforms' => [],
       ],
     ];
   }

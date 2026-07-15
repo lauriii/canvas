@@ -46,6 +46,18 @@ canvas.api.auto-save.post:
   options:
     _format: 'json'
 
+canvas.api.autocomplete:
+  path: '/canvas/api/v0/autocomplete'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiAutocompleteController'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+    _format: 'json'
+  methods: [GET]
+  options:
+    _format: 'json'
+
 canvas.api.config.auto-save.get:
   path: '/canvas/api/v0/config/auto-save/{canvas_config_entity_type_id}/{canvas_config_entity}'
   defaults:
@@ -387,6 +399,18 @@ canvas.api.extension.list:
   options:
     _format: 'json'
 
+canvas.api.file.upload:
+  path: '/canvas/api/v0/file/upload'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiFileUploadController'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+    _format: 'json'
+  methods: [POST]
+  options:
+    _format: 'json'
+
 # Forms: component instance and content entity.
 # @see \Drupal\canvas\Theme\CanvasThemeNegotiator::applies()
 canvas.api.form.component_instance: &component_instance_form_route
@@ -578,6 +602,21 @@ canvas.api.log_error:
   methods: ['POST']
   options:
     _format: 'json'
+
+canvas.api.media.list:
+  path: '/canvas/api/v0/media/{media_type}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiMediaControllers::list'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+    _format: 'json'
+  methods: [GET]
+  options:
+    parameters:
+      media_type:
+        type: entity:media_type
+    canvas_external_api: true
 
 canvas.api.media.upload:
   path: '/canvas/api/v0/media/{media_type}/upload'

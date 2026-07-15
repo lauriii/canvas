@@ -1,0 +1,9 @@
+prop_forms:
+  # Kill switch for native (client-side) prop forms: when FALSE, every
+  # component instance prop form is server-built via Form API, restoring
+  # `hook_form_alter()` effects and media library contrib integrations.
+  native: true
+  # Widget plugin ids excluded from native rendering; their props render via
+  # the server-built Drupal widget (the escape hatch) while all other props
+  # stay native. Example: media_library_widget on sites using DAM integrations.
+  disabled_widgets: {  }

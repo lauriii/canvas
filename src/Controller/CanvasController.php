@@ -133,6 +133,15 @@ HTML;
     // ⚠️ This is highly experimental and *will* be refactored.
     $personalization_extension_available = $this->moduleHandler->moduleExists('canvas_personalization');
     $system_site_config = $this->configFactory->get('system.site');
+    // Native prop form settings: the site-wide kill switch and the per-widget
+    // native disable list. Absent config (sites installed before this setting
+    // existed) means native rendering is enabled with no widgets disabled.
+    // @see docs/adr/0017-client-side-field-widgets.md
+    $canvas_settings = $this->configFactory->get('canvas.settings');
+    $prop_forms_settings = [
+      'native' => $canvas_settings->get('prop_forms.native') ?? TRUE,
+      'disabledWidgets' => \array_values($canvas_settings->get('prop_forms.disabled_widgets') ?? []),
+    ];
     $entity_types_with_keys = [];
     $entity_type_labels = [];
     foreach ($this->entityTypeManager->getDefinitions() as $entity_type_id => $entity_type_definition) {
@@ -206,6 +215,7 @@ HTML;
 
     return (new HtmlResponse($this->buildHtml()))
       ->addCacheableDependency($extensions)
+      ->addCacheableDependency($canvas_settings)
       ->addCacheableDependency($system_site_config)
       ->addCacheableDependency($all_content_entity_create_links)
       ->addCacheableDependency($languages_cacheability)
@@ -237,6 +247,7 @@ HTML;
             'contentTranslationEnabled' => $content_translation_enabled,
             'configTranslationEnabled' => $config_translation_enabled,
             'languages' => $languages_data,
+            'propForms' => $prop_forms_settings,
             'extensionsAvailable' => count($extensions) > 0,
             'pageExtensions' => $page_extensions,
             'aiExtensionAvailable' => $ai_extension_available,

@@ -105,6 +105,18 @@ final class ComponentInstanceForm extends FormBase {
     $props = $request->request->getString('form_canvas_props');
     $client_model = json_decode($props, TRUE);
 
+    // The client may scope this form to a subset of the component's props: the
+    // native prop forms UI renders most widgets client-side and only requests
+    // server-built Drupal widgets for the (escape hatch) props that need them.
+    // @see docs/adr/0017-client-side-field-widgets.md
+    if ($request->query->has('form_canvas_props_filter')) {
+      $props_filter_json = $request->query->getString('form_canvas_props_filter');
+    }
+    else {
+      $props_filter_json = $request->request->getString('form_canvas_props_filter');
+    }
+    $props_filter = json_decode($props_filter_json, TRUE);
+
     // Make sure these get sent in subsequent AJAX requests.
     // Note: they're prefixed with `form_` to avoid storage in the UI state.
     $form['form_canvas_selected'] = [
@@ -119,6 +131,12 @@ final class ComponentInstanceForm extends FormBase {
       '#type' => 'hidden',
       '#value' => $props,
     ];
+    if ($props_filter_json !== '') {
+      $form['form_canvas_props_filter'] = [
+        '#type' => 'hidden',
+        '#value' => $props_filter_json,
+      ];
+    }
 
     // Prevent form submission while specifying values for component instance's
     // inputs, because changes are saved via Redux instead of a traditional
@@ -131,7 +149,16 @@ final class ComponentInstanceForm extends FormBase {
     $sub_form = ['#parents' => $parents, '#tree' => TRUE];
     if (!$component->getComponentSource()->isBroken()) {
       $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model, $host_entity);
-      $instance_form = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
+      $settings = $component->get('settings');
+      // When a props filter was provided, build only the widgets for the
+      // requested props. Unknown prop names are silently ignored.
+      if (\is_array($props_filter) && $props_filter !== [] && isset($settings['prop_field_definitions'])) {
+        $settings['prop_field_definitions'] = \array_intersect_key(
+          $settings['prop_field_definitions'],
+          \array_flip(\array_filter($props_filter, \is_string(...))),
+        );
+      }
+      $instance_form = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $settings);
     }
     else {
       // The component is broken, so we must assist the Canvas content author
