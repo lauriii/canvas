@@ -2,8 +2,14 @@
 # EmptySlotMarker one does NOT have nor need discovery: it provides only 1 known Component.
 # 💡`status: false` keeps this Component out of the component library (which lists only status: TRUE
 # Components), so it is never placeable — while remaining loadable, referenceable and renderable in a
-# saved component tree. It represents an *empty override* of an exposed slot: a bonsai root row
-# referencing it means "this entity's slot renders nothing".
+# saved component tree. It represents an *empty override* of an exposed slot. An exposed slot's
+# per-entity `component_tree` field is in one of exactly three states:
+# 1. Empty field (no rows): NOT overridden — the content template's default content for the slot
+#    renders.
+# 2. A tree whose sole row references this marker: overridden to be empty — "this entity's slot
+#    renders nothing".
+# 3. A tree of one or more ordinary component instances: overridden — that per-entity content
+#    renders.
 # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\EmptySlotMarker
 # @see \Drupal\canvas\Entity\ComponentInterface::EMPTY_SLOT_MARKER_ID
 langcode: en
