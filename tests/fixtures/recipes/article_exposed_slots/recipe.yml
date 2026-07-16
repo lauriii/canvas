@@ -1,0 +1,12 @@
+name: 'Article exposed slots'
+description: 'Creates an Article content type whose enabled Full content template exposes a slot backed by a canvas_slot_main field, plus seeded article nodes, for testing the Content panel and per-content editing.'
+type: 'Canvas'
+recipes:
+  - core/recipes/article_content_type
+install:
+  - canvas:canvas_test_sdc
+content:
+  node:
+    - 1111aaaa-2222-4bbb-8ccc-dddddddddddd
+    - 2222bbbb-3333-4ccc-8ddd-eeeeeeeeeeee
+    - 3333cccc-4444-4ddd-8eee-ffffffffffff
