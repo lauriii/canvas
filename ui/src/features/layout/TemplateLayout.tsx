@@ -38,8 +38,8 @@ const TemplateLayout = () => {
 
   // The template layout GET does not (yet) emit the template's own exposed
   // slots, so fall back to the persisted set from the content-template config
-  // list. @todo remove the fallback once ApiLayoutController::get() emits
-  // `exposedSlots` for the ContentTemplate branch (see report / server follow-up).
+  // list.
+  // @todo Remove the fallback once ApiLayoutController::get() emits `exposedSlots` for the ContentTemplate branch.
   const { data: templates, isLoading: isTemplatesLoading } =
     useGetContentTemplatesQuery();
   const configExposedSlots = useMemo(() => {
