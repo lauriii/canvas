@@ -8,11 +8,15 @@
  * translate between the two and resolve exposed slots against layout nodes.
  */
 
-import { recurseNodes } from '@/features/layout/layoutUtils';
+import {
+  findComponentByUuid,
+  recurseNodes,
+} from '@/features/layout/layoutUtils';
 
 import type {
   ComponentNode,
   ExposedSlotDefinition,
+  RegionNode,
   SlotDefaultContent,
   SlotNode,
   SlotOverrideState,
@@ -147,6 +151,54 @@ export const findExposedSlotsInSubtree = (
   return Object.entries(exposedSlots)
     .filter(([, definition]) => uuids.has(definition.componentUuid))
     .map(([alias, definition]) => ({ alias, definition }));
+};
+
+/**
+ * The exposure-blocking conflict for a candidate slot, if any.
+ *
+ * Exposed slots must not nest (@see ValidExposedSlot): an exposed slot's
+ * subtree is a per-entity-replaceable default, so an override of the outer
+ * slot would orphan the inner slot's target. That cuts both ways, and this
+ * resolves both directions so the UI can prevent the invalid exposure up
+ * front instead of failing at save:
+ * - 'inside': the candidate slot's host component already sits inside an
+ *   exposed slot's subtree.
+ * - 'contains': the candidate slot's own subtree hosts an already-exposed
+ *   slot, which the exposure would swallow.
+ */
+export const findSlotNestingConflict = (
+  exposedSlots: Record<string, ExposedSlotDefinition> | undefined,
+  layout: RegionNode[],
+  slot: SlotNode,
+  hostComponentUuid: string,
+): {
+  direction: 'inside' | 'contains';
+  alias: string;
+  definition: ExposedSlotDefinition;
+} | null => {
+  if (!exposedSlots) {
+    return null;
+  }
+  // 'inside': the host component is within another exposed slot's subtree.
+  for (const [alias, definition] of Object.entries(exposedSlots)) {
+    const exposedHost = findComponentByUuid(layout, definition.componentUuid);
+    const exposedSlotNode = exposedHost?.slots.find(
+      (node) => node.name === definition.slotName,
+    );
+    for (const child of exposedSlotNode?.components ?? []) {
+      if (collectComponentUuids(child).includes(hostComponentUuid)) {
+        return { direction: 'inside', alias, definition };
+      }
+    }
+  }
+  // 'contains': the candidate slot's subtree hosts an exposed slot.
+  for (const child of slot.components) {
+    const contained = findExposedSlotsInSubtree(exposedSlots, child);
+    if (contained.length > 0) {
+      return { direction: 'contains', ...contained[0] };
+    }
+  }
+  return null;
 };
 
 /**

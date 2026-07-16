@@ -2,8 +2,14 @@ import { ContextMenu } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { UnifiedMenu } from '@/components/UnifiedMenu';
-import { findExposedSlotEntry } from '@/features/layout/exposedSlots';
-import { selectExposedSlots } from '@/features/layout/layoutModelSlice';
+import {
+  findExposedSlotEntry,
+  findSlotNestingConflict,
+} from '@/features/layout/exposedSlots';
+import {
+  selectExposedSlots,
+  selectLayout,
+} from '@/features/layout/layoutModelSlice';
 import { setDialogWithDataOpen } from '@/features/ui/dialogSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
 
@@ -32,11 +38,17 @@ export const SlotContextMenuContent: React.FC<
 > = ({ slot, parentComponent, menuType = 'context' }) => {
   const dispatch = useAppDispatch();
   const exposedSlots = useAppSelector(selectExposedSlots);
+  const layout = useAppSelector(selectLayout);
   const slotTitle = useGetComponentName(slot, parentComponent);
   const componentUuid = parentComponent.uuid;
   const slotName = slot.name;
 
   const exposed = findExposedSlotEntry(exposedSlots, componentUuid, slotName);
+  // Exposed slots must not nest; block the invalid exposure here instead of
+  // letting the save fail on the ValidExposedSlot constraint.
+  const nestingConflict = exposed
+    ? null
+    : findSlotNestingConflict(exposedSlots, layout, slot, componentUuid);
 
   const openExposeDialog = () => {
     const data: ExposeSlotDialogData = {
@@ -85,9 +97,19 @@ export const SlotContextMenuContent: React.FC<
     >
       <UnifiedMenu.Label>{slotTitle}</UnifiedMenu.Label>
       <UnifiedMenu.Separator />
-      {!exposed && (
+      {!exposed && !nestingConflict && (
         <UnifiedMenu.Item onClick={openExposeDialog}>
           Expose slot
+        </UnifiedMenu.Item>
+      )}
+      {!exposed && nestingConflict && (
+        <UnifiedMenu.Item
+          disabled
+          data-testid={`canvas-expose-slot-blocked-${componentUuid}/${slotName}`}
+        >
+          {nestingConflict.direction === 'inside'
+            ? `Expose slot (inside exposed slot "${nestingConflict.definition.label}")`
+            : `Expose slot (contains exposed slot "${nestingConflict.definition.label}")`}
         </UnifiedMenu.Item>
       )}
       {exposed && (
