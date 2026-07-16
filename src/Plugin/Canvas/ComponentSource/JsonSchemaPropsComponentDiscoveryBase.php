@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
+use Drupal\canvas\PropShape\ObjectPropsStorablePropShape;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\PropShape\StorablePropShape;
@@ -44,6 +45,41 @@ abstract class JsonSchemaPropsComponentDiscoveryBase {
       }
 
       $schema = $component_plugin->metadata->schema ?? [];
+
+      // Custom object props ("groups"): one scalar definition per
+      // sub-property. Groups have no top-level field type, widget, expression,
+      // or default value: default values come from the component's `examples`,
+      // like other prop shapes whose example values cannot be stored in a
+      // field type.
+      // @see \Drupal\canvas\PropSource\ObjectPropsSource
+      // @see \Drupal\canvas\PropSource\DefaultRelativeUrlPropSource
+      if ($storable_prop_shape instanceof ObjectPropsStorablePropShape) {
+        $props[$cpe->propName] = [
+          'required' => isset($schema['required']) && \in_array($cpe->propName, $schema['required'], TRUE),
+          'sub_definitions' => \array_map(
+            static function (StorablePropShape $sub_shape): array {
+              $sub_definition = [
+                'field_type' => $sub_shape->fieldTypeProp->getFieldType(),
+                'field_widget' => $sub_shape->fieldWidget,
+                'expression' => (string) $sub_shape->fieldTypeProp,
+                'field_storage_settings' => $sub_shape->fieldStorageSettings ?? [],
+                'field_instance_settings' => $sub_shape->fieldInstanceSettings ?? [],
+              ];
+              if ($sub_shape->cardinality !== NULL) {
+                $sub_definition['cardinality'] = $sub_shape->cardinality;
+              }
+              return $sub_definition;
+            },
+            $storable_prop_shape->subShapes,
+          ),
+          'derived_schema_metadata' => [],
+        ];
+        if ($storable_prop_shape->cardinality !== NULL) {
+          $props[$cpe->propName]['cardinality'] = $storable_prop_shape->cardinality;
+        }
+        continue;
+      }
+
       $props[$cpe->propName] = [
         'required' => isset($schema['required']) && \in_array($cpe->propName, $schema['required'], TRUE),
         'field_type' => $storable_prop_shape->fieldTypeProp->getFieldType(),

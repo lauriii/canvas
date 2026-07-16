@@ -288,7 +288,10 @@
       "id": "e5f6a7b8-c9d0-1234-ef12-345678901234",
       "derivedType": "video",
       "allowMultiple": true,
-      "items": { "type": "object", "$ref": "json-schema-definitions://canvas.module/video" },
+      "items": {
+        "type": "object",
+        "$ref": "json-schema-definitions://canvas.module/video"
+      },
       "valueMode": "unlimited",
       "limitedCount": 1
     },
@@ -297,15 +300,87 @@
       "type": "object",
       "$ref": "json-schema-definitions://canvas.module/video",
       "example": [
-        { "src": "/modules/contrib/canvas/ui/assets/videos/mountain_wide.mp4", "poster": "https://placehold.co/1920x1080.png?text=Widescreen" },
-        { "src": "/modules/contrib/canvas/ui/assets/videos/bird_vertical.mp4", "poster": "https://placehold.co/1080x1920.png?text=Vertical" }
+        {
+          "src": "/modules/contrib/canvas/ui/assets/videos/mountain_wide.mp4",
+          "poster": "https://placehold.co/1920x1080.png?text=Widescreen"
+        },
+        {
+          "src": "/modules/contrib/canvas/ui/assets/videos/bird_vertical.mp4",
+          "poster": "https://placehold.co/1080x1920.png?text=Vertical"
+        }
       ],
       "id": "f6a7b8c9-d0e1-2345-f123-456789012345",
       "derivedType": "video",
       "allowMultiple": true,
-      "items": { "type": "object", "$ref": "json-schema-definitions://canvas.module/video" },
+      "items": {
+        "type": "object",
+        "$ref": "json-schema-definitions://canvas.module/video"
+      },
       "valueMode": "unlimited",
       "limitedCount": 1
+    },
+    {
+      "name": "Author",
+      "type": "object",
+      "example": "",
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "derivedType": "group",
+      "properties": [
+        {
+          "name": "Author name",
+          "type": "string",
+          "example": "Ada",
+          "derivedType": "text",
+          "machineName": "name",
+          "required": true
+        },
+        {
+          "name": "Author age",
+          "type": "integer",
+          "example": "42",
+          "derivedType": "integer",
+          "machineName": "age",
+          "required": false
+        },
+        {
+          "name": "Author link",
+          "type": "string",
+          "format": "uri-reference",
+          "example": "https://example.com",
+          "derivedType": "link",
+          "machineName": "link",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Authors",
+      "type": "object",
+      "example": "",
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "derivedType": "group",
+      "allowMultiple": true,
+      "valueMode": "unlimited",
+      "limitedCount": 1,
+      "properties": [
+        {
+          "name": "Author name",
+          "type": "string",
+          "example": "Ada",
+          "derivedType": "text",
+          "machineName": "name",
+          "required": true
+        },
+        {
+          "name": "Author link",
+          "type": "string",
+          "format": "uri-reference",
+          "example": "",
+          "derivedType": "link",
+          "machineName": "link",
+          "required": false
+        }
+      ]
     }
   ],
   "serialized": {
@@ -397,7 +472,9 @@
     "formattedTextWithExampleValue": {
       "title": "Formatted text with example value",
       "type": "string",
-      "examples": ["Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged."],
+      "examples": [
+        "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged."
+      ],
       "contentMediaType": "text/html",
       "x-formatting-context": "block"
     },
@@ -409,12 +486,14 @@
     "imageWithExampleValue": {
       "title": "Image with example value",
       "type": "object",
-      "examples": [{
-        "src": "https://placehold.co/1200x900@2x.png",
-        "width": 1200,
-        "height": 900,
-        "alt": "Example image placeholder"
-      }],
+      "examples": [
+        {
+          "src": "https://placehold.co/1200x900@2x.png",
+          "width": 1200,
+          "height": 900,
+          "alt": "Example image placeholder"
+        }
+      ],
       "$ref": "json-schema-definitions://canvas.module/image"
     },
     "relativePathLinkWithNoExampleValue": {
@@ -447,7 +526,9 @@
     "deprecatedTextAreaWithExampleValue": {
       "title": "Deprecated text area with example value",
       "type": "string",
-      "examples": ["Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged."],
+      "examples": [
+        "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged."
+      ],
       "$ref": "json-schema-definitions://canvas.module/textarea"
     },
     "videoWithNoExampleValue": {
@@ -458,10 +539,12 @@
     "videoWithExampleValue": {
       "title": "Video with example value",
       "type": "object",
-      "examples": [{
-        "src": "/ui/assets/videos/mountain_wide.mp4",
-        "poster": "https://placehold.co/1920x1080.png?text=Horizontal"
-      }],
+      "examples": [
+        {
+          "src": "/ui/assets/videos/mountain_wide.mp4",
+          "poster": "https://placehold.co/1920x1080.png?text=Horizontal"
+        }
+      ],
       "$ref": "json-schema-definitions://canvas.module/video"
     },
     "dateWithNoExampleValue": {
@@ -489,16 +572,83 @@
     "videoGalleryWithNoExampleValue": {
       "title": "Video gallery with no example value",
       "type": "array",
-      "items": { "type": "object", "$ref": "json-schema-definitions://canvas.module/video" }
+      "items": {
+        "type": "object",
+        "$ref": "json-schema-definitions://canvas.module/video"
+      }
     },
     "videoGalleryWithExampleValue": {
       "title": "Video gallery with example value",
       "type": "array",
-      "items": { "type": "object", "$ref": "json-schema-definitions://canvas.module/video" },
-      "examples": [[
-        { "src": "/ui/assets/videos/mountain_wide.mp4", "poster": "https://placehold.co/1920x1080.png?text=Widescreen" },
-        { "src": "/ui/assets/videos/bird_vertical.mp4", "poster": "https://placehold.co/1080x1920.png?text=Vertical" }
-      ]]
+      "items": {
+        "type": "object",
+        "$ref": "json-schema-definitions://canvas.module/video"
+      },
+      "examples": [
+        [
+          {
+            "src": "/ui/assets/videos/mountain_wide.mp4",
+            "poster": "https://placehold.co/1920x1080.png?text=Widescreen"
+          },
+          {
+            "src": "/ui/assets/videos/bird_vertical.mp4",
+            "poster": "https://placehold.co/1080x1920.png?text=Vertical"
+          }
+        ]
+      ]
+    },
+    "author": {
+      "title": "Author",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "Author name",
+          "type": "string"
+        },
+        "age": {
+          "title": "Author age",
+          "type": "integer"
+        },
+        "link": {
+          "title": "Author link",
+          "type": "string",
+          "format": "uri-reference"
+        }
+      },
+      "required": ["name"],
+      "examples": [
+        {
+          "name": "Ada",
+          "age": 42,
+          "link": "https://example.com"
+        }
+      ]
+    },
+    "authors": {
+      "title": "Authors",
+      "type": "array",
+      "examples": [
+        [
+          {
+            "name": "Ada"
+          }
+        ]
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "title": "Author name",
+            "type": "string"
+          },
+          "link": {
+            "title": "Author link",
+            "type": "string",
+            "format": "uri-reference"
+          }
+        },
+        "required": ["name"]
+      }
     }
   }
 }

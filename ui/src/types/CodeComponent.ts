@@ -114,6 +114,25 @@ export interface CodeComponentProp {
     >;
   };
   entityFieldExpressions?: string[];
+  // Nested props of a "Group object" prop (`type: object` with inline
+  // `properties`). At most one level deep: nested props cannot be groups.
+  properties?: CodeComponentGroupNestedProp[];
+}
+
+/**
+ * A nested prop of a "Group object" prop, as edited in the code editor.
+ *
+ * Unlike top-level props (whose requiredness lives in the component's
+ * `required` list and whose machine name is always derived from the name),
+ * nested props carry their own `required` flag and may override the derived
+ * machine name.
+ */
+export interface CodeComponentGroupNestedProp extends Omit<
+  CodeComponentProp,
+  'properties' | 'entityFieldExpressions'
+> {
+  machineName?: string;
+  required?: boolean;
 }
 
 export interface CodeComponentPropImageExample {
@@ -141,6 +160,8 @@ export interface CodeComponentPropSerialized {
     | CodeComponentPropImageExample[]
     | CodeComponentPropVideoExample
     | CodeComponentPropVideoExample[]
+    | CodeComponentPropObjectExample
+    | CodeComponentPropObjectExample[]
   )[];
   $ref?: string;
   format?: string;
@@ -149,6 +170,11 @@ export interface CodeComponentPropSerialized {
   'x-allowed-entity-type-id'?: string;
   'x-allowed-bundle'?: string;
   maxItems?: number;
+  // Nested props of a "Group object" prop: one full prop definition per
+  // sub-property. At most one level deep.
+  properties?: Record<string, CodeComponentPropSerialized>;
+  // Which nested props of a "Group object" prop are required.
+  required?: string[];
   items?: {
     type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
     format?: string;
@@ -162,8 +188,18 @@ export interface CodeComponentPropSerialized {
       CodeComponentPropEnumItem['value'],
       CodeComponentPropEnumItem['label']
     >;
+    // Multi-value "Group object" props: the group's nested props live on the
+    // item shape.
+    properties?: Record<string, CodeComponentPropSerialized>;
+    required?: string[];
   };
 }
+
+/**
+ * The composed example value of a "Group object" prop: one value per
+ * populated nested prop.
+ */
+export type CodeComponentPropObjectExample = Record<string, unknown>;
 
 export interface CodeComponentSlot {
   id: string;
@@ -183,7 +219,9 @@ export type CodeComponentPropPreviewValue =
   | string[]
   | number[]
   | CodeComponentPropImageExample[]
-  | CodeComponentPropVideoExample[];
+  | CodeComponentPropVideoExample[]
+  | CodeComponentPropObjectExample
+  | CodeComponentPropObjectExample[];
 
 export interface AssetLibrary {
   id: string;

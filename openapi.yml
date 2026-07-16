@@ -3683,22 +3683,48 @@ components:
           # Keys are props for this SDC. Only required SDC props are required here.
           additionalProperties:
             type: object
+            # Scalar props carry an `expression` (a StaticPropSource); custom
+            # object props ("groups") instead carry `sources`: one value-less
+            # StaticPropSource per sub-property (an ObjectPropsSource).
+            # @see docs/adr/0021-object-props-in-code-components.md
             required:
               - sourceType
-              - expression
               - required
+            anyOf:
+              - required:
+                  - expression
+              - required:
+                  - sources
             properties:
               sourceType:
                 type: string
               expression:
                 type: string
+              # One value-less StaticPropSource per sub-property of a custom
+              # object prop ("group").
+              sources:
+                type: object
+                additionalProperties:
+                  type: object
+                  required:
+                    - sourceType
+                    - expression
+                  properties:
+                    sourceType:
+                      type: string
+                    expression:
+                      type: string
+                    sourceTypeSettings:
+                      type: object
               required:
                 type: boolean
               default_values:
                 type: object
                 additionalProperties: false
+                # `source` is absent for props whose default value cannot be
+                # stored in a field type: custom object props ("groups") get
+                # their default from the component's example instead.
                 required:
-                  - source
                   - resolved
                 properties:
                   # The (raw) values for this StaticPropSource. (A Drupal field type data structure.)

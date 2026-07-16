@@ -244,6 +244,45 @@ export function getPropsValues(
     Drupal: { canvasTransforms: transforms },
   };
   const transformsList: Transforms = Drupal?.canvasTransforms || transforms;
+  // Resolves the JSON schema for a form state key. Sub-properties of group
+  // object props use dotted keys — `groupName.subPropName`, or
+  // `groupName.delta.subPropName` for multi-value groups — and their schema
+  // lives in the group's `properties` (or `items.properties`).
+  // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildObjectPropForm()
+  const resolveJsonSchema = (key: string) => {
+    if (fieldData[key]?.jsonSchema) {
+      return fieldData[key].jsonSchema;
+    }
+    const segments = key.split('.');
+    if (segments.length < 2) {
+      return undefined;
+    }
+    const groupSchema = fieldData[segments[0]]?.jsonSchema;
+    const objectSchema =
+      groupSchema?.type === 'array' ? groupSchema?.items : groupSchema;
+    const subSchemas = (objectSchema?.properties ?? {}) as Record<
+      string,
+      { type?: string } | undefined
+    >;
+    return subSchemas[segments[segments.length - 1]];
+  };
+  // Resolves the prop source for a form state key. Sub-properties of group
+  // object props use dotted keys; their value-less per-sub source prototypes
+  // live under the group source's `sources`.
+  const resolvePropSource = (key: string) => {
+    const source = (selectedModel as EvaluatedComponentModel).source;
+    if (source?.[key] !== undefined) {
+      return source[key];
+    }
+    const segments = key.split('.');
+    if (segments.length < 2) {
+      return undefined;
+    }
+    const groupSource = source?.[segments[0]] as
+      | { sources?: Record<string, unknown> }
+      | undefined;
+    return groupSource?.sources?.[segments[segments.length - 1]];
+  };
   const propsValues = Object.entries(
     formStateToObject(formState, selectedComponent),
   ).reduce((carry: PropsValues, [key, value]) => {
@@ -257,7 +296,7 @@ export function getPropsValues(
       // receives multipart form data in so far as everything is seen as a
       // string value.
       // @see formStateToObject
-      const propType = fieldData[key]?.jsonSchema?.type ?? 'string';
+      const propType = resolveJsonSchema(key)?.type ?? 'string';
       if (['boolean', 'number', 'integer'].includes(propType)) {
         // Push an additional 'cast' transform to the end of the transforms for
         // this prop.
@@ -272,7 +311,7 @@ export function getPropsValues(
           return transformsList[transformer as keyof Transforms](
             transformed,
             config as any,
-            (selectedModel as EvaluatedComponentModel).source[key] as any,
+            resolvePropSource(key) as any,
           );
         },
         value,
@@ -288,6 +327,52 @@ export function getPropsValues(
 
     return { ...carry, [key]: value };
   }, {});
+
+  // Compose sub-property values of group object props into one nested value
+  // under the group's prop name: `{groupName: {subPropName: value}}` for
+  // single-value groups, `{groupName: [{subPropName: value}, …]}` for
+  // multi-value groups. Sub-property form state keys are dotted:
+  // `groupName.subPropName` or `groupName.delta.subPropName`.
+  const groupItemValues: Record<string, Record<number, PropsValues>> = {};
+  Object.entries(propsValues).forEach(([key, value]) => {
+    const segments = key.split('.');
+    if (segments.length < 2) {
+      return;
+    }
+    const groupName = segments[0];
+    if (fieldData[groupName]?.sourceType !== 'object-props') {
+      return;
+    }
+    delete propsValues[key as keyof PropsValues];
+    // Empty values are omitted from the composed object; the sub-property is
+    // then considered unpopulated.
+    const isEmptyValue =
+      value === '' ||
+      value === null ||
+      value === undefined ||
+      (Array.isArray(value) && value.length === 0);
+    const delta = segments.length > 2 ? Number(segments[1]) : 0;
+    const subPropName = segments[segments.length - 1];
+    groupItemValues[groupName] = groupItemValues[groupName] ?? {};
+    groupItemValues[groupName][delta] = groupItemValues[groupName][delta] ?? {};
+    if (!isEmptyValue) {
+      groupItemValues[groupName][delta][subPropName] = value;
+    }
+  });
+  Object.entries(groupItemValues).forEach(([groupName, items]) => {
+    const isMultiple = fieldData[groupName]?.jsonSchema?.type === 'array';
+    if (isMultiple) {
+      // Dense, ordered list of per-item objects. Fully empty items are kept:
+      // the server drops them when rendering and publishing, but they must
+      // remain visible in the form while being filled in.
+      propsValues[groupName as keyof PropsValues] = Object.keys(items)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .map((delta) => items[delta]);
+    } else {
+      propsValues[groupName as keyof PropsValues] = items[0] ?? {};
+    }
+  });
 
   Object.entries(propsValues).forEach(([fieldName, value]) => {
     const propFieldData: FieldDataItem | undefined =

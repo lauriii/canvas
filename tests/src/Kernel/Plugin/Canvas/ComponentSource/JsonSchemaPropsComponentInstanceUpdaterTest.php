@@ -702,6 +702,117 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Composite ("group") prop definition changes across versions.
+   *
+   * Covers the composite branches of the field-data-fits-in comparison:
+   * single ↔ multi-value group changes, nested sub-property shape changes,
+   * and group ↔ scalar changes are rejected; adding an optional
+   * sub-property is allowed.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceUpdater::canUpdate()
+   */
+  public function testUpdateWithGroupPropChanges(): void {
+    $sut = new JsonSchemaPropsComponentInstanceUpdater();
+    $group = [
+      'title' => 'Byline',
+      'type' => 'object',
+      'properties' => [
+        'name' => ['title' => 'Name', 'type' => 'string'],
+        'role' => ['title' => 'Role', 'type' => 'string'],
+      ],
+      'examples' => [
+        ['name' => 'Ada', 'role' => 'Engineer'],
+      ],
+    ];
+    $set_group = function (array $definition): string {
+      $props = $this->jsComponent->getProps();
+      \assert(!\is_null($props));
+      $props['byline'] = $definition;
+      $this->jsComponent->setProps($props)->save();
+      $component = Component::load('js.test');
+      \assert($component instanceof Component);
+      return $component->getActiveVersion();
+    };
+    $build_instance_at = function (string $version, array $expected_violations): ComponentTreeItem {
+      $tree = self::generateComponentTree([
+        [
+          'uuid' => self::COMPONENT_INSTANCE_UUID,
+          'component_id' => 'js.test',
+          'component_version' => $version,
+          'parent_uuid' => NULL,
+          'inputs' => [
+            'required_text' => 'Canvas is large and in charge!',
+            'byline' => ['name' => 'Ada', 'role' => 'Engineer'],
+          ],
+        ],
+      ], $expected_violations);
+      $instance = $tree->getComponentTreeItemByUuid(self::COMPONENT_INSTANCE_UUID);
+      \assert($instance instanceof ComponentTreeItem);
+      return $instance;
+    };
+    // Each scenario starts from a fresh single-value group version, because
+    // a component only retains its latest versions.
+    $scenario = 0;
+    $run_scenario = function (array $to_definition, array $expected_violations = []) use ($set_group, $group, $build_instance_at, &$scenario): array {
+      // A unique description makes each scenario's starting version distinct
+      // from every earlier version: a component only retains its latest
+      // versions, so reusing an earlier version hash is not reliable.
+      $from_definition = $group + ['description' => 'Scenario ' . ++$scenario];
+      $from_version = $set_group($from_definition);
+      $to_version = $set_group($to_definition);
+      // Guards the scenario itself: both definitions must be storable, so
+      // each save produces a distinct version.
+      self::assertNotSame($from_version, $to_version);
+      // Build the instance only after the target version exists, so its
+      // component is not a stale pre-save entity. Like the bc_break cases of
+      // providerUpdate(), inputs are validated against the active version:
+      // scenarios whose stored value no longer validates list the expected
+      // violations.
+      $instance = $build_instance_at($from_version, $expected_violations);
+      return [$instance, $from_version, $to_version];
+    };
+
+    // A single-value group becoming multi-value is rejected: the stored
+    // input (one object) is not rewrapped into a list of objects.
+    [$instance, $from_version] = $run_scenario([
+      'title' => 'Byline',
+      'type' => 'array',
+      'items' => \array_diff_key($group, \array_flip(['title', 'examples'])),
+      'examples' => [
+        [['name' => 'Ada', 'role' => 'Engineer']],
+      ],
+    ]);
+    self::assertSame(ComponentInstanceUpdateAttemptResult::NotAllowed, $sut->update($instance));
+    self::assertSame($from_version, $instance->getComponentVersion());
+
+    // A nested sub-property shape change is rejected, like a scalar prop
+    // type change.
+    $changed_sub_property = $group;
+    $changed_sub_property['properties']['role'] = ['title' => 'Role', 'type' => 'integer'];
+    $changed_sub_property['examples'] = [['name' => 'Ada', 'role' => 3]];
+    [$instance, $from_version] = $run_scenario($changed_sub_property, [
+      '0.inputs.' . self::COMPONENT_INSTANCE_UUID . '.byline.role' => 'String value found, but an integer is required.',
+    ]);
+    self::assertSame(ComponentInstanceUpdateAttemptResult::NotAllowed, $sut->update($instance));
+    self::assertSame($from_version, $instance->getComponentVersion());
+
+    // A group becoming a scalar prop is rejected.
+    [$instance, $from_version] = $run_scenario(['title' => 'Byline', 'type' => 'string', 'examples' => ['Ada']]);
+    self::assertSame(ComponentInstanceUpdateAttemptResult::NotAllowed, $sut->update($instance));
+    self::assertSame($from_version, $instance->getComponentVersion());
+
+    // Adding an optional sub-property is allowed: the stored input fits and
+    // is preserved.
+    $with_link = $group;
+    $with_link['properties']['link'] = ['title' => 'Link', 'type' => 'string', 'format' => 'uri'];
+    $with_link['examples'] = [['name' => 'Ada', 'role' => 'Engineer', 'link' => 'https://example.com/ada']];
+    [$instance, , $to_version] = $run_scenario($with_link);
+    self::assertSame(ComponentInstanceUpdateAttemptResult::Latest, $sut->update($instance));
+    self::assertSame($to_version, $instance->getComponentVersion());
+    self::assertSame(['name' => 'Ada', 'role' => 'Engineer'], ($instance->getInputs() ?? [])['byline'] ?? NULL);
+  }
+
+  /**
    * @param array $component_instance_value
    *   The component instance value to test.
    * @param ?callable $setup_callback

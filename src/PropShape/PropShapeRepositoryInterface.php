@@ -29,9 +29,27 @@ interface PropShapeRepositoryInterface {
    * @param \Drupal\canvas\PropShape\PropShape $shape
    *   The prop shape we wish to store.
    *
-   * @return \Drupal\canvas\PropShape\StorablePropShape|null
-   *   A storable prop shape, if one can be calculated.
+   * @return \Drupal\canvas\PropShape\StorablePropShape|\Drupal\canvas\PropShape\ObjectPropsStorablePropShape|null
+   *   A storable prop shape, if one can be calculated. For custom object
+   *   shapes ("groups"): a composite of per-sub-property storable shapes.
    */
-  public function getStorablePropShape(PropShape $shape): ?StorablePropShape;
+  public function getStorablePropShape(PropShape $shape): StorablePropShape|ObjectPropsStorablePropShape|null;
+
+  /**
+   * Gets the storable prop shape for a sub-property of a custom object shape.
+   *
+   * Same as ::getStorablePropShape(), but the shape is an implementation
+   * detail of a composed custom object shape ("group"), not a component prop
+   * shape, so it is not registered in the unique prop shape discovery.
+   *
+   * @param \Drupal\canvas\PropShape\PropShape $shape
+   *   The prop shape of a sub-property.
+   *
+   * @return \Drupal\canvas\PropShape\StorablePropShape|\Drupal\canvas\PropShape\ObjectPropsStorablePropShape|null
+   *   A storable prop shape, if one can be calculated.
+   *
+   * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeObjectPropsStorablePropShape()
+   */
+  public function getStorablePropShapeForSubProperty(PropShape $shape): StorablePropShape|ObjectPropsStorablePropShape|null;
 
 }

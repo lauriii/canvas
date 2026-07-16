@@ -11,6 +11,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\StructuredData\ContentAwareDependentInterface;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropSource\AdaptedPropSource;
+use Drupal\canvas\PropSource\ObjectPropsSource;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\Component\Serialization\Json;
@@ -28,12 +29,16 @@ use Drupal\Core\TypedData\TypedData;
  * @phpstan-import-type PropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
  * @phpstan-import-type AdaptedPropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
  * @phpstan-import-type DefaultRelativeUrlPropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
- * @phpstan-type SingleComponentInputArray array<string, PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray>
+ * @phpstan-import-type ObjectPropsSourceArray from \Drupal\canvas\PropSource\ObjectPropsSource
+ * @phpstan-type SingleComponentInputArray array<string, PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray|ObjectPropsSourceArray>
  * @see \Drupal\canvas\ComponentSource\ComponentSourceInterface::optimizeExplicitInput()
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::optimizeExplicitInput()
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::collapse()
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::uncollapse()
- * @phpstan-type OptimizedExplicitInput bool|int|float|string|bool[]|int[]|float[]|string[]
+ * Custom object props ("groups") collapse to a nested object value — or a list
+ * of object values, for multi-value groups — and NULL when explicitly emptied.
+ * @see \Drupal\canvas\PropSource\ObjectPropsSource::getValue()
+ * @phpstan-type OptimizedExplicitInput bool|int|float|string|bool[]|int[]|float[]|string[]|array<string, mixed>|list<array<string, mixed>>|null
  * @phpstan-type OptimizedSingleComponentInputArray array<string, PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray|OptimizedExplicitInput>
  */
 #[DataType(
@@ -209,6 +214,12 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
             // respect.
             // @see https://en.wikipedia.org/wiki/Robustness_principle
             yield "name" => $parsed_default_prop_source->withValue($raw_prop_source, allow_empty: TRUE);
+          }
+          // Collapsed custom object props ("groups") un-collapse the same
+          // way, so their sub-values (e.g. media referenced by an image
+          // sub-property) contribute to the calculated dependencies.
+          elseif ($parsed_default_prop_source instanceof ObjectPropsSource) {
+            yield "$name" => $parsed_default_prop_source->withValue($raw_prop_source, allow_empty: TRUE);
           }
         }
         catch (\LogicException) {

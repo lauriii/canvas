@@ -59,15 +59,17 @@ function matchDeserializedProps(received, propIndices) {
     expect(typeof prop.id).toBe('string');
   });
 
-  // Compare the rest of the props by removing IDs first
-  const actualWithoutIds = received.map((prop) => {
+  // Compare the rest of the props by removing IDs first. Group object props
+  // carry nested props (`properties`), whose generated IDs are removed too.
+  const withoutIds = (prop) => {
     const { id, ...rest } = prop;
+    if (Array.isArray(rest.properties)) {
+      rest.properties = rest.properties.map(withoutIds);
+    }
     return rest;
-  });
-  const expectedWithoutIds = expected.map((prop) => {
-    const { id, ...rest } = prop;
-    return rest;
-  });
+  };
+  const actualWithoutIds = received.map(withoutIds);
+  const expectedWithoutIds = expected.map(withoutIds);
 
   expect(actualWithoutIds).toEqual(expectedWithoutIds);
 }
@@ -183,6 +185,16 @@ describe('Code editor utilities', () => {
         'videoGalleryWithExampleValue',
       ]);
     });
+
+    it('of type group object', () => {
+      const result = serializeProps([deserializedPropsFixture[30]]);
+      matchSerializedProps(result, ['author']);
+    });
+
+    it('of type group object (multi-value)', () => {
+      const result = serializeProps([deserializedPropsFixture[31]]);
+      matchSerializedProps(result, ['authors']);
+    });
   });
 
   describe('deserialize props', () => {
@@ -290,6 +302,16 @@ describe('Code editor utilities', () => {
         serializedPropsFixture.dateTimeWithExampleValue,
       ]);
       matchDeserializedProps(result, [26, 27]);
+    });
+
+    it('of type group object', () => {
+      const result = deserializeProps([serializedPropsFixture.author]);
+      matchDeserializedProps(result, [30]);
+    });
+
+    it('of type group object (multi-value)', () => {
+      const result = deserializeProps([serializedPropsFixture.authors]);
+      matchDeserializedProps(result, [31]);
     });
 
     describe('backwards compatibility: clears stale formattedText fields on type switch', () => {
@@ -469,6 +491,16 @@ describe('Code editor preview utilities', () => {
         {
           src: '/modules/contrib/canvas/ui/assets/videos/bird_vertical.mp4',
           poster: 'https://placehold.co/1080x1920.png?text=Vertical',
+        },
+      ],
+      author: {
+        name: 'Ada',
+        age: 42,
+        link: 'https://example.com',
+      },
+      authors: [
+        {
+          name: 'Ada',
         },
       ],
     });
