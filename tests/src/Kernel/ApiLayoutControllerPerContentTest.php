@@ -726,6 +726,33 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
   }
 
   /**
+   * A pending template draft defines the slot contract, even with zero slots.
+   *
+   * The preview renders the draft whenever one exists, so the editable layout
+   * must come from the same revision: a draft that detached every slot yields
+   * zero editable regions, not stale ones with no marker in the preview.
+   */
+  public function testZeroSlotTemplateDraftServesNoSlotRegions(): void {
+    $node = self::createTemplatedNode();
+    $url = $this->getLayoutUrl($node)->toString();
+
+    // Sanity: the published template serves its slot region.
+    $json = self::decodeResponse($this->request(Request::create($url)));
+    self::assertSame([self::SLOT_FIELD], \array_column($json['layout'], 'id'));
+
+    // An auto-saved draft of the template with every slot detached.
+    $template = ContentTemplate::load('node.' . self::BUNDLE . '.full');
+    self::assertInstanceOf(ContentTemplate::class, $template);
+    $draft = clone $template;
+    $draft->set('exposed_slots', []);
+    $this->container->get(AutoSaveManager::class)->saveEntity($draft);
+
+    $json = self::decodeResponse($this->request(Request::create($url)));
+    self::assertSame([], $json['layout']);
+    self::assertSame([], $json['exposedSlots']);
+  }
+
+  /**
    * The per-content edit access check mirrors the exposed-slots predicate.
    *
    * @legacy-covers \Drupal\canvas\Access\ComponentTreeEditAccessCheck::access
