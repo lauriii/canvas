@@ -671,10 +671,18 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
       self::assertStringContainsString('Access denied for the canvas_slot_restricted field.', $e->getMessage());
     }
 
-    // With the permission, the slot is a normal editable region.
+    // Rendering honors view access too: content stored in the restricted
+    // field renders the template default, not the entity's content.
+    $node->set('canvas_slot_restricted', [$this->overrideRow('99999999-9999-4999-8999-999999999999', 'Hidden content')])->save();
+    $json = self::decodeResponse($this->request(Request::create($url)));
+    self::assertStringNotContainsString('Hidden content', (string) $json['html']);
+
+    // With the permission, the slot is a normal editable region and its
+    // content renders.
     $this->setUpCurrentUser([], ['edit any ' . self::BUNDLE . ' content', 'access content', 'edit canvas page components']);
     $json = self::decodeResponse($this->request(Request::create($url)));
     self::assertSame([self::SLOT_FIELD, 'canvas_slot_restricted'], \array_column($json['layout'], 'id'));
+    self::assertStringContainsString('Hidden content', (string) $json['html']);
   }
 
   /**

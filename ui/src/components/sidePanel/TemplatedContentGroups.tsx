@@ -67,14 +67,10 @@ const TemplatedContentGroup = ({
     <Collapsible.Root open={isOpen} onOpenChange={setIsOpen} asChild>
       <Box data-testid={`canvas-templated-content-${group.entityType}`}>
         <Flex align="center" className={listStyles.folderTrigger} pt="2" pb="2">
+          {/* One native button spanning the whole row: keyboard focusable, and
+              Radix adds aria-expanded. The visible title labels it. */}
           <Collapsible.Trigger asChild>
-            <Flex
-              align="center"
-              flexGrow="1"
-              overflow="hidden"
-              role="button"
-              style={{ cursor: 'pointer', minWidth: 0 }}
-            >
+            <button type="button" className={listStyles.folderButton}>
               <Flex pl="2" align="center" flexShrink="0">
                 <FolderIcon className={listStyles.folderIcon} />
               </Flex>
@@ -83,23 +79,14 @@ const TemplatedContentGroup = ({
                   {group.title}
                 </Text>
               </Flex>
-            </Flex>
-          </Collapsible.Trigger>
-          <Collapsible.Trigger asChild>
-            <Flex
-              px="2"
-              align="center"
-              flexShrink="0"
-              role="button"
-              aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${group.title}`}
-              style={{ cursor: 'pointer' }}
-            >
-              <ChevronRightIcon
-                className={clsx(listStyles.chevron, {
-                  [listStyles.isOpen]: isOpen,
-                })}
-              />
-            </Flex>
+              <Flex px="2" align="center" flexShrink="0">
+                <ChevronRightIcon
+                  className={clsx(listStyles.chevron, {
+                    [listStyles.isOpen]: isOpen,
+                  })}
+                />
+              </Flex>
+            </button>
           </Collapsible.Trigger>
         </Flex>
         <Collapsible.Content>
