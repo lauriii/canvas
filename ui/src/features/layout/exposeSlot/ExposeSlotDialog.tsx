@@ -180,7 +180,8 @@ const ExposeSlotDialog = () => {
     try {
       const created = await createSlotField({
         contentTemplateId,
-        fieldName,
+        // Send the same trimmed value the client-side validation accepted.
+        fieldName: fieldName.trim(),
         label: trimmedLabel,
       }).unwrap();
       dispatch(
