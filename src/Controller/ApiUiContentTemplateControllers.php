@@ -193,7 +193,10 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
       return $generated->getGeneratedUrl();
     }
     catch (RouteNotFoundException) {
-      // Field UI is not enabled, or the entity type has no manage-fields route.
+      // Field UI is not enabled, or the entity type has no manage-fields
+      // route. The response must re-evaluate when modules are (un)installed,
+      // since enabling field_ui makes the route appear.
+      $cacheability->addCacheTags(['config:core.extension']);
       return NULL;
     }
   }
