@@ -1,0 +1,85 @@
+name: Source to GitHub
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_message:
+        description: 'Commit message'
+        required: false
+        default: 'Sync components from Acquia Source CMS'
+      author_name:
+        description: 'Git Author Name'
+        required: false
+        default: 'github-actions'
+      author_email:
+        description: 'Git Author Email'
+        required: false
+        default: 'github-actions@github.com'
+      committer_name:
+        description: 'Git Committer Name'
+        required: false
+        default: 'Acquia Source CMS'
+      committer_email:
+        description: 'Git Committer Email'
+        required: false
+        default: 'no-reply.acquia-source-cms@acquia.com'
+
+concurrency:
+  group: source-to-github-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  download-from-source-cms:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Derive secret prefix from branch
+        id: prefix
+        run: |
+          PREFIX=$(echo "${{ github.ref_name }}" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+          echo "value=${PREFIX}__" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref_name }}
+          persist-credentials: true
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Pull code from Acquia Source CMS
+        run: npx @drupal-canvas/cli@0.20.1 pull --yes
+        env:
+          CANVAS_SITE_URL:
+            ${{ secrets[format('{0}CANVAS_SITE_URL',
+            steps.prefix.outputs.value)] }}
+          CANVAS_CLIENT_ID:
+            ${{ secrets[format('{0}CANVAS_CLIENT_ID',
+            steps.prefix.outputs.value)] }}
+          CANVAS_CLIENT_SECRET:
+            ${{ secrets[format('{0}CANVAS_CLIENT_SECRET',
+            steps.prefix.outputs.value)] }}
+
+      - name: Commit and push if there are changes
+        run: |
+          set -euo pipefail
+          git add .
+          if git diff-index --quiet HEAD; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git -c user.name="$COMMITTER_NAME" \
+              -c user.email="$COMMITTER_EMAIL" \
+              commit --author="$AUTHOR_NAME <$AUTHOR_EMAIL>" \
+              -m "$COMMIT_MESSAGE"
+          git push
+        env:
+          COMMIT_MESSAGE: ${{ github.event.inputs.commit_message }}
+          AUTHOR_NAME: ${{ github.event.inputs.author_name }}
+          AUTHOR_EMAIL: ${{ github.event.inputs.author_email }}
+          COMMITTER_NAME: ${{ github.event.inputs.committer_name }}
+          COMMITTER_EMAIL: ${{ github.event.inputs.committer_email }}
