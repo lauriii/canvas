@@ -2,7 +2,10 @@ import fs from 'fs/promises';
 import chalk from 'chalk';
 import { loadComponentsMetadata } from '@drupal-canvas/discovery';
 
-import { authoredElementMapToComponentTree } from './authored-elements';
+import {
+  authoredElementMapToComponentTree,
+  buildElementKeyToUuidMap,
+} from './authored-elements';
 import { stripNullableKeysForConfigComponentTree } from './component-tree-payload';
 import { contentTemplateResultName } from './content-template-result-name';
 import { serializeElementMapForServer } from './prop-transforms';
@@ -128,10 +131,28 @@ export async function prepareContentTemplates(
       spec.elements ?? {},
       componentMetadata,
     );
+    // Authored element keys may be friendly aliases; the tree builder mints
+    // real UUIDs for those. Build the key→UUID map here and share it, so
+    // exposed slots' component_uuid references translate to the same UUIDs
+    // the pushed tree carries (a valid-UUID key maps to itself).
+    const keyToUuid = buildElementKeyToUuidMap(Object.keys(serializedElements));
     const tree = authoredElementMapToComponentTree(
       serializedElements,
       componentVersions,
+      keyToUuid,
     );
+    const exposedSlots = spec.exposedSlots
+      ? Object.fromEntries(
+          Object.entries(spec.exposedSlots).map(([alias, slot]) => [
+            alias,
+            {
+              ...slot,
+              component_uuid:
+                keyToUuid.get(slot.component_uuid) ?? slot.component_uuid,
+            },
+          ]),
+        )
+      : undefined;
 
     return {
       id: deriveId(spec),
@@ -140,7 +161,7 @@ export async function prepareContentTemplates(
       bundle: spec.bundle,
       viewMode: spec.viewMode,
       components: tree,
-      exposedSlots: spec.exposedSlots,
+      exposedSlots,
       filePath: localTemplate.path,
     };
   });
@@ -164,7 +185,7 @@ export async function pushContentTemplates(
   remoteById: Map<string, ContentTemplateListItem>,
   apiService: Pick<
     ApiService,
-    'createContentTemplate' | 'updateContentTemplate'
+    'createContentTemplate' | 'updateContentTemplate' | 'createSlotField'
   >,
 ): Promise<ContentTemplatePushOperationResult[]> {
   const results = await processInPool(prepared, async (entry) => {
@@ -181,7 +202,23 @@ export async function pushContentTemplates(
       ? { exposed_slots: template.exposedSlots }
       : {};
 
+    // A template referencing exposed slots only validates when each slot's
+    // backing `component_tree` field exists on the target bundle. The
+    // slot-field endpoint requires an existing template, so a fresh-site
+    // create sequences: create without slots, provision the fields, then
+    // update with the slots. Provisioning is create-if-missing (409 is fine),
+    // so the update path runs it too: the authored file may reference slots
+    // the target site has never seen.
+    const provisionSlotFields = async () => {
+      for (const [fieldName, slot] of Object.entries(
+        template.exposedSlots ?? {},
+      )) {
+        await apiService.createSlotField(template.id, fieldName, slot.label);
+      }
+    };
+
     if (remote) {
+      await provisionSlotFields();
       await apiService.updateContentTemplate(template.id, {
         status: true,
         component_tree,
@@ -201,8 +238,14 @@ export async function pushContentTemplates(
       viewMode: template.viewMode,
       status: true,
       component_tree,
-      ...exposedSlotsPayload,
     });
+    if (template.exposedSlots) {
+      await provisionSlotFields();
+      await apiService.updateContentTemplate(template.id, {
+        status: true,
+        ...exposedSlotsPayload,
+      });
+    }
     return {
       label: template.label,
       id: template.id,
