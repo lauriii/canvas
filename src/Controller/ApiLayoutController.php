@@ -485,6 +485,12 @@ final class ApiLayoutController {
       : [];
     $entity_to_patch = $this->getEntityWithComponentInstance([$entity, ...$regions], $componentInstanceUuid);
 
+    // In per-content mode the global regions are locked template chrome, so a
+    // component they host cannot be edited per-entity at all.
+    if ($per_content_template !== NULL && $entity_to_patch instanceof PageRegion) {
+      throw new AccessDeniedHttpException(\sprintf('The component %s belongs to the %s region and cannot be edited per-entity.', $componentInstanceUuid, $entity_to_patch->get('region')));
+    }
+
     // Route-level access checks already verified `edit` access to $entity. Only
     // perform an additional `edit` access check if $entity_to_patch is not
     // $entity, but a PageRegion entity.
@@ -608,6 +614,14 @@ final class ApiLayoutController {
 
     // Update all PageRegions' component trees.
     foreach ($region_layouts as $client_side_region_id => $region_layout) {
+      // In per-content mode the global regions are locked template chrome:
+      // editing an entity must never modify them, so reject any structural
+      // change instead of persisting it.
+      // @see ::addGlobalRegions()
+      if ($per_content_template !== NULL) {
+        self::assertRegionUnchanged($regions[$client_side_region_id], $region_layout);
+        continue;
+      }
       $regions[$client_side_region_id] = $regions[$client_side_region_id]->forAutoSaveData([
         'layout' => $region_layout['components'],
         'model' => self::extractModelForSubtree($region_layout, (array) $model),
@@ -969,7 +983,7 @@ final class ApiLayoutController {
    * Writes the submitted per-content layout into the entity's slot fields.
    *
    * The submitted layout is the merged template + entity tree. Template chrome
-   * is immutable (moves are rejected) and only the entity-owned override
+   * is immutable (moves and removals are rejected) and only the entity-owned override
    * content is partitioned into per-slot fields, one `component_tree` field per
    * exposed slot. Every exposed slot's field is written (empty when not
    * overridden), so reverting an override clears its field. This bypasses the
@@ -997,7 +1011,7 @@ final class ApiLayoutController {
     $submitted->setValue(self::convertClientToServer($layout['components'], $model, $entity, validate: FALSE));
 
     // Reject any structural mutation of the locked template chrome.
-    self::assertTemplateOwnedComponentsUnmoved($submitted, $template, $template_owned_uuids);
+    self::assertTemplateOwnedComponentsIntact($submitted, $template, $template_owned_uuids);
 
     [
       'fields' => $slot_fields,
@@ -1123,10 +1137,12 @@ final class ApiLayoutController {
   /**
    * Rejects any structural mutation of the template's locked chrome.
    *
-   * Each template-owned component that is present in the submission must keep
-   * the same parent and slot as in the template. Template default content
-   * nested inside an exposed slot is legitimately absent when the slot is
-   * overridden, so absence is not treated as a mutation.
+   * Every template-owned component must be present in the submission, keeping
+   * the same parent and slot as in the template: removing template chrome is
+   * as much a template mutation as moving it. The one exception is template
+   * default content nested inside an exposed slot, which is legitimately
+   * absent when the slot is overridden (the merged tree then carries the
+   * entity's override instead), so its absence is not treated as a mutation.
    *
    * @param \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList $submitted
    *   The submitted merged tree.
@@ -1135,15 +1151,41 @@ final class ApiLayoutController {
    * @param array<string, true> $template_owned_uuids
    *   The set of template-owned component UUIDs, keyed by UUID.
    */
-  private static function assertTemplateOwnedComponentsUnmoved(ComponentTreeItemList $submitted, ContentTemplate $template, array $template_owned_uuids): void {
+  private static function assertTemplateOwnedComponentsIntact(ComponentTreeItemList $submitted, ContentTemplate $template, array $template_owned_uuids): void {
     $template_structure = [];
+    $template_children = [];
     foreach ($template->getComponentTree() as $item) {
       \assert($item instanceof ComponentTreeItem);
       $template_structure[$item->getUuid()] = [$item->getParentUuid(), $item->getSlot()];
+      if ($item->getParentUuid() !== NULL) {
+        $template_children[$item->getParentUuid()][] = [$item->getUuid(), $item->getSlot()];
+      }
     }
+
+    // The UUIDs of every exposed slot's default content: the direct children
+    // of each exposed slot plus all their descendants.
+    $replaceable_uuids = [];
+    $queue = [];
+    foreach ($template->getExposedSlots() as $definition) {
+      foreach ($template_children[$definition['component_uuid'] ?? ''] ?? [] as [$child_uuid, $child_slot]) {
+        if ($child_slot === ($definition['slot_name'] ?? NULL)) {
+          $queue[] = $child_uuid;
+        }
+      }
+    }
+    while ($queue !== []) {
+      $uuid = \array_shift($queue);
+      $replaceable_uuids[$uuid] = TRUE;
+      foreach ($template_children[$uuid] ?? [] as [$child_uuid]) {
+        $queue[] = $child_uuid;
+      }
+    }
+
+    $submitted_uuids = [];
     foreach ($submitted->componentTreeItemsIterator() as $item) {
       \assert($item instanceof ComponentTreeItem);
       $uuid = $item->getUuid();
+      $submitted_uuids[$uuid] = TRUE;
       if (!\array_key_exists($uuid, $template_owned_uuids)) {
         continue;
       }
@@ -1152,6 +1194,62 @@ final class ApiLayoutController {
         throw new AccessDeniedHttpException(\sprintf('The component %s belongs to the template and cannot be moved.', $uuid));
       }
     }
+    foreach (\array_keys($template_structure) as $uuid) {
+      if (!\array_key_exists($uuid, $submitted_uuids) && !\array_key_exists($uuid, $replaceable_uuids)) {
+        throw new AccessDeniedHttpException(\sprintf('The component %s belongs to the template and cannot be removed.', $uuid));
+      }
+    }
+  }
+
+  /**
+   * Rejects per-content submissions that change a global region's structure.
+   *
+   * In per-content mode the global regions render as locked template chrome:
+   * per-entity editing must never add, remove, or move a region's components.
+   * Input-only changes carried in the model are not persisted either way,
+   * because per-content mode never auto-saves regions.
+   *
+   * @param \Drupal\canvas\Entity\PageRegion $region
+   *   The (possibly auto-saved) region the client was served.
+   * @param array{components: array<int, mixed>} $region_layout
+   *   The submitted client-side region node.
+   */
+  private static function assertRegionUnchanged(PageRegion $region, array $region_layout): void {
+    $stored_structure = [];
+    foreach ($region->getComponentTree() as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      $stored_structure[$item->getUuid()] = [$item->getParentUuid(), $item->getSlot()];
+    }
+    $submitted_structure = self::flattenClientStructure($region_layout['components'] ?? []);
+    \ksort($stored_structure);
+    \ksort($submitted_structure);
+    if ($submitted_structure !== $stored_structure) {
+      throw new AccessDeniedHttpException(\sprintf('The %s region belongs to the template and cannot be changed while editing content.', $region->get('region')));
+    }
+  }
+
+  /**
+   * Flattens a client-side component tree into its structural triples.
+   *
+   * @param array<int, mixed> $components
+   *   Client-side component nodes.
+   * @param string|null $parent_uuid
+   *   The parent component instance UUID, if any.
+   * @param string|null $slot_name
+   *   The parent slot name, if any.
+   *
+   * @return array<string, array{0: string|null, 1: string|null}>
+   *   For each component UUID: its parent component UUID and slot name.
+   */
+  private static function flattenClientStructure(array $components, ?string $parent_uuid = NULL, ?string $slot_name = NULL): array {
+    $flat = [];
+    foreach ($components as $component) {
+      $flat[$component['uuid']] = [$parent_uuid, $slot_name];
+      foreach ($component['slots'] ?? [] as $slot) {
+        $flat += self::flattenClientStructure($slot['components'] ?? [], $component['uuid'], $slot['name'] ?? NULL);
+      }
+    }
+    return $flat;
   }
 
 }

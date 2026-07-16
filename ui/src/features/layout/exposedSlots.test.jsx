@@ -24,6 +24,7 @@ import {
   addExposedSlot,
   deleteComponentAndExposedSlots,
   deleteNode,
+  duplicateNode,
   insertNodes,
   overrideSlotDefaultContent,
   removeExposedSlot,
@@ -560,6 +561,30 @@ describe('per-content override reducers', () => {
     expect(store.getState().layoutModel.present.model).not.toHaveProperty(
       forkedUuid,
     );
+  });
+
+  it('refuses to delete locked template-owned components', () => {
+    store.dispatch(deleteNode('host-1'));
+    store.dispatch(deleteNode('chrome-1'));
+
+    // The locked chrome is untouched, models included.
+    const layout = selectLayout(store.getState());
+    expect(layout[0].components).toHaveLength(1);
+    expect(layout[0].components[0].uuid).toBe('host-1');
+    expect(layout[0].components[0].slots[1].components[0].uuid).toBe(
+      'chrome-1',
+    );
+    expect(store.getState().layoutModel.present.model).toHaveProperty('host-1');
+    expect(store.getState().layoutModel.present.model).toHaveProperty(
+      'chrome-1',
+    );
+  });
+
+  it('refuses to duplicate locked template-owned components', () => {
+    store.dispatch(duplicateNode({ uuid: 'chrome-1' }));
+
+    const layout = selectLayout(store.getState());
+    expect(layout[0].components[0].slots[1].components).toHaveLength(1);
   });
 
   it('keeps an emptied override empty (marker), distinct from reverting', () => {

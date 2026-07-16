@@ -22,6 +22,7 @@ import {
   findSlotById,
   getNodeAtPath,
   insertNodeAtPath,
+  isNodeEditable,
   moveNodeToPath,
   recurseNodes,
   removeComponentByUuid,
@@ -480,6 +481,16 @@ export const layoutModelSlice = createSlice({
         action.payload,
       );
 
+      // Per-content editing: a template-owned component is locked chrome that
+      // per-entity editing can never remove, whichever path (keyboard, menu)
+      // dispatched the delete.
+      if (deletedComponent && !isNodeEditable(deletedComponent)) {
+        console.warn(
+          `Cannot delete ${action.payload}: template-owned components are locked.`,
+        );
+        return;
+      }
+
       const removableModelsUuids = [action.payload];
       if (deletedComponent) {
         recurseNodes(deletedComponent, (node: ComponentNode) => {
@@ -510,6 +521,15 @@ export const layoutModelSlice = createSlice({
         if (nodeToDuplicate.nodeType !== 'component') {
           console.error(
             `Cannot duplicate Slots or Regions. Check the uuid ${uuid} is a valid Component.`,
+          );
+          return;
+        }
+
+        // Per-content editing: template-owned components are locked chrome and
+        // cannot be duplicated into per-entity content.
+        if (!isNodeEditable(nodeToDuplicate)) {
+          console.warn(
+            `Cannot duplicate ${uuid}: template-owned components are locked.`,
           );
           return;
         }
