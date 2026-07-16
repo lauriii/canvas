@@ -272,3 +272,5 @@ zencoder
 affordances
 editability
 rerooted
+disambiguator
+unaddressable
