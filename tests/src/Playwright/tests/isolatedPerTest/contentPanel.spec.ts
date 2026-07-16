@@ -37,17 +37,56 @@ test.describe('Content (CMS) panel', () => {
     await expect(page.getByText('No content found')).toBeVisible();
   });
 
-  // TODO follow-up: assert the grouped-content behavior (content-type folders,
-  // search filtering, collapse/expand, and opening a row in the per-content
-  // editor). It needs a bundle with an active exposed slot plus entities, for
-  // which there is no exposed-slot Playwright fixture yet. Add a recipe that
-  // seeds a templated Article bundle with an active exposed slot and a few
-  // nodes, then assert that canvas.openContentPanel() shows a
-  // `canvas-templated-content-node` group, the folder collapses/expands, the
-  // "Search Content" field filters rows, and clicking a row navigates to
-  // `/editor/node/{id}`.
-  //
-  // TODO follow-up (same fixture): per-content contextual panel, phase 1 of
+  // The grouped-content flow, on the article_exposed_slots fixture recipe: a
+  // templated Article bundle (active exposed slot) with three seeded nodes.
+  test('groups templated content with search, collapse, and row navigation', async ({
+    drupal,
+    canvas,
+    page,
+  }) => {
+    await drupal.loginAsAdmin();
+    await drupal.applyRecipe(
+      `modules/contrib/canvas/tests/fixtures/recipes/article_exposed_slots`,
+    );
+    await drupal.addPermissions({
+      role: 'editor',
+      permissions: ['edit any article content'],
+    });
+    await drupal.logout();
+
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.createCanvas();
+    await canvas.openContentPanel();
+
+    // The templated Article bundle renders as a content-type group holding
+    // the seeded entities.
+    const group = page.getByTestId('canvas-templated-content-node');
+    await expect(group).toBeVisible();
+    await expect(group.getByText('Templated alpha')).toBeVisible();
+    await expect(group.getByText('Templated beta')).toBeVisible();
+    await expect(group.getByText('Another gamma')).toBeVisible();
+
+    // The folder header collapses and expands its rows.
+    const folderTrigger = group.getByRole('button', { name: 'Article' });
+    await folderTrigger.click();
+    await expect(group.getByText('Templated alpha')).toBeHidden();
+    await folderTrigger.click();
+    await expect(group.getByText('Templated alpha')).toBeVisible();
+
+    // The shared search field filters every group's rows.
+    const search = page.getByRole('textbox', { name: 'Search content' });
+    await search.fill('alpha');
+    await expect(group.getByText('Templated alpha')).toBeVisible();
+    await expect(group.getByText('Templated beta')).toHaveCount(0);
+    await search.clear();
+    await expect(group.getByText('Templated beta')).toBeVisible();
+
+    // Selecting a row opens the entity in the per-content editor.
+    await group.getByText('Templated alpha').click();
+    await expect(page).toHaveURL(/\/editor\/node\/\d+/);
+  });
+
+  // TODO follow-up (article_exposed_slots fixture): per-content contextual panel, phase 1 of
   // the Content/Page data split (exposed-slots decision 10). In
   // `/editor/node/{id}` assert: the tab bar shows Page data (leftmost, the
   // default) and Content (`canvas-contextual-panel--content`); the Content
