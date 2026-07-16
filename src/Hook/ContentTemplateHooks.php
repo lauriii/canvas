@@ -204,28 +204,6 @@ final class ContentTemplateHooks {
   }
 
   /**
-   * Implements hook_local_tasks_alter().
-   *
-   * The "Layout" task is defined with `base_route: entity.node.canonical`,
-   * but Node is not a dependency of Canvas: when the node module is not
-   * installed that base route does not exist, so remove the task rather than
-   * leave a definition pointing to a nonexistent route. The local task
-   * definitions are rebuilt on module (un)install, so the task (re)appears
-   * as soon as the node module is (re)installed.
-   *
-   * @todo Remove this together with the task's hardcoded node base route
-   *   after https://www.drupal.org/project/canvas/issues/3498525.
-   *
-   * @see canvas.links.task.yml
-   */
-  #[Hook('local_tasks_alter')]
-  public function localTasksAlter(array &$local_tasks): void {
-    if (!$this->entityTypeManager->hasDefinition('node')) {
-      unset($local_tasks['canvas.content.layout']);
-    }
-  }
-
-  /**
    * Alters menu local tasks to add cache invalidation for content templates.
    *
    * This ensures that when a ContentTemplate entity is created or deleted,
