@@ -1145,6 +1145,20 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
         $field_data[$prop_name]['default_values']['resolved'] = $default_props_for_default_markup[$prop_name]->value;
       }
 
+      // The prop shape's normalized schema carries no annotations, so deliver
+      // the authored title and description with it: native widgets must
+      // render the same label and description chrome as the server-built
+      // form, which derives them from the authored component schema. This
+      // runs after the DefaultRelativeUrlPropSource block above, which embeds
+      // the (annotation-free) schema into persisted source values.
+      // @see ::buildComponentInstanceForm()
+      $authored_prop_schema = $this->getMetadata()->schema['properties'][$prop_name] ?? [];
+      foreach (['title', 'description'] as $annotation) {
+        if (\is_string($authored_prop_schema[$annotation] ?? NULL) && $authored_prop_schema[$annotation] !== '') {
+          $field_data[$prop_name]['jsonSchema'][$annotation] = $authored_prop_schema[$annotation];
+        }
+      }
+
       // Native enum widgets (`options_select`) render their options from the
       // cached metadata instead of recomputing allowed values server-side, so
       // deliver the `meta:enum` labels alongside the enum values.

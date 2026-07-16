@@ -3902,6 +3902,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Not-attributes prop',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -3927,6 +3928,8 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Heading',
+              'description' => 'The heading text.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -3946,6 +3949,8 @@ HTML
               'type' => 'string',
               'contentMediaType' => 'text/html',
               'x-formatting-context' => 'block',
+              'title' => 'Content',
+              'description' => 'The main text.',
             ],
             'sourceType' => 'static:field_item:text_long',
             'expression' => 'ℹ︎text_long␟processed',
@@ -3971,7 +3976,7 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'object',
-              'title' => 'image',
+              'title' => 'Image',
               'required' => [
                 0 => 'src',
               ],
@@ -3997,6 +4002,7 @@ HTML
                 ],
               ],
 
+              'description' => 'The image to use.',
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -4025,6 +4031,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Heading',
+              'description' => 'The heading text.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4042,6 +4050,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Content',
+              'description' => 'The main text.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4059,6 +4069,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Footer',
+              'description' => 'The footer text.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4077,6 +4089,7 @@ HTML
             'jsonSchema' => [
               'type' => 'string',
               'format' => 'date',
+              'title' => 'Date',
             ],
             'sourceType' => 'static:field_item:datetime',
             'expression' => 'ℹ︎datetime␟value',
@@ -4091,7 +4104,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'object',
-              'title' => 'image',
+              'title' => 'Image',
               'required' => [
                 0 => 'src',
               ],
@@ -4117,6 +4130,7 @@ HTML
                 ],
               ],
 
+              'description' => 'The image to use.',
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -4135,6 +4149,7 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Sizes',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4156,6 +4171,7 @@ HTML
                 0 => 'lazy',
                 1 => 'eager',
               ],
+              'title' => 'Loading',
               'meta:enum' => [
                 'lazy' => 'Lazy',
                 'eager' => 'Eager',
@@ -4192,6 +4208,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Heading',
+              'description' => 'The heading text.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4209,6 +4227,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Content',
+              'description' => 'The main text.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4226,6 +4246,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Footer',
+              'description' => 'The footer text.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4243,10 +4265,11 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
-              'title' => 'Image URL',
+              'title' => 'Local image path',
               'format' => 'uri-reference',
               'contentMediaType' => 'image/*',
               'x-allowed-schemes' => ['http', 'https'],
+              'description' => 'Local path starting with "/"',
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟src_with_alternate_widths',
@@ -4260,6 +4283,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Alternative text',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4281,6 +4305,7 @@ HTML
                 0 => 'lazy',
                 1 => 'eager',
               ],
+              'title' => 'Loading',
               'meta:enum' => [
                 'lazy' => 'Lazy',
                 'eager' => 'Eager',
@@ -4317,6 +4342,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Heading',
+              'description' => 'The heading text.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4334,6 +4361,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Content',
+              'description' => 'The main text.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4351,6 +4380,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Footer',
+              'description' => 'The footer text.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4368,10 +4399,11 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
-              'title' => 'Image URL',
+              'title' => 'Remote image path',
               'format' => 'uri-reference',
               'contentMediaType' => 'image/*',
               'x-allowed-schemes' => ['http', 'https'],
+              'description' => 'Image URL',
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟src_with_alternate_widths',
@@ -4385,6 +4417,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Alternative text',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4402,6 +4435,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'integer',
+              'title' => 'Image width',
             ],
             'sourceType' => 'static:field_item:integer',
             'expression' => 'ℹ︎integer␟value',
@@ -4419,6 +4453,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'integer',
+              'title' => 'Image height',
             ],
             'sourceType' => 'static:field_item:integer',
             'expression' => 'ℹ︎integer␟value',
@@ -4440,6 +4475,7 @@ HTML
                 0 => 'lazy',
                 1 => 'eager',
               ],
+              'title' => 'Loading',
               'meta:enum' => [
                 'lazy' => 'Lazy',
                 'eager' => 'Eager',
@@ -4476,6 +4512,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Heading',
+              'description' => 'The heading text.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4493,6 +4531,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Content',
+              'description' => 'The main text.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4510,6 +4550,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Footer',
+              'description' => 'The footer text.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4527,10 +4569,11 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
-              'title' => 'Stream wrapper image URI',
+              'title' => 'Stream wrapper image path',
               'format' => 'uri',
               'contentMediaType' => 'image/*',
               'x-allowed-schemes' => ['public'],
+              'description' => 'Stream wrapper image path e.g. public://',
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟entity␜␜entity:file␝uri␞␟value',
@@ -4544,6 +4587,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Alternative text',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4565,6 +4609,7 @@ HTML
                 0 => 'lazy',
                 1 => 'eager',
               ],
+              'title' => 'Loading',
               'meta:enum' => [
                 'lazy' => 'Lazy',
                 'eager' => 'Eager',
@@ -4601,6 +4646,7 @@ HTML
             'jsonSchema' => [
               'type' => 'string',
               'enum' => ['php', 'html', 'md', 'js', 'ts', 'jsx', 'tsx'],
+              'title' => 'Language',
               'meta:enum' => [
                 'php' => 'PHP',
                 'html' => 'HTML',
@@ -4631,6 +4677,7 @@ HTML
             'jsonSchema' => [
               'type' => 'string',
               'pattern' => '(.|\r?\n)*',
+              'title' => 'Code',
             ],
             'sourceType' => 'static:field_item:string_long',
             'expression' => 'ℹ︎string_long␟value',
@@ -4691,6 +4738,8 @@ HTML
             'jsonSchema' => [
               'type' => 'integer',
               'enum' => [1, 2, 3, 4, 5, 6],
+              'title' => 'Number of Columns',
+              'description' => 'How many columns to display (1-6).',
               'meta:enum' => [
                 1 => '1',
                 2 => '2',
@@ -4735,6 +4784,8 @@ HTML
                 // @see \Drupal\Tests\canvas\Kernel\Config\ComponentValidationTest::testUnmatchedEnumAndMetaEnum()
                 'contains.dots',
               ],
+              'title' => 'Style',
+              'description' => 'The name to show.',
               'meta:enum' => [
                 'small' => 'Small',
                 'big' => 'big',
@@ -4765,6 +4816,8 @@ HTML
                 '7',
                 '3.14',
               ],
+              'title' => 'Numbers',
+              'description' => 'My favorite number.',
               'meta:enum' => [
                 7 => 'Seven',
                 '3.14' => 'Pi',
@@ -4814,6 +4867,8 @@ HTML
                   'yellow' => 'Yellow',
                 ],
               ],
+              'title' => 'Colors',
+              'description' => 'Array of color choices',
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -4850,6 +4905,8 @@ HTML
                 'big',
                 'huge',
               ],
+              'title' => 'Style',
+              'description' => 'The name to show.',
               'meta:enum' => [
                 'small' => 'small',
                 'big' => 'big',
@@ -4884,6 +4941,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'boolean',
+              'title' => 'Crash',
             ],
             'sourceType' => 'static:field_item:boolean',
             'expression' => 'ℹ︎boolean␟value',
@@ -4909,6 +4967,7 @@ HTML
             'jsonSchema' => [
               'type' => 'string',
               'format' => 'date',
+              'title' => 'Date',
             ],
             'sourceType' => 'static:field_item:datetime',
             'expression' => 'ℹ︎datetime␟value',
@@ -4921,7 +4980,7 @@ HTML
           ],
           'caption' => [
             'required' => FALSE,
-            'jsonSchema' => ['type' => 'string'],
+            'jsonSchema' => ['type' => 'string', 'title' => 'Caption'],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
             'default_values' => [
@@ -4946,6 +5005,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Text',
+              'description' => 'A text field.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -4979,6 +5040,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Text',
+              'description' => 'A text field.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -5017,6 +5080,7 @@ HTML
                 0 => 'horizontal',
                 1 => 'vertical',
               ],
+              'title' => 'Direction',
               'meta:enum' => [
                 'horizontal' => 'Horizontal',
                 'vertical' => 'Vertical',
@@ -5052,6 +5116,8 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Text',
+              'description' => 'The heading text.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -5073,6 +5139,8 @@ HTML
                 0 => 'primary',
                 1 => 'secondary',
               ],
+              'title' => 'Style',
+              'description' => 'The heading style to use.',
               'meta:enum' => [
                 'primary' => 'Primary',
                 'secondary' => 'Secondary',
@@ -5099,7 +5167,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
-              'title' => 'Heading element',
+              'title' => 'Element',
               'enum' => [
                 0 => 'div',
                 1 => 'h1',
@@ -5109,6 +5177,7 @@ HTML
                 5 => 'h5',
                 6 => 'h6',
               ],
+              'description' => 'The HTML element to use.',
               'meta:enum' => [
                 'div' => 'Container',
                 'h1' => 'Header 1',
@@ -5151,7 +5220,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'object',
-              'title' => 'image',
+              'title' => 'Image',
               'required' => [
                 0 => 'src',
               ],
@@ -5206,6 +5275,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Caption',
+              'description' => 'The image gallery caption',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -5245,6 +5316,7 @@ HTML
 
               ],
               'minItems' => 1,
+              'title' => 'Images for gallery',
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -5289,7 +5361,7 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'object',
-              'title' => 'image',
+              'title' => 'Image',
               'required' => [
                 'src',
               ],
@@ -5342,6 +5414,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Heading',
+              'description' => 'The main and only text',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -5351,7 +5425,7 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'object',
-              'title' => 'image',
+              'title' => 'Image',
               'required' => [
                 'src',
               ],
@@ -5402,7 +5476,7 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'object',
-              'title' => 'image',
+              'title' => 'Image',
               'required' => [
                 'src',
               ],
@@ -5446,7 +5520,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'object',
-              'title' => 'image',
+              'title' => 'Image',
               'required' => [
                 'src',
               ],
@@ -5499,7 +5573,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'object',
-              'title' => 'image',
+              'title' => 'Image',
               'required' => [
                 'src',
               ],
@@ -5525,6 +5599,7 @@ HTML
                 ],
               ],
 
+              'description' => 'Image defined with inline schema instead of $ref',
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -5554,7 +5629,7 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'object',
-              'title' => 'image',
+              'title' => 'Primary Image',
               'required' => ['src'],
               'properties' => [
                 'src' => [
@@ -5587,7 +5662,7 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'object',
-              'title' => 'image',
+              'title' => 'Secondary Image',
               'required' => ['src'],
               'properties' => [
                 'src' => [
@@ -5620,7 +5695,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'object',
-              'title' => 'image',
+              'title' => 'Required Image',
               'required' => ['src'],
               'properties' => [
                 'src' => [
@@ -5665,6 +5740,8 @@ HTML
               'items' => [
                 'type' => 'string',
               ],
+              'title' => 'Text (Unlimited)',
+              'description' => 'An unlimited array of plain text strings.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -5695,6 +5772,8 @@ HTML
                 'type' => 'string',
               ],
               'maxItems' => 3,
+              'title' => 'Text (Limited)',
+              'description' => 'A limited array of plain text strings (max 3 items).',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -5725,6 +5804,8 @@ HTML
                 'type' => 'string',
               ],
               'minItems' => 1,
+              'title' => 'Text (Required Unlimited)',
+              'description' => 'A required unlimited array of plain text strings.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -5755,6 +5836,8 @@ HTML
                 'type' => 'string',
                 'format' => 'uri',
               ],
+              'title' => 'Link (Unlimited)',
+              'description' => 'An unlimited array of absolute URI strings.',
             ],
             'sourceType' => 'static:field_item:link',
             'expression' => 'ℹ︎link␟url',
@@ -5792,6 +5875,8 @@ HTML
                 'format' => 'uri',
               ],
               'maxItems' => 3,
+              'title' => 'Link (Limited)',
+              'description' => 'A limited array of absolute URI strings (max 3 items).',
             ],
             'sourceType' => 'static:field_item:link',
             'expression' => 'ℹ︎link␟url',
@@ -5828,6 +5913,8 @@ HTML
                 'type' => 'string',
                 'format' => 'uri-reference',
               ],
+              'title' => 'Relative Link (Unlimited)',
+              'description' => 'An unlimited array of relative or absolute URI-reference strings.',
             ],
             'sourceType' => 'static:field_item:link',
             'expression' => 'ℹ︎link␟url',
@@ -5865,6 +5952,8 @@ HTML
                 'format' => 'uri-reference',
               ],
               'maxItems' => 3,
+              'title' => 'Relative Link (Limited)',
+              'description' => 'A limited array of relative or absolute URI-reference strings (max 3 items).',
             ],
             'sourceType' => 'static:field_item:link',
             'expression' => 'ℹ︎link␟url',
@@ -5900,6 +5989,8 @@ HTML
               'items' => [
                 'type' => 'number',
               ],
+              'title' => 'Number (Unlimited)',
+              'description' => 'An unlimited array of numeric values.',
             ],
             'sourceType' => 'static:field_item:float',
             'expression' => 'ℹ︎float␟value',
@@ -5934,6 +6025,8 @@ HTML
                 'type' => 'number',
               ],
               'maxItems' => 3,
+              'title' => 'Number (Limited)',
+              'description' => 'A limited array of numeric values (max 3 items).',
             ],
             'sourceType' => 'static:field_item:float',
             'expression' => 'ℹ︎float␟value',
@@ -5963,6 +6056,8 @@ HTML
               'items' => [
                 'type' => 'integer',
               ],
+              'title' => 'Integer (Unlimited)',
+              'description' => 'An unlimited array of integer values.',
             ],
             'sourceType' => 'static:field_item:integer',
             'expression' => 'ℹ︎integer␟value',
@@ -5993,6 +6088,8 @@ HTML
                 'type' => 'integer',
               ],
               'maxItems' => 3,
+              'title' => 'Integer (Limited)',
+              'description' => 'A limited array of integer values (max 3 items).',
             ],
             'sourceType' => 'static:field_item:integer',
             'expression' => 'ℹ︎integer␟value',
@@ -6023,6 +6120,8 @@ HTML
                 'type' => 'string',
                 'format' => 'date-time',
               ],
+              'title' => 'DateTime (Unlimited)',
+              'description' => 'An unlimited array of date-time strings.',
             ],
             'sourceType' => 'static:field_item:datetime',
             'expression' => 'ℹ︎datetime␟value',
@@ -6043,6 +6142,8 @@ HTML
                 'format' => 'date-time',
               ],
               'maxItems' => 3,
+              'title' => 'DateTime (Limited)',
+              'description' => 'A limited array of date-time strings (max 3 items).',
             ],
             'sourceType' => 'static:field_item:datetime',
             'expression' => 'ℹ︎datetime␟value',
@@ -6062,6 +6163,8 @@ HTML
                 'type' => 'string',
                 'format' => 'date',
               ],
+              'title' => 'Date (Unlimited)',
+              'description' => 'An unlimited array of date strings.',
             ],
             'sourceType' => 'static:field_item:datetime',
             'expression' => 'ℹ︎datetime␟value',
@@ -6082,6 +6185,8 @@ HTML
                 'format' => 'date',
               ],
               'maxItems' => 3,
+              'title' => 'Date (Limited)',
+              'description' => 'A limited array of date strings (max 3 items).',
             ],
             'sourceType' => 'static:field_item:datetime',
             'expression' => 'ℹ︎datetime␟value',
@@ -6112,6 +6217,8 @@ HTML
                   'option_four' => 'Option Four',
                 ],
               ],
+              'title' => 'List Text (Unlimited)',
+              'description' => 'An unlimited array of text list items.',
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -6150,6 +6257,8 @@ HTML
                 ],
               ],
               'maxItems' => 3,
+              'title' => 'List Text (Limited)',
+              'description' => 'A limited array of text list items (max 3 items).',
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -6182,6 +6291,8 @@ HTML
                   40 => 'Forty',
                 ],
               ],
+              'title' => 'List Integer (Unlimited)',
+              'description' => 'An unlimited array of integer list items.',
             ],
             'sourceType' => 'static:field_item:list_integer',
             'expression' => 'ℹ︎list_integer␟value',
@@ -6215,6 +6326,8 @@ HTML
                 ],
               ],
               'maxItems' => 3,
+              'title' => 'List Integer (Limited)',
+              'description' => 'A limited array of integer list items (max 3 items).',
             ],
             'sourceType' => 'static:field_item:list_integer',
             'expression' => 'ℹ︎list_integer␟value',
@@ -6249,6 +6362,8 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Title',
+              'description' => 'The title for the cta',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -6267,6 +6382,7 @@ HTML
             'jsonSchema' => [
               'type' => 'string',
               'format' => 'uri',
+              'title' => 'URL',
             ],
             'sourceType' => 'static:field_item:link',
             'expression' => 'ℹ︎link␟url',
@@ -6295,6 +6411,7 @@ HTML
                 0 => '_self',
                 1 => '_blank',
               ],
+              'title' => 'Target',
               'meta:enum' => [
                 '_self' => 'Open in same window',
                 '_blank' => 'Open in a new window',
@@ -6326,6 +6443,8 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Heading',
+              'description' => 'The main heading of the hero',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -6343,6 +6462,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Sub-heading',
+              'description' => 'See the <a href="https://www.example.com/icons">icon library</a> for icons.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -6360,6 +6481,7 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'CTA 1 text',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -6378,6 +6500,7 @@ HTML
             'jsonSchema' => [
               'type' => 'string',
               'format' => 'uri-reference',
+              'title' => 'CTA 1 link',
             ],
             'sourceType' => 'static:field_item:link',
             'expression' => 'ℹ︎link␟url',
@@ -6402,6 +6525,7 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'CTA 2 text',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -6430,6 +6554,8 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Heading',
+              'description' => 'The text on the left',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -6469,6 +6595,7 @@ HTML
                 2 => 'normal',
                 3 => 'narrow',
               ],
+              'title' => 'Width',
               'meta:enum' => [
                 'full' => 'Full',
                 'wide' => 'Wide',
@@ -6507,6 +6634,8 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Heading',
+              'description' => 'The main heading of the hero',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -6557,6 +6686,8 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Heading',
+              'description' => 'The main heading of the hero',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -6583,6 +6714,7 @@ HTML
               'type' => 'string',
               'contentMediaType' => 'text/html',
               'x-formatting-context' => 'block',
+              'title' => 'Body',
             ],
             'sourceType' => 'static:field_item:text_long',
             'expression' => 'ℹ︎text_long␟processed',
@@ -6617,6 +6749,8 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'integer',
+              'title' => 'Count',
+              'description' => 'A required integer value.',
             ],
             'sourceType' => 'static:field_item:integer',
             'expression' => 'ℹ︎integer␟value',
@@ -6643,6 +6777,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Title',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -6676,6 +6811,8 @@ HTML
                 'medium',
                 'large',
               ],
+              'title' => 'Size',
+              'description' => 'Pick one size.',
               'meta:enum' => [
                 'small' => 'Small',
                 'medium' => 'Medium',
@@ -6716,6 +6853,8 @@ HTML
                   'yellow' => 'Yellow',
                 ],
               ],
+              'title' => 'Colors',
+              'description' => 'Pick one or more colors.',
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -6764,6 +6903,8 @@ HTML
                 3 => 'warning',
                 4 => 'danger',
               ],
+              'title' => 'Variant',
+              'description' => 'The badge’s theme variant.',
               'meta:enum' => [
                 'primary' => 'Primary',
                 'success' => 'Success',
@@ -6793,6 +6934,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'boolean',
+              'title' => 'Pill',
+              'description' => 'Draws a pill-style badge with rounded edges.',
             ],
             'sourceType' => 'static:field_item:boolean',
             'expression' => 'ℹ︎boolean␟value',
@@ -6810,6 +6953,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'boolean',
+              'title' => 'Pulse',
+              'description' => 'Makes the badge pulsate to draw attention.',
             ],
             'sourceType' => 'static:field_item:boolean',
             'expression' => 'ℹ︎boolean␟value',
@@ -6838,6 +6983,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Label',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -6855,6 +7001,8 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Panel',
+              'description' => 'The name of the tab panel this tab is associated with. The panel must be located in the same tab group.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -6872,6 +7020,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'boolean',
+              'title' => 'active',
+              'description' => 'Draws the tab in an active state.',
             ],
             'sourceType' => 'static:field_item:boolean',
             'expression' => 'ℹ︎boolean␟value',
@@ -6881,6 +7031,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'boolean',
+              'title' => 'Closable',
+              'description' => 'Makes the tab closable and shows a close button.',
             ],
             'sourceType' => 'static:field_item:boolean',
             'expression' => 'ℹ︎boolean␟value',
@@ -6890,6 +7042,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'boolean',
+              'title' => 'Disabled',
+              'description' => 'Disables the tab and prevents selection.',
             ],
             'sourceType' => 'static:field_item:boolean',
             'expression' => 'ℹ︎boolean␟value',
@@ -6925,6 +7079,8 @@ HTML
                 2 => 'start',
                 3 => 'end',
               ],
+              'title' => 'Placement',
+              'description' => 'The placement of the tabs.',
               'meta:enum' => [
                 'top' => 'Top',
                 'bottom' => 'Bottom',
@@ -6957,6 +7113,8 @@ HTML
                 0 => 'auto',
                 1 => 'manual',
               ],
+              'title' => 'Activation',
+              'description' => 'When set to auto, navigating tabs with the arrow keys will instantly show the corresponding tab panel. When set to manual, the tab will receive focus but will not show until the user presses space bar or enter.',
               'meta:enum' => [
                 'auto' => 'Auto',
                 'manual' => 'Manual',
@@ -6983,6 +7141,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'boolean',
+              'title' => 'No Scroll',
+              'description' => 'Disables the scroll arrows that appear when tabs overflow.',
             ],
             'sourceType' => 'static:field_item:boolean',
             'expression' => 'ℹ︎boolean␟value',
@@ -7019,6 +7179,8 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Name',
+              'description' => 'The tab panel&#039;s name.',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -7036,6 +7198,8 @@ HTML
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'boolean',
+              'title' => 'Active',
+              'description' => 'When true, the tab panel will be shown.',
             ],
             'sourceType' => 'static:field_item:boolean',
             'expression' => 'ℹ︎boolean␟value',
@@ -7061,6 +7225,7 @@ HTML
               ],
               'maxItems' => 100,
               'minItems' => 1,
+              'title' => 'Sparkline data',
             ],
             'sourceType' => 'static:field_item:integer',
             'expression' => 'ℹ︎integer␟value',
@@ -7104,6 +7269,7 @@ HTML
               'items' => [
                 'type' => 'string',
               ],
+              'title' => 'Tags',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -7158,6 +7324,7 @@ HTML
                 3 => 66,
                 4 => 75,
               ],
+              'description' => 'The width of the first column.',
               'meta:enum' => [
                 25 => '25%',
                 33 => '33%',
@@ -7199,7 +7366,7 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'object',
-              'title' => 'video',
+              'title' => 'Video',
               'required' => [
                 0 => 'src',
               ],
@@ -7220,6 +7387,7 @@ HTML
                 ],
               ],
 
+              'description' => 'The video object.',
             ],
             'sourceType' => 'static:field_item:file',
             'expression' => 'ℹ︎file␟{src↝entity␜␜entity:file␝uri␞␟url}',
@@ -7242,6 +7410,7 @@ HTML
             'jsonSchema' => [
               'type' => 'integer',
               'minimum' => 1,
+              'title' => 'Display width',
             ],
             'sourceType' => 'static:field_item:integer',
             'expression' => 'ℹ︎integer␟value',
@@ -7292,6 +7461,8 @@ HTML
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Header',
+              'description' => 'The card header',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
