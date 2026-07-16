@@ -99,6 +99,8 @@ export const DrupalObjectPropsItem = ({
   const popoverContainerRef = useRef<HTMLDivElement>(null);
   const itemLabel = String(attributes['data-item-label'] || 'Item');
   const displayText = displayValue === '' ? itemLabel : displayValue;
+  // A single-value group is one fixed row: nothing to reorder.
+  const isSingle = String(attributes['data-object-props-single']) === 'true';
 
   // Preview the first populated text-like sub-value in the row, like the
   // multivalue field rows do for their single value.
@@ -164,7 +166,7 @@ export const DrupalObjectPropsItem = ({
           type="button"
           aria-label={`Edit ${itemLabel}: ${displayText}`}
         >
-          <DragHandleDots2Icon className={styles.dragIcon} />
+          {!isSingle && <DragHandleDots2Icon className={styles.dragIcon} />}
           <Text size="2" className={styles.itemText}>
             {displayText}
           </Text>

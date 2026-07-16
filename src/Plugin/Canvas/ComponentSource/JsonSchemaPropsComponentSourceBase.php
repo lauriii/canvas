@@ -1185,6 +1185,8 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
         '#canvas_object_props_group' => 'item',
         '#attributes' => [
           'data-item-label' => (string) $label,
+          // A single-value group is one fixed row: nothing to reorder.
+          'data-object-props-single' => 'true',
         ],
       ];
       foreach ($source->getSubSources() as $sub_property_name => $sub_source) {
