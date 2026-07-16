@@ -127,6 +127,9 @@ const ContentPreviewSelector: React.FC<ContentPreviewSelectorProps> = ({
                     data-selected={
                       item.id === effectiveSelectedId ? true : undefined
                     }
+                    aria-current={
+                      item.id === effectiveSelectedId ? true : undefined
+                    }
                   >
                     <Text size="1" truncate>
                       {item.label}
