@@ -23,6 +23,10 @@ vi.mock('@assets/icons/brand-kit.svg?react', () => ({
   default: () => <svg />,
 }));
 
+vi.mock('@assets/icons/cms.svg?react', () => ({
+  default: () => <svg />,
+}));
+
 vi.mock('@assets/icons/extension-sm.svg?react', () => ({
   default: () => <svg />,
 }));
