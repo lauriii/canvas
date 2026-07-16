@@ -640,6 +640,48 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     $this->assertValidationErrors([]);
   }
 
+  public function testNestedExposedSlotIsRejected(): void {
+    \assert($this->entity instanceof ContentTemplate);
+    $template = $this->entity;
+
+    $this->createComponentTreeField('node', 'alpha', 'outer_slot');
+    $this->createComponentTreeField('node', 'alpha', 'inner_slot');
+
+    // A second slotted component nested inside the host's exposed footer slot,
+    // i.e. part of the outer slot's replaceable default content.
+    $items = $template->getComponentTree();
+    $items->appendItem([
+      'uuid' => '0aa7b525-1ae1-4bfc-b342-0a8246bd19c1',
+      'parent_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+      'slot' => 'the_footer',
+      'component_id' => 'sdc.canvas_test_sdc.props-slots',
+      'component_version' => '0e79e884426a53ae',
+      'inputs' => [
+        'heading' => 'Nested host',
+      ],
+    ]);
+    $template->setComponentTree($items->getValue());
+
+    // Exposing a slot of the nested component is rejected: a per-entity
+    // override of the outer slot replaces the default subtree the nested
+    // component lives in, orphaning the inner slot's per-entity content.
+    $template->set('exposed_slots', [
+      'outer_slot' => [
+        'component_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+        'slot_name' => 'the_footer',
+        'label' => 'Outer',
+      ],
+      'inner_slot' => [
+        'component_uuid' => '0aa7b525-1ae1-4bfc-b342-0a8246bd19c1',
+        'slot_name' => 'the_body',
+        'label' => 'Inner',
+      ],
+    ]);
+    $this->assertValidationErrors([
+      'exposed_slots.inner_slot' => 'The <em class="placeholder">the_body</em> slot of component <em class="placeholder">0aa7b525-1ae1-4bfc-b342-0a8246bd19c1</em> cannot be exposed because that component is inside another exposed slot.',
+    ]);
+  }
+
   public static function providerInvalidExposedSlot(): iterable {
     yield 'component exposing the slot does not exist in the tree' => [
       [
