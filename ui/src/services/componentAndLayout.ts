@@ -17,6 +17,7 @@ import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 import type { ExposedSlotServerDefinition } from '@/features/layout/exposedSlots';
 import type {
   ExposedSlotDefinition,
+  PerContentTemplateInfo,
   RootLayoutModel,
   SlotDefaultContent,
   SlotOverrideState,
@@ -49,6 +50,7 @@ export type LayoutApiResponse = RootLayoutModel & {
   exposedSlots?: Record<string, ExposedSlotDefinition>;
   slotOverrides?: Record<string, SlotOverrideState>;
   slotDefaults?: Record<string, SlotDefaultContent | null>;
+  contentTemplate?: PerContentTemplateInfo;
 };
 
 export type TemplateViewMode = {

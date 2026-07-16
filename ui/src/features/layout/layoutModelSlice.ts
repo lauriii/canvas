@@ -114,6 +114,15 @@ export interface SlotOverrideState {
   empty: boolean;
 }
 
+/**
+ * The identity of the content template a per-content entity follows.
+ */
+export interface PerContentTemplateInfo {
+  entityType: string;
+  bundle: string;
+  viewMode: string;
+}
+
 export interface LayoutModelSliceState extends RootLayoutModel {
   updatePreview: boolean;
   isInitialized?: boolean;
@@ -124,6 +133,7 @@ export interface LayoutModelSliceState extends RootLayoutModel {
   exposedSlots?: Record<string, ExposedSlotDefinition>;
   slotOverrides?: Record<string, SlotOverrideState>;
   slotDefaults?: Record<string, SlotDefaultContent | null>;
+  contentTemplate?: PerContentTemplateInfo;
   perContentMode?: boolean;
 }
 
@@ -827,6 +837,7 @@ export const layoutModelSlice = createSlice({
           exposedSlots,
           slotOverrides,
           slotDefaults,
+          contentTemplate,
         } = action.payload;
         state.layout = layout;
         state.model = model;
@@ -838,6 +849,7 @@ export const layoutModelSlice = createSlice({
         state.exposedSlots = Array.isArray(exposedSlots) ? {} : exposedSlots;
         state.slotOverrides = Array.isArray(slotOverrides) ? {} : slotOverrides;
         state.slotDefaults = Array.isArray(slotDefaults) ? {} : slotDefaults;
+        state.contentTemplate = contentTemplate;
         // Per-content mode is signalled by the server emitting per-slot override
         // state (only the per-content merged GET does).
         state.perContentMode = slotOverrides !== undefined;
@@ -1241,6 +1253,8 @@ export const selectSlotOverrides = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.slotOverrides;
 export const selectSlotDefaults = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.slotDefaults;
+export const selectPerContentTemplateInfo = (state: StateWithHistoryWrapper) =>
+  state.layoutModel.present.contentTemplate;
 export const selectIsPerContentMode = (state: StateWithHistoryWrapper) =>
   Boolean(state.layoutModel.present.perContentMode);
 const selectRegion = (state: RootState, regionName: string) => regionName;
