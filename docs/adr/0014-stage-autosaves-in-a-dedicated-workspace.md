@@ -152,10 +152,38 @@ In order of importance, with the following markers:
 
 8. `-O` **Sites that use Workspaces for their own staging conflict with Canvas activating the auto-save workspace on its API routes**, since an entity can only be staged in one workspace at a time. Combining them is deferred to the multi-workspace phase.
 
-9. `-T` **Staged state is spread across four stores.** Workspace revisions, snapshot rows, the pending write buffer, and pruning bookkeeping must be kept consistent by every publish, discard, and delete flow, guarded by the single-current-store invariant.
+9. `-T` **Staged state is spread across five stores.** Workspace revisions, workspace-scoped configuration, snapshot rows, the pending write buffer, and pruning bookkeeping must be kept consistent by every publish, discard, and delete flow, guarded by the single-current-store invariant.
 
 10. `-T` **Publishing one translation requires composition.** Workspace revisions hold all translations of an entity in one revision, while auto-save identity is per translation, so publishing one translation must compose it onto the canonical entity and re-stage the others.
 
-11. `≃T` **Config staging remains a parallel bespoke mechanism** (payload snapshots applied at publish time) until core Workspaces can stage configuration.
+11. `≃T` **Config staging rides the contrib Workspaces Config module** (see the amendment below): staged config is real workspace-scoped configuration rather than a bespoke payload store, at the cost of a hard dependency on a module without a tagged release.
 
 12. `-O` **The upgrade path is heavyweight.** It must install the snapshot entity schema, enable the Workspaces module, create the shared workspace, and migrate key-value rows on live sites before serving editor traffic.
+
+## Amendment: stage configuration through Workspaces Config (2026-07-16)
+
+Review of the initial implementation (MR 1056) changed one storage decision:
+valid config entity auto-saves are staged as workspace-scoped configuration
+through the contrib Workspaces Config module (split out of Workspaces Extra)
+instead of payload snapshot rows. The snapshot entity narrows to an
+invalid-data store: payloads the storage layer rejects, content and config
+alike, and entity types neither Workspaces nor Workspaces Config can stage.
+
+Rationale:
+
+- Full workspace adoption must load staged config in workspace context
+  outside Canvas (a content template edited in a workspace must affect a
+  view rendered elsewhere on the site while that workspace is active).
+  Opaque snapshot payloads cannot do that, so shipping them in this phase
+  would force a second storage migration later.
+- Workspaces Config already stages configuration per workspace and is proven
+  in production on large sites. A site staging config Canvas does not manage
+  would otherwise run two storages for the same problem, side by side.
+- One shared mechanism keeps a future core adoption path open.
+
+Everything else in this decision stands: publish granularity and validation
+timing, the one-store-per-target invariant (a successful persist to a
+primary store removes the snapshot row), migration semantics, and the
+deferred write buffer. This adds a hard dependency on the Workspaces Config
+module, currently a dev release only. Detailed requirements live in the
+`adopt-workspaces-config` OpenSpec change.

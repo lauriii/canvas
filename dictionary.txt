@@ -5,6 +5,7 @@ adrs
 agentic
 aiwizard
 alternatewidths
+amateescu
 apikey
 astrojs
 atrule
@@ -58,6 +59,7 @@ druplicon
 endapply
 entityviewdisplay
 Español
+Espinola
 esque
 extralight
 extensionless
@@ -72,6 +74,7 @@ gerbeaud
 gesturechange
 gestureend
 gesturestart
+Glaman
 granularities
 greppable
 heredocs
@@ -120,6 +123,7 @@ nums
 Nygard
 Nygard's
 OPENCOLLECTIVE
+openspec
 outro
 parallelizable
 personalizable
@@ -194,6 +198,7 @@ SVAY
 tamperable
 targetable
 testid
+Timmanee
 tmgmt
 toctou
 toolset
