@@ -19,7 +19,7 @@ import type {
 } from '../types/ContentTemplate';
 
 vi.mock('@drupal-canvas/discovery', () => ({
-  loadComponentsMetadata: vi.fn(async () => new Map()),
+  loadComponentsMetadata: vi.fn(async () => []),
 }));
 
 function mockDiscoveredContentTemplate(
@@ -63,6 +63,7 @@ describe('pushContentTemplates', () => {
       {
         createContentTemplate,
         updateContentTemplate: vi.fn(),
+        createSlotField: vi.fn(),
       },
     );
 
@@ -122,6 +123,60 @@ describe('prepareContentTemplates', () => {
       await fs.rm(temporaryDirectory, { recursive: true, force: true });
     }
   });
+
+  it('remaps exposed-slot component_uuid through the element key→UUID map', async () => {
+    const temporaryDirectory = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'prepare-content-template-'),
+    );
+    const templatePath = path.join(
+      temporaryDirectory,
+      'node.article.full.json',
+    );
+
+    try {
+      // The element is keyed by a friendly alias, not a UUID: the tree builder
+      // mints a fresh UUID for it, and the exposed slot's component_uuid must
+      // follow to that same UUID.
+      await fs.writeFile(
+        templatePath,
+        JSON.stringify({
+          label: 'Article full',
+          entityType: 'node',
+          bundle: 'article',
+          viewMode: 'full',
+          elements: {
+            hero: { type: 'sdc.canvas_test.hero', props: {} },
+          },
+          exposedSlots: {
+            canvas_slot_main: {
+              component_uuid: 'hero',
+              slot_name: 'content',
+              label: 'Main',
+            },
+          },
+        }),
+        'utf-8',
+      );
+
+      const result = await prepareContentTemplates(
+        [mockDiscoveredContentTemplate({ path: templatePath })],
+        new Map(),
+        {
+          components: [],
+        } as never,
+      );
+
+      expect(result.failed).toEqual([]);
+      const prepared = result.valid[0].result;
+      const heroUuid = prepared.components[0].uuid;
+      expect(heroUuid).toMatch(/^[0-9a-f-]{36}$/);
+      expect(prepared.exposedSlots?.canvas_slot_main.component_uuid).toBe(
+        heroUuid,
+      );
+    } finally {
+      await fs.rm(temporaryDirectory, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('exposed_slots round-trip', () => {
@@ -156,13 +211,21 @@ describe('exposed_slots round-trip', () => {
     const authored = contentTemplateToAuthored(serverTemplate);
     expect(authored.exposedSlots).toEqual(exposedSlots);
 
-    // Push: authored file → server request body.
+    // Push: authored file → server request bodies. A fresh-site create
+    // sequences: create without slots, provision each backing field, then
+    // update with the slots (a template referencing exposed slots only
+    // validates once the fields exist).
     let createdBody: { exposed_slots?: ExposedSlots } | undefined;
+    let updatedBody: { exposed_slots?: ExposedSlots } | undefined;
     const createContentTemplate = vi.fn(async (body) => {
       createdBody = body;
       return serverTemplate;
     });
-    const updateContentTemplate = vi.fn();
+    const updateContentTemplate = vi.fn(async (_id, body) => {
+      updatedBody = body;
+      return serverTemplate;
+    });
+    const createSlotField = vi.fn();
 
     await pushContentTemplates(
       [
@@ -181,14 +244,26 @@ describe('exposed_slots round-trip', () => {
         },
       ],
       new Map(),
-      { createContentTemplate, updateContentTemplate },
+      { createContentTemplate, updateContentTemplate, createSlotField },
     );
 
     expect(createContentTemplate).toHaveBeenCalledTimes(1);
-    expect(updateContentTemplate).not.toHaveBeenCalled();
+    expect('exposed_slots' in (createdBody ?? {})).toBe(false);
+    expect(createSlotField).toHaveBeenCalledTimes(2);
+    expect(createSlotField).toHaveBeenCalledWith(
+      serverTemplate.id,
+      'main',
+      'Main content',
+    );
+    expect(createSlotField).toHaveBeenCalledWith(
+      serverTemplate.id,
+      'sidebar',
+      'Sidebar',
+    );
+    expect(updateContentTemplate).toHaveBeenCalledTimes(1);
     // The map survives unchanged.
-    expect(createdBody?.exposed_slots).toEqual(exposedSlots);
-    expect(JSON.stringify(createdBody?.exposed_slots)).toBe(
+    expect(updatedBody?.exposed_slots).toEqual(exposedSlots);
+    expect(JSON.stringify(updatedBody?.exposed_slots)).toBe(
       JSON.stringify(serverTemplate.exposed_slots),
     );
   });
@@ -202,6 +277,7 @@ describe('exposed_slots round-trip', () => {
       updatedBody = body;
       return serverTemplate;
     });
+    const createSlotField = vi.fn();
 
     const remote: ContentTemplateListItem = {
       id: serverTemplate.id,
@@ -229,11 +305,14 @@ describe('exposed_slots round-trip', () => {
         },
       ],
       new Map([[serverTemplate.id, remote]]),
-      { createContentTemplate, updateContentTemplate },
+      { createContentTemplate, updateContentTemplate, createSlotField },
     );
 
     expect(updateContentTemplate).toHaveBeenCalledTimes(1);
     expect(createContentTemplate).not.toHaveBeenCalled();
+    // The update path provisions too: the authored file may reference slot
+    // fields the target site has never seen (create-if-missing, 409 is fine).
+    expect(createSlotField).toHaveBeenCalledTimes(2);
     expect(updatedBody?.exposed_slots).toEqual(exposedSlots);
   });
 
@@ -268,7 +347,11 @@ describe('exposed_slots round-trip', () => {
         },
       ],
       new Map(),
-      { createContentTemplate, updateContentTemplate: vi.fn() },
+      {
+        createContentTemplate,
+        updateContentTemplate: vi.fn(),
+        createSlotField: vi.fn(),
+      },
     );
 
     expect(createdBody).toBeDefined();

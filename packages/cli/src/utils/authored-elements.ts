@@ -185,8 +185,12 @@ function parseLegacyStringInputs(
 export function authoredElementMapToComponentTree(
   elements: AuthoredSpecElementMap,
   componentVersions?: Map<string, string>,
+  // A caller that also translates other element-key references (e.g. exposed
+  // slots' component_uuid) passes a prebuilt map so both use the same UUIDs.
+  keyToUuidOverride?: Map<string, string>,
 ): CanvasComponentTree {
-  const keyToUuid = buildElementKeyToUuidMap(Object.keys(elements));
+  const keyToUuid =
+    keyToUuidOverride ?? buildElementKeyToUuidMap(Object.keys(elements));
   const childToParent = buildChildToParentMap(elements);
 
   const components: CanvasComponentTree = [];
