@@ -931,13 +931,15 @@ final class ApiLayoutController {
    *
    * Per-content mode is when the opened entity is a fieldable content entity
    * (not a config entity with its own component tree) whose bundle has an
-   * enabled full-view-mode template exposing at least one active slot. In that
-   * mode the Layout API serves the merged template + entity tree, annotates
-   * editability, and partitions writes into the entity's Canvas field.
+   * enabled full-view-mode template exposing at least one active slot. In
+   * that mode the Layout API serves one editable region per exposed slot
+   * (each backed directly by its own `component_tree` field on the entity),
+   * renders the template chrome as inert preview HTML only, and writes each
+   * submitted slot region straight to its backing field.
    *
-   * A pending template draft (if any) is preferred, so editability annotation,
-   * the merged tree, write partitioning and preview all use the same template
-   * state.
+   * A pending template draft (if any) is preferred, so the slot regions, the
+   * defaults side-channel, the writes and the preview all use the same
+   * template state.
    *
    * @param \Drupal\canvas\Entity\ContentTemplate|\Drupal\Core\Entity\FieldableEntityInterface $entity
    *   The entity opened in the Layout API.
