@@ -6,9 +6,17 @@ import {
   MagnifyingGlassIcon,
   PlusIcon,
 } from '@radix-ui/react-icons';
-import { Box, Button, DropdownMenu, Flex, TextField } from '@radix-ui/themes';
+import {
+  Box,
+  Button,
+  DropdownMenu,
+  Flex,
+  Skeleton,
+  TextField,
+} from '@radix-ui/themes';
 
 import EmptyStateCallout from '@/components/EmptyStateCallout';
+import ErrorCard from '@/components/error/ErrorCard';
 import TemplatedContentGroups from '@/components/sidePanel/TemplatedContentGroups';
 import {
   getAllAddNewOptions,
@@ -71,7 +79,11 @@ const AddNewContent = ({ options }: { options: AddNewOption[] }) => {
  */
 const Content = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const { data: contentTemplates } = useGetContentTemplatesQuery();
+  const {
+    data: contentTemplates,
+    isLoading,
+    error,
+  } = useGetContentTemplatesQuery();
   const groups = useMemo(
     () => getTemplatedEntityGroups(contentTemplates),
     [contentTemplates],
@@ -80,6 +92,24 @@ const Content = () => {
     getCanvasSettings()?.contentEntityCreateOperations,
     getBaseUrl(),
   );
+
+  // Loading and failure are distinct from a genuinely empty site: only the
+  // latter gets the "No content found" state.
+  let body: React.ReactNode;
+  if (isLoading) {
+    body = <Skeleton height="1.2rem" width="100%" my="3" />;
+  } else if (error) {
+    body = (
+      <ErrorCard
+        title="An unexpected error has occurred while loading content."
+        error={String(error)}
+      />
+    );
+  } else if (groups.length === 0) {
+    body = <EmptyStateCallout title="No content found" variant="surface" />;
+  } else {
+    body = <TemplatedContentGroups groups={groups} searchTerm={searchTerm} />;
+  }
 
   return (
     <div data-testid="canvas-content-panel">
@@ -102,11 +132,7 @@ const Content = () => {
         </Box>
         <AddNewContent options={addNewOptions} />
       </Flex>
-      {groups.length === 0 ? (
-        <EmptyStateCallout title="No content found" variant="surface" />
-      ) : (
-        <TemplatedContentGroups groups={groups} searchTerm={searchTerm} />
-      )}
+      {body}
     </div>
   );
 };
