@@ -65,15 +65,14 @@ export function getTemplatedEntityGroups(
     }
     const bundles: TemplatedBundle[] = [];
     for (const [bundle, bundleData] of Object.entries(typeData.bundles ?? {})) {
-      // "Active" means an enabled template exposing slots: the content list
-      // endpoint only accepts bundles backed by an enabled template, so a
-      // disabled-only bundle must not enter the navigator.
-      const hasActiveExposedSlot = Object.values(
-        bundleData.viewModes ?? {},
-      ).some(
-        (viewMode) =>
-          viewMode.status && countExposedSlots(viewMode.exposed_slots) > 0,
-      );
+      // "Active" means the enabled `full` template exposes slots: per-content
+      // editing always resolves the full template (matching the server's
+      // bundle gate), so slots exposed only in other view modes, or only in
+      // disabled templates, must not enter the navigator.
+      const fullViewMode = bundleData.viewModes?.full;
+      const hasActiveExposedSlot =
+        !!fullViewMode?.status &&
+        countExposedSlots(fullViewMode.exposed_slots) > 0;
       if (hasActiveExposedSlot) {
         bundles.push({ bundle, label: bundleData.label });
       }
