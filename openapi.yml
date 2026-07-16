@@ -3737,6 +3737,9 @@ components:
           type: string
           enum: [react, external]
           description: The Code Component implementation type. An omitted value means react.
+        hasFallbackImplementation:
+          type: boolean
+          description: Whether an external Code Component retains a fallback implementation in Drupal.
         broken:
           type: boolean
           description: Whether this Component is safe to instantiate (false) or broken (true).
@@ -3783,7 +3786,7 @@ components:
         type:
           type: string
           enum: [react, external]
-          description: The Code Component implementation type. External components have no Canvas-managed JavaScript or CSS assets. An omitted value means react.
+          description: The Code Component implementation type. External component source code is not editable through Canvas. An omitted value means react.
         sourceCodeJs:
           type: string
         sourceCodeCss:

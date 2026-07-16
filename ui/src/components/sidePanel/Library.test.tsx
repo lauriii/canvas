@@ -6,14 +6,8 @@ import Library from '@/components/sidePanel/Library';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 
 vi.mock('@/components/list/ComponentList', () => ({
-  default: ({
-    externalComponentsOnly,
-  }: {
-    externalComponentsOnly: boolean;
-  }) => (
-    <div data-testid="component-list">
-      {externalComponentsOnly ? 'External only' : 'All components'}
-    </div>
+  default: ({ visibility }: { visibility: string }) => (
+    <div data-testid="component-list">{visibility}</div>
   ),
 }));
 
@@ -40,17 +34,16 @@ const renderLibrary = () =>
 
 describe('Library', () => {
   afterEach(() => {
-    delete getCanvasSettings().headlessEnabled;
+    delete getCanvasSettings().canAccessHeadlessPreview;
+    delete getCanvasSettings().canAdministerHeadlessFrontends;
     delete getCanvasSettings().headless;
   });
 
-  it('shows every component source when headless has no configured frontend', () => {
-    getCanvasSettings().headlessEnabled = true;
-
+  it('shows only standard components without headless preview access', () => {
     renderLibrary();
 
     expect(screen.getByTestId('component-list')).toHaveTextContent(
-      'All components',
+      'non-external-only',
     );
     expect(
       screen.getByTestId('canvas-library-patterns-tab-select'),
@@ -58,8 +51,7 @@ describe('Library', () => {
     expect(screen.getByText('New menu available')).toBeInTheDocument();
   });
 
-  it('only exposes external components when a headless frontend is configured', () => {
-    getCanvasSettings().headlessEnabled = true;
+  it('ignores configured headless settings without headless preview access', () => {
     getCanvasSettings().headless = {
       frontendUrl: 'https://frontend.example',
       frontends: ['https://frontend.example'],
@@ -71,7 +63,42 @@ describe('Library', () => {
     renderLibrary();
 
     expect(screen.getByTestId('component-list')).toHaveTextContent(
-      'External only',
+      'non-external-only',
+    );
+    expect(
+      screen.getByTestId('canvas-library-patterns-tab-select'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('New menu available')).toBeInTheDocument();
+  });
+
+  it('shows standard and converted components when no frontend is configured', () => {
+    getCanvasSettings().canAccessHeadlessPreview = true;
+
+    renderLibrary();
+
+    expect(screen.getByTestId('component-list')).toHaveTextContent(
+      'non-external-and-fallback-external',
+    );
+    expect(
+      screen.getByTestId('canvas-library-patterns-tab-select'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('New menu available')).toBeInTheDocument();
+  });
+
+  it('only exposes external components when a headless frontend is configured', () => {
+    getCanvasSettings().canAccessHeadlessPreview = true;
+    getCanvasSettings().headless = {
+      frontendUrl: 'https://frontend.example',
+      frontends: ['https://frontend.example'],
+      frontendOrigin: 'https://frontend.example',
+      draftUrl: 'https://frontend.example/api/draft',
+      assertionUrl: '/canvas-headless/assertion',
+    };
+
+    renderLibrary();
+
+    expect(screen.getByTestId('component-list')).toHaveTextContent(
+      'external-only',
     );
     expect(
       screen.queryByTestId('canvas-library-patterns-tab-select'),

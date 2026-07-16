@@ -137,16 +137,10 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
   public function testRequiredPropertyValuesMissing(?array $additional_expected_validation_errors_when_missing = NULL): void {
     parent::testRequiredPropertyValuesMissing([
       'js' => [
-        'js' => [
-          'React code components must contain JavaScript and CSS.',
-          'This value should not be null.',
-        ],
+        'js' => 'React code components must contain JavaScript and CSS.',
       ],
       'css' => [
-        'css' => [
-          'React code components must contain JavaScript and CSS.',
-          'This value should not be null.',
-        ],
+        'css' => 'React code components must contain JavaScript and CSS.',
       ],
     ]);
   }
@@ -178,10 +172,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
 
   public function testAssetsMatchComponentType(): void {
     $this->entity->set('type', 'external');
-    $this->assertValidationErrors([
-      'js' => 'External code components cannot contain JavaScript or CSS.',
-      'css' => 'External code components cannot contain JavaScript or CSS.',
-    ]);
+    $this->assertValidationErrors([]);
 
     $this->entity->set('js', NULL);
     $this->entity->set('css', NULL);
@@ -189,14 +180,8 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
 
     $this->entity->set('type', 'react');
     $this->assertValidationErrors([
-      'js' => [
-        'React code components must contain JavaScript and CSS.',
-        'This value should not be null.',
-      ],
-      'css' => [
-        'React code components must contain JavaScript and CSS.',
-        'This value should not be null.',
-      ],
+      'js' => 'React code components must contain JavaScript and CSS.',
+      'css' => 'React code components must contain JavaScript and CSS.',
     ]);
   }
 

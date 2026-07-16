@@ -7,6 +7,9 @@ import PatternList from '@/components/list/PatternList';
 import LibraryToolbar from '@/components/sidePanel/LibraryToolbar';
 import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import useDebounce from '@/hooks/useDebounce';
+import { getCanvasSettings } from '@/utils/drupal-globals';
+
+import type { ComponentVisibility } from '@/components/list/ComponentList';
 
 import styles from './Library.module.css';
 
@@ -14,7 +17,15 @@ const Library = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const headlessSettings = useCanvasHeadlessSettings();
-  const externalComponentsOnly = (headlessSettings?.frontends.length ?? 0) > 0;
+  const canAccessHeadlessPreview =
+    getCanvasSettings().canAccessHeadlessPreview === true;
+  const externalComponentsOnly =
+    canAccessHeadlessPreview && (headlessSettings?.frontends.length ?? 0) > 0;
+  const componentVisibility: ComponentVisibility = !canAccessHeadlessPreview
+    ? 'non-external-only'
+    : externalComponentsOnly
+      ? 'external-only'
+      : 'non-external-and-fallback-external';
 
   return (
     <>
@@ -50,7 +61,7 @@ const Library = () => {
               />
               <ComponentList
                 searchTerm={debouncedSearchTerm}
-                externalComponentsOnly={externalComponentsOnly}
+                visibility={componentVisibility}
               />
             </ErrorBoundary>
           </Tabs.Content>

@@ -158,10 +158,10 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       href: '/headless/',
       icon: <GlobeIcon />,
       label: 'Headless frontends',
-      // Injected only when the Canvas Headless module is enabled and the
-      // user may administer its frontend list. Unlike the preview settings,
-      // this flag is present before the first frontend is configured.
-      hidden: !getCanvasSettings()?.headlessEnabled,
+      // Injected when the user may administer the Canvas Headless frontend
+      // list. Unlike the preview settings, this flag is present before the
+      // first frontend is configured.
+      hidden: !getCanvasSettings()?.canAdministerHeadlessFrontends,
     },
     {
       type: 'separator',

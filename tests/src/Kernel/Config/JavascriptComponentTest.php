@@ -96,6 +96,7 @@ class JavascriptComponentTest extends CanvasKernelTestBase {
       'dataDependencies' => [],
     ];
     $js_component = JavaScriptComponent::createFromClientSide($client_data);
+    $this->assertFalse($js_component->hasFallbackImplementation());
     $this->assertSame(SAVED_NEW, $js_component->save());
     $this->assertCount(0, $js_component->getDependencies());
     $this->assertSame([
@@ -206,6 +207,47 @@ class JavascriptComponentTest extends CanvasKernelTestBase {
     self::assertArrayNotHasKey('compiledJs', $representation->values);
     self::assertArrayNotHasKey('compiledCss', $representation->values);
 
+    $js = [
+      'original' => 'export default function ExternalTest() {}',
+      'compiled' => 'export default function ExternalTest() {}',
+    ];
+    $css = [
+      'original' => '.external-test { display: block; }',
+      'compiled' => '.external-test{display:block}',
+    ];
+    $component->set('js', $js);
+    $component->set('css', $css);
+    $dependency = JavaScriptComponent::create([
+      'machineName' => 'external_dependency',
+      'name' => 'External dependency',
+      'status' => TRUE,
+      'required' => [],
+      'props' => [],
+      'slots' => [],
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
+    ]);
+    $dependency->save();
+    $component->set('dependencies', [
+      'enforced' => [
+        'config' => [$dependency->getConfigDependencyName()],
+      ],
+    ]);
+    self::assertTrue($component->hasFallbackImplementation());
+    self::assertEntityIsValid($component);
+    self::assertSame($js, $component->toArray()['js']);
+    self::assertSame($css, $component->toArray()['css']);
+
+    // Metadata-only client updates must not discard a retained implementation.
+    $component->updateFromClientSide($client_data);
+    self::assertSame($js, $component->get('js'));
+    self::assertSame($css, $component->get('css'));
+    self::assertContains($dependency->getConfigDependencyName(), $component->getDependencies()['config']);
+    $representation = $component->normalizeForClientSide();
+    self::assertArrayNotHasKey('sourceCodeJs', $representation->values);
+    self::assertArrayNotHasKey('sourceCodeCss', $representation->values);
+
     $this->expectException(ConstraintViolationException::class);
     $this->expectExceptionMessage('External code components cannot contain JavaScript or CSS.');
     $component->updateFromClientSide([
@@ -265,8 +307,8 @@ class JavascriptComponentTest extends CanvasKernelTestBase {
       }
     }
 
-    // The type of a saved React component is locked, too: flipping it to
-    // external would silently discard its source code.
+    // The type of a saved React component is locked, too: synchronization is
+    // the only operation allowed to make the external application authoritative.
     $react_component = JavaScriptComponent::createFromClientSide([
       'machineName' => 'react_locked',
       'name' => 'React locked',

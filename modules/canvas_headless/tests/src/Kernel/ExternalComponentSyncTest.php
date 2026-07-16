@@ -57,9 +57,9 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
   public function testSynchronization(): void {
     $this->installConfig(['canvas_headless']);
 
-    JavaScriptComponent::create([
-      'machineName' => 'cardWithSlot',
-      'name' => 'Local component',
+    $dependency = JavaScriptComponent::create([
+      'machineName' => 'localDependency',
+      'name' => 'Local dependency',
       'status' => TRUE,
       'props' => [],
       'required' => [],
@@ -67,6 +67,26 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
       'js' => ['original' => '', 'compiled' => ''],
       'css' => ['original' => '', 'compiled' => ''],
       'dataDependencies' => [],
+    ]);
+    $dependency->save();
+
+    $local_js = 'export default function CardWithSlot() {}';
+    $local_css = '.card-with-slot { display: grid; }';
+    JavaScriptComponent::create([
+      'machineName' => 'cardWithSlot',
+      'name' => 'Local component',
+      'status' => TRUE,
+      'props' => [],
+      'required' => [],
+      'slots' => [],
+      'js' => ['original' => $local_js, 'compiled' => $local_js],
+      'css' => ['original' => $local_css, 'compiled' => $local_css],
+      'dataDependencies' => ['drupalSettings' => ['v0.pageTitle']],
+      'dependencies' => [
+        'enforced' => [
+          'config' => [$dependency->getConfigDependencyName()],
+        ],
+      ],
     ])->save();
 
     $synchronizer = new ExternalComponentSync(
@@ -104,10 +124,10 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
 
     $result = $synchronizer->synchronize(self::metadataPayload('Original name', 'integer'));
     self::assertSame(1, $result['created']);
-    self::assertSame(0, $result['updated']);
+    self::assertSame(1, $result['updated']);
     self::assertSame(0, $result['unchanged']);
     self::assertCount(2, $result['warnings']);
-    self::assertCount(2, $result['errors']);
+    self::assertCount(1, $result['errors']);
 
     $component = JavaScriptComponent::load('heroBanner');
     self::assertInstanceOf(JavaScriptComponent::class, $component);
@@ -137,6 +157,38 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     $first_version = Component::load('js.heroBanner')?->getActiveVersion();
     self::assertNotNull($first_version);
     self::assertSame(1, $code_component_saves->count);
+
+    $local_component = JavaScriptComponent::load('cardWithSlot');
+    self::assertInstanceOf(JavaScriptComponent::class, $local_component);
+    self::assertTrue($local_component->isExternal());
+    self::assertTrue($local_component->hasFallbackImplementation());
+    self::assertSame('Remote component', $local_component->label());
+    self::assertSame($local_js, $local_component->getJs());
+    self::assertSame($local_css, $local_component->getCss());
+    self::assertSame(['drupalSettings' => ['v0.pageTitle']], $local_component->get('dataDependencies'));
+    self::assertContains($dependency->getConfigDependencyName(), $local_component->getDependencies()['config']);
+
+    // With no frontend configured, a converted component uses its retained
+    // Drupal implementation.
+    $local_canvas_component = Component::load('js.cardWithSlot');
+    self::assertInstanceOf(Component::class, $local_canvas_component);
+    $local_source = $local_canvas_component->getComponentSource();
+    self::assertInstanceOf(JsComponent::class, $local_source);
+    $local_build = $local_source->renderComponent([
+      JsComponent::EXPLICIT_INPUT_NAME => [],
+    ], [], 'local-component-uuid');
+    self::assertSame('astro_island', $local_build['#type']);
+    self::assertContains('canvas/astro_island.cardWithSlot', $local_build['#attached']['library']);
+
+    // Configuring a frontend makes the external implementation authoritative.
+    $this->config('canvas_headless.settings')
+      ->set('frontends', [['url' => 'https://frontend.example']])
+      ->save();
+    $external_build = $local_source->renderComponent([
+      JsComponent::EXPLICIT_INPUT_NAME => [],
+    ], [], 'local-component-uuid');
+    self::assertSame('', $external_build['#markup']);
+    self::assertArrayHasKey(JsComponent::EXTERNAL_RENDER_METADATA, $external_build);
 
     // Drupal keeps app-owned components renderless, while the headless
     // Custom Elements converter exposes their props, identity, and slots.
@@ -221,17 +273,18 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
 
     $result = $synchronizer->synchronize(self::metadataPayload('Updated name', 'number'));
     self::assertSame(1, $result['updated']);
+    self::assertSame(1, $result['unchanged']);
     $component = JavaScriptComponent::load('heroBanner');
     self::assertInstanceOf(JavaScriptComponent::class, $component);
     self::assertSame('Updated name', $component->label());
-    self::assertSame('Local component', JavaScriptComponent::load('cardWithSlot')?->label());
+    self::assertSame('Remote component', JavaScriptComponent::load('cardWithSlot')?->label());
     $second_version = Component::load('js.heroBanner')?->getActiveVersion();
     self::assertNotNull($second_version);
     self::assertNotSame($first_version, $second_version);
     self::assertSame(2, $code_component_saves->count);
 
     $result = $synchronizer->synchronize(self::metadataPayload('Updated name', 'number'));
-    self::assertSame(1, $result['unchanged']);
+    self::assertSame(2, $result['unchanged']);
     self::assertSame(2, $code_component_saves->count);
 
     // Recreate the Component config entity paired with an unchanged external
@@ -239,6 +292,7 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     Component::load('js.heroBanner')?->delete();
     $result = $synchronizer->synchronize(self::metadataPayload('Updated name', 'number'));
     self::assertSame(1, $result['updated']);
+    self::assertSame(1, $result['unchanged']);
     self::assertInstanceOf(Component::class, Component::load('js.heroBanner'));
     self::assertSame(3, $code_component_saves->count);
   }

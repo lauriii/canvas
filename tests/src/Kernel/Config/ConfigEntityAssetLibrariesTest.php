@@ -160,6 +160,19 @@ final class ConfigEntityAssetLibrariesTest extends CanvasKernelTestBase {
     self::assertArrayHasKey('css', $discovered[$js_component_library]);
     self::assertArrayHasKey('js', $discovered[$js_component_library]);
     self::assertCount(0, $discovered[$js_component_library]['js']);
+
+    // External components retaining their Drupal implementation keep their
+    // libraries available for fallback rendering.
+    $js_component->set('type', 'external')->save();
+    $discovered = $this->getCanvasAssetLibraries();
+    self::assertArrayHasKey($js_component_draft, $discovered);
+    self::assertArrayHasKey($js_component_library, $discovered);
+
+    // Metadata-only external components have no Drupal fallback libraries.
+    $js_component->set('js', NULL)->set('css', NULL)->save();
+    $discovered = $this->getCanvasAssetLibraries();
+    self::assertArrayNotHasKey($js_component_draft, $discovered);
+    self::assertArrayNotHasKey($js_component_library, $discovered);
   }
 
 }

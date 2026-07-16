@@ -35,12 +35,12 @@ const FrontendSelectHarness = () => {
 
 describe('FrontendSelect', () => {
   beforeEach(() => {
-    getCanvasSettings().headlessEnabled = true;
+    getCanvasSettings().canAdministerHeadlessFrontends = true;
   });
 
   afterEach(() => {
     delete getCanvasSettings().headless;
-    delete getCanvasSettings().headlessEnabled;
+    delete getCanvasSettings().canAdministerHeadlessFrontends;
     window.localStorage.clear();
     mockSyncComponents.mockClear();
     syncState.isLoading = false;

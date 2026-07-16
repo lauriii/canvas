@@ -97,14 +97,15 @@ class CanvasHeadlessHooks {
   /**
    * Implements hook_js_settings_alter().
    *
-   * Tells the Canvas editor UI to embed the configured frontend app in the
-   * editor frame instead of the Drupal-rendered preview. Injected on every
-   * Canvas boot route, for users who may mint preview assertions. Every
-   * value is static configuration — the edited entity is unknown to the
-   * server here (CanvasPathProcessor rewrites all editor paths to /canvas,
-   * so the React app resolves the entity from the browser URL), and nothing
-   * session-bound travels here either: the UI fetches assertions from the
-   * CSRF-protected minting endpoint, passing the entity it is editing.
+   * Tells the Canvas UI whether the user may access headless previews or
+   * administer frontends. For users who may mint preview assertions, it also
+   * configures the editor to embed the frontend app instead of the
+   * Drupal-rendered preview. Injected on every Canvas boot route. Every value
+   * is static configuration — the edited entity is unknown to the server here
+   * (CanvasPathProcessor rewrites all editor paths to /canvas, so the React app
+   * resolves the entity from the browser URL), and nothing session-bound
+   * travels here either: the UI fetches assertions from the CSRF-protected
+   * minting endpoint, passing the entity it is editing.
    *
    * Matched by controller rather than an enumerated route list: the same
    * single-page app boots from every CanvasController route (the empty,
@@ -126,12 +127,13 @@ class CanvasHeadlessHooks {
     // configured. Gate it independently from preview access: changing the
     // site-wide frontend list is more privileged than using that list.
     if ($this->currentUser->hasPermission('administer canvas headless frontends')) {
-      $settings['canvas']['headlessEnabled'] = TRUE;
+      $settings['canvas']['canAdministerHeadlessFrontends'] = TRUE;
     }
 
     if (!$this->currentUser->hasPermission(PreviewUrlGeneratorInterface::PREVIEW_PERMISSION)) {
       return;
     }
+    $settings['canvas']['canAccessHeadlessPreview'] = TRUE;
 
     $config = $this->configFactory->get('canvas_headless.settings');
     // The URL becomes the editor frame's iframe src, carrying the activation

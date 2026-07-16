@@ -28,4 +28,4 @@ slots:
     title: Content
     description: Cards and other components displayed in the section grid.
     examples:
-      - '<p>Add nested components here.</p>'
+      - <p>Add nested components here.</p>

@@ -16,4 +16,4 @@ slots:
     title: Content
     description: The card body.
     examples:
-      - '<p>Rendered by the Next.js app.</p>'
+      - <p>Rendered by the Next.js app.</p>

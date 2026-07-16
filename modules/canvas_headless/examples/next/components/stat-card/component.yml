@@ -11,7 +11,7 @@ props:
       title: Value
       description: The primary value displayed by the card.
       examples:
-        - '100%'
+        - 100%
     label:
       type: string
       title: Label
@@ -24,4 +24,4 @@ props:
       description: Optional supporting text.
       examples:
         - Registry props reached the React component.
-slots: {  }
+slots: []
