@@ -197,10 +197,6 @@ services:
 
   # Controllers.
   Drupal\canvas\Controller\ApiAutocompleteController: ~
-  Drupal\canvas\Controller\ApiTextEditorSettingsController:
-    arguments:
-      - '@plugin.manager.editor'
-      - '@current_user'
   Drupal\canvas\Controller\ApiFileUploadController: ~
   Drupal\canvas\Controller\ApiConfigControllers: ~
   Drupal\canvas\Controller\ApiConfigAutoSaveControllers: ~

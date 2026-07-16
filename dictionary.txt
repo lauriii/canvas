@@ -53,6 +53,7 @@ drupalcode
 drupaldev
 drupalsettings
 druplicon
+editorless
 endapply
 entityviewdisplay
 Español
