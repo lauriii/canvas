@@ -37,8 +37,7 @@ entity.canvas_page.edit_form:
 # a harmless no-op: `base_route` is only a grouping key for tab sets (compared
 # as a string, never resolved as a route), so without the node module this
 # task simply never appears.
-# @todo Generalize `base_route` beyond node once other entity types support
-#   content templates, see https://www.drupal.org/i/3498525.
+# @todo Generalize `base_route` beyond node once other entity types support content templates, see https://www.drupal.org/i/3498525.
 # @see \Drupal\canvas\Plugin\Menu\ContentTemplateLayoutTask
 canvas.content.layout:
   title: 'Layout'

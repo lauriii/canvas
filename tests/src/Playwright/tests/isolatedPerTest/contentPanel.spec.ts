@@ -86,8 +86,8 @@ test.describe('Content (CMS) panel', () => {
     await expect(page).toHaveURL(/\/editor\/node\/\d+/);
   });
 
-  // TODO follow-up (article_exposed_slots fixture): per-content contextual panel, phase 1 of
-  // the Content/Page data split (exposed-slots decision 10). In
+  // @todo Cover the per-content contextual panel on the article_exposed_slots fixture (phase 1 of the Content/Page data split, exposed-slots decision 10); details below.
+  // In
   // `/editor/node/{id}` assert: the tab bar shows Page data (leftmost, the
   // default) and Content (`canvas-contextual-panel--content`); the Content
   // tab holds only a link out to Drupal's edit form
