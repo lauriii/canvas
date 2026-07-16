@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\editor\Plugin\EditorManager;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * HTTP API delivering text editor settings and assets for the Canvas UI.
@@ -32,12 +34,28 @@ use Drupal\editor\Plugin\EditorManager;
  * @internal This HTTP API is intended only for the Canvas UI. This controller
  *   and its associated route may change at any time.
  */
-final class ApiTextEditorSettingsController {
+final class ApiTextEditorSettingsController implements ContainerInjectionInterface {
 
   public function __construct(
     private readonly EditorManager $editorManager,
     private readonly AccountInterface $currentUser,
   ) {}
+
+  /**
+   * {@inheritdoc}
+   *
+   * Instantiated by the class resolver rather than registered as a service:
+   * a service definition would hard-reference `plugin.manager.editor` at
+   * container compile time, which breaks kernel tests that install canvas
+   * without the editor module (a hard dependency everywhere else).
+   */
+  public static function create(ContainerInterface $container): self {
+    $editor_manager = $container->get('plugin.manager.editor');
+    \assert($editor_manager instanceof EditorManager);
+    $current_user = $container->get('current_user');
+    \assert($current_user instanceof AccountInterface);
+    return new self($editor_manager, $current_user);
+  }
 
   public function __invoke(): array {
     // The same permission-gated format list that the `text_format` element

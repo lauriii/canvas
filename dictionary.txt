@@ -55,6 +55,7 @@ drupaldev
 drupalsettings
 druplicon
 echoai
+editorless
 endapply
 entityviewdisplay
 Español
