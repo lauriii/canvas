@@ -168,6 +168,16 @@ const ContextualPanel: React.FC = () => {
     }
   }, [selectedComponent, isMultiSelect, isTemplateContext]);
 
+  // Leaving per-content mode removes the Content tab; if it was the active
+  // one, fall back to the default tab so the panel body is not left empty.
+  useEffect(() => {
+    if (!isPerContentMode) {
+      setActivePanel((current) =>
+        current === 'content' ? 'pageData' : current,
+      );
+    }
+  }, [isPerContentMode]);
+
   return (
     <Box
       data-testid="canvas-contextual-panel"
