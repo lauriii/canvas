@@ -4,7 +4,10 @@ import ReactDOM from 'react-dom';
 import { useParams } from 'react-router-dom';
 
 import { useAppSelector } from '@/app/hooks';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
+import {
+  selectIsPerContentMode,
+  selectLayout,
+} from '@/features/layout/layoutModelSlice';
 import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
 import {
   DEFAULT_REGION,
@@ -43,8 +46,15 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const { setSelectedRegion } = useEditorNavigation();
   const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
 
+  const perContentMode = useAppSelector(selectIsPerContentMode);
   const displayedRegions = layout.filter((region) => {
-    return region.components.length > 0 || region.id === DEFAULT_REGION;
+    // Per-content editing: every exposed-slot region renders, even when empty
+    // (it is a drop target, or a locked unit anchored over the default).
+    return (
+      perContentMode ||
+      region.components.length > 0 ||
+      region.id === DEFAULT_REGION
+    );
   });
 
   const updateRect = useCallback(() => {

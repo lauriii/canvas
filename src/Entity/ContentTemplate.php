@@ -375,7 +375,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
   /**
    * {@inheritdoc}
    */
-  public function build(FieldableEntityInterface $entity, bool $isPreview = FALSE): array {
+  public function build(FieldableEntityInterface $entity, bool $isPreview = FALSE, array $suppressAnnotationsFor = []): array {
     // The entity should not be able to expose its own full, independently
     // renderable component tree -- if it can, why is it even using a template?
     if ($entity instanceof ComponentTreeEntityInterface) {
@@ -385,7 +385,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     // Without exposed slots, the entity has no per-entity content to merge.
     $exposed_slots = $this->getExposedSlots();
     if (empty($exposed_slots)) {
-      return $this->getComponentTree($entity)->toRenderable($this, $isPreview);
+      return $this->getComponentTree($entity)->toRenderable($this, $isPreview, $suppressAnnotationsFor);
     }
 
     // Each exposed slot is backed by its own `component_tree` field on the
@@ -401,7 +401,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
       \assert($slot_field instanceof ComponentTreeItemList);
       $merged_tree->injectSlotContent($definition['component_uuid'], $definition['slot_name'], $slot_field);
     }
-    return $merged_tree->toRenderable($this, $isPreview);
+    return $merged_tree->toRenderable($this, $isPreview, $suppressAnnotationsFor);
   }
 
   /**

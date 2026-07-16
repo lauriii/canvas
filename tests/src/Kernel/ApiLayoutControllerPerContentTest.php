@@ -31,19 +31,19 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Route;
 
 /**
  * Tests the Layout API in per-content mode (exposed slots, Phase 5).
  *
- * Covers the merged GET (editability annotations, exposed slot metadata and
- * per-slot override state), the guarded + partitioned write (PATCH/POST), and
- * the merged per-content preview.
+ * Covers the slot-scoped GET (one editable node per exposed slot, slot
+ * metadata, override state, and default-content side-channel), the per-slot
+ * write (PATCH/POST), and the merged per-content preview with inert chrome.
  *
  * @legacy-covers \Drupal\canvas\Controller\ApiLayoutController::get
  * @legacy-covers \Drupal\canvas\Controller\ApiLayoutController::patch
  * @legacy-covers \Drupal\canvas\Controller\ApiLayoutController::post
- * @legacy-covers \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::partitionSlotFields
  */
 #[RunTestsInSeparateProcesses]
 #[Group('canvas')]
@@ -160,7 +160,7 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
   }
 
   /**
-   * The merged GET annotates editability, exposed slots and override state.
+   * The GET serves slot-scoped nodes, slot metadata, and inert-chrome HTML.
    */
   public function testMergedGetShapeAndPreview(): void {
     $override_uuid = '22222222-2222-4222-8222-222222222222';
@@ -185,22 +185,33 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
       self::SLOT_FIELD => ['overridden' => TRUE, 'empty' => FALSE],
     ], $json['slotOverrides']);
 
-    // The content region: the template host is locked (editable: false); the
-    // entity content nested in the exposed slot is editable (editable: true).
-    $content_region = $json['layout'][0];
-    self::assertSame('content', $content_region['id']);
-    $host_node = $content_region['components'][0];
-    self::assertSame(self::HOST_UUID, $host_node['uuid']);
-    self::assertFalse($host_node['editable']);
-    $the_body = self::findSlot($host_node, 'the_body');
-    self::assertCount(1, $the_body['components']);
-    self::assertSame($override_uuid, $the_body['components'][0]['uuid']);
-    self::assertTrue($the_body['components'][0]['editable']);
+    // The exposed slot's default content, as data for the unlock fork: the
+    // template's slot is empty here, so there is no default.
+    self::assertSame([self::SLOT_FIELD => NULL], $json['slotDefaults']);
+
+    // The layout is one region-like node per exposed slot, keyed by the
+    // backing field. Template chrome is not part of the layout at all, and
+    // the entity's content sits at the node's root.
+    self::assertCount(1, $json['layout']);
+    $slot_node = $json['layout'][0];
+    self::assertSame('region', $slot_node['nodeType']);
+    self::assertSame(self::SLOT_FIELD, $slot_node['id']);
+    self::assertSame('Main content', $slot_node['name']);
+    self::assertCount(1, $slot_node['components']);
+    self::assertSame($override_uuid, $slot_node['components'][0]['uuid']);
+    self::assertArrayNotHasKey('editable', $slot_node['components'][0]);
+    self::assertArrayNotHasKey(self::HOST_UUID, $json['model']);
 
     // The merged preview renders both the template chrome (node title) and the
     // per-entity override content.
     self::assertStringContainsString('A templated node', (string) $json['html']);
     self::assertStringContainsString("Now we&#039;re cooking!", (string) $json['html']);
+    // Chrome renders as inert markup: no component wrapper markers for the
+    // template-owned host, while the exposed slot's marker (emitted by the
+    // chrome's own Twig) and the entity content's markers keep working.
+    self::assertStringNotContainsString('canvas-start-' . self::HOST_UUID, (string) $json['html']);
+    self::assertStringContainsString('canvas-slot-start-' . self::HOST_UUID . '/the_body', (string) $json['html']);
+    self::assertStringContainsString("canvas-start-$override_uuid", (string) $json['html']);
   }
 
   /**
@@ -214,11 +225,53 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
       self::SLOT_FIELD => ['overridden' => FALSE, 'empty' => FALSE],
     ], $json['slotOverrides']);
 
-    // The exposed slot is present (empty, no default here) and the host is still
-    // annotated as locked chrome.
-    $host_node = $json['layout'][0]['components'][0];
-    self::assertFalse($host_node['editable']);
-    self::assertSame([], self::findSlot($host_node, 'the_body')['components']);
+    // The exposed slot is its own empty layout node; no chrome anywhere.
+    self::assertCount(1, $json['layout']);
+    self::assertSame(self::SLOT_FIELD, $json['layout'][0]['id']);
+    self::assertSame([], $json['layout'][0]['components']);
+  }
+
+  /**
+   * A slot whose template default has content ships that default as data.
+   */
+  public function testMergedGetShipsSlotDefaults(): void {
+    $default_uuid = '77777777-7777-4777-8777-777777777777';
+    // Rebuild the template with default content inside the exposed slot.
+    $template = ContentTemplate::load('node.' . self::BUNDLE . '.full');
+    self::assertInstanceOf(ContentTemplate::class, $template);
+    $tree = $template->get('component_tree');
+    $tree[] = [
+      'uuid' => $default_uuid,
+      'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+      'component_version' => $this->contentVersion,
+      'parent_uuid' => self::HOST_UUID,
+      'slot' => 'the_body',
+      'inputs' => [
+        'heading' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => 'Default content',
+          'expression' => 'ℹ︎string␟value',
+        ],
+      ],
+    ];
+    $template->set('component_tree', $tree)->save();
+
+    $node = self::createTemplatedNode();
+    $json = self::decodeResponse($this->request(Request::create($this->getLayoutUrl($node)->toString())));
+
+    // The default is data for the unlock fork, not editable layout: the slot
+    // node stays empty, and the default's UUID appears nowhere in the layout
+    // or model.
+    self::assertSame([], $json['layout'][0]['components']);
+    self::assertArrayNotHasKey($default_uuid, $json['model']);
+    $default = $json['slotDefaults'][self::SLOT_FIELD];
+    self::assertIsArray($default);
+    self::assertCount(1, $default['layout']);
+    self::assertSame($default_uuid, $default['layout'][0]['uuid']);
+    self::assertArrayHasKey($default_uuid, $default['model']);
+    // The default renders in the preview as inert chrome (no markers).
+    self::assertStringContainsString('Default content', (string) $json['html']);
+    self::assertStringNotContainsString("canvas-start-$default_uuid", (string) $json['html']);
   }
 
   /**
@@ -229,8 +282,8 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
     $node = self::createTemplatedNode([$this->overrideRow($override_uuid, 'Original content')]);
     $url = $this->getLayoutUrl($node)->toString();
 
-    // PATCH a template-owned (locked) component: explicit access denial, not the
-    // incidental 404 from the entity-field lookup.
+    // PATCH a template-owned component: it does not exist in the per-entity
+    // editable layout at all, so it is simply not found.
     $reject_body = [
       'componentInstanceUuid' => self::HOST_UUID,
       'componentType' => 'sdc.canvas_test_sdc.props-slots@' . $this->hostVersion,
@@ -238,10 +291,10 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
     ] + $this->getPatchContentsDefaults([$node]);
     try {
       $this->request(Request::create($url, method: 'PATCH', content: \json_encode($reject_body, JSON_THROW_ON_ERROR)));
-      self::fail('Expected AccessDeniedHttpException for a template-owned target.');
+      self::fail('Expected NotFoundHttpException for a template-owned target.');
     }
-    catch (AccessDeniedHttpException $e) {
-      self::assertStringContainsString('belongs to the template', $e->getMessage());
+    catch (NotFoundHttpException) {
+      // The template-owned UUID is unaddressable per-entity.
     }
 
     // PATCH the entity-owned override component: writes through to the slot
@@ -276,9 +329,9 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
   }
 
   /**
-   * POST partitions the merged tree into per-slot fields.
+   * POST writes each submitted slot node into its backing field.
    */
-  public function testPostPartitionsIntoSlotFields(): void {
+  public function testPostWritesSlotFields(): void {
     $node = self::createTemplatedNode();
     $url = $this->getLayoutUrl($node)->toString();
 
@@ -286,10 +339,12 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
     $get = self::decodeResponse($this->request(Request::create($url)));
     self::assertFalse($get['slotOverrides'][self::SLOT_FIELD]['overridden']);
 
-    // Add an entity-owned component into the exposed slot and POST the merged
-    // tree back.
+    // Add an entity-owned component into the exposed slot's node and POST the
+    // per-slot layout back.
     $new_uuid = '33333333-3333-4333-8333-333333333333';
     $post = $this->postBodyFrom($get);
+    // The inherited slot round-trips an empty model (encoded as an object).
+    $post['model'] = [];
     $post['model'][$new_uuid] = [
       'resolved' => ['heading' => 'Filled by the editor'],
       'source' => [
@@ -299,12 +354,12 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
         ],
       ],
     ];
-    self::addComponentToSlot($post['layout'][0]['components'][0], 'the_body', [
+    $post['layout'][0]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $new_uuid,
       'type' => 'sdc.canvas_test_sdc.props-no-slots@' . $this->contentVersion,
       'slots' => [],
-    ]);
+    ];
     $response = $this->request(Request::create($url, method: 'POST', content: \json_encode($post, JSON_THROW_ON_ERROR)));
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
 
@@ -340,12 +395,12 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
     $marker_uuid = '44444444-4444-4444-8444-444444444444';
 
     $post = $this->postBodyFrom(self::decodeResponse($this->request(Request::create($url))));
-    self::addComponentToSlot($post['layout'][0]['components'][0], 'the_body', [
+    $post['layout'][0]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $marker_uuid,
       'type' => ComponentInterface::EMPTY_SLOT_MARKER_ID . '@' . $marker->getActiveVersion(),
       'slots' => [],
-    ]);
+    ];
     $this->request(Request::create($url, method: 'POST', content: \json_encode($post, JSON_THROW_ON_ERROR)));
 
     // The slot field stores exactly the marker as its sole root.
@@ -389,41 +444,37 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
   }
 
   /**
-   * Removing a template-owned component from the merged tree is rejected.
-   *
-   * Deleting template chrome is as much a template mutation as moving it: a
-   * buggy or hostile client must not be able to make a template's component
-   * disappear through the per-entity layout endpoints.
+   * A per-content POST addressing anything but exposed slots is rejected.
    */
-  public function testPostRejectsTemplateChromeRemoval(): void {
+  public function testPostRejectsUnknownNodes(): void {
     $node = self::createTemplatedNode();
     $url = $this->getLayoutUrl($node)->toString();
 
     $post = $this->postBodyFrom(self::decodeResponse($this->request(Request::create($url))));
-    // Drop the template-owned host component from the submitted merged tree.
-    $post['layout'][0]['components'] = \array_values(\array_filter(
-      $post['layout'][0]['components'],
-      static fn (array $component): bool => $component['uuid'] !== self::HOST_UUID,
-    ));
-    unset($post['model'][self::HOST_UUID]);
+    $post['layout'][] = [
+      'nodeType' => 'region',
+      'id' => 'content',
+      'name' => 'Content',
+      'components' => [],
+    ];
 
     try {
       $this->request(Request::create($url, method: 'POST', content: \json_encode($post, JSON_THROW_ON_ERROR)));
-      self::fail('Expected AccessDeniedHttpException for a removed template-owned component.');
+      self::fail('Expected AccessDeniedHttpException for a non-slot layout node.');
     }
     catch (AccessDeniedHttpException $e) {
-      self::assertStringContainsString('cannot be removed', $e->getMessage());
+      self::assertStringContainsString('Only exposed slots can be edited per-entity', $e->getMessage());
     }
   }
 
   /**
-   * Per-content editing must never write to global page regions.
+   * Global page regions take no part in per-entity editing.
    *
-   * In per-content mode the global regions are locked template chrome: an
-   * unchanged round-trip passes without creating a region auto-save, and a
-   * structural change to a region is rejected.
+   * Even for a user who may edit page templates, the per-content payload
+   * carries no region nodes and no region auto-save hashes, a region node in
+   * a POST is rejected, and no region auto-save is ever created.
    */
-  public function testPostRejectsRegionChanges(): void {
+  public function testRegionsAbsentFromPerContentEditing(): void {
     $region_component_uuid = '55555555-5555-4555-8555-555555555555';
     $region = PageRegion::create([
       'theme' => 'stark',
@@ -433,13 +484,17 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
       ],
     ]);
     $region->enable()->save();
-    // Global regions only enter the per-content payload for users who may
-    // edit PageRegions — the scenario under test.
     $this->setUpCurrentUser([], ['edit any ' . self::BUNDLE . ' content', 'access content', PageRegion::ADMIN_PERMISSION]);
 
     $node = self::createTemplatedNode();
     $url = $this->getLayoutUrl($node)->toString();
     $get = self::decodeResponse($this->request(Request::create($url)));
+
+    // The layout is only the exposed slot; no region node, no region content,
+    // no region auto-save hash.
+    self::assertSame([self::SLOT_FIELD], \array_column($get['layout'], 'id'));
+    self::assertArrayNotHasKey($region_component_uuid, $get['model']);
+    self::assertSame([AutoSaveManager::getAutoSaveKey($node)], \array_keys($get['autoSaves']));
 
     // An unchanged round-trip passes and creates no auto-save for the region.
     $response = $this->request(Request::create($url, method: 'POST', content: \json_encode($this->postBodyFrom($get), JSON_THROW_ON_ERROR)));
@@ -448,47 +503,25 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
     \assert($autoSave instanceof AutoSaveManager);
     self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
 
-    // Removing the region's component is rejected: modifying an entity must
-    // never modify the region template.
+    // Submitting a region node per-entity is rejected outright.
     $post = $this->postBodyFrom($get);
-    foreach ($post['layout'] as &$region_node) {
-      $region_node['components'] = \array_values(\array_filter(
-        $region_node['components'],
-        static fn (array $component): bool => $component['uuid'] !== $region_component_uuid,
-      ));
-    }
-    unset($region_node);
-    unset($post['model'][$region_component_uuid]);
-
+    $post['layout'][] = [
+      'nodeType' => 'region',
+      'id' => 'sidebar_first',
+      'name' => 'Sidebar first',
+      'components' => [],
+    ];
     try {
       $this->request(Request::create($url, method: 'POST', content: \json_encode($post, JSON_THROW_ON_ERROR)));
-      self::fail('Expected AccessDeniedHttpException for a changed region.');
+      self::fail('Expected AccessDeniedHttpException for a region node.');
     }
     catch (AccessDeniedHttpException $e) {
-      self::assertStringContainsString('cannot be changed while editing content', $e->getMessage());
+      self::assertStringContainsString('Only exposed slots can be edited per-entity', $e->getMessage());
     }
     self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
-  }
 
-  /**
-   * A component hosted by a global region cannot be patched per-entity.
-   */
-  public function testPatchRejectsRegionComponent(): void {
-    $region_component_uuid = '66666666-6666-4666-8666-666666666666';
-    $region = PageRegion::create([
-      'theme' => 'stark',
-      'region' => 'sidebar_first',
-      'component_tree' => [
-        $this->overrideRow($region_component_uuid, 'Region content'),
-      ],
-    ]);
-    $region->enable()->save();
-    // Global regions only enter the per-content payload for users who may
-    // edit PageRegions — the scenario under test.
-    $this->setUpCurrentUser([], ['edit any ' . self::BUNDLE . ' content', 'access content', PageRegion::ADMIN_PERMISSION]);
-
-    $node = self::createTemplatedNode();
-    $url = $this->getLayoutUrl($node)->toString();
+    // A region-hosted component cannot be addressed by per-content PATCH: it
+    // is not part of the per-entity editable surface at all.
     $patch_body = [
       'componentInstanceUuid' => $region_component_uuid,
       'componentType' => 'sdc.canvas_test_sdc.props-no-slots@' . $this->contentVersion,
@@ -501,17 +534,14 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
         ],
         'resolved' => ['heading' => 'Sneaky per-entity region edit'],
       ],
-    ] + $this->getPatchContentsDefaults([$node]);
-
+    ] + $this->getPatchContentsDefaults([$node], addRegions: FALSE);
     try {
       $this->request(Request::create($url, method: 'PATCH', content: \json_encode($patch_body, JSON_THROW_ON_ERROR)));
-      self::fail('Expected AccessDeniedHttpException for a region-hosted target.');
+      self::fail('Expected NotFoundHttpException for a region-hosted target.');
     }
-    catch (AccessDeniedHttpException $e) {
-      self::assertStringContainsString('cannot be edited per-entity', $e->getMessage());
+    catch (NotFoundHttpException) {
+      // Regions are unaddressable per-entity.
     }
-    $autoSave = $this->container->get(AutoSaveManager::class);
-    \assert($autoSave instanceof AutoSaveManager);
     self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
   }
 
@@ -668,46 +698,6 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
     self::assertFalse($data->isEmpty(), 'Expected an auto-save entry for the node.');
     self::assertInstanceOf(NodeInterface::class, $data->entity);
     return $data->entity;
-  }
-
-  /**
-   * Finds a named slot node within a component layout node.
-   *
-   * @param array<string, mixed> $component_node
-   *   The component layout node.
-   * @param string $slot_name
-   *   The slot name.
-   *
-   * @return array<string, mixed>
-   *   The slot node.
-   */
-  private static function findSlot(array $component_node, string $slot_name): array {
-    foreach ($component_node['slots'] as $slot) {
-      if ($slot['name'] === $slot_name) {
-        return $slot;
-      }
-    }
-    self::fail(\sprintf('Slot "%s" not found.', $slot_name));
-  }
-
-  /**
-   * Appends a component into a named slot of a component layout node.
-   *
-   * @param array<string, mixed> $component_node
-   *   The component layout node, modified by reference.
-   * @param string $slot_name
-   *   The slot name.
-   * @param array<string, mixed> $component
-   *   The component layout node to append.
-   */
-  private static function addComponentToSlot(array &$component_node, string $slot_name, array $component): void {
-    foreach ($component_node['slots'] as &$slot) {
-      if ($slot['name'] === $slot_name) {
-        $slot['components'][] = $component;
-        return;
-      }
-    }
-    self::fail(\sprintf('Slot "%s" not found.', $slot_name));
   }
 
 }
