@@ -411,6 +411,7 @@ export default function Props() {
                   properties={prop.properties ?? []}
                   allowMultiple={prop.allowMultiple}
                   isDisabled={disabledPropIds.has(prop.id)}
+                  required={required.includes(propName)}
                 />
               );
             case 'date':

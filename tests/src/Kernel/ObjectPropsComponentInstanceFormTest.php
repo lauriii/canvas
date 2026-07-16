@@ -261,6 +261,13 @@ final class ObjectPropsComponentInstanceFormTest extends ApiLayoutControllerTest
       ['name' => 'Grace'],
       ['name' => 'Ada', 'link' => 'https://example.com/ada'],
     ], $explicit_input['resolved']['authors']->value);
+
+    // The collapsed (stored) group inputs still contribute their
+    // sub-properties' dependencies: the authors group's `link` sub-property
+    // is stored in a conjured link field.
+    // @see \Drupal\canvas\Plugin\DataType\ComponentInputs::getPropSources()
+    $dependencies = $item->get('inputs')->calculateDependencies();
+    self::assertContains('link', $dependencies['module'] ?? []);
   }
 
   /**

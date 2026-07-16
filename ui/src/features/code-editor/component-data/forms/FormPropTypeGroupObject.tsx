@@ -48,7 +48,11 @@ import {
   FormElement,
   Label,
 } from '@/features/code-editor/component-data/FormElement';
-import { getPropMachineName } from '@/features/code-editor/utils/utils';
+import { REQUIRED_EXAMPLE_ERROR_MESSAGE } from '@/features/code-editor/component-data/Props';
+import {
+  composeGroupExample,
+  getPropMachineName,
+} from '@/features/code-editor/utils/utils';
 
 import type { DragEndEvent } from '@dnd-kit/core';
 import type {
@@ -113,10 +117,12 @@ export default function FormPropTypeGroupObject({
   properties,
   allowMultiple = false,
   isDisabled = false,
+  required = false,
 }: Pick<CodeComponentProp, 'id'> & {
   properties: CodeComponentGroupNestedProp[];
   allowMultiple?: boolean;
   isDisabled?: boolean;
+  required?: boolean;
 }) {
   const dispatch = useAppDispatch();
   // The nested prop currently being edited in the dialog, or null.
@@ -182,6 +188,26 @@ export default function FormPropTypeGroupObject({
     }
   };
 
+  // A required group must compose an example from its nested props, and any
+  // example must include every required nested prop, or the auto-saved
+  // component fails server-side validation.
+  // @see \Drupal\canvas\ComponentMetadataRequirementsChecker
+  const composedExample = composeGroupExample(properties);
+  const exampleError =
+    required && composedExample === null
+      ? REQUIRED_EXAMPLE_ERROR_MESSAGE
+      : composedExample !== null &&
+          properties.some(
+            (nested) =>
+              nested.required &&
+              !(
+                (nested.machineName ?? getPropMachineName(nested.name)) in
+                composedExample
+              ),
+          )
+        ? 'Required nested props must have an example value.'
+        : null;
+
   return (
     <Flex direction="column" gap="2" flexGrow="1">
       <Divider />
@@ -237,6 +263,11 @@ export default function FormPropTypeGroupObject({
           </SortableContext>
         </DndContext>
       </div>
+      {exampleError && (
+        <Text color="red" size="1">
+          {exampleError}
+        </Text>
+      )}
       <Flex align="center" gap="2" mt="1">
         <input
           type="checkbox"

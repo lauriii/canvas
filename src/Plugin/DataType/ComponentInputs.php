@@ -11,6 +11,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\StructuredData\ContentAwareDependentInterface;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropSource\AdaptedPropSource;
+use Drupal\canvas\PropSource\ObjectPropsSource;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\Component\Serialization\Json;
@@ -213,6 +214,12 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
             // respect.
             // @see https://en.wikipedia.org/wiki/Robustness_principle
             yield "name" => $parsed_default_prop_source->withValue($raw_prop_source, allow_empty: TRUE);
+          }
+          // Collapsed custom object props ("groups") un-collapse the same
+          // way, so their sub-values (e.g. media referenced by an image
+          // sub-property) contribute to the calculated dependencies.
+          elseif ($parsed_default_prop_source instanceof ObjectPropsSource) {
+            yield "$name" => $parsed_default_prop_source->withValue($raw_prop_source, allow_empty: TRUE);
           }
         }
         catch (\LogicException) {

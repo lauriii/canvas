@@ -100,8 +100,11 @@
   margin-top: var(--space-2);
 }
 
-/* Keep the force-mounted widgets in the form while the popover is closed. */
+/* Keep the force-mounted widgets in the form while the popover is closed.
+   `visibility: hidden` also removes them from keyboard navigation and the
+   accessibility tree; their values still submit. */
 .visuallyHiddenContent {
   position: absolute;
   left: -9999px;
+  visibility: hidden;
 }
