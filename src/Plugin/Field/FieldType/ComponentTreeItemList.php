@@ -702,15 +702,24 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       return $this;
     }
 
-    // The entity overrides this slot: remove the template's default subtree
-    // under the target (component_uuid, slot_name) before injecting.
+    // Preflight before mutating anything: every override UUID must be new to
+    // this tree (minus the default subtree about to be replaced), so a
+    // collision throws while the tree is still intact and callers catching the
+    // exception render the unmodified template.
     $default_roots = [];
     foreach ($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($parent_uuid, $slot_name)) as $item) {
       \assert($item instanceof ComponentTreeItem);
       $default_roots[] = $item->getUuid();
     }
+    $replaced_uuids = $default_roots === [] ? [] : \array_keys(self::collectSubtreeValues($this, $default_roots));
+    $override_values = self::collectSubtreeValues($slotField, $override_roots);
+    foreach (\array_keys($override_values) as $uuid) {
+      if (!\in_array($uuid, $replaced_uuids, TRUE) && $this->getComponentTreeItemByUuid($uuid) !== NULL) {
+        throw new SubtreeInjectionException("Cannot inject subtree because some of its components are already in the final tree.");
+      }
+    }
     if (\count($default_roots) > 0) {
-      $remove_uuids = \array_keys(self::collectSubtreeValues($this, $default_roots));
+      $remove_uuids = $replaced_uuids;
       // Remove by descending delta so earlier indices stay valid, and so the
       // surviving items keep their stored form (removeItem does not re-set
       // them, unlike a full setValue round-trip).
@@ -729,11 +738,9 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
 
     // Inject the entity's subtree, nesting each root under the template's real
     // target slot. Descendants keep their parent_uuid and slot, so the merged
-    // tree hydrates correctly.
-    foreach (self::collectSubtreeValues($slotField, $override_roots) as $uuid => $value) {
-      if ($this->getComponentTreeItemByUuid($uuid) !== NULL) {
-        throw new SubtreeInjectionException("Cannot inject subtree because some of its components are already in the final tree.");
-      }
+    // tree hydrates correctly. Collisions were rejected above, before any
+    // mutation.
+    foreach ($override_values as $uuid => $value) {
       if (\in_array($uuid, $override_roots, TRUE)) {
         // Re-root under the template's real slot, inserting parent_uuid + slot
         // in the canonical column order (right after component_id) so the row
