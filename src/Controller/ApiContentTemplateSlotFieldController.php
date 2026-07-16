@@ -187,7 +187,10 @@ final class ApiContentTemplateSlotFieldController extends ApiControllerBase {
     $entity_type_id = $content_template->getTargetEntityTypeId();
     $bundle = $content_template->getTargetBundle();
 
-    if (FieldConfig::loadByName($entity_type_id, $bundle, $field_name) === NULL) {
+    $field_config = FieldConfig::loadByName($entity_type_id, $bundle, $field_name);
+    if ($field_config?->getType() !== ComponentTreeItem::PLUGIN_ID) {
+      // A field of another type is not a slot field, and its table has no
+      // `uuid` property to count on.
       throw new NotFoundHttpException(\sprintf('The %s bundle has no %s slot field.', $bundle, $field_name));
     }
 
