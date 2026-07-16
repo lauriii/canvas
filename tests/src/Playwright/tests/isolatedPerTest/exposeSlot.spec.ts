@@ -92,12 +92,13 @@ test.describe('Expose slot dialog', () => {
     });
     await expect(dialog).toBeVisible();
 
-    // With no pre-existing canvas_slot_ fields on this bundle the single
-    // "Slot field" Select has no candidates and falls back to "Add new slot…",
-    // which reveals the label + machine-name fields.
-    await expect(dialog.getByLabel('Slot field')).toContainText(
-      'Add new slot…',
-    );
+    // The "Slot field" Select defaults to reusing an existing candidate when
+    // the bundle has one (canvas_test_article_fields ships the reusable
+    // field_canvas_demo component_tree field), so explicitly choose
+    // "Add new slot…" to exercise the create path either way. That reveals
+    // the label + machine-name fields.
+    await dialog.getByLabel('Slot field').click();
+    await page.getByRole('option', { name: 'Add new slot…' }).click();
 
     // Typing the label auto-derives the canvas_slot_-prefixed machine name.
     await dialog.getByLabel('Slot name').fill('My hero');
