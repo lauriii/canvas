@@ -206,6 +206,14 @@ export async function pushContentTemplates(
       for (const [fieldName, slot] of Object.entries(
         template.exposedSlots ?? {},
       )) {
+        // The slot-field endpoint only creates canvas_slot_-prefixed fields
+        // (@see ApiContentTemplateSlotFieldController::FIELD_NAME_PREFIX); a
+        // reused pre-existing component_tree field with another name cannot
+        // be provisioned here and must already exist on the target — if it
+        // does not, the template update fails its ValidExposedSlot check.
+        if (!fieldName.startsWith('canvas_slot_')) {
+          continue;
+        }
         await apiService.createSlotField(template.id, fieldName, slot.label);
       }
     };

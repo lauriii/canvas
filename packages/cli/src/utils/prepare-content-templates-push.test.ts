@@ -183,15 +183,18 @@ describe('exposed_slots round-trip', () => {
   // A server payload with two exposed slots so the round-trip covers a
   // multi-slot map.
   const exposedSlots: ExposedSlots = {
-    main: {
+    canvas_slot_main: {
       component_uuid: '11111111-1111-4111-8111-111111111111',
       slot_name: 'content',
       label: 'Main content',
     },
-    sidebar: {
+    // A reused pre-existing component_tree field: a valid exposed-slot key
+    // without the canvas_slot_ prefix. It cannot be provisioned through the
+    // slot-field endpoint and must already exist on the target.
+    field_existing_area: {
       component_uuid: '22222222-2222-4222-8222-222222222222',
       slot_name: 'aside',
-      label: 'Sidebar',
+      label: 'Existing area',
     },
   };
 
@@ -249,16 +252,13 @@ describe('exposed_slots round-trip', () => {
 
     expect(createContentTemplate).toHaveBeenCalledTimes(1);
     expect('exposed_slots' in (createdBody ?? {})).toBe(false);
-    expect(createSlotField).toHaveBeenCalledTimes(2);
+    // Only the canvas_slot_-prefixed field is provisioned; the reused
+    // pre-existing field cannot be created through the slot-field endpoint.
+    expect(createSlotField).toHaveBeenCalledTimes(1);
     expect(createSlotField).toHaveBeenCalledWith(
       serverTemplate.id,
-      'main',
+      'canvas_slot_main',
       'Main content',
-    );
-    expect(createSlotField).toHaveBeenCalledWith(
-      serverTemplate.id,
-      'sidebar',
-      'Sidebar',
     );
     expect(updateContentTemplate).toHaveBeenCalledTimes(1);
     // The map survives unchanged.
@@ -312,7 +312,8 @@ describe('exposed_slots round-trip', () => {
     expect(createContentTemplate).not.toHaveBeenCalled();
     // The update path provisions too: the authored file may reference slot
     // fields the target site has never seen (create-if-missing, 409 is fine).
-    expect(createSlotField).toHaveBeenCalledTimes(2);
+    // Only the prefixed field is provisionable.
+    expect(createSlotField).toHaveBeenCalledTimes(1);
     expect(updatedBody?.exposed_slots).toEqual(exposedSlots);
   });
 
