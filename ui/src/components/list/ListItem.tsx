@@ -12,13 +12,20 @@ import ComponentItem from '@/components/list/ComponentItem';
 import PatternItem from '@/components/list/PatternItem';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import {
+  findExposedSlotEntry,
+  isLockedSlotRegion,
+} from '@/features/layout/exposedSlots';
+import {
   _addNewComponentToLayout,
   addNewPatternToLayout,
+  selectExposedSlots,
   selectLayout,
+  selectSlotDefaults,
+  selectSlotOverrides,
 } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
-import { DEFAULT_REGION } from '@/features/ui/uiSlice';
+import { DEFAULT_REGION, selectSelection } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 
 import type React from 'react';
@@ -63,6 +70,10 @@ const ListItem: React.FC<{
   } = useParams();
   const { setSelectedComponent } = useComponentSelection();
   const activePanel = useAppSelector(selectActivePanel);
+  const selection = useAppSelector(selectSelection);
+  const exposedSlots = useAppSelector(selectExposedSlots);
+  const slotOverrides = useAppSelector(selectSlotOverrides);
+  const slotDefaults = useAppSelector(selectSlotDefaults);
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: itemId,
@@ -82,8 +93,58 @@ const ListItem: React.FC<{
     let path: number[] | null = [0];
     if (selectedComponent) {
       path = findNodePathByUuid(layout, selectedComponent);
+    } else if (selection.items.length === 1) {
+      // A non-routed selection: a slot's `${hostUuid}/${slotName}` (template
+      // editor slot node, or a per-content exposed slot).
+      const selectedId = selection.items[0];
+      const [hostUuid, slotName] = selectedId.split('/');
+      const exposedEntry = slotName
+        ? findExposedSlotEntry(exposedSlots, hostUuid, slotName)
+        : null;
+      // A locked slot rejects content changes until unlocked.
+      if (
+        exposedEntry &&
+        isLockedSlotRegion(
+          exposedEntry.alias,
+          exposedSlots,
+          slotOverrides,
+          slotDefaults,
+        )
+      ) {
+        return;
+      }
+      const nodePath = findNodePathByUuid(layout, selectedId);
+      if (nodePath) {
+        // A slot node: insert into it (the +1 below lands on index 0).
+        path = slotName ? [...nodePath, -1] : nodePath;
+      } else if (exposedEntry) {
+        // Per-content: the exposed slot presents as a top-level region keyed
+        // by its backing field alias.
+        const regionIndex = layout.findIndex(
+          (region) => region.id === exposedEntry.alias,
+        );
+        path = regionIndex === -1 ? null : [regionIndex, -1];
+      } else {
+        path = null;
+      }
     } else if (focusedRegion) {
-      path = [layout.findIndex((region) => region.id === focusedRegion), 0];
+      let regionIndex = layout.findIndex(
+        (region) => region.id === focusedRegion,
+      );
+      if (regionIndex === -1) {
+        // Per-content layouts have no DEFAULT_REGION: target the first
+        // editable (non-locked) slot region instead.
+        regionIndex = layout.findIndex(
+          (region) =>
+            !isLockedSlotRegion(
+              region.id,
+              exposedSlots,
+              slotOverrides,
+              slotDefaults,
+            ),
+        );
+      }
+      path = regionIndex === -1 ? null : [regionIndex, 0];
     }
     if (path) {
       const newPath = [...path];
