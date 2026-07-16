@@ -195,13 +195,6 @@ export async function pushContentTemplates(
     const component_tree = stripNullableKeysForConfigComponentTree(
       template.components,
     );
-    // The authored file stores exposed slots under a camelCase key; the server
-    // payload expects snake_case `exposed_slots`. Only send it when present so
-    // templates without exposed slots keep an unchanged request body.
-    const exposedSlotsPayload = template.exposedSlots
-      ? { exposed_slots: template.exposedSlots }
-      : {};
-
     // A template referencing exposed slots only validates when each slot's
     // backing `component_tree` field exists on the target bundle. The
     // slot-field endpoint requires an existing template, so a fresh-site
@@ -219,10 +212,14 @@ export async function pushContentTemplates(
 
     if (remote) {
       await provisionSlotFields();
+      // The update always carries exposed_slots: pull represents a slot-free
+      // template by omitting the property from the authored file, so an
+      // update must send the empty map to detach slots still present on the
+      // target (the backing fields and their content are retained).
       await apiService.updateContentTemplate(template.id, {
         status: true,
         component_tree,
-        ...exposedSlotsPayload,
+        exposed_slots: template.exposedSlots ?? {},
       });
       return {
         label: template.label,
@@ -241,9 +238,10 @@ export async function pushContentTemplates(
     });
     if (template.exposedSlots) {
       await provisionSlotFields();
+      // The server payload key is snake_case `exposed_slots`.
       await apiService.updateContentTemplate(template.id, {
         status: true,
-        ...exposedSlotsPayload,
+        exposed_slots: template.exposedSlots,
       });
     }
     return {

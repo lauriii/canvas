@@ -357,6 +357,56 @@ describe('exposed_slots round-trip', () => {
     expect(createdBody).toBeDefined();
     expect('exposed_slots' in (createdBody ?? {})).toBe(false);
   });
+
+  it('sends an empty exposed_slots map on update when the template has none', async () => {
+    // Pull represents a slot-free template by omitting the property from the
+    // authored file, so the update must send the empty map to detach slots
+    // still present on the target.
+    let updatedBody: { exposed_slots?: ExposedSlots } | undefined;
+    const updateContentTemplate = vi.fn(async (_id, body) => {
+      updatedBody = body;
+      return serverTemplate;
+    });
+    const createSlotField = vi.fn();
+
+    const remote: ContentTemplateListItem = {
+      id: serverTemplate.id,
+      label: serverTemplate.label,
+      status: serverTemplate.status,
+      entityType: serverTemplate.entityType,
+      bundle: serverTemplate.bundle,
+      viewMode: serverTemplate.viewMode,
+    };
+
+    await pushContentTemplates(
+      [
+        {
+          index: 0,
+          result: {
+            id: serverTemplate.id,
+            label: serverTemplate.label,
+            entityTypeId: serverTemplate.entityType,
+            bundle: serverTemplate.bundle,
+            viewMode: serverTemplate.viewMode,
+            components: [] satisfies CanvasComponentTree,
+            exposedSlots: undefined,
+            filePath: '/tmp/content-templates/node.article.full.json',
+          },
+        },
+      ],
+      new Map([[serverTemplate.id, remote]]),
+      {
+        createContentTemplate: vi.fn(),
+        updateContentTemplate,
+        createSlotField,
+      },
+    );
+
+    expect(updateContentTemplate).toHaveBeenCalledTimes(1);
+    expect(updatedBody?.exposed_slots).toEqual({});
+    // No slots to provision.
+    expect(createSlotField).not.toHaveBeenCalled();
+  });
 });
 
 describe('collectContentTemplateResults', () => {
