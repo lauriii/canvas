@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\AutoSave\Workspace;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\CanvasServiceProvider;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
@@ -16,7 +17,9 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 final class LegacyAutoSaveMigrator {
 
   public function __construct(
-    #[Autowire(service: 'keyvalue')]
+    // Staging bookkeeping must resolve identically in every workspace.
+    // @see \Drupal\canvas\CanvasServiceProvider::registerWorkspaceInvariantKeyValueFactory()
+    #[Autowire(service: CanvasServiceProvider::STAGING_KEY_VALUE_SERVICE)]
     private readonly KeyValueFactoryInterface $keyValueFactory,
     private readonly WorkspaceAutoSave $workspaceAutoSave,
     private readonly Connection $database,

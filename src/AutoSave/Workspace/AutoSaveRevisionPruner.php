@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\AutoSave\Workspace;
 
+use Drupal\canvas\CanvasServiceProvider;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -34,7 +35,9 @@ final class AutoSaveRevisionPruner {
      */
     #[Autowire(service: 'workspaces.tracker')]
     private readonly ?object $workspaceAssociation,
-    #[Autowire(service: 'keyvalue')]
+    // Staging bookkeeping must resolve identically in every workspace.
+    // @see \Drupal\canvas\CanvasServiceProvider::registerWorkspaceInvariantKeyValueFactory()
+    #[Autowire(service: CanvasServiceProvider::STAGING_KEY_VALUE_SERVICE)]
     private readonly KeyValueFactoryInterface $keyValueFactory,
   ) {}
 

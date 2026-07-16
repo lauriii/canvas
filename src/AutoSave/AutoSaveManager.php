@@ -7,6 +7,7 @@ namespace Drupal\canvas\AutoSave;
 use Drupal\canvas\AutoSave\Workspace\LegacyAutoSaveMigrator;
 use Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave;
 use Drupal\canvas\AutoSaveEntity;
+use Drupal\canvas\CanvasServiceProvider;
 use Drupal\canvas\Controller\ApiContentControllers;
 use Drupal\canvas\Controller\ConflictResolutionOutcomeEnum;
 use Drupal\canvas\Entity\BrandKit;
@@ -133,7 +134,9 @@ class AutoSaveManager implements EventSubscriberInterface {
     // @see \Drupal\metatag\Plugin\Field\MetatagEntityFieldItemList::computeValue()
     #[Autowire(service: 'canvas.auto_save.entity_memory_cache')]
     private readonly CacheBackendInterface $cache,
-    #[Autowire(service: 'keyvalue')]
+    // Staging bookkeeping must resolve identically in every workspace.
+    // @see \Drupal\canvas\CanvasServiceProvider::registerWorkspaceInvariantKeyValueFactory()
+    #[Autowire(service: CanvasServiceProvider::STAGING_KEY_VALUE_SERVICE)]
     KeyValueFactoryInterface $keyValueFactory,
     private readonly AccountProxyInterface $currentUser,
     private readonly TimeInterface $time,

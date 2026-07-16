@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\AutoSave\Workspace;
 
+use Drupal\canvas\CanvasServiceProvider;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -27,7 +28,9 @@ final class PendingContentAutoSaveBuffer {
   private const string COLLECTION = 'canvas_auto_save_pending';
 
   public function __construct(
-    #[Autowire(service: 'keyvalue')]
+    // Staging bookkeeping must resolve identically in every workspace.
+    // @see \Drupal\canvas\CanvasServiceProvider::registerWorkspaceInvariantKeyValueFactory()
+    #[Autowire(service: CanvasServiceProvider::STAGING_KEY_VALUE_SERVICE)]
     private readonly KeyValueFactoryInterface $keyValueFactory,
   ) {}
 

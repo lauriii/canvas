@@ -6,6 +6,7 @@ namespace Drupal\canvas\AutoSave\Workspace;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\AutoSaveEntity;
+use Drupal\canvas\CanvasServiceProvider;
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
@@ -66,7 +67,9 @@ final class WorkspaceAutoSave {
     #[Autowire(service: 'canvas.auto_save.entity_memory_cache')]
     private readonly CacheBackendInterface $cache,
     private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
-    #[Autowire(service: 'keyvalue')]
+    // Staging bookkeeping must resolve identically in every workspace.
+    // @see \Drupal\canvas\CanvasServiceProvider::registerWorkspaceInvariantKeyValueFactory()
+    #[Autowire(service: CanvasServiceProvider::STAGING_KEY_VALUE_SERVICE)]
     private readonly KeyValueFactoryInterface $keyValueFactory,
     private readonly AutoSaveRevisionPruner $revisionPruner,
     private readonly WorkspaceContentEntityPersist $contentEntityPersist,
