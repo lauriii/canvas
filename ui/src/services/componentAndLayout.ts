@@ -15,6 +15,7 @@ import type { ExposedSlotServerDefinition } from '@/features/layout/exposedSlots
 import type {
   ExposedSlotDefinition,
   RootLayoutModel,
+  SlotDefaultContent,
   SlotOverrideState,
 } from '@/features/layout/layoutModelSlice';
 import type {
@@ -41,9 +42,10 @@ export type LayoutApiResponse = RootLayoutModel & {
   autoSaves: AutoSavesHash;
   translations?: Record<string, any>;
   // Per-content editing (templated entity with exposed slots), emitted by the
-  // merged Layout API GET. @see ApiLayoutController per-content mode.
+  // slot-scoped Layout API GET. @see ApiLayoutController per-content mode.
   exposedSlots?: Record<string, ExposedSlotDefinition>;
   slotOverrides?: Record<string, SlotOverrideState>;
+  slotDefaults?: Record<string, SlotDefaultContent | null>;
 };
 
 export type TemplateViewMode = {

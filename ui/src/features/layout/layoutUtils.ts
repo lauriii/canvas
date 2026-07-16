@@ -271,19 +271,6 @@ export function findSlotById(
 }
 
 /**
- * Whether a component node is editable.
- *
- * Per-content editing annotates template-owned (locked) components with
- * `editable: false`. Page and template editing omit the flag entirely, so an
- * absent flag means editable.
- * @param node - The component node.
- * @returns `false` only for explicitly template-owned (locked) components.
- */
-export function isNodeEditable(node: ComponentNode): boolean {
-  return node.editable !== false;
-}
-
-/**
  * Resolve the node at a given layout path.
  *
  * Paths index regions at the root, then alternate through each node's children
@@ -817,7 +804,6 @@ const layoutUtils = {
   recurseNodes,
   findComponentByUuid,
   findSlotById,
-  isNodeEditable,
   getNodeAtPath,
   removeComponentByUuid,
   findNodePathByUuid,

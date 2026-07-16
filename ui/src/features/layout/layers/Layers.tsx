@@ -33,7 +33,12 @@ const Layers: React.FC<LayersProps> = () => {
 
   const displayedRegions = useMemo(() => {
     let filteredRegions = regions.filter((region) => {
-      return region.components.length > 0 || region.id === DEFAULT_REGION;
+      // Per-content editing: every exposed-slot region shows, even empty.
+      return (
+        isPerContentMode ||
+        region.components.length > 0 ||
+        region.id === DEFAULT_REGION
+      );
     });
 
     if (focusedRegion !== DEFAULT_REGION) {
@@ -43,7 +48,7 @@ const Layers: React.FC<LayersProps> = () => {
     }
 
     return filteredRegions;
-  }, [regions, focusedRegion]);
+  }, [regions, focusedRegion, isPerContentMode]);
 
   return (
     <Box>

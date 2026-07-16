@@ -23,12 +23,13 @@ import { setCurrentComponent } from '@/features/form/formStateSlice';
 import {
   findExposedSlotEntry,
   getSlotHostComponentUuid,
-  isLockedExposedSlot,
+  isLockedSlotRegion,
 } from '@/features/layout/exposedSlots';
 import {
   selectExposedSlots,
   selectIsPerContentMode,
   selectLayout,
+  selectSlotDefaults,
   selectSlotOverrides,
 } from '@/features/layout/layoutModelSlice';
 import {
@@ -82,25 +83,31 @@ const ContextualPanel: React.FC = () => {
   const layout = useAppSelector(selectLayout);
   const exposedSlots = useAppSelector(selectExposedSlots);
   const slotOverrides = useAppSelector(selectSlotOverrides);
+  const slotDefaults = useAppSelector(selectSlotDefaults);
   const lockedSlotAlias = useMemo(() => {
-    if (!isPerContentMode || !selectedComponent) {
+    if (!isPerContentMode || !selectedComponent || !exposedSlots) {
       return undefined;
     }
-    const slot = findSlotById(layout, selectedComponent);
-    if (!slot || !isLockedExposedSlot(slot, exposedSlots, slotOverrides)) {
+    // A locked slot region is selected under its `${hostUuid}/${slotName}`
+    // identity (slash-bearing, so held in redux only, not routable).
+    const entry = Object.entries(exposedSlots).find(
+      ([, definition]) =>
+        `${definition.componentUuid}/${definition.slotName}` ===
+        selectedComponent,
+    );
+    if (
+      !entry ||
+      !isLockedSlotRegion(entry[0], exposedSlots, slotOverrides, slotDefaults)
+    ) {
       return undefined;
     }
-    return findExposedSlotEntry(
-      exposedSlots,
-      getSlotHostComponentUuid(slot),
-      slot.name,
-    )?.alias;
+    return entry[0];
   }, [
     isPerContentMode,
     selectedComponent,
-    layout,
     exposedSlots,
     slotOverrides,
+    slotDefaults,
   ]);
 
   // Template editor: the selected slot node, if a slot is selected (its id

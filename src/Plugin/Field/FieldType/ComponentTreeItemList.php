@@ -78,36 +78,22 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   /**
    * @param \Drupal\Core\Entity\FieldableEntityInterface|null $host_entity
    *   The host entity, used to resolve dynamic props into the client `model`.
-   * @param array<string, true>|null $template_owned_uuids
-   *   When building the per-content merged tree, the set of component UUIDs
-   *   owned by the applicable content template, keyed by UUID. Each component
-   *   node then gets a server-computed `editable` annotation: FALSE for
-   *   template-owned (locked) chrome, TRUE for entity/override-owned content.
-   *   When NULL (canvas_page/template editing) no `editable` key is emitted, so
-   *   existing consumers are unaffected.
    *
    * @todo Move this into a normalizer at https://www.drupal.org/i/3499632
    */
-  public function getClientSideRepresentation(?FieldableEntityInterface $host_entity = NULL, ?array $template_owned_uuids = NULL): array {
-    return $this->buildLayoutAndModel($this->componentTreeItemsIterator(self::inRootLevel()), $host_entity, $template_owned_uuids);
+  public function getClientSideRepresentation(?FieldableEntityInterface $host_entity = NULL): array {
+    return $this->buildLayoutAndModel($this->componentTreeItemsIterator(self::inRootLevel()), $host_entity);
   }
 
   /**
    * @todo Move this into a normalizer at https://www.drupal.org/i/3499632
    */
-  private function buildLayoutAndModel(iterable $tree_tier, ?FieldableEntityInterface $host_entity = NULL, ?array $template_owned_uuids = NULL): array {
+  private function buildLayoutAndModel(iterable $tree_tier, ?FieldableEntityInterface $host_entity = NULL): array {
     $built = ['layout' => [], 'model' => []];
     /** @var \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem $item */
     foreach ($tree_tier as $item) {
       $item_layout_node = $item->getClientSideRepresentation();
       $component_instance_uuid = $item->getUuid();
-
-      // In per-content editing, stamp each component with a server-computed
-      // editability: template-owned components are locked chrome; everything
-      // else (entity-owned override content) is editable.
-      if ($template_owned_uuids !== NULL) {
-        $item_layout_node['editable'] = !\array_key_exists($component_instance_uuid, $template_owned_uuids);
-      }
 
       // Use ComponentSourceInterface::inputToClientModel() to map the server-
       // stored `inputs` data to the client-side `model`.
@@ -145,7 +131,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           'name' => $slot_name,
           'nodeType' => 'slot',
         ];
-        $child_build = self::buildLayoutAndModel($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($component_instance_uuid, (string) $slot_name)), $host_entity, $template_owned_uuids);
+        $child_build = self::buildLayoutAndModel($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($component_instance_uuid, (string) $slot_name)), $host_entity);
         $built['model'] += $child_build['model'];
         $component_instance_slot['components'] = $child_build['layout'];
         $item_layout_node['slots'][] = $component_instance_slot;
@@ -200,30 +186,27 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   }
 
   /**
-   * Partitions a submitted merged tree into per-slot-field override rows.
+   * Partitions a tree's exposed-slot content into per-slot-field row sets.
    *
    * Each exposed slot is backed by its own `component_tree` field on the host
-   * bundle. For each slot, the entity-owned components placed directly in that
-   * slot (the override roots) plus their transitive descendants are collected
-   * and re-rooted as an ordinary tree: each root gets an empty `parent_uuid`
-   * and empty `slot`, while descendants keep their nesting. Template-owned
-   * components (the locked chrome and any inherited default content) are
-   * dropped, so a slot with no entity-owned override root yields an empty field
-   * value and the entity inherits the template's default.
+   * bundle. For each slot, the components placed directly in that slot (minus
+   * any listed in $excluded_uuids) plus their transitive descendants are
+   * collected and re-rooted as an ordinary tree: each root gets an empty
+   * `parent_uuid` and empty `slot`, while descendants keep their nesting.
+   * Used to extract each exposed slot's default content from a template's own
+   * tree, in the exact shape an entity override would be stored in.
    *
    * @param ExposedSlotDefinitions $exposed_slot_info
    *   The exposed slot definitions, keyed by the backing field machine name.
-   * @param array<string, true> $template_owned_uuids
-   *   The set of component UUIDs owned by the template, keyed by UUID.
+   * @param array<string, true> $excluded_uuids
+   *   Component UUIDs to skip when collecting a slot's roots, keyed by UUID.
    *
    * @return array{fields: array<string, array<int, array<string, mixed>>>, kept: array<string, true>}
-   *   - `fields`: the rows to write, keyed by backing field machine name. Every
-   *     exposed slot is present (empty when not overridden), so a reverted
-   *     slot clears its field.
-   *   - `kept`: the set of submitted UUIDs partitioned into a slot field, keyed
-   *     by UUID, so callers can detect stray (non-partitioned) content.
+   *   - `fields`: the collected rows, keyed by backing field machine name.
+   *     Every exposed slot is present (empty when it has no content).
+   *   - `kept`: the set of UUIDs partitioned into a slot field, keyed by UUID.
    */
-  public function partitionSlotFields(array $exposed_slot_info, array $template_owned_uuids): array {
+  public function partitionSlotFields(array $exposed_slot_info, array $excluded_uuids): array {
     $fields = [];
     $kept = [];
     foreach ($exposed_slot_info as $field_name => $slot_detail) {
@@ -242,7 +225,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       $override_roots = [];
       foreach ($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($parent_uuid, (string) $slot)) as $item) {
         \assert($item instanceof ComponentTreeItem);
-        if (!\array_key_exists($item->getUuid(), $template_owned_uuids)) {
+        if (!\array_key_exists($item->getUuid(), $excluded_uuids)) {
           $override_roots[] = $item->getUuid();
         }
       }
@@ -319,7 +302,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   /**
    * {@inheritdoc}
    */
-  public function toRenderable(ComponentTreeEntityInterface|FieldableEntityInterface|null $entity = NULL, bool $isPreview = FALSE): array {
+  public function toRenderable(ComponentTreeEntityInterface|FieldableEntityInterface|null $entity = NULL, bool $isPreview = FALSE, array $suppressAnnotationsFor = []): array {
     // We have to allow NULL for the entity argument here for co-variance with
     // the parent interface, but we don't support it.
     \assert(!\is_null($entity));
@@ -331,7 +314,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     $hydrated = $renderable_component_tree->getTree();
 
     \assert(\array_keys($hydrated) === [self::ROOT_UUID]);
-    $build = self::renderify(self::buildRenderingContext($this, $entity), $hydrated, $isPreview);
+    $build = self::renderify(self::buildRenderingContext($this, $entity), $hydrated, $isPreview, $suppressAnnotationsFor);
 
     // @see \Drupal\Core\Entity\EntityViewBuilder::getBuildDefaults()
     CacheableMetadata::createFromObject($renderable_component_tree)
@@ -354,7 +337,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
    * @return array
    *   The corresponding render array.
    */
-  private static function renderify(string $componentRenderingContext, array $hydrated, bool $isPreview = FALSE) {
+  private static function renderify(string $componentRenderingContext, array $hydrated, bool $isPreview = FALSE, array $suppressAnnotationsFor = []) {
     $build = [];
     foreach ($hydrated as $component_subtree_uuid => $component_instances) {
       foreach ($component_instances as $component_instance_uuid => $component_instance) {
@@ -386,8 +369,11 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           }
 
           // Wrap each rendered component instance in HTML comments that allow
-          // the client side to identify it.
-          if ($isPreview) {
+          // the client side to identify it. Suppressed for components the
+          // consumer declared non-addressable (per-content template chrome):
+          // they render as inert markup, while still rendering in preview
+          // mode so the slot markers their Twig emits keep working.
+          if ($isPreview && !\array_key_exists($component_instance_uuid, $suppressAnnotationsFor)) {
             $element['#prefix'] = Markup::create("<!-- canvas-start-$component_instance_uuid -->");
             $element['#suffix'] = Markup::create("<!-- canvas-end-$component_instance_uuid -->");
           }
@@ -428,7 +414,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
               // Explicit slot value: renderify, just like the rest of the
               // component tree.
               else {
-                $slots += self::renderify($componentRenderingContext, [$slot => $slot_value], $isPreview);
+                $slots += self::renderify($componentRenderingContext, [$slot => $slot_value], $isPreview, $suppressAnnotationsFor);
               }
             }
 
