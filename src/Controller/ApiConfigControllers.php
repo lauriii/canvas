@@ -29,6 +29,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Url;
+use Drupal\workspaces\WorkspaceManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -58,7 +59,29 @@ final class ApiConfigControllers extends ApiControllerBase {
     private readonly AccessManagerInterface $accessManager,
     private readonly AccountProxyInterface $currentUser,
     private readonly ComponentSourceManager $componentSourceManager,
+    /**
+     * @var \Drupal\workspaces\WorkspaceManagerInterface|null
+     */
+    #[Autowire(service: 'workspaces.manager')]
+    private readonly ?object $workspaceManager = NULL,
   ) {}
+
+  /**
+   * Runs $callable outside the auto-save workspace.
+   *
+   * The auto-save workspace is active during Canvas API requests, and Workspace
+   * Config captures writes to Canvas configuration into it. These endpoints
+   * publish directly to Live — they are not auto-saves — so they must step
+   * outside it to avoid being staged instead.
+   *
+   * @see \Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspaceActivationSubscriber
+   * @see \Drupal\workspace_config\WorkspaceConfigDatabaseStorage::write()
+   */
+  private function executeOutsideWorkspace(callable $callable): mixed {
+    return $this->workspaceManager instanceof WorkspaceManagerInterface
+      ? $this->workspaceManager->executeOutsideWorkspace($callable)
+      : $callable();
+  }
 
   /**
    * Returns a list of enabled Canvas config entities in client representation.
@@ -301,7 +324,7 @@ final class ApiConfigControllers extends ApiControllerBase {
 
     // Save the Canvas config entity, respond with a 201 if success. Else 409.
     try {
-      $canvas_config_entity->save();
+      $this->executeOutsideWorkspace(static fn () => $canvas_config_entity->save());
     }
     catch (EntityStorageException $e) {
       throw new ConflictHttpException($e->getMessage());
@@ -320,11 +343,11 @@ final class ApiConfigControllers extends ApiControllerBase {
     ]);
   }
 
-  public static function delete(CanvasHttpApiEligibleConfigEntityInterface $canvas_config_entity): JsonResponse {
+  public function delete(CanvasHttpApiEligibleConfigEntityInterface $canvas_config_entity): JsonResponse {
     // @todo First validate that there is no other entity depending on this. If there is, respond with a 400, 409, 412 or 422 (TBD).
     // @todo Permissions take into account config dependencies, but we might have content dependencies depending on it too. See https://www.drupal.org/project/canvas/issues/3516839
     // @see https://www.drupal.org/project/drupal/issues/3423459
-    $canvas_config_entity->delete();
+    $this->executeOutsideWorkspace(static fn () => $canvas_config_entity->delete());
     return new JsonResponse(status: 204, data: NULL);
   }
 
@@ -342,7 +365,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     }
 
     // Save the Canvas config entity, respond with a 200.
-    $canvas_config_entity->save();
+    $this->executeOutsideWorkspace(static fn () => $canvas_config_entity->save());
     $canvas_config_entity_type = $canvas_config_entity->getEntityType();
     \assert($canvas_config_entity_type instanceof ConfigEntityTypeInterface);
     $representation = $this->normalize($canvas_config_entity);
