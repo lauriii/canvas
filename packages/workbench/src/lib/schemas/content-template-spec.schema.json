@@ -79,6 +79,7 @@
         },
         "label": {
           "type": "string",
+          "minLength": 1,
           "description": "Human-readable label for the exposed slot."
         }
       },
