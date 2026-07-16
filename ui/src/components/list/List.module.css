@@ -36,6 +36,21 @@
   }
 }
 
+/* A full-row native button trigger for collapsible folders: reset to look
+   like the surrounding row while staying keyboard focusable. */
+.folderButton {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
 .folderIcon {
   color: var(--slate-a9);
 }
