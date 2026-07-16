@@ -56,6 +56,16 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
 
   public const SOURCE_PLUGIN_ID = 'js';
 
+  /**
+   * Render-array metadata used to describe an external component.
+   *
+   * The component renders as empty markup in Drupal. Consumers that
+   * serialize component trees can use this metadata to preserve its structure.
+   *
+   * @see \Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter
+   */
+  public const EXTERNAL_RENDER_METADATA = '#canvas_external_component';
+
   public const EXAMPLE_VIDEO_HORIZONTAL = '/ui/assets/videos/mountain_wide.mp4';
   public const EXAMPLE_VIDEO_VERTICAL = '/ui/assets/videos/bird_vertical.mp4';
 
@@ -341,18 +351,25 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     $component = $this->getJavaScriptComponent();
 
     if ($component->isExternal()) {
-      [$props, $props_cacheability] = self::getResolvedPropsAndCacheability($inputs[self::EXPLICIT_INPUT_NAME] ?? []);
-      $build = $isPreview
-        // The configured external application owns Canvas previews. Keep the
-        // Drupal-rendered preview empty while preserving component metadata.
-        ? ['#markup' => '']
-        // Decoupled render converters recognize this standard component shape
-        // and serialize its props and slots for the external application.
-        : [
-          '#type' => 'component',
-          '#component' => JsComponentDiscovery::getComponentConfigEntityId($component->id()),
-          '#props' => $props,
-        ];
+      // The configured external application owns the implementation: it
+      // renders external components itself, from its own codebase. Drupal
+      // renders them as nothing — in previews and on live pages alike. Expose
+      // their identity and resolved props as render-array metadata so
+      // serializers can represent the app-owned component.
+      [$props, $props_cacheability] = self::getResolvedPropsAndCacheability(
+        \array_intersect_key(
+          $inputs[self::EXPLICIT_INPUT_NAME] ?? [],
+          $component->getProps() ?? [],
+        ),
+      );
+      $build = [
+        '#markup' => '',
+        self::EXTERNAL_RENDER_METADATA => [
+          'component_id' => self::componentIdFromJavascriptComponentId($component->id()),
+          'component_uuid' => $componentUuid,
+          'props' => $props,
+        ],
+      ];
       CacheableMetadata::createFromObject($component)
         ->addCacheableDependency($props_cacheability)
         ->applyTo($build);

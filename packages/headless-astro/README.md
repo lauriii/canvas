@@ -11,7 +11,7 @@ prerendered; the SDK's own routes opt out of prerendering themselves.
 
 ## Setup
 
-Two pieces, all wiring:
+Three pieces, all wiring:
 
 **1. astro.config.mjs** — the integration injects the draft routes
 (`/api/draft`, `/api/draft/renew`, `/api/disable-draft`) and the component
@@ -55,8 +55,29 @@ import DraftSession from '@drupal-canvas/headless-astro/DraftSession.astro';
 </DraftSession>
 ```
 
-Environment: `DRUPAL_BASE_URL` (required) and `DRAFT_ALLOWED_FRAME_ANCESTORS`
-(the embedder origin allowlist).
+**3. The component tree renderer** — pass the structured content returned by
+`fetchPage()` to `CanvasComponentTree.astro`:
+
+```astro
+---
+import CanvasComponentTree from '@drupal-canvas/headless-astro/CanvasComponentTree.astro';
+---
+
+<CanvasComponentTree tree={page.content} />
+```
+
+The Astro integration supplies every discovered component implementation through
+the shared headless Vite registry, and the renderer consumes it automatically.
+During development, the registry updates when components are added, removed, or
+renamed, so the application does not maintain a registry manually.
+
+Environment: `CANVAS_SITE_URL` (required). The development server fails at
+startup when it is missing.
+
+The CSP is `'self'`-only without a draft session. During a draft session, it
+also admits the exact editor origin derived from the signed renewal URL. The
+same origin is the only `postMessage` peer. An application-defined
+`frame-ancestors` directive remains authoritative.
 
 Data access from app code: `getClient(Astro)` (draft-aware JSON:API client) and
 `fetchPage(Astro, path)` (rendered content, resolved through Drupal's routing),
@@ -88,6 +109,11 @@ envelope; see `@drupal-canvas/headless/components-endpoint` for the payload
 shape and the proof-by-redemption protection. Astro components (`.astro`
 entries) are as discoverable as React ones — the registry carries metadata only,
 and the app renders its own components.
+
+Drupal coordinates the request in the editor's browser so it can reach local
+frontends. `OPTIONS` allows the authorization preflight, and the authenticated
+response is exposed only to the editor origin carried in the assertion's signed
+renewal URL.
 
 In production the endpoint serves the manifest the integration wrote at
 `astro build` (component sources are typically absent at runtime, and the

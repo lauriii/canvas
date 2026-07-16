@@ -8,6 +8,7 @@ import {
 import { Flex } from '@radix-ui/themes';
 
 import App from '@/app/App';
+import CodeEditorRouteGuard from '@/app/CodeEditorRouteGuard';
 import ComponentInstanceForm from '@/components/ComponentInstanceForm';
 import { RouteErrorBoundary } from '@/components/error/ErrorBoundary';
 import ErrorCard from '@/components/error/ErrorCard';
@@ -22,6 +23,7 @@ import ConflictPreview from '@/features/conflict/ConflictPreview';
 import ConflictResolutionPage from '@/features/conflict/ConflictResolutionPage';
 import EditorLayout from '@/features/editor/EditorLayout';
 import TemplateRoot from '@/features/editor/TemplateRoot';
+import HeadlessFrontendsPage from '@/features/headlessFrontends/HeadlessFrontendsPage';
 import ExposeSlotDialogs from '@/features/layout/exposeSlot/ExposeSlotDialogs';
 import PagePreview from '@/features/pagePreview/PagePreview';
 import PatternDialogs from '@/features/pattern/PatternDialogs';
@@ -29,6 +31,7 @@ import SegmentDashboard from '@/features/personalization/SegmentDashboard';
 import SegmentPanel from '@/features/personalization/SegmentPanel';
 import { EditorFrameContext } from '@/features/ui/uiSlice';
 import Welcome from '@/features/welcome/Welcome';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import type React from 'react';
 
@@ -64,6 +67,24 @@ const CodeEditorUi = (
     </UiShell>
   </PermissionCheck>
 );
+
+const CodeEditorRoute = () => (
+  <CodeEditorRouteGuard>{CodeEditorUi}</CodeEditorRouteGuard>
+);
+
+const HeadlessFrontendsUi = () =>
+  getCanvasSettings()?.headlessEnabled ? (
+    <UiShell>
+      <HeadlessFrontendsPage />
+    </UiShell>
+  ) : (
+    <Flex align="center" justify="center" height="100vh" width="100%">
+      <ErrorCard
+        title="You do not have permission to administer headless frontends."
+        error="Please contact your site administrator if you believe this is an error."
+      />
+    </Flex>
+  );
 
 const Dialogs = () => (
   <div style={{ position: 'absolute' }}>
@@ -201,11 +222,11 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           {
             // belt and braces to catch navigation to /code-editor without component id rather than showing a 404
             path: '/code-editor/',
-            element: CodeEditorUi,
+            element: <CodeEditorRoute />,
           },
           {
             path: '/code-editor/component',
-            element: CodeEditorUi,
+            element: <CodeEditorRoute />,
           },
           {
             // Legacy route for backward compatibility.
@@ -215,7 +236,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           {
             // Opens the code editor for an item under 'Components'.
             path: '/code-editor/component/:codeComponentId',
-            element: CodeEditorUi,
+            element: <CodeEditorRoute />,
           },
           {
             path: '/app/:extensionId/*',
@@ -224,6 +245,11 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
                 <ExtensionPage />
               </UiShell>
             ),
+          },
+          {
+            // Headless frontends configuration.
+            path: '/headless/',
+            element: <HeadlessFrontendsUi />,
           },
           {
             // Personalization

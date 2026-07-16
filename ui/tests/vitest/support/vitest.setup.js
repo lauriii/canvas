@@ -26,7 +26,77 @@ vi.mock('@/utils/drupal-globals', () => ({
   }),
   getDrupalSettings: () => mockDrupalSettings,
   getCanvasSettings: () => mockDrupalSettings.canvas,
+  getCanvasHeadlessSettings: () => mockDrupalSettings.canvas.headless,
   getBasePath: () => mockDrupalSettings.path.baseUrl,
+  CANVAS_HEADLESS_SETTINGS_CHANGE: 'canvas:headless-settings-change',
+  CANVAS_HEADLESS_FRONTEND_STORAGE_KEY: 'canvas-headless-active-frontend',
+  setCanvasHeadlessFrontend: (frontendUrl, configuredFrontends) => {
+    if (!frontendUrl) {
+      delete mockDrupalSettings.canvas.headless;
+      window.localStorage.removeItem('canvas-headless-active-frontend');
+      window.dispatchEvent(new Event('canvas:headless-settings-change'));
+      return;
+    }
+    const frontend = new URL(frontendUrl);
+    const baseUrl = `${frontend.origin}${frontend.pathname === '/' ? '' : frontend.pathname}`;
+    mockDrupalSettings.canvas.headless = {
+      frontendUrl: baseUrl,
+      frontends: configuredFrontends ??
+        mockDrupalSettings.canvas.headless?.frontends ?? [baseUrl],
+      frontendOrigin: frontend.origin,
+      draftUrl: `${baseUrl}/api/draft`,
+      assertionUrl: `${mockDrupalSettings.path.baseUrl}canvas-headless/assertion`,
+    };
+    window.localStorage.setItem('canvas-headless-active-frontend', baseUrl);
+    window.dispatchEvent(new Event('canvas:headless-settings-change'));
+  },
+  setCanvasHeadlessFrontends: (configuredFrontends) => {
+    const normalizedFrontends = configuredFrontends.map((frontendUrl) => {
+      const frontend = new URL(frontendUrl);
+      return `${frontend.origin}${frontend.pathname === '/' ? '' : frontend.pathname}`;
+    });
+    const activeFrontend = mockDrupalSettings.canvas.headless?.frontendUrl;
+    const nextActiveFrontend =
+      activeFrontend && normalizedFrontends.includes(activeFrontend)
+        ? activeFrontend
+        : normalizedFrontends[0];
+    if (!nextActiveFrontend) {
+      delete mockDrupalSettings.canvas.headless;
+      window.localStorage.removeItem('canvas-headless-active-frontend');
+      window.dispatchEvent(new Event('canvas:headless-settings-change'));
+      return;
+    }
+    const frontend = new URL(nextActiveFrontend);
+    mockDrupalSettings.canvas.headless = {
+      frontendUrl: nextActiveFrontend,
+      frontends: normalizedFrontends,
+      frontendOrigin: frontend.origin,
+      draftUrl: `${nextActiveFrontend}/api/draft`,
+      assertionUrl: `${mockDrupalSettings.path.baseUrl}canvas-headless/assertion`,
+    };
+    window.localStorage.setItem(
+      'canvas-headless-active-frontend',
+      nextActiveFrontend,
+    );
+    window.dispatchEvent(new Event('canvas:headless-settings-change'));
+  },
+  restoreCanvasHeadlessFrontend: () => {
+    const settings = mockDrupalSettings.canvas.headless;
+    const storedFrontend = window.localStorage.getItem(
+      'canvas-headless-active-frontend',
+    );
+    if (!settings || !storedFrontend) return;
+    if (!settings.frontends.includes(storedFrontend)) {
+      window.localStorage.removeItem('canvas-headless-active-frontend');
+      return;
+    }
+    if (settings.frontendUrl !== storedFrontend) {
+      const frontend = new URL(storedFrontend);
+      settings.frontendUrl = storedFrontend;
+      settings.frontendOrigin = frontend.origin;
+      settings.draftUrl = `${storedFrontend}/api/draft`;
+    }
+  },
   setCanvasDrupalSetting: (property, value) => {
     if (mockDrupalSettings?.canvas?.[property]) {
       mockDrupalSettings.canvas[property] = {

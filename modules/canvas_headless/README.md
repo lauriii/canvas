@@ -24,16 +24,12 @@ hooks, and configuration may change without a deprecation path.
 ## Setup
 
 1. Install the module. It provisions the OAuth consumer and scope it needs; there is nothing to create manually.
-2. Point it at the frontend app:
+2. Grant `administer canvas headless frontends` to the roles that may manage the site-wide frontend list.
+3. Grant `access canvas headless preview` to the editorial roles that should preview through a frontend app. The
+   permission lets its holders mint preview credentials for themselves.
+4. Open **Headless frontends** in Canvas, and add the frontend app URL, such as `http://localhost:3000`.
 
-   ```bash
-   drush config:set canvas_headless.settings frontend_url http://localhost:3000
-   ```
-
-3. Grant the `access canvas headless preview` permission to the editorial roles that should preview through the
-   app. The permission lets its holders mint preview credentials for themselves.
-
-Opening an entity in the Canvas editor then loads the app in the editor frame with an active draft session.
+Opening an entity in the Canvas editor then loads the first frontend in the list with an active draft session.
 
 In cloned environments, regenerate the Simple OAuth keypair per environment; with shared keys, preview credentials
 minted on one clone would redeem on another.
@@ -70,9 +66,9 @@ hook documentation, including the site-policy `_alter` hook.
 - Content gated by a view permission not declared preview-safe is invisible in previews until the owning module
   declares it.
 - Editors need view access to the entity they preview, not only edit access; without it the preview fails to start.
-- `frontend_url` is a single site-wide setting: enabling the module replaces the Drupal-rendered preview for every
-  entity editing context. An entity without a canonical URL, or one the app does not serve, shows a preview-start
-  failure.
+- The first URL in the site-wide frontend list is used for previews; reorder the list to change the active app.
+  Enabling the module replaces the Drupal-rendered preview for every entity editing context. An entity without a
+  canonical URL, or one the active app does not serve, shows a preview-start failure.
 
 ## Further reading
 

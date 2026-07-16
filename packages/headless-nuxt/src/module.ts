@@ -2,10 +2,13 @@ import {
   readComponentManifest,
   writeComponentManifest,
 } from '@drupal-canvas/headless/components-endpoint';
+import { resolveDraftConfig } from '@drupal-canvas/headless/server';
+import { canvasComponentRegistry } from '@drupal-canvas/headless/vite';
 import {
   addComponent,
   addServerHandler,
   addServerPlugin,
+  addVitePlugin,
   createResolver,
   defineNuxtModule,
 } from '@nuxt/kit';
@@ -50,8 +53,9 @@ export interface CanvasModuleOptions {
  *   /api/disable-draft, /api/draft/session) and the component metadata
  *   endpoint (/api/canvas/components).
  * - Merges the CSP `frame-ancestors` directive into every response,
- *   restricting who may embed the app to DRAFT_ALLOWED_FRAME_ANCESTORS
- *   (plus 'self') while preserving the app's own policy.
+ *   keeping responses 'self'-only by default and admitting the exact
+ *   editor origin from a draft session's signed renewal URL while
+ *   preserving the app's own policy.
  * - Registers the <DraftSession> component and teaches the Vue compiler
  *   about the SDK's <canvas-draft-session> custom element.
  * - Adds the raw-TypeScript SDK packages to the Vue and Nitro builds.
@@ -60,6 +64,8 @@ export interface CanvasModuleOptions {
  *   manifest, so the registry always describes the deployed build. A
  *   malformed component.yml fails the build; a broken registry never
  *   ships silently.
+ * - Registers the shared Vite component implementation registry, which updates
+ *   when local components are added, removed, or renamed during development.
  *
  * ```ts
  * // nuxt.config.ts
@@ -82,6 +88,9 @@ export default defineNuxtModule<CanvasModuleOptions>({
   },
   setup(options, nuxt) {
     const resolver = createResolver(import.meta.url);
+    if (nuxt.options.dev) {
+      resolveDraftConfig();
+    }
 
     // The Vue build compiles the SDK's raw TypeScript.
     nuxt.options.build.transpile.push(...SDK_PACKAGES);
@@ -121,6 +130,13 @@ export default defineNuxtModule<CanvasModuleOptions>({
       name: 'DraftSession',
       filePath: resolver.resolve('./runtime/components/DraftSession.vue'),
     });
+    addComponent({
+      name: 'CanvasComponentTree',
+      filePath: resolver.resolve('./runtime/components/CanvasComponentTree.ts'),
+    });
+    addVitePlugin(
+      canvasComponentRegistry({ projectRoot: nuxt.options.rootDir }),
+    );
 
     addServerPlugin(resolver.resolve('./runtime/server/plugins/csp'));
 
@@ -149,8 +165,6 @@ export default defineNuxtModule<CanvasModuleOptions>({
         method: 'post',
         handler: resolver.resolve('./runtime/server/routes/disable-draft'),
       });
-      // No method restriction: the handler answers the CORS preflight
-      // (OPTIONS) itself.
       addServerHandler({
         route: options.componentsRoutePath,
         handler: resolver.resolve('./runtime/server/routes/components'),

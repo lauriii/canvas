@@ -34,16 +34,23 @@ export {
 
 // Core helpers and types app code commonly needs alongside the adapter.
 export {
+  getDraftEditorOrigin,
   getSessionToken,
   type AccessToken,
   type DraftData,
 } from '@drupal-canvas/headless';
 export type {
+  CanvasComponentTreeElement,
+  CanvasComponentTreeSlot,
   DraftConfig,
   Page,
-  PageElement,
 } from '@drupal-canvas/headless/server';
 export type {
   ComponentMetadataEntry,
   ComponentMetadataPayload,
 } from '@drupal-canvas/headless/components-endpoint';
+export {
+  CanvasComponentTree,
+  type CanvasComponentRegistry,
+  type CanvasComponentTreeProps,
+} from '@drupal-canvas/headless-react';

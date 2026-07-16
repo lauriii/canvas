@@ -10,7 +10,9 @@ end:
 - The front page lists articles and Canvas pages via JSON:API (draft
   sessions see working copies).
 - Every other path resolves through Drupal's routing via the SDK's
-  `fetchPage()` and renders the returned data.
+  `fetchPage()`. `<CanvasComponentTree>` recursively renders the returned tree
+  using every local component implementation discovered by the SDK. Adding or
+  removing a component updates the registry without restarting `next dev`.
 - The session renews in place over an origin-checked postMessage protocol
   with the embedding Canvas editor; see the Canvas UI's
   `useHeadlessDraftSession` hook for the other side.
@@ -22,8 +24,8 @@ end:
 - Exiting draft mode is a `POST` (`app/api/disable-draft/route.ts`),
   submitted by a form in the banner: it clears the session cookies, and a
   `GET` link to it would be eligible for prefetching.
-- `/api/canvas/components` exposes the app's component registry (one demo
-  component, `components/canvas/hello-card`) to the embedding Drupal
+- `/api/canvas/components` exposes the app's component registry (every
+  component under `components/canvas`) to the embedding Drupal
   Canvas site, protected by proof-by-redemption.
 
 The Drupal Canvas Headless SDK lives in the workspace packages
@@ -45,14 +47,14 @@ npm install
 npm run dev                 # http://localhost:3000
 ```
 
-`DRUPAL_BASE_URL` uses DDEV's http URL because Node.js does not trust
+`CANVAS_SITE_URL` uses DDEV's http URL because Node.js does not trust
 DDEV's mkcert certificate by default. To use the https URL instead, run
 with `NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem"`.
 
-The `canvas_headless` module's default `frontend_url`
-(`http://localhost:3000`) points at this app's dev server. Embedded draft
-mode relies on CHIPS partitioned cookies; on a plain-http localhost origin
-that works in Chromium-based browsers (localhost is a trustworthy origin).
+Add `http://localhost:3000` from Canvas's **Headless frontends** screen.
+Embedded draft mode relies on CHIPS partitioned cookies; on a plain-http
+localhost origin that works in Chromium-based browsers (localhost is a
+trustworthy origin).
 
 To copy this app out of the repository, replace the `file:` specifiers in
 package.json with published package versions (the packages are not yet
@@ -76,15 +78,18 @@ register the app's components.
   serves that manifest in production — the registry describes the deployed
   build. In development it scans the codebase live on every request.
 
-Try it against a running Drupal (the first request must come from a
-session holding `access canvas headless preview`):
+The Canvas editor fetches the endpoint in the browser so it can reach local
+frontends. First verify the unauthenticated response from the shell:
 
 ```bash
 # 401 without an assertion:
 curl -i http://localhost:3000/api/canvas/components
+```
 
-# Mint an assertion and call the endpoint (from the Drupal origin's
-# browser console, where the session cookie lives):
+Then exercise the authenticated CORS request in the Drupal origin's browser
+console, where the session cookie lives:
+
+```js
 const csrf = await (await fetch('/session/token')).text();
 const { assertion } = await (
   await fetch('/canvas-headless/assertion?path=/', {
@@ -97,4 +102,5 @@ const registry = await (
     headers: { Authorization: `Bearer ${assertion}` },
   })
 ).json();
+console.log(registry);
 ```

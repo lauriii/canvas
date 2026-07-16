@@ -10,7 +10,9 @@ the module's draft-preview authentication end to end:
 - The front page lists articles and Canvas pages via JSON:API (draft
   sessions see working copies).
 - Every other path resolves through Drupal's routing via the SDK's
-  `fetchPage()` and renders the returned data.
+  `fetchPage()`. `<CanvasComponentTree>` recursively renders the returned tree
+  using every local component implementation discovered by the SDK. Adding or
+  removing a component updates the registry without restarting `astro dev`.
 - The session renews in place over an origin-checked postMessage protocol
   with the embedding Canvas editor. Astro has no Next.js-style server
   refresh, so the SDK's `<canvas-draft-session>` element re-arms from the
@@ -20,8 +22,8 @@ the module's draft-preview authentication end to end:
 - Exiting draft mode is a `POST`, submitted by a form in the banner: it
   clears the session cookies, and a `GET` link to it would be eligible for
   prefetching.
-- `/api/canvas/components` exposes the app's component registry (one demo
-  component, `components/canvas/hello-card` — an `.astro` entry) to the
+- `/api/canvas/components` exposes the app's component registry (every
+  component under `components/canvas`) to the
   embedding Drupal Canvas site, protected by proof-by-redemption.
 
 The Drupal Canvas Headless SDK lives in the workspace packages
@@ -46,15 +48,14 @@ npm install
 npm run dev             # http://localhost:4321
 ```
 
-`DRUPAL_BASE_URL` uses DDEV's http URL because Node.js does not trust
+`CANVAS_SITE_URL` uses DDEV's http URL because Node.js does not trust
 DDEV's mkcert certificate by default. To use the https URL instead, run
 with `NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem"`.
 
-Point the `canvas_headless` module's `frontend_url` at this app's dev
-server (`http://localhost:4321`; the module's default port 3000 is the
-Next.js example's). Embedded draft mode relies on CHIPS partitioned
-cookies; on a plain-http localhost origin that works in Chromium-based
-browsers (localhost is a trustworthy origin).
+Add `http://localhost:4321` from Canvas's **Headless frontends** screen.
+Embedded draft mode relies on CHIPS partitioned cookies; on a plain-http
+localhost origin that works in Chromium-based browsers (localhost is a
+trustworthy origin).
 
 The production build runs the standalone Node adapter:
 
@@ -84,17 +85,20 @@ register the app's components.
   deployed build. In development it scans the codebase live on every
   request.
 
-Try it against a running Drupal (the first request must come from a
-session holding `access canvas headless preview`):
+The Canvas editor fetches the endpoint in the browser so it can reach local
+frontends. First verify the unauthenticated response from the shell:
 
 ```bash
 # 401 without an assertion:
 curl -i http://localhost:4321/api/canvas/components
 ```
 
+Then exercise the authenticated CORS request in the Drupal origin's browser
+console:
+
 ```js
-// Mint an assertion and call the endpoint (from the Drupal origin's
-// browser console, where the session cookie lives):
+// Run this in the Drupal origin's browser console, where the session cookie
+// lives.
 const csrf = await (await fetch('/session/token')).text();
 const { assertion } = await (
   await fetch('/canvas-headless/assertion?path=/', {
@@ -107,4 +111,5 @@ const registry = await (
     headers: { Authorization: `Bearer ${assertion}` },
   })
 ).json();
+console.log(registry);
 ```

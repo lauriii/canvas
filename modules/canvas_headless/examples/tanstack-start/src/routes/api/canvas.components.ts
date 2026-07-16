@@ -7,7 +7,7 @@ const { GET, OPTIONS } = createComponentMetadataHandlers()
  * The component metadata endpoint: answers this codebase's component
  * registry (every component.yml under components/canvas/) to the embedding
  * Drupal Canvas site, protected by proof-by-redemption. OPTIONS answers
- * the CORS preflight.
+ * the browser's CORS preflight.
  */
 export const Route = createFileRoute('/api/canvas/components')({
   server: { handlers: { GET, OPTIONS } },

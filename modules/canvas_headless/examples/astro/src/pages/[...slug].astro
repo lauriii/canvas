@@ -1,14 +1,12 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { fetchPage } from '@drupal-canvas/headless-astro';
+import CanvasComponentTree from '@drupal-canvas/headless-astro/CanvasComponentTree.astro';
 
 /**
  * Catch-all page: resolves the current path through Drupal's routing via
- * the SDK's fetchPage() and renders proof of what came back — the raw
- * payload.
- * The Canvas custom elements renderer is still in development, so this
- * deliberately shows the API's output rather than attempting a full page
- * render.
+ * the SDK's fetchPage() and renders its component tree with implementations
+ * from this app's registry.
  */
 
 const { slug } = Astro.params;
@@ -24,32 +22,20 @@ if (!page) {
 ---
 
 <Layout title={page ? page.title : 'Not found'}>
-  <main class="mx-auto w-full max-w-2xl px-6 py-10">
-    <p class="mb-6">
-      <a href="/" class="text-sm underline">← All content</a>
-    </p>
-    {
-      page ? (
-        <>
-          <h1 class="mb-2 text-3xl font-bold">{page.title}</h1>
-          <p class="mb-6 text-sm text-gray-500">
-            Resolved through Drupal's routing for{' '}
-            <code class="rounded bg-gray-100 px-1">{path}</code> — content
-            format <code>{page.content_format}</code>.
-          </p>
-
-          <h2 class="mt-8 mb-2 text-lg font-semibold">Raw page payload</h2>
-          <pre class="overflow-x-auto rounded bg-gray-100 p-3 text-xs">{JSON.stringify(page, null, 2)}</pre>
-        </>
-      ) : (
-        <>
-          <h1 class="mb-2 text-3xl font-bold">Not found</h1>
-          <p class="text-sm text-gray-500">
-            Drupal answered nothing for{' '}
-            <code class="rounded bg-gray-100 px-1">{path}</code>.
-          </p>
-        </>
-      )
-    }
-  </main>
+  {
+    page ? (
+      <CanvasComponentTree tree={page.content} />
+    ) : (
+      <main class="mx-auto w-full max-w-2xl px-6 py-10">
+        <p class="mb-6">
+          <a href="/" class="text-sm underline">← All content</a>
+        </p>
+        <h1 class="mb-2 text-3xl font-bold">Not found</h1>
+        <p class="text-sm text-gray-500">
+          Drupal answered nothing for{' '}
+          <code class="rounded bg-gray-100 px-1">{path}</code>.
+        </p>
+      </main>
+    )
+  }
 </Layout>

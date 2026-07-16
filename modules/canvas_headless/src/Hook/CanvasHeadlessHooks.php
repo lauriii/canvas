@@ -122,6 +122,13 @@ class CanvasHeadlessHooks {
     if ($controller !== CanvasController::class && !\str_starts_with($controller, CanvasController::class . '::')) {
       return;
     }
+    // The management screen must be reachable before the first frontend is
+    // configured. Gate it independently from preview access: changing the
+    // site-wide frontend list is more privileged than using that list.
+    if ($this->currentUser->hasPermission('administer canvas headless frontends')) {
+      $settings['canvas']['headlessEnabled'] = TRUE;
+    }
+
     if (!$this->currentUser->hasPermission(PreviewUrlGeneratorInterface::PREVIEW_PERMISSION)) {
       return;
     }
@@ -135,14 +142,32 @@ class CanvasHeadlessHooks {
     // failing closed by not embedding anything. Both the embedded URL and
     // the origin messages are checked against come from one canonical parse,
     // so the two can never describe different sites.
-    $frontend = FrontendUrl::fromConfig((string) $config->get('frontend_url'));
+    // The first configured frontend is the editor's default preview site.
+    $frontends = $config->get('frontends');
+    if (!\is_array($frontends)) {
+      return;
+    }
+    $frontend = FrontendUrl::fromConfig(
+      (string) ($frontends[0]['url'] ?? ''),
+    );
     if ($frontend === NULL) {
       return;
     }
+    $frontend_urls = [];
+    foreach ($frontends as $configured_frontend) {
+      $configured_url = FrontendUrl::fromConfig(
+        (string) (\is_array($configured_frontend) ? ($configured_frontend['url'] ?? '') : ''),
+      );
+      if ($configured_url !== NULL) {
+        $frontend_urls[] = $configured_url->baseUrl;
+      }
+    }
 
     $settings['canvas']['headless'] = [
+      'frontendUrl' => $frontend->baseUrl,
+      'frontends' => $frontend_urls,
       'frontendOrigin' => $frontend->origin,
-      'draftUrl' => $frontend->baseUrl . $config->get('draft_path'),
+      'draftUrl' => $frontend->baseUrl . PreviewUrlGeneratorInterface::DRAFT_PATH,
       'assertionUrl' => Url::fromRoute('canvas_headless.assertion')->toString(TRUE)->getGeneratedUrl(),
     ];
   }

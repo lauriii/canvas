@@ -9,6 +9,7 @@ import TemplateIcon from '@assets/icons/template.svg?react';
 import {
   CodeIcon,
   FileTextIcon,
+  GlobeIcon,
   LayersIcon,
   PlusIcon,
 } from '@radix-ui/react-icons';
@@ -22,6 +23,7 @@ import {
   setActivePanel,
   unsetActivePanel,
 } from '@/features/ui/primaryPanelSlice';
+import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 import { hasPermission } from '@/utils/permissions';
 
@@ -66,6 +68,8 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
     drupalSettings.canvas.extensionsAvailable || hasLegacyExtensions;
   const pageExtensions: PageExtension[] =
     getCanvasSettings()?.pageExtensions ?? [];
+  const headlessSettings = useCanvasHeadlessSettings();
+  const externalComponentsOnly = (headlessSettings?.frontends.length ?? 0) > 0;
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
@@ -131,7 +135,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       icon: <CodeIcon />,
       label: 'Code',
       enabled: true,
-      hidden: !hasPermission('codeComponents'),
+      hidden: externalComponentsOnly || !hasPermission('codeComponents'),
     },
     {
       type: 'button',
@@ -156,6 +160,17 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       label: 'Templates',
       enabled: true,
       hidden: !hasPermission('contentTemplates'),
+    },
+    {
+      type: 'link',
+      id: 'headless',
+      href: '/headless/',
+      icon: <GlobeIcon />,
+      label: 'Headless frontends',
+      // Injected only when the Canvas Headless module is enabled and the
+      // user may administer its frontend list. Unlike the preview settings,
+      // this flag is present before the first frontend is configured.
+      hidden: !getCanvasSettings()?.headlessEnabled,
     },
     {
       type: 'separator',

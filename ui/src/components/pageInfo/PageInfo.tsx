@@ -7,6 +7,7 @@ import {
   CodeIcon,
   CubeIcon,
   FileTextIcon,
+  GlobeIcon,
   HomeIcon,
   SectionIcon,
   StackIcon,
@@ -277,6 +278,8 @@ const PageInfo = () => {
     }
   }, [updateContentError, showBoundary]);
 
+  const isHeadlessFrontends = location.pathname.startsWith('/headless');
+
   return (
     <Flex gap="2" align="center">
       {isCodeEditor && previouslyEdited.path ? (
@@ -313,7 +316,12 @@ const PageInfo = () => {
               data-testid="canvas-navigation-button"
             >
               <Flex gap="2" align="center">
-                {isCodeEditor ? (
+                {isHeadlessFrontends ? (
+                  <>
+                    <GlobeIcon />
+                    Headless frontends
+                  </>
+                ) : isCodeEditor ? (
                   <>
                     <CodeIcon />
                     {codeComponentName}

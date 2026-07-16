@@ -1220,12 +1220,14 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     $preview = $source->renderComponent($inputs, [], 'external-uuid', TRUE);
     self::assertSame('', $preview['#markup']);
     self::assertArrayNotHasKey('#attached', $preview);
+    self::assertSame([
+      'component_id' => 'js.external_test',
+      'component_uuid' => 'external-uuid',
+      'props' => ['title' => 'Rendered by the app'],
+    ], $preview[JsComponent::EXTERNAL_RENDER_METADATA]);
 
-    $build = $source->renderComponent($inputs, [], 'external-uuid', FALSE);
-    self::assertSame('component', $build['#type']);
-    self::assertSame('js.external_test', $build['#component']);
-    self::assertSame(['title' => 'Rendered by the app'], $build['#props']);
-    self::assertArrayNotHasKey('#attached', $build);
+    $live = $source->renderComponent($inputs, [], 'external-uuid', FALSE);
+    self::assertSame($preview, $live);
     $client_side_info = $source->getClientSideInfo($component);
     self::assertArrayHasKey('type', $client_side_info);
     self::assertSame('external', $client_side_info['type']);

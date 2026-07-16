@@ -1,10 +1,10 @@
 ---
 import {
   getDraftData,
-  getDraftConfig,
   isDraftModeEnabled,
   isDraftSessionExpired,
 } from '../server';
+import { getDraftEditorOrigin } from '@drupal-canvas/headless';
 
 /**
  * The Astro lifecycle around the draft session: gathers the session state
@@ -44,7 +44,7 @@ const expired = !draftData || isDraftSessionExpired(draftData);
       token-expires-at={draftData?.tokenExpiresAt}
       initial-expired={expired ? '' : undefined}
       renew-url={draftData?.renewUrl}
-      embedder-origins={getDraftConfig().embedderOrigins.join(' ')}
+      editor-origin={getDraftEditorOrigin(draftData)}
       renew-endpoint={renewEndpoint}
     >
       <slot />

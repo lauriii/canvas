@@ -13,3 +13,8 @@ export {
   type DraftSessionProps,
   type DraftSessionSnapshot,
 } from './draft-session';
+export {
+  CanvasComponentTree,
+  type CanvasComponentRegistry,
+  type CanvasComponentTreeProps,
+} from './canvas-component-tree';

@@ -23,3 +23,24 @@ READMEs for the banner pattern.
 
 An app on a React framework without an adapter package can use the component
 directly; it has no dependency beyond React and the SDK core.
+
+## Component rendering
+
+`<CanvasComponentTree tree={page.content} components={registry} />` renders a
+Custom Elements tree, including the `content` returned by `fetchPage()`.
+Registry keys are `component.yml` machine names:
+
+```tsx
+import { CanvasComponentTree } from '@drupal-canvas/headless-react';
+
+import HelloCard from './components/canvas/hello-card';
+
+<CanvasComponentTree
+  tree={page.content}
+  components={{ 'hello-card': HelloCard }}
+/>;
+```
+
+Named Canvas slots become React props with rendered `ReactNode` values; a
+`default` slot becomes `children`. Drupal markup strings are inserted as trusted
+HTML. Canvas-only instance metadata is not passed to application components.

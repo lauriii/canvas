@@ -3,16 +3,18 @@ import {
   readComponentManifest,
   writeComponentManifest,
 } from '@drupal-canvas/headless/components-endpoint';
+import { resolveDraftConfig } from '@drupal-canvas/headless/server';
+import { canvasComponentRegistry } from '@drupal-canvas/headless/vite';
 
 import type { Plugin } from 'vite';
 
 /**
  * The environment variables the SDK reads through process.env (see
- * resolveDraftConfig() and the CSP middleware). Vite's own .env loading
+ * resolveDraftConfig()). Vite's own .env loading
  * targets import.meta.env, which the framework-agnostic core cannot read,
  * so the plugin bridges these keys across.
  */
-const ENV_KEYS = ['DRUPAL_BASE_URL', 'DRAFT_ALLOWED_FRAME_ANCESTORS'] as const;
+const ENV_KEYS = ['CANVAS_SITE_URL'] as const;
 
 /**
  * The virtual module createComponentMetadataHandlers() imports the
@@ -49,6 +51,8 @@ const SDK_PACKAGES = [
  *   describes the deployed build and the built output is self-contained.
  *   A malformed component.yml fails the build; a broken registry never
  *   ships silently.
+ * - Registers the shared Vite component implementation registry, which updates
+ *   when local components are added, removed, or renamed during development.
  *
  * ```ts
  * // vite.config.ts
@@ -58,25 +62,25 @@ const SDK_PACKAGES = [
  * });
  * ```
  */
-export function canvas(): Plugin {
+export function canvas(): Plugin[] {
+  return [canvasComponentRegistry(), canvasTanStackStart()];
+}
+
+function canvasTanStackStart(): Plugin {
   let projectRoot = process.cwd();
   let isDev = false;
   let manifestWritten = false;
 
   return {
     name: '@drupal-canvas/headless-tanstack-start',
+    enforce: 'pre',
 
     config() {
       return {
-        // Vite's dev-server CORS middleware answers cross-origin preflights
-        // itself, and its default origin policy (localhost-only) omits
-        // Access-Control-Allow-Origin for the embedding Drupal origin —
-        // the browser then fails the fetch before the component metadata
-        // route's own CORS handling (embedder-allowlist-gated) ever runs.
-        // Disabling it lets OPTIONS reach the route; Vite then adds no
-        // CORS headers of its own anywhere, so nothing else becomes
-        // cross-origin readable. Production has no Vite server and is
-        // unaffected.
+        // Vite's dev-server CORS middleware answers preflights before the
+        // component metadata route, and its localhost-only origin policy
+        // omits Access-Control-Allow-Origin for the Drupal editor. Let the
+        // route own its claim-bound CORS contract instead.
         server: {
           cors: false,
         },
@@ -97,6 +101,9 @@ export function canvas(): Plugin {
         if (env[key] !== undefined) {
           process.env[key] = env[key];
         }
+      }
+      if (isDev) {
+        resolveDraftConfig();
       }
     },
 

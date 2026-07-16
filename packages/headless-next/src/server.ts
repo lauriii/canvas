@@ -7,7 +7,7 @@ import { nextDraftAdapter } from './adapter';
  * lives in the request's cookies (reached through next/headers), and the
  * configuration is resolved from the environment lazily per call — nothing
  * here touches the request or the environment at import time, so builds
- * without DRUPAL_BASE_URL set do not throw.
+ * without CANVAS_SITE_URL set do not throw.
  */
 const server = createDraftServer({ adapter: nextDraftAdapter });
 

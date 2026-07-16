@@ -4,55 +4,42 @@ canvas_headless.settings:
   constraints:
     FullyValidatable: ~
   mapping:
-    frontend_url:
-      type: uri
-      label: 'Frontend base URL'
-      constraints:
-        NotBlank: {  }
-        # Only an unambiguous absolute http(s) URL is acceptable. The value
-        # becomes the editor frame's iframe src and a redirect target, so an
-        # executable scheme (javascript:, data:) would run script in the
-        # Drupal origin. Backslashes, credentials (@), queries (?), and
-        # fragments (#) are refused as parser-differential vectors — a
-        # browser and PHP's parse_url disagree on the host of
-        # "https://evil.test\@trusted.example". The host must be spelled the
-        # way a browser would spell it: a canonical dotted-quad IPv4 literal,
-        # or letter/digit/hyphen labels whose final label starts with a
-        # letter. That refuses the host forms browsers silently rewrite
-        # (percent-encoding, IPv4 number forms like 0x7f000001, non-ASCII
-        # IDN), any of which would navigate the iframe to one origin while
-        # postMessage checks compared against another. It must also not end
-        # with a slash, because the draft path is appended verbatim and would
-        # produce a double slash. Case-insensitive, because FrontendUrl
-        # lowercases scheme and host — the one rewrite browsers also perform.
-        # FrontendUrl accepts exactly this set at runtime, for values that
-        # never pass through validation.
-        Regex:
-          pattern: '~^https?://(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?)(?::\d+)?(/[^\s\\@?#]*[^/\s\\@?#])?$~i'
-          message: 'The frontend URL must be an absolute http:// or https:// URL whose host is a hostname or a dotted-quad IPv4 address, with no credentials, query, fragment, or trailing slash.'
-    component_metadata_url:
-      type: string
-      label: 'URL or absolute path to the external application''s component metadata endpoint'
-      requiredKey: false
-      constraints:
-        AtLeastOneOf:
-          message: 'The component metadata URL must be an absolute path or an HTTP(S) URL.'
-          includeInternalMessages: false
-          constraints:
-            - Regex:
-                pattern: '@^/@'
-            - Sequentially:
-                constraints:
-                  - Uri:
-                      allowReferences: false
-                  - UriScheme: ['http', 'https']
-    draft_path:
-      type: path
-      label: 'Path on the frontend that enables draft mode'
-      constraints:
-        Regex:
-          pattern: '@^/@'
-          message: 'The draft path must begin with a slash.'
+    frontends:
+      type: sequence
+      label: 'Headless frontends'
+      sequence:
+        type: mapping
+        label: 'Frontend'
+        mapping:
+          url:
+            type: uri
+            label: 'Frontend base URL'
+            constraints:
+              NotBlank: {  }
+              # Only an unambiguous absolute http(s) URL is acceptable. The
+              # value becomes the editor frame's iframe src and a redirect
+              # target, so an executable scheme (javascript:, data:) would
+              # run script in the Drupal origin. Backslashes, credentials
+              # (@), queries (?), fragments (#), and literal or percent-
+              # encoded dot path segments are refused as parser-differential
+              # vectors — a browser and PHP's parse_url disagree on the host
+              # of "https://evil.test\@trusted.example" and on the path of
+              # "https://example.com/a/../app".
+              # The host must be spelled the way a browser would spell it: a
+              # canonical dotted-quad IPv4 literal, or letter/digit/hyphen
+              # labels whose final label starts with a letter. That refuses
+              # the host forms browsers silently rewrite (percent-encoding,
+              # IPv4 number forms like 0x7f000001, non-ASCII IDN), any of
+              # which would navigate the iframe to one origin while
+              # postMessage checks compared against another. It must also not
+              # end with a slash, because the draft path is appended verbatim
+              # and would produce a double slash. Case-insensitive, because
+              # FrontendUrl lowercases scheme and host — the one rewrite
+              # browsers also perform. FrontendUrl accepts exactly this set
+              # at runtime, for values that never pass through validation.
+              Regex:
+                pattern: '~^(?!https?://[^/]+(?:/[^/]*)*/(?:(?:\.|%2e){1,2})(?:/|$))https?://(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?)(?::\d+)?(/[^\s\\@?#]*[^/\s\\@?#])?$~i'
+                message: 'The frontend URL must be an absolute http:// or https:// URL whose host is a hostname or a dotted-quad IPv4 address, with no credentials, query, fragment, dot path segments, or trailing slash.'
     assertion_expiration:
       type: integer
       label: 'Preview assertion expiration time in seconds'
