@@ -622,6 +622,62 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
   }
 
   /**
+   * Per-content editing honors field-level access on slot backing fields.
+   *
+   * A slot field the user may not view is left out of the editable payload
+   * entirely; a write to a slot field the user may not edit is rejected.
+   *
+   * @see canvas_test_field_access_entity_field_access()
+   */
+  public function testSlotFieldAccessIsHonored(): void {
+    $this->container->get('module_installer')->install(['canvas_test_field_access']);
+
+    // A second exposed slot, backed by a field the test module restricts to
+    // holders of a permission the current user does not have.
+    $this->createComponentTreeField('node', self::BUNDLE, 'canvas_slot_restricted');
+    $template = ContentTemplate::load('node.' . self::BUNDLE . '.full');
+    self::assertInstanceOf(ContentTemplate::class, $template);
+    $template->set('exposed_slots', $template->getExposedSlots() + [
+      'canvas_slot_restricted' => [
+        'component_uuid' => self::HOST_UUID,
+        'slot_name' => 'the_footer',
+        'label' => 'Restricted',
+      ],
+    ])->save();
+
+    $node = self::createTemplatedNode();
+    $url = $this->getLayoutUrl($node)->toString();
+
+    // GET: the restricted slot contributes no layout node and reports no
+    // override state. The slot's existence (template config) stays visible in
+    // the metadata; only the entity's field data is protected.
+    $json = self::decodeResponse($this->request(Request::create($url)));
+    self::assertSame([self::SLOT_FIELD], \array_column($json['layout'], 'id'));
+    self::assertSame(['overridden' => FALSE, 'empty' => FALSE], $json['slotOverrides']['canvas_slot_restricted']);
+
+    // POST: a layout node for the restricted slot is rejected.
+    $post = $this->postBodyFrom($json);
+    $post['layout'][] = [
+      'nodeType' => 'region',
+      'id' => 'canvas_slot_restricted',
+      'name' => 'Restricted',
+      'components' => [],
+    ];
+    try {
+      $this->request(Request::create($url, method: 'POST', content: \json_encode($post, JSON_THROW_ON_ERROR)));
+      self::fail('Expected AccessDeniedHttpException for an edit-denied slot field.');
+    }
+    catch (AccessDeniedHttpException $e) {
+      self::assertStringContainsString('Access denied for the canvas_slot_restricted field.', $e->getMessage());
+    }
+
+    // With the permission, the slot is a normal editable region.
+    $this->setUpCurrentUser([], ['edit any ' . self::BUNDLE . ' content', 'access content', 'edit canvas page components']);
+    $json = self::decodeResponse($this->request(Request::create($url)));
+    self::assertSame([self::SLOT_FIELD, 'canvas_slot_restricted'], \array_column($json['layout'], 'id'));
+  }
+
+  /**
    * The per-content edit access check mirrors the exposed-slots predicate.
    *
    * @legacy-covers \Drupal\canvas\Access\ComponentTreeEditAccessCheck::access
