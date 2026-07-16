@@ -76,6 +76,13 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
       return;
     }
 
+    // The validated entry's own key: the property path's final segment (the
+    // same derivation the field-backing check below uses). Entries must be
+    // compared by key, not by value: two entries with identical values are a
+    // duplicate, not "self".
+    $segments = \preg_split('/[.\[\]]+/', $this->context->getPropertyPath(), -1, \PREG_SPLIT_NO_EMPTY);
+    $own_alias = $segments === FALSE || $segments === [] ? '' : (string) \end($segments);
+
     // An exposed slot's host component must not sit inside another exposed
     // slot's subtree: that subtree is a replaceable default, so a per-entity
     // override of the outer slot (which replaces the default with fresh
@@ -86,9 +93,22 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
     for ($ancestor = $item; $ancestor !== NULL && $ancestor->getParentUuid() !== NULL; $ancestor = $component_tree_item_list->getComponentTreeItemByUuid($ancestor->getParentUuid())) {
       $ancestor_slots[$ancestor->getParentUuid() . ':' . $ancestor->getSlot()] = TRUE;
     }
-    foreach ($template->getExposedSlots() as $definition) {
-      $is_self = $definition['component_uuid'] === $value['component_uuid'] && $definition['slot_name'] === $value['slot_name'];
-      if (!$is_self && isset($ancestor_slots[$definition['component_uuid'] . ':' . $definition['slot_name']])) {
+    foreach ($template->getExposedSlots() as $alias => $definition) {
+      if ($alias === $own_alias) {
+        continue;
+      }
+      // One physical slot cannot be exposed twice: the Layout API would offer
+      // two editable regions for one target, and rendering would merge one
+      // backing field over the other.
+      if ($definition['component_uuid'] === $value['component_uuid'] && $definition['slot_name'] === $value['slot_name']) {
+        $this->context->addViolation($constraint->duplicateTargetMessage, [
+          '%id' => $value['component_uuid'],
+          '%slot' => $value['slot_name'],
+          '%alias' => $alias,
+        ]);
+        return;
+      }
+      if (isset($ancestor_slots[$definition['component_uuid'] . ':' . $definition['slot_name']])) {
         $this->context->addViolation($constraint->nestedSlotMessage, [
           '%id' => $value['component_uuid'],
           '%slot' => $value['slot_name'],
@@ -131,8 +151,7 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
     // value being validated here no longer equals any base value and a
     // value-based lookup would fail.
     if ($constraint->requireFieldBacked) {
-      $segments = \preg_split('/[.\[\]]+/', $this->context->getPropertyPath(), -1, \PREG_SPLIT_NO_EMPTY);
-      $field_name = $segments === FALSE || $segments === [] ? '' : (string) \end($segments);
+      $field_name = $own_alias;
       $field_config = $field_name !== ''
         ? FieldConfig::loadByName($template->getTargetEntityTypeId(), $template->getTargetBundle(), $field_name)
         : NULL;
