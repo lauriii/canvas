@@ -61,7 +61,17 @@ const thumbStyle: React.CSSProperties = {
   objectFit: 'cover',
   borderRadius: 'var(--radius-2)',
   background: 'var(--gray-3)',
+  color: 'var(--gray-8)',
   flexShrink: 0,
+};
+
+// Card row for one selected media item.
+const selectionRowStyle: React.CSSProperties = {
+  border: '1px solid var(--gray-5)',
+  borderRadius: 'var(--radius-3)',
+  padding: 'var(--space-1)',
+  paddingRight: 'var(--space-2)',
+  background: 'var(--color-panel-solid)',
 };
 
 const labelStyle: React.CSSProperties = {
@@ -170,6 +180,7 @@ const MediaLibraryWidget = (props: ClientWidgetProps) => {
             align="center"
             gap="2"
             width="100%"
+            style={selectionRowStyle}
             data-testid="canvas-media-selection-item"
           >
             {item.thumbnailUrl ? (

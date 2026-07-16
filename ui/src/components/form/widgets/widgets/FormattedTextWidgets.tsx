@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Flex } from '@radix-ui/themes';
 
 import CKEditorHost from '@/components/form/components/CKEditorHost';
@@ -39,6 +39,44 @@ interface FormattedTextValue {
   value: string;
   format: string;
 }
+
+// The editor's content area matches this many textarea rows.
+const EDITOR_MIN_ROWS = 5;
+
+/** Tag-stripped preview for the loading placeholder. */
+const asPlainTextPreview = (markup: string): string =>
+  markup
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+// The loading placeholder is shaped like the mounted editor (a toolbar
+// strip over the value as plain text) and flows at the real panel width, so
+// its natural height approximates the editor's without guessing at line
+// wrapping.
+const EditorLoadingPlaceholder = ({ markup }: { markup: string }) => (
+  <div
+    aria-busy="true"
+    style={{ border: '1px solid #ccced1', borderRadius: '2px' }}
+  >
+    <div
+      style={{
+        height: '40px',
+        borderBottom: '1px solid #ccced1',
+        background: 'rgba(0, 0, 0, 0.03)',
+      }}
+    />
+    <div
+      style={{
+        minHeight: `${EDITOR_MIN_ROWS * 20}px`,
+        padding: '8px 10px',
+        lineHeight: '1.5',
+      }}
+    >
+      {asPlainTextPreview(markup)}
+    </div>
+  </div>
+);
 
 /**
  * The formats permitted for a prop: the user's permitted formats intersected
@@ -223,34 +261,54 @@ const FormattedTextAreaWidget = (props: ClientWidgetProps) => {
     onChange({ value: markup, format: current.format });
   };
 
+  // While the editor hydrates, the shell holds the placeholder's measured
+  // height so the swap does not shift the panel; the reservation is released
+  // once the editor reports ready. The hydrated flag resets whenever the
+  // editor is (re)mounted under a new key.
+  const editorKey = `${activeFormat?.id}--${editorEpoch}`;
+  const [hydratedKey, setHydratedKey] = useState<string | null>(null);
+  const editorHydrated = hydratedKey === editorKey;
+  const showPlaceholder = !(editorSettings && editorGlobalsReady);
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const placeholderHeight = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    if (showPlaceholder && shellRef.current) {
+      placeholderHeight.current = shellRef.current.offsetHeight;
+    }
+  });
+
   const mountEditor = activeFormat?.editor === 'ckeditor5' && !editorDegraded;
   return (
     <>
-      {mountEditor && editorSettings && editorGlobalsReady && (
-        <CKEditorHost
-          key={`${activeFormat?.id}--${editorEpoch}`}
-          editorSettings={editorSettings}
-          initialValue={current.value}
-          onChange={handleMarkupChange}
-          disabled={disabled}
-          minRows={5}
-          editableId={inputId}
-        />
-      )}
-      {mountEditor && !(editorSettings && editorGlobalsReady) && (
-        // Placeholder while the (session-cached) editor settings and assets
-        // load: falling back to the escape hatch here would issue the form
-        // request this widget exists to avoid.
-        <TextArea
-          value={current.value}
-          attributes={{
-            id: inputId,
-            name: inputName,
-            rows: 5,
-            disabled: true,
-            'aria-busy': 'true',
-          }}
-        />
+      {mountEditor && (
+        <div
+          ref={shellRef}
+          style={
+            !showPlaceholder &&
+            !editorHydrated &&
+            placeholderHeight.current !== null
+              ? { minHeight: `${placeholderHeight.current}px` }
+              : undefined
+          }
+        >
+          {!showPlaceholder ? (
+            <CKEditorHost
+              key={editorKey}
+              editorSettings={editorSettings}
+              initialValue={current.value}
+              onChange={handleMarkupChange}
+              onReady={() => setHydratedKey(editorKey)}
+              disabled={disabled}
+              minRows={EDITOR_MIN_ROWS}
+              editableId={inputId}
+            />
+          ) : (
+            // Placeholder while the (session-cached) editor settings and
+            // assets load: falling back to the escape hatch here would issue
+            // the form request this widget exists to avoid.
+            <EditorLoadingPlaceholder markup={current.value} />
+          )}
+        </div>
       )}
       {!mountEditor && (
         <TextArea
@@ -258,7 +316,7 @@ const FormattedTextAreaWidget = (props: ClientWidgetProps) => {
           attributes={{
             id: inputId,
             name: inputName,
-            rows: 5,
+            rows: EDITOR_MIN_ROWS,
             required,
             disabled,
             'aria-invalid': errors ? 'true' : undefined,
