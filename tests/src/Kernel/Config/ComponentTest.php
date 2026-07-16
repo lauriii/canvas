@@ -224,4 +224,24 @@ class ComponentTest extends CanvasKernelTestBase {
     self::assertArrayNotHasKey('delete', $operations);
   }
 
+  /**
+   * The empty-slot marker Component can never become enabled (placeable).
+   *
+   * @see \Drupal\canvas\Entity\Component::preSave()
+   */
+  public function testEmptySlotMarkerCannotBeEnabled(): void {
+    $marker = Component::load(ComponentInterface::EMPTY_SLOT_MARKER_ID);
+    \assert($marker instanceof ComponentInterface);
+    self::assertFalse($marker->status());
+
+    // Even an explicit enable — for example, a recipe config action enabling
+    // every `canvas.component.*.*` — must not make the marker placeable.
+    $marker->enable()->save();
+    self::assertFalse($marker->status());
+
+    $reloaded = Component::load(ComponentInterface::EMPTY_SLOT_MARKER_ID);
+    \assert($reloaded instanceof ComponentInterface);
+    self::assertFalse($reloaded->status());
+  }
+
 }
