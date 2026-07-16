@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router-dom';
 import FolderIcon from '@assets/icons/folder.svg?react';
@@ -6,6 +6,7 @@ import * as Collapsible from '@radix-ui/react-collapsible';
 import { ChevronRightIcon } from '@radix-ui/react-icons';
 import { Box, Flex, Skeleton, Text } from '@radix-ui/themes';
 
+import EmptyStateCallout from '@/components/EmptyStateCallout';
 import ErrorCard from '@/components/error/ErrorCard';
 import InfiniteScrollObserver from '@/components/InfiniteScrollObserver';
 import { PageListItem } from '@/components/pageInfo/PageList';
@@ -29,9 +30,11 @@ import listStyles from '@/components/list/List.module.css';
 const TemplatedContentGroup = ({
   group,
   searchTerm,
+  onEmptyChange,
 }: {
   group: TemplatedEntityGroup;
   searchTerm: string;
+  onEmptyChange: (entityType: string, isEmpty: boolean) => void;
 }) => {
   const { entityType: routeEntityType, entityId } = useParams();
   const { navigateToEditor } = useEditorNavigation();
@@ -39,13 +42,20 @@ const TemplatedContentGroup = ({
   const { items, isLoading, error, hasMore, handleLoadMore } =
     usePaginatedContentList(group.entityType, searchTerm);
 
+  // Report emptiness up, so the panel can show one aggregate empty state when
+  // every group is empty (each empty group hides itself below).
+  const isEmpty = !isLoading && !error && (items?.length ?? 0) === 0;
+  useEffect(() => {
+    onEmptyChange(group.entityType, isEmpty);
+  }, [onEmptyChange, group.entityType, isEmpty]);
+
   if (isLoading) {
     return <Skeleton height="1.2rem" width="100%" my="3" />;
   }
 
   // Hide groups with no matching entities so the panel does not fill up with
   // empty bundle headings (especially while searching).
-  if (!error && (items?.length ?? 0) === 0) {
+  if (isEmpty) {
     return null;
   }
 
@@ -138,16 +148,36 @@ const TemplatedContentGroups = ({
   groups: TemplatedEntityGroup[];
   searchTerm: string;
 }) => {
+  const [emptyGroups, setEmptyGroups] = useState<Record<string, boolean>>({});
+  const handleEmptyChange = useCallback(
+    (entityType: string, isEmpty: boolean) => {
+      setEmptyGroups((previous) =>
+        previous[entityType] === isEmpty
+          ? previous
+          : { ...previous, [entityType]: isEmpty },
+      );
+    },
+    [],
+  );
   if (groups.length === 0) {
     return null;
   }
+  // Every group hides itself when empty; show one aggregate empty state so
+  // the panel is never silently blank (e.g. a search with zero results).
+  const allEmpty = groups.every(
+    (group) => emptyGroups[group.entityType] === true,
+  );
   return (
     <>
+      {allEmpty && (
+        <EmptyStateCallout title="No content found" variant="surface" />
+      )}
       {groups.map((group) => (
         <TemplatedContentGroup
           key={group.entityType}
           group={group}
           searchTerm={searchTerm}
+          onEmptyChange={handleEmptyChange}
         />
       ))}
     </>

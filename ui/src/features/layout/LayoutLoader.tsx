@@ -67,6 +67,7 @@ const LayoutLoader = () => {
           exposedSlots: fetchedLayout.exposedSlots,
           slotOverrides: fetchedLayout.slotOverrides,
           slotDefaults: fetchedLayout.slotDefaults,
+          contentTemplate: fetchedLayout.contentTemplate,
           // We don't need to update the preview here - it is done in the layout
           // api's onQueryStarted method - @see componentAndLayout.ts
           updatePreview: false,
