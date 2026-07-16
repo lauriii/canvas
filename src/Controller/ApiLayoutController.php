@@ -485,7 +485,7 @@ final class ApiLayoutController {
     // entity but not of the editable payload, so it is not addressable.
     if ($per_content_template !== NULL) {
       $containing_list = $this->componentTreeLoader->findItemListContaining($entity_to_patch, $componentInstanceUuid);
-      if ($containing_list === NULL || !\array_key_exists($containing_list->getName(), $per_content_template->getExposedSlots())) {
+      if ($containing_list === NULL || !\array_key_exists((string) $containing_list->getName(), $per_content_template->getExposedSlots())) {
         throw new NotFoundHttpException('No such component in model: ' . $componentInstanceUuid);
       }
     }
@@ -983,6 +983,12 @@ final class ApiLayoutController {
       }
       $slot_field = $entity->get($field_name);
       \assert($slot_field instanceof ComponentTreeItemList);
+      // Respect field-level access (hook_entity_field_access() etc.): a slot
+      // field the user may not view is left out of the editable payload
+      // entirely, exactly like a missing field.
+      if (!$slot_field->access('view')) {
+        continue;
+      }
       $layout[] = $this->buildRegion(
         $field_name,
         $slot_field,
@@ -1085,6 +1091,11 @@ final class ApiLayoutController {
       if (!\array_key_exists($field_name, $slot_layouts) || !$entity->hasField($field_name)) {
         continue;
       }
+      // Respect field-level access: writing a slot field the user may not
+      // edit is rejected, mirroring the view filtering on the GET side.
+      if (!$entity->get($field_name)->access('edit')) {
+        throw new AccessDeniedHttpException(\sprintf('Access denied for the %s field.', $field_name));
+      }
       // @phpstan-ignore-next-line argument.type
       $rows = self::convertClientToServer($slot_layouts[$field_name]['components'], $model, $entity, validate: FALSE);
       foreach ($rows as $row) {
@@ -1135,7 +1146,7 @@ final class ApiLayoutController {
   private static function computeSlotOverrides(FieldableEntityInterface $entity, ContentTemplate $template): array {
     $overrides = [];
     foreach (\array_keys($template->getExposedSlots()) as $field_name) {
-      if (!$entity->hasField($field_name)) {
+      if (!$entity->hasField($field_name) || !$entity->get($field_name)->access('view')) {
         $overrides[$field_name] = ['overridden' => FALSE, 'empty' => FALSE];
         continue;
       }
