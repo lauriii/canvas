@@ -488,6 +488,11 @@ final class ApiLayoutController {
       if ($containing_list === NULL || !\array_key_exists((string) $containing_list->getName(), $per_content_template->getExposedSlots())) {
         throw new NotFoundHttpException('No such component in model: ' . $componentInstanceUuid);
       }
+      // An edit-denied slot field is never served in the editable layout, so
+      // addressing its content can only be a crafted request.
+      if (!$containing_list->access('edit')) {
+        throw new AccessDeniedHttpException(\sprintf('Access denied for the %s field.', $containing_list->getName()));
+      }
     }
 
     // Route-level access checks already verified `edit` access to $entity. Only
@@ -983,10 +988,12 @@ final class ApiLayoutController {
       }
       $slot_field = $entity->get($field_name);
       \assert($slot_field instanceof ComponentTreeItemList);
-      // Respect field-level access (hook_entity_field_access() etc.): a slot
-      // field the user may not view is left out of the editable payload
-      // entirely, exactly like a missing field.
-      if (!$slot_field->access('view')) {
+      // Respect field-level access (hook_entity_field_access() etc.): the
+      // layout is an editing surface and the client writes back every slot
+      // node it was served, so a slot field the user may not view AND edit is
+      // left out of the editable payload entirely, exactly like a missing
+      // field. (A view-only field still renders in the preview HTML.)
+      if (!$slot_field->access('view') || !$slot_field->access('edit')) {
         continue;
       }
       $layout[] = $this->buildRegion(
@@ -1091,8 +1098,9 @@ final class ApiLayoutController {
       if (!\array_key_exists($field_name, $slot_layouts) || !$entity->hasField($field_name)) {
         continue;
       }
-      // Respect field-level access: writing a slot field the user may not
-      // edit is rejected, mirroring the view filtering on the GET side.
+      // Respect field-level access: an edit-denied slot field is never served
+      // in the editable layout, so a write to one can only be a crafted
+      // request and is rejected.
       if (!$entity->get($field_name)->access('edit')) {
         throw new AccessDeniedHttpException(\sprintf('Access denied for the %s field.', $field_name));
       }
@@ -1146,7 +1154,7 @@ final class ApiLayoutController {
   private static function computeSlotOverrides(FieldableEntityInterface $entity, ContentTemplate $template): array {
     $overrides = [];
     foreach (\array_keys($template->getExposedSlots()) as $field_name) {
-      if (!$entity->hasField($field_name) || !$entity->get($field_name)->access('view')) {
+      if (!$entity->hasField($field_name) || !$entity->get($field_name)->access('view') || !$entity->get($field_name)->access('edit')) {
         $overrides[$field_name] = ['overridden' => FALSE, 'empty' => FALSE];
         continue;
       }
