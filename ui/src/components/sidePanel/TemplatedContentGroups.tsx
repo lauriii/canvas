@@ -42,9 +42,17 @@ const TemplatedContentGroup = ({
   const { items, isLoading, error, hasMore, handleLoadMore } =
     usePaginatedContentList(group.entityType, searchTerm);
 
+  // The list is access-checked for viewing, but a row's only action is
+  // opening the per-content editor, so show only entities the user may edit
+  // (the server adds the edit-form link exactly when update access is
+  // allowed).
+  const editableItems = (items ?? []).filter(
+    (item) => !!item.links?.['edit-form'],
+  );
+
   // Report emptiness up, so the panel can show one aggregate empty state when
   // every group is empty (each empty group hides itself below).
-  const isEmpty = !isLoading && !error && (items?.length ?? 0) === 0;
+  const isEmpty = !isLoading && !error && editableItems.length === 0;
   useEffect(() => {
     onEmptyChange(group.entityType, isEmpty);
   }, [onEmptyChange, group.entityType, isEmpty]);
@@ -99,7 +107,7 @@ const TemplatedContentGroup = ({
           {!error && (
             <ListIndentContext.Provider value={1}>
               <Flex direction="column" gap="1">
-                {(items ?? []).map((item) => {
+                {editableItems.map((item) => {
                   const isSelected =
                     routeEntityType === group.entityType &&
                     String(entityId) === String(item.id);
