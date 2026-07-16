@@ -76,6 +76,27 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
       return;
     }
 
+    // An exposed slot's host component must not sit inside another exposed
+    // slot's subtree: that subtree is a replaceable default, so a per-entity
+    // override of the outer slot (which replaces the default with fresh
+    // content) would orphan the inner slot's target and leave its per-entity
+    // content unrenderable. Collect every (parent, slot) pair on the host's
+    // ancestry, then reject if any other exposed slot targets one of them.
+    $ancestor_slots = [];
+    for ($ancestor = $item; $ancestor !== NULL && $ancestor->getParentUuid() !== NULL; $ancestor = $component_tree_item_list->getComponentTreeItemByUuid($ancestor->getParentUuid())) {
+      $ancestor_slots[$ancestor->getParentUuid() . ':' . $ancestor->getSlot()] = TRUE;
+    }
+    foreach ($template->getExposedSlots() as $definition) {
+      $is_self = $definition['component_uuid'] === $value['component_uuid'] && $definition['slot_name'] === $value['slot_name'];
+      if (!$is_self && isset($ancestor_slots[$definition['component_uuid'] . ':' . $definition['slot_name']])) {
+        $this->context->addViolation($constraint->nestedSlotMessage, [
+          '%id' => $value['component_uuid'],
+          '%slot' => $value['slot_name'],
+        ]);
+        return;
+      }
+    }
+
     // The exposed slot has to be empty only when the consumer requires it (for
     // example page variants); content templates allow template content in an
     // exposed slot to become that slot's per-entity-overridable default.
