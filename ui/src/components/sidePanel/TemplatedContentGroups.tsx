@@ -73,8 +73,9 @@ const TemplatedContentGroup = ({
 
   // No editable rows on the pages loaded so far, but more remain: render just
   // the observer (no group heading yet), so it keeps loading pages until an
-  // editable row appears or pagination is exhausted.
-  if (editableItems.length === 0) {
+  // editable row appears or pagination is exhausted. A failed request falls
+  // through instead, so its error card (and retry) render below.
+  if (!error && editableItems.length === 0) {
     return <InfiniteScrollObserver onLoadMore={handleLoadMore} />;
   }
 
