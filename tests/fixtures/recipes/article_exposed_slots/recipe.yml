@@ -5,6 +5,11 @@ recipes:
   - core/recipes/article_content_type
 install:
   - canvas:canvas_test_sdc
+# Not strict: the shipped props-slots component config may already exist when
+# module install generated it (environment-dependent); the file only
+# guarantees it exists before the content template that depends on it.
+config:
+  strict: false
 content:
   node:
     - 1111aaaa-2222-4bbb-8ccc-dddddddddddd
