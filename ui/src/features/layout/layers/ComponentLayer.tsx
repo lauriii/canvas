@@ -40,8 +40,6 @@ interface ComponentLayerProps {
   parentNode?: LayoutNode;
   index: number;
   disableDrop?: boolean;
-  // Per-content editing: true once an ancestor exposed slot has been entered, so
-  // normally instead of being hidden as template chrome.
 }
 
 const ComponentLayer: React.FC<ComponentLayerProps> = ({
