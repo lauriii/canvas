@@ -13,11 +13,10 @@ import {
   exposedSlotsFromServer,
   exposedSlotsToServer,
   filterNonMarkerComponents,
-  findEnclosingExposedSlotAlias,
   findExposedSlotEntry,
   findExposedSlotsInSubtree,
   isEmptySlotMarkerNode,
-  isExposedSlotTarget,
+  isLockedSlotRegion,
 } from '@/features/layout/exposedSlots';
 import DeleteComponentWithExposedSlotsDialog from '@/features/layout/exposeSlot/DeleteComponentWithExposedSlotsDialog';
 import {
@@ -36,7 +35,7 @@ import {
   setInitialLayoutModel,
   updateExposedSlotLabel,
 } from '@/features/layout/layoutModelSlice';
-import { getNodeAtPath, isNodeEditable } from '@/features/layout/layoutUtils';
+import { getNodeAtPath } from '@/features/layout/layoutUtils';
 import { setDialogWithDataOpen } from '@/features/ui/dialogSlice';
 import {
   deriveSlotFieldName,
@@ -341,63 +340,24 @@ describe('DeleteComponentWithExposedSlotsDialog', () => {
   });
 });
 
-// --- Phase 8: per-content (locked) editing --------------------------------
+// --- Per-content (slot-scoped) editing ------------------------------------
 
-// A per-content merged tree: a locked template host component (editable:false)
-// with an exposed slot holding locked default content, plus a locked non-exposed
-// (template chrome) slot. Passing slotOverrides puts the store in per-content
-// mode. @see ApiLayoutController per-content GET.
+// A per-content layout: each exposed slot is its own top-level region node
+// keyed by the backing field name, containing only entity-owned content.
+// Template chrome is not part of the layout at all; the slot's template
+// default ships as data in slotDefaults (for the unlock fork). Passing
+// slotOverrides puts the store in per-content mode.
+// @see ApiLayoutController per-content GET.
 const buildPerContentModel = () => ({
   layout: [
     {
-      name: 'Content',
-      id: 'content',
+      name: 'Hero',
+      id: 'hero',
       nodeType: 'region',
-      components: [
-        {
-          nodeType: 'component',
-          uuid: 'host-1',
-          type: 'sdc.canvas_test_all_props@1',
-          editable: false,
-          slots: [
-            {
-              nodeType: 'slot',
-              id: 'host-1/exposed_slot',
-              name: 'exposed_slot',
-              components: [
-                {
-                  nodeType: 'component',
-                  uuid: 'default-1',
-                  type: 'sdc.canvas_test_all_props@1',
-                  editable: false,
-                  slots: [],
-                },
-              ],
-            },
-            {
-              nodeType: 'slot',
-              id: 'host-1/locked_slot',
-              name: 'locked_slot',
-              components: [
-                {
-                  nodeType: 'component',
-                  uuid: 'chrome-1',
-                  type: 'sdc.canvas_test_all_props@1',
-                  editable: false,
-                  slots: [],
-                },
-              ],
-            },
-          ],
-        },
-      ],
+      components: [],
     },
   ],
-  model: {
-    'host-1': { resolved: {} },
-    'default-1': { resolved: {} },
-    'chrome-1': { resolved: {} },
-  },
+  model: {},
   exposedSlots: {
     hero: {
       label: 'Hero',
@@ -406,56 +366,73 @@ const buildPerContentModel = () => ({
     },
   },
   slotOverrides: { hero: { overridden: false, empty: false } },
+  slotDefaults: {
+    hero: {
+      layout: [
+        {
+          nodeType: 'component',
+          uuid: 'default-1',
+          type: 'sdc.canvas_test_all_props@1',
+          slots: [],
+        },
+      ],
+      model: { 'default-1': { resolved: {} } },
+    },
+  },
 });
 
-// The components of the exposed slot in the current store state.
+// The components of the exposed slot's region in the current store state.
 const exposedSlotComponents = (state) =>
-  selectLayout(state)[0].components[0].slots[0].components;
+  selectLayout(state).find((region) => region.id === 'hero').components;
 
 describe('per-content mode helpers', () => {
-  it('detects locked (template-owned) components via editable', () => {
-    const host = buildPerContentModel().layout[0].components[0];
-    // Locked component is non-interactive: isNodeEditable drives disabling the
-    // draggable, hiding the context menu and skipping its drop zones.
-    expect(isNodeEditable(host)).toBe(false);
-    expect(isNodeEditable(host.slots[0].components[0])).toBe(false);
-    // Absent flag (page/template editing) means editable.
+  it('detects locked slot regions', () => {
+    const { exposedSlots, slotOverrides, slotDefaults } =
+      buildPerContentModel();
+    // Not overridden + a template default exists: locked.
     expect(
-      isNodeEditable({ nodeType: 'component', uuid: 'x', type: 't' }),
+      isLockedSlotRegion('hero', exposedSlots, slotOverrides, slotDefaults),
     ).toBe(true);
-    expect(isNodeEditable({ editable: true })).toBe(true);
-  });
-
-  it('accepts drops into an exposed slot, even nested in locked chrome', () => {
-    const { layout, exposedSlots } = buildPerContentModel();
-    const host = layout[0].components[0];
-    // Exposed slot nested inside the locked host accepts drops.
-    expect(isExposedSlotTarget(host.slots[0], exposedSlots)).toBe(true);
-    // A non-exposed (template chrome) slot rejects drops.
-    expect(isExposedSlotTarget(host.slots[1], exposedSlots)).toBe(false);
-  });
-
-  it('resolves the enclosing exposed slot alias for a component', () => {
-    const { layout, exposedSlots } = buildPerContentModel();
+    // Overridden: not locked.
     expect(
-      findEnclosingExposedSlotAlias(layout, exposedSlots, 'default-1')?.alias,
-    ).toBe('hero');
-    // A component in locked chrome has no enclosing exposed slot.
+      isLockedSlotRegion(
+        'hero',
+        exposedSlots,
+        { hero: { overridden: true, empty: false } },
+        slotDefaults,
+      ),
+    ).toBe(false);
+    // No template default: an ordinary empty area, no lock.
     expect(
-      findEnclosingExposedSlotAlias(layout, exposedSlots, 'chrome-1'),
-    ).toBe(null);
+      isLockedSlotRegion('hero', exposedSlots, slotOverrides, { hero: null }),
+    ).toBe(false);
+    // Not an exposed slot region at all.
+    expect(
+      isLockedSlotRegion('content', exposedSlots, slotOverrides, slotDefaults),
+    ).toBe(false);
   });
 
   it('resolves a node at a layout path', () => {
-    const { layout } = buildPerContentModel();
-    const exposedSlot = layout[0].components[0].slots[0];
-    expect(getNodeAtPath(layout, [0, 0, 0])).toBe(exposedSlot);
-    expect(getNodeAtPath(layout, [0, 0, 0, 0])).toBe(exposedSlot.components[0]);
+    const layout = [
+      {
+        name: 'Hero',
+        id: 'hero',
+        nodeType: 'region',
+        components: [
+          {
+            nodeType: 'component',
+            uuid: 'c-1',
+            type: 'sdc.canvas_test_all_props@1',
+            slots: [],
+          },
+        ],
+      },
+    ];
+    expect(getNodeAtPath(layout, [0, 0]).uuid).toBe('c-1');
     expect(getNodeAtPath(layout, [0, 5])).toBe(null);
   });
 
   it('recognizes and filters the empty-slot marker', () => {
-    const host = buildPerContentModel().layout[0].components[0];
     expect(CANVAS_SLOT_EMPTY_MARKER_TYPE.split('@')[0]).toBe(
       CANVAS_SLOT_EMPTY_MARKER_ID,
     );
@@ -465,11 +442,17 @@ describe('per-content mode helpers', () => {
       type: CANVAS_SLOT_EMPTY_MARKER_TYPE,
       slots: [],
     };
+    const ordinary = {
+      nodeType: 'component',
+      uuid: 'c-1',
+      type: 'sdc.canvas_test_all_props@1',
+      slots: [],
+    };
     expect(isEmptySlotMarkerNode(marker)).toBe(true);
-    expect(isEmptySlotMarkerNode(host)).toBe(false);
+    expect(isEmptySlotMarkerNode(ordinary)).toBe(false);
     expect(
-      filterNonMarkerComponents([marker, host]).map((c) => c.uuid),
-    ).toEqual(['host-1']);
+      filterNonMarkerComponents([marker, ordinary]).map((c) => c.uuid),
+    ).toEqual(['c-1']);
   });
 });
 
@@ -486,12 +469,21 @@ describe('per-content override reducers', () => {
     );
   });
 
-  it('enters per-content mode from the merged GET', () => {
+  it('enters per-content mode from the slot-scoped GET', () => {
     expect(selectIsPerContentMode(store.getState())).toBe(true);
     expect(selectSlotOverrides(store.getState()).hero).toEqual({
       overridden: false,
       empty: false,
     });
+    // The template default is data, not layout: it is stored aside and its
+    // UUID appears nowhere in the editable layout or model.
+    expect(
+      store.getState().layoutModel.present.slotDefaults.hero.layout,
+    ).toHaveLength(1);
+    expect(exposedSlotComponents(store.getState())).toHaveLength(0);
+    expect(store.getState().layoutModel.present.model).not.toHaveProperty(
+      'default-1',
+    );
   });
 
   it('forks the default to fresh, editable UUIDs and marks it overridden', () => {
@@ -501,11 +493,13 @@ describe('per-content override reducers', () => {
     expect(components).toHaveLength(1);
     // Fresh UUID: no longer the template default's UUID.
     expect(components[0].uuid).not.toBe('default-1');
-    // Forked copy is entity-owned (editable) so the server write guard accepts it.
-    expect(components[0].editable).toBe(true);
-    // Its model was copied to the new UUID.
+    // Its model was copied under the new UUID; the template default's UUID
+    // stays out of the editable model.
     expect(store.getState().layoutModel.present.model).toHaveProperty(
       components[0].uuid,
+    );
+    expect(store.getState().layoutModel.present.model).not.toHaveProperty(
+      'default-1',
     );
     // The slot is now overridden and not empty.
     expect(selectSlotOverrides(store.getState()).hero).toEqual({
@@ -517,7 +511,7 @@ describe('per-content override reducers', () => {
   it('forks the default on a first drop into a still-defaulted exposed slot', () => {
     store.dispatch(
       insertNodes({
-        to: [0, 0, 0, 1],
+        to: [0, 0],
         useUUID: 'new-1',
         layoutModel: {
           layout: [
@@ -538,10 +532,40 @@ describe('per-content override reducers', () => {
     // The dropped component landed, and the default was forked to a fresh UUID.
     expect(uuids).toContain('new-1');
     expect(uuids).not.toContain('default-1');
-    // The forked default is explicitly editable; the inserted node carries no
-    // editable:false flag, so none of the slot content is locked.
-    expect(components.every((c) => isNodeEditable(c))).toBe(true);
-    expect(components.find((c) => c.uuid !== 'new-1').editable).toBe(true);
+    expect(components).toHaveLength(2);
+    expect(selectSlotOverrides(store.getState()).hero.overridden).toBe(true);
+  });
+
+  it('materializes an override directly when the slot has no default', () => {
+    store = makeStore({});
+    store.dispatch(
+      setInitialLayoutModel({
+        ...buildPerContentModel(),
+        slotDefaults: { hero: null },
+        updatePreview: false,
+      }),
+    );
+
+    store.dispatch(
+      insertNodes({
+        to: [0, 0],
+        useUUID: 'new-1',
+        layoutModel: {
+          layout: [
+            {
+              nodeType: 'component',
+              uuid: 'new-1',
+              type: 'sdc.canvas_test_all_props@1',
+              slots: [],
+            },
+          ],
+          model: { 'new-1': { resolved: {} } },
+        },
+      }),
+    );
+
+    const components = exposedSlotComponents(store.getState());
+    expect(components.map((c) => c.uuid)).toEqual(['new-1']);
     expect(selectSlotOverrides(store.getState()).hero.overridden).toBe(true);
   });
 
@@ -561,30 +585,6 @@ describe('per-content override reducers', () => {
     expect(store.getState().layoutModel.present.model).not.toHaveProperty(
       forkedUuid,
     );
-  });
-
-  it('refuses to delete locked template-owned components', () => {
-    store.dispatch(deleteNode('host-1'));
-    store.dispatch(deleteNode('chrome-1'));
-
-    // The locked chrome is untouched, models included.
-    const layout = selectLayout(store.getState());
-    expect(layout[0].components).toHaveLength(1);
-    expect(layout[0].components[0].uuid).toBe('host-1');
-    expect(layout[0].components[0].slots[1].components[0].uuid).toBe(
-      'chrome-1',
-    );
-    expect(store.getState().layoutModel.present.model).toHaveProperty('host-1');
-    expect(store.getState().layoutModel.present.model).toHaveProperty(
-      'chrome-1',
-    );
-  });
-
-  it('refuses to duplicate locked template-owned components', () => {
-    store.dispatch(duplicateNode({ uuid: 'chrome-1' }));
-
-    const layout = selectLayout(store.getState());
-    expect(layout[0].components[0].slots[1].components).toHaveLength(1);
   });
 
   it('keeps an emptied override empty (marker), distinct from reverting', () => {
@@ -614,7 +614,7 @@ describe('per-content override reducers', () => {
 
     store.dispatch(
       insertNodes({
-        to: [0, 0, 0, 0],
+        to: [0, 0],
         useUUID: 'new-2',
         layoutModel: {
           layout: [
@@ -637,14 +637,5 @@ describe('per-content override reducers', () => {
       overridden: true,
       empty: false,
     });
-  });
-
-  it('leaves template chrome untouched when editing an exposed slot', () => {
-    store.dispatch(overrideSlotDefaultContent('hero'));
-    // The locked host and its non-exposed slot content are unchanged.
-    const host = selectLayout(store.getState())[0].components[0];
-    expect(host.uuid).toBe('host-1');
-    expect(host.editable).toBe(false);
-    expect(host.slots[1].components[0].uuid).toBe('chrome-1');
   });
 });

@@ -10,8 +10,6 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import LayersDropZone from '@/features/layout/layers/LayersDropZone';
 import SlotLayer from '@/features/layout/layers/SlotLayer';
-import { selectIsPerContentMode } from '@/features/layout/layoutModelSlice';
-import { isNodeEditable } from '@/features/layout/layoutUtils';
 import ComponentContextMenu, {
   ComponentContextMenuContent,
 } from '@/features/layout/preview/ComponentContextMenu';
@@ -43,9 +41,7 @@ interface ComponentLayerProps {
   index: number;
   disableDrop?: boolean;
   // Per-content editing: true once an ancestor exposed slot has been entered, so
-  // this subtree (the slot's content, including locked default content) renders
   // normally instead of being hidden as template chrome.
-  insideExposedSlot?: boolean;
 }
 
 const ComponentLayer: React.FC<ComponentLayerProps> = ({
@@ -53,10 +49,8 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
   indent,
   index,
   disableDrop = false,
-  insideExposedSlot = false,
 }) => {
   const dispatch = useAppDispatch();
-  const perContentMode = useAppSelector(selectIsPerContentMode);
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, component.uuid);
   });
@@ -66,15 +60,11 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
   const componentId = component.uuid;
   const isCollapsed = collapsedLayers.includes(componentId);
   const nodeName = useGetComponentName(component);
-  // Per-content editing: template-owned rows are locked (non-draggable, no
-  // context menu, no surrounding drop zones), mirroring the canvas overlay.
-  const locked = !isNodeEditable(component);
   const isSelected = useAppSelector((state) =>
     selectComponentIsSelected(state, componentId),
   );
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `${component.uuid}_layers`,
-    disabled: locked,
     data: {
       origin: 'layers',
       component: component,
@@ -128,27 +118,6 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
     dispatch(toggleCollapsedLayer(componentId));
   };
 
-  // Per-content editing: a locked template-owned component that is not inside an
-  // exposed slot is template chrome and should not appear in the layers tree.
-  // Render only its slots (promoted to this indent) so any exposed slot nested
-  // within still surfaces.
-  if (perContentMode && locked && !insideExposedSlot) {
-    return (
-      <>
-        {component.slots.map((slot) => (
-          <SlotLayer
-            key={slot.id}
-            slot={slot}
-            indent={indent}
-            parentNode={component}
-            disableDrop={disableDrop}
-            insideExposedSlot={false}
-          />
-        ))}
-      </>
-    );
-  }
-
   const layerCollapsible = (
     <Collapsible.Root
       className="canvas--collapsible-root"
@@ -162,19 +131,17 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
         onMouseLeave={handleItemMouseLeave}
         className="canvas-drag-handle"
         title={nodeName}
-        draggable={!locked}
+        draggable={true}
         variant="component"
         hovered={isHovered}
         selected={isSelected}
-        disabled={disableDrop || isDragging || locked}
+        disabled={disableDrop || isDragging}
         open={component.slots.length ? !isCollapsed : false}
         dropdownMenuContent={
-          locked ? undefined : (
-            <ComponentContextMenuContent
-              component={component}
-              menuType="dropdown"
-            />
-          )
+          <ComponentContextMenuContent
+            component={component}
+            menuType="dropdown"
+          />
         }
         indent={indent}
         leadingContent={
@@ -218,7 +185,6 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
               indent={indent + 1}
               parentNode={component}
               disableDrop={disableDrop || isDragging}
-              insideExposedSlot={insideExposedSlot}
             />
           ))}
         </CollapsibleContent>
@@ -236,22 +202,16 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
       data-canvas-uuid={componentId}
       data-canvas-type={component.nodeType}
       data-canvas-selected={isSelected}
-      data-canvas-locked={locked ? true : undefined}
       onClick={handleItemClick}
       onDragStart={handleItemDragStart}
       onContextMenu={handleContextMenu}
       aria-labelledby={`layer-${componentId}-name`}
       position="relative"
     >
-      {/* Per-content editing: locked rows get no right-click context menu. */}
-      {locked ? (
-        layerCollapsible
-      ) : (
-        <ComponentContextMenu component={component}>
-          {layerCollapsible}
-        </ComponentContextMenu>
-      )}
-      {!isDragging && !disableDrop && !locked && (
+      <ComponentContextMenu component={component}>
+        {layerCollapsible}
+      </ComponentContextMenu>
+      {!isDragging && !disableDrop && (
         <>
           {index === 0 && (
             <LayersDropZone

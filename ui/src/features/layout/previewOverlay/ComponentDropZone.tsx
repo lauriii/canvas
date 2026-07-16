@@ -4,12 +4,7 @@ import { kebabCase } from 'lodash';
 import { useDroppable } from '@dnd-kit/core';
 
 import { useAppSelector } from '@/app/hooks';
-import { isExposedSlotTarget } from '@/features/layout/exposedSlots';
-import {
-  selectExposedSlots,
-  selectIsPerContentMode,
-  selectLayout,
-} from '@/features/layout/layoutModelSlice';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import useGetComponentName from '@/hooks/useGetComponentName';
 
@@ -31,20 +26,10 @@ export interface ComponentDropZoneProps {
 const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
   const { component, position, parentSlot, parentRegion } = props;
   const layout = useAppSelector(selectLayout);
-  const perContentMode = useAppSelector(selectIsPerContentMode);
-  const exposedSlots = useAppSelector(selectExposedSlots);
   const [draggedItem, setDraggedItem] = useState('');
   const componentName = useGetComponentName(component);
   const [activeOrigin, setActiveOrigin] = useState('');
   const accepts = ['overlay', 'library'];
-
-  // Per-content editing: a drop before/after this component lands in its parent
-  // container. Only positions inside an active exposed slot accept drops; every
-  // template-owned position (regions, non-exposed slots) is rejected. Consulted
-  // per-node rather than relying on the inherited disableDrop alone.
-  const perContentDropBlocked =
-    perContentMode &&
-    !(parentSlot && isExposedSlotTarget(parentSlot, exposedSlots));
 
   function getPositionRelation(position: ComponentDropZoneProps['position']) {
     return position === 'top' || position === 'left' ? 'before' : 'after';
@@ -68,10 +53,7 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
     active,
   } = useDroppable({
     id: `${component.uuid}_${position}`,
-    disabled:
-      draggedItem === component.uuid ||
-      !accepts.includes(activeOrigin) ||
-      perContentDropBlocked,
+    disabled: draggedItem === component.uuid || !accepts.includes(activeOrigin),
     data: {
       component: component,
       parentSlot: parentSlot,

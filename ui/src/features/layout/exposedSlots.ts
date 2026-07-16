@@ -8,12 +8,12 @@
  * translate between the two and resolve exposed slots against layout nodes.
  */
 
-import { findNodeParents, recurseNodes } from '@/features/layout/layoutUtils';
+import { recurseNodes } from '@/features/layout/layoutUtils';
 
 import type {
   ComponentNode,
   ExposedSlotDefinition,
-  RegionNode,
+  SlotDefaultContent,
   SlotNode,
   SlotOverrideState,
 } from '@/features/layout/layoutModelSlice';
@@ -95,82 +95,28 @@ export const findExposedSlotEntry = (
 };
 
 /**
- * Whether a slot node is an exposed slot.
+ * Whether a per-content slot region is a locked unit.
  *
- * Per-content editing gates drops on this: only exposed slots accept content,
- * including exposed slots nested inside locked template chrome. The host
- * component UUID is derived from the slot id (`${uuid}/${slotName}`).
+ * A not-yet-overridden exposed slot whose template default has content is one
+ * locked unit (@see decision 8 / ux-spec Phase 8): the server-rendered default
+ * shows, the area is selectable only as a whole and rejects drops until
+ * unlocked. Whether a default exists comes from the server's `slotDefaults`
+ * side-channel. An exposed slot with an empty default, or one the entity has
+ * overridden, is an ordinary editable area.
  */
-export const isExposedSlotTarget = (
-  slot: SlotNode,
-  exposedSlots: Record<string, ExposedSlotDefinition> | undefined,
-): boolean => {
-  const entry = findExposedSlotEntry(
-    exposedSlots,
-    getSlotHostComponentUuid(slot),
-    slot.name,
-  );
-  return !!entry;
-};
-
-/**
- * Whether an exposed slot is a locked unit in per-content editing.
- *
- * A not-yet-overridden exposed slot that still shows the template's default
- * content is one locked unit (@see decision 8 / ux-spec Phase 8): selectable
- * only as a whole, non-droppable, its default content non-interactive until
- * unlocked. An exposed slot with an empty default, or one the entity has
- * overridden, is ordinary. Non-exposed slots are never locked.
- */
-export const isLockedExposedSlot = (
-  slot: SlotNode,
+export const isLockedSlotRegion = (
+  regionId: string,
   exposedSlots: Record<string, ExposedSlotDefinition> | undefined,
   slotOverrides: Record<string, SlotOverrideState> | undefined,
+  slotDefaults: Record<string, SlotDefaultContent | null> | undefined,
 ): boolean => {
-  const entry = findExposedSlotEntry(
-    exposedSlots,
-    getSlotHostComponentUuid(slot),
-    slot.name,
-  );
-  if (!entry || slotOverrides?.[entry.alias]?.overridden) {
+  if (!exposedSlots?.[regionId]) {
     return false;
   }
-  return filterNonMarkerComponents(slot.components).length > 0;
-};
-
-/**
- * The alias + slot id of the closest active exposed slot enclosing a component.
- *
- * Used by the override-fork guard to determine which exposed slot a mutation
- * targets. Walks the ancestor chain nearest-first; slot ids (which contain a
- * `/`) are matched against the exposed-slot definitions.
- */
-export const findEnclosingExposedSlotAlias = (
-  layout: RegionNode[],
-  exposedSlots: Record<string, ExposedSlotDefinition> | undefined,
-  uuid: string,
-): { slotId: string; alias: string } | null => {
-  if (!exposedSlots) {
-    return null;
+  if (slotOverrides?.[regionId]?.overridden) {
+    return false;
   }
-  const parents = findNodeParents(layout, uuid);
-  if (!parents) {
-    return null;
-  }
-  for (let i = parents.length - 1; i >= 0; i--) {
-    const id = parents[i];
-    // Only slot ids contain a slash; component uuids and region ids do not.
-    if (!id.includes('/')) {
-      continue;
-    }
-    const [hostUuid, ...rest] = id.split('/');
-    const slotName = rest.join('/');
-    const entry = findExposedSlotEntry(exposedSlots, hostUuid, slotName);
-    if (entry) {
-      return { slotId: id, alias: entry.alias };
-    }
-  }
-  return null;
+  return !!slotDefaults?.[regionId];
 };
 
 /**

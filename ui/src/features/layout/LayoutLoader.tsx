@@ -61,10 +61,12 @@ const LayoutLoader = () => {
           layout: fetchedLayout.layout,
           model: fetchedLayout.model,
           translations: fetchedLayout.translations || {},
-          // Per-content editing: exposed slot definitions + per-slot override
-          // state from the merged Layout API GET (undefined for page editing).
+          // Per-content editing: exposed slot definitions, per-slot override
+          // state, and each slot's template default content (as data for the
+          // unlock fork) from the Layout API GET (undefined for page editing).
           exposedSlots: fetchedLayout.exposedSlots,
           slotOverrides: fetchedLayout.slotOverrides,
+          slotDefaults: fetchedLayout.slotDefaults,
           // We don't need to update the preview here - it is done in the layout
           // api's onQueryStarted method - @see componentAndLayout.ts
           updatePreview: false,

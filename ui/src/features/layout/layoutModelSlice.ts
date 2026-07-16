@@ -12,17 +12,12 @@ import {
 
 import {
   CANVAS_SLOT_EMPTY_MARKER_TYPE,
-  findExposedSlotEntry,
-  getSlotHostComponentUuid,
   isEmptySlotMarkerNode,
 } from './exposedSlots';
 import {
   findComponentByUuid,
   findNodePathByUuid,
-  findSlotById,
-  getNodeAtPath,
   insertNodeAtPath,
-  isNodeEditable,
   moveNodeToPath,
   recurseNodes,
   removeComponentByUuid,
@@ -61,10 +56,6 @@ export interface ComponentNode {
   uuid: UUID;
   type: string;
   slots: SlotNode[];
-  // Per-content editing only: server-computed editable state. `false` marks a
-  // template-owned (locked) component; `true` (or absent) marks editable
-  // entity/override content. Omitted entirely for page/template editing.
-  editable?: boolean;
 }
 
 export interface SlotNode {
@@ -102,6 +93,18 @@ export interface ExposedSlotDefinition {
 }
 
 /**
+ * An exposed slot's template default content, supplied by the server as data.
+ *
+ * Not part of the editable layout: the client materializes an entity-owned
+ * copy of it (fresh UUIDs) when the slot is unlocked. NULL when the slot has
+ * no default content (and therefore no lock).
+ */
+export interface SlotDefaultContent {
+  layout: ComponentNode[];
+  model: ComponentModels;
+}
+
+/**
  * Per-entity override state for one exposed slot, in per-content editing.
  */
 export interface SlotOverrideState {
@@ -120,6 +123,7 @@ export interface LayoutModelSliceState extends RootLayoutModel {
   // setInitialLayoutModel (non-undoable metadata, like translations).
   exposedSlots?: Record<string, ExposedSlotDefinition>;
   slotOverrides?: Record<string, SlotOverrideState>;
+  slotDefaults?: Record<string, SlotDefaultContent | null>;
   perContentMode?: boolean;
 }
 
@@ -341,38 +345,30 @@ export const syncPropSourcesToResolvedValues = (
 // outside per-content mode, so page and template editing are unaffected.
 
 /**
- * Recursively mark a forked subtree as entity-owned (editable), so the server's
- * template-ownership write guard accepts it.
- */
-function markSubtreeEditable(node: ComponentNode): void {
-  node.editable = true;
-  recurseNodes(node, (child: ComponentNode) => {
-    child.editable = true;
-  });
-}
-
-/**
- * The single override-fork step: replace an exposed slot's (template-owned)
- * default subtree with a fresh-UUID, entity-owned copy (models included) and
- * mark the slot overridden. Fresh UUIDs keep the copy from colliding with the
- * template UUIDs in the merged tree and preserve the server ownership guard.
+ * The single override-fork step: materialize an entity-owned copy of the
+ * exposed slot's template default (supplied by the server as data in
+ * `slotDefaults`) with fresh UUIDs, models included, and mark the slot
+ * overridden. Applied in one synchronous reducer so no follow-up edit ever
+ * addresses a UUID the server has not stored.
  */
 function forkSlotToOverride(
   state: LayoutModelSliceState,
-  slot: SlotNode,
+  region: RegionNode,
   alias: string,
 ): void {
+  const defaultContent = state.slotDefaults?.[alias];
   const forked: ComponentNode[] = [];
-  for (const child of slot.components) {
-    const { updatedNode, updatedModel } = replaceUUIDsAndUpdateModel(
-      child,
-      state.model,
-    );
-    markSubtreeEditable(updatedNode);
-    Object.assign(state.model, updatedModel);
-    forked.push(updatedNode);
+  if (defaultContent) {
+    for (const child of defaultContent.layout) {
+      const { updatedNode, updatedModel } = replaceUUIDsAndUpdateModel(
+        child,
+        defaultContent.model,
+      );
+      Object.assign(state.model, updatedModel);
+      forked.push(updatedNode);
+    }
   }
-  slot.components = forked;
+  region.components = forked;
   if (!state.slotOverrides) {
     state.slotOverrides = {};
   }
@@ -388,22 +384,18 @@ function ensureOverriddenForPath(
   state: LayoutModelSliceState,
   path: number[] | undefined,
 ): void {
-  if (!state.perContentMode || !Array.isArray(path) || path.length < 2) {
+  if (!state.perContentMode || !Array.isArray(path) || path.length < 1) {
     return;
   }
-  const container = getNodeAtPath(state.layout, path.slice(0, -1));
-  if (!container || container.nodeType !== NodeType.Slot) {
+  const region = state.layout[path[0]];
+  if (!region || !state.exposedSlots?.[region.id]) {
     return;
   }
-  const entry = findExposedSlotEntry(
-    state.exposedSlots,
-    getSlotHostComponentUuid(container),
-    container.name,
-  );
-  if (!entry || state.slotOverrides?.[entry.alias]?.overridden) {
+  const alias = region.id;
+  if (state.slotOverrides?.[alias]?.overridden) {
     return;
   }
-  forkSlotToOverride(state, container, entry.alias);
+  forkSlotToOverride(state, region, alias);
 }
 
 /**
@@ -417,15 +409,12 @@ function syncOverriddenSlotEmptiness(state: LayoutModelSliceState): void {
   if (!state.perContentMode || !state.exposedSlots || !state.slotOverrides) {
     return;
   }
-  for (const [alias, def] of Object.entries(state.exposedSlots)) {
+  for (const alias of Object.keys(state.exposedSlots)) {
     const override = state.slotOverrides[alias];
     if (!override?.overridden) {
       continue;
     }
-    const slot = findSlotById(
-      state.layout,
-      `${def.componentUuid}/${def.slotName}`,
-    );
+    const slot = state.layout.find((region) => region.id === alias);
     if (!slot) {
       continue;
     }
@@ -456,7 +445,6 @@ function syncOverriddenSlotEmptiness(state: LayoutModelSliceState): void {
           uuid: markerUuid,
           type: CANVAS_SLOT_EMPTY_MARKER_TYPE,
           slots: [],
-          editable: true,
         },
       ];
       state.model[markerUuid] = { resolved: {} };
@@ -480,16 +468,6 @@ export const layoutModelSlice = createSlice({
         state.layout,
         action.payload,
       );
-
-      // Per-content editing: a template-owned component is locked chrome that
-      // per-entity editing can never remove, whichever path (keyboard, menu)
-      // dispatched the delete.
-      if (deletedComponent && !isNodeEditable(deletedComponent)) {
-        console.warn(
-          `Cannot delete ${action.payload}: template-owned components are locked.`,
-        );
-        return;
-      }
 
       const removableModelsUuids = [action.payload];
       if (deletedComponent) {
@@ -521,15 +499,6 @@ export const layoutModelSlice = createSlice({
         if (nodeToDuplicate.nodeType !== 'component') {
           console.error(
             `Cannot duplicate Slots or Regions. Check the uuid ${uuid} is a valid Component.`,
-          );
-          return;
-        }
-
-        // Per-content editing: template-owned components are locked chrome and
-        // cannot be duplicated into per-entity content.
-        if (!isNodeEditable(nodeToDuplicate)) {
-          console.warn(
-            `Cannot duplicate ${uuid}: template-owned components are locked.`,
           );
           return;
         }
@@ -790,21 +759,17 @@ export const layoutModelSlice = createSlice({
     overrideSlotDefaultContent: create.reducer(
       (state, action: PayloadAction<string>) => {
         const alias = action.payload;
-        const def = state.exposedSlots?.[alias];
-        if (!def) {
+        if (!state.exposedSlots?.[alias]) {
           return;
         }
         if (state.slotOverrides?.[alias]?.overridden) {
           return;
         }
-        const slot = findSlotById(
-          state.layout,
-          `${def.componentUuid}/${def.slotName}`,
-        );
-        if (!slot) {
+        const region = state.layout.find((r) => r.id === alias);
+        if (!region) {
           return;
         }
-        forkSlotToOverride(state, slot, alias);
+        forkSlotToOverride(state, region, alias);
         // An override of an empty default becomes an empty override (marker).
         syncOverriddenSlotEmptiness(state);
         state.updatePreview = true;
@@ -816,14 +781,10 @@ export const layoutModelSlice = createSlice({
     revertSlotOverride: create.reducer(
       (state, action: PayloadAction<string>) => {
         const alias = action.payload;
-        const def = state.exposedSlots?.[alias];
-        if (!def) {
+        if (!state.exposedSlots?.[alias]) {
           return;
         }
-        const slot = findSlotById(
-          state.layout,
-          `${def.componentUuid}/${def.slotName}`,
-        );
+        const slot = state.layout.find((r) => r.id === alias);
         if (slot) {
           for (const child of slot.components) {
             if (state.model[child.uuid]) delete state.model[child.uuid];
@@ -865,6 +826,7 @@ export const layoutModelSlice = createSlice({
           translations,
           exposedSlots,
           slotOverrides,
+          slotDefaults,
         } = action.payload;
         state.layout = layout;
         state.model = model;
@@ -875,6 +837,7 @@ export const layoutModelSlice = createSlice({
         // array `[]`; coerce to an object so alias-keyed writes work.
         state.exposedSlots = Array.isArray(exposedSlots) ? {} : exposedSlots;
         state.slotOverrides = Array.isArray(slotOverrides) ? {} : slotOverrides;
+        state.slotDefaults = Array.isArray(slotDefaults) ? {} : slotDefaults;
         // Per-content mode is signalled by the server emitting per-slot override
         // state (only the per-content merged GET does).
         state.perContentMode = slotOverrides !== undefined;
@@ -1276,6 +1239,8 @@ export const selectExposedSlots = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.exposedSlots;
 export const selectSlotOverrides = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.slotOverrides;
+export const selectSlotDefaults = (state: StateWithHistoryWrapper) =>
+  state.layoutModel.present.slotDefaults;
 export const selectIsPerContentMode = (state: StateWithHistoryWrapper) =>
   Boolean(state.layoutModel.present.perContentMode);
 const selectRegion = (state: RootState, regionName: string) => regionName;

@@ -1,11 +1,23 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router';
+import { LockClosedIcon } from '@radix-ui/react-icons';
+import { ContextMenu } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import UnifiedMenu from '@/components/UnifiedMenu';
 import {
+  filterNonMarkerComponents,
+  isLockedSlotRegion,
+} from '@/features/layout/exposedSlots';
+import {
+  overrideSlotDefaultContent,
+  revertSlotOverride,
+  selectExposedSlots,
   selectIsPerContentMode,
   selectLayoutForRegion,
+  selectSlotDefaults,
+  selectSlotOverrides,
 } from '@/features/layout/layoutModelSlice';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import { RegionNameTag } from '@/features/layout/preview/NameTag';
@@ -18,10 +30,12 @@ import {
   selectDragging,
   selectEditorViewPortScale,
   selectIsComponentHovered,
+  selectSelectedComponentUuid,
   selectTargetSlot,
   setHoveredComponent,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
+import useComponentSelection from '@/hooks/useComponentSelection';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
 
@@ -41,16 +55,45 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
   const layout = useAppSelector((state) =>
     selectLayoutForRegion(state, region.id),
   );
-  const { regionsMap } = useDataToHtmlMapValue();
+  const { regionsMap, slotsMap } = useDataToHtmlMapValue();
   const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
-  const { elementRect } = useSyncPreviewElementSize(
-    regionsMap[region.id]?.elements,
-  );
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
   const perContentMode = useAppSelector(selectIsPerContentMode);
+
+  // Per-content editing: an exposed slot presents as a top-level slot region,
+  // keyed by its backing field name. It is anchored by the slot marker the
+  // template chrome's Twig emits (the chrome itself is inert, unmarked HTML),
+  // and it is a single locked unit while the entity has not overridden a
+  // non-empty template default.
+  const exposedSlots = useAppSelector(selectExposedSlots);
+  const slotOverrides = useAppSelector(selectSlotOverrides);
+  const slotDefaults = useAppSelector(selectSlotDefaults);
+  const slotDefinition = perContentMode ? exposedSlots?.[region.id] : undefined;
+  const isSlotRegion = !!slotDefinition;
+  const slotSelectionId = slotDefinition
+    ? `${slotDefinition.componentUuid}/${slotDefinition.slotName}`
+    : undefined;
+  const isLocked =
+    isSlotRegion &&
+    isLockedSlotRegion(region.id, exposedSlots, slotOverrides, slotDefaults);
+  const isOverridden = !!(
+    isSlotRegion && slotOverrides?.[region.id]?.overridden
+  );
+  const selectedComponent = useAppSelector(selectSelectedComponentUuid);
+  const { setNonRoutedSelection } = useComponentSelection();
+  const isSlotRegionSelected =
+    !!slotSelectionId && selectedComponent === slotSelectionId;
+
+  const slotElement = slotSelectionId
+    ? (slotsMap[slotSelectionId]?.element ?? null)
+    : null;
+  const { elementRect } = useSyncPreviewElementSize(
+    isSlotRegion ? slotElement : (regionsMap[region.id]?.elements ?? null),
+  );
   const [overlayStyles, setOverlayStyles] = useState({});
   const targetSlot = useAppSelector(selectTargetSlot);
-  const disableRegion = focusedRegion !== region.id;
+  // Slot regions are always active; theme regions only when focused.
+  const disableRegion = isSlotRegion ? isLocked : focusedRegion !== region.id;
   const dispatch = useAppDispatch();
   const { isDragging } = useAppSelector(selectDragging);
   const isHovered = useAppSelector((state) => {
@@ -59,6 +102,10 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
   const { setSelectedRegion } = useEditorNavigation();
 
   const showHovered = isHovered && focusedRegion === DEFAULT_REGION;
+  // Marker nodes render nothing; hide them so an empty override shows empty.
+  const visibleComponents = isSlotRegion
+    ? filterNonMarkerComponents(layout.components)
+    : layout.components;
 
   useEffect(() => {
     setOverlayStyles({
@@ -83,6 +130,10 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
 
   function handleRegionDblClick(event: React.MouseEvent<HTMLDivElement>) {
     event.stopPropagation();
+    if (isSlotRegion) {
+      // Slot regions are not navigable focus targets.
+      return;
+    }
     if (focusedRegion !== region.id) {
       // Navigate into the clicked region if it's different
       setSelectedRegion(region.id);
@@ -114,7 +165,7 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
       onMouseOut={handleItemMouseOut}
       onDoubleClick={handleRegionDblClick}
     >
-      {!isPage && (
+      {!isPage && !isSlotRegion && (
         <RegionContextMenu region={region}>
           <div
             aria-label={`Global region ${region.name}`}
@@ -122,6 +173,78 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
             data-canvas-overlay="true"
           />
         </RegionContextMenu>
+      )}
+
+      {/* Per-content editing: a locked slot region is one selectable unit.
+          Left-click selects it (its contextual panel offers Unlock and the
+          template jump); right-click offers Unlock directly. */}
+      {isSlotRegion && isLocked && slotSelectionId && (
+        <>
+          <ContextMenu.Root>
+            <ContextMenu.Trigger>
+              <button
+                type="button"
+                aria-label={`Locked slot ${region.name}`}
+                className={styles.lockedSlotTrigger}
+                data-testid={`slot-locked-${region.id}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setNonRoutedSelection(slotSelectionId);
+                }}
+              />
+            </ContextMenu.Trigger>
+            <UnifiedMenu.Content
+              menuType="context"
+              align="start"
+              side="right"
+              aria-label={`Options for ${region.name}`}
+            >
+              <UnifiedMenu.Label>{region.name}</UnifiedMenu.Label>
+              <UnifiedMenu.Separator />
+              <UnifiedMenu.Item
+                onClick={() => dispatch(overrideSlotDefaultContent(region.id))}
+                data-testid={`slot-unlock-${region.id}`}
+              >
+                Unlock
+              </UnifiedMenu.Item>
+            </UnifiedMenu.Content>
+          </ContextMenu.Root>
+          {(isHovered || isSlotRegionSelected) && (
+            <div className={styles.lockBadge} aria-hidden="true">
+              <LockClosedIcon />
+              <span>{region.name}</span>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Per-content editing: reverting an override is a rare action, so it
+          lives in the slot region's right-click menu. */}
+      {isSlotRegion && isOverridden && (
+        <ContextMenu.Root>
+          <ContextMenu.Trigger>
+            <div
+              aria-label={`Slot ${region.name}`}
+              className={styles.regionItem}
+              data-canvas-overlay="true"
+            />
+          </ContextMenu.Trigger>
+          <UnifiedMenu.Content
+            menuType="context"
+            align="start"
+            side="right"
+            aria-label={`Options for ${region.name}`}
+          >
+            <UnifiedMenu.Label>{region.name}</UnifiedMenu.Label>
+            <UnifiedMenu.Separator />
+            <UnifiedMenu.Item
+              onClick={() => dispatch(revertSlotOverride(region.id))}
+              data-testid={`slot-revert-${region.id}`}
+            >
+              Revert to default
+            </UnifiedMenu.Item>
+          </UnifiedMenu.Content>
+        </ContextMenu.Root>
       )}
 
       <div className={clsx(styles.canvasNameTag)}>
@@ -134,7 +257,7 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
 
       {!disableRegion && (
         <>
-          {layout.components.map((component, index) => (
+          {visibleComponents.map((component, index) => (
             <ComponentOverlay
               key={component.uuid}
               iframeRef={iframeRef}
@@ -144,12 +267,8 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
             />
           ))}
 
-          {/* Per-content editing: regions never accept drops directly, only the
-              exposed slots nested within them do. */}
-          {!perContentMode && !region.components.length && (
-            <EmptyRegionDropZone region={region} />
-          )}
-          {!perContentMode && !!region.components.length && (
+          {!visibleComponents.length && <EmptyRegionDropZone region={region} />}
+          {!!visibleComponents.length && (
             <>
               <RegionDropZone region={region} position="before" />
               <RegionDropZone region={region} position="after" />

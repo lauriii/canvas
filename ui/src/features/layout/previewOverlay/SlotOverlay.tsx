@@ -1,26 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
-import {
-  BoxIcon,
-  DotsHorizontalIcon,
-  LockClosedIcon,
-} from '@radix-ui/react-icons';
-import { ContextMenu, DropdownMenu } from '@radix-ui/themes';
+import { BoxIcon, DotsHorizontalIcon } from '@radix-ui/react-icons';
+import { DropdownMenu } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { UnifiedMenu } from '@/components/UnifiedMenu';
-import {
-  filterNonMarkerComponents,
-  findExposedSlotEntry,
-  isLockedExposedSlot,
-} from '@/features/layout/exposedSlots';
-import {
-  overrideSlotDefaultContent,
-  revertSlotOverride,
-  selectExposedSlots,
-  selectIsPerContentMode,
-  selectSlotOverrides,
-} from '@/features/layout/layoutModelSlice';
+import { findExposedSlotEntry } from '@/features/layout/exposedSlots';
+import { selectExposedSlots } from '@/features/layout/layoutModelSlice';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import { SlotNameTag } from '@/features/layout/preview/NameTag';
 import SlotContextMenu, {
@@ -104,42 +89,17 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
   const isTemplateContext = editorFrameContext === EditorFrameContext.TEMPLATE;
   const exposedSlots = useAppSelector(selectExposedSlots);
-  const slotOverrides = useAppSelector(selectSlotOverrides);
-  const perContentMode = useAppSelector(selectIsPerContentMode);
   const exposed = isTemplateContext
     ? findExposedSlotEntry(exposedSlots, parentComponent.uuid, slot.name)
     : null;
   const isActiveExposed = !!exposed;
   const chipLabel = exposed ? exposed.definition.label : slotName;
 
-  // Per-content editing: this slot's exposed-slot definition (if it is an
-  // exposed slot the content editor can fill) and its override state.
-  const perContentEntry = perContentMode
-    ? findExposedSlotEntry(exposedSlots, parentComponent.uuid, slot.name)
-    : null;
-  const isPerContentExposed = !!perContentEntry;
-  const perContentAlias = perContentEntry?.alias;
-  const perContentOverride = perContentAlias
-    ? slotOverrides?.[perContentAlias]
-    : undefined;
-  const isOverridden = !!perContentOverride?.overridden;
-  // A not-yet-overridden exposed slot still showing the template default is one
-  // locked unit: selectable as a whole, non-droppable, its default content
-  // non-interactive until unlocked (@see ux-spec Phase 8, task 11.2).
-  const isLocked =
-    perContentMode && isLockedExposedSlot(slot, exposedSlots, slotOverrides);
+  // Per-content editing: exposed slots present as top-level slot regions, so
+  // a nested slot node here is always ordinary entity-owned content.
   const isSlotSelected = slotId === selectedComponent;
-  // Marker nodes render nothing; hide them so an empty override shows as empty.
-  const visibleComponents = perContentMode
-    ? filterNonMarkerComponents(slot.components)
-    : slot.components;
-  // Drop gating: in per-content mode only active exposed slots accept drops,
-  // overriding any inherited disableDrop from enclosing locked chrome, except a
-  // locked (not-yet-overridden) slot rejects drops until it is unlocked.
-  // Elsewhere the inherited disableDrop is respected.
-  const dropDisabled = perContentMode
-    ? !isPerContentExposed || isLocked
-    : disableDrop;
+  const visibleComponents = slot.components;
+  const dropDisabled = disableDrop;
 
   useEffect(() => {
     const elementInsideIframe = slotsMap[slotId]?.element;
@@ -195,11 +155,9 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
         [styles.hovered]: isHovered,
         [styles.dropTarget]: slotId === targetSlot,
         [styles.exposed]: isActiveExposed,
-        [styles.locked]: isLocked,
       })}
       data-canvas-type="slot"
-      data-canvas-exposed={exposed || isPerContentExposed ? true : undefined}
-      data-canvas-overridden={isOverridden ? true : undefined}
+      data-canvas-exposed={exposed ? true : undefined}
       style={style}
     >
       {/* Template editor: a full-cover trigger opens the slot menu on right-click
@@ -229,97 +187,6 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
             }}
           />
         </SlotContextMenu>
-      )}
-      {/* Per-content editing: reverting an override is a rare action, so it
-          lives in the slot's right-click menu rather than a persistent chip.
-          A full-cover trigger (under the drop zones / child overlays, which
-          stay interactive on top) opens it on right-click. */}
-      {perContentMode &&
-        isPerContentExposed &&
-        isOverridden &&
-        perContentAlias && (
-          <ContextMenu.Root>
-            <ContextMenu.Trigger>
-              <div
-                aria-label={`Slot ${slotName} (${parentComponentName})`}
-                className={styles.slotContextTrigger}
-                data-canvas-overlay="true"
-              />
-            </ContextMenu.Trigger>
-            <UnifiedMenu.Content
-              menuType="context"
-              align="start"
-              side="right"
-              aria-label={`Options for ${perContentEntry?.definition.label}`}
-            >
-              <UnifiedMenu.Label>
-                {perContentEntry?.definition.label}
-              </UnifiedMenu.Label>
-              <UnifiedMenu.Separator />
-              <UnifiedMenu.Item
-                onClick={() => dispatch(revertSlotOverride(perContentAlias))}
-                data-testid={`slot-revert-${slotId}`}
-              >
-                Revert to default
-              </UnifiedMenu.Item>
-            </UnifiedMenu.Content>
-          </ContextMenu.Root>
-        )}
-      {/* Per-content editing: a locked exposed slot (default content, not yet
-          overridden) is selectable only as a whole. A full-cover trigger
-          captures clicks/hover and its default content overlays are suppressed
-          below; left-click opens the locked-slot panel and right-click offers
-          Unlock directly. */}
-      {isLocked && perContentAlias && (
-        <>
-          <ContextMenu.Root>
-            <ContextMenu.Trigger>
-              <button
-                type="button"
-                aria-label={`Locked slot ${perContentEntry?.definition.label ?? slotName}`}
-                className={styles.lockedSlotTrigger}
-                data-testid={`slot-locked-${slotId}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setNonRoutedSelection(slotId);
-                }}
-                onMouseOver={(event) => {
-                  event.stopPropagation();
-                  dispatch(setHoveredComponent(slotId));
-                }}
-                onMouseOut={(event) => {
-                  event.stopPropagation();
-                  dispatch(unsetHoveredComponent());
-                }}
-              />
-            </ContextMenu.Trigger>
-            <UnifiedMenu.Content
-              menuType="context"
-              align="start"
-              side="right"
-              aria-label={`Options for ${perContentEntry?.definition.label ?? slotName}`}
-            >
-              <UnifiedMenu.Label>
-                {perContentEntry?.definition.label ?? slotName}
-              </UnifiedMenu.Label>
-              <UnifiedMenu.Separator />
-              <UnifiedMenu.Item
-                onClick={() =>
-                  dispatch(overrideSlotDefaultContent(perContentAlias))
-                }
-                data-testid={`slot-unlock-${slotId}`}
-              >
-                Unlock
-              </UnifiedMenu.Item>
-            </UnifiedMenu.Content>
-          </ContextMenu.Root>
-          {(isHovered || isSlotSelected) && (
-            <div className={styles.lockBadge} aria-hidden="true">
-              <LockClosedIcon />
-              <span>{perContentEntry?.definition.label ?? slotName}</span>
-            </div>
-          )}
-        </>
       )}
       {isTemplateContext
         ? // Template editor: exposed slots show a persistent marker chip; other
@@ -353,23 +220,17 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
               </DropdownMenu.Root>
             </div>
           )
-        : perContentMode
-          ? // Per-content editing: no floating chip. A locked slot's default is
-            // unlocked from the contextual panel when the slot is selected
-            // (@see LockedSlotPanel); reverting an override lives in the slot's
-            // right-click menu.
-            null
-          : (targetSlot === slotId || isHovered) && (
-              <div
-                className={clsx(styles.canvasNameTag, styles.canvasNameTagSlot)}
-              >
-                <SlotNameTag
-                  name={`${slotName} (${parentComponentName})`}
-                  id={slotId}
-                  nodeType={slot.nodeType}
-                />
-              </div>
-            )}
+        : (targetSlot === slotId || isHovered) && (
+            <div
+              className={clsx(styles.canvasNameTag, styles.canvasNameTagSlot)}
+            >
+              <SlotNameTag
+                name={`${slotName} (${parentComponentName})`}
+                id={slotId}
+                nodeType={slot.nodeType}
+              />
+            </div>
+          )}
       {!visibleComponents.length && !dropDisabled && (
         <EmptySlotDropZone
           slot={slot}
@@ -378,20 +239,17 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
         />
       )}
 
-      {/* A locked slot suppresses its default content's overlays entirely (no
-          hover, selection or name tags); the whole slot is the single unit. */}
-      {!isLocked &&
-        visibleComponents.map((childComponent: ComponentNode, index) => (
-          <ComponentOverlay
-            key={childComponent.uuid}
-            iframeRef={iframeRef}
-            parentSlot={slot}
-            component={childComponent}
-            index={index}
-            disableDrop={dropDisabled}
-            forceRecalculate={forceRecalculateChildren}
-          />
-        ))}
+      {visibleComponents.map((childComponent: ComponentNode, index) => (
+        <ComponentOverlay
+          key={childComponent.uuid}
+          iframeRef={iframeRef}
+          parentSlot={slot}
+          component={childComponent}
+          index={index}
+          disableDrop={dropDisabled}
+          forceRecalculate={forceRecalculateChildren}
+        />
+      ))}
 
       {/* @todo - these SlotDropZones might become useful in future for handling more complex nested "container" components */}
       {/*{!disableDrop && (*/}
