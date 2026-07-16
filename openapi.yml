@@ -3690,6 +3690,11 @@ components:
             required:
               - sourceType
               - required
+            anyOf:
+              - required:
+                  - expression
+              - required:
+                  - sources
             properties:
               sourceType:
                 type: string

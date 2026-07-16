@@ -47,8 +47,9 @@ level deep, composed from existing prop shapes:
      transforms.
 2. **One level of depth.** Sub-properties may use any existing prop shape except another inline object: scalars
    (string, integer, number, boolean, including enums and supported string formats), arrays of those scalars, and the
-   well-known `$ref` shapes. String sub-properties are plain strings: `contentMediaType` is not supported inside
-   `properties`. The depth limit is enforced in one validation constraint, so lifting it later is localized.
+   well-known `$ref` shapes — except content entity references, whose `dataDependencies.entityFields` projection
+   exists only for top-level props today. String sub-properties are plain strings: `contentMediaType` is not supported
+   inside `properties`. The depth limit is enforced in one validation constraint, so lifting it later is localized.
 3. **Multi-value groups reuse the array branch.** A group with "allow multiple values" serializes as `type: array` with
    `items: {type: object, properties: ...}`. The existing array branch of `computeStorablePropShape()` resolves the
    item shape; the composite source carries a list of per-item value sets and evaluates to a JSON array of objects,

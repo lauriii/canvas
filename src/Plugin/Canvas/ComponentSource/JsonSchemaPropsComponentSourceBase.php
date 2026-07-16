@@ -1204,12 +1204,23 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       '#prefix' => '<div id="' . $wrapper_id . '">',
       '#suffix' => '</div>',
     ];
-    $shown_items = 0;
+    $deltas = [];
     for ($delta = 0; $delta < $items_count; $delta++) {
-      if (\in_array($delta, $state['removed'], TRUE)) {
-        continue;
+      if (!\in_array($delta, $state['removed'], TRUE)) {
+        $deltas[] = $delta;
       }
-      $shown_items++;
+    }
+    // Removing the last item leaves one fresh empty item, like core's
+    // multiple-value widgets: the form then still carries the group's
+    // sub-property keys, so the client model is updated (to an empty group)
+    // instead of keeping the stale stored value.
+    if ($deltas === []) {
+      $deltas = [$items_count];
+      $state['items_count'] = $items_count + 1;
+      $form_state->set($storage_key, $state);
+    }
+    $shown_items = \count($deltas);
+    foreach ($deltas as $delta) {
       $element['items'][$delta] = [
         '#type' => 'container',
         '#canvas_object_props_group' => 'item',

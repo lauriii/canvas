@@ -548,8 +548,10 @@ definition. See ADR 11.
 
 Code components may define custom `type: object` props with an inline `properties` map, at most one level deep: a
 "group". Sub-properties may use any supported prop shape except another inline object: scalar types (including enums
-and supported string formats), arrays of those scalars, and the well-known `$ref` shapes (image, video, content entity
-reference). String sub-properties are plain strings: `contentMediaType` is not supported inside `properties`. Groups
+and supported string formats), arrays of those scalars, and the well-known `$ref` shapes (image, video). Content
+entity references are not yet supported as sub-properties: their `dataDependencies.entityFields` projection exists
+only for top-level props. String sub-properties are plain strings: `contentMediaType` is not supported inside
+`properties`. Groups
 support multiple values via `type: array` + `items` carrying the inline `properties` map. See
 [ADR 0021](adr/0021-object-props-in-code-components.md).
 

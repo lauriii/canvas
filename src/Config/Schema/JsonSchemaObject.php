@@ -132,12 +132,12 @@ final class JsonSchemaObject extends Mapping {
     // Array-shaped sub-properties of a custom object shape ("allow multiple
     // values" on a sub-property).
     if ($detail['type'] === 'array' && $allow_object_sub_properties && \is_array($detail['items'] ?? NULL)) {
+      // The item definition is the direct value of `sequence`.
+      // @see \Drupal\Core\Config\Schema\Sequence::getElementDefinition()
       return [
         'type' => 'sequence',
         'label' => $detail['title'] ?? '',
-        'sequence' => [
-          $this->buildPropertyDefinition($detail['items'], $property_name, $allow_object_sub_properties, $parent, $name),
-        ],
+        'sequence' => $this->buildPropertyDefinition($detail['items'], $property_name, $allow_object_sub_properties, $parent, $name),
       ];
     }
 
