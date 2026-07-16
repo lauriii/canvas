@@ -266,6 +266,23 @@ export function getPropsValues(
     >;
     return subSchemas[segments[segments.length - 1]];
   };
+  // Resolves the prop source for a form state key. Sub-properties of group
+  // object props use dotted keys; their value-less per-sub source prototypes
+  // live under the group source's `sources`.
+  const resolvePropSource = (key: string) => {
+    const source = (selectedModel as EvaluatedComponentModel).source;
+    if (source?.[key] !== undefined) {
+      return source[key];
+    }
+    const segments = key.split('.');
+    if (segments.length < 2) {
+      return undefined;
+    }
+    const groupSource = source?.[segments[0]] as
+      | { sources?: Record<string, unknown> }
+      | undefined;
+    return groupSource?.sources?.[segments[segments.length - 1]];
+  };
   const propsValues = Object.entries(
     formStateToObject(formState, selectedComponent),
   ).reduce((carry: PropsValues, [key, value]) => {
@@ -294,7 +311,7 @@ export function getPropsValues(
           return transformsList[transformer as keyof Transforms](
             transformed,
             config as any,
-            (selectedModel as EvaluatedComponentModel).source[key] as any,
+            resolvePropSource(key) as any,
           );
         },
         value,

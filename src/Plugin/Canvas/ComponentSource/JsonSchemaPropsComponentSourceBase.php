@@ -1153,8 +1153,21 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     }
 
     if (!$is_multiple) {
+      // A single-value group renders like a one-item list without add and
+      // remove: one compact row whose widgets open in a popover.
+      $element['items'] = [
+        '#type' => 'container',
+        '#canvas_object_props_group' => 'item_list',
+      ];
+      $element['items'][0] = [
+        '#type' => 'container',
+        '#canvas_object_props_group' => 'item',
+        '#attributes' => [
+          'data-item-label' => (string) $label,
+        ],
+      ];
       foreach ($source->getSubSources() as $sub_property_name => $sub_source) {
-        $element[$sub_property_name] = $this->buildObjectPropSubForm($component, $sdc_prop_name . '.' . $sub_property_name, $sub_property_name, $prop_field_definition['sub_definitions'][$sub_property_name], $sub_source, $is_required, $entity_object_for_field_widget, $object_schema, $form, $form_state, $transforms);
+        $element['items'][0][$sub_property_name] = $this->buildObjectPropSubForm($component, $sdc_prop_name . '.' . $sub_property_name, $sub_property_name, $prop_field_definition['sub_definitions'][$sub_property_name], $sub_source, $is_required, $entity_object_for_field_widget, $object_schema, $form, $form_state, $transforms);
       }
       return $element;
     }

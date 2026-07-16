@@ -264,6 +264,11 @@ export default function FormPropTypeGroupObject({
         <NestedPropDialog
           nestedProp={editedProp}
           isNewProp={isNewProp}
+          siblingMachineNames={properties
+            .filter((nested) => nested.id !== editedProp.id)
+            .map(
+              (nested) => nested.machineName ?? getPropMachineName(nested.name),
+            )}
           onChange={setEditedProp}
           onSave={handleSave}
           onDelete={handleDelete}
@@ -315,6 +320,11 @@ function NestedPropRow({
       aria-label={`Edit ${nestedProp.name || 'untitled prop'}`}
       onClick={() => !isDisabled && onEdit()}
       onKeyDown={(e) => {
+        // Ignore keyboard events bubbling from the drag handle: Space/Enter
+        // there starts keyboard dragging, not editing.
+        if (e.target !== e.currentTarget) {
+          return;
+        }
         if (!isDisabled && (e.key === 'Enter' || e.key === ' ')) {
           e.preventDefault();
           onEdit();
@@ -351,6 +361,7 @@ function NestedPropRow({
 function NestedPropDialog({
   nestedProp,
   isNewProp,
+  siblingMachineNames,
   onChange,
   onSave,
   onDelete,
@@ -358,6 +369,7 @@ function NestedPropDialog({
 }: {
   nestedProp: CodeComponentGroupNestedProp;
   isNewProp: boolean;
+  siblingMachineNames: string[];
   onChange: (nestedProp: CodeComponentGroupNestedProp) => void;
   onSave: () => void;
   onDelete: () => void;
@@ -372,6 +384,16 @@ function NestedPropDialog({
 
   const machineName =
     nestedProp.machineName ?? getPropMachineName(nestedProp.name);
+
+  // The component instance form keys sub-property widgets by dotted names
+  // (`groupName.subPropName`), so `.` and other special characters are
+  // reserved; sibling machine names must be unique to round-trip.
+  // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildObjectPropForm()
+  const machineNameError = !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(machineName)
+    ? 'Use only letters, numbers, and underscores, starting with a letter or underscore.'
+    : siblingMachineNames.includes(machineName)
+      ? 'This machine name is already used by another prop in this group.'
+      : null;
 
   const update = (updates: Partial<CodeComponentGroupNestedProp>) =>
     onChange({ ...nestedProp, ...updates });
@@ -396,7 +418,7 @@ function NestedPropDialog({
         cancelText: 'Cancel',
         confirmText: 'Save',
         onConfirm: onSave,
-        isConfirmDisabled: !nestedProp.name,
+        isConfirmDisabled: !nestedProp.name || !!machineNameError,
       }}
     >
       <Flex direction="column" gap="3">
@@ -464,11 +486,17 @@ function NestedPropDialog({
             id={`nested-prop-machine-name-${nestedProp.id}`}
             value={machineName}
             size="1"
+            color={machineNameError ? 'red' : undefined}
             onChange={(e) => {
               setMachineNameEdited(true);
               update({ machineName: e.target.value });
             }}
           />
+          {machineNameError && (
+            <Text size="1" color="red">
+              {machineNameError}
+            </Text>
+          )}
         </FormElement>
         <Flex align="center" gap="2">
           <Label htmlFor={`nested-prop-required-${nestedProp.id}`}>

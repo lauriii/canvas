@@ -133,7 +133,7 @@ final class ObjectPropsComponentInstanceFormTest extends ApiLayoutControllerTest
         'ingredient' => ['name' => 'Sugar', 'amount' => 250.5, 'unit' => 'kg'],
         'authors' => [
           ['name' => 'Marie', 'link' => 'https://example.com/marie'],
-          ['name' => 'Hedy'],
+          ['name' => 'Joan'],
         ],
       ],
       'source' => [
@@ -143,7 +143,7 @@ final class ObjectPropsComponentInstanceFormTest extends ApiLayoutControllerTest
         'authors' => [
           'value' => [
             ['name' => 'Marie', 'link' => 'https://example.com/marie'],
-            ['name' => 'Hedy'],
+            ['name' => 'Joan'],
           ],
         ] + \array_intersect_key($client_side_info['propSources']['authors'], \array_flip(['sourceType', 'sources', 'sourceTypeSettings'])),
       ],
@@ -179,7 +179,7 @@ final class ObjectPropsComponentInstanceFormTest extends ApiLayoutControllerTest
     self::assertCount(1, $crawler->filter('[name*="authors.0.name"]'));
     self::assertCount(1, $crawler->filter('[name*="authors.1.name"]'));
     self::assertSame('Marie', $crawler->filter('[name*="authors.0.name"]')->attr('value'));
-    self::assertSame('Hedy', $crawler->filter('[name*="authors.1.name"]')->attr('value'));
+    self::assertSame('Joan', $crawler->filter('[name*="authors.1.name"]')->attr('value'));
     self::assertCount(1, $crawler->filter('input[type="submit"][value="Add new"][data-object-props-add]'));
     self::assertCount(2, $crawler->filter('input[type="submit"][value="Remove"][data-object-props-remove]'));
 

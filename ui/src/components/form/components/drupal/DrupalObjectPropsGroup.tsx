@@ -93,6 +93,8 @@ export const DrupalObjectPropsItem = ({
 }) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [displayValue, setDisplayValue] = useState('');
+  // Single-value groups render as a one-item list without a remove button.
+  const [canRemove, setCanRemove] = useState(false);
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
   const popoverContainerRef = useRef<HTMLDivElement>(null);
   const itemLabel = String(attributes['data-item-label'] || 'Item');
@@ -121,7 +123,14 @@ export const DrupalObjectPropsItem = ({
 
   useEffect(() => {
     // Wait a tick so the force-mounted popover children have rendered.
-    setTimeout(updateDisplayValue);
+    setTimeout(() => {
+      updateDisplayValue();
+      setCanRemove(
+        !!popoverContainerRef.current?.querySelector(
+          'input[data-object-props-remove]',
+        ),
+      );
+    });
   }, [children]);
 
   const setPopoverOpenAndRefocus = (open: boolean) => {
@@ -194,18 +203,20 @@ export const DrupalObjectPropsItem = ({
           </Popover.Close>
         </Flex>
         <Box>{children}</Box>
-        <Flex justify="center" className={styles.removeButtonContainer}>
-          <Button
-            data-object-props-remove-item="true"
-            variant="ghost"
-            color="red"
-            size="1"
-            onClick={handleRemove}
-          >
-            <TrashIcon />
-            Remove
-          </Button>
-        </Flex>
+        {canRemove && (
+          <Flex justify="center" className={styles.removeButtonContainer}>
+            <Button
+              data-object-props-remove-item="true"
+              variant="ghost"
+              color="red"
+              size="1"
+              onClick={handleRemove}
+            >
+              <TrashIcon />
+              Remove
+            </Button>
+          </Flex>
+        )}
       </Popover.Content>
     </Popover.Root>
   );

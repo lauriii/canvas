@@ -117,6 +117,18 @@ final class JsonSchemaPropsComponentInstanceUpdater implements ComponentInstance
       if (!$from_is_composite) {
         return $prop_field_definition_to_storable_prop_shape($from_definition)->fieldDataFitsIn($prop_field_definition_to_storable_prop_shape($to_definition));
       }
+      // Changing between a single-value group (one stored object) and a
+      // multi-value group (a stored list of objects) is a prop shape change:
+      // unsafe, because the stored input is not rewrapped. Single-value
+      // groups store no cardinality; multi-value groups always do. Changes
+      // between multi-value cardinalities follow the same rules as scalar
+      // props: increasing fits, decreasing is accepted data loss.
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentDiscoveryBase
+      $from_is_single = !\array_key_exists('cardinality', $from_definition);
+      $to_is_single = !\array_key_exists('cardinality', $to_definition);
+      if ($from_is_single !== $to_is_single) {
+        return FALSE;
+      }
       $common_sub_property_names = \array_keys(\array_intersect_key($to_definition['sub_definitions'], $from_definition['sub_definitions']));
       foreach ($common_sub_property_names as $sub_property_name) {
         $from_sub = $prop_field_definition_to_storable_prop_shape($from_definition['sub_definitions'][$sub_property_name]);
