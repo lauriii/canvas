@@ -168,11 +168,11 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
           selection is held in redux only (@see setNonRoutedSelection). */}
       {isTemplateContext && (
         <SlotContextMenu slot={slot} parentComponent={parentComponent}>
-          <div
+          <button
+            type="button"
             aria-label={`Slot ${slotName} (${parentComponentName})`}
             className={styles.slotContextTrigger}
             data-canvas-overlay="true"
-            style={{ cursor: 'pointer' }}
             onClick={(event) => {
               event.stopPropagation();
               setNonRoutedSelection(slotId);
