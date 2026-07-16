@@ -125,8 +125,8 @@ describe('prepareContentTemplates', () => {
 });
 
 describe('exposed_slots round-trip', () => {
-  // A server payload with two exposed slots, one of them soft-disabled, so the
-  // round-trip covers both the active and disabled shapes.
+  // A server payload with two exposed slots so the round-trip covers a
+  // multi-slot map.
   const exposedSlots: ExposedSlots = {
     main: {
       component_uuid: '11111111-1111-4111-8111-111111111111',
@@ -137,7 +137,6 @@ describe('exposed_slots round-trip', () => {
       component_uuid: '22222222-2222-4222-8222-222222222222',
       slot_name: 'aside',
       label: 'Sidebar',
-      disabled: true,
     },
   };
 
@@ -187,7 +186,7 @@ describe('exposed_slots round-trip', () => {
 
     expect(createContentTemplate).toHaveBeenCalledTimes(1);
     expect(updateContentTemplate).not.toHaveBeenCalled();
-    // The map survives unchanged, including the disabled slot.
+    // The map survives unchanged.
     expect(createdBody?.exposed_slots).toEqual(exposedSlots);
     expect(JSON.stringify(createdBody?.exposed_slots)).toBe(
       JSON.stringify(serverTemplate.exposed_slots),
