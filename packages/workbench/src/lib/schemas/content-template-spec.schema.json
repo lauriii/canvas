@@ -80,10 +80,6 @@
         "label": {
           "type": "string",
           "description": "Human-readable label for the exposed slot."
-        },
-        "disabled": {
-          "type": "boolean",
-          "description": "When true, the slot renders and edits as if not exposed while retaining its definition and per-entity content."
         }
       },
       "additionalProperties": false

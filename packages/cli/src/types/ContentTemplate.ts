@@ -10,7 +10,6 @@ export interface ExposedSlot {
   component_uuid: string;
   slot_name: string;
   label: string;
-  disabled?: boolean;
 }
 
 /**
