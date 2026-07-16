@@ -384,7 +384,13 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
       throw new \LogicException('Content templates cannot be applied to entities that have their own component trees.');
     }
 
-    return $this->getMergedComponentTree($entity)->toRenderable($this, $isPreview, $suppressAnnotationsFor);
+    // The template replaces field formatters, so it honors field-level view
+    // access the way formatter-rendered fields do, and the access results'
+    // cacheability must end up in the render array.
+    $cacheability = new CacheableMetadata();
+    $build = $this->getMergedComponentTree($entity, $cacheability)->toRenderable($this, $isPreview, $suppressAnnotationsFor);
+    $cacheability->merge(CacheableMetadata::createFromRenderArray($build))->applyTo($build);
+    return $build;
   }
 
   /**
@@ -394,8 +400,16 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
    * content (the entity's backing `component_tree` field) merged into its
    * target slot: what actually renders for the entity, as opposed to
    * getComponentTree(), which is the template's stored defaults.
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity the template renders.
+   * @param \Drupal\Core\Cache\RefinableCacheableDependencyInterface|null $cacheability
+   *   When given, field-level view access is enforced: a slot field the user
+   *   may not view renders the template default (mirroring how formatters
+   *   skip view-denied fields), and the access results' cacheability is added
+   *   here. Pass NULL for access-independent consumers (search indexing).
    */
-  public function getMergedComponentTree(FieldableEntityInterface $entity): ComponentTreeItemList {
+  public function getMergedComponentTree(FieldableEntityInterface $entity, ?RefinableCacheableDependencyInterface $cacheability = NULL): ComponentTreeItemList {
     $merged_tree = $this->getComponentTree($entity);
     // Each exposed slot is backed by its own `component_tree` field on the
     // bundle; merge each field's content into the template's target slot. A
@@ -407,6 +421,13 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
       }
       $slot_field = $entity->get($field_name);
       \assert($slot_field instanceof ComponentTreeItemList);
+      if ($cacheability !== NULL) {
+        $access = $slot_field->access('view', NULL, TRUE);
+        $cacheability->addCacheableDependency($access);
+        if (!$access->isAllowed()) {
+          continue;
+        }
+      }
       try {
         $merged_tree->injectSlotContent($definition['component_uuid'], $definition['slot_name'], $slot_field);
       }
