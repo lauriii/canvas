@@ -384,18 +384,24 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
       throw new \LogicException('Content templates cannot be applied to entities that have their own component trees.');
     }
 
-    // Without exposed slots, the entity has no per-entity content to merge.
-    $exposed_slots = $this->getExposedSlots();
-    if (empty($exposed_slots)) {
-      return $this->getComponentTree($entity)->toRenderable($this, $isPreview, $suppressAnnotationsFor);
-    }
+    return $this->getMergedComponentTree($entity)->toRenderable($this, $isPreview, $suppressAnnotationsFor);
+  }
 
+  /**
+   * Gets the effective component tree for an entity rendered by this template.
+   *
+   * This is the template's own tree with each exposed slot's per-entity
+   * content (the entity's backing `component_tree` field) merged into its
+   * target slot: what actually renders for the entity, as opposed to
+   * getComponentTree(), which is the template's stored defaults.
+   */
+  public function getMergedComponentTree(FieldableEntityInterface $entity): ComponentTreeItemList {
+    $merged_tree = $this->getComponentTree($entity);
     // Each exposed slot is backed by its own `component_tree` field on the
     // bundle; merge each field's content into the template's target slot. A
     // slot whose backing field is missing (e.g. deleted, or not yet created)
     // renders the template's own default.
-    $merged_tree = $this->getComponentTree($entity);
-    foreach ($exposed_slots as $field_name => $definition) {
+    foreach ($this->getExposedSlots() as $field_name => $definition) {
       if (!$entity->hasField($field_name)) {
         continue;
       }
@@ -413,7 +419,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
         Error::logException(\Drupal::logger('canvas'), $e);
       }
     }
-    return $merged_tree->toRenderable($this, $isPreview, $suppressAnnotationsFor);
+    return $merged_tree;
   }
 
   /**
