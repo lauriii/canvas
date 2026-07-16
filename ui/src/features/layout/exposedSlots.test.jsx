@@ -15,6 +15,7 @@ import {
   filterNonMarkerComponents,
   findExposedSlotEntry,
   findExposedSlotsInSubtree,
+  findSlotNestingConflict,
   isEmptySlotMarkerNode,
   isLockedSlotRegion,
 } from '@/features/layout/exposedSlots';
@@ -197,6 +198,86 @@ describe('exposedSlots helpers', () => {
   it('counts the exposed slots in a server-side map', () => {
     expect(countExposedSlots(exposedSlotsToServer(sliceShape))).toBe(2);
     expect(countExposedSlots(undefined)).toBe(0);
+  });
+
+  it('finds nesting conflicts blocking a slot exposure in both directions', () => {
+    // outer (comp-1/the_body, exposed as "hero") hosts inner (comp-3), whose
+    // own slot is the exposure candidate.
+    const layout = [
+      {
+        name: 'Content',
+        id: 'content',
+        nodeType: 'region',
+        components: [
+          {
+            nodeType: 'component',
+            uuid: 'comp-1',
+            type: 'sdc.canvas_test_all_props@1',
+            slots: [
+              {
+                nodeType: 'slot',
+                id: 'comp-1/the_body',
+                name: 'the_body',
+                components: [
+                  {
+                    nodeType: 'component',
+                    uuid: 'comp-3',
+                    type: 'sdc.canvas_test_all_props@1',
+                    slots: [
+                      {
+                        nodeType: 'slot',
+                        id: 'comp-3/the_body',
+                        name: 'the_body',
+                        components: [],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    const innerSlot = layout[0].components[0].slots[0].components[0].slots[0];
+    const outerSlot = layout[0].components[0].slots[0];
+    const exposedOuter = { hero: sliceShape.hero };
+    const exposedInner = {
+      inner: { label: 'Inner', slotName: 'the_body', componentUuid: 'comp-3' },
+    };
+
+    // Exposing the inner slot while the outer is exposed: blocked ('inside').
+    const inside = findSlotNestingConflict(
+      exposedOuter,
+      layout,
+      innerSlot,
+      'comp-3',
+    );
+    expect(inside?.direction).toBe('inside');
+    expect(inside?.alias).toBe('hero');
+
+    // Exposing the outer slot while the inner is exposed: blocked ('contains').
+    const contains = findSlotNestingConflict(
+      exposedInner,
+      layout,
+      outerSlot,
+      'comp-1',
+    );
+    expect(contains?.direction).toBe('contains');
+    expect(contains?.alias).toBe('inner');
+
+    // A sibling-hosted exposed slot does not block, nor does an empty map.
+    expect(
+      findSlotNestingConflict(
+        { footer: sliceShape.footer },
+        layout,
+        innerSlot,
+        'comp-3',
+      ),
+    ).toBe(null);
+    expect(
+      findSlotNestingConflict(undefined, layout, innerSlot, 'comp-3'),
+    ).toBe(null);
   });
 
   it('finds exposed slots hosted anywhere within a component subtree', () => {
