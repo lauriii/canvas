@@ -624,17 +624,20 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
   /**
    * Per-content editing honors field-level access on slot backing fields.
    *
-   * A slot field the user may not view is left out of the editable payload
-   * entirely; a write to a slot field the user may not edit is rejected.
+   * The layout is an editing surface, so a slot field the user may not view
+   * AND edit is left out of the editable payload entirely; crafted writes to
+   * an edit-denied field are rejected. Rendering only requires view access.
    *
    * @see canvas_test_field_access_entity_field_access()
    */
   public function testSlotFieldAccessIsHonored(): void {
     $this->container->get('module_installer')->install(['canvas_test_field_access']);
 
-    // A second exposed slot, backed by a field the test module restricts to
-    // holders of a permission the current user does not have.
+    // Two more exposed slots: one fully restricted (view and edit denied),
+    // one read-only (view allowed, edit denied), both gated on a permission
+    // the current user does not have.
     $this->createComponentTreeField('node', self::BUNDLE, 'canvas_slot_restricted');
+    $this->createComponentTreeField('node', self::BUNDLE, 'canvas_slot_readonly');
     $template = ContentTemplate::load('node.' . self::BUNDLE . '.full');
     self::assertInstanceOf(ContentTemplate::class, $template);
     $template->set('exposed_slots', $template->getExposedSlots() + [
@@ -643,24 +646,41 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
         'slot_name' => 'the_footer',
         'label' => 'Restricted',
       ],
+      'canvas_slot_readonly' => [
+        'component_uuid' => self::HOST_UUID,
+        'slot_name' => 'the_colophon',
+        'label' => 'Read-only',
+      ],
     ])->save();
 
+    $readonly_uuid = '88888888-8888-4888-8888-888888888888';
     $node = self::createTemplatedNode();
+    $node->set('canvas_slot_restricted', [$this->overrideRow('99999999-9999-4999-8999-999999999999', 'Hidden content')]);
+    $node->set('canvas_slot_readonly', [$this->overrideRow($readonly_uuid, 'Read-only content')]);
+    $node->save();
     $url = $this->getLayoutUrl($node)->toString();
 
-    // GET: the restricted slot contributes no layout node and reports no
-    // override state. The slot's existence (template config) stays visible in
-    // the metadata; only the entity's field data is protected.
+    // GET: neither access-limited slot contributes a layout node or override
+    // state — the client writes back every slot node it is served, so a
+    // view-only slot in the layout would poison every save. The slots'
+    // existence (template config) stays visible in the metadata; only the
+    // entity's field data is protected.
     $json = self::decodeResponse($this->request(Request::create($url)));
     self::assertSame([self::SLOT_FIELD], \array_column($json['layout'], 'id'));
     self::assertSame(['overridden' => FALSE, 'empty' => FALSE], $json['slotOverrides']['canvas_slot_restricted']);
+    self::assertSame(['overridden' => FALSE, 'empty' => FALSE], $json['slotOverrides']['canvas_slot_readonly']);
 
-    // POST: a layout node for the restricted slot is rejected.
+    // Rendering requires only view access: the read-only field's content
+    // renders, the view-denied field's does not.
+    self::assertStringContainsString('Read-only content', (string) $json['html']);
+    self::assertStringNotContainsString('Hidden content', (string) $json['html']);
+
+    // POST: a crafted layout node for an edit-denied slot is rejected.
     $post = $this->postBodyFrom($json);
     $post['layout'][] = [
       'nodeType' => 'region',
-      'id' => 'canvas_slot_restricted',
-      'name' => 'Restricted',
+      'id' => 'canvas_slot_readonly',
+      'name' => 'Read-only',
       'components' => [],
     ];
     try {
@@ -668,21 +688,41 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
       self::fail('Expected AccessDeniedHttpException for an edit-denied slot field.');
     }
     catch (AccessDeniedHttpException $e) {
-      self::assertStringContainsString('Access denied for the canvas_slot_restricted field.', $e->getMessage());
+      self::assertStringContainsString('Access denied for the canvas_slot_readonly field.', $e->getMessage());
     }
 
-    // Rendering honors view access too: content stored in the restricted
-    // field renders the template default, not the entity's content.
-    $node->set('canvas_slot_restricted', [$this->overrideRow('99999999-9999-4999-8999-999999999999', 'Hidden content')])->save();
-    $json = self::decodeResponse($this->request(Request::create($url)));
-    self::assertStringNotContainsString('Hidden content', (string) $json['html']);
+    // PATCH: addressing a component inside an edit-denied slot field can only
+    // be a crafted request (the layout never served it) and is rejected.
+    $patch_body = [
+      'componentInstanceUuid' => $readonly_uuid,
+      'componentType' => 'sdc.canvas_test_sdc.props-no-slots@' . $this->contentVersion,
+      'model' => [
+        'source' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+        'resolved' => ['heading' => 'Sneaky read-only edit'],
+      ],
+    ] + $this->getPatchContentsDefaults([$node], addRegions: FALSE);
+    try {
+      $this->request(Request::create($url, method: 'PATCH', content: \json_encode($patch_body, JSON_THROW_ON_ERROR)));
+      self::fail('Expected AccessDeniedHttpException for a component in an edit-denied slot field.');
+    }
+    catch (AccessDeniedHttpException $e) {
+      self::assertStringContainsString('Access denied for the canvas_slot_readonly field.', $e->getMessage());
+    }
 
-    // With the permission, the slot is a normal editable region and its
+    // With the permission, both slots are normal editable regions and all
     // content renders.
     $this->setUpCurrentUser([], ['edit any ' . self::BUNDLE . ' content', 'access content', 'edit canvas page components']);
     $json = self::decodeResponse($this->request(Request::create($url)));
-    self::assertSame([self::SLOT_FIELD, 'canvas_slot_restricted'], \array_column($json['layout'], 'id'));
+    $region_ids = \array_column($json['layout'], 'id');
+    \sort($region_ids);
+    self::assertSame([self::SLOT_FIELD, 'canvas_slot_readonly', 'canvas_slot_restricted'], $region_ids);
     self::assertStringContainsString('Hidden content', (string) $json['html']);
+    self::assertStringContainsString('Read-only content', (string) $json['html']);
   }
 
   /**
