@@ -47,7 +47,8 @@ const FrontendSelect = ({ settings }: FrontendSelectProps) => {
   const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
-  const canSyncComponents = getCanvasSettings().headlessEnabled === true;
+  const canSyncComponents =
+    getCanvasSettings().canAdministerHeadlessFrontends === true;
 
   useEffect(() => {
     const clearTimers = () => {

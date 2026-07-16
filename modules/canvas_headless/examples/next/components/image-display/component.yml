@@ -15,4 +15,4 @@ props:
           alt: Canvas image placeholder
           width: 1200
           height: 675
-slots: {}
+slots: []

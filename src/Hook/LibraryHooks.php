@@ -147,7 +147,7 @@ final class LibraryHooks {
     // @see \Drupal\canvas\Entity\JavaScriptComponent::getAssetLibrary()
     // @see \Drupal\canvas\EntityHandlers\CanvasAssetStorage::generateFiles()
     foreach (JavaScriptComponent::loadMultiple() as $component_id => $component) {
-      if ($component->isExternal()) {
+      if ($component->isExternal() && !$component->hasFallbackImplementation()) {
         continue;
       }
       $library_name = "astro_island." . $component_id;

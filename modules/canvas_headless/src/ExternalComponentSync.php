@@ -190,9 +190,6 @@ final class ExternalComponentSync {
 
     $storage = $this->entityTypeManager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
     $component = $storage->load($machine_name);
-    if ($component !== NULL && (!$component instanceof JavaScriptComponent || !$component->isExternal())) {
-      throw new \UnexpectedValueException("The component '$machine_name' already exists and is not external.");
-    }
 
     $values = [
       'machineName' => $machine_name,
@@ -204,6 +201,15 @@ final class ExternalComponentSync {
       'slots' => $slots,
       'dataDependencies' => [],
     ];
+    if ($component instanceof JavaScriptComponent) {
+      $values['dataDependencies'] = $component->get('dataDependencies');
+      foreach (['js', 'css'] as $asset_property) {
+        $assets = $component->get($asset_property);
+        if ($assets !== NULL) {
+          $values[$asset_property] = $assets;
+        }
+      }
+    }
     $candidate = $storage->create($values);
     \assert($candidate instanceof JavaScriptComponent);
     $violations = $candidate->getTypedData()->validate();
@@ -303,6 +309,7 @@ final class ExternalComponentSync {
       ->generateVersionHash();
 
     return $stored_canvas_component->getActiveVersion() === $candidate_version
+      && $stored_code_component->getComponentType() === $candidate->getComponentType()
       && $stored_code_component->label() === $candidate->label()
       && $stored_code_component->status() === $candidate->status()
       && $stored_canvas_component->label() === $candidate->label()

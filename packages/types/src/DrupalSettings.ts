@@ -77,10 +77,12 @@ export interface DrupalSettings {
     personalizationExtensionAvailable: boolean;
     // ⚠️ This is highly experimental and *will* be refactored.
     canvasAiMaxFileSize: number;
-    // Present when the Canvas Headless module is enabled and the user may
-    // administer its frontend list, independent of whether any frontend is
-    // configured yet. Gates the headless frontends screen.
-    headlessEnabled?: boolean;
+    // Present when the user may generate Canvas Headless previews. Also gates
+    // access to external components in the component library.
+    canAccessHeadlessPreview?: boolean;
+    // Present when the user may administer the site-wide frontend list,
+    // independent of whether any frontend is configured yet.
+    canAdministerHeadlessFrontends?: boolean;
     // Present when the Canvas Headless module embeds a frontend app in the
     // editor frame instead of the Drupal-rendered preview.
     headless?: HeadlessSettings;

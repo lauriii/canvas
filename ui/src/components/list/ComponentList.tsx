@@ -15,13 +15,16 @@ import type { FolderData } from './FolderList';
 
 interface ComponentListProps {
   searchTerm: string;
-  externalComponentsOnly: boolean;
+  visibility: ComponentVisibility;
 }
 
-const ComponentList = ({
-  searchTerm,
-  externalComponentsOnly,
-}: ComponentListProps) => {
+export type ComponentVisibility =
+  | 'all'
+  | 'external-only'
+  | 'non-external-only'
+  | 'non-external-and-fallback-external';
+
+const ComponentList = ({ searchTerm, visibility }: ComponentListProps) => {
   const { data: components, error, isLoading } = useGetComponentsQuery();
   const {
     data: folders,
@@ -30,18 +33,32 @@ const ComponentList = ({
   } = useGetFoldersQuery();
   const { showBoundary } = useErrorBoundary();
   const visibleComponents = useMemo(() => {
-    if (!externalComponentsOnly) {
+    if (visibility === 'all') {
       return components;
     }
 
     return Object.fromEntries(
-      Object.entries(components ?? {}).filter(
-        ([, component]) =>
-          component.library === 'primary_components' &&
-          component.type === 'external',
-      ),
+      Object.entries(components ?? {}).filter(([, component]) => {
+        if (visibility === 'external-only') {
+          return (
+            component.library === 'primary_components' &&
+            component.type === 'external'
+          );
+        }
+        if (visibility === 'non-external-only') {
+          return (
+            component.library !== 'primary_components' ||
+            component.type !== 'external'
+          );
+        }
+        return (
+          component.library !== 'primary_components' ||
+          component.type !== 'external' ||
+          component.hasFallbackImplementation === true
+        );
+      }),
     );
-  }, [components, externalComponentsOnly]);
+  }, [components, visibility]);
 
   useEffect(() => {
     if (error || foldersError) {

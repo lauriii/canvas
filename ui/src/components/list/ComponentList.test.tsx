@@ -50,10 +50,21 @@ const components: ComponentsList = {
   external: {
     ...baseComponent,
     id: 'js.external',
-    name: 'External component',
+    name: 'Metadata-only external component',
     library: 'primary_components',
     source: 'Code component',
     type: 'external',
+    hasFallbackImplementation: false,
+    transforms: [],
+  },
+  convertedExternal: {
+    ...baseComponent,
+    id: 'js.converted_external',
+    name: 'Converted external component',
+    library: 'primary_components',
+    source: 'Code component',
+    type: 'external',
+    hasFallbackImplementation: true,
     transforms: [],
   },
   react: {
@@ -82,6 +93,16 @@ const components: ComponentsList = {
     library: 'dynamic_components',
     source: 'Blocks',
   },
+  extension: {
+    ...baseComponent,
+    id: 'extension.example',
+    name: 'Extension component',
+    library: 'extension_components',
+    source: 'Extension',
+    propSources: {},
+    metadata: {},
+    transforms: {},
+  },
 };
 
 describe('ComponentList', () => {
@@ -99,20 +120,67 @@ describe('ComponentList', () => {
   });
 
   it('shows all component sources by default', () => {
-    render(<ComponentList searchTerm="" externalComponentsOnly={false} />);
+    render(<ComponentList searchTerm="" visibility="all" />);
 
-    expect(screen.getByText('External component')).toBeInTheDocument();
+    expect(
+      screen.getByText('Metadata-only external component'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Converted external component'),
+    ).toBeInTheDocument();
     expect(screen.getByText('React component')).toBeInTheDocument();
     expect(screen.getByText('SDC component')).toBeInTheDocument();
     expect(screen.getByText('Block component')).toBeInTheDocument();
+    expect(screen.getByText('Extension component')).toBeInTheDocument();
   });
 
   it('shows only external Code Components in configured headless mode', () => {
-    render(<ComponentList searchTerm="" externalComponentsOnly={true} />);
+    render(<ComponentList searchTerm="" visibility="external-only" />);
 
-    expect(screen.getByText('External component')).toBeInTheDocument();
+    expect(
+      screen.getByText('Metadata-only external component'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Converted external component'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('React component')).not.toBeInTheDocument();
     expect(screen.queryByText('SDC component')).not.toBeInTheDocument();
     expect(screen.queryByText('Block component')).not.toBeInTheDocument();
+    expect(screen.queryByText('Extension component')).not.toBeInTheDocument();
+  });
+
+  it('shows only standard components without headless preview access', () => {
+    render(<ComponentList searchTerm="" visibility="non-external-only" />);
+
+    expect(
+      screen.queryByText('Metadata-only external component'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Converted external component'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('React component')).toBeInTheDocument();
+    expect(screen.getByText('SDC component')).toBeInTheDocument();
+    expect(screen.getByText('Block component')).toBeInTheDocument();
+    expect(screen.getByText('Extension component')).toBeInTheDocument();
+  });
+
+  it('shows standard and converted components in fallback mode', () => {
+    render(
+      <ComponentList
+        searchTerm=""
+        visibility="non-external-and-fallback-external"
+      />,
+    );
+
+    expect(
+      screen.queryByText('Metadata-only external component'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Converted external component'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('React component')).toBeInTheDocument();
+    expect(screen.getByText('SDC component')).toBeInTheDocument();
+    expect(screen.getByText('Block component')).toBeInTheDocument();
+    expect(screen.getByText('Extension component')).toBeInTheDocument();
   });
 });

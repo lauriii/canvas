@@ -28,11 +28,9 @@ final class JsComponentAssetsMatchTypeConstraintValidator extends ConstraintVali
 
     foreach (['js', 'css'] as $property) {
       $has_assets = $data->get($property) !== NULL;
-      if ($data->isExternal() === $has_assets) {
+      if (!$data->isExternal() && !$has_assets) {
         $this->context->buildViolation(
-          $data->isExternal()
-            ? $constraint->assetsForbiddenMessage
-            : $constraint->assetsRequiredMessage,
+          $constraint->assetsRequiredMessage,
         )->atPath($property)->addViolation();
       }
     }

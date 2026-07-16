@@ -19,4 +19,4 @@ props:
       description: An absolute or site-relative destination.
       examples:
         - /canvas
-slots: {  }
+slots: []

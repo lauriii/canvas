@@ -25,7 +25,7 @@ end:
   submitted by a form in the banner: it clears the session cookies, and a
   `GET` link to it would be eligible for prefetching.
 - `/api/canvas/components` exposes the app's component registry (every
-  component under `components/canvas`) to the embedding Drupal
+  component under `components`) to the embedding Drupal
   Canvas site, protected by proof-by-redemption.
 
 The Drupal Canvas Headless SDK lives in the workspace packages
@@ -65,7 +65,7 @@ exist only for the in-repository layout.
 ## The component metadata endpoint
 
 `GET /api/canvas/components` answers the component registry: every
-component under `components/canvas/` (set in `canvas.config.json`) with a
+component under `components/` (set in `canvas.config.json`) with a
 `component.yml`, in a versioned JSON envelope. Drupal Canvas reads it to
 register the app's components.
 

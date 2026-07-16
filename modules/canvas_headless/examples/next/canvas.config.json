@@ -1,4 +1,9 @@
 {
-  "componentDir": "components/canvas",
-  "globalCssPath": "app/globals.css"
+  "componentDir": "components",
+  "globalCssPath": "app/globals.css",
+  "sync": {
+    "pages": false,
+    "contentTemplates": false,
+    "regions": false
+  }
 }

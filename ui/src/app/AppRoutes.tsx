@@ -72,7 +72,7 @@ const CodeEditorRoute = () => (
 );
 
 const HeadlessFrontendsUi = () =>
-  getCanvasSettings()?.headlessEnabled ? (
+  getCanvasSettings()?.canAdministerHeadlessFrontends ? (
     <UiShell>
       <HeadlessFrontendsPage />
     </UiShell>
