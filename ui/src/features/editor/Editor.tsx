@@ -41,7 +41,8 @@ const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
   const { isUndoable, dispatchUndo } = useUndoRedo();
   const latestError = useAppSelector(selectLatestError);
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
-  const { entityId, entityType, bundle, viewMode } = useParams();
+  const { entityId, entityType, bundle, viewMode, previewEntityId } =
+    useParams();
   const { navigateToTemplateEditor } = useEditorNavigation();
 
   useEffect(() => {
@@ -56,10 +57,12 @@ const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
     dispatch(setUpdatePreview(false));
     dispatch(setFirstLoadComplete(false));
     // A query error (409 conflict, per-content 403) belongs to the previously
-    // open entity; opening another one starts fresh instead of showing the
-    // stale error screen.
+    // open entity or template; opening another one starts fresh instead of
+    // showing the stale error screen. Template routes vary by bundle, view
+    // mode, and preview entity while entityId stays undefined, so those
+    // params participate too.
     dispatch(clearLatestError());
-  }, [dispatch, entityId, entityType]);
+  }, [dispatch, entityId, entityType, bundle, viewMode, previewEntityId]);
 
   if (latestError) {
     if (latestError.status === '409') {
