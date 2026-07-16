@@ -200,10 +200,14 @@
    on empty slot area open the menu; drop zones/child overlays paint on top. */
 .slotContextTrigger {
   position: absolute;
-  inset: 0;
   width: 100%;
   height: 100%;
+  padding: 0;
+  cursor: pointer;
   pointer-events: auto;
+  border: none;
+  background: transparent;
+  inset: 0;
 }
 
 /* Template editor: the exposed-slot marker chip / expose affordance. */
