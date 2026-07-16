@@ -8,7 +8,10 @@ import ErrorBoundary from '@/components/error/ErrorBoundary';
 import ConflictWarning from '@/features/editor/ConflictWarning';
 import ContentNotEditable from '@/features/editor/ContentNotEditable';
 import EditorFrame from '@/features/editorFrame/EditorFrame';
-import { selectLatestError } from '@/features/error-handling/queryErrorSlice';
+import {
+  clearLatestError,
+  selectLatestError,
+} from '@/features/error-handling/queryErrorSlice';
 import LayoutLoader from '@/features/layout/LayoutLoader';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 import TemplateLayout from '@/features/layout/TemplateLayout';
@@ -52,6 +55,10 @@ const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
   useEffect(() => {
     dispatch(setUpdatePreview(false));
     dispatch(setFirstLoadComplete(false));
+    // A query error (409 conflict, per-content 403) belongs to the previously
+    // open entity; opening another one starts fresh instead of showing the
+    // stale error screen.
+    dispatch(clearLatestError());
   }, [dispatch, entityId, entityType]);
 
   if (latestError) {
