@@ -92,8 +92,10 @@
   margin-bottom: 0;
 }
 
+/* The group header reads as the parent of the nested field labels: heavier
+   and less muted than the gray-11 labels below it. */
 .popoverLabel {
-  color: var(--gray-11);
+  color: var(--gray-12);
 }
 
 .removeButtonContainer {

@@ -197,7 +197,7 @@ export const DrupalObjectPropsItem = ({
         }}
       >
         <Flex justify="between" align="center" className={styles.popoverHeader}>
-          <Text size="1" weight="medium" className={styles.popoverLabel}>
+          <Text size="1" weight="bold" className={styles.popoverLabel}>
             {itemLabel}
           </Text>
           <Popover.Close aria-label="Close">
