@@ -28,6 +28,8 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\TestWith;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -549,6 +551,46 @@ HTML;
     // An unknown field is a 404.
     $this->expectException(NotFoundHttpException::class);
     $controller->usage($template, 'canvas_slot_missing');
+  }
+
+  /**
+   * A same-named storage of another field type cannot back a slot field.
+   *
+   * @legacy-covers \Drupal\canvas\Controller\ApiContentTemplateSlotFieldController::create
+   */
+  public function testSlotFieldCreateRejectsForeignStorageType(): void {
+    FieldStorageConfig::create([
+      'field_name' => 'canvas_slot_taken',
+      'entity_type' => 'node',
+      'type' => 'string',
+    ])->save();
+    ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [
+        [
+          'uuid' => '2842cc6f-9e2b-42a5-8400-e7d6363e08bf',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '0e79e884426a53ae',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+      ],
+    ])->setStatus(TRUE)->save();
+    $template = ContentTemplate::load('node.article.full');
+    self::assertInstanceOf(ContentTemplate::class, $template);
+
+    $controller = $this->container->get('class_resolver')
+      ->getInstanceFromDefinition(ApiContentTemplateSlotFieldController::class);
+    $request = Request::create('/', 'POST', content: (string) \json_encode(['fieldName' => 'canvas_slot_taken', 'label' => 'Taken']));
+    $this->expectException(ConflictHttpException::class);
+    $this->expectExceptionMessage('is not a component_tree field');
+    $controller->create($request, $template);
   }
 
   /**
