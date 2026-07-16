@@ -163,8 +163,10 @@ final class ComponentTreeLoader {
   /**
    * Lists the bundles of an entity type with exposed slots.
    *
-   * A bundle qualifies when it has at least one enabled content template that
-   * exposes at least one slot.
+   * A bundle qualifies when it has an enabled `full` content template that
+   * exposes at least one slot: per-content editing always resolves the `full`
+   * template (@see \Drupal\canvas\Controller\ApiLayoutController), so slots
+   * exposed only in other view modes must not qualify a bundle here.
    *
    * @param string $entity_type_id
    *   The content entity type ID.
@@ -180,6 +182,7 @@ final class ComponentTreeLoader {
     $storage = $this->entityTypeManager->getStorage(ContentTemplate::ENTITY_TYPE_ID);
     $enabled_templates = $storage->loadByProperties([
       'content_entity_type_id' => $entity_type_id,
+      'content_entity_type_view_mode' => 'full',
       'status' => TRUE,
     ]);
     $bundles = [];
