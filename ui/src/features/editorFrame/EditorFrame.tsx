@@ -34,12 +34,11 @@ import {
 import useComponentSelection from '@/hooks/useComponentSelection';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import useLayoutWatcher from '@/hooks/useLayoutWatcher';
+import useProtectedDeleteNode from '@/hooks/useProtectedDeleteNode';
 import useResizeObserver from '@/hooks/useResizeObserver';
 import useSyncParamsToState from '@/hooks/useSyncParamsToState';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { getHalfwayScrollPosition } from '@/utils/function-utils';
-
-import { deleteNode } from '../layout/layoutModelSlice';
 
 import type React from 'react';
 
@@ -76,6 +75,7 @@ const EditorFrame: React.FC = () => {
   const spaceKeyPressedRef = useRef(false);
   const { componentId: selectedComponent } = useParams();
   const { unsetSelectedComponent } = useComponentSelection();
+  const protectedDeleteNode = useProtectedDeleteNode();
   const panningModeRef = useRef(panningMode);
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
@@ -133,8 +133,13 @@ const EditorFrame: React.FC = () => {
   });
   useHotkeys(['Backspace', 'Delete'], () => {
     if (selectedComponent) {
-      dispatch(deleteNode(selectedComponent));
-      unsetSelectedComponent();
+      // Route through the exposed-slot delete protection: in the template
+      // editor the confirmation dialog owns the deletion (and alias cleanup)
+      // when the component hosts exposed slots.
+      const deferredToDialog = protectedDeleteNode(selectedComponent);
+      if (!deferredToDialog) {
+        unsetSelectedComponent();
+      }
     }
   });
   useHotkeys('mod+c', () => {
