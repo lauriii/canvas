@@ -149,7 +149,13 @@ const ContentPreviewSelector: React.FC<ContentPreviewSelectorProps> = ({
                         {editActions.map((action) => (
                           <DropdownMenu.Item
                             key={action.key}
-                            onSelect={action.run}
+                            onSelect={() => {
+                              // Close the selector before the action runs, so
+                              // the popover is not left open after navigating
+                              // or launching an external link.
+                              setOpen(false);
+                              action.run();
+                            }}
                             data-testid={`preview-${action.key}-${item.id}`}
                           >
                             <Flex gap="2" align="center">

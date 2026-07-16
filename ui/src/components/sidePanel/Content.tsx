@@ -44,7 +44,9 @@ const AddNewContent = ({ options }: { options: AddNewOption[] }) => {
         {options.map((option) => (
           <DropdownMenu.Item
             key={option.url}
-            onClick={() => window.open(option.url, '_blank')}
+            onClick={() =>
+              window.open(option.url, '_blank', 'noopener,noreferrer')
+            }
             data-testid={`canvas-content-new-${option.bundle}`}
           >
             <FileTextIcon />
