@@ -503,7 +503,7 @@ enum JsonSchemaType: string {
       if (\array_key_exists('contentMediaType', $sub_item_schema)) {
         return NULL;
       }
-      $sub_storable_prop_shape = $shape_repository->getStorablePropShape(PropShape::normalize($sub_property_schema));
+      $sub_storable_prop_shape = $shape_repository->getStorablePropShapeForSubProperty(PropShape::normalize($sub_property_schema));
       // Groups inside groups are rejected by validation; this also guards
       // against sub-properties without a storable shape. The requirements
       // checker names the unsupported sub-property.

@@ -5994,7 +5994,7 @@ describe('props in code editor', () => {
       await addProp('Group object', 'Author');
 
       // The group renders its summary and its own "New prop" action.
-      expect(screen.getByText(/Group object · Single/)).toBeInTheDocument();
+      expect(screen.getByText(/Group Object · Single/)).toBeInTheDocument();
 
       // Add a nested prop through the dialog.
       const dialog = await openNestedPropDialog();
@@ -6099,7 +6099,7 @@ describe('props in code editor', () => {
         ).toBe(true);
       });
       const props = selectCodeComponentProperty('props')(store.getState());
-      expect(screen.getByText(/Group object · Multiple/)).toBeInTheDocument();
+      expect(screen.getByText(/Group Object · Multiple/)).toBeInTheDocument();
       expect(serializeProps(props)).toEqual({
         authors: {
           title: 'Authors',

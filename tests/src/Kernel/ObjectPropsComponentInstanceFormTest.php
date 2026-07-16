@@ -120,25 +120,30 @@ final class ObjectPropsComponentInstanceFormTest extends ApiLayoutControllerTest
       $client_side_info['propSources']['authors']['default_values']['resolved'],
     );
 
-    // Build the form through the HTTP endpoint, like the client does.
+    // Build the form through the HTTP endpoint, like the client does. The
+    // values must differ from the component's example: values equal to the
+    // example are represented by a DefaultRelativeUrlPropSource and start
+    // from empty widgets.
+    // @see ::testDefaultRelativeUrlSourceRoundTrip()
+    // @see \Drupal\canvas\PropSource\DefaultRelativeUrlPropSource
     $page = Page::create(['title' => $this->randomMachineName()]);
     self::assertSame(SAVED_NEW, $page->save());
     $form_canvas_props = [
       'resolved' => [
-        'ingredient' => ['name' => 'Flour', 'amount' => 500.5, 'unit' => 'g'],
+        'ingredient' => ['name' => 'Sugar', 'amount' => 250.5, 'unit' => 'kg'],
         'authors' => [
-          ['name' => 'Ada', 'link' => 'https://example.com/ada'],
-          ['name' => 'Grace'],
+          ['name' => 'Marie', 'link' => 'https://example.com/marie'],
+          ['name' => 'Hedy'],
         ],
       ],
       'source' => [
         'ingredient' => [
-          'value' => ['name' => 'Flour', 'amount' => 500.5, 'unit' => 'g'],
+          'value' => ['name' => 'Sugar', 'amount' => 250.5, 'unit' => 'kg'],
         ] + \array_intersect_key($client_side_info['propSources']['ingredient'], \array_flip(['sourceType', 'sources', 'sourceTypeSettings'])),
         'authors' => [
           'value' => [
-            ['name' => 'Ada', 'link' => 'https://example.com/ada'],
-            ['name' => 'Grace'],
+            ['name' => 'Marie', 'link' => 'https://example.com/marie'],
+            ['name' => 'Hedy'],
           ],
         ] + \array_intersect_key($client_side_info['propSources']['authors'], \array_flip(['sourceType', 'sources', 'sourceTypeSettings'])),
       ],
@@ -167,16 +172,16 @@ final class ObjectPropsComponentInstanceFormTest extends ApiLayoutControllerTest
     self::assertCount(1, $crawler->filter('[name*="ingredient.name"]'));
     self::assertCount(1, $crawler->filter('[name*="ingredient.amount"]'));
     self::assertCount(1, $crawler->filter('select[name*="ingredient.unit"]'));
-    self::assertSame('Flour', $crawler->filter('[name*="ingredient.name"]')->attr('value'));
+    self::assertSame('Sugar', $crawler->filter('[name*="ingredient.name"]')->attr('value'));
 
     // The multi-value group renders one item form per stored item, with form
     // state keyed `propName.delta.subPropName`, plus add and remove buttons.
     self::assertCount(1, $crawler->filter('[name*="authors.0.name"]'));
     self::assertCount(1, $crawler->filter('[name*="authors.1.name"]'));
-    self::assertSame('Ada', $crawler->filter('[name*="authors.0.name"]')->attr('value'));
-    self::assertSame('Grace', $crawler->filter('[name*="authors.1.name"]')->attr('value'));
-    self::assertStringContainsString('Add new', $crawler->text());
-    self::assertStringContainsString('Remove', $crawler->text());
+    self::assertSame('Marie', $crawler->filter('[name*="authors.0.name"]')->attr('value'));
+    self::assertSame('Hedy', $crawler->filter('[name*="authors.1.name"]')->attr('value'));
+    self::assertCount(1, $crawler->filter('input[type="submit"][value="Add new"][data-object-props-add]'));
+    self::assertCount(2, $crawler->filter('input[type="submit"][value="Remove"][data-object-props-remove]'));
 
     // Every sub-property widget declares its transforms, keyed by its form
     // state key.
@@ -256,6 +261,61 @@ final class ObjectPropsComponentInstanceFormTest extends ApiLayoutControllerTest
       ['name' => 'Grace'],
       ['name' => 'Ada', 'link' => 'https://example.com/ada'],
     ], $explicit_input['resolved']['authors']->value);
+  }
+
+  /**
+   * Fresh instances of group props round-trip through the example fallback.
+   *
+   * A component instance that has no author-entered value for a group prop
+   * stores a DefaultRelativeUrlPropSource (the component's example, with
+   * relative URLs rewritten at runtime). ::inputToClientModel() must map that
+   * back to the default *composite* source for the client — not crash trying
+   * to conjure a single static prop source (regression: 500 on layout GET).
+   *
+   * @see \Drupal\canvas\PropSource\DefaultRelativeUrlPropSource
+   */
+  public function testDefaultRelativeUrlSourceRoundTrip(): void {
+    $component = self::getComponent();
+    $source = $component->getComponentSource();
+    \assert($source instanceof JsonSchemaPropsComponentSourceBase);
+    $client_side_info = $source->getClientSideInfo($component);
+    self::assertArrayHasKey('propSources', $client_side_info);
+
+    // A fresh instance: the client provides the composite source meta with no
+    // author-entered value, so the example fallback is stored.
+    $client_model = [
+      'source' => [
+        'ingredient' => \array_intersect_key($client_side_info['propSources']['ingredient'], \array_flip(['sourceType', 'sources', 'sourceTypeSettings'])),
+      ],
+      'resolved' => [
+        'ingredient' => [],
+      ],
+    ];
+    // @phpstan-ignore argument.type
+    $inputs = $source->clientModelToInput(self::TEST_UUID, $component, $client_model, NULL);
+    self::assertSame('default-relative-url', $inputs['ingredient']['sourceType'] ?? NULL);
+
+    // Store it on a page and round-trip back to the client model.
+    $page = Page::create(['title' => $this->randomMachineName()]);
+    $page->setComponentTree([
+      [
+        'uuid' => self::TEST_UUID,
+        'component_id' => $component->id(),
+        'component_version' => $component->getActiveVersion(),
+        'inputs' => $inputs,
+      ],
+    ]);
+    self::assertCount(0, $page->validate());
+    self::assertSame(SAVED_NEW, $page->save());
+    $item = $page->getComponentTree()->first();
+    \assert($item !== NULL);
+    $explicit_input = $source->getExplicitInput(self::TEST_UUID, $item);
+    // The preview keeps rendering the composed example…
+    self::assertSame(['name' => 'Flour', 'amount' => 500.5, 'unit' => 'g'], $explicit_input['resolved']['ingredient']->value);
+    // …while the form-facing source maps back to the (empty) composite.
+    $model = $source->inputToClientModel($explicit_input);
+    self::assertSame('object-props', $model['source']['ingredient']['sourceType']);
+    self::assertSame(['name', 'amount', 'unit'], \array_keys($model['source']['ingredient']['sources']));
   }
 
   /**

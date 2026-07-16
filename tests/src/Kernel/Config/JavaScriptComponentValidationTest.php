@@ -845,7 +845,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       [],
       [
         '' => 'Drupal Canvas does not know of a field type/widget to allow populating the <code>inner</code> sub-property of the <code>nested</code> prop, with the shape <code>{"type":"object","properties":{"x":{"type":"string"}}}</code>.',
-        'props.nested' => 'The "inner" sub-property declares an inline object. Object props are limited to one level of depth: use a well-known "$ref" shape or a scalar type instead.',
+        'props.nested' => 'The "<em class="placeholder">inner</em>" sub-property declares an inline object. Object props are limited to one level of depth: use a well-known "$ref" shape or a scalar type instead.',
       ],
     ];
 
@@ -862,7 +862,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       [],
       [
         '' => 'Drupal Canvas does not know of a field type/widget to allow populating the <code>group_with_html</code> prop, with the shape <code>{"type":"object","properties":{"body":{"type":"string","contentMediaType":"text/html"}}}</code>.',
-        'props.group_with_html' => 'The "body" sub-property declares "contentMediaType". Formatted text is not supported inside object props: use a plain string instead.',
+        'props.group_with_html' => 'The "<em class="placeholder">body</em>" sub-property declares "contentMediaType". Formatted text is not supported inside object props: use a plain string instead.',
       ],
     ];
 
@@ -879,7 +879,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       ],
       [],
       [
-        'props.group' => 'The "required" key lists "nonexistent", which is not one of the declared "properties".',
+        'props.group' => 'The "required" key lists "<em class="placeholder">nonexistent</em>", which is not one of the declared "properties".',
       ],
     ];
 
@@ -916,6 +916,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       [],
       [
         '' => 'Prop "ingredient" has invalid example value: [name] The property name is required',
+        'props.ingredient.examples.0' => "'name' is a required key.",
       ],
     ];
   }

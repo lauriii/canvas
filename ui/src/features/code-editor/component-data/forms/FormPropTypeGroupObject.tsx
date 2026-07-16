@@ -1,7 +1,34 @@
 import { useState } from 'react';
+import clsx from 'clsx';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  Badge,
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
+  CalendarIcon,
+  CheckboxIcon,
+  DragHandleDots2Icon,
+  ImageIcon,
+  Link2Icon,
+  ListBulletIcon,
+  PlusIcon,
+  TextIcon,
+  TokensIcon,
+  VideoIcon,
+} from '@radix-ui/react-icons';
+import {
   Box,
   Button,
   Flex,
@@ -21,14 +48,29 @@ import {
   FormElement,
   Label,
 } from '@/features/code-editor/component-data/FormElement';
-import SortableList from '@/features/code-editor/component-data/SortableList';
 import { getPropMachineName } from '@/features/code-editor/utils/utils';
 
+import type { DragEndEvent } from '@dnd-kit/core';
 import type {
   CodeComponentGroupNestedProp,
   CodeComponentProp,
   CodeComponentPropEnumItem,
 } from '@/types/CodeComponent';
+
+import styles from './FormPropTypeGroupObject.module.css';
+
+// The icon shown on a nested prop row, per derived prop type.
+// @see https://www.figma.com/design/ZSlXxBDIGLV2riMAxCv9QE (node 899-61353)
+const NESTED_PROP_TYPE_ICONS: Record<string, typeof TokensIcon> = {
+  text: TextIcon,
+  link: Link2Icon,
+  image: ImageIcon,
+  video: VideoIcon,
+  date: CalendarIcon,
+  boolean: CheckboxIcon,
+  listText: ListBulletIcon,
+  listInteger: ListBulletIcon,
+};
 
 // The prop types a nested prop of a group can use: any existing prop type
 // except another group (the one-level depth limit), formatted text (plain
@@ -119,72 +161,82 @@ export default function FormPropTypeGroupObject({
     setEditedProp(null);
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = properties.findIndex(
+        (nested) => nested.id === active.id,
+      );
+      const newIndex = properties.findIndex((nested) => nested.id === over.id);
+      const reordered = [...properties];
+      const [moved] = reordered.splice(oldIndex, 1);
+      reordered.splice(newIndex, 0, moved);
+      updateProperties(reordered);
+    }
+  };
+
   return (
     <Flex direction="column" gap="2" flexGrow="1">
       <Divider />
       <Flex align="center" gap="2">
         <Text size="1" color="gray">
-          Group object · {allowMultiple ? 'Multiple' : 'Single'} ·{' '}
-          {properties.length}{' '}
-          {properties.length === 1 ? 'nested prop' : 'nested props'}
+          Group Object · {allowMultiple ? 'Multiple' : 'Single'} ·{' '}
+          {properties.length} Prop
         </Text>
       </Flex>
-      <SortableList
-        items={properties}
-        getItemId={(nested) => nested.id}
-        onAdd={() => {
-          setIsNewProp(true);
-          setEditedProp(newNestedProp());
-        }}
-        onRemove={(nestedId) =>
-          updateProperties(
-            properties.filter((nested) => nested.id !== nestedId),
-          )
-        }
-        onReorder={(oldIndex, newIndex) => {
-          const reordered = [...properties];
-          const [moved] = reordered.splice(oldIndex, 1);
-          reordered.splice(newIndex, 0, moved);
-          updateProperties(reordered);
-        }}
-        isDisabled={isDisabled}
+      <div
+        className={styles.nestedArea}
         data-testid={`group-nested-props-${id}`}
-        addLabel="New prop"
-        moveAriaLabel="Move nested prop"
-        removeAriaLabel="Remove nested prop"
-        renderContent={(nested) => (
-          <Flex align="center" justify="between" gap="2" flexGrow="1">
-            <Flex direction="column" gap="1">
-              <Text size="2" weight="medium">
-                {nested.name || 'Untitled prop'}
-              </Text>
-              <Flex gap="2" align="center">
-                <Badge size="1" color="gray">
-                  {derivedPropTypes.find(
-                    (type) => type.type === nested.derivedType,
-                  )?.displayName ?? 'Text'}
-                </Badge>
-                {nested.required && (
-                  <Badge size="1" color="orange">
-                    Required
-                  </Badge>
-                )}
-              </Flex>
-            </Flex>
-            <Button
-              size="1"
-              variant="soft"
-              disabled={isDisabled}
-              onClick={() => {
-                setIsNewProp(false);
-                setEditedProp({ ...nested });
-              }}
-            >
-              Edit
-            </Button>
-          </Flex>
-        )}
-      />
+      >
+        <div className={styles.nestedHeader}>
+          <Text size="1" weight="medium" style={{ flexGrow: 1 }}>
+            Nested prop
+          </Text>
+          <Button
+            size="1"
+            variant="outline"
+            disabled={isDisabled}
+            onClick={() => {
+              setIsNewProp(true);
+              setEditedProp(newNestedProp());
+            }}
+          >
+            <PlusIcon />
+            New prop
+          </Button>
+        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={properties.map((nested) => nested.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className={styles.nestedList}>
+              {properties.map((nested) => (
+                <NestedPropRow
+                  key={nested.id}
+                  nestedProp={nested}
+                  isDisabled={isDisabled}
+                  onEdit={() => {
+                    setIsNewProp(false);
+                    setEditedProp({ ...nested });
+                  }}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </div>
       <Flex align="center" gap="2" mt="1">
         <input
           type="checkbox"
@@ -219,6 +271,80 @@ export default function FormPropTypeGroupObject({
         />
       )}
     </Flex>
+  );
+}
+
+/**
+ * One nested prop row: drag handle, type icon, "Name · Type"; click to edit.
+ */
+function NestedPropRow({
+  nestedProp,
+  isDisabled,
+  onEdit,
+}: {
+  nestedProp: CodeComponentGroupNestedProp;
+  isDisabled: boolean;
+  onEdit: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: nestedProp.id, disabled: isDisabled });
+  const TypeIcon =
+    NESTED_PROP_TYPE_ICONS[nestedProp.derivedType ?? ''] ?? TokensIcon;
+  const typeDisplayName =
+    derivedPropTypes.find((type) => type.type === nestedProp.derivedType)
+      ?.displayName ?? 'Text';
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={clsx(styles.nestedRow, {
+        [styles.nestedRowDragging]: isDragging,
+      })}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Edit ${nestedProp.name || 'untitled prop'}`}
+      onClick={() => !isDisabled && onEdit()}
+      onKeyDown={(e) => {
+        if (!isDisabled && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onEdit();
+        }
+      }}
+    >
+      <button
+        type="button"
+        className={styles.dragHandle}
+        aria-label="Move nested prop"
+        disabled={isDisabled}
+        onClick={(e) => e.stopPropagation()}
+        {...attributes}
+        {...listeners}
+      >
+        <DragHandleDots2Icon />
+      </button>
+      <span className={styles.typeIcon} aria-hidden="true">
+        <TypeIcon width={16} height={16} />
+      </span>
+      <Flex align="center" gap="2" flexGrow="1" minWidth="0">
+        <Text size="1" weight="medium" truncate>
+          {nestedProp.name || 'Untitled prop'}
+        </Text>
+        <span className={styles.dotSeparator} aria-hidden="true" />
+        <Text size="1" color="gray" truncate>
+          {typeDisplayName}
+        </Text>
+      </Flex>
+    </div>
   );
 }
 

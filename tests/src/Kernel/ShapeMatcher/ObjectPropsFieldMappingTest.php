@@ -48,6 +48,7 @@ final class ObjectPropsFieldMappingTest extends CanvasKernelTestBase {
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
     $this->installEntitySchema('path_alias');
+    $this->installSchema('node', ['node_access']);
     NodeType::create(['type' => 'article', 'name' => 'Article'])->save();
     foreach ([
       'field_street' => 'string',

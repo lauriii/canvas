@@ -1,0 +1,107 @@
+.itemList {
+  width: 100%;
+  border: 1px solid var(--gray-7);
+  border-radius: 4px;
+  background-color: var(--gray-a2);
+}
+
+/* The raw Drupal AJAX submit buttons stay in the form but are operated
+   through the styled "Add new" and "Remove" actions. */
+.itemList input[data-object-props-add],
+.popoverContent input[data-object-props-remove] {
+  display: none;
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 var(--space-2);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  text-align: left;
+  border: none;
+  border-bottom: 1px solid var(--gray-a5);
+  background-color: white;
+  gap: var(--space-2);
+}
+
+.itemRow:first-child {
+  border-radius: 4px 4px 0 0;
+}
+
+.itemRow:hover {
+  background-color: var(--blue-3);
+}
+
+.itemRow:focus {
+  outline: 2px solid var(--blue-8);
+  outline-offset: -2px;
+}
+
+.dragIcon {
+  flex-shrink: 0;
+  color: var(--gray-11);
+}
+
+.itemText {
+  display: block;
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  user-select: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--gray-12);
+}
+
+.addNew {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 24px;
+  cursor: pointer;
+  color: var(--blue-9);
+  border: none;
+  background-color: transparent;
+  font-size: var(--font-size-1);
+  gap: var(--space-1);
+}
+
+/* Popover styles, matching the multivalue field popover. */
+.popoverContent {
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  width: 260px;
+  max-width: 260px;
+  padding: 8px;
+  border: 1px solid var(--gray-6);
+  border-radius: 4px;
+  background-color: white;
+  box-shadow: var(--shadow-4);
+  gap: 4px;
+}
+
+.popoverHeader {
+  margin-bottom: 0;
+}
+
+.popoverLabel {
+  color: var(--gray-11);
+}
+
+.removeButtonContainer {
+  margin-top: var(--space-2);
+}
+
+/* Keep the force-mounted widgets in the form while the popover is closed. */
+.visuallyHiddenContent {
+  position: absolute;
+  left: -9999px;
+}

@@ -226,6 +226,12 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     }
 
     $propFieldDefinition = $propFieldDefinitions[$prop_name];
+    // Custom object props ("groups") have no single field type: they are
+    // composed of one StaticPropSource per sub-property.
+    // @see ::getDefaultPropSource()
+    if (\array_key_exists('sub_definitions', $propFieldDefinition)) {
+      throw new \OutOfRangeException(\sprintf("'%s' is a custom object prop ('group') on the Component '%s'; it has no single static prop source. Use ::getDefaultPropSource() instead.", $prop_name, $this->getComponentDescription()));
+    }
     $sdc_prop_source = [
       'sourceType' => 'static:field_item:' . $propFieldDefinition['field_type'],
       'value' => $propFieldDefinition['default_value'],
@@ -682,14 +688,15 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       // Also note that this will NOT run anymore for a given prop once the
       // Content Creator has specified a value in the generated field widget.
       if (PropSource::tryFrom($model['source'][$prop_name]['sourceType']) === PropSource::DefaultRelativeUrl) {
-        // TRICKY: use the default static prop source as-is, with its default
-        // value, because:
-        // - the server side can ONLY store a `StaticPropSource` if it actually
+        // TRICKY: use the default (static or object props) prop source as-is,
+        // with its default value, because:
+        // - the server side can ONLY store a `StaticPropSource` (or, for
+        //   custom object props, an `ObjectPropsSource`) if it actually
         //   contains a valid storable value (that also means not considered
         //   empty by the field type)
         // - the server side MUST fall back to a `DefaultRelativeUrlPropSource`
         //   to be able to render the component at all
-        $model['source'][$prop_name] = $this->getDefaultStaticPropSource($prop_name, FALSE)
+        $model['source'][$prop_name] = $this->getDefaultPropSource($prop_name, FALSE)
           ->toArray();
       }
       // Remove 'value' from source when it matches resolved value, unless NULL.
@@ -1137,6 +1144,9 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       '#type' => 'fieldset',
       '#title' => $label,
       '#disabled' => $disabled,
+      // Renders like a regular labeled field in the canvas_stark theme.
+      // @see themes/canvas_stark/templates/fieldset--canvas-object-props-group.html.twig
+      '#canvas_object_props_group' => 'group',
     ];
     if (isset($prop_schema['description'])) {
       $element['#description'] = $prop_schema['description'];
@@ -1155,8 +1165,6 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     // "items_count" widget state.
     // @see \Drupal\Core\Field\WidgetBase::formMultipleElements()
     $wrapper_id = Html::getId('canvas-object-props-' . $sdc_prop_name);
-    $element['#prefix'] = '<div id="' . $wrapper_id . '">';
-    $element['#suffix'] = '</div>';
     $storage_key = ['canvas_object_props', $sdc_prop_name];
     $state = $form_state->get($storage_key);
     if ($state === NULL) {
@@ -1170,20 +1178,36 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     // the client model gained items).
     $items_count = max($state['items_count'], $source->countItems());
 
+    // The item list and each item are containers rendered as custom elements
+    // (in the canvas_stark theme), so the client can present compact per-item
+    // rows whose widgets open in a popover.
+    // @see themes/canvas_stark/templates/form/container--canvas-object-props-item-list.html.twig
+    // @see ui/src/components/form/components/drupal/DrupalObjectPropsGroup.tsx
+    $element['items'] = [
+      '#type' => 'container',
+      '#canvas_object_props_group' => 'item_list',
+      // The add and remove buttons only rebuild the item list, so the group
+      // label outside this wrapper is unaffected by the AJAX replacement.
+      '#prefix' => '<div id="' . $wrapper_id . '">',
+      '#suffix' => '</div>',
+    ];
     $shown_items = 0;
     for ($delta = 0; $delta < $items_count; $delta++) {
       if (\in_array($delta, $state['removed'], TRUE)) {
         continue;
       }
       $shown_items++;
-      $element[$delta] = [
-        '#type' => 'fieldset',
-        '#title' => new TranslatableMarkup('@group_label item', ['@group_label' => $label]),
+      $element['items'][$delta] = [
+        '#type' => 'container',
+        '#canvas_object_props_group' => 'item',
+        '#attributes' => [
+          'data-item-label' => (string) new TranslatableMarkup('@group_label item', ['@group_label' => $label]),
+        ],
       ];
       foreach ($source->getSubSources($delta) as $sub_property_name => $sub_source) {
-        $element[$delta][$sub_property_name] = $this->buildObjectPropSubForm($component, $sdc_prop_name . '.' . $delta . '.' . $sub_property_name, $sub_property_name, $prop_field_definition['sub_definitions'][$sub_property_name], $sub_source, $is_required, $entity_object_for_field_widget, $object_schema, $form, $form_state, $transforms);
+        $element['items'][$delta][$sub_property_name] = $this->buildObjectPropSubForm($component, $sdc_prop_name . '.' . $delta . '.' . $sub_property_name, $sub_property_name, $prop_field_definition['sub_definitions'][$sub_property_name], $sub_source, $is_required, $entity_object_for_field_widget, $object_schema, $form, $form_state, $transforms);
       }
-      $element[$delta]['_remove'] = [
+      $element['items'][$delta]['_remove'] = [
         '#type' => 'submit',
         '#name' => \str_replace('.', '_', $sdc_prop_name) . '_' . $delta . '_object_props_remove',
         '#value' => new TranslatableMarkup('Remove'),
@@ -1192,6 +1216,9 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
         '#ajax' => [
           'callback' => [static::class, 'objectPropsAjax'],
           'wrapper' => $wrapper_id,
+        ],
+        '#attributes' => [
+          'data-object-props-remove' => 'true',
         ],
         '#canvas_object_props' => [
           'storage_key' => $storage_key,
@@ -1205,7 +1232,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     // -1 means unlimited cardinality.
     // @see \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
     if ($cardinality === -1 || $shown_items < $cardinality) {
-      $element['add_more'] = [
+      $element['items']['add_more'] = [
         '#type' => 'submit',
         '#name' => \str_replace('.', '_', $sdc_prop_name) . '_object_props_add_more',
         '#value' => new TranslatableMarkup('Add new'),
@@ -1214,6 +1241,9 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
         '#ajax' => [
           'callback' => [static::class, 'objectPropsAjax'],
           'wrapper' => $wrapper_id,
+        ],
+        '#attributes' => [
+          'data-object-props-add' => 'true',
         ],
         '#canvas_object_props' => [
           'storage_key' => $storage_key,

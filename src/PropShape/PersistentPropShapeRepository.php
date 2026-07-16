@@ -213,6 +213,16 @@ class PersistentPropShapeRepository extends CacheCollector implements PropShapeR
     return $this->get($key);
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getStorablePropShapeForSubProperty(PropShape $shape): StorablePropShape|ObjectPropsStorablePropShape|null {
+    // Sub-property shapes are implementation details of a composed custom
+    // object shape, so they are neither registered in this repository's
+    // discovery nor persisted in its cache.
+    return $this->readOnlyPropShapeRepository->getStorablePropShapeForSubProperty($shape);
+  }
+
   protected function updateCache($lock = TRUE): void {
     if ($this->isUpdateKernel) {
       parent::updateCache($lock);

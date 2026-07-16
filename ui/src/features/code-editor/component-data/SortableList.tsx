@@ -33,7 +33,6 @@ interface SortableListProps<T> {
   renderContent: (item: T) => React.ReactNode;
   getItemId: (item: T) => string;
   'data-testid'?: string;
-  addLabel?: string;
   moveAriaLabel?: string;
   removeAriaLabel?: string;
   isDisabled?: boolean;
@@ -47,7 +46,6 @@ export default function SortableList<T>({
   renderContent,
   getItemId,
   'data-testid': dataTestId,
-  addLabel = 'Add',
   moveAriaLabel = 'Move item',
   removeAriaLabel = 'Remove item',
   isDisabled = false,
@@ -102,7 +100,7 @@ export default function SortableList<T>({
             disabled={isDisabled}
           >
             <PlusIcon />
-            {addLabel}
+            Add
           </Button>
         </Flex>
       </SortableContext>
