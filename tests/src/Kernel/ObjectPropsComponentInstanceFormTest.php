@@ -121,9 +121,9 @@ final class ObjectPropsComponentInstanceFormTest extends ApiLayoutControllerTest
     );
 
     // Build the form through the HTTP endpoint, like the client does. The
-    // values must differ from the component's example: values equal to the
-    // example are represented by a DefaultRelativeUrlPropSource and start
-    // from empty widgets.
+    // values differ from the component's example; values equal to the
+    // example are represented by a DefaultRelativeUrlPropSource instead and
+    // prefill the widgets with the example (asserted further below).
     // @see ::testDefaultRelativeUrlSourceRoundTrip()
     // @see \Drupal\canvas\PropSource\DefaultRelativeUrlPropSource
     $page = Page::create(['title' => $this->randomMachineName()]);
@@ -191,6 +191,44 @@ final class ObjectPropsComponentInstanceFormTest extends ApiLayoutControllerTest
     self::assertArrayHasKey('ingredient.unit', $json['transforms']);
     self::assertSame(['link' => ['multiple' => FALSE]], $json['transforms']['authors.0.link']);
     self::assertSame(['mainProperty' => ['multiple' => FALSE]], $json['transforms']['authors.1.name']);
+
+    // A fresh instance (the client model equals the component's example, so
+    // the groups are represented by a DefaultRelativeUrlPropSource) prefills
+    // the widgets with the example values, like scalar props whose example
+    // is stored as the field's default value.
+    $fresh_form_canvas_props = [
+      'resolved' => [
+        'ingredient' => ['name' => 'Flour', 'amount' => 500.5, 'unit' => 'g'],
+        'authors' => [
+          ['name' => 'Ada', 'link' => 'https://example.com/ada'],
+          ['name' => 'Grace'],
+        ],
+      ],
+      'source' => [
+        'ingredient' => \array_intersect_key($client_side_info['propSources']['ingredient'], \array_flip(['sourceType', 'sources', 'sourceTypeSettings'])),
+        'authors' => \array_intersect_key($client_side_info['propSources']['authors'], \array_flip(['sourceType', 'sources', 'sourceTypeSettings'])),
+      ],
+    ];
+    $json = self::decodeResponse($this->request(Request::create(
+      '/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(),
+      'PATCH',
+      [
+        'form_canvas_tree' => json_encode([
+          'nodeType' => 'component',
+          'slots' => [],
+          'type' => "{$component->id()}@{$component->getActiveVersion()}",
+          'uuid' => self::TEST_UUID,
+        ], JSON_THROW_ON_ERROR),
+        'form_canvas_props' => json_encode($fresh_form_canvas_props, JSON_THROW_ON_ERROR),
+        'form_canvas_selected' => self::TEST_UUID,
+      ],
+    )));
+    $crawler = new Crawler($json['html']);
+    self::assertSame('Flour', $crawler->filter('[name*="ingredient.name"]')->attr('value'));
+    self::assertSame('500.5', $crawler->filter('[name*="ingredient.amount"]')->attr('value'));
+    self::assertSame('Ada', $crawler->filter('[name*="authors.0.name"]')->attr('value'));
+    self::assertSame('https://example.com/ada', $crawler->filter('[name*="authors.0.link"]')->attr('value'));
+    self::assertSame('Grace', $crawler->filter('[name*="authors.1.name"]')->attr('value'));
   }
 
   /**

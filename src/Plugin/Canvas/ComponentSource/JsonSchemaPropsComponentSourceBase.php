@@ -13,6 +13,7 @@ use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
@@ -1126,11 +1127,31 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     $disabled = FALSE;
     if (!$source instanceof ObjectPropsSource) {
       // Values of a DefaultRelativeUrlPropSource (the component's example) are
-      // not stored in the composite source; the Content Creator starts from
-      // empty widgets, like image props do.
+      // not stored in the composite source, but the widgets start from the
+      // example values — like scalar props, whose example is stored as the
+      // field's default value. Sub-values that can only be resolved through
+      // an entity at runtime (e.g. image URLs) stay empty, like top-level
+      // image props.
       // @see ::clientModelToInput()
       $disabled = !$source instanceof DefaultRelativeUrlPropSource;
+      $example = !$disabled
+        ? $component_schema['properties'][$sdc_prop_name]['examples'][0] ?? NULL
+        : NULL;
       $source = $default_source;
+      if (\is_array($example)) {
+        $entity_backed_subs = [];
+        foreach ($prop_field_definition['sub_definitions'] as $sub_property_name => $sub_definition) {
+          $sub_expression = StructuredDataPropExpression::fromString($sub_definition['expression']);
+          \assert($sub_expression instanceof FieldTypeBasedPropExpressionInterface);
+          if (self::expressionExampleRequiresEntity($sub_expression)) {
+            $entity_backed_subs[$sub_property_name] = TRUE;
+          }
+        }
+        $storable_example = $source->getCardinality() === 1
+          ? \array_diff_key($example, $entity_backed_subs)
+          : \array_map(static fn (array $item): array => \array_diff_key($item, $entity_backed_subs), $example);
+        $source = $source->withValue($storable_example, allow_empty: TRUE);
+      }
     }
 
     $prop_schema = $component_schema['properties'][$sdc_prop_name] ?? [];
@@ -1615,16 +1636,26 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
    * @see \Drupal\canvas\ComponentSource\UrlRewriteInterface
    */
   public static function exampleValueRequiresEntity(StorablePropShape $storable_prop_shape): bool {
-    if ($storable_prop_shape->fieldTypeProp instanceof ReferencePropExpressionInterface) {
+    return self::expressionExampleRequiresEntity($storable_prop_shape->fieldTypeProp);
+  }
+
+  /**
+   * Same as ::exampleValueRequiresEntity(), for a bare expression.
+   *
+   * Used for the sub-properties of a custom object shape ("group"), whose
+   * per-sub expressions are stored in `sub_definitions`.
+   */
+  public static function expressionExampleRequiresEntity(FieldTypeBasedPropExpressionInterface $field_type_prop): bool {
+    if ($field_type_prop instanceof ReferencePropExpressionInterface) {
       return TRUE;
     }
 
-    if ($storable_prop_shape->fieldTypeProp instanceof FieldTypePropExpression) {
-      return self::fieldTypePropExpressionExampleRequiresEntity($storable_prop_shape->fieldTypeProp) ?? FALSE;
+    if ($field_type_prop instanceof FieldTypePropExpression) {
+      return self::fieldTypePropExpressionExampleRequiresEntity($field_type_prop) ?? FALSE;
     }
 
-    \assert($storable_prop_shape->fieldTypeProp instanceof ObjectPropExpressionInterface);
-    foreach ($storable_prop_shape->fieldTypeProp->getObjectExpressions() as $sub_expr) {
+    \assert($field_type_prop instanceof ObjectPropExpressionInterface);
+    foreach ($field_type_prop->getObjectExpressions() as $sub_expr) {
       if ($sub_expr instanceof ReferencePropExpressionInterface) {
         return TRUE;
       }
