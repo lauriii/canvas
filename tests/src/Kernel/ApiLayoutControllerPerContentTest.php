@@ -11,6 +11,7 @@ use Drupal\canvas\Controller\ApiContentControllers;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Menu\ContentTemplateLayoutTask;
@@ -385,6 +386,133 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
     // The title change is applied to the auto-saved draft.
     self::assertSame('Renamed per-content', $this->getAutoSaveDraft($node)->label());
+  }
+
+  /**
+   * Removing a template-owned component from the merged tree is rejected.
+   *
+   * Deleting template chrome is as much a template mutation as moving it: a
+   * buggy or hostile client must not be able to make a template's component
+   * disappear through the per-entity layout endpoints.
+   */
+  public function testPostRejectsTemplateChromeRemoval(): void {
+    $node = self::createTemplatedNode();
+    $url = $this->getLayoutUrl($node)->toString();
+
+    $post = $this->postBodyFrom(self::decodeResponse($this->request(Request::create($url))));
+    // Drop the template-owned host component from the submitted merged tree.
+    $post['layout'][0]['components'] = \array_values(\array_filter(
+      $post['layout'][0]['components'],
+      static fn (array $component): bool => $component['uuid'] !== self::HOST_UUID,
+    ));
+    unset($post['model'][self::HOST_UUID]);
+
+    try {
+      $this->request(Request::create($url, method: 'POST', content: \json_encode($post, JSON_THROW_ON_ERROR)));
+      self::fail('Expected AccessDeniedHttpException for a removed template-owned component.');
+    }
+    catch (AccessDeniedHttpException $e) {
+      self::assertStringContainsString('cannot be removed', $e->getMessage());
+    }
+  }
+
+  /**
+   * Per-content editing must never write to global page regions.
+   *
+   * In per-content mode the global regions are locked template chrome: an
+   * unchanged round-trip passes without creating a region auto-save, and a
+   * structural change to a region is rejected.
+   */
+  public function testPostRejectsRegionChanges(): void {
+    $region_component_uuid = '55555555-5555-4555-8555-555555555555';
+    $region = PageRegion::create([
+      'theme' => 'stark',
+      'region' => 'sidebar_first',
+      'component_tree' => [
+        $this->overrideRow($region_component_uuid, 'Region content'),
+      ],
+    ]);
+    $region->enable()->save();
+    // Global regions only enter the per-content payload for users who may
+    // edit PageRegions — the scenario under test.
+    $this->setUpCurrentUser([], ['edit any ' . self::BUNDLE . ' content', 'access content', PageRegion::ADMIN_PERMISSION]);
+
+    $node = self::createTemplatedNode();
+    $url = $this->getLayoutUrl($node)->toString();
+    $get = self::decodeResponse($this->request(Request::create($url)));
+
+    // An unchanged round-trip passes and creates no auto-save for the region.
+    $response = $this->request(Request::create($url, method: 'POST', content: \json_encode($this->postBodyFrom($get), JSON_THROW_ON_ERROR)));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
+
+    // Removing the region's component is rejected: modifying an entity must
+    // never modify the region template.
+    $post = $this->postBodyFrom($get);
+    foreach ($post['layout'] as &$region_node) {
+      $region_node['components'] = \array_values(\array_filter(
+        $region_node['components'],
+        static fn (array $component): bool => $component['uuid'] !== $region_component_uuid,
+      ));
+    }
+    unset($region_node);
+    unset($post['model'][$region_component_uuid]);
+
+    try {
+      $this->request(Request::create($url, method: 'POST', content: \json_encode($post, JSON_THROW_ON_ERROR)));
+      self::fail('Expected AccessDeniedHttpException for a changed region.');
+    }
+    catch (AccessDeniedHttpException $e) {
+      self::assertStringContainsString('cannot be changed while editing content', $e->getMessage());
+    }
+    self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
+  }
+
+  /**
+   * A component hosted by a global region cannot be patched per-entity.
+   */
+  public function testPatchRejectsRegionComponent(): void {
+    $region_component_uuid = '66666666-6666-4666-8666-666666666666';
+    $region = PageRegion::create([
+      'theme' => 'stark',
+      'region' => 'sidebar_first',
+      'component_tree' => [
+        $this->overrideRow($region_component_uuid, 'Region content'),
+      ],
+    ]);
+    $region->enable()->save();
+    // Global regions only enter the per-content payload for users who may
+    // edit PageRegions — the scenario under test.
+    $this->setUpCurrentUser([], ['edit any ' . self::BUNDLE . ' content', 'access content', PageRegion::ADMIN_PERMISSION]);
+
+    $node = self::createTemplatedNode();
+    $url = $this->getLayoutUrl($node)->toString();
+    $patch_body = [
+      'componentInstanceUuid' => $region_component_uuid,
+      'componentType' => 'sdc.canvas_test_sdc.props-no-slots@' . $this->contentVersion,
+      'model' => [
+        'source' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+        'resolved' => ['heading' => 'Sneaky per-entity region edit'],
+      ],
+    ] + $this->getPatchContentsDefaults([$node]);
+
+    try {
+      $this->request(Request::create($url, method: 'PATCH', content: \json_encode($patch_body, JSON_THROW_ON_ERROR)));
+      self::fail('Expected AccessDeniedHttpException for a region-hosted target.');
+    }
+    catch (AccessDeniedHttpException $e) {
+      self::assertStringContainsString('cannot be edited per-entity', $e->getMessage());
+    }
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
   }
 
   /**

@@ -7,6 +7,7 @@ import { selectLayout } from '@/features/layout/layoutModelSlice';
 import {
   areConsecutiveSiblings,
   findComponentByUuid,
+  isNodeEditable,
   isParentOf,
 } from '@/features/layout/layoutUtils';
 import {
@@ -203,6 +204,13 @@ export function useComponentSelection() {
   // and preventing parent-child selection
   const handleComponentSelection = useCallback(
     (componentUuid: string, metaKey: boolean) => {
+      // Per-content editing: template-owned components are locked chrome and
+      // not individually selectable, from the canvas or the layers panel.
+      const component = findComponentByUuid(layout, componentUuid);
+      if (component && !isNodeEditable(component)) {
+        return;
+      }
+
       // Temp. while multi-selection is still in development
       if (!isDevMode) {
         updateSelectionInRedux(componentUuid);
