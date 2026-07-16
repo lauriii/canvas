@@ -151,6 +151,11 @@ export interface CKEditorHostProps {
   disabled?: boolean;
   /** Informs the editor's minimum height, like a textarea's rows. */
   minRows?: number;
+  /**
+   * `id` to assign to the editable element, so the field label keeps naming
+   * the editor for assistive technology.
+   */
+  editableId?: string;
 }
 
 /**
@@ -171,6 +176,7 @@ const CKEditorHost = ({
   onChange,
   disabled = false,
   minRows,
+  editableId,
 }: CKEditorHostProps) => {
   const editorRef = useRef<EditorInstance | null>(null);
 
@@ -194,6 +200,12 @@ const CKEditorHost = ({
       disabled={disabled}
       onReady={(editor) => {
         editorRef.current = editor as EditorInstance;
+
+        // Let the field label keep naming the editor for assistive
+        // technology.
+        if (editableId) {
+          editor.ui.view.editable.element?.setAttribute('id', editableId);
+        }
 
         // If a minimum row count is given, let that inform the editor's
         // minimum height.
