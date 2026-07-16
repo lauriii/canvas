@@ -148,6 +148,8 @@ export interface CKEditorHostProps {
    */
   initialValue: string;
   onChange: (markup: string) => void;
+  /** Called once the editor instance is mounted and interactive. */
+  onReady?: () => void;
   disabled?: boolean;
   /** Informs the editor's minimum height, like a textarea's rows. */
   minRows?: number;
@@ -174,6 +176,7 @@ const CKEditorHost = ({
   editorSettings,
   initialValue,
   onChange,
+  onReady,
   disabled = false,
   minRows,
   editableId,
@@ -221,6 +224,8 @@ const CKEditorHost = ({
             }
           }
         }
+
+        onReady?.();
       }}
       onChange={() => {
         if (!editorRef.current) {
