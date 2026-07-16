@@ -1698,10 +1698,12 @@ HTML,
     self::assertIsArray(\Drupal::service('serializer')->normalize($page));
   }
 
-  public static function providerInjectSubTreeItemList(): iterable {
+  public static function providerInjectSlotContent(): iterable {
+    $target_uuid = '72eb7863-ea7f-4e31-8cfe-01f0d0471682';
+    $target_slot = 'the_body';
     $initial_tree = [
       [
-        'uuid' => '72eb7863-ea7f-4e31-8cfe-01f0d0471682',
+        'uuid' => $target_uuid,
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
         'parent_uuid' => NULL,
         'inputs' => [
@@ -1713,18 +1715,30 @@ HTML,
         ],
       ],
     ];
-    $valid_exposed_slots = [
-      'exposed' => [
-        'component_uuid' => '72eb7863-ea7f-4e31-8cfe-01f0d0471682',
-        'slot_name' => 'the_body',
-      ],
-    ];
-    $valid_subtree = [
+    // The slot's per-entity content is stored in its own backing field as an
+    // ordinary tree: its root has an empty parent_uuid and empty slot.
+    $slot_field = [
       [
         'uuid' => 'caac2f59-6a47-41d5-8dc9-0fa99a7e6101',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'parent_uuid' => '72eb7863-ea7f-4e31-8cfe-01f0d0471682',
-        'slot' => 'the_body',
+        'parent_uuid' => NULL,
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'This is in an exposed slot',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+    ];
+    // After injection the root nests under the template's (component_uuid,
+    // slot_name).
+    $injected_subtree = [
+      [
+        'uuid' => 'caac2f59-6a47-41d5-8dc9-0fa99a7e6101',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'parent_uuid' => $target_uuid,
+        'slot' => $target_slot,
         'inputs' => [
           'heading' => [
             'sourceType' => 'static:field_item:string',
@@ -1735,105 +1749,91 @@ HTML,
       ],
     ];
 
-    // The subtree is properly injected into the exposed slot and its inputs are
-    // merged into the main tree.
+    // The slot field is injected into the exposed slot and its inputs are merged
+    // into the main tree.
     yield 'No error: everything merged properly' => [
       $initial_tree,
-      $valid_exposed_slots,
-      $valid_subtree,
-      \array_merge($initial_tree, $valid_subtree),
+      $target_uuid,
+      $target_slot,
+      $slot_field,
+      \array_merge($initial_tree, $injected_subtree),
     ];
 
-    // The subtree targets a slot that isn't exposed, so it's just ignored.
-    $subtree_in_non_existent_slot = $valid_subtree;
-    $subtree_in_non_existent_slot[0]['slot'] = 'not_exposed';
-    yield 'No error: subtrees do not match any exposed slots' => [
-      $initial_tree,
-      $valid_exposed_slots,
-      [$subtree_in_non_existent_slot],
-      $initial_tree,
-    ];
-
-    $tree_with_non_empty_slot = $initial_tree;
-    $tree_with_non_empty_slot[] = [
-      'uuid' => '2b86e95d-ebc3-4cdb-a7af-b203f415f08e',
-      'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-      'parent_uuid' => '72eb7863-ea7f-4e31-8cfe-01f0d0471682',
-      'slot' => 'the_body',
-      'inputs' => [
-        'heading' => [
-          'sourceType' => 'static:field_item:string',
-          'value' => 'This is and existing thing',
-          'expression' => 'ℹ︎string␟value',
+    $tree_with_default_content = \array_merge($initial_tree, [
+      [
+        'uuid' => '2b86e95d-ebc3-4cdb-a7af-b203f415f08e',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'parent_uuid' => $target_uuid,
+        'slot' => $target_slot,
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'This is the default content',
+            'expression' => 'ℹ︎string␟value',
+          ],
         ],
       ],
-    ];
-    yield 'Error: target slot is not empty' => [
-      $tree_with_non_empty_slot,
-      $valid_exposed_slots,
-      $valid_subtree,
-      "Cannot inject subtree because the targeted slot is not empty.",
+    ]);
+
+    // An empty slot field means the slot is not overridden: the template's
+    // default content stays in place.
+    yield 'No error: an empty slot field inherits the default' => [
+      $tree_with_default_content,
+      $target_uuid,
+      $target_slot,
+      [],
+      $tree_with_default_content,
     ];
 
-    $tree_with_conflicting_components = $initial_tree;
-    // Add a component to our tree which will conflict with one that is in the
-    // subtree.
-    $tree_with_conflicting_components[] = [
-      'uuid' => 'caac2f59-6a47-41d5-8dc9-0fa99a7e6101',
-      'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-      'inputs' => [
-        'heading' => [
-          'sourceType' => 'static:field_item:string',
-          'value' => 'This is an existing thing in the root of the template',
-          'expression' => 'ℹ︎string␟value',
+    // An override replaces the slot's default content entirely: the template's
+    // default subtree under the target slot is removed before injecting.
+    yield 'No error: an override replaces the default content' => [
+      $tree_with_default_content,
+      $target_uuid,
+      $target_slot,
+      $slot_field,
+      \array_merge($initial_tree, $injected_subtree),
+    ];
+
+    // A slot field whose UUID collides with a template component is rejected.
+    $tree_with_conflicting_components = \array_merge($initial_tree, [
+      [
+        'uuid' => 'caac2f59-6a47-41d5-8dc9-0fa99a7e6101',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'parent_uuid' => NULL,
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'This is an existing thing in the root of the template',
+            'expression' => 'ℹ︎string␟value',
+          ],
         ],
       ],
-    ];
+    ]);
     yield 'Error: subtree component already exists in the main tree' => [
       $tree_with_conflicting_components,
-      $valid_exposed_slots,
-      $valid_subtree,
+      $target_uuid,
+      $target_slot,
+      $slot_field,
       "Cannot inject subtree because some of its components are already in the final tree.",
-    ];
-
-    yield 'Error: target component UUID is not set' => [
-      $initial_tree,
-      [
-        'exposed' => [
-          'slot_name' => 'the_body',
-        ],
-      ],
-      [$valid_subtree],
-      "Cannot inject subtree because we don't know the UUID of the component instance to target.",
-    ];
-
-    yield 'Error: target component slot name is not set' => [
-      $initial_tree,
-      [
-        'exposed' => [
-          'component_uuid' => '72eb7863-ea7f-4e31-8cfe-01f0d0471682',
-        ],
-      ],
-      [$valid_subtree],
-      "Cannot inject subtree because we don't know the name of the component slot to target.",
     ];
   }
 
   /**
-   * Tests inject sub tree item list.
+   * Tests merging one exposed slot's backing field into the template tree.
    *
-   * @legacy-covers ::injectSubTreeItemList
+   * @legacy-covers ::injectSlotContent
    */
-  #[DataProvider('providerInjectSubTreeItemList')]
-  public function testInjectSubTreeItemList(array $initial_value, array $exposed_slot_info, array $subtrees, array|string $expected_tree_or_exception): void {
+  #[DataProvider('providerInjectSlotContent')]
+  public function testInjectSlotContent(array $initial_value, string $parent_uuid, string $slot_name, array $slot_field_value, array|string $expected_tree_or_exception): void {
     $target_tree = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
     $target_tree->setValue($initial_value);
 
-    $sub_tree = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
-    $sub_tree->setValue($subtrees);
+    $slot_field = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
+    $slot_field->setValue($slot_field_value);
 
     try {
-      $target_tree->injectSubTreeItemList($exposed_slot_info, $sub_tree);
+      $target_tree->injectSlotContent($parent_uuid, $slot_name, $slot_field);
       if (\is_array($expected_tree_or_exception)) {
         $expected_tree_or_exception = \array_map(static function (array $item) {
           // Inject version IDs.

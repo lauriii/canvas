@@ -67,7 +67,10 @@ abstract class ApiLayoutControllerTestBase extends KernelTestBase {
    */
   protected function filterLayoutForPost(string $content): string {
     $json = \json_decode($content, TRUE);
-    unset($json['isNew'], $json['isPublished'], $json['html'], $json['hasUnsavedStatusChange'], $json['translations']);
+    // `exposedSlots` is a read-only, client-facing representation emitted in the
+    // GET response; the write path reads `exposed_slots` from the body instead,
+    // so it cannot be POSTed back verbatim.
+    unset($json['isNew'], $json['isPublished'], $json['html'], $json['hasUnsavedStatusChange'], $json['translations'], $json['exposedSlots']);
     $json += ['clientInstanceId' => $this->randomString(100)];
     return \json_encode($json, JSON_THROW_ON_ERROR);
   }

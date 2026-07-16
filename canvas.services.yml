@@ -203,6 +203,7 @@ services:
   Drupal\canvas\Controller\ApiLayoutController: {}
   Drupal\canvas\Controller\ApiLogController: {}
   Drupal\canvas\Controller\ApiContentControllers: {}
+  Drupal\canvas\Controller\ApiContentTemplateSlotFieldController: {}
   Drupal\canvas\Controller\ApiMediaControllers: {}
   Drupal\canvas\Controller\ApiStagedConfigUpdateAutoSaveController: {}
   Drupal\canvas\Controller\ApiTranslationControllers: {}

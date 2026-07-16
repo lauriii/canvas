@@ -48,6 +48,13 @@
       "additionalProperties": {
         "$ref": "#/$defs/element"
       }
+    },
+    "exposedSlots": {
+      "type": "object",
+      "description": "Exposed slot definitions keyed by a stable machine-name alias. Content entities of the templated bundle store their per-entity slot content against these aliases. The inner keys mirror the server `exposed_slots` payload.",
+      "additionalProperties": {
+        "$ref": "#/$defs/exposedSlot"
+      }
     }
   },
   "additionalProperties": false,
@@ -55,6 +62,29 @@
     "required": ["root"]
   },
   "$defs": {
+    "exposedSlot": {
+      "type": "object",
+      "description": "A single exposed slot definition.",
+      "required": ["component_uuid", "slot_name", "label"],
+      "properties": {
+        "component_uuid": {
+          "type": "string",
+          "minLength": 1,
+          "description": "UUID of the template component instance that contains the exposed slot."
+        },
+        "slot_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Machine name of the component slot being exposed."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable label for the exposed slot."
+        }
+      },
+      "additionalProperties": false
+    },
     "element": {
       "type": "object",
       "required": ["type"],

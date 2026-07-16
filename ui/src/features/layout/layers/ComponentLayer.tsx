@@ -116,6 +116,80 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
     dispatch(toggleCollapsedLayer(componentId));
   };
 
+  const layerCollapsible = (
+    <Collapsible.Root
+      className="canvas--collapsible-root"
+      open={!isCollapsed}
+      onOpenChange={handleOpenChange}
+      data-canvas-uuid={component.uuid}
+    >
+      <SidebarNode
+        id={`layer-${componentId}-name`}
+        onMouseEnter={handleItemMouseEnter}
+        onMouseLeave={handleItemMouseLeave}
+        className="canvas-drag-handle"
+        title={nodeName}
+        draggable={true}
+        variant="component"
+        hovered={isHovered}
+        selected={isSelected}
+        disabled={disableDrop || isDragging}
+        open={component.slots.length ? !isCollapsed : false}
+        dropdownMenuContent={
+          <ComponentContextMenuContent
+            component={component}
+            menuType="dropdown"
+          />
+        }
+        indent={indent}
+        leadingContent={
+          <Flex>
+            <Box width="var(--space-4)" mr="1">
+              {component.slots.length > 0 ? (
+                <Collapsible.Trigger
+                  asChild={true}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
+                  <button
+                    aria-label={
+                      isCollapsed
+                        ? `Expand component tree`
+                        : `Collapse component tree`
+                    }
+                  >
+                    {isCollapsed ? <TriangleRightIcon /> : <TriangleDownIcon />}
+                  </button>
+                </Collapsible.Trigger>
+              ) : (
+                <Box />
+              )}
+            </Box>
+          </Flex>
+        }
+      />
+      {component.slots.length > 0 && (
+        <CollapsibleContent
+          className={clsx({
+            [styles.componentChildrenSelected]: isSelected,
+            [styles.componentChildrenDisabled]: disableDrop || isDragging,
+          })}
+        >
+          {component.slots.map((slot) => (
+            <SlotLayer
+              key={slot.id}
+              slot={slot}
+              indent={indent + 1}
+              parentNode={component}
+              disableDrop={disableDrop || isDragging}
+            />
+          ))}
+        </CollapsibleContent>
+      )}
+    </Collapsible.Root>
+  );
+
   return (
     <Box
       {...listeners}
@@ -133,81 +207,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
       position="relative"
     >
       <ComponentContextMenu component={component}>
-        <Collapsible.Root
-          className="canvas--collapsible-root"
-          open={!isCollapsed}
-          onOpenChange={handleOpenChange}
-          data-canvas-uuid={component.uuid}
-        >
-          <SidebarNode
-            id={`layer-${componentId}-name`}
-            onMouseEnter={handleItemMouseEnter}
-            onMouseLeave={handleItemMouseLeave}
-            className="canvas-drag-handle"
-            title={nodeName}
-            draggable={true}
-            variant="component"
-            hovered={isHovered}
-            selected={isSelected}
-            disabled={disableDrop || isDragging}
-            open={component.slots.length ? !isCollapsed : false}
-            dropdownMenuContent={
-              <ComponentContextMenuContent
-                component={component}
-                menuType="dropdown"
-              />
-            }
-            indent={indent}
-            leadingContent={
-              <Flex>
-                <Box width="var(--space-4)" mr="1">
-                  {component.slots.length > 0 ? (
-                    <Collapsible.Trigger
-                      asChild={true}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                      }}
-                    >
-                      <button
-                        aria-label={
-                          isCollapsed
-                            ? `Expand component tree`
-                            : `Collapse component tree`
-                        }
-                      >
-                        {isCollapsed ? (
-                          <TriangleRightIcon />
-                        ) : (
-                          <TriangleDownIcon />
-                        )}
-                      </button>
-                    </Collapsible.Trigger>
-                  ) : (
-                    <Box />
-                  )}
-                </Box>
-              </Flex>
-            }
-          />
-          {component.slots.length > 0 && (
-            <CollapsibleContent
-              className={clsx({
-                [styles.componentChildrenSelected]: isSelected,
-                [styles.componentChildrenDisabled]: disableDrop || isDragging,
-              })}
-            >
-              {component.slots.map((slot) => (
-                <SlotLayer
-                  key={slot.id}
-                  slot={slot}
-                  indent={indent + 1}
-                  parentNode={component}
-                  disableDrop={disableDrop || isDragging}
-                />
-              ))}
-            </CollapsibleContent>
-          )}
-        </Collapsible.Root>
+        {layerCollapsible}
       </ComponentContextMenu>
       {!isDragging && !disableDrop && (
         <>

@@ -12,6 +12,7 @@ use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
+use Drupal\Component\Serialization\Yaml;
 use Drupal\Core\Config\Entity\ConfigEntityUpdater;
 use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
 use Drupal\field\Entity\FieldConfig;
@@ -470,4 +471,20 @@ function canvas_post_update_0022_enforce_symmetrical_canvas_page_components_tran
   // it created.
   // @see \Drupal\Tests\canvas\Functional\Update\SymmetricalCanvasPageComponentsTranslationUpdateTest::testMissingOverride
   ComponentTreeFieldSymmetricalTranslationSynchronizer::ensureSymmetricalCanvasPageComponents();
+}
+
+/**
+ * Installs the empty-slot marker component on existing sites.
+ */
+function canvas_post_update_0023_install_empty_slot_marker(): void {
+  // config/install is only processed at module install time, but exposed
+  // slots need the marker component to represent empty overrides. Import the
+  // shipped config verbatim on sites that predate it.
+  if (Component::load(Component::EMPTY_SLOT_MARKER_ID) !== NULL) {
+    return;
+  }
+  $path = \Drupal::service('extension.list.module')->getPath('canvas') . '/config/install/canvas.component.canvas_slot_empty.marker.yml';
+  $values = Yaml::decode((string) \file_get_contents($path));
+  \assert(\is_array($values));
+  Component::create($values)->save();
 }

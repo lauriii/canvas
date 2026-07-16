@@ -3,7 +3,9 @@ import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { exposedSlotsToServer } from '@/features/layout/exposedSlots';
 import {
+  selectExposedSlots,
   selectLayout,
   selectModel,
   selectUpdatePreview,
@@ -39,6 +41,7 @@ const Preview: React.FC = () => {
   const layout = useAppSelector(selectLayout);
   const updatePreview = useAppSelector(selectUpdatePreview);
   const model = useAppSelector(selectModel);
+  const exposedSlots = useAppSelector(selectExposedSlots);
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const backgroundUpdate = useAppSelector(selectPreviewBackgroundUpdate);
   const entity_form_fields = useAppSelector(selectPageData);
@@ -88,6 +91,8 @@ const Preview: React.FC = () => {
             layout,
             model,
             entity_form_fields,
+            // Persist the exposed-slot working set alongside the layout.
+            exposed_slots: exposedSlotsToServer(exposedSlots),
           }).unwrap();
         }
       } catch (err) {
@@ -98,6 +103,7 @@ const Preview: React.FC = () => {
       layout,
       model,
       entity_form_fields,
+      exposedSlots,
       entityId,
       entityType,
       postPreview,

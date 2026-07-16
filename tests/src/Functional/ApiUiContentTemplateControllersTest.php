@@ -667,6 +667,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user.permissions',
       ],
       expected_cache_tags: [
+        'config:core.extension',
         'http_response',
         $content_entity_type_id . '_list:' . $bundle,
       ],
@@ -686,11 +687,11 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     }
 
     $expected = [
-      1 => ['id' => '1', 'label' => 'Entity 1'],
-      2 => ['id' => '2', 'label' => 'Entity 2'],
-      3 => ['id' => '3', 'label' => 'Entity 3'],
-      4 => ['id' => '4', 'label' => 'Entity 4'],
-      5 => ['id' => '5', 'label' => 'Entity 5'],
+      1 => ['id' => '1', 'label' => 'Entity 1', 'editUrl' => '/node/1/edit', 'manageFieldsUrl' => NULL],
+      2 => ['id' => '2', 'label' => 'Entity 2', 'editUrl' => '/node/2/edit', 'manageFieldsUrl' => NULL],
+      3 => ['id' => '3', 'label' => 'Entity 3', 'editUrl' => '/node/3/edit', 'manageFieldsUrl' => NULL],
+      4 => ['id' => '4', 'label' => 'Entity 4', 'editUrl' => '/node/4/edit', 'manageFieldsUrl' => NULL],
+      5 => ['id' => '5', 'label' => 'Entity 5', 'editUrl' => '/node/5/edit', 'manageFieldsUrl' => NULL],
     ];
     $json = $this->assertExpectedResponse(
       method: 'GET',
@@ -702,6 +703,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user.permissions',
       ],
       expected_cache_tags: [
+        'config:core.extension',
         'http_response',
         $content_entity_type_id . ':1',
         $content_entity_type_id . ':2',
@@ -731,6 +733,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user.permissions',
       ],
       expected_cache_tags: [
+        'config:core.extension',
         'http_response',
         $content_entity_type_id . ':1',
         $content_entity_type_id . ':2',
@@ -743,7 +746,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       expected_page_cache: 'UNCACHEABLE (request policy)',
       expected_dynamic_page_cache: 'MISS',
     );
-    $expected = [6 => ['id' => '6', 'label' => 'Entity LAST']] + $expected;
+    $expected = [6 => ['id' => '6', 'label' => 'Entity LAST', 'editUrl' => '/node/6/edit', 'manageFieldsUrl' => NULL]] + $expected;
     $this->assertSame($expected, $json);
 
     /** @var \Drupal\node\NodeInterface $updated_entity */
@@ -760,6 +763,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user.permissions',
       ],
       expected_cache_tags: [
+        'config:core.extension',
         'http_response',
         $content_entity_type_id . ':1',
         $content_entity_type_id . ':2',
@@ -773,12 +777,12 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       expected_dynamic_page_cache: 'MISS',
     );
     $expected = [
-      3 => ['id' => '3', 'label' => 'Updated article'],
-      6 => ['id' => '6', 'label' => 'Entity LAST'],
-      1 => ['id' => '1', 'label' => 'Entity 1'],
-      2 => ['id' => '2', 'label' => 'Entity 2'],
-      4 => ['id' => '4', 'label' => 'Entity 4'],
-      5 => ['id' => '5', 'label' => 'Entity 5'],
+      3 => ['id' => '3', 'label' => 'Updated article', 'editUrl' => '/node/3/edit', 'manageFieldsUrl' => NULL],
+      6 => ['id' => '6', 'label' => 'Entity LAST', 'editUrl' => '/node/6/edit', 'manageFieldsUrl' => NULL],
+      1 => ['id' => '1', 'label' => 'Entity 1', 'editUrl' => '/node/1/edit', 'manageFieldsUrl' => NULL],
+      2 => ['id' => '2', 'label' => 'Entity 2', 'editUrl' => '/node/2/edit', 'manageFieldsUrl' => NULL],
+      4 => ['id' => '4', 'label' => 'Entity 4', 'editUrl' => '/node/4/edit', 'manageFieldsUrl' => NULL],
+      5 => ['id' => '5', 'label' => 'Entity 5', 'editUrl' => '/node/5/edit', 'manageFieldsUrl' => NULL],
     ];
     $this->assertSame($expected, $json);
 
@@ -826,6 +830,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user',
       ],
       expected_cache_tags: [
+        'config:core.extension',
         'http_response',
         $content_entity_type_id . ':1',
         $content_entity_type_id . ':10',
@@ -845,16 +850,16 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     // Expected should now include the unpublished nodes and exclude
     // the oldest ones to maintain the 10-entity limit.
     $expected = [
-      11 => ['id' => '11', 'label' => 'New Entity 11'],
-      10 => ['id' => '10', 'label' => 'New Entity 10'],
-      9 => ['id' => '9', 'label' => 'New Entity 9'],
-      8 => ['id' => '8', 'label' => 'Unpublished Entity 2'],
-      7 => ['id' => '7', 'label' => 'Unpublished Entity 1'],
-      3 => ['id' => '3', 'label' => 'Updated article'],
-      6 => ['id' => '6', 'label' => 'Entity LAST'],
-      1 => ['id' => '1', 'label' => 'Entity 1'],
-      2 => ['id' => '2', 'label' => 'Entity 2'],
-      4 => ['id' => '4', 'label' => 'Entity 4'],
+      11 => ['id' => '11', 'label' => 'New Entity 11', 'editUrl' => '/node/11/edit', 'manageFieldsUrl' => NULL],
+      10 => ['id' => '10', 'label' => 'New Entity 10', 'editUrl' => '/node/10/edit', 'manageFieldsUrl' => NULL],
+      9 => ['id' => '9', 'label' => 'New Entity 9', 'editUrl' => '/node/9/edit', 'manageFieldsUrl' => NULL],
+      8 => ['id' => '8', 'label' => 'Unpublished Entity 2', 'editUrl' => '/node/8/edit', 'manageFieldsUrl' => NULL],
+      7 => ['id' => '7', 'label' => 'Unpublished Entity 1', 'editUrl' => '/node/7/edit', 'manageFieldsUrl' => NULL],
+      3 => ['id' => '3', 'label' => 'Updated article', 'editUrl' => '/node/3/edit', 'manageFieldsUrl' => NULL],
+      6 => ['id' => '6', 'label' => 'Entity LAST', 'editUrl' => '/node/6/edit', 'manageFieldsUrl' => NULL],
+      1 => ['id' => '1', 'label' => 'Entity 1', 'editUrl' => '/node/1/edit', 'manageFieldsUrl' => NULL],
+      2 => ['id' => '2', 'label' => 'Entity 2', 'editUrl' => '/node/2/edit', 'manageFieldsUrl' => NULL],
+      4 => ['id' => '4', 'label' => 'Entity 4', 'editUrl' => '/node/4/edit', 'manageFieldsUrl' => NULL],
     ];
     $this->assertSame($expected, $json);
   }
@@ -912,6 +917,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user.permissions',
       ],
       expected_cache_tags: [
+        'config:core.extension',
         'http_response',
         $content_entity_type_id . ':1',
         $content_entity_type_id . ':2',
@@ -925,9 +931,9 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     // Only published entities should be returned,
     // unpublished entities 4 and 5 should NOT be included.
     $expected = [
-      1 => ['id' => '1', 'label' => 'Published Entity 1'],
-      2 => ['id' => '2', 'label' => 'Published Entity 2'],
-      3 => ['id' => '3', 'label' => 'Published Entity 3'],
+      1 => ['id' => '1', 'label' => 'Published Entity 1', 'editUrl' => '/node/1/edit', 'manageFieldsUrl' => NULL],
+      2 => ['id' => '2', 'label' => 'Published Entity 2', 'editUrl' => '/node/2/edit', 'manageFieldsUrl' => NULL],
+      3 => ['id' => '3', 'label' => 'Published Entity 3', 'editUrl' => '/node/3/edit', 'manageFieldsUrl' => NULL],
     ];
     $this->assertSame($expected, $json);
   }
