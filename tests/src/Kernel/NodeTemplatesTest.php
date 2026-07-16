@@ -548,6 +548,16 @@ HTML;
     $data = \json_decode((string) $controller->usage($template, 'canvas_slot_custom')->getContent(), TRUE);
     self::assertSame(['overridden' => 3], $data);
 
+    // A field of another type is a 404 too, not a crash: the count query
+    // addresses a `uuid` property only `component_tree` field tables have.
+    try {
+      $controller->usage($template, 'body');
+      self::fail('Expected NotFoundHttpException for a non-component_tree field.');
+    }
+    catch (NotFoundHttpException) {
+      // The bundle has no such slot field.
+    }
+
     // An unknown field is a 404.
     $this->expectException(NotFoundHttpException::class);
     $controller->usage($template, 'canvas_slot_missing');

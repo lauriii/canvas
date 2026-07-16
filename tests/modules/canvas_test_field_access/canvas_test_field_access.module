@@ -22,6 +22,18 @@ function canvas_test_field_access_entity_field_access(string $operation, FieldDe
       reason: 'You do not have permission to edit this field.'
     )->cachePerPermissions();
   }
+  // An exposed-slot backing field with restricted access, for testing that
+  // per-content editing honors field-level access on slot fields (both
+  // operations: 'view' hides the slot from the editable payload, 'edit'
+  // rejects writes to it).
+  if ($field_definition->getTargetEntityTypeId() === 'node'
+    && $field_definition->getName() == 'canvas_slot_restricted'
+  ) {
+    return AccessResult::forbiddenIf(
+      condition: !$account->hasPermission('edit canvas page components'),
+      reason: 'You do not have permission to access this field.'
+    )->cachePerPermissions();
+  }
   if ($field_definition->getTargetEntityTypeId() === 'node'
     && $field_definition->getName() == 'title'
     && $operation == 'edit'

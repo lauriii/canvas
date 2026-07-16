@@ -610,6 +610,29 @@ export class ApiService {
   }
 
   /**
+   * Create the `component_tree` field backing an exposed slot on the
+   * template's bundle. A 409 means the field already exists, which is fine:
+   * provisioning is create-if-missing.
+   */
+  async createSlotField(
+    contentTemplateId: string,
+    fieldName: string,
+    label: string,
+  ): Promise<void> {
+    try {
+      await this.client.post(
+        `/canvas/api/v0/config/content_template/${encodeURIComponent(contentTemplateId)}/slot-fields`,
+        { fieldName, label },
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 409) {
+        return;
+      }
+      this.handleApiError(error);
+    }
+  }
+
+  /**
    * Delete a content template.
    */
   async deleteContentTemplate(id: string): Promise<void> {
