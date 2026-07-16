@@ -67,12 +67,15 @@ const asFormattedTextValue = (
   context: ClientWidgetContext,
 ): FormattedTextValue => {
   const candidate = value as Partial<FormattedTextValue> | undefined;
+  // Normalize the format against the currently usable formats: a stored
+  // format that is no longer permitted (or no longer allowed for this prop)
+  // must not be re-written on the next edit.
+  const usable =
+    typeof candidate?.format === 'string' &&
+    allowedFormats(context).some((format) => format.id === candidate.format);
   return {
     value: typeof candidate?.value === 'string' ? candidate.value : '',
-    format:
-      typeof candidate?.format === 'string' && candidate.format !== ''
-        ? candidate.format
-        : defaultFormatId(context),
+    format: usable ? (candidate.format as string) : defaultFormatId(context),
   };
 };
 
@@ -175,12 +178,27 @@ const FormattedTextAreaWidget = (props: ClientWidgetProps) => {
   // One session-cached fetch delivers the editor settings and asset
   // libraries for every permitted format; when it reports success the
   // CKEditor globals are on the page.
-  const { data, isSuccess } = useGetTextEditorSettingsQuery(undefined, {
-    skip: !needsEditor,
-  });
+  const { data, isSuccess, isError } = useGetTextEditorSettingsQuery(
+    undefined,
+    {
+      skip: !needsEditor,
+    },
+  );
   const editorSettings = isSuccess
     ? data?.editor?.formats?.[activeFormat?.id ?? '']?.editorSettings
     : undefined;
+  // The asset pipeline logs (rather than throws on) script-loading
+  // failures, so a successful query does not guarantee the CKEditor globals
+  // exist. When the fetch failed, or it succeeded without establishing the
+  // globals or this format's settings, degrade to an editable plain
+  // textarea instead of a dead form: raw markup editing keeps working and
+  // the server remains the processing authority.
+  const editorGlobalsReady = Boolean(
+    (window as { CKEditor5?: { editorClassic?: unknown } }).CKEditor5
+      ?.editorClassic,
+  );
+  const editorDegraded =
+    isError || (isSuccess && (!editorSettings || !editorGlobalsReady));
 
   // CKEditor is uncontrolled after mount: remount it (via key) when the
   // model value changes externally (undo/redo, selection change), not on the
@@ -193,6 +211,11 @@ const FormattedTextAreaWidget = (props: ClientWidgetProps) => {
     if (current.value !== lastEmitted.current) {
       setEditorEpoch((epoch) => epoch + 1);
     }
+    // Each model update consumes the marker: only the immediate round trip
+    // of this widget's own edit may skip the remount. Keeping it longer
+    // would wrongly suppress the remount when undo/redo returns the model
+    // to the last emitted markup.
+    lastEmitted.current = null;
   }
 
   const handleMarkupChange = (markup: string) => {
@@ -200,10 +223,10 @@ const FormattedTextAreaWidget = (props: ClientWidgetProps) => {
     onChange({ value: markup, format: current.format });
   };
 
-  const useEditor = activeFormat?.editor === 'ckeditor5';
+  const mountEditor = activeFormat?.editor === 'ckeditor5' && !editorDegraded;
   return (
     <>
-      {useEditor && editorSettings && (
+      {mountEditor && editorSettings && editorGlobalsReady && (
         <CKEditorHost
           key={`${activeFormat?.id}--${editorEpoch}`}
           editorSettings={editorSettings}
@@ -211,9 +234,10 @@ const FormattedTextAreaWidget = (props: ClientWidgetProps) => {
           onChange={handleMarkupChange}
           disabled={disabled}
           minRows={5}
+          editableId={inputId}
         />
       )}
-      {useEditor && !editorSettings && (
+      {mountEditor && !(editorSettings && editorGlobalsReady) && (
         // Placeholder while the (session-cached) editor settings and assets
         // load: falling back to the escape hatch here would issue the form
         // request this widget exists to avoid.
@@ -228,7 +252,7 @@ const FormattedTextAreaWidget = (props: ClientWidgetProps) => {
           }}
         />
       )}
-      {!useEditor && (
+      {!mountEditor && (
         <TextArea
           value={current.value}
           attributes={{

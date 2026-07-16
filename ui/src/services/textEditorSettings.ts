@@ -37,6 +37,11 @@ export const textEditorSettingsApi = createApi({
   baseQuery,
   endpoints: (builder) => ({
     getTextEditorSettings: builder.query<TextEditorSettings, void>({
+      // Session-length retention: RTK Query's default 60-second
+      // unused-cache expiry would re-fetch whenever no formatted text
+      // widget stays mounted, contradicting the fetch-once-per-session
+      // contract. This is RTK's maximum supported timer value (~24 days).
+      keepUnusedDataFor: 2147483,
       query: () => ({
         // ajaxPageState tells the server which asset libraries the page
         // already has, so their scripts are not delivered twice.

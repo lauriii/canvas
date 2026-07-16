@@ -79,6 +79,18 @@ describe('formatted text codec', () => {
     ).toEqual({ value: '<p>Processed</p>', format: 'canvas_html_inline' });
   });
 
+  it('normalizes a stored format that is no longer usable', () => {
+    // A format that was removed from the permitted or allowed list must not
+    // be re-written on the next edit.
+    expect(
+      codec.fromModel(
+        { value: '<p>Raw</p>', format: 'removed_format' },
+        undefined,
+        makeContext(['canvas_html_block']),
+      ),
+    ).toEqual({ value: '<p>Raw</p>', format: 'canvas_html_block' });
+  });
+
   it('defaults a missing format to the first allowed format', () => {
     expect(
       codec.fromModel(
