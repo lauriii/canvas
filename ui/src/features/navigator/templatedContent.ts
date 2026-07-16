@@ -65,9 +65,15 @@ export function getTemplatedEntityGroups(
     }
     const bundles: TemplatedBundle[] = [];
     for (const [bundle, bundleData] of Object.entries(typeData.bundles ?? {})) {
+      // "Active" means an enabled template exposing slots: the content list
+      // endpoint only accepts bundles backed by an enabled template, so a
+      // disabled-only bundle must not enter the navigator.
       const hasActiveExposedSlot = Object.values(
         bundleData.viewModes ?? {},
-      ).some((viewMode) => countExposedSlots(viewMode.exposed_slots) > 0);
+      ).some(
+        (viewMode) =>
+          viewMode.status && countExposedSlots(viewMode.exposed_slots) > 0,
+      );
       if (hasActiveExposedSlot) {
         bundles.push({ bundle, label: bundleData.label });
       }
