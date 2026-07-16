@@ -2,10 +2,10 @@
  * Expose-slot dialog coverage, migrated from the (deprecated) Cypress unit spec
  * ui/tests/unit/exposed-slots.cy.jsx (@see [[Playwright not Cypress]]).
  *
- * This spec is ALLOW_FAILURE. The first test (add-new path + detach) is largely
- * self-contained on the existing `article_translation` recipe, but the second
- * test ("defaults to reusing an existing slot field") needs a fixture that does
- * not exist yet.
+ * The first test (add-new path + detach) is self-contained on the existing
+ * `article_translation` recipe and runs. The second test ("defaults to reusing
+ * an existing slot field") stays test.fixme: it needs a fixture that does not
+ * exist yet.
  *
  * FIXTURE NEEDED:
  *   A recipe that seeds, on the Article bundle (in addition to its Full content
@@ -76,11 +76,7 @@ test.describe('Expose slot dialog', () => {
       .first();
   };
 
-  // test.fixme until executed green in CI: the shared `playwright-reports` job
-  // is blocking and fails if any Playwright test fails, so an unverified spec
-  // must not run. Un-fixme once validated (the second test also needs the
-  // exposed-slot fixture recipe described in the file header).
-  test.fixme('add-new path creates a canvas_slot_ field, then Detach removes it', async ({
+  test('add-new path creates a canvas_slot_ field, then Detach removes it', async ({
     page,
     drupal,
     canvas,
