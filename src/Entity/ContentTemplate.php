@@ -6,6 +6,7 @@ namespace Drupal\canvas\Entity;
 
 use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessControlHandler;
+use Drupal\canvas\Exception\SubtreeInjectionException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -25,6 +26,7 @@ use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Utility\Error;
 use Drupal\field\Entity\FieldConfig;
 
 /**
@@ -399,7 +401,17 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
       }
       $slot_field = $entity->get($field_name);
       \assert($slot_field instanceof ComponentTreeItemList);
-      $merged_tree->injectSlotContent($definition['component_uuid'], $definition['slot_name'], $slot_field);
+      try {
+        $merged_tree->injectSlotContent($definition['component_uuid'], $definition['slot_name'], $slot_field);
+      }
+      catch (SubtreeInjectionException $e) {
+        // A component UUID collision between the template and this slot field
+        // is rejected by the Layout API, but other write paths (JSON:API,
+        // programmatic saves) cannot be intercepted. It must not take the
+        // rendered page down: render the template's default for this slot and
+        // leave the entity's stored content untouched.
+        Error::logException(\Drupal::logger('canvas'), $e);
+      }
     }
     return $merged_tree->toRenderable($this, $isPreview, $suppressAnnotationsFor);
   }
