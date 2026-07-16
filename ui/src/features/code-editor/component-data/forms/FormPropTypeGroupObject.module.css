@@ -39,6 +39,21 @@
   border-color: var(--gray-6);
 }
 
+/* The row body is its own button, so the drag handle is not nested inside an
+   interactive element. */
+.rowEditButton {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  min-width: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  border: none;
+  background-color: transparent;
+  gap: var(--space-2);
+}
+
 .nestedRowDragging {
   z-index: 1;
   opacity: 0.5;

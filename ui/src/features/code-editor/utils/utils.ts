@@ -81,9 +81,14 @@ export function parsePropValueForPreview(
     case 'boolean':
       return String(prop.example) === 'true';
     case 'array':
-      // For multi-value props, return the array as-is
-      // It should already be an array of the correct type (string[] | number[])
-      return Array.isArray(prop.example) ? prop.example : [];
+      // For multi-value props, parse numeric items per the item type: a
+      // freshly toggled prop's example items are still strings.
+      if (!Array.isArray(prop.example)) {
+        return [];
+      }
+      return ['integer', 'number'].includes(prop.items?.type ?? '')
+        ? prop.example.filter((value) => value !== '').map(Number)
+        : prop.example;
     default:
       return prop.example as string;
   }

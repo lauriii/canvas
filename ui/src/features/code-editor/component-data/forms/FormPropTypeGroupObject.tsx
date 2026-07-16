@@ -346,45 +346,37 @@ function NestedPropRow({
         transform: CSS.Transform.toString(transform),
         transition,
       }}
-      role="button"
-      tabIndex={0}
-      aria-label={`Edit ${nestedProp.name || 'untitled prop'}`}
-      onClick={() => !isDisabled && onEdit()}
-      onKeyDown={(e) => {
-        // Ignore keyboard events bubbling from the drag handle: Space/Enter
-        // there starts keyboard dragging, not editing.
-        if (e.target !== e.currentTarget) {
-          return;
-        }
-        if (!isDisabled && (e.key === 'Enter' || e.key === ' ')) {
-          e.preventDefault();
-          onEdit();
-        }
-      }}
     >
       <button
         type="button"
         className={styles.dragHandle}
         aria-label="Move nested prop"
         disabled={isDisabled}
-        onClick={(e) => e.stopPropagation()}
         {...attributes}
         {...listeners}
       >
         <DragHandleDots2Icon />
       </button>
-      <span className={styles.typeIcon} aria-hidden="true">
-        <TypeIcon width={16} height={16} />
-      </span>
-      <Flex align="center" gap="2" flexGrow="1" minWidth="0">
-        <Text size="1" weight="medium" truncate>
-          {nestedProp.name || 'Untitled prop'}
-        </Text>
-        <span className={styles.dotSeparator} aria-hidden="true" />
-        <Text size="1" color="gray" truncate>
-          {typeDisplayName}
-        </Text>
-      </Flex>
+      <button
+        type="button"
+        className={styles.rowEditButton}
+        aria-label={`Edit ${nestedProp.name || 'untitled prop'}`}
+        disabled={isDisabled}
+        onClick={onEdit}
+      >
+        <span className={styles.typeIcon} aria-hidden="true">
+          <TypeIcon width={16} height={16} />
+        </span>
+        <Flex align="center" gap="2" flexGrow="1" minWidth="0">
+          <Text size="1" weight="medium" truncate>
+            {nestedProp.name || 'Untitled prop'}
+          </Text>
+          <span className={styles.dotSeparator} aria-hidden="true" />
+          <Text size="1" color="gray" truncate>
+            {typeDisplayName}
+          </Text>
+        </Flex>
+      </button>
     </div>
   );
 }
@@ -418,13 +410,17 @@ function NestedPropDialog({
 
   // The component instance form keys sub-property widgets by dotted names
   // (`groupName.subPropName`), so `.` and other special characters are
-  // reserved; sibling machine names must be unique to round-trip.
+  // reserved; sibling machine names must be unique to round-trip. Object
+  // prototype members are reserved too: assigning them as plain object keys
+  // would pollute the prototype instead of creating a sub-property.
   // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildObjectPropForm()
   const machineNameError = !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(machineName)
     ? 'Use only letters, numbers, and underscores, starting with a letter or underscore.'
-    : siblingMachineNames.includes(machineName)
-      ? 'This machine name is already used by another prop in this group.'
-      : null;
+    : ['__proto__', 'constructor', 'prototype'].includes(machineName)
+      ? 'This machine name is reserved.'
+      : siblingMachineNames.includes(machineName)
+        ? 'This machine name is already used by another prop in this group.'
+        : null;
 
   const update = (updates: Partial<CodeComponentGroupNestedProp>) =>
     onChange({ ...nestedProp, ...updates });
@@ -588,10 +584,13 @@ function NestedPropDialog({
               checked={nestedProp.allowMultiple ?? false}
               onChange={(e) => {
                 const checked = e.target.checked;
+                // The editor-state `type` stays scalar, matching deserialized
+                // nested props; serialization derives `type: array` from
+                // `allowMultiple` + `items`.
+                // @see serializePropDefinition()
                 if (checked) {
                   update({
                     allowMultiple: true,
-                    type: 'array',
                     items: {
                       type: nestedProp.type as 'string' | 'integer' | 'number',
                       ...(nestedProp.format && { format: nestedProp.format }),
@@ -606,10 +605,6 @@ function NestedPropDialog({
                 } else {
                   update({
                     allowMultiple: false,
-                    type: (nestedProp.items?.type ?? 'string') as
-                      | 'string'
-                      | 'integer'
-                      | 'number',
                     items: undefined,
                     valueMode: undefined,
                     limitedCount: undefined,

@@ -1229,7 +1229,11 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
         ],
       ];
       foreach ($source->getSubSources($delta) as $sub_property_name => $sub_source) {
-        $element['items'][$delta][$sub_property_name] = $this->buildObjectPropSubForm($component, $sdc_prop_name . '.' . $delta . '.' . $sub_property_name, $sub_property_name, $prop_field_definition['sub_definitions'][$sub_property_name], $sub_source, $is_required, $entity_object_for_field_widget, $object_schema, $form, $form_state, $transforms);
+        // Items of a multi-value group never mark their widgets as required:
+        // fully empty items are intentionally allowed (and dropped), even in
+        // a required group. Publish-time validation checks populated items.
+        // @see \Drupal\canvas\PropSource\ObjectPropsSource::evaluate()
+        $element['items'][$delta][$sub_property_name] = $this->buildObjectPropSubForm($component, $sdc_prop_name . '.' . $delta . '.' . $sub_property_name, $sub_property_name, $prop_field_definition['sub_definitions'][$sub_property_name], $sub_source, FALSE, $entity_object_for_field_widget, $object_schema, $form, $form_state, $transforms);
       }
       $element['items'][$delta]['_remove'] = [
         '#type' => 'submit',
