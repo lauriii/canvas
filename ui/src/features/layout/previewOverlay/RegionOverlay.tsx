@@ -154,9 +154,15 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
     <div
       className={clsx(
         [isPage && styles.pageOverlay, !isPage && styles.regionOverlay],
+        // Slot regions reuse the slot overlay's visual states: the locked
+        // cursor, and the selected outline + fill when the locked unit is
+        // selected.
+        isSlotRegion && styles.slotOverlay,
         {
           [styles.dropTarget]: region.id === targetSlot,
           [styles.hovered]: showHovered,
+          [styles.locked]: isSlotRegion && isLocked,
+          [styles.selected]: isSlotRegion && isSlotRegionSelected,
         },
         `canvas--region-overlay__${region.id}`,
       )}
