@@ -312,7 +312,7 @@ describe('exposed_slots round-trip', () => {
     expect(createContentTemplate).not.toHaveBeenCalled();
     // The update path provisions too: the authored file may reference slot
     // fields the target site has never seen (create-if-missing, 409 is fine).
-    // Only the prefixed field is provisionable.
+    // Only the prefixed field can be provisioned.
     expect(createSlotField).toHaveBeenCalledTimes(1);
     expect(updatedBody?.exposed_slots).toEqual(exposedSlots);
   });
