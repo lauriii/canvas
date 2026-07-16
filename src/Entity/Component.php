@@ -600,6 +600,15 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
   }
 
   public function preSave(EntityStorageInterface $storage): void {
+    // The empty-slot marker is internal: it must stay out of the component
+    // library (which lists only enabled Components), so it must never be
+    // enabled. Bulk operations can plausibly try — for example, a recipe
+    // config action enabling every `canvas.component.*.*` — so rather than
+    // rejecting such a save, force the marker to stay disabled.
+    // @see config/install/canvas.component.canvas_slot_empty.marker.yml
+    if ($this->id() === self::EMPTY_SLOT_MARKER_ID) {
+      $this->setStatus(FALSE);
+    }
     if (!$this->isSyncing()) {
       $this->getConfigUpdater()->updatePropFieldDefinitionsWithRequiredFlag($this);
       $this->getConfigUpdater()->updatePropFieldDefinitionsUsingTextValue($this);

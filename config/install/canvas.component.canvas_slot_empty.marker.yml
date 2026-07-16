@@ -10,8 +10,12 @@
 #    renders nothing".
 # 3. A tree of one or more ordinary component instances: overridden — that per-entity content
 #    renders.
+# 💡`Component::preSave()` forces `status` back to FALSE on every save, so this Component cannot be
+# made placeable after installation either — not even by a bulk enable such as a recipe config action
+# targeting `canvas.component.*.*`.
 # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\EmptySlotMarker
 # @see \Drupal\canvas\Entity\ComponentInterface::EMPTY_SLOT_MARKER_ID
+# @see \Drupal\canvas\Entity\Component::preSave()
 langcode: en
 status: false
 dependencies:
