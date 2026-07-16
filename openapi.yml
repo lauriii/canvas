@@ -5629,6 +5629,8 @@ components:
       required: true
       schema:
         type: integer
+        enum:
+          - 1
     queryAjaxPageState:
       # The asset libraries already loaded on the page, so the response omits
       # their assets. The camel-cased equivalent of Drupal.Ajax's
@@ -5641,8 +5643,6 @@ components:
       required: false
       schema:
         type: string
-        enum:
-          - 1
     # @see \Drupal\canvas\Render\MainContent\CanvasTemplateRenderer
     queryWrapperFormat:
       in: query
