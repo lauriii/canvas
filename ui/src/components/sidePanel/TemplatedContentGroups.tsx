@@ -51,8 +51,12 @@ const TemplatedContentGroup = ({
   );
 
   // Report emptiness up, so the panel can show one aggregate empty state when
-  // every group is empty (each empty group hides itself below).
-  const isEmpty = !isLoading && !error && editableItems.length === 0;
+  // every group is empty (each empty group hides itself below). A page whose
+  // rows are all filtered out does not make the group empty while more pages
+  // remain: an editable entity may sit on a later page, so emptiness is only
+  // final once pagination is exhausted.
+  const isEmpty =
+    !isLoading && !error && editableItems.length === 0 && !hasMore;
   useEffect(() => {
     onEmptyChange(group.entityType, isEmpty);
   }, [onEmptyChange, group.entityType, isEmpty]);
@@ -65,6 +69,13 @@ const TemplatedContentGroup = ({
   // empty bundle headings (especially while searching).
   if (isEmpty) {
     return null;
+  }
+
+  // No editable rows on the pages loaded so far, but more remain: render just
+  // the observer (no group heading yet), so it keeps loading pages until an
+  // editable row appears or pagination is exhausted.
+  if (editableItems.length === 0) {
+    return <InfiniteScrollObserver onLoadMore={handleLoadMore} />;
   }
 
   const handleSelect = (item: ContentStub) => {
