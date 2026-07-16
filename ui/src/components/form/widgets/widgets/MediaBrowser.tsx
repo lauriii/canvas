@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { ImageIcon, UploadIcon } from '@radix-ui/react-icons';
+import { CheckIcon, ImageIcon, UploadIcon } from '@radix-ui/react-icons';
 import { Box, Button, Flex, Grid, Spinner, Text } from '@radix-ui/themes';
 
 import Dialog, { DialogFieldLabel } from '@/components/Dialog';
@@ -38,29 +38,32 @@ export const toSelectionItem = (item: MediaBrowseItem): MediaSelectionItem => ({
 const SEARCH_DEBOUNCE_MS = 300;
 
 const tileStyle: React.CSSProperties = {
+  position: 'relative',
   display: 'block',
   width: '100%',
-  padding: 'var(--space-1)',
-  border: '2px solid transparent',
-  borderRadius: 'var(--radius-2)',
-  background: 'transparent',
+  padding: 0,
+  border: '1px solid var(--gray-5)',
+  borderRadius: 'var(--radius-3)',
+  background: 'var(--color-panel-solid)',
   cursor: 'pointer',
   textAlign: 'left',
+  overflow: 'hidden',
 };
 
 const tileSelectedStyle: React.CSSProperties = {
   ...tileStyle,
-  borderColor: 'var(--accent-9)',
+  border: '1px solid var(--accent-9)',
+  outline: '1px solid var(--accent-9)',
   background: 'var(--accent-2)',
 };
 
 const thumbStyle: React.CSSProperties = {
   display: 'block',
   width: '100%',
-  height: '72px',
+  aspectRatio: '4 / 3',
   objectFit: 'cover',
-  borderRadius: 'var(--radius-1)',
   background: 'var(--gray-3)',
+  color: 'var(--gray-8)',
 };
 
 const tileLabelStyle: React.CSSProperties = {
@@ -68,6 +71,25 @@ const tileLabelStyle: React.CSSProperties = {
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
+};
+
+const selectedBadgeStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: 'var(--space-1)',
+  right: 'var(--space-1)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 'var(--space-4)',
+  height: 'var(--space-4)',
+  borderRadius: '50%',
+  background: 'var(--accent-9)',
+  color: 'var(--accent-contrast)',
+};
+
+// Two grid rows: keeps the dialog from resizing while searching or paging.
+const gridAreaStyle: React.CSSProperties = {
+  minHeight: '264px',
 };
 
 interface MediaBrowserProps {
@@ -262,7 +284,7 @@ const MediaBrowser = ({
       open={open}
       onOpenChange={onOpenChange}
       title="Add media"
-      width="480px"
+      width="640px"
       footer={{
         cancelText: 'Cancel',
         confirmText: 'Insert',
@@ -284,7 +306,7 @@ const MediaBrowser = ({
             />
           </Box>
           <Button
-            size="1"
+            size="2"
             variant="soft"
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
@@ -303,6 +325,11 @@ const MediaBrowser = ({
           <Flex
             direction="column"
             gap="1"
+            p="3"
+            style={{
+              background: 'var(--gray-2)',
+              borderRadius: 'var(--radius-3)',
+            }}
             data-testid="canvas-media-upload-form"
           >
             <Text size="1" title={pendingFile.name} style={tileLabelStyle}>
@@ -359,65 +386,88 @@ const MediaBrowser = ({
             {loadError}
           </Text>
         )}
-        {loading ? (
-          <Flex justify="center" py="4">
-            <Spinner />
+        <Box style={gridAreaStyle}>
+          {loading && (
+            <Flex justify="center" align="center" style={gridAreaStyle}>
+              <Spinner />
+            </Flex>
+          )}
+          {!loading && !loadError && items.length === 0 && (
+            <Flex
+              direction="column"
+              justify="center"
+              align="center"
+              gap="2"
+              style={gridAreaStyle}
+            >
+              <ImageIcon width="24" height="24" color="var(--gray-8)" />
+              <Text size="2" color="gray">
+                {search
+                  ? `No media matches "${search}".`
+                  : 'No media yet. Upload the first item.'}
+              </Text>
+            </Flex>
+          )}
+          {!loading && items.length > 0 && (
+            <Grid columns="4" gap="3">
+              {items.map((item) => {
+                const isSelected = selection.some(
+                  (selected) => String(selected.id) === String(item.id),
+                );
+                return (
+                  <button
+                    key={String(item.id)}
+                    type="button"
+                    aria-pressed={isSelected}
+                    style={isSelected ? tileSelectedStyle : tileStyle}
+                    onClick={() => toggleItem(item)}
+                  >
+                    {item.thumbnailUrl ? (
+                      <img src={item.thumbnailUrl} alt="" style={thumbStyle} />
+                    ) : (
+                      <Flex align="center" justify="center" style={thumbStyle}>
+                        <ImageIcon width="20" height="20" />
+                      </Flex>
+                    )}
+                    {isSelected && (
+                      <span style={selectedBadgeStyle} aria-hidden="true">
+                        <CheckIcon width="12" height="12" />
+                      </span>
+                    )}
+                    <Box px="2" py="1">
+                      <Text size="1" style={tileLabelStyle} title={item.label}>
+                        {item.label}
+                      </Text>
+                    </Box>
+                  </button>
+                );
+              })}
+            </Grid>
+          )}
+        </Box>
+        {totalPages > 1 && (
+          <Flex justify="between" align="center">
+            <Button
+              size="1"
+              variant="ghost"
+              disabled={page === 0 || loading}
+              onClick={() => setPage((current) => current - 1)}
+            >
+              Previous
+            </Button>
+            <Text size="1" color="gray">
+              Page {page + 1} of {totalPages}
+            </Text>
+            <Button
+              size="1"
+              variant="ghost"
+              disabled={page + 1 >= totalPages || loading}
+              onClick={() => setPage((current) => current + 1)}
+            >
+              Next
+            </Button>
           </Flex>
-        ) : (
-          <Grid columns="4" gap="2">
-            {items.map((item) => {
-              const isSelected = selection.some(
-                (selected) => String(selected.id) === String(item.id),
-              );
-              return (
-                <button
-                  key={String(item.id)}
-                  type="button"
-                  aria-pressed={isSelected}
-                  style={isSelected ? tileSelectedStyle : tileStyle}
-                  onClick={() => toggleItem(item)}
-                >
-                  {item.thumbnailUrl ? (
-                    <img src={item.thumbnailUrl} alt="" style={thumbStyle} />
-                  ) : (
-                    <Flex align="center" justify="center" style={thumbStyle}>
-                      <ImageIcon />
-                    </Flex>
-                  )}
-                  <Text size="1" style={tileLabelStyle} title={item.label}>
-                    {item.label}
-                  </Text>
-                </button>
-              );
-            })}
-          </Grid>
         )}
-        {!loading && !loadError && items.length === 0 && (
-          <Text size="1" color="gray">
-            No media found.
-          </Text>
-        )}
-        <Flex justify="between" align="center">
-          <Button
-            size="1"
-            variant="ghost"
-            disabled={page === 0 || loading}
-            onClick={() => setPage((current) => current - 1)}
-          >
-            Previous
-          </Button>
-          <Text size="1" color="gray">
-            Page {page + 1} of {totalPages}
-          </Text>
-          <Button
-            size="1"
-            variant="ghost"
-            disabled={page + 1 >= totalPages || loading}
-            onClick={() => setPage((current) => current + 1)}
-          >
-            Next
-          </Button>
-        </Flex>
       </Flex>
     </Dialog>
   );

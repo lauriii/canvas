@@ -712,6 +712,23 @@ canvas.api.staged-update.auto-save.post:
     _canvas_entity_create_access: 'staged_config_update'
   methods: [POST]
 
+canvas.api.text_editor_settings:
+  path: '/canvas/api/v0/text-editor-settings'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiTextEditorSettingsController'
+    _title: 'Text editor settings'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: [GET]
+  options:
+    # The Canvas equivalent of requesting an AJAX response using `?_wrapper_format`,
+    # so the response carries the editor asset libraries and settings in the
+    # structure `processResponseAssets` loads client-side.
+    # @see \Drupal\canvas\Render\MainContent\CanvasTemplateRenderer
+    _wrapper_format: 'canvas_template'
+    _format: 'json'
+
 canvas.api.ui.content_entity_reference.content_entity_types:
   path: '/canvas/api/v0/ui/content-entity-reference'
   defaults:

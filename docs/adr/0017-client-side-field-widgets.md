@@ -100,6 +100,26 @@ Reference-shaped widgets get dedicated scoped endpoints so their common flows ne
 - `GET /canvas/api/v0/media/{media_type}?search=&page=&ids=` — media browsing for the native media widget, alongside
   the existing `POST /canvas/api/v0/media/{media_type}/upload`.
 
+### Formatted text: editor UI from the text format configuration
+
+The formatted text widgets (`text_textfield`, `text_textarea`, `text_textarea_with_summary`) are native, with the
+editing UI derived entirely from the text format configuration rather than any client-side hardcoding:
+
+- `GET /canvas/api/v0/text-editor-settings` delivers, for every format the current user may use, the same editor
+  settings and asset libraries the editor module attaches to a server-built `text_format` element (computed by
+  `EditorManager::getAttachments()`, delivered through the `canvas_template` response shape and loaded by the
+  existing `processResponseAssets` pipeline, which deduplicates against assets already on the page — including any
+  the escape hatch loaded). Fetched once per session; formats the user cannot use are never exposed.
+- The lightweight permitted-format list (id, label, editor plugin id) ships with the editor boot settings so the
+  native-or-hatch decision stays synchronous at render time.
+- CKEditor 5 mounts through a shared host component used by both the native widget and the escape hatch, so the two
+  paths cannot double-initialize or race on the `window.CKEditor5` globals. CKEditor 5 plugin builds remain Drupal
+  asset libraries: contrib CKEditor 5 plugins keep working without a UI rebuild.
+- Boundary: any format configured with a non-CKEditor-5 editor plugin sends the prop to the escape hatch, where that
+  editor's attach pipeline works unchanged. Formats without an editor render the plain input natively.
+- The raw editor markup is only the optimistic resolved value; the server's filter processing (`processed`) remains
+  authoritative on the patch echo, and format use permission stays enforced server-side.
+
 ### A public, override-capable registry with a hard non-blocking invariant
 
 Registration is public architecture: registering an id that already has a widget replaces it. After the default

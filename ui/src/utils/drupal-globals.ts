@@ -32,6 +32,19 @@ export const getPropFormsSettings = (): {
   disabledWidgets: drupalSettings?.canvas?.propForms?.disabledWidgets ?? [],
 });
 
+export interface TextFormatSummary {
+  id: string;
+  label: string;
+  editor: string | null;
+}
+
+// The text formats the current user may use, each with its associated editor
+// plugin id. Delivered with the boot settings so formatted text props resolve
+// to a native widget or the escape hatch synchronously at render time.
+// @see \Drupal\canvas\Controller\ApiTextEditorSettingsController
+export const getTextFormats = (): TextFormatSummary[] =>
+  drupalSettings?.canvas?.propForms?.textFormats ?? [];
+
 export const setCanvasDrupalSetting = (
   property: 'layoutUtils' | 'navUtils',
   value: PropsValues,

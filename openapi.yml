@@ -3276,6 +3276,20 @@ paths:
                     examples:
                       - Missing data
                       - Missing clientInstanceId
+  /canvas/api/v0/text-editor-settings:
+    description: Text editor settings and assets for the native formatted text widgets.
+    get:
+      summary: >-
+        Gets, for every text format the current user may use, the editor
+        settings (`drupalSettings.editor.formats`) and asset libraries that
+        the editor module attaches to a server-built `text_format` element.
+      parameters:
+        - $ref: '#/components/parameters/queryAjaxPageState'
+      responses:
+        '200':
+          # The `canvas_template` response shape: `settings` carries
+          # `editor.formats`, and `html` and `transforms` are empty.
+          $ref: '#/components/responses/ComponentInstanceFormResponse'
   /canvas/api/v0/ui/content-entity-reference:
     get:
       summary: Lists fieldable content entity types and their bundles the current user can view.
@@ -5617,6 +5631,18 @@ components:
         type: integer
         enum:
           - 1
+    queryAjaxPageState:
+      # The asset libraries already loaded on the page, so the response omits
+      # their assets. The camel-cased equivalent of Drupal.Ajax's
+      # `ajax_page_state`, sent explicitly because the Canvas UI does not use
+      # Drupal.Ajax for this request.
+      # @see \Drupal\canvas\Render\MainContent\CanvasTemplateRenderer
+      # @see ui/src/services/addAjaxPageState.ts
+      in: query
+      name: ajaxPageState
+      required: false
+      schema:
+        type: string
     # @see \Drupal\canvas\Render\MainContent\CanvasTemplateRenderer
     queryWrapperFormat:
       in: query
