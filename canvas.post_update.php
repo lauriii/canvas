@@ -15,6 +15,7 @@ use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Component\Serialization\Json;
+use Drupal\Component\Serialization\Yaml;
 use Drupal\Core\Config\Entity\ConfigEntityUpdater;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
@@ -653,4 +654,20 @@ function _canvas_coerce_block_label_display_in_raw(array &$data): bool {
     }
   }
   return $changed;
+}
+
+/**
+ * Installs the empty-slot marker component on existing sites.
+ */
+function canvas_post_update_0026_install_empty_slot_marker(): void {
+  // config/install is only processed at module install time, but exposed
+  // slots need the marker component to represent empty overrides. Import the
+  // shipped config verbatim on sites that predate it.
+  if (Component::load(Component::EMPTY_SLOT_MARKER_ID) !== NULL) {
+    return;
+  }
+  $path = \Drupal::service('extension.list.module')->getPath('canvas') . '/config/install/canvas.component.canvas_slot_empty.marker.yml';
+  $values = Yaml::decode((string) \file_get_contents($path));
+  \assert(\is_array($values));
+  Component::create($values)->save();
 }
