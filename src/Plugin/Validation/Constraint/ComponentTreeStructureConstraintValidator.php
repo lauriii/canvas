@@ -228,6 +228,9 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     // so the marker is valid only as the sole, childless, ordinary root row of
     // a slot field on a templated content entity. Reject it anywhere else
     // (nested, alongside siblings, in a config tree, or with descendants).
+    // The check is deliberately structural, not tied to the active template's
+    // exposed slots: a detached slot field keeps its content, marker included,
+    // and becomes meaningful again when the slot is re-exposed.
     if (($component_instance['component_id'] ?? NULL) === ComponentInterface::EMPTY_SLOT_MARKER_ID) {
       $host = $root instanceof EntityAdapter ? $root->getValue() : NULL;
       $is_entity_host = $host instanceof FieldableEntityInterface && !($host instanceof ComponentTreeEntityInterface);

@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
-import { useParams } from 'react-router';
 
 import { useAppSelector } from '@/app/hooks';
-import { selectExposedSlots } from '@/features/layout/layoutModelSlice';
+import { selectPerContentTemplateInfo } from '@/features/layout/layoutModelSlice';
 import { useGetContentTemplatesQuery } from '@/services/componentAndLayout';
 
 import type { TemplateViewMode } from '@/services/componentAndLayout';
@@ -10,37 +9,22 @@ import type { TemplateViewMode } from '@/services/componentAndLayout';
 /**
  * Per-content editing: resolves the content template the edited entity follows.
  *
- * The client is not given the bundle/view mode directly in per-content mode, so
- * the template is found in the content-templates listing by matching the
- * editor's exposed-slot aliases against each template's exposed slots. Used to
- * surface, and jump to, the template being overridden.
+ * The Layout API names the applicable template (entity type, bundle, view
+ * mode) directly, so the templates listing is only consulted for that exact
+ * entry (labels, suggested preview entity). Used to surface, and jump to, the
+ * template being overridden.
  */
 const useMatchingContentTemplate = (): TemplateViewMode | undefined => {
-  const { entityType } = useParams();
-  const exposedSlots = useAppSelector(selectExposedSlots);
+  const templateInfo = useAppSelector(selectPerContentTemplateInfo);
   const { data: templates } = useGetContentTemplatesQuery();
 
   return useMemo(() => {
-    if (!templates || !entityType || !templates[entityType]) {
+    if (!templateInfo || !templates) {
       return undefined;
     }
-    const aliases = Object.keys(exposedSlots ?? {});
-    if (aliases.length === 0) {
-      return undefined;
-    }
-    for (const bundle of Object.values(templates[entityType].bundles)) {
-      for (const viewMode of Object.values(bundle.viewModes)) {
-        const exposed = Object.keys(viewMode.exposed_slots ?? {});
-        if (
-          exposed.length > 0 &&
-          aliases.every((alias) => exposed.includes(alias))
-        ) {
-          return viewMode;
-        }
-      }
-    }
-    return undefined;
-  }, [templates, entityType, exposedSlots]);
+    return templates[templateInfo.entityType]?.bundles?.[templateInfo.bundle]
+      ?.viewModes?.[templateInfo.viewMode];
+  }, [templates, templateInfo]);
 };
 
 export default useMatchingContentTemplate;

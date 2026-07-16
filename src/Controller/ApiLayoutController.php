@@ -268,6 +268,13 @@ final class ApiLayoutController {
       $data['exposedSlots'] = self::normalizeExposedSlotsForClient($per_content_template);
       $data['slotOverrides'] = self::computeSlotOverrides($entity, $per_content_template);
       $data['slotDefaults'] = $this->computeSlotDefaults($per_content_template, $entity);
+      // The applicable template's identity, so the client can link to the
+      // template editor without guessing from exposed-slot aliases.
+      $data['contentTemplate'] = [
+        'entityType' => $per_content_template->getTargetEntityTypeId(),
+        'bundle' => $per_content_template->getTargetBundle(),
+        'viewMode' => $per_content_template->getMode(),
+      ];
     }
     elseif ($entity instanceof ContentTemplate) {
       // Template editor: surface the template's own exposed slots (including a
@@ -472,6 +479,16 @@ final class ApiLayoutController {
       ? $this->getAutoSavedVersionIfAvailable(PageRegion::loadForActiveTheme())
       : [];
     $entity_to_patch = $this->getEntityWithComponentInstance([$entity, ...$regions], $componentInstanceUuid);
+
+    // In per-content mode only exposed-slot fields are editable: a component
+    // living in a detached or unexposed component-tree field is part of the
+    // entity but not of the editable payload, so it is not addressable.
+    if ($per_content_template !== NULL) {
+      $containing_list = $this->componentTreeLoader->findItemListContaining($entity_to_patch, $componentInstanceUuid);
+      if ($containing_list === NULL || !\array_key_exists($containing_list->getName(), $per_content_template->getExposedSlots())) {
+        throw new NotFoundHttpException('No such component in model: ' . $componentInstanceUuid);
+      }
+    }
 
     // Route-level access checks already verified `edit` access to $entity. Only
     // perform an additional `edit` access check if $entity_to_patch is not
@@ -1048,12 +1065,35 @@ final class ApiLayoutController {
     if (\count($entity_form_fields) > 0) {
       $this->converter->applyEntityFormFields($entity, $entity_form_fields, validate: FALSE);
     }
+    // Component instance UUIDs must stay unique across the template and every
+    // slot field: `injectSlotContent()` refuses to merge colliding subtrees at
+    // render time, so reject the collision at write time instead. Seed the
+    // set with the template's UUIDs and those of untouched slot fields.
+    $seen_uuids = self::collectTemplateOwnedUuids($template);
+    foreach ($template->getExposedSlots() as $field_name => $definition) {
+      if (\array_key_exists($field_name, $slot_layouts) || !$entity->hasField($field_name)) {
+        continue;
+      }
+      $slot_field = $entity->get($field_name);
+      \assert($slot_field instanceof ComponentTreeItemList);
+      foreach ($slot_field->componentTreeItemsIterator() as $item) {
+        \assert($item instanceof ComponentTreeItem);
+        $seen_uuids[$item->getUuid()] = TRUE;
+      }
+    }
     foreach ($template->getExposedSlots() as $field_name => $definition) {
       if (!\array_key_exists($field_name, $slot_layouts) || !$entity->hasField($field_name)) {
         continue;
       }
       // @phpstan-ignore-next-line argument.type
       $rows = self::convertClientToServer($slot_layouts[$field_name]['components'], $model, $entity, validate: FALSE);
+      foreach ($rows as $row) {
+        $uuid = (string) ($row['uuid'] ?? '');
+        if (\array_key_exists($uuid, $seen_uuids)) {
+          throw new BadRequestHttpException(\sprintf('Component %s appears more than once across the template and slot fields.', $uuid));
+        }
+        $seen_uuids[$uuid] = TRUE;
+      }
       $entity->set($field_name, \array_values($rows));
     }
   }

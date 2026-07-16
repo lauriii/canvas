@@ -129,6 +129,11 @@ final class ApiContentTemplateSlotFieldController extends ApiControllerBase {
     }
 
     $field_storage = FieldStorageConfig::loadByName($entity_type_id, $field_name);
+    if ($field_storage !== NULL && $field_storage->getType() !== ComponentTreeItem::PLUGIN_ID) {
+      // A same-named storage of another field type cannot back a slot: the
+      // exposed-slot save would fail validation afterwards.
+      throw new ConflictHttpException(\sprintf('The %s field exists but is not a %s field.', $field_name, ComponentTreeItem::PLUGIN_ID));
+    }
     if ($field_storage === NULL) {
       $field_storage = FieldStorageConfig::create([
         'field_name' => $field_name,

@@ -444,6 +444,82 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
   }
 
   /**
+   * A submitted UUID colliding with the template (or another slot) is a 400.
+   *
+   * `injectSlotContent()` refuses to merge colliding subtrees at render time,
+   * so the collision must be rejected at write time.
+   */
+  public function testPostRejectsDuplicateUuids(): void {
+    $node = self::createTemplatedNode();
+    $url = $this->getLayoutUrl($node)->toString();
+
+    $post = $this->postBodyFrom(self::decodeResponse($this->request(Request::create($url))));
+    $post['model'] = [
+      self::HOST_UUID => [
+        'resolved' => ['heading' => 'Colliding with the template'],
+        'source' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+    ];
+    // Reuse the template host component's UUID for entity content.
+    $post['layout'][0]['components'][] = [
+      'nodeType' => 'component',
+      'uuid' => self::HOST_UUID,
+      'type' => 'sdc.canvas_test_sdc.props-no-slots@' . $this->contentVersion,
+      'slots' => [],
+    ];
+
+    try {
+      $this->request(Request::create($url, method: 'POST', content: \json_encode($post, JSON_THROW_ON_ERROR)));
+      self::fail('Expected BadRequestHttpException for a duplicate UUID.');
+    }
+    catch (BadRequestHttpException $e) {
+      self::assertStringContainsString('appears more than once', $e->getMessage());
+    }
+  }
+
+  /**
+   * Content in a detached component-tree field is not addressable per-entity.
+   */
+  public function testPatchCannotAddressDetachedFieldContent(): void {
+    // A second component_tree field on the bundle, NOT exposed by the template.
+    $this->createComponentTreeField('node', self::BUNDLE, 'canvas_slot_detached');
+    $detached_uuid = '88888888-8888-4888-8888-888888888888';
+    $node = Node::create([
+      'type' => self::BUNDLE,
+      'title' => 'A templated node',
+      'canvas_slot_detached' => [$this->overrideRow($detached_uuid, 'Detached content')],
+    ]);
+    $node->save();
+
+    $patch_body = [
+      'componentInstanceUuid' => $detached_uuid,
+      'componentType' => 'sdc.canvas_test_sdc.props-no-slots@' . $this->contentVersion,
+      'model' => [
+        'source' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+        'resolved' => ['heading' => 'Sneaky detached edit'],
+      ],
+    ] + $this->getPatchContentsDefaults([$node]);
+
+    try {
+      $this->request(Request::create($this->getLayoutUrl($node)->toString(), method: 'PATCH', content: \json_encode($patch_body, JSON_THROW_ON_ERROR)));
+      self::fail('Expected NotFoundHttpException for a detached-field target.');
+    }
+    catch (NotFoundHttpException) {
+      // Detached fields are not part of the per-entity editable surface.
+    }
+  }
+
+  /**
    * A per-content POST addressing anything but exposed slots is rejected.
    */
   public function testPostRejectsUnknownNodes(): void {
