@@ -40,15 +40,15 @@
    like the surrounding row while staying keyboard focusable. */
 .folderButton {
   display: flex;
-  align-items: center;
-  flex-grow: 1;
-  min-width: 0;
   overflow: hidden;
+  flex-grow: 1;
+  align-items: center;
+  min-width: 0;
   padding: 0;
+  cursor: pointer;
+  color: inherit;
   border: none;
   background: transparent;
-  color: inherit;
-  cursor: pointer;
 }
 
 .folderIcon {
