@@ -1950,7 +1950,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'object',
-              'title' => 'video',
+              'title' => 'Video',
               'required' => ['src'],
               'properties' => [
                 'src' => [
@@ -1999,6 +1999,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'jsonSchema' => [
               'type' => 'integer',
               'enum' => [200, 300, 400, 500],
+              'title' => 'Display width',
               'meta:enum' => [
                 200 => '200',
                 300 => '300',
@@ -2025,6 +2026,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Caption',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -2057,6 +2059,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Name',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -2184,6 +2187,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                   'large' => 'Large',
                 ],
               ],
+              'title' => 'Sizes',
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -2220,6 +2224,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                 'type' => 'string',
               ],
               'minItems' => 1,
+              'title' => 'Tags',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -2245,6 +2250,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                 'type' => 'string',
                 'format' => 'uri-reference',
               ],
+              'title' => 'Links',
             ],
             'sourceType' => 'static:field_item:link',
             'expression' => 'ℹ︎link␟url',
@@ -2272,6 +2278,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                 'type' => 'integer',
               ],
               'maxItems' => 5,
+              'title' => 'Scores',
             ],
             'sourceType' => 'static:field_item:integer',
             'expression' => 'ℹ︎integer␟value',
@@ -2321,6 +2328,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                   ],
                 ],
               ],
+              'title' => 'Images',
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -2363,6 +2371,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                 'green',
                 'blue',
               ],
+              'title' => 'Favorite color',
               'meta:enum' => [
                 'red' => 'Red',
                 'green' => 'Green',
@@ -2395,6 +2404,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                 'regular',
                 'large',
               ],
+              'title' => 'Size',
               'meta:enum' => [
                 'small' => 'Small',
                 'regular' => 'Regular',
@@ -2432,6 +2442,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Text',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -2448,6 +2459,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'jsonSchema' => [
               'type' => 'string',
               'format' => 'uri-reference',
+              'title' => 'Link',
             ],
             'sourceType' => 'static:field_item:link',
             'expression' => 'ℹ︎link␟url',
@@ -2491,6 +2503,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'name',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -2506,6 +2519,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'integer',
+              'title' => 'age',
             ],
             'sourceType' => 'static:field_item:integer',
             'expression' => 'ℹ︎integer␟value',
@@ -2538,6 +2552,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Name',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',

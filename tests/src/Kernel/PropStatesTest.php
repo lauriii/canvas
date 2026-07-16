@@ -74,9 +74,9 @@ final class PropStatesTest extends CanvasKernelTestBase {
         ],
       ],
     ], $text_schema['x-canvas-states']);
-    // Aside from the vocabulary, the delivered schema is a plain string
-    // schema: the key is the only difference from a prop without it.
-    self::assertSame(['type' => 'string'], \array_diff_key($text_schema, \array_flip(['x-canvas-states'])));
+    // Aside from the vocabulary and the authored title annotation, the
+    // delivered schema is a plain string schema.
+    self::assertSame(['type' => 'string', 'title' => 'Text'], \array_diff_key($text_schema, \array_flip(['x-canvas-states'])));
 
     // Server-side input validation ignores the vocabulary: a component
     // instance with valid prop values validates cleanly, exactly like a

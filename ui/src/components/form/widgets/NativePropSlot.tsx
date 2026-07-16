@@ -181,7 +181,12 @@ const NativePropSlot = ({
     return null;
   }
 
-  const label = (jsonSchema.title as string | undefined) ?? propName;
+  // Parity with the server-built form's label derivation: the authored
+  // schema title, or the prop name with its first letter capitalized.
+  // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
+  const label =
+    (jsonSchema.title as string | undefined) ??
+    propName.charAt(0).toUpperCase() + propName.slice(1);
   const description = (jsonSchema.description as string | undefined) ?? '';
   const inputId = `canvas-native-widget--${selectedComponent}--${propName}`;
   const WidgetComponent = definition.component;
