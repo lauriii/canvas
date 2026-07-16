@@ -1468,12 +1468,18 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     );
 
     // Conflict detection during the handling of the publishing request should
-    // prevent the changes to the page entity from being saved.
+    // prevent the auto-saved changes from being written to the page entity: it
+    // must still be the revision saved outside Canvas above, not 'Safe title'.
+    // Re-fetch the storage: enableModules() rebuilt the container, and the
+    // storage fetched before it keeps serving the entity from its own caches,
+    // which would hide anything the publish request wrote.
     self::assertNotNull($page->id());
-    $saved_page = $page_storage->loadUnchanged($page->id());
+    $saved_page = $this->container->get('entity_type.manager')
+      ->getStorage('canvas_page')
+      ->loadUnchanged($page->id());
     \assert($saved_page instanceof Page);
-    self::assertNotEquals($page->label(), $saved_page->label());
-    self::assertNotEquals($page->getRevisionId(), $saved_page->getRevisionId());
+    self::assertSame('This will cause conflict', $saved_page->label());
+    self::assertSame($page->getRevisionId(), $saved_page->getRevisionId());
 
     // Re-fetch AutoSaveManager so it uses the current container services.
     // This ensures getUnresolvedConflictForEntity() uses the updated $page.
