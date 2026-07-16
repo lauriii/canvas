@@ -955,11 +955,13 @@ final class ApiLayoutController {
     if (!$template instanceof ContentTemplate || !$template->status() || empty($template->getExposedSlots())) {
       return NULL;
     }
+    // The preview renders the pending draft whenever one exists, so the slot
+    // contract must come from the same revision — including a draft that
+    // detached every slot, which yields zero editable regions rather than
+    // stale ones with no marker in the preview HTML.
+    // @see \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder::loadTemplate()
     $draft = $this->autoSaveManager->getAutoSaveEntity($template)->entity;
-    if ($draft instanceof ContentTemplate && !empty($draft->getExposedSlots())) {
-      return $draft;
-    }
-    return $template;
+    return $draft instanceof ContentTemplate ? $draft : $template;
   }
 
   /**
