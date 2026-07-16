@@ -1,0 +1,24 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - canvas.component.sdc.canvas_test_sdc.props-slots
+    - core.entity_view_mode.node.full
+    - field.field.node.article.canvas_slot_main
+    - node.type.article
+id: node.article.full
+content_entity_type_id: node
+content_entity_type_bundle: article
+content_entity_type_view_mode: full
+component_tree:
+  -
+    uuid: 7e1c52e6-c53e-45a4-a03d-de4e5f48d64c
+    component_id: sdc.canvas_test_sdc.props-slots
+    component_version: 0e79e884426a53ae
+    inputs:
+      heading: 'Templated article'
+exposed_slots:
+  canvas_slot_main:
+    component_uuid: 7e1c52e6-c53e-45a4-a03d-de4e5f48d64c
+    slot_name: the_body
+    label: 'Main content'
