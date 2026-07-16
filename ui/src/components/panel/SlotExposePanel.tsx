@@ -1,8 +1,15 @@
 import { BoxModelIcon } from '@radix-ui/react-icons';
 import { Box, Button, Callout, Flex, Text } from '@radix-ui/themes';
 
-import { useAppDispatch } from '@/app/hooks';
-import { getSlotHostComponentUuid } from '@/features/layout/exposedSlots';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import {
+  findSlotNestingConflict,
+  getSlotHostComponentUuid,
+} from '@/features/layout/exposedSlots';
+import {
+  selectExposedSlots,
+  selectLayout,
+} from '@/features/layout/layoutModelSlice';
 import { setDialogWithDataOpen } from '@/features/ui/dialogSlice';
 
 import type { SlotNode } from '@/features/layout/layoutModelSlice';
@@ -30,6 +37,18 @@ const SlotExposePanel: React.FC<SlotExposePanelProps> = ({
   slotTitle,
 }) => {
   const dispatch = useAppDispatch();
+  const exposedSlots = useAppSelector(selectExposedSlots);
+  const layout = useAppSelector(selectLayout);
+
+  // Exposed slots must not nest; block the invalid exposure here exactly like
+  // the slot context menu does, instead of letting the save fail on the
+  // ValidExposedSlot constraint.
+  const nestingConflict = findSlotNestingConflict(
+    exposedSlots,
+    layout,
+    slot,
+    getSlotHostComponentUuid(slot),
+  );
 
   const openExposeDialog = () => {
     const data: ExposeSlotDialogData = {
@@ -56,15 +75,25 @@ const SlotExposePanel: React.FC<SlotExposePanelProps> = ({
           own, on each item.
         </Callout.Text>
       </Callout.Root>
-      <Flex mt="3" justify="start">
-        <Button
-          size="1"
-          onClick={openExposeDialog}
-          className="canvas-button"
-          data-testid="canvas-slot-expose-button"
-        >
-          Expose slot
-        </Button>
+      <Flex mt="3" justify="start" direction="column" gap="2">
+        <Box>
+          <Button
+            size="1"
+            onClick={openExposeDialog}
+            className="canvas-button"
+            data-testid="canvas-slot-expose-button"
+            disabled={!!nestingConflict}
+          >
+            Expose slot
+          </Button>
+        </Box>
+        {nestingConflict && (
+          <Text size="1" color="gray" data-testid="canvas-slot-expose-blocked">
+            {nestingConflict.direction === 'inside'
+              ? `This slot cannot be exposed because it is inside the exposed slot "${nestingConflict.definition.label}".`
+              : `This slot cannot be exposed because it contains the exposed slot "${nestingConflict.definition.label}".`}
+          </Text>
+        )}
       </Flex>
     </Box>
   );
