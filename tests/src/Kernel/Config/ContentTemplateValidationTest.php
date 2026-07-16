@@ -682,6 +682,33 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     ]);
   }
 
+  public function testDuplicateExposedSlotTargetIsRejected(): void {
+    \assert($this->entity instanceof ContentTemplate);
+
+    $this->createComponentTreeField('node', 'alpha', 'canvas_slot_first');
+    $this->createComponentTreeField('node', 'alpha', 'canvas_slot_second');
+
+    // Two aliases exposing the same physical slot: the Layout API would offer
+    // two editable regions for one target, and rendering would merge one
+    // backing field over the other.
+    $this->entity->set('exposed_slots', [
+      'canvas_slot_first' => [
+        'component_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+        'slot_name' => 'the_footer',
+        'label' => 'First',
+      ],
+      'canvas_slot_second' => [
+        'component_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+        'slot_name' => 'the_footer',
+        'label' => 'Second',
+      ],
+    ]);
+    $this->assertValidationErrors([
+      'exposed_slots.canvas_slot_first' => 'The <em class="placeholder">the_footer</em> slot of component <em class="placeholder">b4937e35-ddc2-4f36-8d4c-b1cc14aaefef</em> is already exposed as <em class="placeholder">canvas_slot_second</em>.',
+      'exposed_slots.canvas_slot_second' => 'The <em class="placeholder">the_footer</em> slot of component <em class="placeholder">b4937e35-ddc2-4f36-8d4c-b1cc14aaefef</em> is already exposed as <em class="placeholder">canvas_slot_first</em>.',
+    ]);
+  }
+
   public static function providerInvalidExposedSlot(): iterable {
     yield 'component exposing the slot does not exist in the tree' => [
       [

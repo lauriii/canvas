@@ -56,6 +56,8 @@ final class ValidExposedSlotConstraint extends SymfonyConstraint {
 
   public string $nestedSlotMessage = 'The %slot slot of component %id cannot be exposed because that component is inside another exposed slot.';
 
+  public string $duplicateTargetMessage = 'The %slot slot of component %id is already exposed as %alias.';
+
   public string $viewModeMismatchMessage = 'Exposed slots are only allowed in the %mode view mode.';
 
   /**
