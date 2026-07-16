@@ -70,11 +70,14 @@ export function parsePropValueForPreview(
     }
     return composed ?? {};
   }
+  // Props with "allow multiple values" keep their scalar type and carry an
+  // array example: parse each item per the scalar type.
   switch (prop.type) {
     case 'integer':
-      return Number(prop.example);
     case 'number':
-      return Number(prop.example);
+      return Array.isArray(prop.example)
+        ? prop.example.filter((value) => value !== '').map(Number)
+        : Number(prop.example);
     case 'boolean':
       return String(prop.example) === 'true';
     case 'array':

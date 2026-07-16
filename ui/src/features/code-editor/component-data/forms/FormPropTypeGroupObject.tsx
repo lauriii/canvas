@@ -405,6 +405,33 @@ function NestedPropDialog({
     nestedProp.derivedType ?? '',
   );
 
+  // List types serialize their options as `enum`: Save requires at least one
+  // option, non-empty distinct option values, and an example (when set) that
+  // is one of the option values.
+  let listError: string | null = null;
+  if (isList) {
+    const optionValues = (nestedProp.enum ?? []).map((item) =>
+      String(item.value),
+    );
+    const exampleValues = (
+      Array.isArray(nestedProp.example)
+        ? nestedProp.example
+        : [nestedProp.example]
+    ).filter((value) => value !== undefined && value !== '');
+    if (
+      optionValues.length === 0 ||
+      optionValues.some((value) => value === '')
+    ) {
+      listError = 'Add at least one option, and give every option a value.';
+    } else if (new Set(optionValues).size !== optionValues.length) {
+      listError = 'Option values must be unique.';
+    } else if (
+      exampleValues.some((value) => !optionValues.includes(String(value)))
+    ) {
+      listError = 'The example value must be one of the option values.';
+    }
+  }
+
   return (
     <Dialog
       open
@@ -418,7 +445,8 @@ function NestedPropDialog({
         cancelText: 'Cancel',
         confirmText: 'Save',
         onConfirm: onSave,
-        isConfirmDisabled: !nestedProp.name || !!machineNameError,
+        isConfirmDisabled:
+          !nestedProp.name || !!machineNameError || !!listError,
       }}
     >
       <Flex direction="column" gap="3">
@@ -516,6 +544,11 @@ function NestedPropDialog({
           />
         )}
         <NestedExampleInput nestedProp={nestedProp} update={update} />
+        {listError && (
+          <Text size="1" color="red">
+            {listError}
+          </Text>
+        )}
         {supportsMultiple && (
           <Flex align="center" gap="2">
             <input
