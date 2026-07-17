@@ -94,6 +94,14 @@ final class AdaptedPropSource extends PropSourceBase implements LinkablePropSour
    * {@inheritdoc}
    */
   public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): EvaluationResult {
+    // Fail with a clear error when a required input is not configured, rather
+    // than letting the adapter read an uninitialized property.
+    foreach (\array_keys($this->adapter_instance->getInputs()) as $input_name) {
+      if ($this->adapter_instance->inputIsRequired($input_name) && !\array_key_exists($input_name, $this->adapter_inputs)) {
+        throw new \LogicException(\sprintf('The `%s` adapter requires the `%s` input to be configured.', $this->adapter_instance->getPluginId(), $input_name));
+      }
+    }
+
     $inputs_cacheability = new CacheableMetadata();
     if ($host_entity !== NULL) {
       $inputs_cacheability->addCacheableDependency($host_entity);

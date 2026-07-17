@@ -69,6 +69,10 @@ export interface AdapterSuggestion {
 export interface MappingRow {
   key: string;
   value: string;
+  // The original typed output value this row was parsed from. Kept so an
+  // unedited row keeps its type when serialized again (e.g. {"1": 1} must
+  // not become {"1": "1"}).
+  originalValue?: unknown;
 }
 
 export type SlotMode = 'field' | 'literal';
@@ -139,10 +143,81 @@ export const isMappingRowsSlot = (
   slotName: string,
 ): boolean => adapterId === 'mapping' && slotName === 'cases';
 
-export const serializeMappingRows = (rows: MappingRow[]): string => {
+// Whether a slot can be bound to a literal value. Slots without a static
+// template, and slots whose shape is an object or array (a plain text input
+// cannot produce those), are field-bound only.
+export const supportsLiteralBinding = (slot: AdapterInputSlot): boolean => {
+  if (slot.static === null) {
+    return false;
+  }
+  const { schema } = slot;
+  if (!schema) {
+    // `null` schema means any value is accepted: a text literal works.
+    return true;
+  }
+  if (schema.type === 'object' || schema.type === 'array') {
+    return false;
+  }
+  // A $ref without an explicit primitive type denotes an object-like shape.
+  if (schema.$ref !== undefined && schema.type === undefined) {
+    return false;
+  }
+  return true;
+};
+
+// The output value type of an adapter, derived from any input that mirrors
+// the target prop shape (e.g. mapping's `default`). Falls back to string.
+export const getMirroredOutputType = (adapter: AdapterDefinition): string => {
+  const mirrored = adapter.inputs.find(
+    (input) => input.mirrorsOutput && typeof input.schema?.type === 'string',
+  );
+  return mirrored?.schema?.type ?? 'string';
+};
+
+// The canonical string representation of a mapping case output, used both to
+// populate the rows editor and to detect whether a row has been edited.
+const caseOutputToString = (value: unknown): string =>
+  typeof value === 'string' ? value : (JSON.stringify(value) ?? '');
+
+const coerceByType = (value: string, type: string): unknown => {
+  switch (type) {
+    case 'integer': {
+      const parsed = parseInt(value, 10);
+      return Number.isNaN(parsed) ? value : parsed;
+    }
+    case 'number': {
+      const parsed = parseFloat(value);
+      return Number.isNaN(parsed) ? value : parsed;
+    }
+    case 'boolean':
+      return value === 'true' ? true : value === 'false' ? false : value;
+    default:
+      return value;
+  }
+};
+
+// The typed output value of one mapping row: an unedited row keeps its
+// original typed value; edited or new rows are coerced to the adapter's
+// mirrored output type.
+const coerceCaseOutput = (row: MappingRow, outputType: string): unknown => {
+  if (
+    row.originalValue !== undefined &&
+    caseOutputToString(row.originalValue) === row.value
+  ) {
+    return row.originalValue;
+  }
+  return coerceByType(row.value, outputType);
+};
+
+export const serializeMappingRows = (
+  rows: MappingRow[],
+  outputType: string = 'string',
+): string => {
   const populated = rows.filter((row) => row.key !== '');
   return JSON.stringify(
-    Object.fromEntries(populated.map((row) => [row.key, row.value])),
+    Object.fromEntries(
+      populated.map((row) => [row.key, coerceCaseOutput(row, outputType)]),
+    ),
   );
 };
 
@@ -153,7 +228,8 @@ export const parseMappingRows = (value: unknown): MappingRow[] => {
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
         const rows = Object.entries(parsed).map(([key, rowValue]) => ({
           key,
-          value: String(rowValue),
+          value: caseOutputToString(rowValue),
+          originalValue: rowValue,
         }));
         if (rows.length > 0) {
           return rows;
@@ -176,7 +252,7 @@ export const defaultBindingForSlot = (
     binding.rows = [{ key: '', value: '' }];
     return binding;
   }
-  if (slot.static !== null) {
+  if (supportsLiteralBinding(slot)) {
     if (slot.schema?.type === 'boolean') {
       binding.mode = 'literal';
       binding.value = false;
@@ -203,6 +279,7 @@ export const createStep = (suggestion: AdapterSuggestion): AdapterStep => ({
 // source entirely, so the server defaults apply (e.g. combine's separator
 // defaults to a single space).
 export const serializeSlot = (
+  adapter: AdapterDefinition,
   slot: AdapterInputSlot,
   binding: SlotBinding | undefined,
 ): PropSource | null => {
@@ -212,7 +289,7 @@ export const serializeSlot = (
   if (binding.mode === 'field') {
     return binding.source ?? null;
   }
-  if (slot.static === null) {
+  if (slot.static === null || !supportsLiteralBinding(slot)) {
     return null;
   }
   if (binding.rows !== undefined) {
@@ -220,7 +297,10 @@ export const serializeSlot = (
     if (populated.length === 0) {
       return null;
     }
-    return { ...slot.static, value: serializeMappingRows(binding.rows) };
+    return {
+      ...slot.static,
+      value: serializeMappingRows(binding.rows, getMirroredOutputType(adapter)),
+    };
   }
   const { value } = binding;
   if (value === undefined || value === null || value === '') {
@@ -242,7 +322,7 @@ export const isStepComplete = (
     if (stepIndex > 0 && slot.name === primary) {
       return true;
     }
-    return serializeSlot(slot, step.bindings[slot.name]) !== null;
+    return serializeSlot(step.adapter, slot, step.bindings[slot.name]) !== null;
   });
 };
 
@@ -269,7 +349,11 @@ export const stepsToSource = (
         }
         return;
       }
-      const serialized = serializeSlot(slot, step.bindings[slot.name]);
+      const serialized = serializeSlot(
+        step.adapter,
+        slot,
+        step.bindings[slot.name],
+      );
       if (serialized !== null) {
         adapterInputs[slot.name] = serialized;
       }
@@ -299,9 +383,17 @@ const bindingFromSource = (
       source: candidate.source,
     };
   }
-  const sourceType =
-    typeof source.sourceType === 'string' ? source.sourceType : '';
-  if (slot.static !== null && sourceType.startsWith('static:')) {
+  // Only decode a literal when the stored source was written from this
+  // slot's own static template: with a template mismatch (e.g. an "any" slot
+  // holding a static integer while the template is a string), writing the
+  // value back would silently change its type.
+  const expression = 'expression' in source ? source.expression : undefined;
+  if (
+    slot.static !== null &&
+    supportsLiteralBinding(slot) &&
+    source.sourceType === slot.static.sourceType &&
+    expression === slot.static.expression
+  ) {
     const binding: SlotBinding = {
       mode: 'literal',
       enabled: true,

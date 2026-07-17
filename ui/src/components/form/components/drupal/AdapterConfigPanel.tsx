@@ -30,6 +30,7 @@ import {
   isChainComplete,
   isMappingRowsSlot,
   stepsToSource,
+  supportsLiteralBinding,
 } from './adapterSource';
 
 import type { PropSource } from '@/features/layout/layoutModelSlice';
@@ -202,6 +203,10 @@ const AdapterConfigPanel = ({
   onApply,
 }: AdapterConfigPanelProps) => {
   const [steps, setSteps] = useState<AdapterStep[]>(initialSteps);
+  // Incremented each time the panel is (re)seeded. Used as a render key so
+  // literal editor components with local state (e.g. DateFormatSelect's
+  // custom mode) remount instead of leaking state between transforms.
+  const [seedKey, setSeedKey] = useState(0);
   const { entityType, previewEntityId } = useParams();
   const [previewPropSource, previewState] = usePreviewPropSourceMutation();
 
@@ -209,6 +214,7 @@ const AdapterConfigPanel = ({
   useEffect(() => {
     if (open) {
       setSteps(initialSteps);
+      setSeedKey((previous) => previous + 1);
     }
   }, [open, initialSteps]);
 
@@ -415,9 +421,14 @@ const AdapterConfigPanel = ({
         <Select.Root
           size="1"
           value={stringValue}
-          onValueChange={(value) =>
-            updateBinding(stepIndex, slot.name, { value })
-          }
+          onValueChange={(value) => {
+            // Radix Select yields strings: match back to the typed enum
+            // entry so integer/number enums do not serialize as strings.
+            const typed = slot.schema?.enum?.find(
+              (option) => String(option) === value,
+            );
+            updateBinding(stepIndex, slot.name, { value: typed ?? value });
+          }}
         >
           <Select.Trigger placeholder="Select a value" />
           <Select.Content>
@@ -491,7 +502,9 @@ const AdapterConfigPanel = ({
             {isLockedPrimary ? (
               <Badge color="gray">Previous step</Badge>
             ) : (
-              slot.static !== null && (
+              // Object- and array-shaped slots (and slots without a static
+              // template) cannot take a literal: field binding only.
+              supportsLiteralBinding(slot) && (
                 <SegmentedControl.Root
                   size="1"
                   value={binding.mode}
@@ -552,7 +565,9 @@ const AdapterConfigPanel = ({
 
     return (
       <Box
-        key={stepIndex}
+        // The seed key remounts the step subtree when the panel is reseeded,
+        // resetting any local state in the literal editors.
+        key={`${seedKey}-${stepIndex}`}
         className={styles.step}
         data-testid={`adapter-step-${stepIndex}`}
       >

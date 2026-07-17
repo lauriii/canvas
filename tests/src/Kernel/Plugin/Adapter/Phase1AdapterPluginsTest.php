@@ -251,6 +251,27 @@ final class Phase1AdapterPluginsTest extends CanvasKernelTestBase {
   }
 
   /**
+   * A required input that is not configured fails with a clear error.
+   *
+   * The preview endpoint turns this into a structured 422 error; rendering a
+   * malformed stored tree fails loudly instead of reading uninitialized
+   * adapter state.
+   */
+  public function testMissingRequiredInput(): void {
+    $source = PropSource::parse([
+      'sourceType' => 'adapter:equals',
+      'adapterInputs' => [
+        'value' => self::staticString('a'),
+        'comparison' => self::staticString('a'),
+        // The required `then` input is not configured.
+      ],
+    ]);
+    $this->expectException(\LogicException::class);
+    $this->expectExceptionMessage('The `equals` adapter requires the `then` input to be configured.');
+    $source->evaluate(NULL, is_required: FALSE);
+  }
+
+  /**
    * The Adapter attribute enforces exactly one way of declaring the output.
    */
   public function testAdapterAttributeOutputValidation(): void {
