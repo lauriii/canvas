@@ -412,7 +412,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       ];
     }
 
-    $this->addPagination($build, $settings, $inputs, $componentUuid, \count($result->entities), $result->hasMore, $isPreview, $cacheability);
+    $this->addPagination($build, $settings, $inputs, $componentUuid, $result->consumed, $result->hasMore, $isPreview, $cacheability);
 
     $cacheability->applyTo($build);
     return $build;
@@ -544,7 +544,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
   /**
    * Adds the pagination controls and client-side behavior to the build.
    */
-  private function addPagination(array &$build, array $settings, array $inputs, string $componentUuid, int $rendered_count, bool $has_more, bool $isPreview, CacheableMetadata $cacheability): void {
+  private function addPagination(array &$build, array $settings, array $inputs, string $componentUuid, int $consumed, bool $has_more, bool $isPreview, CacheableMetadata $cacheability): void {
     $mode = $settings['pagination']['mode'];
     if ($mode === 'none' || !$has_more) {
       return;
@@ -586,7 +586,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
     $cacheability->addCacheableDependency($url);
     $build['#attributes']['data-canvas-list-endpoint'] = $url->getGeneratedUrl();
     $build['#attributes']['data-canvas-list-mode'] = $mode;
-    $build['#attributes']['data-canvas-list-offset'] = (string) $rendered_count;
+    $build['#attributes']['data-canvas-list-offset'] = (string) $consumed;
     $build['#attached']['library'][] = 'canvas/list_element.pagination';
   }
 

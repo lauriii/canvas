@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Drupal\canvas\ListBuilder;
 
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Query\ConditionInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -39,6 +41,8 @@ final class ListQueryExecutor {
     private readonly ListElementFieldInfo $fieldInfo,
     private readonly Connection $database,
     private readonly AccountInterface $currentUser,
+    private readonly ModuleHandlerInterface $moduleHandler,
+    private readonly ConfigFactoryInterface $configFactory,
   ) {}
 
   /**
@@ -60,10 +64,15 @@ final class ListQueryExecutor {
     $cacheability = (new CacheableMetadata())
       ->addCacheTags([\sprintf('%s_list:%s', $entity_type_id, $bundle)])
       ->addCacheContexts(['languages:language_content', 'user.permissions']);
+    // With node grants in play, the query varies by the user's grants, not
+    // just their permissions.
+    if ($entity_type_id === 'node' && $this->moduleHandler->hasImplementations('node_grants')) {
+      $cacheability->addCacheContexts(['user.node_grants:view']);
+    }
 
     $window = self::getWindowSize($settings, $offset);
     if ($window < 1) {
-      return new ListQueryResult([], FALSE, $cacheability);
+      return new ListQueryResult([], FALSE, $cacheability, 0);
     }
 
     $storage = $this->entityTypeManager->getStorage($entity_type_id);
@@ -84,15 +93,33 @@ final class ListQueryExecutor {
     // exclude unpublished content. Enforce the published flag explicitly for
     // users who may not view unpublished content: without it, inaccessible
     // results would occupy window slots (the render path double-checks entity
-    // access, so they would render as gaps).
+    // access, so they would render as gaps). Sites with grants keep their
+    // grant-based visibility of unpublished content.
     $published_key = $entity_type->getKey('published');
+    $owner_key = $entity_type->getKey('owner');
     if (\is_string($published_key)
+      && !($entity_type_id === 'node' && $this->moduleHandler->hasImplementations('node_grants'))
       && !$this->currentUser->hasPermission('bypass node access')
       && !$this->currentUser->hasPermission('view any unpublished content')
       && !$this->currentUser->hasPermission('administer nodes')) {
-      $query->condition($published_key, 1);
+      if (\is_string($owner_key) && $this->currentUser->isAuthenticated() && $this->currentUser->hasPermission('view own unpublished content')) {
+        // Published content, plus the user's own unpublished content.
+        $query->condition($query->orConditionGroup()
+          ->condition($published_key, 1)
+          ->condition($owner_key, $this->currentUser->id()));
+        $cacheability->addCacheContexts(['user']);
+      }
+      else {
+        $query->condition($published_key, 1);
+      }
     }
 
+    // Conditions and sorts deliberately use entity query's default language
+    // handling: passing the current langcode per condition would stop
+    // matching language-neutral (und/zxx) values, which the language
+    // condition above explicitly includes. The trade-off: a value stored
+    // only in another translation can match, with the current translation
+    // rendered. Revisit if real multilingual usage surfaces this.
     $conditions = \array_filter($settings['filters']['conditions'], self::isApplicableCondition(...));
     if ($conditions !== []) {
       $target = $settings['filters']['conjunction'] === 'or' ? $query->orConditionGroup() : $query->andConditionGroup();
@@ -117,6 +144,7 @@ final class ListQueryExecutor {
     if ($has_more) {
       $ids = \array_slice($ids, 0, $window, TRUE);
     }
+    $consumed = \count($ids);
     // With a limit, more matching content only means more pages while the
     // limit has not been reached yet.
     if ($settings['limit'] !== NULL && $offset + $window >= $settings['limit']) {
@@ -140,7 +168,7 @@ final class ListQueryExecutor {
       }
     }
 
-    return new ListQueryResult($entities, $has_more, $cacheability);
+    return new ListQueryResult($entities, $has_more, $cacheability, $consumed);
   }
 
   /**
@@ -257,8 +285,8 @@ final class ListQueryExecutor {
     }
 
     $range = [
-      self::toStorageValue($min_day . ' 00:00:00', $storage_type),
-      self::toStorageValue($max_day . ' 23:59:59', $storage_type),
+      $this->toStorageValue($min_day . ' 00:00:00', $storage_type),
+      $this->toStorageValue($max_day . ' 23:59:59', $storage_type),
     ];
     match ($operator) {
       ListElementFieldTypeFamily::OP_EQUALS, ListElementFieldTypeFamily::OP_BETWEEN => $target->condition($column, $range, 'BETWEEN'),
@@ -270,8 +298,11 @@ final class ListQueryExecutor {
   /**
    * Converts a site-time-zone moment to the field's stored representation.
    */
-  private static function toStorageValue(string $site_time, string $storage_type): int|string {
-    $date = new DrupalDateTime($site_time);
+  private function toStorageValue(string $site_time, string $storage_type): int|string {
+    // Editors pick calendar days; interpret them in the site's configured
+    // time zone, deterministically across HTTP, CLI, and queue contexts.
+    $site_timezone = $this->configFactory->get('system.date')->get('timezone.default') ?: 'UTC';
+    $date = new DrupalDateTime($site_time, new \DateTimeZone($site_timezone));
     return $storage_type === 'datetime'
       ? $date->setTimezone(new \DateTimeZone(DateTimeItemInterface::STORAGE_TIMEZONE))->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT)
       : $date->getTimestamp();

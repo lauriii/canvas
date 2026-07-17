@@ -613,7 +613,12 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     $excluded = [];
     $subtrees = [];
     foreach ($items as $uuid => $value) {
-      // Walk up the parent chain looking for a deferred slot boundary.
+      // Walk the whole parent chain and remember the OUTERMOST deferred slot
+      // boundary: a deferred-slot component nested inside another deferred
+      // slot (e.g. a List inside a List's item template) must keep its own
+      // subtree intact within the outer subtree — the inner deferral then
+      // happens naturally when the outer subtree is rendered as its own
+      // component tree.
       $current = $value;
       $boundary_parent = NULL;
       $boundary_slot = NULL;
@@ -622,7 +627,6 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
         if (isset($deferred_slots[$edge])) {
           $boundary_parent = $current['parent_uuid'];
           $boundary_slot = (string) $current['slot'];
-          break;
         }
         $current = $items[$current['parent_uuid']] ?? NULL;
         if ($current === NULL) {

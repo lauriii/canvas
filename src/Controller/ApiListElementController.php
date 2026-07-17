@@ -106,6 +106,10 @@ final class ApiListElementController implements ContainerInjectionInterface {
     $response = new CacheableJsonResponse([
       'html' => $html,
       'more' => $result->hasMore,
+      // Clients advance by consumed query rows, not rendered items: the
+      // render-time access guard may drop entities, and pages must not
+      // overlap.
+      'next_offset' => $offset + $result->consumed,
     ]);
     $response->addCacheableDependency($cacheability);
     return $response;

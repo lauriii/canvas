@@ -44,19 +44,17 @@
       if (!response.ok) {
         throw new Error(`Unexpected response status ${response.status}.`);
       }
-      const { html, more } = await response.json();
+      const payload = await response.json();
+      const { html, more } = payload;
       const items = wrapper.querySelector('.canvas-list');
       if (items && html) {
         const template = document.createElement('template');
         template.innerHTML = html;
-        const appended = template.content.querySelectorAll(
-          '.canvas-list__item',
-        ).length;
-        wrapper.dataset.canvasListOffset = String(
-          (parseInt(wrapper.dataset.canvasListOffset, 10) || 0) + appended,
-        );
         items.append(template.content);
       }
+      // Advance by consumed query rows as reported by the server, not by
+      // appended items: access-filtered rows must not shift page windows.
+      wrapper.dataset.canvasListOffset = String(payload.next_offset);
       if (!more) {
         wrapper
           .querySelectorAll(
