@@ -3284,6 +3284,83 @@ paths:
         '404':
           description: Non-existent entity type or bundle, or invalid parent expression.
           $ref: '#/components/responses/ClientErrorResponse'
+  /canvas/api/v0/ui/content_template/prop-source-preview/{entityTypeId}/{entityId}:
+    description: Evaluates a candidate prop source against a host entity, for live preview while configuring adapters.
+    post:
+      summary: Evaluates a candidate prop source (typically an adapted one being configured in the editor) against a host entity and returns the resulting value.
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/entityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - source
+              properties:
+                source:
+                  type: object
+                  description: The array representation of the prop source to evaluate.
+              additionalProperties: false
+            examples:
+              An adapted prop source:
+                value:
+                  source:
+                    sourceType: "adapter:format_date"
+                    adapterInputs:
+                      date:
+                        sourceType: "entity-field"
+                        expression: "ℹ︎␜entity:node:article␝field_event_date␞␟value"
+                      format:
+                        sourceType: "static:field_item:string"
+                        expression: "ℹ︎string␟value"
+                        value: "medium"
+      responses:
+        '200':
+          description: The evaluated prop source value for the given host entity.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - value
+                properties:
+                  value:
+                    description: The evaluated value. Its type depends on the prop source and the targeted prop shape.
+                additionalProperties: false
+              examples:
+                A formatted date:
+                  value:
+                    value: "May 6, 2024"
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '400':
+          description: Invalid request from the UI.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '404':
+          description: Non-existent content entity type or entity.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: The prop source could not be parsed or evaluated.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                additionalProperties: false
+                properties:
+                  errors:
+                    type: array
+                    description: Error messages.
+                    items:
+                      type: string
   /canvas/api/v0/ui/content_template/suggestions/preview/{entityTypeId}/{bundle}:
     description: Provides content that can be used for previewing content template targeting the specified entity type and bundle.
     get:
@@ -3429,83 +3506,6 @@ paths:
         '404':
           description: Non-existent content entity type, bundle or Component.
           $ref: '#/components/responses/ClientErrorResponse'
-  /canvas/api/v0/ui/content_template/prop-source-preview/{entityTypeId}/{entityId}:
-    description: Evaluates a candidate prop source against a host entity, for live preview while configuring adapters.
-    post:
-      summary: Evaluates a candidate prop source (typically an adapted one being configured in the editor) against a host entity and returns the resulting value.
-      parameters:
-        - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - source
-              properties:
-                source:
-                  type: object
-                  description: The array representation of the prop source to evaluate.
-              additionalProperties: false
-            examples:
-              An adapted prop source:
-                value:
-                  source:
-                    sourceType: "adapter:format_date"
-                    adapterInputs:
-                      date:
-                        sourceType: "entity-field"
-                        expression: "ℹ︎␜entity:node:article␝field_event_date␞␟value"
-                      format:
-                        sourceType: "static:field_item:string"
-                        expression: "ℹ︎string␟value"
-                        value: "medium"
-      responses:
-        '200':
-          description: The evaluated prop source value for the given host entity.
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - value
-                properties:
-                  value:
-                    description: The evaluated value. Its type depends on the prop source and the targeted prop shape.
-                additionalProperties: false
-              examples:
-                A formatted date:
-                  value:
-                    value: "May 6, 2024"
-        '401':
-          description: Unauthorized (unauthenticated) response.
-          $ref: '#/components/responses/UnauthorizedErrorResponse'
-        '403':
-          description: Access denied response.
-          $ref: '#/components/responses/AuthenticationErrorResponse'
-        '400':
-          description: Invalid request from the UI.
-          $ref: '#/components/responses/ClientErrorResponse'
-        '404':
-          description: Non-existent content entity type or entity.
-          $ref: '#/components/responses/ClientErrorResponse'
-        '422':
-          description: The prop source could not be parsed or evaluated.
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - errors
-                additionalProperties: false
-                properties:
-                  errors:
-                    type: array
-                    description: Error messages.
-                    items:
-                      type: string
   /canvas/api/v0/ui/content_template/view_modes/node:
     get:
       summary: Gets the list of view modes for the Node entity type.

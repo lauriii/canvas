@@ -712,6 +712,22 @@ canvas.api.ui.content_entity_reference.preview:
         type: entity:{entity_type}
     _format: 'json'
 
+canvas.api.ui.content_template.prop_source_preview:
+  path: '/canvas/api/v0/ui/content_template/prop-source-preview/{entity_type_id}/{entity}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiUiContentTemplateControllers::previewPropSource'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_entity_create_access: 'content_template'
+    _entity_access: 'entity.view'
+    _format: 'json'
+  methods: [POST]
+  options:
+    parameters:
+      entity:
+        type: entity:{entity_type_id}
+    _format: 'json'
+
 canvas.api.ui.content_template.suggestions.preview_content_entities:
   path: '/canvas/api/v0/ui/content_template/suggestions/preview/{entity_type_id}/{bundle}'
   defaults:
@@ -733,21 +749,6 @@ canvas.api.ui.content_template.suggestions.prop_sources:
   options:
     _format: 'json'
 
-canvas.api.ui.content_template.prop_source_preview:
-  path: '/canvas/api/v0/ui/content_template/prop-source-preview/{entity_type_id}/{entity}'
-  defaults:
-    _controller: 'Drupal\canvas\Controller\ApiUiContentTemplateControllers::previewPropSource'
-  requirements:
-    _canvas_authentication_required: TRUE
-    _canvas_entity_create_access: 'content_template'
-    _entity_access: 'entity.view'
-    _format: 'json'
-  methods: [POST]
-  options:
-    parameters:
-      entity:
-        type: entity:{entity_type_id}
-    _format: 'json'
 
 canvas.api.ui.content_template.view_modes.list:
   path: '/canvas/api/v0/ui/content_template/view_modes/node'

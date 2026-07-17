@@ -45,32 +45,32 @@ final class CombineAdapter extends AdapterBase {
    */
   public const int SLOT_COUNT = 10;
 
-  protected ?string $text_1 = NULL;
-
-  protected ?string $text_2 = NULL;
-
-  protected ?string $text_3 = NULL;
-
-  protected ?string $text_4 = NULL;
-
-  protected ?string $text_5 = NULL;
-
-  protected ?string $text_6 = NULL;
-
-  protected ?string $text_7 = NULL;
-
-  protected ?string $text_8 = NULL;
-
-  protected ?string $text_9 = NULL;
-
-  protected ?string $text_10 = NULL;
+  /**
+   * The received text slot values, keyed by input name (`text_1`…`text_10`).
+   *
+   * @var array<string, string|null>
+   */
+  protected array $texts = [];
 
   protected ?string $separator = NULL;
+
+  public function addInput(string $input, mixed $value): AdapterBase {
+    // The text slots are collected into one array: their input names are not
+    // valid property names per the coding standards.
+    if (\str_starts_with($input, 'text_') && \array_key_exists($input, $this->getInputs())) {
+      if ($value !== NULL && !$this->validateConformanceToJsonSchemaType($this->getInputs()[$input], $value)) {
+        throw new \LogicException('…');
+      }
+      $this->texts[$input] = $value;
+      return $this;
+    }
+    return parent::addInput($input, $value);
+  }
 
   public function adapt(): EvaluationResult {
     $parts = [];
     for ($i = 1; $i <= self::SLOT_COUNT; $i++) {
-      $part = $this->{"text_$i"};
+      $part = $this->texts["text_$i"] ?? NULL;
       if (!static::isEmptyValue($part)) {
         $parts[] = $part;
       }
