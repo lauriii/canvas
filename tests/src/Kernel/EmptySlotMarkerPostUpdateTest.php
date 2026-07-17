@@ -19,10 +19,11 @@ final class EmptySlotMarkerPostUpdateTest extends CanvasKernelTestBase {
 
   public function testInstallsMarkerOnExistingSites(): void {
     \Drupal::moduleHandler()->loadInclude('canvas', 'post_update.php');
+    $storage = \Drupal::entityTypeManager()->getStorage(Component::ENTITY_TYPE_ID);
 
     // An existing site predating the marker: the config entity is absent.
     Component::load(Component::EMPTY_SLOT_MARKER_ID)?->delete();
-    self::assertNull(Component::load(Component::EMPTY_SLOT_MARKER_ID));
+    self::assertEmpty($storage->loadMultiple([Component::EMPTY_SLOT_MARKER_ID]));
 
     canvas_post_update_0026_install_empty_slot_marker();
     $marker = Component::load(Component::EMPTY_SLOT_MARKER_ID);
@@ -32,7 +33,7 @@ final class EmptySlotMarkerPostUpdateTest extends CanvasKernelTestBase {
 
     // Idempotent: a site that already has it is untouched.
     canvas_post_update_0026_install_empty_slot_marker();
-    self::assertInstanceOf(Component::class, Component::load(Component::EMPTY_SLOT_MARKER_ID));
+    self::assertCount(1, $storage->loadMultiple([Component::EMPTY_SLOT_MARKER_ID]));
   }
 
 }
