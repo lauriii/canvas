@@ -689,7 +689,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           PropSource::Adapter->value => [
             'contains',
             'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -721,7 +720,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           PropSource::Adapter->value => [
             'contains',
             'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -733,7 +731,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           PropSource::Adapter->value => [
             'contains',
             'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -796,9 +793,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           'required' => FALSE,
           PropSource::EntityField->value => [],
           PropSource::Adapter->value => [
-            'contains',
-            'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -808,9 +802,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           'required' => FALSE,
           PropSource::EntityField->value => [],
           PropSource::Adapter->value => [
-            'contains',
-            'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -878,9 +869,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           'required' => FALSE,
           PropSource::EntityField->value => [],
           PropSource::Adapter->value => [
-            'contains',
-            'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -890,9 +878,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           'required' => FALSE,
           PropSource::EntityField->value => [],
           PropSource::Adapter->value => [
-            'contains',
-            'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -902,9 +887,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           'required' => FALSE,
           PropSource::EntityField->value => [],
           PropSource::Adapter->value => [
-            'contains',
-            'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -914,9 +896,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           'required' => FALSE,
           PropSource::EntityField->value => [],
           PropSource::Adapter->value => [
-            'contains',
-            'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -1385,9 +1364,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           'required' => FALSE,
           PropSource::EntityField->value => [],
           PropSource::Adapter->value => [
-            'contains',
-            'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -1397,9 +1373,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           'required' => FALSE,
           PropSource::EntityField->value => [],
           PropSource::Adapter->value => [
-            'contains',
-            'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -1409,9 +1382,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           'required' => FALSE,
           PropSource::EntityField->value => [],
           PropSource::Adapter->value => [
-            'contains',
-            'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -1421,9 +1391,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           'required' => FALSE,
           PropSource::EntityField->value => [],
           PropSource::Adapter->value => [
-            'contains',
-            'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -1481,7 +1448,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           PropSource::Adapter->value => [
             'contains',
             'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -1564,9 +1530,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           'required' => FALSE,
           PropSource::EntityField->value => [],
           PropSource::Adapter->value => [
-            'contains',
-            'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -1671,7 +1634,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           PropSource::Adapter->value => [
             'contains',
             'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -1707,7 +1669,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           PropSource::Adapter->value => [
             'contains',
             'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -1769,7 +1730,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           PropSource::Adapter->value => [
             'contains',
             'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
@@ -1896,9 +1856,6 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           'required' => FALSE,
           PropSource::EntityField->value => [],
           PropSource::Adapter->value => [
-            'contains',
-            'equals',
-            'fallback',
             'mapping',
           ],
           PropSource::HostEntityUrl->value => [],

@@ -29,6 +29,10 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
   ],
   requiredInputs: ['text', 'needle', 'then'],
   outputMirrorsInputs: ['then', 'else'],
+  // Without an else branch, non-matching text yields an empty output.
+  requiredInputsWhenOutputRequired: ['else'],
+  // Empty matched text merely selects the else branch.
+  emptyToleratingInputs: ['text', 'needle', 'position', 'negate'],
 )]
 final class ContainsAdapter extends AdapterBase {
 

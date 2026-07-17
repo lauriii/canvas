@@ -37,9 +37,21 @@ class Adapter extends Plugin {
    *   output shape (e.g. the `then`/`else` inputs of a conditional). Such
    *   adapters match any target prop shape; the mirroring inputs are then
    *   expected to be populated by sources matching that target shape.
+   * @param array<string> $requiredInputsWhenOutputRequired
+   *   Inputs that must additionally be configured when the targeted prop is
+   *   required, because without them the adapter may produce an empty output
+   *   (e.g. the `else` input of a conditional).
+   * @param array<string> $emptyToleratingInputs
+   *   Inputs whose empty value does not make the output empty, provided all
+   *   (conditionally) required inputs are configured — e.g. the compared
+   *   `value` of a conditional, whose emptiness merely selects the else
+   *   branch. Inputs not listed here propagate their emptiness to the output,
+   *   so when the targeted prop is required, only required fields are offered
+   *   as their candidates.
    * @param class-string|null $deriver
    *
    * @see \Drupal\canvas\Plugin\Adapter\AdapterBase::matchesOutputSchema()
+   * @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester::buildAdapterSuggestions()
    */
   public function __construct(
     public readonly string $id,
@@ -48,13 +60,17 @@ class Adapter extends Plugin {
     protected array $requiredInputs,
     protected array $output = [],
     protected array $outputMirrorsInputs = [],
+    protected array $requiredInputsWhenOutputRequired = [],
+    protected array $emptyToleratingInputs = [],
     public readonly ?string $deriver = NULL,
   ) {
     if (($output === []) === ($outputMirrorsInputs === [])) {
       throw new \LogicException(\sprintf('The `%s` adapter must declare exactly one of `output` or `outputMirrorsInputs`.', $id));
     }
-    if (\array_diff($outputMirrorsInputs, \array_keys($inputs)) !== []) {
-      throw new \LogicException(\sprintf('The `%s` adapter declares unknown input names in `outputMirrorsInputs`.', $id));
+    foreach (['outputMirrorsInputs' => $outputMirrorsInputs, 'requiredInputsWhenOutputRequired' => $requiredInputsWhenOutputRequired, 'emptyToleratingInputs' => $emptyToleratingInputs] as $list_name => $list) {
+      if (\array_diff($list, \array_keys($inputs)) !== []) {
+        throw new \LogicException(\sprintf('The `%s` adapter declares unknown input names in `%s`.', $id, $list_name));
+      }
     }
   }
 

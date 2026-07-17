@@ -19,6 +19,9 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
   ],
   requiredInputs: ['value'],
   output: ['type' => 'boolean'],
+  // An empty value is exactly what this adapter reports on: output is always
+  // a boolean.
+  emptyToleratingInputs: ['value', 'negate'],
 )]
 final class IsSetAdapter extends AdapterBase {
 

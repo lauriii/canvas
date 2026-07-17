@@ -9,6 +9,11 @@ test.use({
 
 test.describe('Prop adapters', () => {
   test.beforeEach(async ({ drupal }) => {
+    // A full journey (recipe, module install, template build, transform
+    // config, publish, rendered output) legitimately needs more than the
+    // default budget. TRICKY: this must be marked here rather than in the
+    // test body, because hooks are budgeted before the body runs.
+    test.slow();
     await drupal.loginAsAdmin();
     await drupal.applyRecipe(
       `modules/contrib/canvas/tests/fixtures/recipes/article_translation`,
@@ -30,9 +35,6 @@ test.describe('Prop adapters', () => {
     drupal,
     canvas,
   }) => {
-    // A full journey (recipe, template build, transform config, publish,
-    // rendered output) legitimately needs more than the default budget.
-    test.slow();
     await drupal.login({ username: 'editor', password: 'editor' });
     await canvas.openCanvasRoot();
     await canvas.openTemplatesPanel();
@@ -67,8 +69,11 @@ test.describe('Prop adapters', () => {
     await thenRow.getByRole('radio', { name: 'Value' }).click();
     await thenRow.getByRole('textbox').fill('Free');
 
-    // Reveal the optional else input and bind it to the Title field.
-    await panel.getByRole('button', { name: 'Else', exact: true }).click();
+    // `heading` is a REQUIRED prop, so the conditional's else branch is
+    // required too (a non-matching value must not empty a required prop) and
+    // is therefore shown expanded rather than behind an adder. Bind it to the
+    // Title field.
+    // @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester::buildAdapterSuggestions()
     const elseRow = panel.getByTestId('adapter-input-else');
     await elseRow.getByRole('combobox').click();
     await page.getByRole('option', { name: 'Title', exact: true }).click();

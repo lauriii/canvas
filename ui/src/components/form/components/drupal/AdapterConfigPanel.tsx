@@ -6,11 +6,11 @@ import {
   Cross2Icon,
   PlusIcon,
 } from '@radix-ui/react-icons';
+import * as Popover from '@radix-ui/react-popover';
 import {
   Badge,
   Box,
   Button,
-  Dialog,
   DropdownMenu,
   Flex,
   IconButton,
@@ -187,7 +187,13 @@ export interface AdapterConfigPanelProps {
 }
 
 /**
- * Dialog for configuring component prop adapters (no-code value transforms).
+ * Floating panel for configuring component prop adapters (no-code value
+ * transforms).
+ *
+ * Uses the same anchored popover pattern as the multivalue prop forms
+ * (see DrupalInputMultivalueForm): the panel floats next to the prop being
+ * edited so the canvas preview stays visible while configuring, instead of a
+ * centered blocking modal.
  *
  * Presents the transform chain as a linear ordered list of steps. Each step
  * renders one row per adapter input slot; slots are bound to a field
@@ -660,39 +666,59 @@ const AdapterConfigPanel = ({
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Content
-        width="480px"
-        maxWidth="92vw"
-        aria-describedby={undefined}
+    <Popover.Root open={open} onOpenChange={onOpenChange}>
+      {/* Invisible anchor next to the prop's linker icon: the panel floats
+          to the side of the prop being edited, like the multivalue prop
+          popovers. */}
+      <Popover.Anchor className={styles.anchor} />
+      <Popover.Content
+        side="left"
+        align="start"
+        sideOffset={36}
+        collisionPadding={12}
+        className={styles.panel}
+        // A multi-field configuration must not be discarded by a stray click
+        // on the canvas (or by interacting with portaled child widgets such
+        // as selects): the panel only closes via Apply, Cancel, the close
+        // button, or Escape.
+        onInteractOutside={(event) => event.preventDefault()}
+        aria-label={`Transform ${humanizeInputName(propName)}`}
         data-testid="adapter-config-panel"
       >
-        <Dialog.Title>
-          <Text size="2" weight="bold">
+        {/* Panel header */}
+        <Flex justify="between" align="center" className={styles.panelHeader}>
+          <Text size="1" weight="medium" className={styles.panelLabel}>
             Transform {humanizeInputName(propName)}
           </Text>
-        </Dialog.Title>
-        {steps.map((step, index) => renderStep(step, index))}
-        <Box mt="2">
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger>
-              <Button size="1" variant="soft" data-testid="adapter-add-step">
-                <PlusIcon />
-                Add step
-              </Button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content>
-              {adapterSuggestions.map((suggestion, index) => (
-                <DropdownMenu.Item
-                  key={suggestion.id ?? index}
-                  data-transform-option={suggestion.adapter.id}
-                  onClick={() => addStep(suggestion)}
-                >
-                  {suggestion.label}
-                </DropdownMenu.Item>
-              ))}
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
+          <Popover.Close aria-label="Close">
+            <Cross2Icon />
+          </Popover.Close>
+        </Flex>
+        {/* Long chains scroll inside the panel; the preview row and the
+            Apply/Cancel footer below stay visible. */}
+        <Box className={styles.scrollArea}>
+          {steps.map((step, index) => renderStep(step, index))}
+          <Box mt="2">
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger>
+                <Button size="1" variant="soft" data-testid="adapter-add-step">
+                  <PlusIcon />
+                  Add step
+                </Button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content>
+                {adapterSuggestions.map((suggestion, index) => (
+                  <DropdownMenu.Item
+                    key={suggestion.id ?? index}
+                    data-transform-option={suggestion.adapter.id}
+                    onClick={() => addStep(suggestion)}
+                  >
+                    {suggestion.label}
+                  </DropdownMenu.Item>
+                ))}
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
+          </Box>
         </Box>
         {entityType && previewEntityId && (
           <Flex
@@ -740,8 +766,8 @@ const AdapterConfigPanel = ({
             Apply
           </Button>
         </Flex>
-      </Dialog.Content>
-    </Dialog.Root>
+      </Popover.Content>
+    </Popover.Root>
   );
 };
 
