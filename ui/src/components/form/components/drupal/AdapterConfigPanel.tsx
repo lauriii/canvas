@@ -26,6 +26,7 @@ import { usePreviewPropSourceMutation } from '@/services/componentAndLayout';
 
 import {
   candidateShortLabel,
+  COMBINE_MAX_PARTS,
   createStep,
   getPrimaryInputName,
   humanizeInputName,
@@ -41,6 +42,7 @@ import type {
   AdapterInputSlot,
   AdapterStep,
   AdapterSuggestion,
+  CombinePart,
   MappingRow,
   SlotBinding,
   SlotCandidate,
@@ -174,6 +176,137 @@ const MappingRowsEditor = ({
   );
 };
 
+// Merges consecutive text parts so a removed pill does not leave two adjacent
+// editable runs.
+const mergeAdjacentText = (parts: CombinePart[]): CombinePart[] =>
+  parts.reduce<CombinePart[]>((acc, part) => {
+    const last = acc[acc.length - 1];
+    if (part.kind === 'text' && last && last.kind === 'text') {
+      acc[acc.length - 1] = { kind: 'text', text: last.text + part.text };
+    } else {
+      acc.push(part);
+    }
+    return acc;
+  }, []);
+
+// Ensures the parts end with a text run so there is always an input to type
+// into after the last pill.
+const ensureTrailingText = (parts: CombinePart[]): CombinePart[] =>
+  parts.length === 0 || parts[parts.length - 1].kind !== 'text'
+    ? [...parts, { kind: 'text', text: '' }]
+    : parts;
+
+// The number of parts that serialize to a slot (field pills and non-empty
+// text runs). Empty text runs are skipped and do not count toward the cap.
+const emittedPartCount = (parts: CombinePart[]): number =>
+  parts.filter((part) => part.kind === 'field' || part.text !== '').length;
+
+/**
+ * Token/pill editor for the combine adapter: the author writes free text and
+ * inserts field references as inline pills. The ordered parts serialize to
+ * combine's text_1…text_10 inputs (see combinePartsToInputs).
+ */
+const CombinePillEditor = ({
+  parts,
+  candidates,
+  onChange,
+}: {
+  parts: CombinePart[];
+  candidates: SlotCandidate[];
+  onChange: (parts: CombinePart[]) => void;
+}) => {
+  const atCap = emittedPartCount(parts) >= COMBINE_MAX_PARTS;
+
+  const updateText = (index: number, text: string) => {
+    onChange(
+      parts.map((part, i) => (i === index ? { kind: 'text', text } : part)),
+    );
+  };
+  const removePill = (index: number) => {
+    onChange(
+      ensureTrailingText(
+        mergeAdjacentText(parts.filter((_, i) => i !== index)),
+      ),
+    );
+  };
+  const insertField = (candidate: SlotCandidate) => {
+    onChange(
+      ensureTrailingText([
+        ...parts,
+        {
+          kind: 'field',
+          label: candidateShortLabel(candidate.label),
+          source: candidate.source,
+          candidateId: candidate.id,
+        },
+      ]),
+    );
+  };
+
+  const onlyEmpty =
+    parts.length === 1 && parts[0].kind === 'text' && parts[0].text === '';
+
+  return (
+    <Box data-testid="combine-editor" className={styles.combineEditor}>
+      <Flex wrap="wrap" align="center" gap="1" className={styles.combineParts}>
+        {parts.map((part, index) =>
+          part.kind === 'text' ? (
+            <input
+              key={index}
+              className={styles.combineTextInput}
+              value={part.text}
+              size={Math.max(part.text.length, 2)}
+              placeholder={
+                onlyEmpty ? 'Type text or insert a field…' : undefined
+              }
+              aria-label="Combined text"
+              onChange={(event) => updateText(index, event.target.value)}
+            />
+          ) : (
+            <span key={index} className={styles.combinePill}>
+              <span className={styles.combinePillLabel}>{part.label}</span>
+              <button
+                type="button"
+                className={styles.combinePillRemove}
+                aria-label={`Remove ${part.label}`}
+                onClick={() => removePill(index)}
+              >
+                <Cross2Icon />
+              </button>
+            </span>
+          ),
+        )}
+      </Flex>
+      <Flex align="center" gap="2" mt="1">
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger>
+            <Button
+              size="1"
+              variant="soft"
+              disabled={atCap || candidates.length === 0}
+              data-testid="combine-insert-field"
+            >
+              <PlusIcon />
+              Insert field
+            </Button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content>
+            <CandidateTreeMenuItems
+              candidates={candidates}
+              onSelect={insertField}
+            />
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
+        {atCap && (
+          <Text size="1" color="gray">
+            A combined value can hold at most {COMBINE_MAX_PARTS} parts
+          </Text>
+        )}
+      </Flex>
+    </Box>
+  );
+};
+
 export interface AdapterConfigPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -281,6 +414,14 @@ const AdapterConfigPanel = ({
               },
             }
           : step,
+      ),
+    );
+  };
+
+  const updateCombineParts = (stepIndex: number, parts: CombinePart[]) => {
+    setSteps((prev) =>
+      prev.map((step, index) =>
+        index === stepIndex ? { ...step, parts } : step,
       ),
     );
   };
@@ -572,19 +713,30 @@ const AdapterConfigPanel = ({
     );
   };
 
+  const renderCombineEditor = (step: AdapterStep, stepIndex: number) => {
+    const textSlot = step.adapter.inputs.find((slot) =>
+      COMBINE_TEXT_PATTERN.test(slot.name),
+    );
+    // A later chain step feeds text_1 from the previous step, shown as a fixed
+    // leading indicator; the parts fill the remaining slots.
+    const parts = ensureTrailingText(
+      step.parts ?? [{ kind: 'text', text: '' }],
+    );
+    return (
+      <>
+        {stepIndex > 0 && <Badge color="gray">Previous step, then…</Badge>}
+        <CombinePillEditor
+          parts={parts}
+          candidates={textSlot?.candidates ?? []}
+          onChange={(next) => updateCombineParts(stepIndex, next)}
+        />
+      </>
+    );
+  };
+
   const renderStep = (step: AdapterStep, stepIndex: number) => {
     const primary = getPrimaryInputName(step.adapter);
     const isCombine = step.adapter.id === 'combine';
-    // For combine, hidden optional text_N slots are revealed one at a time by
-    // the "Add input" button below rather than one adder per slot.
-    const hiddenCombineSlots = isCombine
-      ? step.adapter.inputs.filter(
-          (slot) =>
-            COMBINE_TEXT_PATTERN.test(slot.name) &&
-            !slot.required &&
-            !step.bindings[slot.name].enabled,
-        )
-      : [];
 
     return (
       <Box
@@ -628,48 +780,29 @@ const AdapterConfigPanel = ({
             </IconButton>
           </Flex>
         </Flex>
-        {step.adapter.inputs.map((slot) => {
-          const isLockedPrimary = stepIndex > 0 && slot.name === primary;
-          const binding = step.bindings[slot.name];
-          if (!slot.required && !binding.enabled && !isLockedPrimary) {
-            // Combine's hidden text_N slots share the single "Add input"
-            // button below.
-            if (isCombine && COMBINE_TEXT_PATTERN.test(slot.name)) {
-              return null;
-            }
-            return (
-              <Box key={slot.name} className={styles.slotRow}>
-                <Button
-                  size="1"
-                  variant="ghost"
-                  onClick={() =>
-                    updateBinding(stepIndex, slot.name, { enabled: true })
-                  }
-                >
-                  <PlusIcon />
-                  {humanizeInputName(slot.name)}
-                </Button>
-              </Box>
-            );
-          }
-          return renderSlotRow(stepIndex, step, slot, isLockedPrimary);
-        })}
-        {hiddenCombineSlots.length > 0 && (
-          <Box className={styles.slotRow}>
-            <Button
-              size="1"
-              variant="ghost"
-              onClick={() =>
-                updateBinding(stepIndex, hiddenCombineSlots[0].name, {
-                  enabled: true,
-                })
+        {isCombine
+          ? renderCombineEditor(step, stepIndex)
+          : step.adapter.inputs.map((slot) => {
+              const isLockedPrimary = stepIndex > 0 && slot.name === primary;
+              const binding = step.bindings[slot.name];
+              if (!slot.required && !binding.enabled && !isLockedPrimary) {
+                return (
+                  <Box key={slot.name} className={styles.slotRow}>
+                    <Button
+                      size="1"
+                      variant="ghost"
+                      onClick={() =>
+                        updateBinding(stepIndex, slot.name, { enabled: true })
+                      }
+                    >
+                      <PlusIcon />
+                      {humanizeInputName(slot.name)}
+                    </Button>
+                  </Box>
+                );
               }
-            >
-              <PlusIcon />
-              Add input
-            </Button>
-          </Box>
-        )}
+              return renderSlotRow(stepIndex, step, slot, isLockedPrimary);
+            })}
       </Box>
     );
   };

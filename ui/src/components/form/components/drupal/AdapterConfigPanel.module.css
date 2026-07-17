@@ -83,6 +83,58 @@
   color: var(--gray-9);
 }
 
+/* Combine pill editor: an input-like box holding inline text runs and field
+   pills. */
+.combineEditor {
+  margin-block-start: var(--space-1);
+}
+
+.combineParts {
+  min-height: var(--space-6);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-2);
+  background-color: white;
+}
+
+.combineTextInput {
+  min-width: 2ch;
+  padding: 2px 0;
+  color: inherit;
+  border: none;
+  background: transparent;
+  font: inherit;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.combinePill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--space-1);
+  color: var(--blue-11);
+  border-radius: var(--radius-2);
+  background-color: var(--blue-3);
+  font-size: var(--font-size-1);
+  gap: 2px;
+}
+
+.combinePillRemove {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  border: none;
+  background: transparent;
+
+  &:focus-visible {
+    outline: 1px solid var(--blue-9);
+  }
+}
+
 .previewRow {
   margin-block-start: var(--space-3);
   padding-block-start: var(--space-2);
