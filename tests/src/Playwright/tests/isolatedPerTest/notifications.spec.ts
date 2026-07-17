@@ -158,8 +158,10 @@ test.describe('Activity Center notifications', () => {
     await expect(page.getByText('Import success')).toBeVisible();
     await expect(page.getByText('Import failed')).toBeHidden();
 
-    // Mark all as read, create new error, wait for badge.
-    await page.getByRole('button', { name: 'Mark all as read' }).click();
+    // There are no unread notifications left, so the bulk read action is hidden.
+    await expect(
+      page.getByRole('button', { name: 'Mark all as read' }),
+    ).toBeHidden();
 
     // Close the popover.
     await page.getByTestId('canvas-topbar').click({ position: { x: 5, y: 5 } });

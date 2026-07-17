@@ -134,6 +134,27 @@ describe('NotificationCard', () => {
     expect(screen.getByText('|')).toBeInTheDocument();
   });
 
+  it('keeps action links accessible when an action handler is provided', async () => {
+    const user = userEvent.setup();
+    const onAction = vi.fn();
+    render(
+      <NotificationCard
+        notification={make({
+          id: 'action-test',
+          actions: [{ label: 'View', href: '/view' }],
+        })}
+        onMarkRead={vi.fn()}
+        onAction={onAction}
+      />,
+    );
+
+    const link = screen.getByRole('link', { name: 'View' });
+    expect(link).toHaveAttribute('href', '/view');
+
+    await user.click(link);
+    expect(onAction).toHaveBeenCalledWith('action-test', '/view');
+  });
+
   it('renders timestamp', () => {
     render(
       <NotificationCard

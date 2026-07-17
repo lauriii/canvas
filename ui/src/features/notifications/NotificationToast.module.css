@@ -16,6 +16,13 @@
   background: var(--amber-2);
 }
 
+.toast[data-key='canvas-conflict'] {
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  border-left-color: var(--amber-8);
+  background: var(--amber-2);
+}
+
 .toast[data-type='error'] {
   border-left-color: var(--red-9);
   background: var(--red-3);

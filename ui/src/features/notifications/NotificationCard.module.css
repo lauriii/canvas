@@ -105,9 +105,13 @@
 }
 
 .actionLink {
+  padding: 0;
   cursor: pointer;
   text-decoration: none;
   color: var(--blue-9);
+  border: none;
+  background: none;
+  font: inherit;
 
   &:hover {
     text-decoration: underline;
