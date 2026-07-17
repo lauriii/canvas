@@ -37,7 +37,10 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
   output: ['type' => 'string'],
   // Empty inputs are skipped; as long as `text_1` is non-empty the output is
   // non-empty, so all other slots tolerate emptiness.
-  emptyToleratingInputs: ['text_2', 'text_3', 'text_4', 'text_5', 'text_6', 'text_7', 'text_8', 'text_9', 'text_10', 'separator'],
+  emptyToleratingInputs: [
+    'text_2', 'text_3', 'text_4', 'text_5', 'text_6',
+    'text_7', 'text_8', 'text_9', 'text_10', 'separator',
+  ],
 )]
 final class CombineAdapter extends AdapterBase {
 

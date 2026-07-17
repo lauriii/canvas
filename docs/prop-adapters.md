@@ -82,8 +82,8 @@ Suggestions are type-aware in three ways:
   compared `value`) keep offering optional fields.
 
 Independently of the editor, `AdaptedPropSource::evaluate()` rejects
-unconfigured required inputs with a clear error, so a malformed stored tree
-fails loudly instead of silently emptying a required prop.
+required inputs that are not configured, with a clear error, so a malformed
+stored tree fails loudly instead of silently emptying a required prop.
 
 ## Editor UI
 
