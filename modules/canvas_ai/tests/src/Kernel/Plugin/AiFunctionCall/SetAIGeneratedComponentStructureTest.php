@@ -339,6 +339,39 @@ YAML;
     $this->assertSame('Failed to process layout data: Component validation errors: components.0.[js.test-code-component].props.nonexistent_prop: Component `js.test-code-component`: the `nonexistent_prop` prop is not defined. (code garbage)', self::normalizeErrorString($result));
   }
 
+  /**
+   * Tests that a structurally malformed component tree does not cause a WSOD.
+   *
+   * A component whose value is a scalar (instead of a props/slots mapping)
+   * passes deterministic validation (the component exists and defines no
+   * required props) but would previously raise an uncaught \TypeError while
+   * calculating nodePaths, which escapes the tool's catch and crashes the
+   * request. The tool must instead return a readable failure so the agent can
+   * retry.
+   *
+   * @see https://git.drupalcode.org/project/canvas/-/issues/3569026
+   */
+  public function testMalformedComponentDataDoesNotCauseWsod(): void {
+    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
+
+    // The component's value is a scalar instead of a props/slots mapping.
+    $malformed_yaml = <<<YAML
+      operations:
+        - target: 'content'
+          reference_uuid: ''
+          placement: 'inside'
+          components:
+            - sdc.canvas_test_sdc.druplicon: 'not a component definition'
+      YAML;
+
+    // The call must not throw; before the fix it raised an uncaught
+    // \TypeError. The raw \TypeError text is not surfaced to the agent; a
+    // generic malformed-structure message is returned instead.
+    $result = $this->getComponentToolOutput($malformed_yaml);
+    $this->assertSame('Failed to process layout data: The component structure is malformed.', self::normalizeErrorString($result));
+  }
+
   private function getComponentToolOutput(string $yaml): string {
     return $this->getToolOutput('canvas_ai:set_component_structure', ['component_structure' => $yaml]);
   }
@@ -669,6 +702,51 @@ YAML;
         'expected_error' => [
           'Operation 0' => [
             'The operation must contain components.',
+          ],
+        ],
+      ],
+      // The AI omitted the components key entirely. Before the fix this reached
+      // the validator with NULL and raised an uncaught \TypeError (WSOD).
+      'test_missing_components' => [
+        'layout_type' => 'multi_region_empty',
+        'yaml_input' => <<<YAML
+          operations:
+            - target: 'content'
+              reference_uuid: ''
+              placement: 'inside'
+          YAML,
+        'expected_error' => [
+          'Operation 0' => [
+            'The operation must contain components.',
+          ],
+        ],
+      ],
+      // The AI returned a scalar where a list of components was expected.
+      'test_scalar_components' => [
+        'layout_type' => 'multi_region_empty',
+        'yaml_input' => <<<YAML
+          operations:
+            - target: 'content'
+              reference_uuid: ''
+              placement: 'inside'
+              components: 'not a list'
+          YAML,
+        'expected_error' => [
+          'Operation 0' => [
+            'The operation must contain components.',
+          ],
+        ],
+      ],
+      // The AI returned a scalar where an operation mapping was expected.
+      'test_scalar_operation' => [
+        'layout_type' => 'multi_region_empty',
+        'yaml_input' => <<<YAML
+          operations:
+            - just a string
+          YAML,
+        'expected_error' => [
+          'Operation 0' => [
+            'The operation must be a mapping of placement details and components.',
           ],
         ],
       ],

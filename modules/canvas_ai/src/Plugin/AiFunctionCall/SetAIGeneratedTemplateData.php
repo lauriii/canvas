@@ -109,6 +109,13 @@ final class SetAIGeneratedTemplateData extends FunctionCallBase implements Execu
         throw new \Exception('Invalid YAML format provided.');
       }
 
+      // The structure must be a mapping of region names to their components.
+      // Guard before indexing into it, so a malformed AI structure yields a
+      // readable error instead of a fatal.
+      if (!\is_array($component_structure_array)) {
+        throw new \Exception('The component structure must be a mapping of regions to components.');
+      }
+
       // Validate if regions are correct.
       $current_layout = $this->tempStore->getData(CanvasAiTempStore::CURRENT_LAYOUT_KEY) ?? '';
       $layout_regions = $this->pageBuilderHelper->getRegionIndex($current_layout);
@@ -123,8 +130,13 @@ final class SetAIGeneratedTemplateData extends FunctionCallBase implements Execu
         }
       }
 
-      // Validate the component structure for each region.
+      // Validate the component structure for each region. A region whose value
+      // is not a list of components is skipped here; processSetTemplateDataToolInput()
+      // likewise ignores it, so nothing is placed for it.
       foreach ($component_structure_array as $components) {
+        if (!\is_array($components)) {
+          continue;
+        }
         $this->responseValidator->validateComponentStructure($components);
       }
       // Process the YAML structure for UI representation.
@@ -132,9 +144,19 @@ final class SetAIGeneratedTemplateData extends FunctionCallBase implements Execu
       $this->setStructuredOutput($processed_structure);
       $this->setOutput('Template data has been successfully set.');
     }
-    catch (\Exception $e) {
+    // Catch \Throwable, not just \Exception: a structurally malformed AI
+    // structure (e.g. a scalar where a region map is expected) makes the
+    // deterministic validation and downstream processing raise a \TypeError,
+    // which is a \Throwable but not an \Exception. Letting it escape crashes
+    // the request with a WSOD instead of returning the error to the agent so
+    // it can retry.
+    catch (\Throwable $e) {
       $this->loggerFactory->get('canvas_ai')->error($e->getMessage());
-      $this->setOutput(\sprintf('Failed to save: %s', $e->getMessage()));
+      // Return \Exception messages verbatim — validation errors and the guards
+      // above are deliberately readable — but never surface raw \Error /
+      // \TypeError text (which can include server paths) to the agent.
+      $reason = $e instanceof \Exception ? $e->getMessage() : 'The component structure is malformed.';
+      $this->setOutput(\sprintf('Failed to save: %s', $reason));
     }
   }
 

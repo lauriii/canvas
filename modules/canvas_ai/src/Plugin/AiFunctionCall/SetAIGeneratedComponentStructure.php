@@ -99,8 +99,19 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
       $allErrors = [];
 
       foreach ($component_structure_array['operations'] as $index => $operation) {
+        // Guard against a non-mapping operation before indexing into it, so a
+        // malformed AI structure yields a readable error instead of a fatal.
+        if (!\is_array($operation)) {
+          $allErrors['Operation ' . $index][] = 'The operation must be a mapping of placement details and components.';
+          continue;
+        }
         $allErrors = array_merge($allErrors, $this->validatePlacementParams($operation, $index));
-        $this->responseValidator->validateComponentStructure($operation['components']);
+        // validatePlacementParams() already reports missing, empty, or
+        // non-array components; only hand a well-formed list to the validator,
+        // which requires an array.
+        if (\is_array($operation['components'] ?? NULL)) {
+          $this->responseValidator->validateComponentStructure($operation['components']);
+        }
       }
 
       if (!empty($allErrors)) {
@@ -114,9 +125,19 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
       $this->setStructuredOutput($custom_yaml);
       $this->setOutput('Component structure processed successfully.');
     }
-    catch (\Exception $e) {
+    // Catch \Throwable, not just \Exception: a structurally malformed AI
+    // structure (e.g. a non-array operation, or missing/non-array components)
+    // makes the deterministic validation and downstream processing raise a
+    // \TypeError, which is a \Throwable but not an \Exception. Letting it
+    // escape crashes the request with a WSOD instead of returning the error to
+    // the agent so it can retry.
+    catch (\Throwable $e) {
       $this->loggerFactory->get('canvas_ai')->error($e->getMessage());
-      $this->setOutput(\sprintf('Failed to process layout data: %s', $e->getMessage()));
+      // Return \Exception messages verbatim — validation errors and the guards
+      // above are deliberately readable — but never surface raw \Error /
+      // \TypeError text (which can include server paths) to the agent.
+      $reason = $e instanceof \Exception ? $e->getMessage() : 'The component structure is malformed.';
+      $this->setOutput(\sprintf('Failed to process layout data: %s', $reason));
     }
   }
 
@@ -146,8 +167,8 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
       }
     }
 
-    // Operation must contain components.
-    if (empty($operation['components'])) {
+    // Operation must contain components, provided as a list.
+    if (empty($operation['components']) || !\is_array($operation['components'])) {
       $errors[$errorKey][] = 'The operation must contain components.';
     }
 

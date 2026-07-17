@@ -309,6 +309,25 @@ YAML;
     $this->assertEquals($expected_output, $result);
   }
 
+  /**
+   * Tests that a structurally malformed template does not cause a WSOD.
+   *
+   * When the AI returns a bare scalar instead of a mapping of regions to
+   * components, the tool must return a readable failure instead of raising an
+   * uncaught \TypeError (from array_keys()) that crashes the request.
+   *
+   * @see https://git.drupalcode.org/project/canvas/-/issues/3569026
+   */
+  public function testNonArrayStructureDoesNotCauseWsod(): void {
+    $this->container->get('current_user')->setAccount($this->privilegedUser);
+
+    // The guard rejects the scalar before the current layout is read.
+    $this->mockTempStore->expects($this->never())->method('getData');
+
+    $result = $this->getTemplateToolOutput('just a bare string');
+    $this->assertSame('Failed to save: The component structure must be a mapping of regions to components.', self::normalizeErrorString($result));
+  }
+
   private function getTemplateToolOutput(string $yaml): string {
     return $this->getToolOutput('canvas_ai:set_template_data', ['component_structure' => $yaml]);
   }
