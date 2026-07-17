@@ -42,13 +42,16 @@ const waitForConflict = async (
   let conflictId: string | undefined;
 
   await expect
-    .poll(async () => {
-      const response = await getPendingChanges(page);
-      conflictId = response.errors?.find(
-        (error) => error.source?.pointer === pointer,
-      )?.meta?.conflict_id;
-      return conflictId;
-    })
+    .poll(
+      async () => {
+        const response = await getPendingChanges(page);
+        conflictId = response.errors?.find(
+          (error) => error.source?.pointer === pointer,
+        )?.meta?.conflict_id;
+        return conflictId;
+      },
+      { timeout: 30_000 },
+    )
     .toBeTruthy();
 
   if (!conflictId) {

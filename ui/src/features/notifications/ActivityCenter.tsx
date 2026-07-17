@@ -13,6 +13,7 @@ interface ActivityCenterProps {
   onClose: () => void;
   onMarkAllRead: () => void;
   onMarkRead: (id: string) => void;
+  onAction?: (id: string, href: string) => void;
 }
 
 const ActivityCenter = ({
@@ -20,8 +21,12 @@ const ActivityCenter = ({
   onClose,
   onMarkAllRead,
   onMarkRead,
+  onAction,
 }: ActivityCenterProps) => {
   const sorted = sortNotifications(notifications);
+  const hasUnreadNotifications = notifications.some(
+    (notification) => !notification.hasRead,
+  );
 
   return (
     <div className={styles.panel}>
@@ -36,7 +41,7 @@ const ActivityCenter = ({
           <Cross2Icon />
         </button>
       </div>
-      {notifications.length > 0 && (
+      {hasUnreadNotifications && (
         <div className={styles.headerBottom}>
           <button
             className={styles.markAllRead}
@@ -61,6 +66,7 @@ const ActivityCenter = ({
               key={notification.id}
               notification={notification}
               onMarkRead={onMarkRead}
+              onAction={onAction}
             />
           ))}
         </div>

@@ -90,4 +90,16 @@ describe('ActivityCenter', () => {
     );
     expect(screen.queryByText('Mark all as read')).not.toBeInTheDocument();
   });
+
+  it('hides "Mark all as read" when every notification is already read', () => {
+    render(
+      <ActivityCenter
+        notifications={[make({ id: '1', hasRead: true })]}
+        onClose={vi.fn()}
+        onMarkAllRead={vi.fn()}
+        onMarkRead={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText('Mark all as read')).not.toBeInTheDocument();
+  });
 });
