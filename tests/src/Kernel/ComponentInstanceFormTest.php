@@ -17,6 +17,8 @@ use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
 use Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
+use Drupal\canvas\PropSource\StaticPropSource;
+use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Url;
@@ -673,6 +675,54 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     $form_state_ci->setFormObject(new StubForm(ComponentInstanceForm::FORM_ID, $form_ci));
     $rendered_form_ci = $prop_source->formTemporaryRemoveThisExclamationExclamationExclamation($widget_for_ci, 'some-prop-name', FALSE, User::create([]), $form_ci, $form_state_ci);
     $this->assertSame('some-prop-name', $rendered_form_ci['#component_prop_name']);
+  }
+
+  /**
+   * Tests that the datetime widget renders stored values without a timezone shift.
+   *
+   * Canvas treats datetime prop values as literal wall-clock time: no timezone
+   * conversion happens when entering or storing them, so the value shown in the
+   * form widget must equal the value stored. To achieve that, the datetime form
+   * element declares its timezone as UTC, and its default value must be built in
+   * the same timezone. When the default value was instead built in the editor's
+   * timezone, date-only values rendered one day off for any editor east or west
+   * of UTC — and each subsequent save persisted that drifted value, losing data.
+   *
+   * The kernel test environment pins the default timezone to Australia/Sydney
+   * (UTC+11 in January), which surfaces the off-by-one.
+   *
+   * @see \Drupal\canvas\PropSource\StaticPropSource::formTemporaryRemoveThisExclamationExclamationExclamation()
+   * @see \Drupal\Core\Datetime\Element\Datetime::valueCallback()
+   * @see https://www.drupal.org/project/canvas/issues/3566203
+   */
+  #[TestWith(['date', '2020-01-15', 'Y-m-d', '2020-01-15'])]
+  #[TestWith(['datetime', '2020-01-15T14:30:00', 'Y-m-d\TH:i:s', '2020-01-15T14:30:00'])]
+  public function testDatetimeWidgetRendersStoredValueWithoutTimezoneShift(string $datetime_type, string $stored_value, string $storage_format, string $expected_displayed_value): void {
+    // The bug only manifests outside UTC; the test bootstrap pins Sydney.
+    $this->assertNotSame('UTC', date_default_timezone_get());
+
+    $prop_source = StaticPropSource::parse([
+      'sourceType' => 'static:field_item:datetime',
+      'value' => ['value' => $stored_value],
+      'expression' => 'ℹ︎datetime␟value',
+      'sourceTypeSettings' => [
+        'storage' => ['datetime_type' => $datetime_type],
+      ],
+    ]);
+    $widget = $prop_source->getWidget('irrelevant-for-this-test', 'irrelevant-for-this-test', 'some-prop-name', 'Some label', 'datetime_default');
+    $form = ['#parents' => [$this->randomMachineName()]];
+    $form_state = new FormState();
+    $form_state->setFormObject(new StubForm(ComponentInstanceForm::FORM_ID, $form));
+    $rendered = $prop_source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, 'some-prop-name', FALSE, User::create([]), $form, $form_state);
+
+    $value_element = $rendered['widget'][0]['value'];
+    $this->assertInstanceOf(DrupalDateTime::class, $value_element['#default_value']);
+    // The datetime element renders the date/time inputs by converting the
+    // default value into `#date_timezone`, so the default value must already be
+    // expressed in that timezone or the displayed value drifts.
+    $displayed = clone $value_element['#default_value'];
+    $displayed->setTimezone(new \DateTimeZone($value_element['#date_timezone']));
+    $this->assertSame($expected_displayed_value, $displayed->format($storage_format));
   }
 
 }
