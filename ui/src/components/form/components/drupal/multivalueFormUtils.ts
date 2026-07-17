@@ -125,11 +125,17 @@ export const normalizeRowWeights = (
  * the AJAX behavior. The button is hidden by CSS but remains in the DOM.
  *
  * @param triggerElement - The DOM element that triggers the action (should be inside a table row)
+ * @param formId - The form the button belongs to. The click is always suppressed
+ *   for the component instance form so the caller can patch the model first.
+ * @param suppressClick - When true, the button name is returned and the row is
+ *   hidden, but the Drupal AJAX click is not fired. Lets the caller update its
+ *   own store first and defer the actual click.
  * @returns string | null - The name attribute of the remove button if found and triggered, null otherwise
  */
 export const triggerDrupalRemoveButton = (
   triggerElement: HTMLElement | null,
   formId: string | null = '',
+  suppressClick: boolean = false,
 ): string | null => {
   if (!triggerElement) return null;
 
@@ -156,7 +162,7 @@ export const triggerDrupalRemoveButton = (
       'input[type="submit"][name*="remove_button"][data-once="drupal-ajax"]',
     ) as HTMLInputElement | null;
     if (removeButton) {
-      if (formId !== 'component_instance_form') {
+      if (!suppressClick && formId !== 'component_instance_form') {
         // Dispatch mousedown first (some Drupal AJAX handlers listen for it),
         // then click — mirroring what Drupal's AJAX system expects.
         const mousedownEvent = new MouseEvent('mousedown', {

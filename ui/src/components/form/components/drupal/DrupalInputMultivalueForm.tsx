@@ -1,20 +1,35 @@
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
+import { useParams } from 'react-router';
 import { ArrowRightIcon, Cross2Icon, TrashIcon } from '@radix-ui/react-icons';
 import * as Popover from '@radix-ui/react-popover';
 import { Box, Button, Flex, Text } from '@radix-ui/themes';
 
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector, useAppStore } from '@/app/hooks';
 import DrupalInput from '@/components/form/components/drupal/DrupalInput';
 import {
   DEBOUNCE_TIMEOUT,
   toPropName,
 } from '@/components/form/react-hook-form/fields/componentFormData';
+import { FORM_TYPES } from '@/features/form/constants';
 import { removeFieldValue } from '@/features/form/formStateSlice';
-import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
-import { selectEditorFrameContext } from '@/features/ui/uiSlice';
+import {
+  isEvaluatedComponentModel,
+  setUpdatePreview,
+} from '@/features/layout/layoutModelSlice';
+import {
+  removePageDataFields,
+  selectPageData,
+} from '@/features/pageData/pageDataSlice';
+import {
+  EditorFrameContext,
+  selectEditorFrameContext,
+} from '@/features/ui/uiSlice';
 import useInputUIData from '@/hooks/useInputUIData';
-import { useUpdateComponentMutation } from '@/services/preview';
+import {
+  useQueuedPostPreviewMutation,
+  useUpdateComponentMutation,
+} from '@/services/preview';
 
 import {
   buildModelWithItemRemoved,
@@ -55,9 +70,14 @@ const DrupalInputMultivalueForm = ({
   };
 }) => {
   const dispatch = useAppDispatch();
+  const store = useAppStore();
+  const { entityId, entityType } = useParams();
   const inputUIData = useInputUIData();
   const [patchComponent] = useUpdateComponentMutation({
     fixedCacheKey: inputUIData?.selectedComponent || '-',
+  });
+  const [postPreview] = useQueuedPostPreviewMutation({
+    fixedCacheKey: 'editorFramePreview',
   });
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
   const isAutocomplete =
@@ -158,11 +178,13 @@ const DrupalInputMultivalueForm = ({
       const formId = attributes['data-form-id'] as string | undefined;
       const { name } = attributes;
 
-      // First call: pass formId so the click is suppressed for
-      // component_instance_form, but the button name is still returned.
+      // First call: suppress the click so the store can be updated first; the
+      // button name is still returned and the row is hidden. The real Drupal
+      // AJAX click is fired on a deferred call below.
       const removeButtonName: string | null = triggerDrupalRemoveButton(
         triggerElement,
         formId,
+        true,
       );
 
       // If we successfully triggered the remove button and have the necessary
@@ -195,6 +217,43 @@ const DrupalInputMultivalueForm = ({
           });
           // Second call: now that the model is patched, invoke the real
           // Drupal AJAX click (no formId passed so the click is not suppressed).
+          setTimeout(() => triggerDrupalRemoveButton(triggerElement));
+        } else if (formId === FORM_TYPES.ENTITY_FORM) {
+          // The page data (entity) form auto-saves from the pageData store, not
+          // from formStateSlice, so drop the removed item's values from pageData.
+          dispatch(
+            removePageDataFields(
+              fieldNames.filter((fieldName) => fieldName !== removeButtonName),
+            ),
+          );
+          if (
+            entityId &&
+            entityType &&
+            editorFrameContext === EditorFrameContext.ENTITY
+          ) {
+            // Persist the removal to auto-save immediately by posting the
+            // preview directly, mirroring the optimistic patch used for the
+            // component instance form above. The scheduled auto-save in
+            // Preview.tsx waits while a Drupal AJAX behavior is in flight
+            // (isAjaxing), so relying on the AJAX rebuild to trigger it means
+            // the removal only reaches auto-save after that round-trip; a reload
+            // during that window restores the "removed" item. Reading pageData
+            // from the store here reflects the removePageDataFields dispatch
+            // above.
+            postPreview({
+              layout: inputUIData.layout,
+              model: inputUIData.model,
+              entity_form_fields: selectPageData(store.getState()),
+              entityId,
+              entityType,
+            });
+          } else {
+            // Fallback for non-entity contexts: use the standard preview flag.
+            dispatch(setUpdatePreview(true));
+          }
+          // Second call: fire the real Drupal AJAX rebuild after the store has
+          // been updated so the widget structure stays in sync for subsequent
+          // interactions.
           setTimeout(() => triggerDrupalRemoveButton(triggerElement));
         }
 
