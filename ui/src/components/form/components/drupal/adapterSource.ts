@@ -325,6 +325,35 @@ export const createStep = (suggestion: AdapterSuggestion): AdapterStep => ({
   ),
 });
 
+// The curated set of adapters offered inline as transform-enabled field
+// suggestions (each bridges an otherwise-incompatible field to the prop:
+// `fallback` lets an optional field satisfy a required prop, `format_date`
+// lets a datetime field satisfy a text prop). Kept small on purpose so the
+// linker dropdown is not flooded with every adapter.
+export const BRIDGING_ADAPTER_IDS = ['fallback', 'format_date'];
+
+// Builds a single-step chain for an adapter with its primary input (the first
+// required input) pre-bound to the chosen field candidate, all other inputs
+// at their defaults. Used by the inline bridging field suggestions: the user
+// picks a field, and the panel opens to collect only the adapter's remaining
+// required inputs (e.g. fallback's `default`, format_date's `format`).
+export const createStepWithPrimaryField = (
+  suggestion: AdapterSuggestion,
+  candidate: SlotCandidate,
+): AdapterStep => {
+  const step = createStep(suggestion);
+  const primary = getPrimaryInputName(suggestion.adapter);
+  if (primary) {
+    step.bindings[primary] = {
+      mode: 'field',
+      enabled: true,
+      candidateId: candidate.id,
+      source: candidate.source,
+    };
+  }
+  return step;
+};
+
 // Serializes one configured slot, or null when it is not (completely) bound.
 // Optional inputs that are not configured are omitted from the serialized
 // source entirely, so the server defaults apply (e.g. combine's separator

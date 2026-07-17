@@ -11,7 +11,14 @@ import {
 import useInputUIData from '@/hooks/useInputUIData';
 
 import AdapterConfigPanel from './AdapterConfigPanel';
-import { createStep, sourceToSteps } from './adapterSource';
+import {
+  BRIDGING_ADAPTER_IDS,
+  createStep,
+  createStepWithPrimaryField,
+  getPrimaryInputName,
+  sourceToSteps,
+} from './adapterSource';
+import CandidateTreeMenuItems from './CandidateTreeMenu';
 
 import type {
   BasePropSource,
@@ -23,9 +30,18 @@ import type {
   AdapterDefinition,
   AdapterStep,
   AdapterSuggestion,
+  SlotCandidate,
 } from './adapterSource';
 
 import styles from './PropLinker.module.css';
+
+// User-facing labels for the inline bridging field groups, phrased to
+// communicate the transform that is applied automatically when a field is
+// picked from the group.
+const BRIDGING_GROUP_LABELS: Record<string, string> = {
+  fallback: 'With a fallback',
+  format_date: 'As a formatted date',
+};
 
 export interface LinkSuggestion {
   id?: string;
@@ -81,6 +97,34 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
         (item): item is LinkSuggestion & AdapterSuggestion => !!item.adapter,
       ),
     [suggestions],
+  );
+  // Inline "transform-enabled" field groups: for each curated bridging adapter
+  // that is present, offer its primary input's shape-matched fields directly.
+  // Picking a field opens the panel pre-bound to that field so the user only
+  // fills the adapter's remaining required inputs (e.g. a fallback default).
+  const bridgingGroups = useMemo(
+    () =>
+      BRIDGING_ADAPTER_IDS.reduce<
+        Array<{ suggestion: AdapterSuggestion; candidates: SlotCandidate[] }>
+      >((acc, adapterId) => {
+        const suggestion = adapterSuggestions.find(
+          (item) => item.adapter.id === adapterId,
+        );
+        if (!suggestion) {
+          return acc;
+        }
+        const primary = getPrimaryInputName(suggestion.adapter);
+        const primarySlot = suggestion.adapter.inputs.find(
+          (input) => input.name === primary,
+        );
+        const candidates = primarySlot?.candidates ?? [];
+        if (candidates.length === 0) {
+          return acc;
+        }
+        acc.push({ suggestion, candidates });
+        return acc;
+      }, []),
+    [adapterSuggestions],
   );
   // When the prop is already linked to an adapter source, unwrap it so the
   // panel can be re-opened pre-filled via the "Edit transform" item.
@@ -300,6 +344,31 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
               />
             );
           })}
+          {bridgingGroups.length > 0 && (
+            <>
+              <DropdownMenu.Separator />
+              {bridgingGroups.map(({ suggestion, candidates }) => (
+                <DropdownMenu.Sub key={suggestion.adapter.id}>
+                  <DropdownMenu.SubTrigger
+                    data-transform-field-group={suggestion.adapter.id}
+                  >
+                    {BRIDGING_GROUP_LABELS[suggestion.adapter.id] ??
+                      suggestion.label}
+                  </DropdownMenu.SubTrigger>
+                  <DropdownMenu.SubContent>
+                    <CandidateTreeMenuItems
+                      candidates={candidates}
+                      onSelect={(candidate) =>
+                        openAdapterPanel([
+                          createStepWithPrimaryField(suggestion, candidate),
+                        ])
+                      }
+                    />
+                  </DropdownMenu.SubContent>
+                </DropdownMenu.Sub>
+              ))}
+            </>
+          )}
           {adapterSuggestions.length > 0 && (
             <>
               <DropdownMenu.Separator />

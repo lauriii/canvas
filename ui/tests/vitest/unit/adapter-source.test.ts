@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  BRIDGING_ADAPTER_IDS,
   buildCandidateTree,
   candidateShortLabel,
   createStep,
+  createStepWithPrimaryField,
   getPrimaryInputName,
   humanizeInputName,
   isChainComplete,
+  isStepComplete,
   parseMappingRows,
   serializeMappingRows,
   sourceToSteps,
@@ -131,6 +134,20 @@ const combineSuggestion: AdapterSuggestion = {
       makeSlot('text_3', false),
       makeSlot('text_4', false),
       makeSlot('separator', false, { candidates: [] }),
+    ],
+  },
+};
+
+// A bridging adapter: `value` (required, the primary input) plus a required
+// `default` that the user must still fill after picking a field.
+const fallbackSuggestion: AdapterSuggestion = {
+  id: 'suggestion-fallback',
+  label: 'Fallback',
+  adapter: {
+    id: 'fallback',
+    inputs: [
+      makeSlot('value', true, { mirrorsOutput: true }),
+      makeSlot('default', true, { mirrorsOutput: true }),
     ],
   },
 };
@@ -558,6 +575,54 @@ describe('supportsLiteralBinding', () => {
         makeSlot('x', true, { schema: { type: 'boolean' } }),
       ),
     ).toBe(true);
+  });
+});
+
+describe('BRIDGING_ADAPTER_IDS', () => {
+  it('is the curated set of fallback and format_date only', () => {
+    expect(BRIDGING_ADAPTER_IDS).toEqual(['fallback', 'format_date']);
+  });
+});
+
+describe('createStepWithPrimaryField', () => {
+  it('pre-binds the primary input to the chosen field candidate', () => {
+    const step = createStepWithPrimaryField(fallbackSuggestion, titleCandidate);
+    // `value` is the primary input (first required) and is bound to the field.
+    expect(step.bindings.value).toEqual({
+      mode: 'field',
+      enabled: true,
+      candidateId: titleCandidate.id,
+      source: titleCandidate.source,
+    });
+  });
+
+  it('leaves the other inputs at their defaults', () => {
+    const step = createStepWithPrimaryField(fallbackSuggestion, titleCandidate);
+    // `default` is required but unbound, so it keeps the default binding.
+    expect(step.bindings.default.enabled).toBe(true);
+    expect(step.bindings.default.source).toBeUndefined();
+    expect(step.bindings.default.candidateId).toBeUndefined();
+  });
+
+  it('is incomplete until the remaining required input is filled', () => {
+    const step = createStepWithPrimaryField(fallbackSuggestion, titleCandidate);
+    // Only the primary field is bound; `default` still needs a value.
+    expect(isStepComplete(step, 0)).toBe(false);
+
+    step.bindings.default = {
+      mode: 'field',
+      enabled: true,
+      candidateId: altCandidate.id,
+      source: altCandidate.source,
+    };
+    expect(isStepComplete(step, 0)).toBe(true);
+    expect(stepsToSource([step])).toEqual({
+      sourceType: 'adapter:fallback',
+      adapterInputs: {
+        value: titleCandidate.source,
+        default: altCandidate.source,
+      },
+    });
   });
 });
 

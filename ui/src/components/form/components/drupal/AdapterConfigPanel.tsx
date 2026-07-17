@@ -25,7 +25,6 @@ import {
 import { usePreviewPropSourceMutation } from '@/services/componentAndLayout';
 
 import {
-  buildCandidateTree,
   candidateShortLabel,
   createStep,
   getPrimaryInputName,
@@ -35,13 +34,13 @@ import {
   stepsToSource,
   supportsLiteralBinding,
 } from './adapterSource';
+import CandidateTreeMenuItems from './CandidateTreeMenu';
 
 import type { PropSource } from '@/features/layout/layoutModelSlice';
 import type {
   AdapterInputSlot,
   AdapterStep,
   AdapterSuggestion,
-  CandidateTreeNode,
   MappingRow,
   SlotBinding,
   SlotCandidate,
@@ -172,44 +171,6 @@ const MappingRowsEditor = ({
         </Button>
       </Box>
     </Flex>
-  );
-};
-
-// Renders one node of the field-candidate tree: a submenu when it has
-// children, a selectable leaf otherwise. A node with both a candidate and
-// children exposes the candidate as its own item inside the submenu (the same
-// convention the field linker uses for a selectable parent).
-const renderCandidateNode = (
-  node: CandidateTreeNode,
-  onSelect: (candidate: SlotCandidate) => void,
-  keyPath: string,
-) => {
-  if (node.children && node.children.length > 0) {
-    return (
-      <DropdownMenu.Sub key={keyPath}>
-        <DropdownMenu.SubTrigger>{node.label}</DropdownMenu.SubTrigger>
-        <DropdownMenu.SubContent>
-          {node.candidate && (
-            <DropdownMenu.Item
-              onClick={() => node.candidate && onSelect(node.candidate)}
-            >
-              {node.label}
-            </DropdownMenu.Item>
-          )}
-          {node.children.map((child, index) =>
-            renderCandidateNode(child, onSelect, `${keyPath}-${index}`),
-          )}
-        </DropdownMenu.SubContent>
-      </DropdownMenu.Sub>
-    );
-  }
-  return (
-    <DropdownMenu.Item
-      key={keyPath}
-      onClick={() => node.candidate && onSelect(node.candidate)}
-    >
-      {node.label}
-    </DropdownMenu.Item>
   );
 };
 
@@ -431,9 +392,10 @@ const AdapterConfigPanel = ({
           {hasPreservedSource && (
             <DropdownMenu.Item>Currently bound value</DropdownMenu.Item>
           )}
-          {buildCandidateTree(slot.candidates).map((node, index) =>
-            renderCandidateNode(node, selectCandidate, `${index}`),
-          )}
+          <CandidateTreeMenuItems
+            candidates={slot.candidates}
+            onSelect={selectCandidate}
+          />
         </DropdownMenu.Content>
       </DropdownMenu.Root>
     );
