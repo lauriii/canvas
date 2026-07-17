@@ -10,6 +10,7 @@ use Drupal\Core\Form\EnforcedResponseException;
 use Drupal\Core\Form\FormAjaxException;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\Attribute\RenderElement;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Element\RenderElementBase;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RenderContext;
@@ -60,9 +61,29 @@ final class RenderSafeComponentContainer extends RenderElementBase implements Co
   }
 
   public function renderComponent(array $element): array {
+    $is_preview = $element['#is_preview'] ?? FALSE;
     $context = new RenderContext();
-    $element['#children'] = $this->renderer->executeInRenderContext($context, function () use (&$element, $context) {
+    $element['#children'] = $this->renderer->executeInRenderContext($context, function () use (&$element, $context, $is_preview) {
       try {
+        if ($is_preview) {
+          // In a preview, a component crash must be contained no matter where
+          // it is thrown — including during placeholder replacement, which
+          // core performs only at the render root, after (and outside) this
+          // pre_render. Rendering the preview as a self-contained render root
+          // pulls that placeholder replacement into this try/catch, so a
+          // component whose deferred render crashes (the common case for
+          // views, blocks and other cacheable sub-renders) degrades to a
+          // fallback instead of taking down all of Canvas. On the live front
+          // end we keep the in-context render below, so placeholdering and
+          // fine-grained cacheability are preserved there.
+          // @see https://www.drupal.org/i/3541431
+          $markup = $this->renderer->renderInIsolation($element['#component']);
+          // ::renderInIsolation() isolates the component's bubbleable metadata
+          // onto #component; forward it to the current render context so
+          // cacheability and attached assets are preserved.
+          $context->push(BubbleableMetadata::createFromRenderArray($element['#component']));
+          return $markup;
+        }
         return $this->renderer->render($element['#component']);
       }
       // @todo Remove when https://www.drupal.org/i/2367555 is fixed.
