@@ -1,0 +1,94 @@
+/**
+ * @file
+ * Layout styles for the List element.
+ *
+ * The markup is deliberately plain so global styles can target it:
+ * .canvas-list-element > .canvas-list > .canvas-list__item,
+ * plus .canvas-list-element__load-more for the load more button.
+ */
+
+.canvas-list {
+  --canvas-list-gap: 1rem;
+
+  display: flex;
+  gap: var(--canvas-list-gap);
+}
+
+.canvas-list--gap-none {
+  --canvas-list-gap: 0px;
+}
+
+.canvas-list--gap-small {
+  --canvas-list-gap: 0.5rem;
+}
+
+.canvas-list--gap-medium {
+  --canvas-list-gap: 1rem;
+}
+
+.canvas-list--gap-large {
+  --canvas-list-gap: 2rem;
+}
+
+.canvas-list--stack {
+  flex-direction: column;
+}
+
+.canvas-list--stack.canvas-list--distribute-center {
+  justify-content: center;
+}
+
+.canvas-list--stack.canvas-list--distribute-end {
+  justify-content: flex-end;
+}
+
+.canvas-list--stack.canvas-list--distribute-space_between {
+  justify-content: space-between;
+}
+
+.canvas-list--stack.canvas-list--align-start {
+  align-items: flex-start;
+}
+
+.canvas-list--stack.canvas-list--align-center {
+  align-items: center;
+}
+
+.canvas-list--stack.canvas-list--align-end {
+  align-items: flex-end;
+}
+
+.canvas-list--row {
+  --canvas-list-per-row: 3;
+
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.canvas-list--row > .canvas-list__item {
+  flex: 0 0 calc((100% - (var(--canvas-list-per-row) - 1) * var(--canvas-list-gap)) / var(--canvas-list-per-row));
+  min-width: 0;
+}
+
+.canvas-list--grid {
+  --canvas-list-per-row: 3;
+
+  display: grid;
+  grid-template-columns: repeat(var(--canvas-list-per-row), minmax(0, 1fr));
+}
+
+.canvas-list-element__state {
+  padding: 1rem;
+  color: #4b5563;
+  border: 1px dashed #9ca3af;
+  border-radius: 0.25rem;
+}
+
+.canvas-list-element--warning .canvas-list-element__state {
+  color: #92400e;
+  border-color: #d97706;
+}
+
+.canvas-list-element__sentinel {
+  height: 1px;
+}

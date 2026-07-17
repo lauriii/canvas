@@ -581,6 +581,15 @@ class ComponentTreeItem extends FieldItemBase {
    */
   public function preSave(): void {
     $entity = $this->getRoot() === $this ? NULL : $this->getEntity();
+    // Items inside a deferred slot (e.g. a List element's item template) get
+    // their data context from the slot-defining source, not the host entity.
+    $parent_list = $this->getParent();
+    if ($parent_list instanceof ComponentTreeItemList) {
+      ['is_deferred' => $is_deferred, 'entity' => $context_entity] = $parent_list->resolveDeferredSlotContext($this, $entity instanceof FieldableEntityInterface ? $entity : NULL);
+      if ($is_deferred) {
+        $entity = $context_entity;
+      }
+    }
     $violations = new ConstraintViolationList();
     $source = $this->getComponent()?->getComponentSource();
     $component_instance_uuid = $this->getUuid();

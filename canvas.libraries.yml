@@ -119,6 +119,25 @@ astro.hydration:
   dependencies:
     - core/drupalSettings
 
+# The List element's layout styles, on published pages and in the preview.
+# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\ListComponent
+list_element:
+  css:
+    component:
+      css/list-element.css: {}
+
+# Load more and infinite scroll behavior for published pages.
+list_element.pagination:
+  js:
+    js/list-element.pagination.js: {}
+  dependencies:
+    - core/drupal
+    # Published Canvas pages are asset-minimal: nothing else guarantees the
+    # behavior-attaching bootstrap, so depend on it explicitly.
+    - core/drupal.init
+    - core/drupalSettings
+    - core/once
+
 preview:
   css:
     theme:

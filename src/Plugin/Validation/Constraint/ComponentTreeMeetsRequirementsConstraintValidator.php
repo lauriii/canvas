@@ -85,7 +85,14 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
       $detected_component_interfaces = [...$detected_component_interfaces, ...class_implements($fqcn)];
     }
     $detected_component_interfaces = \array_unique($detected_component_interfaces);
-    $detected_prop_source_prefixes = $component_tree_item_list->getPropSourceTypes();
+    // When validating a single item of a larger tree, deferred slot
+    // membership (e.g. a List element's item template) must be resolved
+    // against the full tree, which the single-item list cannot see.
+    $deferred_lookup_values = NULL;
+    if ($value instanceof ComponentTreeItem && ($parent_list = $value->getParent()) instanceof ComponentTreeItemList) {
+      $deferred_lookup_values = $parent_list->getValue();
+    }
+    $detected_prop_source_prefixes = $component_tree_item_list->getPropSourceTypes($deferred_lookup_values);
     sort($detected_prop_source_prefixes);
 
     foreach (['tree:component_ids', 'tree:component_interfaces', 'inputs:prop_sources'] as $aspect_to_check) {

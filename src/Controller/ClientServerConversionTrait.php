@@ -164,11 +164,17 @@ trait ClientServerConversionTrait {
       $component->loadVersion($version);
       $source = $component->getComponentSource();
       $useFallback = $component->getComponentSource()->isBroken();
+      // Items inside a deferred slot (e.g. a List element's item template)
+      // get their data context from the slot-defining source, not the host
+      // entity. Parents always precede their children in $items, so any
+      // slot-defining ancestor's inputs are already converted.
+      ['is_deferred' => $is_deferred, 'entity' => $context_entity] = ComponentTreeItemList::resolveDeferredSlotContextFromValues($items, $uuid, $entity);
+      $item_entity = $is_deferred ? $context_entity : $entity;
       // First we transform the incoming client model into input values using
       // the source plugin.
       if (!$useFallback) {
         try {
-          $items[$delta]['inputs'] = $source->clientModelToInput($uuid, $component, $inputs, $entity, $violation_list);
+          $items[$delta]['inputs'] = $source->clientModelToInput($uuid, $component, $inputs, $item_entity, $violation_list);
         }
         catch (ComponentNotFoundException) {
           $useFallback = TRUE;
@@ -179,13 +185,13 @@ trait ClientServerConversionTrait {
           'fallback_reason' => new TranslatableMarkup('Component is missing. Fix the component or copy values to a new component.'),
         ]);
         \assert($fallback_source instanceof ComponentSourceInterface);
-        $items[$delta]['inputs'] = $fallback_source->clientModelToInput($uuid, $component, $inputs['resolved'] ?? [], $entity, $violation_list);
+        $items[$delta]['inputs'] = $fallback_source->clientModelToInput($uuid, $component, $inputs['resolved'] ?? [], $item_entity, $violation_list);
       }
       if ($violation_list !== NULL) {
         // Then we ensure the input values are valid using the source plugin.
         $component_violations = self::translateConstraintPropertyPathsAndRoot(
           ['inputs.' => 'model.'],
-          $source->validateComponentInput($items[$delta]['inputs'], $uuid, $entity)
+          $source->validateComponentInput($items[$delta]['inputs'], $uuid, $item_entity)
         );
         if ($component_violations->count() > 0) {
           // @todo Remove the foreach and use ::addAll once https://www.drupal.org/project/drupal/issues/3490588 has been resolved.

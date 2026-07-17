@@ -7,6 +7,7 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\MissingComponentInputsException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
@@ -54,6 +55,16 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
       if ($host_entity !== NULL && !$host_entity instanceof ConfigEntityAdapter) {
         $fieldable_host_entity = $value->getEntity();
         \assert($fieldable_host_entity instanceof FieldableEntityInterface);
+      }
+      // Items inside a deferred slot (e.g. a List element's item template)
+      // get their data context from the slot-defining source, not the host
+      // entity.
+      $parent_list = $value->getParent();
+      if ($parent_list instanceof ComponentTreeItemList) {
+        ['is_deferred' => $is_deferred, 'entity' => $context_entity] = $parent_list->resolveDeferredSlotContext($value, $fieldable_host_entity);
+        if ($is_deferred) {
+          $fieldable_host_entity = $context_entity;
+        }
       }
     }
 

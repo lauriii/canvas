@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Field\FieldType;
 
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceWithDeferredSlotsInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSwitchCasesInterface;
 use Drupal\canvas\Element\RenderSafeComponentContainer;
@@ -41,6 +42,16 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   public const string ROOT_UUID = 'a548b48d-58a8-4077-aa04-da9405a6f418';
 
   private const string HYDRATION_EXCEPTION_KEY = 'hydration_exception';
+
+  /**
+   * Hydrated-inputs key carrying raw subtrees of deferred slots.
+   *
+   * Keyed by slot name; each value is a list of raw component tree item value
+   * arrays (the direct children re-rooted, deeper structure intact).
+   *
+   * @see \Drupal\canvas\ComponentSource\ComponentSourceWithDeferredSlotsInterface
+   */
+  public const string DEFERRED_SLOT_SUBTREES_KEY = 'deferred_slot_subtrees';
 
   /**
    * @var null|array<string, array{'edges': array<string, TRUE>}>
@@ -103,7 +114,14 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       $source = $item->getComponent()?->getComponentSource();
       \assert($source instanceof ComponentSourceInterface);
       if ($source->requiresExplicitInput()) {
-        $built['model'][$component_instance_uuid] = $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item, $host_entity));
+        // Items inside a deferred slot resolve their data against the
+        // slot-defining source's representative entity. Without one (an
+        // empty source), fall back to an empty model rather than evaluating
+        // prop expressions against an entity of the wrong type.
+        ['is_deferred' => $is_deferred, 'entity' => $item_host_entity] = $this->resolveDeferredSlotContext($item, $host_entity);
+        $built['model'][$component_instance_uuid] = $is_deferred && $item_host_entity === NULL
+          ? ['resolved' => []]
+          : $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item, $item_host_entity));
       }
 
       // TRICKY: the server-side implementation (for storage efficiency) forbids
@@ -467,6 +485,12 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     // ::loadMultiple call.
     $components = Component::loadMultiple($this->getComponentIdList());
 
+    // Subtrees of deferred slots are rendered by the slot-defining source
+    // itself (bound to its own context), so their items are excluded from
+    // regular hydration and handed over as raw values instead.
+    // @see \Drupal\canvas\ComponentSource\ComponentSourceWithDeferredSlotsInterface
+    ['excluded' => $deferred_excluded, 'subtrees' => $deferred_subtrees] = $this->collectDeferredSlotSubtrees($components);
+
     // Hydrate all component instances, but only considering props. This
     // essentially means getting the values for each component instance, while
     // ignoring their slots. The result: a flat list of hydrated components, but
@@ -475,6 +499,9 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       \assert($item instanceof ComponentTreeItem);
       $component_id = $item->getComponentId();
       $uuid = $item->getUuid();
+      if (isset($deferred_excluded[$uuid])) {
+        continue;
+      }
       $component = $components[$component_id];
       \assert($component instanceof Component);
       $component->loadVersion($item->getComponentVersion());
@@ -518,12 +545,19 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       \assert(!\array_key_exists('slots', $hydrated[$uuid]) || \is_array($hydrated[$uuid]['slots']));
     }
 
+    // Hand each deferred slot's raw subtree to its slot-defining instance.
+    foreach ($deferred_subtrees as $parent_uuid => $slots) {
+      if (isset($hydrated[$parent_uuid])) {
+        $hydrated[$parent_uuid][self::DEFERRED_SLOT_SUBTREES_KEY] = $slots;
+      }
+    }
+
     // Transform the flat list of hydrated components into a hydrated component
     // tree, by assigning child components to their parent component's slot. If
     // this happens depth-first, then the tree will gradually be built, with the
     // last iteration assigning the last component to the component tree's root.
     foreach ($this->getSlotChildrenDepthFirst() as $parent_uuid => ['slot' => $slot, 'uuid' => $uuid]) {
-      if ($parent_uuid === self::ROOT_UUID) {
+      if ($parent_uuid === self::ROOT_UUID || isset($deferred_excluded[$uuid])) {
         continue;
       }
       \assert(\array_key_exists('slots', $hydrated[$parent_uuid]) && \is_array($hydrated[$parent_uuid]['slots']));
@@ -542,6 +576,144 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     return [self::ROOT_UUID => $hydrated];
   }
 
+  /**
+   * Collects the raw subtrees of deferred slots.
+   *
+   * @param array<string, \Drupal\canvas\Entity\Component> $components
+   *   The tree's Component config entities, keyed by ID.
+   *
+   * @return array{excluded: array<string, true>, subtrees: array<string, array<string, list<array>>>}
+   *   `excluded`: the UUIDs of every item inside a deferred slot subtree.
+   *   `subtrees`: raw item values per slot-defining instance UUID and slot
+   *   name, with the slot's direct children re-rooted so the values form a
+   *   self-contained tree.
+   *
+   * @see \Drupal\canvas\ComponentSource\ComponentSourceWithDeferredSlotsInterface
+   */
+  private function collectDeferredSlotSubtrees(array $components): array {
+    $items = [];
+    foreach ($this->getValue() as $value) {
+      $items[$value['uuid']] = $value;
+    }
+
+    // Which (instance UUID, slot name) pairs are deferred?
+    $deferred_slots = [];
+    foreach ($items as $uuid => $value) {
+      $source = isset($components[$value['component_id']]) ? $components[$value['component_id']]->getComponentSource() : NULL;
+      if ($source instanceof ComponentSourceWithDeferredSlotsInterface) {
+        foreach ($source->getDeferredSlotNames() as $slot_name) {
+          $deferred_slots[$uuid . ':' . $slot_name] = TRUE;
+        }
+      }
+    }
+    if ($deferred_slots === []) {
+      return ['excluded' => [], 'subtrees' => []];
+    }
+
+    $excluded = [];
+    $subtrees = [];
+    foreach ($items as $uuid => $value) {
+      // Walk the whole parent chain and remember the OUTERMOST deferred slot
+      // boundary: a deferred-slot component nested inside another deferred
+      // slot (e.g. a List inside a List's item template) must keep its own
+      // subtree intact within the outer subtree — the inner deferral then
+      // happens naturally when the outer subtree is rendered as its own
+      // component tree.
+      $current = $value;
+      $boundary_parent = NULL;
+      $boundary_slot = NULL;
+      while (isset($current['parent_uuid'])) {
+        $edge = $current['parent_uuid'] . ':' . ($current['slot'] ?? '');
+        if (isset($deferred_slots[$edge])) {
+          $boundary_parent = $current['parent_uuid'];
+          $boundary_slot = (string) $current['slot'];
+        }
+        $current = $items[$current['parent_uuid']] ?? NULL;
+        if ($current === NULL) {
+          break;
+        }
+      }
+      if ($boundary_parent === NULL) {
+        continue;
+      }
+      $excluded[$uuid] = TRUE;
+      $item_value = $value;
+      // Direct children of the deferred slot become the subtree's roots.
+      if ($value['parent_uuid'] === $boundary_parent && ($value['slot'] ?? NULL) === $boundary_slot) {
+        unset($item_value['parent_uuid'], $item_value['slot']);
+      }
+      $subtrees[$boundary_parent][$boundary_slot][] = $item_value;
+    }
+    return ['excluded' => $excluded, 'subtrees' => $subtrees];
+  }
+
+  /**
+   * Resolves the data context for an item that may sit in a deferred slot.
+   *
+   * @return array{is_deferred: bool, entity: \Drupal\Core\Entity\FieldableEntityInterface|null}
+   *   Whether the item is inside a deferred slot subtree, and the entity to
+   *   use as its data context: for deferred items the slot-defining source's
+   *   representative entity (possibly NULL), otherwise the given default.
+   *
+   * @see \Drupal\canvas\ComponentSource\ComponentSourceWithDeferredSlotsInterface::getDeferredSlotContextEntity()
+   */
+  public function resolveDeferredSlotContext(ComponentTreeItem $item, ?FieldableEntityInterface $default): array {
+    return self::resolveDeferredSlotContextFromValues($this->getValue(), $item->getUuid(), $default);
+  }
+
+  /**
+   * Same as ::resolveDeferredSlotContext(), for raw item value arrays.
+   *
+   * @param array $item_values
+   *   The component tree item values (each with uuid, component_id,
+   *   parent_uuid, slot, inputs). The inputs of any slot-defining ancestor
+   *   must already be in their stored (canonical) form.
+   * @param string $uuid
+   *   The UUID of the item whose context to resolve.
+   *
+   * @return array{is_deferred: bool, entity: \Drupal\Core\Entity\FieldableEntityInterface|null}
+   */
+  public static function resolveDeferredSlotContextFromValues(array $item_values, string $uuid, ?FieldableEntityInterface $default): array {
+    $boundary = self::findDeferredSlotBoundary($item_values, $uuid);
+    if ($boundary === NULL) {
+      return ['is_deferred' => FALSE, 'entity' => $default];
+    }
+    [$source, $parent_value] = $boundary;
+    $inputs = $parent_value['inputs'] ?? [];
+    // Component trees stored in config keep the inputs blob as a JSON string.
+    if (\is_string($inputs)) {
+      $inputs = \json_decode($inputs, TRUE) ?? [];
+    }
+    return ['is_deferred' => TRUE, 'entity' => $source->getDeferredSlotContextEntity(\is_array($inputs) ? $inputs : [])];
+  }
+
+  /**
+   * Finds the deferred slot an item's subtree hangs from, if any.
+   *
+   * @return array{0: ComponentSourceWithDeferredSlotsInterface, 1: array}|null
+   *   The slot-defining source and its item value, or NULL when the item is
+   *   not inside a deferred slot subtree.
+   */
+  private static function findDeferredSlotBoundary(array $item_values, string $uuid): ?array {
+    $by_uuid = [];
+    foreach ($item_values as $value) {
+      $by_uuid[$value['uuid']] = $value;
+    }
+    $current = $by_uuid[$uuid] ?? NULL;
+    while ($current !== NULL && isset($current['parent_uuid'])) {
+      $parent = $by_uuid[$current['parent_uuid']] ?? NULL;
+      if ($parent === NULL) {
+        break;
+      }
+      $source = Component::load($parent['component_id'])?->getComponentSource();
+      if ($source instanceof ComponentSourceWithDeferredSlotsInterface && \in_array($current['slot'] ?? '', $source->getDeferredSlotNames(), TRUE)) {
+        return [$source, $parent];
+      }
+      $current = $parent;
+    }
+    return NULL;
+  }
+
   private static function buildRenderingContext(ComponentTreeItemList $itemList, ComponentTreeEntityInterface|FieldableEntityInterface $entity): string {
     $entityId = $entity->isNew() ? '-' : $entity->id();
     if ($itemList->getName() !== NULL) {
@@ -557,10 +729,26 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
    *   A list of all unique prop source types in this list of component input
    *   values, for this component tree.
    */
-  public function getPropSourceTypes(): array {
+
+  /**
+   * @param array|null $deferred_lookup_values
+   *   (optional) Item values to resolve deferred slot membership against;
+   *   needed when this list holds a subset (e.g. a single item) of a larger
+   *   tree. Defaults to this list's own values.
+   */
+  public function getPropSourceTypes(?array $deferred_lookup_values = NULL): array {
     $source_type_prefixes = [];
+    $values = $deferred_lookup_values ?? $this->getValue();
     foreach ($this as $item) {
       \assert($item instanceof ComponentTreeItem);
+      // Items inside a deferred slot (e.g. a List element's item template)
+      // resolve against the slot-defining source's own data context, so the
+      // tree-level prop source requirements (e.g. "no entity field prop
+      // sources in content trees") do not apply to them.
+      // @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeMeetsRequirementsConstraintValidator
+      if (self::findDeferredSlotBoundary($values, $item->getUuid()) !== NULL) {
+        continue;
+      }
       /** @var \Drupal\canvas\Plugin\DataType\ComponentInputs $inputs */
       $inputs = $item->get('inputs');
       $source_type_prefixes = \array_merge($source_type_prefixes, $inputs->getPropSourceTypes());
