@@ -29,7 +29,6 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Url;
-use Drupal\workspaces\WorkspaceManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -38,15 +37,33 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 /**
  * Controllers exposing HTTP API for interacting with Canvas's Config entities.
  *
+ * The auto-save workspace is active during Canvas API requests, and Workspace
+ * Config captures writes to Canvas configuration into it. These endpoints
+ * publish directly to Live — they are not auto-saves — so every write steps
+ * outside the workspace via ::executeOutsideWorkspace().
+ *
+ * Writing to Live and reading back inside the workspace splits the two across
+ * config cache partitions, which is not yet coherent: with `workspace_config`
+ * enabled, a PATCH returns the updated values but the following GET on the
+ * same route still reports the pre-PATCH ones. Reproduce by enabling
+ * `workspace_config` and running CanvasConfigEntityHttpApiTest (testPattern,
+ * testJavaScriptComponent, testFolder, testContentTemplate). Not visible on
+ * this branch, which does not enable the module yet.
+ *
+ * @todo Make Live config writes on canvas.api.* routes visible to reads taken with the auto-save workspace active — likely by invalidating or bypassing the workspace-partitioned config cache — in https://drupal.org/i/3588540
+ *
  * @internal This HTTP API is intended only for the Canvas UI. These controllers
  *   and associated routes may change at any time.
  *
  * @see \Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface
  * @see \Drupal\canvas\ClientSideRepresentation
+ * @see \Drupal\workspace_config\WorkspaceConfigDatabaseStorage::write()
+ * @see \Drupal\workspace_config\WorkspaceConfigCachedStorage
  */
 final class ApiConfigControllers extends ApiControllerBase {
 
   use ComponentTreeItemListInstantiatorTrait;
+  use ExecutesOutsideWorkspaceTrait;
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -65,34 +82,6 @@ final class ApiConfigControllers extends ApiControllerBase {
     #[Autowire(service: 'workspaces.manager')]
     private readonly ?object $workspaceManager = NULL,
   ) {}
-
-  /**
-   * Runs $callable outside the auto-save workspace.
-   *
-   * The auto-save workspace is active during Canvas API requests, and Workspace
-   * Config captures writes to Canvas configuration into it. These endpoints
-   * publish directly to Live — they are not auto-saves — so they must step
-   * outside it to avoid being staged instead.
-   *
-   * Writing here and reading back inside the workspace splits the two across
-   * config cache partitions, which is not yet coherent: with `workspace_config`
-   * enabled, a PATCH returns the updated values but the following GET on the
-   * same route still reports the pre-PATCH ones. Reproduce by enabling
-   * `workspace_config` and running CanvasConfigEntityHttpApiTest (testPattern,
-   * testJavaScriptComponent, testFolder, testContentTemplate). Not visible on
-   * this branch, which does not enable the module yet.
-   *
-   * @todo Make Live config writes on canvas.api.* routes visible to reads taken with the auto-save workspace active — likely by invalidating or bypassing the workspace-partitioned config cache — in https://drupal.org/i/3588540
-   *
-   * @see \Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspaceActivationSubscriber
-   * @see \Drupal\workspace_config\WorkspaceConfigDatabaseStorage::write()
-   * @see \Drupal\workspace_config\WorkspaceConfigCachedStorage
-   */
-  private function executeOutsideWorkspace(callable $callable): mixed {
-    return $this->workspaceManager instanceof WorkspaceManagerInterface
-      ? $this->workspaceManager->executeOutsideWorkspace($callable)
-      : $callable();
-  }
 
   /**
    * Returns a list of enabled Canvas config entities in client representation.

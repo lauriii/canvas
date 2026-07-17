@@ -54,6 +54,8 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
  */
 final class ApiContentControllers extends ApiControllerBase {
 
+  use ExecutesOutsideWorkspaceTrait;
+
   /**
    * The maximum number of entity search results to return.
    */
@@ -76,19 +78,6 @@ final class ApiContentControllers extends ApiControllerBase {
     #[Autowire(service: 'workspaces.manager')]
     private readonly ?object $workspaceManager = NULL,
   ) {}
-
-  /**
-   * Runs $callable outside the auto-save workspace.
-   *
-   * The auto-save workspace is active during Canvas API requests, so reads
-   * and writes that must target Live (listings, deletes, duplicates) have to
-   * explicitly step outside it.
-   */
-  private function executeOutsideWorkspace(callable $callable): mixed {
-    return $this->workspaceManager !== NULL
-      ? $this->workspaceManager->executeOutsideWorkspace($callable)
-      : $callable();
-  }
 
   /**
    * Returns a single Canvas page with its component tree field.

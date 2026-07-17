@@ -20,6 +20,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class ApiTranslationControllers extends ApiControllerBase {
 
+  use ExecutesOutsideWorkspaceTrait;
+
   public function __construct(
     private readonly LanguageManagerInterface $languageManager,
     /**
@@ -58,9 +60,7 @@ final class ApiTranslationControllers extends ApiControllerBase {
     // while a workspace is active.
     // @see \Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspaceActivationSubscriber
     // @see \Drupal\workspaces\Provider\WorkspaceProviderBase::entityPredelete()
-    $this->workspaceManager !== NULL
-      ? $this->workspaceManager->executeOutsideWorkspace(static fn () => $untranslated->save())
-      : $untranslated->save();
+    $this->executeOutsideWorkspace(static fn () => $untranslated->save());
     return new JsonResponse(status: Response::HTTP_NO_CONTENT);
   }
 
@@ -85,7 +85,12 @@ final class ApiTranslationControllers extends ApiControllerBase {
         Response::HTTP_BAD_REQUEST,
       );
     }
-    $override->delete();
+    // This endpoint deletes the override from Live configuration: with the
+    // auto-save workspace active and Workspace Config capturing config writes
+    // into it, an unscoped delete would be staged in the workspace instead of
+    // removing the Live override.
+    // @see \Drupal\canvas\Controller\ApiConfigControllers
+    $this->executeOutsideWorkspace(static fn () => $override->delete());
     return new JsonResponse(status: Response::HTTP_NO_CONTENT);
   }
 
