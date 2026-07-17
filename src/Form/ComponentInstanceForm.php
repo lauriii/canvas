@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Form;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
@@ -35,6 +36,7 @@ final class ComponentInstanceForm extends FormBase {
     protected ComponentTreeLoader $componentTreeLoader,
     protected ThemeHandlerInterface $themeHandler,
     protected ComponentSourceManager $componentSourceManager,
+    protected AutoSaveManager $autoSaveManager,
   ) {}
 
   /**
@@ -43,13 +45,16 @@ final class ComponentInstanceForm extends FormBase {
   public static function create(ContainerInterface $container): static {
     $component_tree_loader = $container->get(ComponentTreeLoader::class);
     $component_source_manager = $container->get(ComponentSourceManager::class);
+    $auto_save_manager = $container->get(AutoSaveManager::class);
     \assert($component_tree_loader instanceof ComponentTreeLoader);
     \assert($component_source_manager instanceof ComponentSourceManager);
+    \assert($auto_save_manager instanceof AutoSaveManager);
 
     return new static(
       $component_tree_loader,
       $container->get('theme_handler'),
       $component_source_manager,
+      $auto_save_manager,
     );
   }
 
@@ -127,11 +132,40 @@ final class ComponentInstanceForm extends FormBase {
     // @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method
     $form['#method'] = 'dialog';
 
+    // Items inside a deferred slot (e.g. a List element's item template) get
+    // their data context from the slot-defining source, not the host entity.
+    // The submitted subtree does not carry ancestry, so resolve it against
+    // the (auto-saved, if available) full tree of the edited entity.
+    $form_context_entity = $entity;
+    if ($host_entity instanceof FieldableEntityInterface) {
+      $auto_save = $this->autoSaveManager->getAutoSaveEntity($entity);
+      $tree_host = $auto_save->isEmpty() ? $entity : $auto_save->entity;
+      try {
+        \assert($tree_host instanceof FieldableEntityInterface || $tree_host instanceof ContentTemplate);
+        $full_tree = $this->componentTreeLoader->load($tree_host);
+        ['is_deferred' => $is_deferred, 'entity' => $context_entity] = $full_tree->resolveDeferredSlotContext(
+          $full_tree->getComponentTreeItemByUuid($component_instance_uuid) ?? throw new \LogicException('Not in tree.'),
+          $host_entity,
+        );
+        if ($is_deferred) {
+          $host_entity = $context_entity;
+          $form_context_entity = $context_entity;
+          // Lets sources offer this context's fields for prop mapping.
+          // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
+          $form_state->set('canvas_deferred_slot_context', TRUE);
+        }
+      }
+      catch (\LogicException) {
+        // The entity stores no component tree, or the instance is not part of
+        // the stored tree (yet): keep the host entity context.
+      }
+    }
+
     $parents = ['canvas_component_props', $component_instance_uuid];
     $sub_form = ['#parents' => $parents, '#tree' => TRUE];
     if (!$component->getComponentSource()->isBroken()) {
       $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model, $host_entity);
-      $instance_form = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
+      $instance_form = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $form_context_entity, $component->get('settings'));
     }
     else {
       // The component is broken, so we must assist the Canvas content author

@@ -75,6 +75,8 @@ canvas.component.*:
           - js
           # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent
           - block
+          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\ListComponent
+          - list
     source_local_id:
       type: canvas.component_source_local_id.[%parent.source]
     versioned_properties:
@@ -723,6 +725,21 @@ canvas.component_source_settings.block:
   mapping:
     default_settings:
       type: block.settings.[%parent.%parent.%parent.%parent.source_local_id]
+
+# The List element: one fixed component whose settings are all per-instance.
+# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\ListComponent
+canvas.component_source_local_id.list:
+  type: canvas.component_source_local_id.*
+  label: 'List component ID'
+  constraints:
+    Choice:
+      - list
+    FullyValidatable: ~
+canvas.component_source_settings.list:
+  type: canvas.component_source_settings.*
+  label: 'List component settings'
+  constraints:
+    FullyValidatable: ~
 
 # The `fallback` plugin ID is the only one not required to specify a source-local ID.
 canvas.component_source_settings.fallback:

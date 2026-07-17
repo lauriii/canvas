@@ -750,6 +750,13 @@ final class ApiLayoutController {
   private function updateComponentInstance(ComponentTreeEntityInterface|FieldableEntityInterface $entity, string $componentInstanceUuid, string $version, array $client_model, ?FieldableEntityInterface $host_entity): void {
     $tree = $this->componentTreeLoader->load($entity);
     if ($item = $tree->getComponentTreeItemByUuid($componentInstanceUuid)) {
+      // Items inside a deferred slot (e.g. a List element's item template)
+      // get their data context from the slot-defining source, not the host
+      // entity.
+      ['is_deferred' => $is_deferred, 'entity' => $context_entity] = $tree->resolveDeferredSlotContext($item, $host_entity);
+      if ($is_deferred) {
+        $host_entity = $context_entity;
+      }
       // We might be not only updating the inputs, but also the component
       // instance version (if automatically updating is feasible).
       // @see \Drupal\canvas\ComponentSource\ComponentInstanceUpdaterInterface

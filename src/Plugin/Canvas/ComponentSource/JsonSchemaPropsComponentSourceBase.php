@@ -38,6 +38,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
+use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
@@ -861,13 +862,24 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     // Component config entity being created!)
 
     // Get suggested non-static prop sources for component instances on
-    // content templates.
+    // content templates, and for component instances inside a deferred slot
+    // (e.g. a List element's item template), where $entity is the slot's
+    // representative data context entity and shape matching offers its
+    // bundle's fields.
+    // @see \Drupal\canvas\Form\ComponentInstanceForm::buildForm()
     $suggestions = NULL;
+    $suggestion_entity_data_definition = NULL;
     if ($entity instanceof ContentTemplate) {
+      $suggestion_entity_data_definition = $entity->getTargetEntityDataDefinition();
+    }
+    elseif ($form_state->get('canvas_deferred_slot_context') && $entity instanceof FieldableEntityInterface) {
+      $suggestion_entity_data_definition = EntityDataDefinition::create($entity->getEntityTypeId(), $entity->bundle());
+    }
+    if ($suggestion_entity_data_definition !== NULL) {
       $suggestions = PropSourceSuggester::structureSuggestionsForHierarchicalResponse($this->propSourceSuggester->suggest(
         $this->getSourceSpecificComponentId(),
         $this->getMetadata(),
-        $entity->getTargetEntityDataDefinition(),
+        $suggestion_entity_data_definition,
       ));
     }
 
@@ -929,7 +941,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity_object_for_field_widget, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
 
-      if ($entity instanceof ContentTemplate) {
+      if ($suggestion_entity_data_definition !== NULL) {
         $could_use_dynamic_prop_source = !empty($suggestions[$sdc_prop_name]);
 
         // If the prop is already linked, replace the widget entirely. The
@@ -943,7 +955,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
             '#sdc_prop_name' => $sdc_prop_name,
             '#sdc_prop_label' => $label,
             '#prop_source' => $linkable_prop_source,
-            '#entity_data_definition' => $entity->getTargetEntityDataDefinition(),
+            '#entity_data_definition' => $suggestion_entity_data_definition,
             '#field_link_suggestions' => $suggestions[$sdc_prop_name],
             '#description' => $component_schema['properties'][$sdc_prop_name]['description'] ?? NULL,
             '#is_required' => $is_required,

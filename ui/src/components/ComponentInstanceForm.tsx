@@ -151,6 +151,21 @@ const ComponentInstanceFormRenderer: React.FC<
     );
     setCurrentComponentId(componentId);
 
+    // A component source may declare a form remount key in its client model:
+    // a value that changes exactly when the set of form controls changes
+    // (e.g. the List element's dependent selects). Including it in the React
+    // key below remounts the form subtree for structural changes, which
+    // in-place reconciliation of hyperscriptified markup does not handle.
+    // Components without a remount key keep the focus-preserving behavior.
+    let formRemountKey = '';
+    try {
+      formRemountKey =
+        JSON.parse(originalUrlSearchParams.get('form_canvas_props') ?? '{}')
+          ?.formRemountKey ?? '';
+    } catch {
+      // Ignore malformed props; fall back to the stable key.
+    }
+
     setJsxFormContent(
       // Wrapping the constructed `ReactElement` for the form so we can add a
       // key which tells React when to re-render this subtree. The component ID
@@ -160,7 +175,7 @@ const ComponentInstanceFormRenderer: React.FC<
       // causing the form to lose focus.
       // A `<div>` is used instead of `React.Fragment` so a test ID can be added.
       <div
-        key={`${componentId}-${latestUndoRedoActionId}`}
+        key={`${componentId}-${latestUndoRedoActionId}${formRemountKey ? `-${formRemountKey}` : ''}`}
         data-testid={`canvas-component-form-${componentId}`}
       >
         {hyperscriptify(

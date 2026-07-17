@@ -85,6 +85,11 @@ services:
     tags:
       - { name: cache.bin.memory }
   Drupal\canvas\Storage\ComponentTreeLoader: {}
+  # The List element's query pipeline.
+  # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\ListComponent
+  Drupal\canvas\ListBuilder\ListElementFieldInfo: {}
+  Drupal\canvas\ListBuilder\ListElementSettingsValidator: {}
+  Drupal\canvas\ListBuilder\ListQueryExecutor: {}
   Drupal\canvas\CodeComponentDataProvider: {}
   Drupal\canvas\Version: {}
   Drupal\canvas\CanvasConfigUpdater: ~
