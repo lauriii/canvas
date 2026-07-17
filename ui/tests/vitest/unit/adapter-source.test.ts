@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildCandidateTree,
+  candidateShortLabel,
   createStep,
   getPrimaryInputName,
   humanizeInputName,
@@ -15,6 +17,7 @@ import {
 import type {
   AdapterInputSlot,
   AdapterSuggestion,
+  SlotCandidate,
 } from '@/components/form/components/drupal/adapterSource';
 
 const stringStatic = {
@@ -555,5 +558,91 @@ describe('supportsLiteralBinding', () => {
         makeSlot('x', true, { schema: { type: 'boolean' } }),
       ),
     ).toBe(true);
+  });
+});
+
+describe('candidateShortLabel', () => {
+  it('returns the last path segment', () => {
+    expect(candidateShortLabel('Title')).toBe('Title');
+    expect(candidateShortLabel('Image → Alternative text')).toBe(
+      'Alternative text',
+    );
+    expect(candidateShortLabel('Authored by → User → Picture → Title')).toBe(
+      'Title',
+    );
+  });
+});
+
+describe('buildCandidateTree', () => {
+  const candidate = (id: string, label: string): SlotCandidate => ({
+    id,
+    label,
+    source: { sourceType: 'entity-field', expression: `expr-${id}` },
+  });
+
+  it('keeps single-segment labels as top-level leaves', () => {
+    const title = candidate('t', 'Title');
+    expect(buildCandidateTree([title])).toEqual([
+      { label: 'Title', candidate: title },
+    ]);
+  });
+
+  it('splits a multi-segment label into nested submenus', () => {
+    const alt = candidate('a', 'Image → Alternative text');
+    expect(buildCandidateTree([alt])).toEqual([
+      {
+        label: 'Image',
+        children: [{ label: 'Alternative text', candidate: alt }],
+      },
+    ]);
+  });
+
+  it('merges candidates that share a path prefix', () => {
+    const name = candidate('n', 'Authored by → User → Name');
+    const picture = candidate('p', 'Authored by → User → Picture → Title');
+    expect(buildCandidateTree([name, picture])).toEqual([
+      {
+        label: 'Authored by',
+        children: [
+          {
+            label: 'User',
+            children: [
+              { label: 'Name', candidate: name },
+              {
+                label: 'Picture',
+                children: [{ label: 'Title', candidate: picture }],
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('keeps distinct top-level paths separate', () => {
+    const title = candidate('t', 'Title');
+    const alt = candidate('a', 'Image → Alternative text');
+    const tree = buildCandidateTree([title, alt]);
+    expect(tree).toHaveLength(2);
+    expect(tree[0]).toEqual({ label: 'Title', candidate: title });
+    expect(tree[1].label).toBe('Image');
+  });
+
+  it('supports a node that is both a selectable leaf and a submenu', () => {
+    // "User" is selectable itself and also a parent of "Name".
+    const user = candidate('u', 'Authored by → User');
+    const userName = candidate('un', 'Authored by → User → Name');
+    expect(buildCandidateTree([user, userName])).toEqual([
+      {
+        label: 'Authored by',
+        children: [
+          {
+            label: 'User',
+            candidate: user,
+            children: [{ label: 'Name', candidate: userName }],
+          },
+        ],
+      },
+    ]);
   });
 });

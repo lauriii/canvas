@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import clsx from 'clsx';
 import { useParams } from 'react-router';
 import {
   ChevronDownIcon,
@@ -24,6 +25,8 @@ import {
 import { usePreviewPropSourceMutation } from '@/services/componentAndLayout';
 
 import {
+  buildCandidateTree,
+  candidateShortLabel,
   createStep,
   getPrimaryInputName,
   humanizeInputName,
@@ -38,17 +41,14 @@ import type {
   AdapterInputSlot,
   AdapterStep,
   AdapterSuggestion,
+  CandidateTreeNode,
   MappingRow,
   SlotBinding,
+  SlotCandidate,
   SlotMode,
 } from './adapterSource';
 
 import styles from './AdapterConfigPanel.module.css';
-
-// A sentinel Select value for a bound source that matches no candidate (e.g.
-// the candidate list changed since it was written). Radix Select items may
-// not use the empty string.
-const PRESERVED_SOURCE_VALUE = '__preserved__';
 
 const DATE_FORMAT_OPTIONS = [
   { value: 'relative', label: 'Relative ("2 days ago")' },
@@ -172,6 +172,44 @@ const MappingRowsEditor = ({
         </Button>
       </Box>
     </Flex>
+  );
+};
+
+// Renders one node of the field-candidate tree: a submenu when it has
+// children, a selectable leaf otherwise. A node with both a candidate and
+// children exposes the candidate as its own item inside the submenu (the same
+// convention the field linker uses for a selectable parent).
+const renderCandidateNode = (
+  node: CandidateTreeNode,
+  onSelect: (candidate: SlotCandidate) => void,
+  keyPath: string,
+) => {
+  if (node.children && node.children.length > 0) {
+    return (
+      <DropdownMenu.Sub key={keyPath}>
+        <DropdownMenu.SubTrigger>{node.label}</DropdownMenu.SubTrigger>
+        <DropdownMenu.SubContent>
+          {node.candidate && (
+            <DropdownMenu.Item
+              onClick={() => node.candidate && onSelect(node.candidate)}
+            >
+              {node.label}
+            </DropdownMenu.Item>
+          )}
+          {node.children.map((child, index) =>
+            renderCandidateNode(child, onSelect, `${keyPath}-${index}`),
+          )}
+        </DropdownMenu.SubContent>
+      </DropdownMenu.Sub>
+    );
+  }
+  return (
+    <DropdownMenu.Item
+      key={keyPath}
+      onClick={() => node.candidate && onSelect(node.candidate)}
+    >
+      {node.label}
+    </DropdownMenu.Item>
   );
 };
 
@@ -335,52 +373,69 @@ const AdapterConfigPanel = ({
   ) => {
     if (slot.candidates.length === 0 && !binding.source) {
       return (
-        <Select.Root size="1" value="" disabled>
-          <Select.Trigger placeholder="No matching fields available" />
-          <Select.Content />
-        </Select.Root>
+        <Button
+          size="1"
+          variant="surface"
+          color="gray"
+          disabled
+          className={styles.fieldTrigger}
+        >
+          <span className={styles.fieldTriggerText}>
+            No matching fields available
+          </span>
+        </Button>
       );
     }
-    const selectValue = binding.candidateId
-      ? binding.candidateId
-      : binding.source
-        ? PRESERVED_SOURCE_VALUE
-        : '';
+
+    const selectedCandidate = binding.candidateId
+      ? slot.candidates.find((item) => item.id === binding.candidateId)
+      : undefined;
+    // A bound source that matches no candidate (e.g. the candidate list
+    // changed since it was written) is kept selectable so the configuration
+    // survives an edit without rebinding.
+    const hasPreservedSource = !selectedCandidate && !!binding.source;
+    const triggerText = selectedCandidate
+      ? candidateShortLabel(selectedCandidate.label)
+      : hasPreservedSource
+        ? 'Currently bound value'
+        : 'Select a field';
+
+    const selectCandidate = (candidate: SlotCandidate) => {
+      updateBinding(stepIndex, slot.name, {
+        candidateId: candidate.id,
+        source: candidate.source,
+      });
+    };
+
     return (
-      <Select.Root
-        size="1"
-        value={selectValue}
-        onValueChange={(candidateId) => {
-          if (candidateId === PRESERVED_SOURCE_VALUE) {
-            return;
-          }
-          const candidate = slot.candidates.find(
-            (item) => item.id === candidateId,
-          );
-          if (candidate) {
-            updateBinding(stepIndex, slot.name, {
-              candidateId: candidate.id,
-              source: candidate.source,
-            });
-          }
-        }}
-      >
-        <Select.Trigger placeholder="Select a field" />
-        <Select.Content>
-          {/* Keep a bound source that matches no candidate selectable so the
-              configuration survives an edit without rebinding. */}
-          {binding.source && !binding.candidateId && (
-            <Select.Item value={PRESERVED_SOURCE_VALUE}>
-              Currently bound value
-            </Select.Item>
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger>
+          <Button
+            size="1"
+            variant="surface"
+            color="gray"
+            className={clsx(styles.fieldTrigger, {
+              [styles.fieldTriggerPlaceholder]:
+                !selectedCandidate && !hasPreservedSource,
+            })}
+            // The compact last segment is shown as the button text; the full
+            // path is the tooltip (the LinkedFieldBox convention).
+            title={selectedCandidate ? selectedCandidate.label : undefined}
+            data-testid="adapter-field-trigger"
+          >
+            <span className={styles.fieldTriggerText}>{triggerText}</span>
+            <ChevronDownIcon className={styles.fieldTriggerIcon} />
+          </Button>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Content>
+          {hasPreservedSource && (
+            <DropdownMenu.Item>Currently bound value</DropdownMenu.Item>
           )}
-          {slot.candidates.map((candidate) => (
-            <Select.Item key={candidate.id} value={candidate.id}>
-              {candidate.label}
-            </Select.Item>
-          ))}
-        </Select.Content>
-      </Select.Root>
+          {buildCandidateTree(slot.candidates).map((node, index) =>
+            renderCandidateNode(node, selectCandidate, `${index}`),
+          )}
+        </DropdownMenu.Content>
+      </DropdownMenu.Root>
     );
   };
 

@@ -54,10 +54,11 @@ test.describe('Prop adapters', () => {
     const panel = page.getByTestId('adapter-config-panel');
     await expect(panel).toBeVisible();
 
-    // Bind value → the Title field.
+    // Bind value → the Title field. The field picker is a nested dropdown:
+    // open its trigger, then pick the top-level "Title" leaf.
     const valueRow = panel.getByTestId('adapter-input-value');
-    await valueRow.getByRole('combobox').click();
-    await page.getByRole('option', { name: 'Title', exact: true }).click();
+    await valueRow.getByTestId('adapter-field-trigger').click();
+    await page.getByRole('menuitem', { name: 'Title', exact: true }).click();
 
     // Bind comparison → the literal "x".
     const comparisonRow = panel.getByTestId('adapter-input-comparison');
@@ -75,8 +76,8 @@ test.describe('Prop adapters', () => {
     // Title field.
     // @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester::buildAdapterSuggestions()
     const elseRow = panel.getByTestId('adapter-input-else');
-    await elseRow.getByRole('combobox').click();
-    await page.getByRole('option', { name: 'Title', exact: true }).click();
+    await elseRow.getByTestId('adapter-field-trigger').click();
+    await page.getByRole('menuitem', { name: 'Title', exact: true }).click();
 
     // The live preview evaluates against the preview entity (Article One).
     // Its title does not equal "x", so the else branch — the title itself —
