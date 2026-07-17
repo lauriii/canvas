@@ -220,6 +220,7 @@ vaul
 wdth
 webform
 wght
+wsod
 xmdi
 ymls
 
