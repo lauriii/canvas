@@ -578,7 +578,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       return;
     }
 
-    $url = Url::fromRoute('canvas.api.list_element.page', [
+    $url = Url::fromRoute('canvas.list_element.page', [
       'entity_type' => $host['entity_type'],
       'entity' => $host['id'],
       'component_instance_uuid' => $componentUuid,

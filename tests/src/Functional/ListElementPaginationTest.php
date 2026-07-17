@@ -137,7 +137,7 @@ final class ListElementPaginationTest extends FunctionalTestBase {
    * Returns the pagination endpoint URL for a component instance UUID.
    */
   private function endpointUrl(string $component_instance_uuid = self::LIST_UUID): Url {
-    return Url::fromRoute('canvas.api.list_element.page', [
+    return Url::fromRoute('canvas.list_element.page', [
       'entity_type' => Page::ENTITY_TYPE_ID,
       'entity' => (string) $this->page->id(),
       'component_instance_uuid' => $component_instance_uuid,
@@ -195,7 +195,7 @@ final class ListElementPaginationTest extends FunctionalTestBase {
     }
     $assert_session->pageTextNotContains('Unpublished pagination article');
     $assert_session->elementExists('css', \sprintf(
-      '[data-canvas-list-endpoint*="canvas/api/v0/list-element/%s/%s/%s"][data-canvas-list-mode="infinite_scroll"][data-canvas-list-offset="3"]',
+      '[data-canvas-list-endpoint*="canvas/list-element/%s/%s/%s"][data-canvas-list-mode="infinite_scroll"][data-canvas-list-offset="3"]',
       Page::ENTITY_TYPE_ID,
       $this->page->id(),
       self::LIST_UUID,

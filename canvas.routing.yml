@@ -568,6 +568,7 @@ canvas.api.layout.post.content_template:
     parameters:
       <<: *layout_get_route_content_template_parameters
 
+
 canvas.api.log_error:
   path: '/canvas/api/v0/log-error'
   defaults:
@@ -839,6 +840,30 @@ canvas.component.status:
     _title: 'Components status'
   requirements:
     _permission: 'administer themes'
+# Serves subsequent pages of a List element on published pages. This is a
+# public site delivery route (like the published pages it augments), not part
+# of the Canvas editor's internal /canvas/api/v0 HTTP API: anonymous visitors
+# use it, access to the host entity is checked in the controller, and every
+# query-shaping setting comes from the stored, validated instance inputs.
+# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\ListComponent
+canvas.list_element.page:
+  path: '/canvas/list-element/{entity_type}/{entity}/{component_instance_uuid}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiListElementController'
+  requirements:
+    # Access is checked in the controller: content entities require view
+    # access, config-entity-hosted trees (global regions, content templates)
+    # render publicly when enabled.
+    _access: 'TRUE'
+    entity_type: '[a-z_]+'
+    component_instance_uuid: '[a-fA-F0-9\-]{36}'
+  methods: [GET]
+  options:
+    parameters:
+      entity:
+        type: 'entity:{entity_type}'
+    _format: 'json'
+
 entity.canvas_page.add_page:
   path: '/admin/content/pages/add'
   defaults:
@@ -882,28 +907,6 @@ entity.component.enable:
     _canvas_authentication_required: TRUE
     _entity_access: 'component.enable'
     _csrf_token: 'TRUE'
-# Serves subsequent pages of a List element on published pages. Anonymous
-# visitors use this route, so it requires no Canvas authentication; access to
-# the host entity is checked in the controller and every query-shaping setting
-# comes from the stored, validated instance inputs.
-# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\ListComponent
-canvas.api.list_element.page:
-  path: '/canvas/api/v0/list-element/{entity_type}/{entity}/{component_instance_uuid}'
-  defaults:
-    _controller: 'Drupal\canvas\Controller\ApiListElementController'
-  requirements:
-    # Access is checked in the controller: content entities require view
-    # access, config-entity-hosted trees (global regions, content templates)
-    # render publicly when enabled.
-    _access: 'TRUE'
-    entity_type: '[a-z_]+'
-    component_instance_uuid: '[a-fA-F0-9\-]{36}'
-  methods: [GET]
-  options:
-    parameters:
-      entity:
-        type: 'entity:{entity_type}'
-    _format: 'json'
 
 # @todo Remove this once linking to the Canvas Content Template editor UI is possible in https://www.drupal.org/i/3551708
 entity.content_template.edit_form:

@@ -49,7 +49,7 @@ renders carry the bundle-scoped list cache tag (`node_list:<bundle>`), the
 cache metadata bubbled from item renders, so content changes invalidate lists
 through Drupal's cache system without max-age expiry.
 
-Subsequent pages are served by `/canvas/api/v0/list-element/{entity_type}/{entity}/{component_instance_uuid}`,
+Subsequent pages are served by `/canvas/list-element/{entity_type}/{entity}/{component_instance_uuid}`,
 which accepts only the list's identity and an offset: every query-shaping
 setting is read from the stored, validated inputs, so the endpoint cannot be
 coerced into arbitrary queries. Responses are server-rendered item markup

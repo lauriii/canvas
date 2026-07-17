@@ -55,6 +55,7 @@ final class ListComponentItemTemplateTest extends CanvasKernelTestBase {
     parent::setUp();
     $this->installEntitySchema('user');
     $this->installEntitySchema('node');
+    $this->installEntitySchema('canvas_page');
     $this->installEntitySchema('path_alias');
     $this->installSchema('node', ['node_access']);
     $this->installConfig(['node']);
@@ -103,7 +104,7 @@ final class ListComponentItemTemplateTest extends CanvasKernelTestBase {
             // bundle, not the host entity (a canvas_page): this is only
             // valid inside the deferred item template slot.
             'text' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => 'entity-field',
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
             'element' => 'h3',

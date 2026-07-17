@@ -27,6 +27,12 @@ class CanvasPathProcessor implements InboundPathProcessorInterface {
     // For this to work, our routes require that no route normalization happens
     // when the redirect module is enabled.
     // @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::preventRouteNormalization.
+    // The List element's pagination path is a published-page delivery route
+    // with its own route definition and access checking, not a React route.
+    // @see \Drupal\canvas\Controller\ApiListElementController
+    if (str_starts_with($path, '/canvas/list-element/')) {
+      return $path;
+    }
     if (str_starts_with($path, '/canvas/') && !str_starts_with($path, '/canvas/api')) {
       // Page extension paths must reach their own route so per-extension
       // access checking applies. Strip any extension-internal subpath
