@@ -105,6 +105,19 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       if ($source->requiresExplicitInput()) {
         $built['model'][$component_instance_uuid] = $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item, $host_entity));
       }
+      elseif ($source->isBroken()) {
+        // A broken component's underlying plugin (for example, a block plugin)
+        // has disappeared, so the ComponentSource can no longer build a client
+        // model for its stored inputs and ::requiresExplicitInput() returns
+        // FALSE — skipping the branch above. Still expose the stored inputs as
+        // this instance's client `model`: the client requires a `model` entry
+        // for every layout node (without one it cannot open the component
+        // instance form), and these values are what the form offers for
+        // recovery into a replacement component.
+        // @see \Drupal\canvas\Form\ComponentInstanceForm::buildForm()
+        // @see https://www.drupal.org/project/canvas/issues/3558721
+        $built['model'][$component_instance_uuid] = ['resolved' => $item->getInputs() ?? []];
+      }
 
       // TRICKY: the server-side implementation (for storage efficiency) forbids
       // - empty component subtrees

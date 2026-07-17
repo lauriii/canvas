@@ -10,8 +10,6 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
-use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
@@ -32,7 +30,6 @@ final class ComponentInstanceForm extends FormBase {
   public function __construct(
     // These must be protected so that DependencySerializationTrait, which is
     // used by the parent class, can access it.
-    protected ComponentTreeLoader $componentTreeLoader,
     protected ThemeHandlerInterface $themeHandler,
     protected ComponentSourceManager $componentSourceManager,
   ) {}
@@ -41,13 +38,10 @@ final class ComponentInstanceForm extends FormBase {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    $component_tree_loader = $container->get(ComponentTreeLoader::class);
     $component_source_manager = $container->get(ComponentSourceManager::class);
-    \assert($component_tree_loader instanceof ComponentTreeLoader);
     \assert($component_source_manager instanceof ComponentSourceManager);
 
     return new static(
-      $component_tree_loader,
       $container->get('theme_handler'),
       $component_source_manager,
     );
@@ -140,19 +134,18 @@ final class ComponentInstanceForm extends FormBase {
       // copied and pasted into the new component instance's form.
       // Carefully consider what data to offer here.
       $inputs_to_show = match(TRUE) {
-        // Common case: SDCs + code components and similar component sources
-        // have a bifurcated client-side data model:
-        // - `source` containing a (potentially collapsed) PropSource
-        // - `resolved` containing the corresponding resolved values
-        // When such a component is broken, the `source` half is too low-level
-        // and complex for Canvas content authors to be helpful. So, offer only
-        // the resolved values.
+        // Every client-side data model that Canvas builds carries the resolved
+        // values under a `resolved` key:
+        // - SDCs + code components additionally have a `source` half (a
+        //   potentially collapsed PropSource) that is too low-level and complex
+        //   for Canvas content authors to be helpful when the component is
+        //   broken.
+        // - Blocks (and other sources with their own input UX) only have the
+        //   `resolved` half.
+        // Either way, offer only the resolved values for recovery.
+        // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::buildLayoutAndModel()
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::optimizeExplicitInput()
-        $component->getComponentSource() instanceof JsonSchemaPropsComponentSourceBase && \is_array($client_model) && \array_key_exists('resolved', $client_model) => $client_model['resolved'],
-        // @todo This should never occur; remove this in https://www.drupal.org/project/canvas/issues/3558721
-        $client_model === json_decode('undefined') => $this->componentTreeLoader->load($entity)
-          ->getComponentTreeItemByUuid($component_instance_uuid)
-          ?->getInputs() ?? [],
+        \is_array($client_model) && \array_key_exists('resolved', $client_model) => $client_model['resolved'],
         // All other component sources: all data, but converted to an array,
         // which is required for ::buildComponentInstanceForm().
         // @see https://en.wikipedia.org/wiki/Robustness_principle
