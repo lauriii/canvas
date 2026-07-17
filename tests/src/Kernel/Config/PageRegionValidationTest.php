@@ -541,7 +541,13 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
     $region = $regions['stark.sidebar_first'];
     $this->assertInstanceOf(PageRegion::class, $region);
     $this->assertSame([], $region->get('component_tree'));
-    $this->assertSame(['stark.sidebar_first' => [$uuid => 'Same UUID block']], $skipped_blocks);
+    // Both blocks are reported individually, even though they share a UUID.
+    $this->assertSame([
+      'stark.sidebar_first' => [
+        'first_duplicate' => 'Same UUID block',
+        'second_duplicate' => 'Same UUID block',
+      ],
+    ], $skipped_blocks);
   }
 
 }
