@@ -28,6 +28,7 @@ use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\TranslatableInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 
 /**
  * Contains unstructured data for 1 explicit input of a component instance.
@@ -591,18 +592,25 @@ final class StaticPropSource extends PropSourceBase {
         // as a delete AJAX request, the widget item might not exist despite it
         // still being present in the fieldItemList.
         if (isset($widget_form['widget'][$i])) {
-          // @see \Drupal\Core\Field\FieldItemList::__get()
-          // @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem::propertyDefinitions()
-          // @phpstan-ignore property.notFound
-          $widget_form['widget'][$i]['value']['#default_value'] = new DrupalDateTime($this->fieldItemList[$i]->value);
-
           // No timezone adjusting takes place when entering or storing date
           // values. It assumes the date time selected is literally the date
           // time stored. Because of that, the form render needs to assume UTC
           // as well, otherwise the input values will be different upon
           // reloading the form.
+          // The default value MUST be constructed in UTC to match the
+          // `#date_timezone` set below: the datetime element renders its inputs
+          // by converting the default value into `#date_timezone`, so a default
+          // value built in the editor's timezone renders date-only values one
+          // day off (and shifts the time on date-time values) for any editor
+          // outside UTC.
+          // @see \Drupal\Core\Datetime\Element\Datetime::valueCallback()
           // @see https://drupal.org/i/3501281
-          $widget_form['widget'][$i]['value']['#date_timezone'] = 'UTC';
+          // @see https://www.drupal.org/project/canvas/issues/3566203
+          // @see \Drupal\Core\Field\FieldItemList::__get()
+          // @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem::propertyDefinitions()
+          // @phpstan-ignore property.notFound
+          $widget_form['widget'][$i]['value']['#default_value'] = new DrupalDateTime($this->fieldItemList[$i]->value, DateTimeItemInterface::STORAGE_TIMEZONE);
+          $widget_form['widget'][$i]['value']['#date_timezone'] = DateTimeItemInterface::STORAGE_TIMEZONE;
         }
       }
     }
