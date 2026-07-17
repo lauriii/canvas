@@ -134,6 +134,38 @@ final class CanvasLanguageRoutesTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that the query string survives the redirect, `destination` included.
+   *
+   * @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::redirectCanvasToDefaultLanguage()
+   * @see \Drupal\Core\EventSubscriber\RedirectResponseSubscriber
+   */
+  public function testQueryStringSurvivesRedirect(): void {
+    ConfigurableLanguage::createFromLangcode('es')->save();
+
+    $this->config('language.negotiation')
+      ->set('url.prefixes', ['en' => '', 'es' => 'es'])
+      ->save();
+
+    $this->container->get('kernel')->rebuildContainer();
+
+    $this->setUpCurrentUser([], [Page::EDIT_PERMISSION]);
+
+    // Admin overview links carry a `destination` query parameter, which
+    // RedirectResponseSubscriber uses to override redirect targets.
+    $response = $this->request(Request::create('/es/canvas?destination=/admin/content/pages'));
+    self::assertSame(
+      302,
+      $response->getStatusCode(),
+      'A language-prefixed /canvas URL must trigger a 302 redirect.',
+    );
+    self::assertSame(
+      '/canvas?' . Request::normalizeQueryString('destination=/admin/content/pages'),
+      $response->headers->get('Location'),
+      'The redirect must keep the query string and must not be overridden by `destination`.',
+    );
+  }
+
+  /**
    * Verifies redirect safety for languages with custom URL prefixes.
    *
    * @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::redirectCanvasToDefaultLanguage()

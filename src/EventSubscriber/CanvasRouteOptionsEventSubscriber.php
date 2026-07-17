@@ -55,7 +55,12 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
     $prefix_path = "/$prefix/";
     if ($prefix !== '' && \str_starts_with($path, $prefix_path)) {
       $canvas_path = substr_replace($path, '/', 0, strlen($prefix_path));
-      $event->setResponse(new LocalRedirectResponse($request->getBasePath() . $canvas_path, 302));
+      // Keep the query string, but drop `destination` from the active
+      // request: RedirectResponseSubscriber would override the redirect
+      // target with it.
+      $query = $request->getQueryString();
+      $request->query->remove('destination');
+      $event->setResponse(new LocalRedirectResponse($request->getBasePath() . $canvas_path . ($query !== NULL ? "?$query" : ''), 302));
     }
   }
 
