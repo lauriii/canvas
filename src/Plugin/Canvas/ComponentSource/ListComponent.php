@@ -920,12 +920,15 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
         return \is_numeric($raw) ? $raw + 0 : NULL;
 
       case ListElementFieldTypeFamily::Options:
-        return match ($definition->getType()) {
+        // Assigned rather than returned directly: the scope indent sniff
+        // misjudges the first arm of a match returned inside a switch case.
+        $value = match ($definition->getType()) {
           'boolean' => $raw === '1',
           'list_integer' => (int) $raw,
           'list_float' => (float) $raw,
           default => $raw,
         };
+        return $value;
 
       default:
         return $raw;
