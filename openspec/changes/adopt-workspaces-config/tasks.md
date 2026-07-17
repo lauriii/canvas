@@ -3,11 +3,15 @@
 ## 1. Branch and dependency
 
 - [x] 1.1 Fork branch `3588540-workspaces-config` from `3588540-stage-canvas-auto-saves` for issue 3588540 (MR 1056 itself is not diverted)
-- [ ] 1.2 Add `drupal/workspaces_config` (pinned dev commit) to composer/info dependencies; enable it in install and update paths
+- [x] 1.2a Add `drupal/workspace_config` to the module's composer dependencies (project is `workspace_config`, not `workspaces_config`; constraint is `^1.0@dev` — composer only honours a `#<commit>` pin in the root package, so the site pins the commit, not Canvas)
+- [ ] 1.2b Declare `workspace_config` in canvas.info.yml and enable it in the install and update paths (patch ready; parked until 2.7 is resolved, because enabling it turns CanvasConfigEntityHttpApiTest red)
 - [ ] 1.3 Ship these specs under `openspec/changes/adopt-workspaces-config/` in the canvas module repository on the implementation branch
 
 ## 2. Config persist path (D1, D2, D5)
 
+- [x] 2.0a Pin auto-save staging bookkeeping (legacy key-value store, pending write buffer, form violations, pruner state) to a key-value factory no workspace overlay decorates: Workspace Config turns every collection into a per-workspace overlay while a workspace is active, so staging rows written inside `canvas_default` would be invisible to the reads, deletes and migrations that run in Live
+- [x] 2.0b Write Live config on `canvas.api.config.*` routes outside the auto-save workspace, so the endpoints keep publishing instead of silently staging once config is workspace-tracked
+- [ ] 2.7 Resolve the config cache partitioning between those Live writes and reads taken inside the workspace (see the first Open Question in design.md); blocks 1.2b
 - [ ] 2.1 Route persistable config auto-saves into workspace-scoped configuration in `canvas_default` via Workspaces Config; verify create, update, delete, and rename coverage for Canvas-managed config (code components, page regions, templates)
 - [ ] 2.2 Repurpose the fallback as the invalid-data store: config persist failures fall back to it; a successful workspace-scoped config persist deletes any invalid-data entry for the target; only Canvas clients load it, never non-Canvas consumers (Views, entity display outside Canvas)
 - [ ] 2.3 Resolve config reads through buffer, then invalid-data store, then workspace-scoped configuration in the auto-save read API

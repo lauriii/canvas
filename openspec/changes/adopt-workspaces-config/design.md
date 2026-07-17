@@ -66,6 +66,7 @@ Writing to entity storage is too slow for the hot path of preview-critical editi
 
 ## Open Questions
 
+- How do Live config writes on `canvas.api.*` routes stay visible to reads taken while the auto-save workspace is active? The config endpoints publish to Live and must step outside the workspace to do it, but every read on those routes happens inside the workspace, and the two resolve through different config cache partitions. Found in implementation: with `workspace_config` enabled, a PATCH returns updated values while the following GET still reports the pre-PATCH ones (CanvasConfigEntityHttpApiTest: testPattern, testJavaScriptComponent, testFolder, testContentTemplate). Note the trap: without stepping outside the workspace these tests can pass while the config is only ever staged and never reaches Live. See `\Drupal\canvas\Controller\ApiConfigControllers::executeOutsideWorkspace()`.
 - Does Workspaces Config support every config operation Canvas stages (create, update, delete, rename) for its fixed set of managed config (code components, page regions, templates)?
 - Where does per-editor attribution live for workspace-scoped config writes (Workspaces Config may not record an editor per staged config object; Canvas may need a sidecar or to keep invalid-data-store metadata for attribution)?
 - Should the exclusive-edit story for config match content (is a staged config object protected against live edits outside Canvas, and is that even desirable in Phase 1)?

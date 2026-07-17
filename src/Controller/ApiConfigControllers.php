@@ -74,8 +74,19 @@ final class ApiConfigControllers extends ApiControllerBase {
    * publish directly to Live — they are not auto-saves — so they must step
    * outside it to avoid being staged instead.
    *
+   * Writing here and reading back inside the workspace splits the two across
+   * config cache partitions, which is not yet coherent: with `workspace_config`
+   * enabled, a PATCH returns the updated values but the following GET on the
+   * same route still reports the pre-PATCH ones. Reproduce by enabling
+   * `workspace_config` and running CanvasConfigEntityHttpApiTest (testPattern,
+   * testJavaScriptComponent, testFolder, testContentTemplate). Not visible on
+   * this branch, which does not enable the module yet.
+   *
+   * @todo Make Live config writes on canvas.api.* routes visible to reads taken with the auto-save workspace active — likely by invalidating or bypassing the workspace-partitioned config cache — in https://drupal.org/i/3588540
+   *
    * @see \Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspaceActivationSubscriber
    * @see \Drupal\workspace_config\WorkspaceConfigDatabaseStorage::write()
+   * @see \Drupal\workspace_config\WorkspaceConfigCachedStorage
    */
   private function executeOutsideWorkspace(callable $callable): mixed {
     return $this->workspaceManager instanceof WorkspaceManagerInterface
