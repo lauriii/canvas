@@ -22,6 +22,7 @@ use Drupal\Core\Form\FormState;
 use Drupal\Core\Url;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
+use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 use Drupal\Tests\system\Functional\Form\StubForm;
 use Drupal\user\Entity\User;
@@ -45,6 +46,7 @@ use Symfony\Component\HttpFoundation\Request;
 final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
 
   use CiModulePathTrait;
+  use GenerateComponentConfigTrait;
   use NodeCreationTrait;
 
   /**
@@ -523,6 +525,62 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
 
     $response = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(), $component, json_decode('undefined'));
     self::assertSame('Component is missing. Fix the component or copy values to a new component. Previously stored input []', $response->text());
+  }
+
+  /**
+   * Tests a theme's SDC when that theme is no longer the default theme.
+   *
+   * Canvas omits Components provided by installed-but-not-default themes from
+   * the list of available Components, so the Canvas UI does not know about them
+   * and sends `undefined` (null) as the client model when their props form is
+   * opened. Because the SDC is still discoverable, such a component is not
+   * "broken", yet the server must still render the Fallback form when the
+   * client model is absent, rather than passing the null client model to
+   * ::clientModelToInput() (which triggers a fatal TypeError).
+   *
+   * @see https://www.drupal.org/project/canvas/issues/3549814
+   * @see \Drupal\canvas\Entity\Component::refineListQuery()
+   */
+  public function testThemeComponentWhenThemeNoLongerDefault(): void {
+    // Install a theme (and its base theme) that provides an SDC, but keep Stark
+    // as the default theme. The SDC remains discoverable by core's SDC plugin
+    // manager (which scans all installed themes), yet Canvas omits it from the
+    // list of available Components because its theme is not the default.
+    $this->container->get('theme_installer')->install(['test_theme_child']);
+    $this->generateComponentConfig();
+
+    $component = Component::load('sdc.test_theme_child.test-child');
+    self::assertInstanceOf(ComponentInterface::class, $component);
+    // The Component config entity is enabled and valid, and — because its SDC is
+    // still discoverable while its theme is installed — it is not "broken".
+    self::assertTrue($component->status());
+    self::assertCount(0, $component->getTypedData()->validate());
+    self::assertFalse($component->getComponentSource()->isBroken());
+
+    // Create a page with an instance of the theme's SDC.
+    $page = Page::create(['title' => $this->randomMachineName()]);
+    $page->setComponentTree([
+      [
+        'uuid' => '5f18db31-fa2f-4f4e-a377-dc0c6a0b7dc4',
+        'component_id' => $component->id(),
+        'inputs' => [],
+      ],
+    ]);
+    self::assertCount(0, $page->validate());
+    self::assertSame(SAVED_NEW, $page->save());
+
+    // Opening the props form must not crash. The Canvas UI does not know about
+    // this component (its theme is not the default), so it sends `undefined` as
+    // the client model. Before the fix, the server passed that null client
+    // model to ::clientModelToInput() (typed `array`), triggering a fatal
+    // TypeError. After the fix, the Fallback form is rendered instead, offering
+    // the previously stored inputs to copy and paste.
+    $response = $this->getCrawlerForFormRequest(
+      '/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(),
+      $component,
+      json_decode('undefined'),
+    );
+    self::assertStringContainsString('Component is missing. Fix the component or copy values to a new component.', $response->text());
   }
 
   /**

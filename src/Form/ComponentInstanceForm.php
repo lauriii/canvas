@@ -129,13 +129,25 @@ final class ComponentInstanceForm extends FormBase {
 
     $parents = ['canvas_component_props', $component_instance_uuid];
     $sub_form = ['#parents' => $parents, '#tree' => TRUE];
-    if (!$component->getComponentSource()->isBroken()) {
+    // The client model is required to build the regular form. It can be absent
+    // (decoded to NULL) when the Canvas UI does not know about this component
+    // and therefore cannot construct a model for it. This happens, for example,
+    // for a theme's SDC once its theme is no longer the default theme: such
+    // Components are deliberately omitted from the list of available
+    // Components, so the UI sends `undefined` for their client model. Treat
+    // that like a broken component and offer the Fallback form, rather than
+    // passing NULL to ::clientModelToInput() (which is typed `array` and would
+    // fatal).
+    // @see \Drupal\canvas\Entity\Component::refineListQuery()
+    // @see https://www.drupal.org/project/canvas/issues/3549814
+    if (!$component->getComponentSource()->isBroken() && \is_array($client_model)) {
       $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model, $host_entity);
       $instance_form = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
     }
     else {
-      // The component is broken, so we must assist the Canvas content author
-      // to recreate the same component instance using another component: offer
+      // The component is broken (or the Canvas UI could not provide a usable
+      // client model for it), so we must assist the Canvas content author to
+      // recreate the same component instance using another component: offer
       // the values of the explicit inputs for this component instance to be
       // copied and pasted into the new component instance's form.
       // Carefully consider what data to offer here.
