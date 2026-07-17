@@ -12,6 +12,7 @@ use Drupal\canvas\PropExpressions\StructuredData\ContentAwareDependentInterface;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropSource\AdaptedPropSource;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\canvas\PropSource\PropSourceBase;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
@@ -171,12 +172,28 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
   public function getPropSourcesUsingExpressionClass(string $expression_class): iterable {
     \assert(is_a($expression_class, StructuredDataPropExpression::class, TRUE));
     foreach ($this->getPropSources() as $key => $prop_source) {
-      if ($prop_source instanceof AdaptedPropSource) {
-        throw new \LogicException('@todo as soon as adapted prop sources are actually used');
+      yield from self::filterPropSourceByExpressionClass($key, $prop_source, $expression_class);
+    }
+  }
+
+  /**
+   * Yields (nested) prop sources whose expression uses the given class.
+   *
+   * Adapted prop sources have no expression of their own; their inputs are
+   * prop sources themselves (possibly nested adapters), so recurse into them.
+   * Nested keys are suffixed with the adapter input name(s).
+   *
+   * @return \Generator<string, \Drupal\canvas\PropSource\PropSourceBase>
+   */
+  private static function filterPropSourceByExpressionClass(string $key, PropSourceBase $prop_source, string $expression_class): \Generator {
+    if ($prop_source instanceof AdaptedPropSource) {
+      foreach ($prop_source->getInputNames() as $input_name) {
+        yield from self::filterPropSourceByExpressionClass("$key:$input_name", $prop_source->getInputPropSource($input_name), $expression_class);
       }
-      if (property_exists($prop_source, 'expression') && is_a($prop_source->expression, $expression_class)) {
-        yield $key => $prop_source;
-      }
+      return;
+    }
+    if (property_exists($prop_source, 'expression') && is_a($prop_source->expression, $expression_class)) {
+      yield $key => $prop_source;
     }
   }
 

@@ -53,4 +53,16 @@ interface AdapterInterface extends PluginInspectionInterface {
    */
   public function getInputSchema(string $input): array;
 
+  /**
+   * The names of the inputs whose shape mirrors this adapter's output shape.
+   *
+   * Empty for adapters with a statically declared output schema. Non-empty
+   * for parametric adapters, which match any target prop shape.
+   *
+   * @return array<string>
+   *
+   * @see \Drupal\canvas\Plugin\Adapter\Adapter::__construct()
+   */
+  public function getOutputMirroringInputs(): array;
+
 }

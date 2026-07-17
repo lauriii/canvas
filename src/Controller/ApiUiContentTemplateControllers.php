@@ -7,6 +7,7 @@ namespace Drupal\canvas\Controller;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -14,8 +15,10 @@ use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -95,6 +98,71 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
     if (!\array_key_exists($bundle, $this->entityTypeBundleInfo->getBundleInfo($content_entity_type_id))) {
       throw new NotFoundHttpException(\sprintf("The `%s` content entity type does not have a `%s` bundle.", $content_entity_type_id, $bundle));
     }
+  }
+
+  /**
+   * Evaluates a candidate prop source against a host entity, for live preview.
+   *
+   * The client POSTs the array representation of a prop source (typically an
+   * AdaptedPropSource being configured in the editor) and receives the value
+   * it would produce for the given host entity — evaluated through the exact
+   * same code path used when rendering, so the preview cannot drift from
+   * reality.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request; its body must be a JSON object with a `source` key.
+   * @param string $entity_type_id
+   *   The host entity type ID.
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The (upcast) host entity to evaluate against.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   A JSON response: `{"value": …}` on success, or a 422 response with an
+   *   `errors` list when the prop source cannot be parsed or evaluated.
+   *
+   * @see \Drupal\canvas\PropSource\PropSource::parse()
+   */
+  public static function previewPropSource(Request $request, string $entity_type_id, EntityInterface $entity): JsonResponse {
+    $body = self::decode($request);
+    if (!\array_key_exists('source', $body) || !\is_array($body['source']) || !\array_key_exists('sourceType', $body['source']) || !\is_string($body['source']['sourceType'])) {
+      throw new BadRequestHttpException('The request body must contain a `source` key with a prop source array representation.');
+    }
+    if (!$entity instanceof FieldableEntityInterface) {
+      throw new BadRequestHttpException(\sprintf('The `%s` entity type is not fieldable.', $entity_type_id));
+    }
+
+    try {
+      // TRICKY: $is_required=FALSE: while configuring, intermediate states
+      // (e.g. an optional field without a value) must preview as "no value"
+      // rather than erroring.
+      // @phpstan-ignore argument.type (The array shape cannot be proven statically; PropSource::parse() throws on malformed input, which the catch below turns into a structured error.)
+      $result = PropSource::parse($body['source'])->evaluate($entity, is_required: FALSE);
+    }
+    catch (\Throwable $e) {
+      // A structured error, not a 500: an in-progress configuration is often
+      // momentarily invalid, and the client renders this inline.
+      return new JsonResponse(
+        status: Response::HTTP_UNPROCESSABLE_ENTITY,
+        data: ['errors' => [$e->getMessage()]],
+      );
+    }
+
+    return new JsonResponse(
+      status: Response::HTTP_OK,
+      data: ['value' => self::normalizePreviewValue($result->value)],
+    );
+  }
+
+  /**
+   * Makes an evaluated prop source value JSON-representable.
+   */
+  private static function normalizePreviewValue(mixed $value): mixed {
+    return match (TRUE) {
+      \is_array($value) => \array_map(self::normalizePreviewValue(...), $value),
+      $value instanceof EntityInterface => $value->label(),
+      $value instanceof \Stringable => (string) $value,
+      default => $value,
+    };
   }
 
   public function suggestPreviewContentEntities(string $entity_type_id, string $bundle): CacheableJsonResponse {
