@@ -68,7 +68,11 @@ test.describe('List element', () => {
     // A form remount resets every collapsible section to its server-side
     // default state, so (re)open a section right before interacting with it.
     const openSection = async (name: string) => {
-      const trigger = form.getByRole('button', { name, exact: true });
+      // The accordion trigger button wraps a span that also carries the
+      // button role, so narrow the role query to the real trigger element.
+      const trigger = form
+        .getByRole('button', { name, exact: true })
+        .and(form.locator('button[data-state]'));
       await expect(trigger).toBeVisible();
       // Clicking toggles the section, so only click when it is closed.
       // eslint-disable-next-line playwright/no-conditional-in-test
@@ -100,8 +104,10 @@ test.describe('List element', () => {
     );
 
     // Add a filter: Title contains "ListSpec". Selecting a field in the
-    // trailing "Add a condition on" row is a structural change; the rebuilt
-    // form shows the condition's operator select, defaulting to "Is set".
+    // trailing "Add a condition" row is a structural change; the rebuilt
+    // form shows the condition's operator select, defaulting to the field
+    // family's foremost value operator — "Contains" for text — along with
+    // its value input.
     await openSection('Filters');
     await form
       .locator('select[name$="[filters][conditions][0][field]"]')
@@ -110,14 +116,17 @@ test.describe('List element', () => {
       'select[name$="[filters][conditions][0][operator]"]',
     );
     await expect(conditionOperator).toBeVisible();
-    await expect(conditionOperator).toHaveValue('is_set');
-
-    // Switching the operator to "Contains" is structural too: the rebuilt
-    // form gains a value input.
-    await conditionOperator.selectOption('contains');
+    await expect(conditionOperator).toHaveValue('contains');
     const conditionValue = form.locator(
       'input[name$="[filters][conditions][0][value]"]',
     );
+    await expect(conditionValue).toBeVisible();
+
+    // Operator switches are structural too: a presence operator drops the
+    // value input, and switching back restores it.
+    await conditionOperator.selectOption('is_set');
+    await expect(conditionValue).toBeHidden();
+    await conditionOperator.selectOption('contains');
     await expect(conditionValue).toBeVisible();
     await conditionValue.fill('ListSpec');
     await conditionValue.press('Tab');
@@ -140,7 +149,9 @@ test.describe('List element', () => {
     await firstSortField.selectOption('title');
     const sortDirection = form.locator('select[name$="[sorts][0][direction]"]');
     await expect(sortDirection).toHaveCount(1);
-    await expect(sortDirection).toHaveValue('asc');
+    // A reused row slot keeps the direction it last held (visible and
+    // editable in the rebuilt form), so pick A→Z explicitly.
+    await sortDirection.selectOption('asc');
     await canvas.testInPreviewFrame('.canvas-list__item', async (items) => {
       await expect(items).toContainText(['Apple ListSpec', 'Zebra ListSpec']);
     });

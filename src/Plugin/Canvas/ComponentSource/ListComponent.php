@@ -921,7 +921,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
 
       case ListElementFieldTypeFamily::Options:
         return match ($definition->getType()) {
-        'boolean' => $raw === '1',
+          'boolean' => $raw === '1',
           'list_integer' => (int) $raw,
           'list_float' => (float) $raw,
           default => $raw,

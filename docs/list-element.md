@@ -54,6 +54,12 @@ which accepts only the list's identity and an offset: every query-shaping
 setting is read from the stored, validated inputs, so the endpoint cannot be
 coerced into arbitrary queries. Responses are server-rendered item markup
 with full cache metadata, cacheable per offset for anonymous visitors.
+Behaviors are attached to appended items, but the endpoint does not deliver
+incremental asset libraries: later pages render the same view mode or item
+template as the first page, which attached the assets with the initial
+render. A library that only an item-conditional formatter on a later page
+needs is the accepted edge case; it would require the full Drupal AJAX
+pipeline on otherwise asset-minimal published pages.
 
 ## Component-built item displays (item template)
 

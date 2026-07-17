@@ -263,15 +263,18 @@ final class ListQueryExecutorTest extends CanvasKernelTestBase {
   public function testCacheability(): void {
     $this->createArticle();
 
+    // node_access_test_empty activates the node grants system, so queries
+    // vary by the user's grants on top of the base contexts.
+    $expected_contexts = ['languages:language_content', 'user.permissions', 'user.node_grants:view'];
     $result = $this->executor->execute(self::settings());
     self::assertSame(['node_list:article'], $result->cacheability->getCacheTags());
-    self::assertEqualsCanonicalizing(['languages:language_content', 'user.permissions'], $result->cacheability->getCacheContexts());
+    self::assertEqualsCanonicalizing($expected_contexts, $result->cacheability->getCacheContexts());
 
     // The empty-window early return carries the same cacheability.
     $result = $this->executor->execute(self::settings(['limit' => 1, 'pagination' => ['mode' => 'none', 'page_size' => 10]]), 5);
     self::assertSame([], $result->entities);
     self::assertSame(['node_list:article'], $result->cacheability->getCacheTags());
-    self::assertEqualsCanonicalizing(['languages:language_content', 'user.permissions'], $result->cacheability->getCacheContexts());
+    self::assertEqualsCanonicalizing($expected_contexts, $result->cacheability->getCacheContexts());
   }
 
   public function testInertConditionsAreSkipped(): void {

@@ -135,6 +135,7 @@ list_element.pagination:
     # Published Canvas pages are asset-minimal: nothing else guarantees the
     # behavior-attaching bootstrap, so depend on it explicitly.
     - core/drupal.init
+    - core/drupalSettings
     - core/once
 
 preview:

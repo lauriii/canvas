@@ -100,6 +100,13 @@ final class ApiListElementController implements ContainerInjectionInterface {
     $context = new RenderContext();
     $html = (string) $this->renderer->executeInRenderContext($context, fn (): string => (string) $this->renderer->render($build));
     if (!$context->isEmpty()) {
+      // Only cacheability is kept from the bubbled metadata. Asset
+      // attachments (libraries, drupalSettings) are deliberately not
+      // delivered: every page renders the same view mode or item template as
+      // the initial page, whose render attached the assets, and shipping
+      // incremental assets would require the full Drupal AJAX pipeline on
+      // otherwise asset-minimal published pages. An item-conditional
+      // formatter library absent from page one is the accepted edge case.
       $cacheability->addCacheableDependency($context->pop());
     }
 

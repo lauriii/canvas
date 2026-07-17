@@ -15,7 +15,7 @@
  * @see Drupal\canvas\Controller\ApiListElementController
  */
 
-(function (Drupal, once) {
+(function (Drupal, drupalSettings, once) {
   const loadingWrappers = new WeakSet();
   const observedSentinels = new WeakSet();
   let intersectionObserver = null;
@@ -51,6 +51,9 @@
         const template = document.createElement('template');
         template.innerHTML = html;
         items.append(template.content);
+        // Freshly appended items need behavior attachment so interactive
+        // field formatters and components work beyond the first page.
+        Drupal.attachBehaviors(items, drupalSettings);
       }
       // Advance by consumed query rows as reported by the server, not by
       // appended items: access-filtered rows must not shift page windows.
@@ -133,4 +136,4 @@
       });
     },
   };
-})(Drupal, once);
+})(Drupal, drupalSettings, once);
