@@ -15,8 +15,6 @@ use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
-use GuzzleHttp\ClientInterface;
-use GuzzleHttp\RequestOptions;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
@@ -25,6 +23,14 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 final class ExternalComponentSync {
 
   private const string LOCK_KEY = 'canvas_headless_external_component_sync';
+
+  /**
+   * The component metadata endpoint path exposed by headless applications.
+   *
+   * Every Canvas Headless SDK adapter mounts this route as part of the
+   * integration contract, just as preview activation uses a fixed route.
+   */
+  public const string COMPONENT_METADATA_PATH = '/api/canvas/components';
 
   /**
    * The component metadata payload version this reader understands.
@@ -38,7 +44,6 @@ final class ExternalComponentSync {
   private readonly JsComponentDiscovery $jsComponentDiscovery;
 
   public function __construct(
-    private readonly ClientInterface $httpClient,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     #[Autowire(service: 'lock')]
@@ -46,7 +51,6 @@ final class ExternalComponentSync {
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly ComponentSourceManager $componentSourceManager,
     private readonly TypedConfigManagerInterface $typedConfigManager,
-    private readonly PreviewUrlGeneratorInterface $previewUrlGenerator,
     PropShapeRepositoryInterface $propShapeRepository,
   ) {
     $this->jsComponentDiscovery = new JsComponentDiscovery(
@@ -57,90 +61,78 @@ final class ExternalComponentSync {
   }
 
   /**
-   * Fetches the configured component metadata and synchronizes its definitions.
+   * Validates and synchronizes a component metadata payload.
+   *
+   * The browser fetches the payload because it can reach the same frontend
+   * URL it embeds. Drupal remains responsible for validation and persistence.
+   * Components omitted from the payload are retained.
+   *
+   * @param array<string, mixed> $payload
+   *   The component metadata payload.
+   *
+   * @return array{created: int, updated: int, unchanged: int, warnings: list<string>, errors: list<string>}
+   *   The synchronization result.
    */
-  public function synchronize(): void {
-    $config = $this->configFactory->get('canvas_headless.settings');
-    $configured_endpoint = $config->get('component_metadata_url');
-    if (!\is_string($configured_endpoint) || $configured_endpoint === '') {
-      return;
+  public function synchronize(array $payload): array {
+    if (!isset($payload['components']) || !\is_array($payload['components'])) {
+      throw new \UnexpectedValueException('The component metadata payload must contain a components array.');
+    }
+    if (($payload['version'] ?? NULL) !== self::SUPPORTED_PAYLOAD_VERSION) {
+      throw new \UnexpectedValueException(\sprintf(
+        'Unsupported component metadata payload version %s; this site understands version %d.',
+        json_encode($payload['version'] ?? NULL),
+        self::SUPPORTED_PAYLOAD_VERSION,
+      ));
+    }
+    if (!$this->lock->acquire(self::LOCK_KEY)) {
+      throw new \RuntimeException('Another external component synchronization is already in progress.');
     }
 
-    if (!$this->lock->acquire(self::LOCK_KEY)) {
-      return;
-    }
+    $result = [
+      'created' => 0,
+      'updated' => 0,
+      'unchanged' => 0,
+      'warnings' => [],
+      'errors' => [],
+    ];
 
     try {
-      // The SDK's component metadata endpoint is protected by
-      // proof-by-redemption: the caller presents a fresh, single-use preview
-      // assertion as a Bearer token, and the app verifies it by redeeming it
-      // at this site's own token endpoint. Minting is permission-checked;
-      // without the preview permission (cron, drush) there is nothing to
-      // authenticate with, so the sync waits for a permitted request. Minted
-      // under the lock so a contended run does not waste single-use tokens.
-      $assertion = $this->previewUrlGenerator->issueForPath('/');
-      if ($assertion === NULL) {
-        return;
-      }
-
-      $endpoint = str_starts_with($configured_endpoint, '/')
-        ? $config->get('frontend_url') . $configured_endpoint
-        : $configured_endpoint;
-      $response = $this->httpClient->request('GET', $endpoint, [
-        // Do not let an unavailable endpoint significantly delay Canvas boot.
-        RequestOptions::CONNECT_TIMEOUT => 1,
-        RequestOptions::TIMEOUT => 3,
-        RequestOptions::HEADERS => [
-          'Accept' => 'application/json',
-          'Authorization' => 'Bearer ' . $assertion,
-        ],
-      ]);
-      $body = (string) $response->getBody();
-      $payload = json_decode($body, TRUE, flags: JSON_THROW_ON_ERROR);
-      if (!\is_array($payload) || !isset($payload['components']) || !\is_array($payload['components'])) {
-        throw new \UnexpectedValueException('The component metadata payload must contain a components array.');
-      }
-      if (($payload['version'] ?? NULL) !== self::SUPPORTED_PAYLOAD_VERSION) {
-        throw new \UnexpectedValueException(\sprintf(
-          'Unsupported component metadata payload version %s; this site understands version %d.',
-          json_encode($payload['version'] ?? NULL),
-          self::SUPPORTED_PAYLOAD_VERSION,
-        ));
-      }
-
-      // Surface the payload's own diagnostics (e.g. duplicate machine names
-      // or components excluded during discovery) in the Drupal log.
+      // Surface the payload's own diagnostics in both the result and the
+      // Drupal log.
       $warnings = $payload['warnings'] ?? [];
       foreach (\is_array($warnings) ? $warnings : [] as $warning) {
         if (!\is_array($warning) || !\is_string($warning['message'] ?? NULL)) {
           continue;
         }
+        $message = $warning['message'] . (\is_string($warning['path'] ?? NULL) ? ' [' . $warning['path'] . ']' : '');
+        $result['warnings'][] = $message;
         $this->loggerFactory->get('canvas_headless')->warning('The component metadata payload reported a warning (@code): @message', [
           '@code' => \is_string($warning['code'] ?? NULL) ? $warning['code'] : 'unknown',
-          '@message' => $warning['message'] . (\is_string($warning['path'] ?? NULL) ? ' [' . $warning['path'] . ']' : ''),
+          '@message' => $message,
         ]);
       }
 
       $seen_machine_names = [];
       foreach ($payload['components'] as $definition) {
         try {
-          $this->synchronizeDefinition($definition, $seen_machine_names);
+          $outcome = $this->synchronizeDefinition($definition, $seen_machine_names, $result['warnings']);
+          if ($outcome !== NULL) {
+            $result[$outcome]++;
+          }
         }
         catch (\Throwable $e) {
+          $result['errors'][] = $e->getMessage();
           $this->loggerFactory->get('canvas_headless')->error('Could not synchronize an external component: @message', [
             '@message' => $e->getMessage(),
           ]);
         }
       }
     }
-    catch (\Throwable $e) {
-      $this->loggerFactory->get('canvas_headless')->error('Could not fetch the external component metadata: @message', [
-        '@message' => $e->getMessage(),
-      ]);
-    }
     finally {
       $this->lock->release(self::LOCK_KEY);
     }
+
+    return $result;
   }
 
   /**
@@ -151,8 +143,13 @@ final class ExternalComponentSync {
    * @param array<string, true> $seen_machine_names
    *   Machine names already synchronized in this run, keyed by name. Updated
    *   with this definition's machine name.
+   * @param list<string> $warnings
+   *   Synchronization warnings, updated for skipped duplicates.
+   *
+   * @return 'created'|'updated'|'unchanged'|null
+   *   The synchronization outcome, or NULL when skipped.
    */
-  private function synchronizeDefinition(mixed $definition, array &$seen_machine_names): void {
+  private function synchronizeDefinition(mixed $definition, array &$seen_machine_names, array &$warnings): ?string {
     // The entry shape of the SDK's component metadata payload: machineName
     // and name as strings, props as a flat prop-name-to-definition map,
     // required as a top-level list of prop names.
@@ -170,10 +167,10 @@ final class ExternalComponentSync {
     // overwrite each other on every run and churn config and component
     // versions endlessly, so the first definition in the payload wins.
     if (isset($seen_machine_names[$machine_name])) {
-      $this->loggerFactory->get('canvas_headless')->warning("Skipped a duplicate definition for the external component '@name': the first definition in the payload wins.", [
-        '@name' => $machine_name,
-      ]);
-      return;
+      $message = "Skipped a duplicate definition for the external component '$machine_name': the first definition in the payload wins.";
+      $warnings[] = $message;
+      $this->loggerFactory->get('canvas_headless')->warning($message);
+      return NULL;
     }
     $seen_machine_names[$machine_name] = TRUE;
 
@@ -193,9 +190,6 @@ final class ExternalComponentSync {
 
     $storage = $this->entityTypeManager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
     $component = $storage->load($machine_name);
-    if ($component !== NULL && (!$component instanceof JavaScriptComponent || !$component->isExternal())) {
-      throw new \UnexpectedValueException("The component '$machine_name' already exists and is not external.");
-    }
 
     $values = [
       'machineName' => $machine_name,
@@ -207,6 +201,15 @@ final class ExternalComponentSync {
       'slots' => $slots,
       'dataDependencies' => [],
     ];
+    if ($component instanceof JavaScriptComponent) {
+      $values['dataDependencies'] = $component->get('dataDependencies');
+      foreach (['js', 'css'] as $asset_property) {
+        $assets = $component->get($asset_property);
+        if ($assets !== NULL) {
+          $values[$asset_property] = $assets;
+        }
+      }
+    }
     $candidate = $storage->create($values);
     \assert($candidate instanceof JavaScriptComponent);
     $violations = $candidate->getTypedData()->validate();
@@ -216,9 +219,10 @@ final class ExternalComponentSync {
 
     $canvas_component = Component::load(JsComponent::componentIdFromJavascriptComponentId($machine_name));
     if ($component !== NULL && $canvas_component !== NULL && $this->matchesStoredComponents($candidate, $component, $canvas_component)) {
-      return;
+      return 'unchanged';
     }
 
+    $outcome = $component === NULL ? 'created' : 'updated';
     if ($component === NULL) {
       $component = $candidate;
     }
@@ -228,6 +232,7 @@ final class ExternalComponentSync {
       }
     }
     $component->save();
+    return $outcome;
   }
 
   /**
@@ -304,6 +309,7 @@ final class ExternalComponentSync {
       ->generateVersionHash();
 
     return $stored_canvas_component->getActiveVersion() === $candidate_version
+      && $stored_code_component->getComponentType() === $candidate->getComponentType()
       && $stored_code_component->label() === $candidate->label()
       && $stored_code_component->status() === $candidate->status()
       && $stored_canvas_component->label() === $candidate->label()

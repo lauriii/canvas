@@ -35,7 +35,7 @@ export interface DraftSessionState {
   tokenExpiresAt: number | null
   expired: boolean
   renewUrl: string | null
-  embedderOrigins: Array<string>
+  editorOrigin: string | null
 }
 
 /**

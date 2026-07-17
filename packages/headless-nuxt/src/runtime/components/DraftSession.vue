@@ -56,7 +56,7 @@ onMounted(() => {
     :token-expires-at="session.tokenExpiresAt ?? undefined"
     :initial-expired="session.expired || undefined"
     :renew-url="session.renewUrl ?? undefined"
-    :embedder-origins="session.embedderOrigins.join(' ')"
+    :editor-origin="session.editorOrigin ?? undefined"
     :renew-endpoint="renewEndpoint"
     :path="route.path"
   >

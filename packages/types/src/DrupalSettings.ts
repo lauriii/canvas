@@ -9,6 +9,9 @@ export type Language = {
 };
 
 export interface HeadlessSettings {
+  // The active app's canonical base URL and all configured frontend URLs.
+  frontendUrl: string;
+  frontends: string[];
   // The app's origin, used to address and validate postMessage traffic.
   frontendOrigin: string;
   // The app's draft-mode activation endpoint; an assertion query parameter
@@ -74,6 +77,12 @@ export interface DrupalSettings {
     personalizationExtensionAvailable: boolean;
     // ⚠️ This is highly experimental and *will* be refactored.
     canvasAiMaxFileSize: number;
+    // Present when the user may generate Canvas Headless previews. Also gates
+    // access to external components in the component library.
+    canAccessHeadlessPreview?: boolean;
+    // Present when the user may administer the site-wide frontend list,
+    // independent of whether any frontend is configured yet.
+    canAdministerHeadlessFrontends?: boolean;
     // Present when the Canvas Headless module embeds a frontend app in the
     // editor frame instead of the Drupal-rendered preview.
     headless?: HeadlessSettings;

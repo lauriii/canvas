@@ -7,7 +7,7 @@ endpoint Drupal Canvas registers the app's components from.
 
 ## Setup
 
-Four pieces, all wiring:
+Five pieces, all wiring:
 
 **1. vite.config.ts** — the canvas() plugin compiles the raw-TypeScript SDK
 packages into the SSR build, bridges the SDK's `.env` keys into `process.env`,
@@ -40,8 +40,7 @@ export const Route = createFileRoute('/api/draft')({
 //   const { GET, OPTIONS } = createComponentMetadataHandlers();
 ```
 
-**3. src/start.ts** — the CSP `frame-ancestors` middleware, restricting who may
-embed the app to DRAFT_ALLOWED_FRAME_ANCESTORS (plus 'self'):
+**3. src/start.ts** — the session-aware CSP `frame-ancestors` middleware:
 
 ```ts
 import { cspMiddleware } from '@drupal-canvas/headless-tanstack-start/middleware';
@@ -53,15 +52,34 @@ export const startInstance = createStart(() => ({
 ```
 
 **4. The session banner** — a server function gathers the session state
-(`isDraftModeEnabled()`, `getDraftData()`, `getDraftConfig()`,
+(`isDraftModeEnabled()`, `getDraftData()`, `getDraftEditorOrigin()`,
 `isDraftSessionExpired()`), the root route's loader calls it, and the root
 component renders `<DraftSession>` from
 `@drupal-canvas/headless-tanstack-start/client` with a render prop that owns the
 banner markup. The component runs the renewal protocol either way; the render
 prop is optional.
 
-Environment: `DRUPAL_BASE_URL` (required) and `DRAFT_ALLOWED_FRAME_ANCESTORS`
-(the embedder origin allowlist).
+**5. The component tree renderer** — pass the structured content returned by
+`fetchPage()` to `<CanvasComponentTree>`:
+
+```tsx
+import { CanvasComponentTree } from '@drupal-canvas/headless-tanstack-start/CanvasComponentTree';
+
+<CanvasComponentTree tree={page.content} />;
+```
+
+The `canvas()` plugin supplies every discovered component implementation through
+the shared headless Vite registry, and the renderer consumes it automatically.
+During development, the registry updates when components are added, removed, or
+renamed, so the application does not maintain a registry manually.
+
+Environment: `CANVAS_SITE_URL` (required). The development server fails at
+startup when it is missing.
+
+The CSP is `'self'`-only without a draft session. During a draft session, it
+also admits the exact editor origin derived from the signed renewal URL. The
+same origin is the only `postMessage` peer. An application-defined
+`frame-ancestors` directive remains authoritative.
 
 Data access from app code: `getClient()` (draft-aware JSON:API client) and
 `fetchPage()` (rendered content, resolved through Drupal's routing), both
@@ -88,6 +106,11 @@ cross-site (CHIPS) attributes as the session data cookie.
 `component.yml` under the `canvas.config.json` `componentDir`) in a versioned
 envelope; see `@drupal-canvas/headless/components-endpoint` for the payload
 shape and the proof-by-redemption protection.
+
+Drupal coordinates the request in the editor's browser so it can reach local
+frontends. `OPTIONS` allows the authorization preflight, and the authenticated
+response is exposed only to the editor origin carried in the assertion's signed
+renewal URL.
 
 In production the endpoint serves the manifest the canvas() plugin inlined into
 the server bundle at `vite build` (component sources are typically absent at

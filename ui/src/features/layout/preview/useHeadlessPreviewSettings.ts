@@ -3,7 +3,7 @@ import {
   EditorFrameContext,
   selectEditorFrameContext,
 } from '@/features/ui/uiSlice';
-import { getCanvasHeadlessSettings } from '@/utils/drupal-globals';
+import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 
 import type { HeadlessSettings } from '@drupal-canvas/types';
 
@@ -19,7 +19,7 @@ import type { HeadlessSettings } from '@drupal-canvas/types';
  */
 export function useHeadlessPreviewSettings(): HeadlessSettings | undefined {
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
-  const settings = getCanvasHeadlessSettings();
+  const settings = useCanvasHeadlessSettings();
   if (!settings || editorFrameContext === EditorFrameContext.TEMPLATE) {
     return undefined;
   }

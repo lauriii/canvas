@@ -7,11 +7,7 @@
  * under `../components-endpoint` instead.
  */
 
-export {
-  parseEmbedderOrigins,
-  resolveDraftConfig,
-  type DraftConfig,
-} from './config';
+export { resolveDraftConfig, type DraftConfig } from './config';
 export { type DraftServerAdapter } from './adapter';
 export {
   buildClearedDraftCookie,
@@ -33,13 +29,17 @@ export {
 export { getDraftClient, getPublicClient } from './json-api-client';
 export {
   fetchPage,
+  type CanvasComponentTreeElement,
+  type CanvasComponentTreeSlot,
   type JsonValue,
   type Page,
-  type PageElement,
 } from './content-api';
 export {
   verifyAssertionByRedemption,
   type AssertionVerification,
 } from './verify-assertion';
-export { resolveCorsHeaders, type CorsDecision } from './cors';
-export { mergeFrameAncestors, resolveFrameAncestors } from './csp';
+export {
+  hasFrameAncestors,
+  mergeFrameAncestors,
+  resolveFrameAncestors,
+} from './csp';

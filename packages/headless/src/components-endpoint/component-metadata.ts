@@ -1,26 +1,12 @@
 import path from 'node:path';
 import {
   discoverCanvasProject,
-  JS_EXTENSIONS,
   loadComponentsMetadata,
   resolveCanvasConfig,
 } from '@drupal-canvas/discovery';
 
+import { COMPONENT_ENTRY_EXTENSIONS } from '../component-entry-extensions';
 import { COMPONENT_METADATA_PAYLOAD_VERSION } from './payload-version';
-
-/**
- * Entry extensions the metadata registry accepts. Wider than the Canvas
- * build pipeline's JavaScript set: a headless app renders its own
- * components, so a framework single-file component (.astro, .vue, .svelte)
- * is as much proof of an implementation as an index.tsx — Drupal registers
- * metadata either way and never compiles the entry.
- */
-export const METADATA_ENTRY_EXTENSIONS = [
-  ...JS_EXTENSIONS,
-  '.astro',
-  '.vue',
-  '.svelte',
-] as const;
 
 export { COMPONENT_METADATA_PAYLOAD_VERSION } from './payload-version';
 
@@ -90,7 +76,7 @@ export interface BuildComponentMetadataOptions {
  * resolve canvas.config.json, discover component.yml files under the
  * configured component directory, and parse their metadata.
  *
- * Components without an entry file (see METADATA_ENTRY_EXTENSIONS) are
+ * Components without an entry file (see COMPONENT_ENTRY_EXTENSIONS) are
  * excluded by discovery itself (with a warning); duplicate machine names
  * are all included, each flagged by a warning — conflict policy belongs to
  * the reader. Malformed component metadata rejects, so a broken registry
@@ -123,7 +109,7 @@ export async function buildComponentMetadataPayload(
     componentRoot,
     pagesRoot,
     projectRoot,
-    entryExtensions: METADATA_ENTRY_EXTENSIONS,
+    entryExtensions: COMPONENT_ENTRY_EXTENSIONS,
   });
   const metadata = await loadComponentsMetadata(result);
 

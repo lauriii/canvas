@@ -27,9 +27,11 @@ interface NotificationsResponse {
 export const notificationsApi = createApi({
   reducerPath: 'notificationsApi',
   baseQuery,
+  tagTypes: ['Notifications'],
   endpoints: (builder) => ({
     getNotifications: builder.query<NotificationsResponse, void>({
       query: () => '/canvas/api/v0/notifications',
+      providesTags: [{ type: 'Notifications', id: 'LIST' }],
     }),
     markNotificationsRead: builder.mutation<void, { ids: string[] }>({
       query: (body) => ({

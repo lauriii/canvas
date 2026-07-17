@@ -25,6 +25,11 @@
       "import": "./src/vite.ts",
       "types": "./src/vite.ts",
       "default": "./src/vite.ts"
+    },
+    "./CanvasComponentTree": {
+      "import": "./src/canvas-component-tree.tsx",
+      "types": "./src/canvas-component-tree.tsx",
+      "default": "./src/canvas-component-tree.tsx"
     }
   },
   "scripts": {

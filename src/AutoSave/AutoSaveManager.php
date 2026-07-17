@@ -184,6 +184,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     $data = self::normalizeEntity($entity);
     $data_hash = self::generateHash($data);
     $original_hash = $this->getUnchangedHash($entity);
+
     $has_form_violations = FALSE;
     if ($entity instanceof FieldableEntityInterface) {
       $has_form_violations = $this->getEntityFormViolations($entity)->count() > 0;
@@ -203,6 +204,12 @@ class AutoSaveManager implements EventSubscriberInterface {
       // keep the hash.
       $this->delete($entity);
       return;
+    }
+
+    // Avoid overwriting the original hash; it would break conflict detection.
+    $existing_entry = $this->autoSaveStore->get($key);
+    if (\is_array($existing_entry) && \array_key_exists(self::AUTO_SAVE_STORED_ENTITY_HASH_KEY, $existing_entry)) {
+      $original_hash = $existing_entry[self::AUTO_SAVE_STORED_ENTITY_HASH_KEY];
     }
 
     $auto_save_data = [
@@ -843,10 +850,11 @@ class AutoSaveManager implements EventSubscriberInterface {
       // No stored hash — no basis for conflict detection (legacy entry).
       return ConflictResolutionOutcomeEnum::NoActiveConflict;
     }
-
-    $stored = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($auto_save_data['entity_id']);
+    \assert(!$entity->isNew());
+    $stored = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
     \assert(!\is_null($stored));
     $current_hash = self::generateHash(self::normalizeEntity($stored));
+    /** @var AutoSaveEntry $auto_save_data */
 
     if ($auto_save_data[self::AUTO_SAVE_STORED_ENTITY_HASH_KEY] === $current_hash) {
       // Hashes match — no conflict to resolve.
@@ -860,10 +868,8 @@ class AutoSaveManager implements EventSubscriberInterface {
     if ($active_conflict !== $resolved_conflict_id) {
       return ConflictResolutionOutcomeEnum::ConflictMismatch;
     }
-
-    // Advance original_hash to the current stored entity hash.
-    $auto_save_data[self::AUTO_SAVE_STORED_ENTITY_HASH_KEY] = $current_hash;
-    $this->autoSaveStore->set($key, $auto_save_data);
+    // Advance stored entity hash.
+    $this->setStoredEntityHash($key, $current_hash, $auto_save_data);
     $this->cache->delete($key);
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
 
@@ -1070,6 +1076,14 @@ class AutoSaveManager implements EventSubscriberInterface {
     // Finally: the goal: to update rather than delete the auto-save entry when
     // safe.
     if ($auto_save_update_needed) {
+      // Advance `original_hash` before `saveEntity()` so the preservation
+      // guard in `saveEntity()` picks up the already-advanced hash in a
+      // single write.
+      $this->setStoredEntityHash(
+        self::getAutoSaveKey($autoSaveEntity),
+        // Hash the freshly-saved stored entity, not the auto-save draft.
+        self::generateHash(self::normalizeEntity($entity)),
+      );
       $this->saveEntity($autoSaveEntity, $autoSaveData->clientId);
     }
   }
@@ -1100,6 +1114,23 @@ class AutoSaveManager implements EventSubscriberInterface {
       return !$entity->status();
     }
     return (string) $entity->label() == ApiContentControllers::defaultTitle($entity->getEntityType()) || str_ends_with((string) $entity->label(), self::ENTITY_DUPLICATE_SUFFIX);
+  }
+
+  /**
+   * Sets $current_hash into the stored auto-save item's original_hash key.
+   *
+   * Callers are responsible for any cache invalidation that follows, since the
+   * appropriate scope differs per call site.
+   *
+   * @param AutoSaveEntry|null $auto_save_item
+   */
+  private function setStoredEntityHash(string $auto_save_item_key, string $current_hash, ?array $auto_save_item = NULL): void {
+    if (\is_null($auto_save_item)) {
+      $auto_save_item = $this->autoSaveStore->get($auto_save_item_key);
+      \assert(!\is_null($auto_save_item));
+    }
+    $auto_save_item[self::AUTO_SAVE_STORED_ENTITY_HASH_KEY] = $current_hash;
+    $this->autoSaveStore->set($auto_save_item_key, $auto_save_item);
   }
 
 }

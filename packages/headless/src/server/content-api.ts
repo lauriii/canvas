@@ -35,7 +35,7 @@ export type JsonValue =
 export interface Page {
   title: string;
   content_format: 'json' | 'markup';
-  content: PageElement | string;
+  content: CanvasComponentTreeElement | string;
   breadcrumbs?: Array<{ url: string; label: string; frontpage?: boolean }>;
   metatags?: Record<string, JsonValue>;
   page_layout?: string;
@@ -47,11 +47,20 @@ export interface Page {
  * One element of the rendered content tree: element name, scalar props,
  * and slots containing rendered markup or nested elements.
  */
-export interface PageElement {
+export interface CanvasComponentTreeElement {
   element: string;
-  props?: Record<string, string>;
-  slots?: Record<string, Array<string | PageElement>>;
+  props?: Record<string, JsonValue>;
+  slots?: Record<string, CanvasComponentTreeSlot>;
 }
+
+/**
+ * Slot values emitted by the Custom Elements API. A slot with one child is
+ * serialized as that value; a multi-value slot is serialized as an array.
+ */
+export type CanvasComponentTreeSlot =
+  | string
+  | CanvasComponentTreeElement
+  | Array<string | CanvasComponentTreeElement>;
 
 /**
  * Fetches a page by its Drupal path (e.g. `/node/4`).

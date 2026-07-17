@@ -152,8 +152,11 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     if ($this->type === NULL || $this->type === 'react') {
       unset($data['type']);
     }
-    if ($this->isExternal()) {
-      unset($data['js'], $data['css']);
+    if ($this->js === NULL) {
+      unset($data['js']);
+    }
+    if ($this->css === NULL) {
+      unset($data['css']);
     }
     return $data;
   }
@@ -473,9 +476,6 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
       if ($violation_list->count() > 0) {
         throw new ConstraintViolationException($violation_list);
       }
-      $this->set('js', NULL);
-      $this->set('css', NULL);
-      $this->addJavaScriptComponentsDependencies([]);
       return;
     }
 
@@ -911,6 +911,13 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
    */
   public function isExternal(): bool {
     return $this->getComponentType() === 'external';
+  }
+
+  /**
+   * Whether this external component retains a fallback implementation.
+   */
+  public function hasFallbackImplementation(): bool {
+    return $this->isExternal() && $this->js !== NULL && $this->css !== NULL;
   }
 
   /**

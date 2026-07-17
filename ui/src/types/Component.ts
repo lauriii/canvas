@@ -60,6 +60,7 @@ export interface JSComponent extends BaseComponent {
   library: 'primary_components';
   source: 'Code component';
   type?: CodeComponentSerialized['type'];
+  hasFallbackImplementation?: boolean;
   transforms: any[];
 }
 

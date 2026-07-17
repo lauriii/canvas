@@ -9,3 +9,10 @@ declare module 'virtual:@drupal-canvas/headless-tanstack-start/manifest' {
   const manifest: ComponentMetadataPayload | null;
   export default manifest;
 }
+
+declare module 'virtual:@drupal-canvas/headless/components' {
+  import type { CanvasComponentRegistry } from '@drupal-canvas/headless-react';
+
+  const components: CanvasComponentRegistry;
+  export default components;
+}

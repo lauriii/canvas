@@ -7,6 +7,7 @@
 
 declare(strict_types=1);
 
+use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas_headless\PreviewAssertionFactory;
 use Drupal\consumers\Entity\Consumer;
 
@@ -21,8 +22,8 @@ use Drupal\consumers\Entity\Consumer;
  * nothing else at the token endpoint. No user_id: every issued token is
  * bound to the editor named in the assertion, never to a service account.
  *
- * Nothing here is site-specific — this is what makes the module zero
- * configuration: install it, point it at the frontend URL, done.
+ * Nothing here is site-specific: install the module, then add a frontend URL
+ * from the Canvas UI.
  *
  * The consumer is a content entity, so config sync never recreates it: it
  * must be provisioned here even when installing from existing configuration
@@ -59,6 +60,9 @@ function canvas_headless_install(): void {
  * the site owned before this module was installed (installation adopts such
  * a consumer instead of failing), and content entities are not this
  * module's to remove unless it created them.
+ *
+ * Restores synchronized components with retained fallback implementations to
+ * the React type.
  */
 function canvas_headless_uninstall(): void {
   $uuid = \Drupal::state()->get('canvas_headless.provisioned_consumer_uuid');
@@ -69,4 +73,12 @@ function canvas_headless_uninstall(): void {
     }
   }
   \Drupal::state()->delete('canvas_headless.provisioned_consumer_uuid');
+
+  $component_storage = \Drupal::entityTypeManager()->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
+  foreach ($component_storage->loadMultiple() as $component) {
+    \assert($component instanceof JavaScriptComponent);
+    if ($component->isExternal() && $component->hasFallbackImplementation()) {
+      $component->set('type', NULL)->save();
+    }
+  }
 }

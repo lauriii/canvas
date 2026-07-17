@@ -30,6 +30,16 @@
       "import": "./src/components-endpoint/handler.ts",
       "types": "./src/components-endpoint/handler.ts",
       "default": "./src/components-endpoint/handler.ts"
+    },
+    "./component-registry": {
+      "import": "./src/component-registry.ts",
+      "types": "./src/component-registry.ts",
+      "default": "./src/component-registry.ts"
+    },
+    "./vite": {
+      "import": "./src/vite.ts",
+      "types": "./src/vite.ts",
+      "default": "./src/vite.ts"
     }
   },
   "scripts": {

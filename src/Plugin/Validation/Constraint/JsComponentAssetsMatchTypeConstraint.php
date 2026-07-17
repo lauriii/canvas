@@ -9,7 +9,7 @@ use Drupal\Core\Validation\Attribute\Constraint;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
 /**
- * Requires assets for React Code Components and forbids them for external.
+ * Requires assets for React Code Components.
  */
 #[Constraint(
   id: 'JsComponentAssetsMatchType',
@@ -21,6 +21,5 @@ use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 final class JsComponentAssetsMatchTypeConstraint extends SymfonyConstraint {
 
   public string $assetsRequiredMessage = 'React code components must contain JavaScript and CSS.';
-  public string $assetsForbiddenMessage = 'External code components cannot contain JavaScript or CSS.';
 
 }

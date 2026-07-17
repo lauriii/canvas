@@ -11,8 +11,10 @@ the module's draft-preview authentication end to end:
   sessions see working copies), fetched through the app's own server
   route (`server/api/content.get.ts`) where the session cookies live.
 - Every other path resolves through Drupal's routing via the SDK's
-  `fetchPage()` (proxied by `server/api/page/[...path].get.ts`) and renders
-  the returned data.
+  `fetchPage()` (proxied by `server/api/page/[...path].get.ts`).
+  `<CanvasComponentTree>` recursively renders the returned tree using every
+  local component implementation discovered by the SDK. Adding or removing a
+  component updates the registry without restarting `nuxt dev`.
 - The session renews in place over an origin-checked postMessage protocol
   with the embedding Canvas editor. A Nitro-rendered page has no
   Next.js-style server refresh, so the SDK's `<canvas-draft-session>`
@@ -23,8 +25,8 @@ the module's draft-preview authentication end to end:
 - Exiting draft mode is a `POST`, submitted by a form in the banner: it
   clears the session cookies, and a `GET` link to it would be eligible for
   prefetching.
-- `/api/canvas/components` exposes the app's component registry (one demo
-  component, `components/canvas/hello-card` — a `.vue` entry) to the
+- `/api/canvas/components` exposes the app's component registry (every
+  component under `app/components`) to the
   embedding Drupal Canvas site, protected by proof-by-redemption.
 
 The Drupal Canvas Headless SDK lives in the workspace packages
@@ -47,16 +49,15 @@ npm install
 npm run dev             # http://localhost:3000
 ```
 
-`DRUPAL_BASE_URL` uses DDEV's http URL because Node.js does not trust
+`CANVAS_SITE_URL` uses DDEV's http URL because Node.js does not trust
 DDEV's mkcert certificate by default. To use the https URL instead, run
 with `NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem"`.
 
-The `canvas_headless` module's default `frontend_url`
-(`http://localhost:3000`) matches this app's dev server (the Next.js
-example uses the same port; run one at a time, or move one). Embedded
-draft mode relies on CHIPS partitioned cookies; on a plain-http localhost
-origin that works in Chromium-based browsers (localhost is a trustworthy
-origin).
+Add `http://localhost:3000` from Canvas's **Headless frontends** screen
+(the Next.js example uses the same port; run one at a time, or move one).
+Embedded draft mode relies on CHIPS partitioned cookies; on a plain-http
+localhost origin that works in Chromium-based browsers (localhost is a
+trustworthy origin).
 
 The production build runs the Nitro Node server:
 
@@ -72,7 +73,7 @@ published).
 ## The component metadata endpoint
 
 `GET /api/canvas/components` answers the component registry: every
-component under `components/canvas/` (set in `canvas.config.json`) with a
+component under `app/components/` (set in `canvas.config.json`) with a
 `component.yml`, in a versioned JSON envelope. Drupal Canvas reads it to
 register the app's components.
 
@@ -85,17 +86,20 @@ register the app's components.
   serves that manifest in production — the registry describes the deployed
   build. In development it scans the codebase live on every request.
 
-Try it against a running Drupal (the first request must come from a
-session holding `access canvas headless preview`):
+The Canvas editor fetches the endpoint in the browser so it can reach local
+frontends. First verify the unauthenticated response from the shell:
 
 ```bash
 # 401 without an assertion:
 curl -i http://localhost:3000/api/canvas/components
 ```
 
+Then exercise the authenticated CORS request in the Drupal origin's browser
+console:
+
 ```js
-// Mint an assertion and call the endpoint (from the Drupal origin's
-// browser console, where the session cookie lives):
+// Run this in the Drupal origin's browser console, where the session cookie
+// lives.
 const csrf = await (await fetch('/session/token')).text();
 const { assertion } = await (
   await fetch('/canvas-headless/assertion?path=/', {
@@ -108,4 +112,5 @@ const registry = await (
     headers: { Authorization: `Bearer ${assertion}` },
   })
 ).json();
+console.log(registry);
 ```

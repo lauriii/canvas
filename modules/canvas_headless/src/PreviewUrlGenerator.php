@@ -53,11 +53,15 @@ class PreviewUrlGenerator implements PreviewUrlGeneratorInterface {
     // than PHP. The schema enforces this on save; this is the runtime
     // backstop for values that never went through validation. The canonical
     // base URL, not the raw setting, is what the assertion travels to.
-    $frontend = FrontendUrl::fromConfig((string) $config->get('frontend_url'));
+    // The first configured frontend is the one the editor previews in.
+    $frontends = $config->get('frontends');
+    $frontend = FrontendUrl::fromConfig(
+      (string) (\is_array($frontends) ? ($frontends[0]['url'] ?? '') : ''),
+    );
     if ($frontend === NULL) {
       return NULL;
     }
-    return Url::fromUri($frontend->baseUrl . $config->get('draft_path'), [
+    return Url::fromUri($frontend->baseUrl . PreviewUrlGeneratorInterface::DRAFT_PATH, [
       'query' => ['assertion' => $assertion],
     ]);
   }

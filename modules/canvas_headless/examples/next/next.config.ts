@@ -16,5 +16,5 @@ const nextConfig: NextConfig = {
 
 // withCanvas() adds the Canvas headless integration: the build-time
 // component manifest, transpilation of the raw-TypeScript SDK packages, and
-// the CSP frame-ancestors header from DRAFT_ALLOWED_FRAME_ANCESTORS.
+// the session-aware CSP frame-ancestors header.
 export default withCanvas(nextConfig);

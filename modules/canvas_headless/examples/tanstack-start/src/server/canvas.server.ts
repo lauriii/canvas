@@ -6,8 +6,8 @@
 import {
   fetchPage,
   getClient,
-  getDraftConfig,
   getDraftData,
+  getDraftEditorOrigin,
   isDraftModeEnabled,
   isDraftSessionExpired,
 } from '@drupal-canvas/headless-tanstack-start'
@@ -28,8 +28,7 @@ interface JsonApiDocument<T> {
 /**
  * The draft session state the root route's banner needs. Nothing here is a
  * secret: the expiry instant, Drupal's own renew URL (a signed assertion
- * claim), and the embedder origin allowlist that is also published through
- * the CSP header.
+ * claim), and its origin.
  */
 export async function readDraftSessionState(): Promise<DraftSessionState> {
   if (!isDraftModeEnabled()) {
@@ -38,7 +37,7 @@ export async function readDraftSessionState(): Promise<DraftSessionState> {
       tokenExpiresAt: null,
       expired: false,
       renewUrl: null,
-      embedderOrigins: [],
+      editorOrigin: null,
     }
   }
   const draftData = await getDraftData()
@@ -47,7 +46,7 @@ export async function readDraftSessionState(): Promise<DraftSessionState> {
     tokenExpiresAt: draftData?.tokenExpiresAt ?? null,
     expired: !draftData || isDraftSessionExpired(draftData),
     renewUrl: draftData?.renewUrl ?? null,
-    embedderOrigins: getDraftConfig().embedderOrigins,
+    editorOrigin: getDraftEditorOrigin(draftData),
   }
 }
 

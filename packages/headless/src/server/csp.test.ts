@@ -1,20 +1,41 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { mergeFrameAncestors, resolveFrameAncestors } from './csp';
-
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
+import {
+  hasFrameAncestors,
+  mergeFrameAncestors,
+  resolveFrameAncestors,
+} from './csp';
 
 describe('resolveFrameAncestors', () => {
-  it("is 'self'-only without the environment variable", () => {
-    vi.stubEnv('DRAFT_ALLOWED_FRAME_ANCESTORS', '');
+  it("is 'self'-only without draft data", () => {
     expect(resolveFrameAncestors()).toBe("'self'");
   });
 
-  it('appends the configured embedder origins', () => {
-    vi.stubEnv('DRAFT_ALLOWED_FRAME_ANCESTORS', 'https://drupal.example');
-    expect(resolveFrameAncestors()).toBe("'self' https://drupal.example");
+  it('appends the editor origin from the signed renewal URL', () => {
+    expect(
+      resolveFrameAncestors({
+        renewUrl: 'https://drupal.example:8443/canvas-headless/renew',
+      }),
+    ).toBe("'self' https://drupal.example:8443");
+  });
+
+  it('ignores an invalid renewal URL', () => {
+    expect(resolveFrameAncestors({ renewUrl: 'not a URL' })).toBe("'self'");
+  });
+});
+
+describe('hasFrameAncestors', () => {
+  it('finds the directive in any policy', () => {
+    expect(
+      hasFrameAncestors([
+        "default-src 'self'",
+        'img-src *; frame-ancestors https://editor.example',
+      ]),
+    ).toBe(true);
+  });
+
+  it('does not mistake a prefixed directive for frame-ancestors', () => {
+    expect(hasFrameAncestors('frame-ancestors-report-only x')).toBe(false);
   });
 });
 
@@ -43,13 +64,13 @@ describe('mergeFrameAncestors', () => {
     ]);
   });
 
-  it('replaces an existing frame-ancestors directive', () => {
+  it('preserves an existing application frame-ancestors directive', () => {
     expect(
       mergeFrameAncestors(
         "frame-ancestors https://old.example; img-src 'self'",
         "'self'",
       ),
-    ).toEqual(["img-src 'self'", "frame-ancestors 'self'"]);
+    ).toEqual(["frame-ancestors https://old.example; img-src 'self'"]);
   });
 
   it('keeps every policy of a comma-separated policy list', () => {
@@ -60,8 +81,7 @@ describe('mergeFrameAncestors', () => {
       ),
     ).toEqual([
       "default-src 'self'",
-      "img-src 'self'",
-      "frame-ancestors 'self'",
+      "frame-ancestors https://old.example; img-src 'self'",
     ]);
   });
 
@@ -71,7 +91,7 @@ describe('mergeFrameAncestors', () => {
         ["default-src 'self'", 'frame-ancestors https://old.example'],
         "'self'",
       ),
-    ).toEqual(["default-src 'self'", "frame-ancestors 'self'"]);
+    ).toEqual(["default-src 'self'", 'frame-ancestors https://old.example']);
   });
 
   it('does not mistake prefixed directives for frame-ancestors', () => {

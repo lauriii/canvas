@@ -1220,15 +1220,71 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     $preview = $source->renderComponent($inputs, [], 'external-uuid', TRUE);
     self::assertSame('', $preview['#markup']);
     self::assertArrayNotHasKey('#attached', $preview);
+    self::assertSame([
+      'component_id' => 'js.external_test',
+      'component_uuid' => 'external-uuid',
+      'props' => ['title' => 'Rendered by the app'],
+    ], $preview[JsComponent::EXTERNAL_RENDER_METADATA]);
+    self::assertContains('config:canvas_headless.settings', $preview['#cache']['tags']);
 
-    $build = $source->renderComponent($inputs, [], 'external-uuid', FALSE);
-    self::assertSame('component', $build['#type']);
-    self::assertSame('js.external_test', $build['#component']);
-    self::assertSame(['title' => 'Rendered by the app'], $build['#props']);
-    self::assertArrayNotHasKey('#attached', $build);
+    $live = $source->renderComponent($inputs, [], 'external-uuid', FALSE);
+    self::assertSame($preview, $live);
     $client_side_info = $source->getClientSideInfo($component);
     self::assertArrayHasKey('type', $client_side_info);
+    self::assertArrayHasKey('hasFallbackImplementation', $client_side_info);
     self::assertSame('external', $client_side_info['type']);
+    self::assertFalse($client_side_info['hasFallbackImplementation']);
+
+    $fallback = JavaScriptComponent::create([
+      'machineName' => 'external_fallback',
+      'name' => 'External fallback',
+      'status' => TRUE,
+      'type' => 'external',
+      'required' => [],
+      'props' => [
+        'title' => [
+          'type' => 'string',
+          'title' => 'Title',
+          'examples' => ['Fallback title'],
+        ],
+      ],
+      'slots' => [],
+      'js' => [
+        'original' => 'export default function ExternalFallback() {}',
+        'compiled' => 'export default function ExternalFallback() {}',
+      ],
+      'css' => [
+        'original' => '.external-fallback { display: block; }',
+        'compiled' => '.external-fallback{display:block}',
+      ],
+      'dataDependencies' => [],
+    ]);
+    $fallback->save();
+
+    $fallback_component = Component::load('js.external_fallback');
+    self::assertInstanceOf(Component::class, $fallback_component);
+    $fallback_source = $fallback_component->getComponentSource();
+    self::assertInstanceOf(JsComponent::class, $fallback_source);
+    $fallback_inputs = [
+      JsComponent::EXPLICIT_INPUT_NAME => [
+        'title' => new EvaluationResult('Rendered by Drupal'),
+      ],
+    ];
+
+    $fallback_preview = $fallback_source->renderComponent($fallback_inputs, [], 'fallback-uuid', TRUE);
+    self::assertSame('astro_island', $fallback_preview['#type']);
+    self::assertContains('canvas/astro_island.external_fallback.draft', $fallback_preview['#attached']['library']);
+    self::assertArrayNotHasKey(JsComponent::EXTERNAL_RENDER_METADATA, $fallback_preview);
+    self::assertContains('config:canvas_headless.settings', $fallback_preview['#cache']['tags']);
+
+    $fallback_live = $fallback_source->renderComponent($fallback_inputs, [], 'fallback-uuid', FALSE);
+    self::assertSame('astro_island', $fallback_live['#type']);
+    self::assertContains('canvas/astro_island.external_fallback', $fallback_live['#attached']['library']);
+    $fallback_info = $fallback_source->getClientSideInfo($fallback_component);
+    self::assertArrayHasKey('type', $fallback_info);
+    self::assertArrayHasKey('hasFallbackImplementation', $fallback_info);
+    self::assertSame('external', $fallback_info['type']);
+    self::assertTrue($fallback_info['hasFallbackImplementation']);
   }
 
   /**

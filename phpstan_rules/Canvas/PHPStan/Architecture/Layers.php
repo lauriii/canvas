@@ -42,6 +42,7 @@ use Drupal\canvas\PropExpressions\PropExpressionInterface;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\canvas\Utility\TypedDataHelper;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
@@ -335,6 +336,8 @@ final class Layers {
         Selector::classname(JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator::class),
         // Config entity types powering code components.
         Selector::classname(ConfigEntityStorageInterface::class),
+        // Selects Drupal or external rendering from Canvas Headless config.
+        Selector::classname(ConfigFactoryInterface::class),
         Selector::classname(EntityTypeManagerInterface::class),
         Selector::classname(AssetLibrary::class),
         Selector::classname(BrandKit::class),

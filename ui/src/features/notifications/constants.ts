@@ -6,3 +6,4 @@ export const POLLING_NORMAL = 10000;
 export const POLLING_BACKGROUND = 300000;
 
 export const TOAST_DURATION = 15000;
+export const SUCCESS_TOAST_DURATION = 5000;

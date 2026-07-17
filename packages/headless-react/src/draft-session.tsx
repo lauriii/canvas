@@ -47,8 +47,8 @@ export interface DraftSessionProps {
    * Passed through to the render prop; the machine itself never uses it.
    */
   renewUrl: string | null;
-  /** Origins allowed to embed this app (postMessage peers). */
-  embedderOrigins: string[];
+  /** The signed editor origin used as the postMessage peer. */
+  editorOrigin: string | null;
   /** The app endpoint that redeems a fresh assertion. */
   renewEndpoint?: string;
   /**
@@ -94,7 +94,7 @@ export function DraftSession({
   tokenExpiresAt,
   initialExpired,
   renewUrl,
-  embedderOrigins,
+  editorOrigin,
   renewEndpoint,
   path,
   refreshData,
@@ -140,10 +140,6 @@ export function DraftSession({
     }
   }, [path]);
 
-  // Stable identity for the effect dependencies (the array prop is fresh
-  // each render).
-  const originsKey = embedderOrigins.join(' ');
-
   useEffect(() => {
     if (embedded === null) {
       return;
@@ -156,7 +152,7 @@ export function DraftSession({
       initialExpired: effectiveInitialExpired,
       embedded,
       path: pathRef.current,
-      embedderOrigins: originsKey.split(' ').filter(Boolean),
+      editorOrigin,
       renewEndpoint,
       onEvent: (event) => {
         if (event.type === 'renewed') {
@@ -186,7 +182,7 @@ export function DraftSession({
     embedded,
     effectiveExpiresAt,
     effectiveInitialExpired,
-    originsKey,
+    editorOrigin,
     renewEndpoint,
   ]);
 

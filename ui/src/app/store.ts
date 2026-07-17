@@ -39,6 +39,8 @@ import { componentInstanceFormApi } from '@/services/componentInstanceForm';
 import { contentApi } from '@/services/content';
 import { contentEntityReferenceApi } from '@/services/contentEntityReferenceApi';
 import { extensionsApi } from '@/services/extensions';
+import { headlessComponentSyncApi } from '@/services/headlessComponentSync';
+import { headlessFrontendsApi } from '@/services/headlessFrontends';
 import { notificationsApi } from '@/services/notificationsApi';
 import { pageDataFormApi } from '@/services/pageDataForm';
 import { pageVariantsApi } from '@/services/pageVariants';
@@ -145,6 +147,8 @@ const rootReducer = combineSlices(
   pageVariantsApi,
   assetLibraryApi,
   brandKitApi,
+  headlessComponentSyncApi,
+  headlessFrontendsApi,
   personalizationApi,
   componentAndLayoutApi,
   previewApi,
@@ -243,6 +247,8 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         pageVariantsApi.middleware,
         assetLibraryApi.middleware,
         brandKitApi.middleware,
+        headlessComponentSyncApi.middleware,
+        headlessFrontendsApi.middleware,
         personalizationApi.middleware,
         componentAndLayoutApi.middleware,
         previewApi.middleware,
