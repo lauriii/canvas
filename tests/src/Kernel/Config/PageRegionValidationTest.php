@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use Drupal\block\Entity\Block;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Exception\ConstraintViolationException;
@@ -499,6 +500,48 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
       ],
       [],
     ];
+  }
+
+  /**
+   * Tests creating page regions from blocks whose violations lack a delta.
+   *
+   * Some violations cannot be attributed to an individual component tree item,
+   * for example the `Unique` constraint on UUIDs, whose violation is raised
+   * for the tree as a whole. In that case every block in the region is
+   * omitted, because an empty component tree is always valid.
+   *
+   * @see https://www.drupal.org/project/canvas/issues/3545795
+   */
+  public function testCreateFromBlockLayoutWithUnattributableViolations(): void {
+    $uuid = 'f4497092-4085-4c02-b6e4-2c8d8de3f44e';
+    Block::create([
+      'id' => 'first_duplicate',
+      'uuid' => $uuid,
+      'theme' => 'stark',
+      'region' => 'sidebar_first',
+      'plugin' => 'system_powered_by_block',
+      'weight' => 0,
+      'status' => TRUE,
+      'settings' => [
+        'id' => 'system_powered_by_block',
+        'label' => 'Same UUID block',
+        'label_display' => '0',
+        'provider' => 'system',
+      ],
+    ])->save();
+    // The entity API refuses to save a second entity with the same UUID, but
+    // config sync does not: duplicate UUIDs from copy-pasted YAML are a real
+    // occurrence. Simulate that by writing the duplicate as raw config.
+    $duplicate = $this->config('block.block.first_duplicate')->getRawData();
+    $duplicate['id'] = 'second_duplicate';
+    $this->config('block.block.second_duplicate')->setData($duplicate)->save();
+
+    $skipped_blocks = [];
+    $regions = PageRegion::createFromBlockLayout('stark', $skipped_blocks);
+    $region = $regions['stark.sidebar_first'];
+    $this->assertInstanceOf(PageRegion::class, $region);
+    $this->assertSame([], $region->get('component_tree'));
+    $this->assertSame(['stark.sidebar_first' => [$uuid => 'Same UUID block']], $skipped_blocks);
   }
 
 }

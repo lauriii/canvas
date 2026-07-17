@@ -276,6 +276,10 @@ final class PageRegion extends ComponentTreeConfigEntityBase implements CanvasHt
    *
    * @param string $theme
    *   The theme to use.
+   * @param array<string, array<string, string>> $skipped_blocks
+   *   Further populated by this method: the labels of blocks whose settings
+   *   do not pass validation and that were hence omitted from the created
+   *   page regions, keyed by page region config entity ID, then block UUID.
    *
    * @return array<string, self>
    *   An array of PageRegion config entities, one per theme region, except for
@@ -283,7 +287,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase implements CanvasHt
    *
    * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::MAIN_CONTENT_REGION
    */
-  public static function createFromBlockLayout(string $theme): array {
+  public static function createFromBlockLayout(string $theme, array &$skipped_blocks = []): array {
     $theme_info = \Drupal::service('theme_handler')->getTheme($theme);
     $region_names = array_filter(
       \array_keys($theme_info->info['regions']),
@@ -298,6 +302,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase implements CanvasHt
       ]);
 
     $regions = [];
+    $block_labels = [];
     foreach ($blocks as $block) {
       $component_id = BlockComponentDiscovery::getComponentConfigEntityId($block->getPluginId());
       if (!Component::load($component_id)) {
@@ -305,6 +310,8 @@ final class PageRegion extends ComponentTreeConfigEntityBase implements CanvasHt
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent::checkRequirements()
         continue;
       }
+      $label = (string) $block->label();
+      $block_labels[$block->uuid()] = $label !== '' ? $label : (string) $block->id();
       $region_name = match ($block->getRegion()) {
         // Move from the `content` region to the first region in the theme.
         CanvasPageVariant::MAIN_CONTENT_REGION => reset($region_names),
@@ -343,6 +350,39 @@ final class PageRegion extends ComponentTreeConfigEntityBase implements CanvasHt
         'region' => $region_name,
         'component_tree' => $items,
       ]);
+      // Blocks may have settings that do not pass validation, for example
+      // legacy values that predate stricter validation in newer Drupal core
+      // versions. Such blocks cannot be represented in a valid PageRegion:
+      // omit them rather than generating an invalid config entity.
+      // @see https://www.drupal.org/project/canvas/issues/3545795
+      if (\count($page_region->getTypedData()->validate()) > 0) {
+        $invalid_deltas = [];
+        foreach ($page_region->getTypedData()->validate() as $violation) {
+          if (\preg_match('/^component_tree\.(\d+)(?:\.|$)/', (string) $violation->getPropertyPath(), $matches) === 1) {
+            $invalid_deltas[(int) $matches[1]] = TRUE;
+          }
+        }
+        $page_region = static::create([
+          'theme' => $theme,
+          'region' => $region_name,
+          'component_tree' => \array_values(\array_diff_key($items, $invalid_deltas)),
+        ]);
+        if (\count($page_region->getTypedData()->validate()) > 0) {
+          // The violations cannot be attributed to individual blocks, for
+          // example duplicate UUIDs across blocks. Omit every block in the
+          // region: an empty component tree is always valid.
+          $invalid_deltas = \array_fill_keys(\array_keys($items), TRUE);
+          $page_region = static::create([
+            'theme' => $theme,
+            'region' => $region_name,
+            'component_tree' => [],
+          ]);
+        }
+        foreach (\array_keys($invalid_deltas) as $delta) {
+          $uuid = $items[$delta]['uuid'];
+          $skipped_blocks[$page_region->id()][$uuid] = $block_labels[$uuid];
+        }
+      }
       \assert([] === iterator_to_array($page_region->getTypedData()->validate()));
       $region_instances[$page_region->id()] = $page_region;
     }
