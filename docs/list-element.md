@@ -32,7 +32,7 @@ validated by `\Drupal\canvas\ListBuilder\ListElementSettingsValidator`:
   (OR). Operators are constrained per the field's type family; unknown field
   types degrade to the is set / is not set pair. Filters are editor-facing
   configuration only.
-- **Sorting**: multiple sorts applied in priority order, with directions
+- **Sorting**: multiple sorts applied in the order listed, with directions
   labeled per field type (dates old-to-new, text A-to-Z, numbers
   low-to-high).
 - **Layout**: stack (spacing, distribution, horizontal alignment), row

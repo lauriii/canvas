@@ -627,10 +627,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
         'value' => $value,
       ], static fn (mixed $v): bool => $v !== NULL);
     }
-    $sorts = [];
-    foreach ($settings['sorts'] ?? [] as $weight => $sort) {
-      $sorts[] = $sort + ['weight' => $weight];
-    }
+    $sorts = \array_values($settings['sorts'] ?? []);
 
     return [
       'resolved' => [
@@ -786,7 +783,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
         continue;
       }
       if (!\array_key_exists($field_name, $fields)) {
-        $this->lastDroppedSettings[] = (string) $this->t('Filter on @field', ['@field' => $field_name]);
+        $this->lastDroppedSettings[] = (string) $this->t('Filter on @field', ['@field' => $this->droppedFieldLabel($field_name)]);
         continue;
       }
       $conditions[] = $this->formRowToCondition($row, $fields[$field_name]);
@@ -799,17 +796,15 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
         continue;
       }
       if (!\array_key_exists($field_name, $sortable)) {
-        $this->lastDroppedSettings[] = (string) $this->t('Sort by @field', ['@field' => $field_name]);
+        $this->lastDroppedSettings[] = (string) $this->t('Sort by @field', ['@field' => $this->droppedFieldLabel($field_name)]);
         continue;
       }
+      // Row order is the sort order: earlier rows take precedence.
       $sorts[] = [
         'field' => $field_name,
         'direction' => ($row['direction'] ?? 'asc') === 'desc' ? 'desc' : 'asc',
-        'weight' => (int) ($row['weight'] ?? 0),
       ];
     }
-    \usort($sorts, static fn (array $a, array $b): int => $a['weight'] <=> $b['weight']);
-    $sorts = \array_map(static fn (array $sort): array => ['field' => $sort['field'], 'direction' => $sort['direction']], $sorts);
 
     $layout_mode = (string) ($values['layout']['mode'] ?? 'stack');
     if (!\in_array($layout_mode, ListElementSettingsValidator::LAYOUT_MODES, TRUE)) {
@@ -853,6 +848,22 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
   }
 
   /**
+   * Resolves a human-readable label for a field dropped by a bundle switch.
+   *
+   * The field no longer exists on the newly selected bundle, so its label is
+   * looked up on whichever bundle still defines it.
+   */
+  private function droppedFieldLabel(string $field_name): string {
+    foreach (\array_keys($this->bundleInfo->getBundleInfo('node')) as $bundle) {
+      $fields = $this->fieldInfo->getFilterableFields('node', $bundle);
+      if (\array_key_exists($field_name, $fields)) {
+        return $fields[$field_name]['label'];
+      }
+    }
+    return $field_name;
+  }
+
+  /**
    * Maps one filter condition form row to its canonical stored form.
    *
    * @param array{label: string, family: ListElementFieldTypeFamily, has_target: bool, definition: FieldDefinitionInterface} $field
@@ -863,7 +874,9 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
     $allowed = $family->allowedOperators($field['has_target']);
     $operator = (string) ($row['operator'] ?? '');
     if (!\in_array($operator, $allowed, TRUE)) {
-      $operator = $allowed[0];
+      // A new condition defaults to the first operator the select offers,
+      // which is the family's foremost value operator.
+      $operator = (string) \array_key_first(\array_intersect_key(self::operatorLabels(), \array_flip($allowed)));
     }
     $condition = ['field' => $field['definition']->getName(), 'operator' => $operator];
 
@@ -1023,7 +1036,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       '#open' => FALSE,
       'mode' => [
         '#type' => 'select',
-        '#title' => $this->t('Pagination'),
+        '#title' => $this->t('Style'),
         '#options' => $unlimited
           ? ['infinite_scroll' => (string) $this->t('Infinite scroll')]
           : [
@@ -1052,7 +1065,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
     ];
     if (\count($conditions) > 1) {
       $form['filters']['conjunction'] = [
-        '#type' => 'radios',
+        '#type' => 'select',
         '#title' => $this->t('Items must match'),
         '#options' => [
           'and' => (string) $this->t('All conditions'),
@@ -1077,13 +1090,13 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       '#type' => 'details',
       '#title' => $this->t('Sorting'),
       '#open' => FALSE,
-      '#description' => $this->t('Sorts apply in order of their priority number.'),
+      '#description' => \count($sorts) > 1 ? $this->t('Sorts apply in the order listed.') : NULL,
     ];
     foreach ($sorts as $delta => $sort) {
-      $form['sorts'][$delta] = $this->buildSortRow($sort, $delta, $sortable);
+      $form['sorts'][$delta] = $this->buildSortRow($sort, $sortable);
     }
     if ($bundle_is_valid) {
-      $form['sorts'][] = $this->buildSortRow(NULL, \count($sorts), $sortable);
+      $form['sorts'][] = $this->buildSortRow(NULL, $sortable);
     }
 
     $layout = $values['layout'] ?? ['mode' => 'stack', 'gap' => 'medium'];
@@ -1174,7 +1187,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       '#attributes' => ['class' => ['canvas-list-element-form__condition']],
       'field' => [
         '#type' => 'select',
-        '#title' => $condition === NULL ? $this->t('Add a condition on') : $this->t('Field'),
+        '#title' => $condition === NULL ? $this->t('Add a condition') : $this->t('Field'),
         '#options' => $field_options,
         '#empty_option' => $condition === NULL ? $this->t('- Select a field -') : $this->t('- Remove this condition -'),
         '#empty_value' => '',
@@ -1246,11 +1259,15 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
 
       case ListElementFieldTypeFamily::Options:
         if ($definition->getType() === 'boolean') {
+          // Until a value is chosen the condition is inert, so the select
+          // must not pretend one is selected.
           return [
             '#type' => 'select',
             '#title' => $this->t('Value'),
             '#options' => ['1' => (string) $this->t('Yes'), '0' => (string) $this->t('No')],
-            '#default_value' => $value === NULL ? '1' : (string) $value,
+            '#empty_option' => $this->t('- Select -'),
+            '#empty_value' => '',
+            '#default_value' => $value === NULL ? '' : (string) ((int) $value),
           ];
         }
         $allowed_values = $definition->getFieldStorageDefinition()->getSetting('allowed_values');
@@ -1294,7 +1311,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
   /**
    * Builds one sort row.
    */
-  private function buildSortRow(?array $sort, int $weight, array $sortable): array {
+  private function buildSortRow(?array $sort, array $sortable): array {
     $field_options = \array_map(static fn (array $field): string => $field['label'], $sortable);
     \asort($field_options);
     $row = [
@@ -1302,7 +1319,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       '#attributes' => ['class' => ['canvas-list-element-form__sort']],
       'field' => [
         '#type' => 'select',
-        '#title' => $sort === NULL ? $this->t('Add a sort on') : $this->t('Field'),
+        '#title' => $sort === NULL ? $this->t('Add a sort') : $this->t('Field'),
         '#options' => $field_options,
         '#empty_option' => $sort === NULL ? $this->t('- Select a field -') : $this->t('- Remove this sort -'),
         '#empty_value' => '',
@@ -1326,25 +1343,21 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       '#options' => \array_map(strval(...), $direction_labels),
       '#default_value' => $sort['direction'],
     ];
-    $row['weight'] = [
-      '#type' => 'number',
-      '#title' => $this->t('Priority'),
-      '#min' => 0,
-      '#max' => 20,
-      '#default_value' => $weight,
-    ];
     return $row;
   }
 
   /**
    * The human-readable labels of all condition operators.
    *
+   * The order here is the order of the operator select options, and the first
+   * operator a field family allows is the default for a new condition: value
+   * operators lead because they are what conditions are almost always about,
+   * and the presence checks close the list.
+   *
    * @return array<string, string>
    */
   private static function operatorLabels(): array {
     return [
-      ListElementFieldTypeFamily::OP_IS_SET => (string) new TranslatableMarkup('Is set'),
-      ListElementFieldTypeFamily::OP_NOT_SET => (string) new TranslatableMarkup('Is not set'),
       ListElementFieldTypeFamily::OP_CONTAINS => (string) new TranslatableMarkup('Contains'),
       ListElementFieldTypeFamily::OP_NOT_CONTAINS => (string) new TranslatableMarkup('Does not contain'),
       ListElementFieldTypeFamily::OP_STARTS_WITH => (string) new TranslatableMarkup('Starts with'),
@@ -1356,6 +1369,8 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       ListElementFieldTypeFamily::OP_GREATER_THAN_OR_EQUAL => (string) new TranslatableMarkup('Greater than or equal to'),
       ListElementFieldTypeFamily::OP_LESS_THAN => (string) new TranslatableMarkup('Less than'),
       ListElementFieldTypeFamily::OP_LESS_THAN_OR_EQUAL => (string) new TranslatableMarkup('Less than or equal to'),
+      ListElementFieldTypeFamily::OP_IS_SET => (string) new TranslatableMarkup('Is set'),
+      ListElementFieldTypeFamily::OP_NOT_SET => (string) new TranslatableMarkup('Is not set'),
     ];
   }
 
