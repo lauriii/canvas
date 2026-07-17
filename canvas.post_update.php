@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\AutoSave\Workspace\LegacyAutoSaveMigrator;
 use Drupal\canvas\CanvasConfigUpdater;
+use Drupal\canvas\CanvasServiceProvider;
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
@@ -212,7 +213,10 @@ function canvas_post_update_0009_unset_category_property_on_components(array &$s
  * Migrate auto-save data from tempstore to key-value store.
  */
 function canvas_post_update_0010_migrate_auto_save(): void {
-  $keyvalue_factory = \Drupal::service('keyvalue');
+  // Staging bookkeeping must resolve identically in every workspace.
+  // @see \Drupal\canvas\CanvasServiceProvider::registerWorkspaceInvariantKeyValueFactory()
+  /** @var \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $keyvalue_factory */
+  $keyvalue_factory = \Drupal::service(CanvasServiceProvider::STAGING_KEY_VALUE_SERVICE);
   $tempstore_factory = \Drupal::service(SharedTempStoreFactory::class);
 
   $collections = [
@@ -669,7 +673,11 @@ function _canvas_coerce_block_label_display_in_raw(array &$data): bool {
  * @see \Drupal\canvas\AutoSave\Workspace\CanvasWorkspaceProvider::checkAccess()
  */
 function canvas_post_update_0023_migrate_auto_save_to_workspace(array &$sandbox): void {
-  $kv = \Drupal::keyValue('canvas.auto_save');
+  // Staging bookkeeping must resolve identically in every workspace.
+  // @see \Drupal\canvas\CanvasServiceProvider::registerWorkspaceInvariantKeyValueFactory()
+  /** @var \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $keyvalue_factory */
+  $keyvalue_factory = \Drupal::service(CanvasServiceProvider::STAGING_KEY_VALUE_SERVICE);
+  $kv = $keyvalue_factory->get(AutoSaveManager::AUTO_SAVE_STORE);
   if (!isset($sandbox['keys'])) {
     $sandbox['keys'] = \array_keys($kv->getAll());
     $sandbox['total'] = \count($sandbox['keys']);
