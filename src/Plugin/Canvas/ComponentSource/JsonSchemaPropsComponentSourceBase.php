@@ -994,7 +994,10 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       }
     }
     $form['#attached']['canvas-transforms'] = $transforms;
-    if ($entity instanceof ContentTemplate) {
+    // Whenever prop source suggestions were computed (content templates and
+    // deferred slot contexts alike), surface the prop linker next to each
+    // linkable prop's label.
+    if ($suggestion_entity_data_definition !== NULL) {
       $form['#after_build'][] = [static::class, 'moveSuggestionsToLabel'];
     }
     return $form;

@@ -23,7 +23,6 @@ import {
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { StateWithHistory } from 'redux-undo';
 import type { AppThunk, RootState } from '@/app/store';
-import type { EditorFrameContext } from '@/features/ui/uiSlice';
 import type {
   CanvasComponent,
   ComponentsList,
@@ -810,7 +809,7 @@ export const _linkPropToEntityValue =
     }
 
     const { propName, componentToUpdateId, newSource, inputUIData } = payload;
-    const { selectedComponentType, version } = inputUIData;
+    const { selectedComponentType, version, editorFrameContext } = inputUIData;
     const model = selectModel(state)[componentToUpdateId];
     const componentMetadata = components[selectedComponentType];
     // Exit early if attempting to update a prop that does not exist.
@@ -837,7 +836,10 @@ export const _linkPropToEntityValue =
       delete resolved[propName];
 
       const valuePayload = {
-        type: 'template' as EditorFrameContext,
+        // Prop linking is not template-specific: components inside a List
+        // element's item template link props while a regular entity is being
+        // edited, so the patch must target the current editor context.
+        type: editorFrameContext,
         componentInstanceUuid: componentToUpdateId,
         componentType: `${selectedComponentType}@${version}`,
         model: {
