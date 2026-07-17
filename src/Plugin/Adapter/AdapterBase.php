@@ -68,6 +68,22 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function getRequiredInputsWhenOutputRequired(): array {
+    \assert(\is_array($this->getPluginDefinition()));
+    return $this->getPluginDefinition()['requiredInputsWhenOutputRequired'] ?? [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function inputToleratesEmpty(string $input): bool {
+    \assert(\is_array($this->getPluginDefinition()));
+    return \in_array($input, $this->getPluginDefinition()['emptyToleratingInputs'] ?? [], TRUE);
+  }
+
+  /**
    * @param JsonSchema $schema
    * @param mixed $value
    *

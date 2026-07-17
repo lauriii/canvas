@@ -72,7 +72,18 @@ Build on the existing Adapter plugin system (adopt, not build):
    adapted prop renders as a "linked" prop in the component instance form,
    with a label contextualized by its first linkable input (e.g. "Date
    conversion: Authored on").
-8. **No storage or config-schema structure changes**: adapted prop sources
+8. **Type-aware offering and required-prop safety**: an adapter is only
+   suggested when its primary input (the first required input — the data
+   being transformed) has at least one field candidate, and when every
+   required input is bindable (no Date Conversion on bundles without date
+   fields). For a required target prop, inputs declared in the adapter's
+   `requiredInputsWhenOutputRequired` (a conditional's `else`, a mapping's
+   `default`) become required, and required inputs not declared
+   `emptyToleratingInputs` offer only required fields as candidates — the
+   same rule direct field matches follow. Evaluation independently rejects
+   unconfigured required inputs with a clear error, so a misconfigured
+   stored tree fails loudly instead of silently emptying a required prop.
+9. **No storage or config-schema structure changes**: adapted prop sources
    already serialize into component tree inputs, which live in exportable
    config entities, so deployability comes for free. One validation change
    was required: the `ComponentTreeMeetRequirements` constraint on content

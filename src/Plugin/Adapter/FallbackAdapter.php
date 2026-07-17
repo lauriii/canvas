@@ -22,6 +22,8 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
   ],
   requiredInputs: ['value', 'default'],
   outputMirrorsInputs: ['value', 'default'],
+  // An empty value is this adapter's purpose: the default catches it.
+  emptyToleratingInputs: ['value'],
 )]
 final class FallbackAdapter extends AdapterBase {
 

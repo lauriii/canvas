@@ -274,6 +274,7 @@ final readonly class PropSourceSuggester {
       }
       $raw_matches[(string) $cpe][PropSource::Adapter->value] = $this->buildAdapterSuggestions(
         $this->adaptedPropSourceMatcher->match($is_required, $prop_shape),
+        $is_required,
         $prop_shape,
         $host_entity_type,
         $host_entity_bundle,
@@ -309,12 +310,24 @@ final readonly class PropSourceSuggester {
    * output (parametric adapters), the field candidates that can populate it,
    * and a template for populating it with a static (literal) value.
    *
+   * Type awareness:
+   * - An adapter is only offered when its primary input (the first required
+   *   one — the input that carries the data being transformed) has at least
+   *   one field candidate: e.g. no date conversion without date fields.
+   * - Every (conditionally) required slot must be bindable — by a field
+   *   candidate or a static literal — or the adapter is not offered.
+   * - For a REQUIRED target prop, the transform must not produce an empty
+   *   value: inputs listed in the adapter's requiredInputsWhenOutputRequired
+   *   (e.g. a conditional's `else`) become required, and required inputs
+   *   whose emptiness propagates to the output only offer required fields as
+   *   candidates — mirroring how direct field matches behave.
+   *
    * @param list<\Drupal\canvas\Plugin\Adapter\AdapterInterface> $adapters
    * @param array<string, mixed> $slot_memo
    *
    * @return list<AdapterSuggestion>
    */
-  private function buildAdapterSuggestions(array $adapters, PropShape $prop_shape, string $host_entity_type_id, string $host_entity_bundle, array &$slot_memo): array {
+  private function buildAdapterSuggestions(array $adapters, bool $is_required, PropShape $prop_shape, string $host_entity_type_id, string $host_entity_bundle, array &$slot_memo): array {
     $suggestions = [];
     foreach ($adapters as $adapter) {
       $definition = $adapter->getPluginDefinition();
@@ -322,6 +335,8 @@ final readonly class PropSourceSuggester {
       $mirroring_inputs = $adapter->getOutputMirroringInputs();
 
       $inputs = [];
+      $offer = TRUE;
+      $seen_primary = FALSE;
       foreach ($adapter->getInputs() as $input_name => $declared_schema) {
         $mirrors_output = \in_array($input_name, $mirroring_inputs, TRUE);
         // Determine the shape(s) whose matching fields are candidates for
@@ -346,19 +361,47 @@ final readonly class PropSourceSuggester {
           }
         }
 
+        $slot_required = $adapter->inputIsRequired($input_name)
+          || ($is_required && \in_array($input_name, $adapter->getRequiredInputsWhenOutputRequired(), TRUE));
+        // A required target prop must never receive an empty value, so slots
+        // whose emptiness propagates to the output only offer required
+        // fields — exactly like direct field matches.
+        $candidates_must_be_required = $is_required && $slot_required && !$adapter->inputToleratesEmpty($input_name);
+        $candidates = $this->getSlotCandidates($slot_shapes, $candidates_must_be_required, $host_entity_type_id, $host_entity_bundle, $slot_memo);
+        $static = $this->getStaticSourceTemplate($slot_shapes[0], $slot_memo);
+
+        // The primary input — the first (unconditionally) required one — is
+        // the input that carries the data being transformed: without a field
+        // candidate for it, the adapter has nothing to transform here.
+        if (!$seen_primary && $adapter->inputIsRequired($input_name)) {
+          $seen_primary = TRUE;
+          if ($candidates === []) {
+            $offer = FALSE;
+            break;
+          }
+        }
+        // Any other required slot must be bindable one way or another.
+        if ($slot_required && $candidates === [] && $static === NULL) {
+          $offer = FALSE;
+          break;
+        }
+
         $inputs[] = [
           'name' => $input_name,
-          'required' => $adapter->inputIsRequired($input_name),
+          'required' => $slot_required,
           'mirrorsOutput' => $mirrors_output,
           'schema' => $mirrors_output
             ? $prop_shape->resolvedSchema
             : ($declared_schema === [] ? NULL : $adapter->getInputSchema($input_name)),
-          'candidates' => $this->getSlotCandidates($slot_shapes, $host_entity_type_id, $host_entity_bundle, $slot_memo),
+          'candidates' => $candidates,
           // How the client should populate this slot with a literal value: a
           // StaticPropSource template whose `value` it fills in. For
           // "any"-shaped slots, literals are entered as text.
-          'static' => $this->getStaticSourceTemplate($slot_shapes[0], $slot_memo),
+          'static' => $static,
         ];
+      }
+      if (!$offer) {
+        continue;
       }
 
       $suggestions[] = [
@@ -378,21 +421,24 @@ final readonly class PropSourceSuggester {
    * Computes the field candidates for an adapter input slot.
    *
    * @param list<\Drupal\canvas\PropShape\PropShape> $slot_shapes
+   * @param bool $is_required
+   *   Whether only required fields may populate this slot: TRUE for slots
+   *   whose emptiness would propagate to a required target prop. FALSE
+   *   otherwise: adapter inputs may generally be populated by optional
+   *   fields even when the targeted prop is required — bridging that gap is
+   *   e.g. the `fallback` adapter's purpose.
    * @param array<string, mixed> $slot_memo
    *
    * @return list<array{id: string, label: string, source: array<string, mixed>}>
    */
-  private function getSlotCandidates(array $slot_shapes, string $host_entity_type_id, string $host_entity_bundle, array &$slot_memo): array {
+  private function getSlotCandidates(array $slot_shapes, bool $is_required, string $host_entity_type_id, string $host_entity_bundle, array &$slot_memo): array {
     $host_entity_type = BetterEntityDataDefinition::create($host_entity_type_id, $host_entity_bundle);
     $candidates = [];
     foreach ($slot_shapes as $shape) {
-      $memo_key = 'candidates:' . $shape->uniquePropSchemaKey();
+      $memo_key = 'candidates:' . (int) $is_required . ':' . $shape->uniquePropSchemaKey();
       if (!\array_key_exists($memo_key, $slot_memo)) {
         $entries = [];
-        // TRICKY: match with $is_required=FALSE: adapter inputs may be
-        // populated by optional fields even when the targeted prop is
-        // required — bridging that gap is the `fallback` adapter's purpose.
-        foreach ($this->entityFieldPropSourceMatcher->match(FALSE, $shape, $host_entity_type_id, $host_entity_bundle) as $source) {
+        foreach ($this->entityFieldPropSourceMatcher->match($is_required, $shape, $host_entity_type_id, $host_entity_bundle) as $source) {
           if ($this->isConsideredIrrelevant($source->expression)) {
             continue;
           }

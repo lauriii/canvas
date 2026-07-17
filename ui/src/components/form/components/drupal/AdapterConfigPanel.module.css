@@ -1,3 +1,43 @@
+/* The popover anchor is an empty inline element next to the prop's linker
+   icon; it must not affect the label layout. */
+.anchor {
+  width: 0;
+  height: 0;
+}
+
+/* Floating panel container, matching the multivalue prop popover styling
+   (see DrupalInputMultivalueForm.module.css .popoverContent). */
+.panel {
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  max-width: calc(100vw - 24px);
+  max-height: min(70vh, 640px);
+  padding: 8px;
+  border: 1px solid var(--gray-6);
+  border-radius: 4px;
+  background-color: white;
+  box-shadow: var(--shadow-4);
+  gap: 4px;
+}
+
+.panelHeader {
+  margin-bottom: var(--space-1);
+}
+
+.panelLabel {
+  color: var(--gray-11);
+}
+
+/* Long chains scroll inside the panel while the header, preview row, and
+   footer stay visible. */
+.scrollArea {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
 .step {
   margin-block-end: var(--space-2);
   padding: var(--space-2);

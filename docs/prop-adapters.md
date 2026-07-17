@@ -63,6 +63,28 @@ Schema validation is applied to it, and its suggested field candidates are the
 union of fields matching the primitive shapes (string, integer, number,
 boolean).
 
+## Type awareness
+
+Suggestions are type-aware in three ways:
+
+- An adapter is only offered when its primary input — the first required
+  input, which carries the data being transformed — has at least one matching
+  field on the bundle. Date conversion is not offered when the bundle has no
+  date fields.
+- Every required input must be bindable, by a field candidate or a literal
+  value, or the adapter is not offered.
+- When the targeted prop is required, the transform must not produce an empty
+  value: inputs listed in the adapter's `requiredInputsWhenOutputRequired`
+  (Equals/Contains: `else`; Mapping: `default`) become required, and required
+  inputs not listed in `emptyToleratingInputs` offer only required fields as
+  candidates — the same rule direct field matches follow. Inputs whose
+  emptiness is the adapter's business (Fallback's `value`, a conditional's
+  compared `value`) keep offering optional fields.
+
+Independently of the editor, `AdaptedPropSource::evaluate()` rejects
+unconfigured required inputs with a clear error, so a malformed stored tree
+fails loudly instead of silently emptying a required prop.
+
 ## Editor UI
 
 In the content template editor, the prop picker (the link icon next to a prop

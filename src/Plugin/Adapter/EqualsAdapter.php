@@ -26,6 +26,10 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
   ],
   requiredInputs: ['value', 'comparison', 'then'],
   outputMirrorsInputs: ['then', 'else'],
+  // Without an else branch, a non-matching value yields an empty output.
+  requiredInputsWhenOutputRequired: ['else'],
+  // An empty compared value merely selects the else branch.
+  emptyToleratingInputs: ['value', 'comparison', 'negate'],
 )]
 final class EqualsAdapter extends AdapterBase {
 

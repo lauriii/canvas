@@ -103,14 +103,20 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
       }),
     );
   };
+  // TRICKY: the panel is a (dismissable) popover opened from a dropdown menu
+  // item. Opening it synchronously loses a race: the closing menu's dismissal
+  // events land on the freshly mounted popover and immediately close it.
+  // Defer the open until the menu teardown has completed.
+  const openAdapterPanel = (steps: AdapterStep[]) => {
+    setAdapterInitialSteps(steps);
+    window.setTimeout(() => setAdapterPanelOpen(true), 150);
+  };
   const handleTransformClick = (suggestion: AdapterSuggestion) => {
-    setAdapterInitialSteps([createStep(suggestion)]);
-    setAdapterPanelOpen(true);
+    openAdapterPanel([createStep(suggestion)]);
   };
   const handleEditTransformClick = () => {
     if (currentAdapterSteps) {
-      setAdapterInitialSteps(currentAdapterSteps);
-      setAdapterPanelOpen(true);
+      openAdapterPanel(currentAdapterSteps);
     }
   };
   const handleAdapterApply = (newSource: PropSource) => {

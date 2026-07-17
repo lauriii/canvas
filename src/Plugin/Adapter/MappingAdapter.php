@@ -27,6 +27,10 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
   ],
   requiredInputs: ['value', 'cases'],
   outputMirrorsInputs: ['default'],
+  // Without a default, an unmatched value yields an empty output.
+  requiredInputsWhenOutputRequired: ['default'],
+  // An empty looked-up value merely falls back to the default.
+  emptyToleratingInputs: ['value', 'cases'],
 )]
 final class MappingAdapter extends AdapterBase {
 

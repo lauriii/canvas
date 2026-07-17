@@ -116,6 +116,23 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'required' => FALSE,
     ])->save();
 
+    // Required, single-cardinality datetime field: makes the Date conversion
+    // adapter offerable for the article bundle's required text props.
+    // @see ::testAdapterSuggestions()
+    FieldStorageConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_event_date',
+      'type' => 'datetime',
+      'cardinality' => 1,
+    ])->save();
+    FieldConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_event_date',
+      'label' => 'Event date',
+      'bundle' => 'article',
+      'required' => TRUE,
+    ])->save();
+
     // Set explicitly the form display components to ensure the suggestions
     // sorting is as expected.
     $form_display = \Drupal::service('entity_display.repository')
@@ -204,8 +221,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       fn (array $suggestion): bool => \array_key_exists('adapter', $suggestion),
     ));
 
-    // The `text` prop is a plain string: all text-producing adapters match,
-    // plus the parametric ones (whose output mirrors designated inputs), in
+    // The `text` prop is a required plain string: all text-producing adapters
+    // whose primary input has field candidates match (Date conversion is only
+    // here because the bundle has a required datetime field), plus the
+    // parametric ones (whose output mirrors designated inputs), in
     // alphabetical label order.
     $text_adapters = $adapters_for_prop('text');
     self::assertSame(
@@ -213,12 +232,16 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       \array_column($text_adapters, 'label'),
     );
 
-    // The `style` prop is an enum-constrained string: only the parametric
-    // adapters match — no direct field suggestions exist, yet the prop is
-    // still adaptable (e.g. via Mapping, an option field driving a variant).
+    // The `style` prop is an optional enum-constrained string: only
+    // parametric adapters whose primary input has candidates are offered — no
+    // direct field suggestions exist, yet the prop is still adaptable (e.g.
+    // via Mapping, an option field driving a variant). Fallback is absent:
+    // its primary `value` input mirrors the enum shape, which no field
+    // matches, so there is nothing to fall back from.
+    $style_adapters = $adapters_for_prop('style');
     self::assertSame(
-      ['Contains', 'Equals', 'Fallback', 'Mapping'],
-      \array_column($adapters_for_prop('style'), 'label'),
+      ['Contains', 'Equals', 'Mapping'],
+      \array_column($style_adapters, 'label'),
     );
 
     // Inspect the full representation of the Equals adapter for `text`.
@@ -229,12 +252,18 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       $equals['adapter']['inputs'],
     );
     self::assertSame(['value', 'comparison', 'then', 'else', 'negate'], \array_keys($inputs));
-    // Required flags.
+    // Required flags. TRICKY: `text` is a REQUIRED prop, so the conditional's
+    // `else` becomes required too — otherwise a non-matching value would
+    // produce an empty value for a prop that must not be empty.
     self::assertTrue($inputs['value']['required']);
     self::assertTrue($inputs['comparison']['required']);
     self::assertTrue($inputs['then']['required']);
-    self::assertFalse($inputs['else']['required']);
+    self::assertTrue($inputs['else']['required']);
     self::assertFalse($inputs['negate']['required']);
+    // For the OPTIONAL `style` prop, `else` remains optional.
+    $style_equals = \array_values(\array_filter($style_adapters, fn (array $s): bool => $s['adapter']['id'] === 'equals'))[0];
+    $style_else = \array_values(\array_filter($style_equals['adapter']['inputs'], fn (array $i): bool => $i['name'] === 'else'))[0];
+    self::assertFalse($style_else['required']);
     // Parametric: `then`/`else` mirror the targeted prop's shape.
     self::assertTrue($inputs['then']['mirrorsOutput']);
     self::assertTrue($inputs['else']['mirrorsOutput']);
@@ -262,7 +291,28 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     // and `format: date-time` fields — but never plain strings.
     $format_date = \array_values(\array_filter($text_adapters, fn (array $s): bool => $s['adapter']['id'] === 'format_date'))[0];
     $date_input = \array_values(\array_filter($format_date['adapter']['inputs'], fn (array $i): bool => $i['name'] === 'date'))[0];
+    self::assertContains('Event date', \array_column($date_input['candidates'], 'label'));
     self::assertNotContains('Title', \array_column($date_input['candidates'], 'label'));
+
+    // Where no datetime fields exist — the `user` bundle — Date conversion is
+    // not offered at all: there is nothing for it to transform.
+    $user_json = $this->assertExpectedResponse(
+      method: 'GET',
+      url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/prop-sources/user/user/sdc.canvas_test_sdc.heading"),
+      request_options: [],
+      expected_status: Response::HTTP_OK,
+      expected_cache_contexts: NULL,
+      expected_cache_tags: NULL,
+      expected_page_cache: 'UNCACHEABLE (request policy)',
+      expected_dynamic_page_cache: 'UNCACHEABLE (no cacheability)',
+    );
+    self::assertIsArray($user_json);
+    $user_text_adapter_labels = \array_column(
+      \array_values(\array_filter($user_json['text'], fn (array $s): bool => \array_key_exists('adapter', $s))),
+      'label',
+    );
+    self::assertNotContains('Date conversion', $user_text_adapter_labels);
+    self::assertContains('Equals', $user_text_adapter_labels);
   }
 
   /**
