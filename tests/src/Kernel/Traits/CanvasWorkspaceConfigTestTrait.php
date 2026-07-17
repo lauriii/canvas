@@ -8,7 +8,6 @@ use Drupal\canvas\CanvasServiceProvider;
 use Drupal\Component\Serialization\PhpSerialize;
 use Drupal\Core\Database\Database;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
-use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\workspace_config\EarlyWorkspaceResolver;
 use Drupal\workspace_config\KeyValue\WorkspaceConfigKeyValueFactory;
 
@@ -38,7 +37,6 @@ trait CanvasWorkspaceConfigTestTrait {
    *   The container, as passed to the test's ::register().
    */
   protected function registerCanvasStagingKeyValue(ContainerBuilder $container): void {
-    \assert($this->keyValue instanceof KeyValueFactoryInterface);
     // Registering the definition here stops CanvasServiceProvider from aliasing
     // the id to `keyvalue`, which ::enableWorkspaceConfigKeyValueOverlay() is
     // about to make workspace-aware.
@@ -58,7 +56,6 @@ trait CanvasWorkspaceConfigTestTrait {
    * @see \Drupal\workspace_config\KeyValue\WorkspaceConfigKeyValueFactory::get()
    */
   protected function enableWorkspaceConfigKeyValueOverlay(): void {
-    \assert($this->keyValue instanceof KeyValueFactoryInterface);
     $this->container->set('keyvalue', new WorkspaceConfigKeyValueFactory(
       $this->keyValue,
       $this->container->get(EarlyWorkspaceResolver::class),

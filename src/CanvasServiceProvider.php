@@ -140,7 +140,7 @@ class CanvasServiceProvider extends ServiceProviderBase {
     $container->getDefinition('config.typed')
       ->setClass(TypedConfigManagerWithCachePollutionFix::class);
 
-    $this->registerWorkspaceInvariantKeyValueFactory($container);
+    self::registerWorkspaceInvariantKeyValueFactory($container);
 
     parent::alter($container);
   }
@@ -170,7 +170,7 @@ class CanvasServiceProvider extends ServiceProviderBase {
    * @see \Drupal\workspace_config\KeyValue\WorkspaceConfigKeyValueFactory
    * @see \Drupal\canvas\AutoSave\Workspace\PendingContentAutoSaveBuffer
    */
-  private function registerWorkspaceInvariantKeyValueFactory(ContainerBuilder $container): void {
+  private static function registerWorkspaceInvariantKeyValueFactory(ContainerBuilder $container): void {
     // A test may have registered its own pristine factory under this id, which
     // is the only way to keep Canvas staging workspace-invariant when the
     // decoration is applied to a synthetic `keyvalue` at runtime.

@@ -9,6 +9,7 @@ use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
 use Drupal\canvas\CanvasServiceProvider;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\CanvasWorkspaceConfigTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -56,7 +57,9 @@ final class WorkspaceInvariantStagingStoreTest extends CanvasKernelTestBase {
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema('workspace_config');
 
-    $this->setCurrentUser($this->createUser(['administer workspaces']));
+    $account = $this->createUser(['administer workspaces']);
+    \assert($account instanceof AccountInterface);
+    $this->setCurrentUser($account);
     Workspace::create(['id' => AutoSaveWorkspace::ID, 'label' => 'Canvas'])->save();
     $this->enableWorkspaceConfigKeyValueOverlay();
   }
