@@ -61,6 +61,28 @@
   color: var(--red-9);
 }
 
+/* Field-candidate picker trigger: a full-width button styled like a select
+   trigger, opening the nested field menu. */
+.fieldTrigger {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.fieldTriggerText {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fieldTriggerPlaceholder .fieldTriggerText {
+  color: var(--gray-a10);
+}
+
+.fieldTriggerIcon {
+  flex-shrink: 0;
+  color: var(--gray-9);
+}
+
 .previewRow {
   margin-block-start: var(--space-3);
   padding-block-start: var(--space-2);

@@ -129,6 +129,57 @@ export const humanizeInputName = (name: string): string => {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 };
 
+// The backend suggester joins the segments of a candidate's hierarchical
+// label with this exact separator (space, arrow, space), e.g.
+// "Image → Alternative text".
+// @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester::enrichSuggestion()
+export const CANDIDATE_LABEL_SEPARATOR = ' → ';
+
+// One node of the field-candidate menu tree. A node can be a selectable leaf
+// (has `candidate`), a submenu (has `children`), or both (a field that is
+// itself selectable and also has nested fields beneath it).
+export interface CandidateTreeNode {
+  label: string;
+  candidate?: SlotCandidate;
+  children?: CandidateTreeNode[];
+}
+
+// Builds a nested menu tree from flat candidates by splitting each candidate's
+// label on the path separator. Candidates that share a path prefix merge into
+// the same submenus rather than repeating the prefix.
+export const buildCandidateTree = (
+  candidates: SlotCandidate[],
+): CandidateTreeNode[] => {
+  const roots: CandidateTreeNode[] = [];
+  candidates.forEach((candidate) => {
+    const segments = candidate.label.split(CANDIDATE_LABEL_SEPARATOR);
+    let level = roots;
+    segments.forEach((segment, index) => {
+      let node = level.find((existing) => existing.label === segment);
+      if (!node) {
+        node = { label: segment };
+        level.push(node);
+      }
+      if (index === segments.length - 1) {
+        node.candidate = candidate;
+      } else {
+        if (!node.children) {
+          node.children = [];
+        }
+        level = node.children;
+      }
+    });
+  });
+  return roots;
+};
+
+// The last path segment of a candidate's label, used as the compact trigger
+// text while the full path is shown as the trigger's tooltip.
+export const candidateShortLabel = (label: string): string => {
+  const segments = label.split(CANDIDATE_LABEL_SEPARATOR);
+  return segments[segments.length - 1];
+};
+
 // The primary input carries the previous step's output when steps are
 // chained: it is the first `required` input in declaration order.
 export const getPrimaryInputName = (adapter: AdapterDefinition): string => {
