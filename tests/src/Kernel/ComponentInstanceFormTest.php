@@ -467,7 +467,23 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     // - The Component became invalid though.
     self::assertGreaterThan(0, $component->getTypedData()->validate()->count());
 
-    $response = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(), $component, json_decode('undefined'));
+    // The broken component instance must still be present in the layout API's
+    // `model`, exposing the previously stored inputs under `resolved`. Without
+    // this, the client would have a layout node with no corresponding model
+    // entry and would crash when opening its component instance form — the
+    // regression this issue is about.
+    // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::buildLayoutAndModel()
+    // @see https://www.drupal.org/project/canvas/issues/3558721
+    $layout = self::decodeResponse($this->request(Request::create($this->getLayoutUrl($page)->toString())));
+    self::assertArrayHasKey('5f18db31-fa2f-4f4e-a377-dc0c6a0b7dc4', $layout['model']);
+    self::assertEquals(
+      ['resolved' => $component->getSettings()['default_settings']],
+      $layout['model']['5f18db31-fa2f-4f4e-a377-dc0c6a0b7dc4'],
+    );
+
+    // The client sends the model it has for this component instance (the same
+    // `resolved` values exposed above), not `undefined`.
+    $response = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(), $component, ['resolved' => $component->getSettings()['default_settings']]);
     self::assertSame("Component is missing. Fix the component or copy values to a new component. $fyi", $response->text());
   }
 
@@ -521,7 +537,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
       ->getEditable($code_component->getConfigDependencyName())
       ->delete();
 
-    $response = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(), $component, json_decode('undefined'));
+    $response = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(), $component, ['resolved' => []]);
     self::assertSame('Component is missing. Fix the component or copy values to a new component. Previously stored input []', $response->text());
   }
 
@@ -581,11 +597,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
 
   }
 
-  private function getCrawlerForFormRequest(string $form_url, ComponentInterface $component_entity, ?array $form_canvas_props): Crawler {
-    // `$form_canvas_props` is nullable, so we can simulate the request having
-    // `undefined` as value, which happens when the inputs are empty on a
-    // missing component.
-    // @todo Make it not nullable in https://www.drupal.org/i/3558721
+  private function getCrawlerForFormRequest(string $form_url, ComponentInterface $component_entity, array $form_canvas_props): Crawler {
     $json = self::decodeResponse($this->request(Request::create($form_url, 'PATCH', [
       'form_canvas_tree' => json_encode([
         'nodeType' => 'component',
