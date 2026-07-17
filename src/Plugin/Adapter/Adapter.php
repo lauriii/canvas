@@ -67,7 +67,12 @@ class Adapter extends Plugin {
     if (($output === []) === ($outputMirrorsInputs === [])) {
       throw new \LogicException(\sprintf('The `%s` adapter must declare exactly one of `output` or `outputMirrorsInputs`.', $id));
     }
-    foreach (['outputMirrorsInputs' => $outputMirrorsInputs, 'requiredInputsWhenOutputRequired' => $requiredInputsWhenOutputRequired, 'emptyToleratingInputs' => $emptyToleratingInputs] as $list_name => $list) {
+    $input_name_lists = [
+      'outputMirrorsInputs' => $outputMirrorsInputs,
+      'requiredInputsWhenOutputRequired' => $requiredInputsWhenOutputRequired,
+      'emptyToleratingInputs' => $emptyToleratingInputs,
+    ];
+    foreach ($input_name_lists as $list_name => $list) {
       if (\array_diff($list, \array_keys($inputs)) !== []) {
         throw new \LogicException(\sprintf('The `%s` adapter declares unknown input names in `%s`.', $id, $list_name));
       }

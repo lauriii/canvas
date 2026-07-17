@@ -81,8 +81,9 @@ Build on the existing Adapter plugin system (adopt, not build):
    `default`) become required, and required inputs not declared
    `emptyToleratingInputs` offer only required fields as candidates — the
    same rule direct field matches follow. Evaluation independently rejects
-   unconfigured required inputs with a clear error, so a misconfigured
-   stored tree fails loudly instead of silently emptying a required prop.
+   required inputs that are not configured, with a clear error, so a
+   misconfigured stored tree fails loudly instead of silently emptying a
+   required prop.
 9. **No storage or config-schema structure changes**: adapted prop sources
    already serialize into component tree inputs, which live in exportable
    config entities, so deployability comes for free. One validation change
