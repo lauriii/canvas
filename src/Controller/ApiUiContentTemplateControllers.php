@@ -131,12 +131,16 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
       throw new BadRequestHttpException(\sprintf('The `%s` entity type is not fieldable.', $entity_type_id));
     }
 
+    // The array shape cannot be proven statically; PropSource::parse() throws
+    // on malformed input, which the catch below turns into a structured error.
+    /** @var array{sourceType: string} $candidate_source */
+    $candidate_source = $body['source'];
+
     try {
       // TRICKY: $is_required=FALSE: while configuring, intermediate states
       // (e.g. an optional field without a value) must preview as "no value"
       // rather than erroring.
-      // @phpstan-ignore argument.type (The array shape cannot be proven statically; PropSource::parse() throws on malformed input, which the catch below turns into a structured error.)
-      $result = PropSource::parse($body['source'])->evaluate($entity, is_required: FALSE);
+      $result = PropSource::parse($candidate_source)->evaluate($entity, is_required: FALSE);
     }
     catch (\Throwable $e) {
       // A structured error, not a 500: an in-progress configuration is often

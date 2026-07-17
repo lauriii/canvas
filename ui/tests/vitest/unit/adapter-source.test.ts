@@ -9,6 +9,7 @@ import {
   serializeMappingRows,
   sourceToSteps,
   stepsToSource,
+  supportsLiteralBinding,
 } from '@/components/form/components/drupal/adapterSource';
 
 import type {
@@ -106,7 +107,12 @@ const mappingSuggestion: AdapterSuggestion = {
     inputs: [
       makeSlot('value', true),
       makeSlot('cases', true, { candidates: [] }),
-      makeSlot('default', false),
+      // The default slot mirrors the target prop shape; its schema type
+      // drives the coercion of edited mapping case outputs.
+      makeSlot('default', false, {
+        mirrorsOutput: true,
+        schema: { type: 'integer' },
+      }),
     ],
   },
 };
@@ -220,6 +226,26 @@ describe('stepsToSource', () => {
         value: titleCandidate.source,
         cases: { ...stringStatic, value: '{"blue":"primary","red":"danger"}' },
       },
+    });
+  });
+
+  it('coerces new mapping rows through the mirrored output slot type', () => {
+    const step = createStep(mappingSuggestion);
+    step.bindings.value = {
+      mode: 'field',
+      enabled: true,
+      candidateId: titleCandidate.id,
+      source: titleCandidate.source,
+    };
+    // The fixture's `default` slot mirrors an integer output shape.
+    step.bindings.cases = {
+      mode: 'literal',
+      enabled: true,
+      rows: [{ key: 'blue', value: '1' }],
+    };
+    expect(stepsToSource([step])?.adapterInputs.cases).toEqual({
+      ...stringStatic,
+      value: '{"blue":1}',
     });
   });
 
@@ -340,9 +366,48 @@ describe('sourceToSteps', () => {
     };
     const steps = sourceToSteps(source, allSuggestions);
     expect(steps?.[0].bindings.cases.rows).toEqual([
-      { key: 'blue', value: 'primary' },
-      { key: 'red', value: 'danger' },
+      { key: 'blue', value: 'primary', originalValue: 'primary' },
+      { key: 'red', value: 'danger', originalValue: 'danger' },
     ]);
+    expect(stepsToSource(steps!)).toEqual(source);
+  });
+
+  it('round-trips typed mapping case outputs without losing their types', () => {
+    const source = {
+      sourceType: 'adapter:mapping',
+      adapterInputs: {
+        value: titleCandidate.source,
+        cases: { ...stringStatic, value: '{"1":1,"flag":true}' },
+      },
+    };
+    const steps = sourceToSteps(source, allSuggestions);
+    expect(steps?.[0].bindings.cases.rows).toEqual([
+      { key: '1', value: '1', originalValue: 1 },
+      { key: 'flag', value: 'true', originalValue: true },
+    ]);
+    // Unedited rows keep their original typed values.
+    expect(stepsToSource(steps!)).toEqual(source);
+  });
+
+  it('preserves a static source written from a different template verbatim', () => {
+    const integerStaticSource = {
+      sourceType: 'static:field_item:integer',
+      expression: 'ℹ︎integer␟value',
+      value: 5,
+    };
+    // The equals `comparison` slot accepts anything but its static template
+    // is a string: decoding this as a literal would turn the integer into a string.
+    const source = {
+      sourceType: 'adapter:equals',
+      adapterInputs: {
+        value: titleCandidate.source,
+        comparison: integerStaticSource,
+        then: { ...stringStatic, value: 'Free' },
+      },
+    };
+    const steps = sourceToSteps(source, allSuggestions);
+    expect(steps?.[0].bindings.comparison.mode).toBe('field');
+    expect(steps?.[0].bindings.comparison.source).toEqual(integerStaticSource);
     expect(stepsToSource(steps!)).toEqual(source);
   });
 
@@ -408,13 +473,87 @@ describe('mapping rows helpers', () => {
 
   it('parses a JSON object string into rows', () => {
     expect(parseMappingRows('{"blue":"primary"}')).toEqual([
-      { key: 'blue', value: 'primary' },
+      { key: 'blue', value: 'primary', originalValue: 'primary' },
     ]);
+  });
+
+  it('coerces edited or new case outputs to the mirrored output type', () => {
+    expect(serializeMappingRows([{ key: 'a', value: '2' }], 'integer')).toBe(
+      '{"a":2}',
+    );
+    // Values the type cannot represent stay strings.
+    expect(serializeMappingRows([{ key: 'a', value: 'x' }], 'integer')).toBe(
+      '{"a":"x"}',
+    );
+    expect(serializeMappingRows([{ key: 'a', value: 'true' }], 'boolean')).toBe(
+      '{"a":true}',
+    );
+    expect(serializeMappingRows([{ key: 'a', value: '2.5' }], 'number')).toBe(
+      '{"a":2.5}',
+    );
+    // Without an output type the value stays a string.
+    expect(serializeMappingRows([{ key: 'a', value: '2' }])).toBe('{"a":"2"}');
+  });
+
+  it('keeps the original typed value for unedited rows only', () => {
+    expect(
+      serializeMappingRows([{ key: 'a', value: '1', originalValue: 1 }]),
+    ).toBe('{"a":1}');
+    // An edited row no longer matches its original value and is re-coerced.
+    expect(
+      serializeMappingRows(
+        [{ key: 'a', value: '2', originalValue: 1 }],
+        'integer',
+      ),
+    ).toBe('{"a":2}');
   });
 
   it('falls back to a single empty row for invalid input', () => {
     expect(parseMappingRows('not json')).toEqual([{ key: '', value: '' }]);
     expect(parseMappingRows(null)).toEqual([{ key: '', value: '' }]);
     expect(parseMappingRows('[]')).toEqual([{ key: '', value: '' }]);
+  });
+});
+
+describe('supportsLiteralBinding', () => {
+  it('rejects slots without a static template', () => {
+    expect(supportsLiteralBinding(makeSlot('x', true, { static: null }))).toBe(
+      false,
+    );
+  });
+
+  it('rejects object- and array-shaped slots', () => {
+    expect(
+      supportsLiteralBinding(
+        makeSlot('x', true, { schema: { type: 'object' } }),
+      ),
+    ).toBe(false);
+    expect(
+      supportsLiteralBinding(
+        makeSlot('x', true, { schema: { type: 'array' } }),
+      ),
+    ).toBe(false);
+    expect(
+      supportsLiteralBinding(
+        makeSlot('x', true, {
+          schema: { $ref: 'json-schema-definitions://canvas.module/image' },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('accepts primitive and "any" shapes', () => {
+    // A null schema means any value is accepted.
+    expect(supportsLiteralBinding(makeSlot('x', true))).toBe(true);
+    expect(
+      supportsLiteralBinding(
+        makeSlot('x', true, { schema: { type: 'string' } }),
+      ),
+    ).toBe(true);
+    expect(
+      supportsLiteralBinding(
+        makeSlot('x', true, { schema: { type: 'boolean' } }),
+      ),
+    ).toBe(true);
   });
 });
