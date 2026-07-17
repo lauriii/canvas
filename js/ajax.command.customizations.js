@@ -122,11 +122,17 @@
 
     let fetchHref = styleSheetData.href;
 
+    // A URL is already absolute if it is protocol-relative (`//host/path`) or
+    // carries its own scheme (`https:`, `data:`, and so on). Only truly
+    // relative or root-relative paths need to be resolved against the site.
+    // Checking against `window.location.protocol` alone is not enough: it
+    // treats protocol-relative and cross-protocol URLs (such as a CDN
+    // stylesheet referenced with `//` or `https:` on an HTTP page) as relative
+    // and mangles them into broken same-origin URLs.
+    const isAbsoluteHref = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(fetchHref);
+
     // Check if the href is relative and needs the path processed.
-    if (
-      !fetchHref.startsWith(window.location.protocol) &&
-      styleSheetData?.processPaths
-    ) {
+    if (!isAbsoluteHref && styleSheetData?.processPaths) {
       // If it begins with a slash, remove so baseUrl can be used instead.
       if (fetchHref.startsWith('/')) {
         fetchHref = styleSheetData.href.substring(1);
