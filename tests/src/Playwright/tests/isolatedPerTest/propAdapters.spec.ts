@@ -109,4 +109,57 @@ test.describe('Prop adapters', () => {
     await page.goto('/article-one');
     await expect(page.locator('h1.my-hero__heading')).toHaveText('Article One');
   });
+
+  test('Configure a Combine transform with the pill editor', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    test.slow();
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.openCanvasRoot();
+    await canvas.openTemplatesPanel();
+
+    await canvas.addTemplate('Article', 'Full content');
+    await page.getByTestId('template-list-item-article-Full content').click();
+    expect(page.url()).toContain('canvas/template/node/article/full/1');
+    await canvas.openLibraryPanel();
+    await canvas.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
+
+    // Open the heading prop linker and pick the "Combine" transform.
+    await page.getByLabel('Link heading to an other field').click();
+    await page.locator('[data-transform-option="combine"]').click();
+
+    const panel = page.getByTestId('adapter-config-panel');
+    await expect(panel).toBeVisible();
+
+    // The Combine editor is a token/pill editor, not per-slot rows: type a
+    // literal prefix, then insert the Title field as a pill.
+    const editor = panel.getByTestId('combine-editor');
+    await expect(editor).toBeVisible();
+    await editor.getByRole('textbox').first().fill('Re: ');
+    await panel.getByTestId('combine-insert-field').click();
+    await page.getByRole('menuitem', { name: 'Title', exact: true }).click();
+
+    // The pill renders and the live preview concatenates literal + field.
+    await expect(editor.getByText('Title', { exact: true })).toBeVisible();
+    await expect(panel.getByTestId('adapter-preview')).toContainText(
+      'Re: Article One',
+    );
+
+    await page.getByTestId('adapter-apply').click();
+    await expect(panel).toBeHidden();
+
+    await expect(page.getByTestId('linked-field-label-heading')).toContainText(
+      'Combine',
+    );
+    // The editor preview re-renders with the combined value. (The full
+    // publish-and-render pipeline is already covered by the Equals test.)
+    await canvas.testInPreviewFrame(
+      '[data-component-id="canvas_test_sdc:my-hero"] h1',
+      async (h1) => {
+        await expect(h1).toContainText('Re: Article One');
+      },
+    );
+  });
 });

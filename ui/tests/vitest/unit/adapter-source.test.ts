@@ -4,6 +4,10 @@ import {
   BRIDGING_ADAPTER_IDS,
   buildCandidateTree,
   candidateShortLabel,
+  COMBINE_MAX_PARTS,
+  combineHasContent,
+  combinePartsToInputs,
+  combineSourceToParts,
   createStep,
   createStepWithPrimaryField,
   getPrimaryInputName,
@@ -20,6 +24,7 @@ import {
 import type {
   AdapterInputSlot,
   AdapterSuggestion,
+  CombinePart,
   SlotCandidate,
 } from '@/components/form/components/drupal/adapterSource';
 
@@ -269,29 +274,32 @@ describe('stepsToSource', () => {
     });
   });
 
-  it('serializes combine with three texts and omits the empty separator', () => {
+  it('serializes a combine step from its pill-editor parts', () => {
     const step = createStep(combineSuggestion);
-    step.bindings.text_1 = {
-      mode: 'field',
-      enabled: true,
-      candidateId: titleCandidate.id,
-      source: titleCandidate.source,
-    };
-    step.bindings.text_2 = { mode: 'literal', enabled: true, value: 'and' };
-    step.bindings.text_3 = {
-      mode: 'field',
-      enabled: true,
-      candidateId: altCandidate.id,
-      source: altCandidate.source,
-    };
-    // The separator is left unset: the server default (a single space)
-    // applies.
+    // The pill editor: a field, literal text, then another field.
+    step.parts = [
+      {
+        kind: 'field',
+        label: 'Title',
+        source: titleCandidate.source,
+        candidateId: titleCandidate.id,
+      },
+      { kind: 'text', text: 'and' },
+      {
+        kind: 'field',
+        label: 'Alternative text',
+        source: altCandidate.source,
+        candidateId: altCandidate.id,
+      },
+    ];
+    // An explicit empty separator is emitted so the parts concatenate directly.
     expect(stepsToSource([step])).toEqual({
       sourceType: 'adapter:combine',
       adapterInputs: {
         text_1: titleCandidate.source,
         text_2: { ...stringStatic, value: 'and' },
         text_3: altCandidate.source,
+        separator: { ...stringStatic, value: '' },
       },
     });
   });
@@ -431,18 +439,33 @@ describe('sourceToSteps', () => {
     expect(stepsToSource(steps!)).toEqual(source);
   });
 
-  it('round-trips combine with three texts', () => {
+  it('round-trips combine through pill-editor parts', () => {
     const source = {
       sourceType: 'adapter:combine',
       adapterInputs: {
         text_1: titleCandidate.source,
         text_2: { ...stringStatic, value: 'and' },
         text_3: altCandidate.source,
+        separator: { ...stringStatic, value: '' },
       },
     };
     const steps = sourceToSteps(source, allSuggestions);
-    expect(steps?.[0].bindings.text_3.enabled).toBe(true);
-    expect(steps?.[0].bindings.text_4.enabled).toBe(false);
+    // Combine reconstructs pill-editor parts rather than per-slot bindings.
+    expect(steps?.[0].parts).toEqual([
+      {
+        kind: 'field',
+        label: 'Title',
+        source: titleCandidate.source,
+        candidateId: titleCandidate.id,
+      },
+      { kind: 'text', text: 'and' },
+      {
+        kind: 'field',
+        label: 'Alternative text',
+        source: altCandidate.source,
+        candidateId: altCandidate.id,
+      },
+    ]);
     expect(stepsToSource(steps!)).toEqual(source);
   });
 
@@ -709,5 +732,193 @@ describe('buildCandidateTree', () => {
         ],
       },
     ]);
+  });
+});
+
+describe('combine pill editor helpers', () => {
+  const combineSlots = combineSuggestion.adapter.inputs;
+  const textStatic = (value: string) => ({ ...stringStatic, value });
+  const titlePill: CombinePart = {
+    kind: 'field',
+    label: 'Title',
+    source: titleCandidate.source,
+    candidateId: titleCandidate.id,
+  };
+  const altPill: CombinePart = {
+    kind: 'field',
+    label: 'Alternative text',
+    source: altCandidate.source,
+    candidateId: altCandidate.id,
+  };
+
+  describe('combinePartsToInputs', () => {
+    it('maps text plus one pill and skips the empty trailing run', () => {
+      const parts: CombinePart[] = [
+        { kind: 'text', text: 'Hello ' },
+        titlePill,
+        { kind: 'text', text: '' },
+      ];
+      expect(combinePartsToInputs(parts, combineSlots)).toEqual({
+        text_1: textStatic('Hello '),
+        text_2: titleCandidate.source,
+        // Empty separator so the parts concatenate directly.
+        separator: textStatic(''),
+      });
+    });
+
+    it('maps multiple pills with text between them', () => {
+      const parts: CombinePart[] = [
+        titlePill,
+        { kind: 'text', text: ' and ' },
+        altPill,
+      ];
+      expect(combinePartsToInputs(parts, combineSlots)).toEqual({
+        text_1: titleCandidate.source,
+        text_2: textStatic(' and '),
+        text_3: altCandidate.source,
+        separator: textStatic(''),
+      });
+    });
+
+    it('keeps leading and trailing text runs', () => {
+      const parts: CombinePart[] = [
+        { kind: 'text', text: 'A' },
+        titlePill,
+        { kind: 'text', text: 'B' },
+      ];
+      const inputs = combinePartsToInputs(parts, combineSlots);
+      expect(inputs.text_1).toEqual(textStatic('A'));
+      expect(inputs.text_2).toEqual(titleCandidate.source);
+      expect(inputs.text_3).toEqual(textStatic('B'));
+    });
+
+    it('skips empty text runs entirely', () => {
+      const parts: CombinePart[] = [
+        { kind: 'text', text: '' },
+        titlePill,
+        { kind: 'text', text: '' },
+      ];
+      expect(combinePartsToInputs(parts, combineSlots)).toEqual({
+        text_1: titleCandidate.source,
+        separator: textStatic(''),
+      });
+    });
+
+    it('caps the emitted parts at text_1…text_10', () => {
+      const parts: CombinePart[] = Array.from({ length: 12 }, () => titlePill);
+      const inputs = combinePartsToInputs(parts, combineSlots);
+      const textKeys = Object.keys(inputs).filter((key) =>
+        key.startsWith('text_'),
+      );
+      expect(textKeys).toHaveLength(COMBINE_MAX_PARTS);
+      expect(inputs.text_10).toEqual(titleCandidate.source);
+      expect(inputs.text_11).toBeUndefined();
+    });
+
+    it('places a leading source first when combine is a chained step', () => {
+      const previous = { sourceType: 'adapter:equals', adapterInputs: {} };
+      const parts: CombinePart[] = [{ kind: 'text', text: '!' }];
+      expect(combinePartsToInputs(parts, combineSlots, previous)).toEqual({
+        text_1: previous,
+        text_2: textStatic('!'),
+        separator: textStatic(''),
+      });
+    });
+  });
+
+  describe('combineSourceToParts', () => {
+    it('reconstructs text runs and pills, resolving pill labels', () => {
+      const source = {
+        sourceType: 'adapter:combine',
+        adapterInputs: {
+          text_1: textStatic('Hello '),
+          text_2: titleCandidate.source,
+          separator: textStatic(''),
+        },
+      };
+      expect(combineSourceToParts(source, combineSlots)).toEqual([
+        { kind: 'text', text: 'Hello ' },
+        {
+          kind: 'field',
+          label: 'Title',
+          source: titleCandidate.source,
+          candidateId: titleCandidate.id,
+        },
+      ]);
+    });
+
+    it('shows a generic pill for a source matching no candidate', () => {
+      const opaque = { sourceType: 'entity-field', expression: 'unknown' };
+      const source = {
+        sourceType: 'adapter:combine',
+        adapterInputs: { text_1: opaque },
+      };
+      expect(combineSourceToParts(source, combineSlots)).toEqual([
+        {
+          kind: 'field',
+          label: 'Field',
+          source: opaque,
+          candidateId: undefined,
+        },
+      ]);
+    });
+
+    it('skips text_1 when combine is a chained step', () => {
+      const source = {
+        sourceType: 'adapter:combine',
+        adapterInputs: {
+          text_1: { sourceType: 'adapter:equals', adapterInputs: {} },
+          text_2: textStatic('!'),
+        },
+      };
+      expect(combineSourceToParts(source, combineSlots, true)).toEqual([
+        { kind: 'text', text: '!' },
+      ]);
+    });
+
+    it('round-trips stored → parts → stored', () => {
+      const parts: CombinePart[] = [
+        { kind: 'text', text: 'Price: ' },
+        titlePill,
+        { kind: 'text', text: ' now' },
+        altPill,
+      ];
+      const stored = combinePartsToInputs(parts, combineSlots);
+      const source = { sourceType: 'adapter:combine', adapterInputs: stored };
+      const reconstructed = combineSourceToParts(source, combineSlots);
+      expect(combinePartsToInputs(reconstructed, combineSlots)).toEqual(stored);
+    });
+  });
+
+  describe('combine completeness', () => {
+    it('seeds a fresh combine step with a single empty text part', () => {
+      const step = createStep(combineSuggestion);
+      expect(step.parts).toEqual([{ kind: 'text', text: '' }]);
+    });
+
+    it('is incomplete with no non-empty part and complete once filled', () => {
+      const step = createStep(combineSuggestion);
+      expect(combineHasContent(step.parts ?? [])).toBe(false);
+      expect(isStepComplete(step, 0)).toBe(false);
+      expect(isChainComplete([step])).toBe(false);
+
+      step.parts = [{ kind: 'text', text: 'Hi' }];
+      expect(combineHasContent(step.parts)).toBe(true);
+      expect(isStepComplete(step, 0)).toBe(true);
+      expect(isChainComplete([step])).toBe(true);
+    });
+
+    it('serializes a configured combine step through stepsToSource', () => {
+      const step = createStep(combineSuggestion);
+      step.parts = [{ kind: 'text', text: 'Hello ' }, titlePill];
+      expect(stepsToSource([step])).toEqual({
+        sourceType: 'adapter:combine',
+        adapterInputs: {
+          text_1: textStatic('Hello '),
+          text_2: titleCandidate.source,
+          separator: textStatic(''),
+        },
+      });
+    });
   });
 });

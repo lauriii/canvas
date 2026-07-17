@@ -96,14 +96,39 @@ export interface SlotBinding {
   rows?: MappingRow[];
 }
 
+// One part of the combine pill editor's ordered content: a literal text run
+// or an inline field reference (pill).
+export type CombinePart =
+  | { kind: 'text'; text: string }
+  | {
+      kind: 'field';
+      // Display label for the pill (short field name).
+      label: string;
+      // The prop source written verbatim for this field.
+      source: PropSource;
+      // The matching candidate id, when the source corresponds to one of the
+      // slot's candidates.
+      candidateId?: string;
+    };
+
 // One step of the transform chain as edited in the panel.
 export interface AdapterStep {
   label: string;
   adapter: AdapterDefinition;
   bindings: Record<string, SlotBinding>;
+  // Only the combine adapter uses this: the ordered text/field parts edited in
+  // the pill editor. When present it is the source of truth for the step's
+  // serialization (its `bindings` are unused).
+  parts?: CombinePart[];
 }
 
 const ADAPTER_SOURCE_TYPE_PREFIX = 'adapter:';
+
+// combine exposes text_1…text_10, so a combined value can hold at most 10
+// parts.
+export const COMBINE_MAX_PARTS = 10;
+
+const COMBINE_TEXT_SLOT_PATTERN = /^text_\d+$/;
 
 export const isAdaptedSource = (
   source: unknown,
@@ -314,16 +339,115 @@ export const defaultBindingForSlot = (
   return binding;
 };
 
-export const createStep = (suggestion: AdapterSuggestion): AdapterStep => ({
-  label: suggestion.label,
-  adapter: suggestion.adapter,
-  bindings: Object.fromEntries(
-    suggestion.adapter.inputs.map((slot) => [
-      slot.name,
-      defaultBindingForSlot(suggestion.adapter.id, slot),
-    ]),
-  ),
-});
+export const createStep = (suggestion: AdapterSuggestion): AdapterStep => {
+  const step: AdapterStep = {
+    label: suggestion.label,
+    adapter: suggestion.adapter,
+    bindings: Object.fromEntries(
+      suggestion.adapter.inputs.map((slot) => [
+        slot.name,
+        defaultBindingForSlot(suggestion.adapter.id, slot),
+      ]),
+    ),
+  };
+  // The combine adapter is edited as a pill editor rather than per-slot rows;
+  // it starts with a single empty text run to type into.
+  if (suggestion.adapter.id === 'combine') {
+    step.parts = [{ kind: 'text', text: '' }];
+  }
+  return step;
+};
+
+// The static template shared by combine's text_1…text_10 inputs, used to write
+// literal text runs.
+const combineTextStatic = (
+  slots: AdapterInputSlot[],
+): StaticSlotTemplate | null =>
+  slots.find((slot) => COMBINE_TEXT_SLOT_PATTERN.test(slot.name))?.static ??
+  null;
+
+// Maps the ordered pill-editor parts to combine's text_1…text_10 inputs plus
+// an empty separator (so the parts concatenate directly). Empty text runs are
+// skipped, and no more than the 10 available slots are emitted. When
+// `leadingSource` is provided (combine used as a later step in a chain), it
+// occupies text_1 and the parts fill text_2 onward.
+export const combinePartsToInputs = (
+  parts: CombinePart[],
+  slots: AdapterInputSlot[],
+  leadingSource?: PropSource,
+): Record<string, PropSource> => {
+  const textStatic = combineTextStatic(slots);
+  const ordered: PropSource[] = [];
+  if (leadingSource) {
+    ordered.push(leadingSource);
+  }
+  parts.forEach((part) => {
+    if (part.kind === 'text') {
+      if (part.text === '' || textStatic === null) {
+        return;
+      }
+      ordered.push({ ...textStatic, value: part.text });
+    } else {
+      ordered.push(part.source);
+    }
+  });
+  const inputs: Record<string, PropSource> = {};
+  ordered.slice(0, COMBINE_MAX_PARTS).forEach((source, index) => {
+    inputs[`text_${index + 1}`] = source;
+  });
+  // An explicit empty separator so the parts concatenate directly (the server
+  // default would otherwise insert a single space).
+  const separatorStatic = slots.find(
+    (slot) => slot.name === 'separator',
+  )?.static;
+  if (separatorStatic) {
+    inputs.separator = { ...separatorStatic, value: '' };
+  }
+  return inputs;
+};
+
+// Reconstructs the ordered pill-editor parts from a stored combine source:
+// text_1…text_10 read in order, a static input becomes a literal text run and
+// any other source becomes a field pill (its label resolved from the text
+// slot's candidates, falling back to a generic label while preserving the
+// source). When `skipPrimary` is true (combine used as a later chain step),
+// text_1 holds the previous step's output and is not part of the editor.
+export const combineSourceToParts = (
+  source: AdaptedPropSource,
+  slots: AdapterInputSlot[],
+  skipPrimary = false,
+): CombinePart[] => {
+  const candidates =
+    slots.find((slot) => COMBINE_TEXT_SLOT_PATTERN.test(slot.name))
+      ?.candidates ?? [];
+  const parts: CombinePart[] = [];
+  for (let index = 1; index <= COMBINE_MAX_PARTS; index++) {
+    if (index === 1 && skipPrimary) {
+      continue;
+    }
+    const input = source.adapterInputs?.[`text_${index}`];
+    if (input === undefined) {
+      continue;
+    }
+    const sourceType =
+      typeof input.sourceType === 'string' ? input.sourceType : '';
+    if (sourceType.startsWith('static:')) {
+      parts.push({ kind: 'text', text: String(input.value ?? '') });
+    } else {
+      const inputJson = JSON.stringify(input);
+      const candidate = candidates.find(
+        (item) => JSON.stringify(item.source) === inputJson,
+      );
+      parts.push({
+        kind: 'field',
+        label: candidate ? candidateShortLabel(candidate.label) : 'Field',
+        source: input,
+        candidateId: candidate?.id,
+      });
+    }
+  }
+  return parts;
+};
 
 // The curated set of adapters offered inline as transform-enabled field
 // suggestions (each bridges an otherwise-incompatible field to the prop:
@@ -389,10 +513,21 @@ export const serializeSlot = (
   return { ...slot.static, value };
 };
 
+// Whether a combine step has content: at least one non-empty part so text_1
+// resolves to something non-empty (a later chain step already has text_1 fed
+// by the previous step).
+export const combineHasContent = (parts: CombinePart[]): boolean =>
+  parts.some((part) => (part.kind === 'text' ? part.text !== '' : true));
+
 export const isStepComplete = (
   step: AdapterStep,
   stepIndex: number,
 ): boolean => {
+  if (step.adapter.id === 'combine') {
+    // A later chain step already has text_1 fed by the previous step; the
+    // first step needs at least one non-empty part.
+    return stepIndex > 0 || combineHasContent(step.parts ?? []);
+  }
   const primary = getPrimaryInputName(step.adapter);
   return step.adapter.inputs.every((slot) => {
     if (!slot.required) {
@@ -421,23 +556,35 @@ export const stepsToSource = (
   let current: AdaptedPropSource | null = null;
   steps.forEach((step, index) => {
     const primary = getPrimaryInputName(step.adapter);
-    const adapterInputs: Record<string, PropSource> = {};
-    step.adapter.inputs.forEach((slot) => {
-      if (index > 0 && slot.name === primary) {
-        if (current) {
-          adapterInputs[slot.name] = current;
-        }
-        return;
-      }
-      const serialized = serializeSlot(
-        step.adapter,
-        slot,
-        step.bindings[slot.name],
+    let adapterInputs: Record<string, PropSource>;
+    if (step.adapter.id === 'combine') {
+      // Combine is serialized from its pill-editor parts. As a later chain
+      // step, the previous step's output leads (occupying text_1).
+      const leadingSource = index > 0 ? (current ?? undefined) : undefined;
+      adapterInputs = combinePartsToInputs(
+        step.parts ?? [],
+        step.adapter.inputs,
+        leadingSource,
       );
-      if (serialized !== null) {
-        adapterInputs[slot.name] = serialized;
-      }
-    });
+    } else {
+      adapterInputs = {};
+      step.adapter.inputs.forEach((slot) => {
+        if (index > 0 && slot.name === primary) {
+          if (current) {
+            adapterInputs[slot.name] = current;
+          }
+          return;
+        }
+        const serialized = serializeSlot(
+          step.adapter,
+          slot,
+          step.bindings[slot.name],
+        );
+        if (serialized !== null) {
+          adapterInputs[slot.name] = serialized;
+        }
+      });
+    }
     current = {
       sourceType: `${ADAPTER_SOURCE_TYPE_PREFIX}${step.adapter.id}`,
       adapterInputs,
@@ -530,6 +677,17 @@ export const sourceToSteps = (
   layers.reverse();
   return layers.map(({ suggestion, source: layerSource }, index) => {
     const step = createStep(suggestion);
+    // Combine reconstructs its pill-editor parts rather than per-slot
+    // bindings. As a later chain step, text_1 holds the previous step's
+    // output and is not part of the editor.
+    if (suggestion.adapter.id === 'combine') {
+      step.parts = combineSourceToParts(
+        layerSource,
+        suggestion.adapter.inputs,
+        index > 0,
+      );
+      return step;
+    }
     const primary = getPrimaryInputName(suggestion.adapter);
     suggestion.adapter.inputs.forEach((slot) => {
       // Primary inputs of steps after the first hold the previous step's
