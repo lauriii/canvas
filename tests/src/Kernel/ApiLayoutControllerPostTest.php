@@ -12,6 +12,7 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\MemoryCache\MemoryCacheInterface;
@@ -32,6 +33,7 @@ use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
  * @legacy-covers \Drupal\canvas\Controller\ApiLayoutController::post
@@ -367,6 +369,104 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $stored = PageVariant::load($entity->id());
     self::assertInstanceOf(PageVariant::class, $stored);
     self::assertCount(1, $stored->getComponentTree());
+  }
+
+  /**
+   * A page variant edit must not leak into another page variant.
+   *
+   * The editor's layout and model live in a store shared across entities and a
+   * save derives its target variant from the current route, so a save issued
+   * while a *different* variant's model is still shown would otherwise
+   * overwrite the routed variant with the other variant's tree. Each variant
+   * carries exactly one "Page content" marker whose instance UUID is its
+   * stable identity, so the server rejects a whole-tree save whose marker does
+   * not match the routed variant.
+   *
+   * This is the server-side, defense-in-depth analogue of the exposed-slots
+   * isolation in MR !1359 (per-entity edits cannot mutate the shared template):
+   * a mis-routed variant save is unexpressable regardless of client behavior.
+   *
+   * @see \Drupal\canvas\Controller\ApiLayoutController::post()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+   */
+  public function testEditDoesNotLeakIntoAnotherVariant(): void {
+    $marker = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $marker);
+
+    // Two independent variants, each seeded with its own "Page content" marker
+    // (distinct instance UUIDs).
+    $alpha = PageVariant::create([
+      'id' => 'alpha',
+      'label' => 'Alpha',
+      'component_tree' => [
+        [
+          'uuid' => '11111111-1111-4111-8111-111111111111',
+          'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+          'component_version' => $marker->getActiveVersion(),
+          'inputs' => [],
+        ],
+      ],
+    ]);
+    $alpha->save();
+    $beta = PageVariant::create([
+      'id' => 'beta',
+      'label' => 'Beta',
+      'component_tree' => [
+        [
+          'uuid' => '22222222-2222-4222-8222-222222222222',
+          'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+          'component_version' => $marker->getActiveVersion(),
+          'inputs' => [],
+        ],
+      ],
+    ]);
+    $beta->save();
+
+    $this->setUpCurrentUser([], [PageVariant::ADMIN_PERMISSION]);
+
+    // Build Alpha's edited tree (its marker plus a distinctive heading). This
+    // is the stale model the shared store still holds after navigating to Beta.
+    $alpha_json = self::decodeResponse($this->parentRequest(Request::create($this->getLayoutUrl($alpha)->toString())));
+    $heading_uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
+    $alpha_json['model'][$heading_uuid] = self::getNewHeadingComponentModel();
+    $alpha_json['layout'][0]['components'][] = [
+      'nodeType' => 'component',
+      'uuid' => $heading_uuid,
+      'type' => 'sdc.canvas_test_sdc.heading@8c01a2bdb897a810',
+      'slots' => [],
+    ];
+    // Drop the GET-only fields, including Alpha's `autoSaves` envelope: the
+    // save is routed at Beta and must carry Beta's own envelope (below), which
+    // is exactly what a stale client derives from the current route while the
+    // shared store still holds Alpha's layout and model.
+    unset($alpha_json['isNew'], $alpha_json['isPublished'], $alpha_json['hasUnsavedStatusChange'], $alpha_json['html'], $alpha_json['translations'], $alpha_json['autoSaves']);
+
+    // Route the save at Beta, carrying Beta's own (empty) auto-save envelope so
+    // the concurrency check passes — the mid-load window after navigating from
+    // Alpha to Beta.
+    $leaked = $alpha_json + $this->getPostContentsDefaults($beta);
+    $beta_url = $this->getLayoutUrl($beta)->toString();
+
+    try {
+      $this->request(Request::create($beta_url, method: 'POST', content: \json_encode($leaked, JSON_THROW_ON_ERROR)));
+      $this->fail('Expected the mis-routed page variant save to be rejected.');
+    }
+    catch (ConflictHttpException $exception) {
+      self::assertStringContainsString('page variant', $exception->getMessage());
+    }
+
+    // Beta received nothing: no auto-save, and its stored tree still holds only
+    // its own marker. Alpha's heading never reached Beta.
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    self::assertTrue($autoSave->getAutoSaveEntity($beta)->isEmpty());
+    $stored_beta = PageVariant::load('beta');
+    self::assertInstanceOf(PageVariant::class, $stored_beta);
+    self::assertCount(1, $stored_beta->getComponentTree());
+    foreach ($stored_beta->getComponentTree() as $item) {
+      self::assertSame(Marker::PAGE_CONTENT_COMPONENT_ID, $item->getComponentId());
+      self::assertSame('22222222-2222-4222-8222-222222222222', $item->getUuid());
+    }
   }
 
   #[DataProvider('providerCanvasTestSetupTreeEntityTypes')]

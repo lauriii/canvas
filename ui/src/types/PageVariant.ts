@@ -4,6 +4,10 @@ export interface PageVariantComponentTreeItem {
   uuid: string;
   component_id: string;
   component_version: string;
+  // Present on nested instances: the UUID of the parent component and the name
+  // of the parent slot the instance lives in. Root instances omit both.
+  parent_uuid?: string;
+  slot?: string;
   // Markers carry no inputs, so this is an empty list, but other components
   // store a keyed map of resolved inputs.
   inputs: Record<string, unknown> | unknown[];

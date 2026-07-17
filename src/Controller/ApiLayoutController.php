@@ -15,7 +15,9 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\PageVariantResolver;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Render\PreviewEnvelope;
 use Drupal\canvas\Storage\ComponentTreeLoader;
@@ -37,6 +39,7 @@ use GuzzleHttp\Psr7\Query;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -489,6 +492,26 @@ final class ApiLayoutController {
     // previously saved values from e.g. another user are respected.
     $entity = $this->getAutoSavedVersionIfAvailable([$entity])[$entity->id()];
 
+    // A page variant whole-tree save must modify only the routed variant. The
+    // editor's model store is shared across entities and this save targets the
+    // routed variant, so a save carrying a *different* variant's tree (e.g. a
+    // stale model left over from navigating between variants while the new one
+    // loaded) would otherwise overwrite the routed variant with that other
+    // variant's content. Every valid variant tree carries exactly one intrinsic
+    // "Page content" marker whose instance UUID is its stable identity, so a
+    // submitted tree whose marker does not match this variant's is a mis-routed
+    // save and is rejected before anything is written. This mirrors the
+    // exposed-slots isolation, which likewise makes editing one surface unable
+    // to mutate a shared one.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\PageVariantHasContentMarkerConstraint
+    if ($entity instanceof PageVariant) {
+      $expected_marker = self::pageContentMarkerUuid($entity->getComponentTree());
+      if ($expected_marker !== NULL && self::submittedPageContentMarkerUuids($main_content_layout) !== [$expected_marker]) {
+        throw new ConflictHttpException('The submitted layout does not belong to this page variant; please refresh your browser.');
+      }
+    }
+
     // Update the entity & auto-save it. This can update both:
     // - the component tree in the entity (using `layout` and `model`)
     // - the fields in the entity, if any (using `entity_form_fields`)
@@ -658,6 +681,55 @@ final class ApiLayoutController {
       }
     }
     throw new NotFoundHttpException('No such component in model: ' . $componentInstanceUuid);
+  }
+
+  /**
+   * The instance UUID of a component tree's "Page content" marker, if any.
+   *
+   * A valid page variant tree carries exactly one marker; this returns its
+   * stable instance UUID (the variant's identity), or NULL when no marker is
+   * present.
+   *
+   * @param \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList $tree
+   *   A stored component tree.
+   */
+  private static function pageContentMarkerUuid(ComponentTreeItemList $tree): ?string {
+    foreach ($tree as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      if ($item->getComponentId() === Marker::PAGE_CONTENT_COMPONENT_ID) {
+        return $item->getUuid();
+      }
+    }
+    return NULL;
+  }
+
+  /**
+   * Collects the "Page content" marker UUIDs in a client-side layout node.
+   *
+   * Walks a client-side region/component/slot node recursively. A marker is a
+   * component node whose type is the marker component id (optionally suffixed
+   * with a version). Returns every match so an unexpected count (zero, or more
+   * than one) also fails the identity check in ::post().
+   *
+   * @param array $node
+   *   A client-side layout node (region, component, or slot).
+   *
+   * @return array<int, string>
+   *   The marker instance UUIDs found, in encounter order.
+   */
+  private static function submittedPageContentMarkerUuids(array $node): array {
+    $uuids = [];
+    if (($node['nodeType'] ?? NULL) === 'component'
+      && \explode('@', (string) ($node['type'] ?? ''))[0] === Marker::PAGE_CONTENT_COMPONENT_ID) {
+      $uuids[] = (string) ($node['uuid'] ?? '');
+    }
+    // Region and slot nodes carry 'components'; component nodes carry 'slots'.
+    foreach ((array) ($node['components'] ?? $node['slots'] ?? []) as $child) {
+      if (\is_array($child)) {
+        $uuids = \array_merge($uuids, self::submittedPageContentMarkerUuids($child));
+      }
+    }
+    return $uuids;
   }
 
   /**

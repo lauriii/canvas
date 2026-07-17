@@ -107,20 +107,38 @@ interface BuildDuplicateVariantArgs {
   label?: string;
 }
 
-// Builds the POST body that duplicates an existing variant. The source tree is
-// copied verbatim (it already contains a valid marker), so this never needs the
-// marker version.
+// Builds the POST body that duplicates an existing variant. The source tree
+// already contains a valid marker, so this never needs the marker version, but
+// every component instance is given a fresh UUID: a duplicate that reused the
+// source's instance UUIDs (especially the "Page content" marker's) would share
+// identity with its source, and a save or patch mis-routed between the two
+// variants — the editor model store is shared across entities — could then
+// write one variant's content into the other. The server's marker-identity
+// guard relies on each variant's marker UUID being unique.
+// @see \Drupal\canvas\Controller\ApiLayoutController::post()
 export const buildDuplicateVariantPayload = ({
   source,
   existingIds,
   label,
 }: BuildDuplicateVariantArgs): CreatePageVariantPayload => {
   const newLabel = (label ?? `${source.label ?? source.id} (copy)`).trim();
+  const freshUuids = new Map(
+    source.component_tree.map((item) => [item.uuid, uuidv4()]),
+  );
+  const component_tree = source.component_tree.map((item) => ({
+    ...item,
+    uuid: freshUuids.get(item.uuid) ?? uuidv4(),
+    // Keep the tree's nesting intact by pointing each remapped child at its
+    // parent's new UUID.
+    ...(item.parent_uuid != null
+      ? { parent_uuid: freshUuids.get(item.parent_uuid) ?? item.parent_uuid }
+      : {}),
+  }));
   return {
     id: generateUniqueVariantId(newLabel, existingIds),
     label: newLabel,
     description: source.description ?? '',
-    component_tree: source.component_tree.map((item) => ({ ...item })),
+    component_tree,
   };
 };
 

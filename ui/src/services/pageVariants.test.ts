@@ -98,15 +98,23 @@ describe('buildDuplicateVariantPayload', () => {
     status: true,
     component_tree: [
       {
+        uuid: 'uuid-template',
+        component_id: 'sdc.canvas.page_template',
+        component_version: 'v1',
+        inputs: [],
+      },
+      {
         uuid: 'uuid-marker',
         component_id: PAGE_CONTENT_MARKER_ID,
         component_version: 'v1',
+        parent_uuid: 'uuid-template',
+        slot: 'content',
         inputs: [],
       },
     ],
   };
 
-  it('copies the source tree verbatim and derives a "(copy)" label and unique id', () => {
+  it('regenerates every instance UUID (remapping nesting) and derives a "(copy)" label and unique id', () => {
     const payload = buildDuplicateVariantPayload({
       source,
       existingIds: ['homepage', 'homepage_copy'],
@@ -115,9 +123,24 @@ describe('buildDuplicateVariantPayload', () => {
     expect(payload.id).toBe('homepage_copy_2');
     expect(payload.label).toBe('Homepage (copy)');
     expect(payload.description).toBe('The default layout.');
-    expect(payload.component_tree).toEqual(source.component_tree);
-    // The tree items are cloned, not shared by reference.
-    expect(payload.component_tree[0]).not.toBe(source.component_tree[0]);
+
+    // No instance identity is shared with the source: a duplicate that reused
+    // the source's UUIDs — especially the "Page content" marker's — would let a
+    // save mis-routed between the two variants leak one's content into the other.
+    const sourceUuids = source.component_tree.map((item) => item.uuid);
+    const copyUuids = payload.component_tree.map((item) => item.uuid);
+    copyUuids.forEach((uuid) => expect(sourceUuids).not.toContain(uuid));
+    expect(new Set(copyUuids).size).toBe(2);
+
+    // Non-identity fields are preserved and nesting is remapped to the new ids.
+    expect(payload.component_tree[0].component_id).toBe(
+      'sdc.canvas.page_template',
+    );
+    expect(payload.component_tree[1].component_id).toBe(PAGE_CONTENT_MARKER_ID);
+    expect(payload.component_tree[1].slot).toBe('content');
+    expect(payload.component_tree[1].parent_uuid).toBe(
+      payload.component_tree[0].uuid,
+    );
   });
 
   it('honors an explicit label override', () => {
