@@ -13,6 +13,7 @@ import {
   ExclamationTriangleIcon,
   FileTextIcon,
   HomeIcon,
+  ListBulletIcon,
   SectionIcon,
 } from '@radix-ui/react-icons';
 import { DropdownMenu, Flex, Text } from '@radix-ui/themes';
@@ -27,6 +28,7 @@ const VARIANTS = {
   codeComponent: { icon: <Component2Icon /> },
   dynamicComponent: { icon: <ComponentBooleanIcon /> },
   homepage: { icon: <HomeIcon /> },
+  listComponent: { icon: <ListBulletIcon /> },
   page: { icon: <FileTextIcon /> },
   region: { icon: <CubeIcon /> },
   pattern: { icon: <SectionIcon /> },
@@ -36,6 +38,24 @@ const VARIANTS = {
 } as const;
 
 export type SideBarNodeVariant = keyof typeof VARIANTS;
+
+/**
+ * Maps a component's source (the source plugin label exposed by the
+ * `config/component` endpoint) to the sidebar node variant whose icon
+ * represents that kind of component.
+ */
+export const componentSourceVariant = (
+  source: string | undefined,
+): SideBarNodeVariant => {
+  switch (source) {
+    case 'Blocks':
+      return 'dynamicComponent';
+    case 'List':
+      return 'listComponent';
+    default:
+      return 'component';
+  }
+};
 
 const SidebarNode = React.forwardRef<
   HTMLDivElement | HTMLAnchorElement,

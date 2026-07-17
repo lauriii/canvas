@@ -218,6 +218,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
             name={name}
             id={component.uuid}
             nodeType={component.nodeType}
+            componentType={componentType}
           />
         </div>
       )}

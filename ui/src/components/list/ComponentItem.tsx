@@ -1,7 +1,9 @@
 import { ContextMenu } from '@radix-ui/themes';
 
 import { useAppSelector } from '@/app/hooks';
-import SidebarNode from '@/components/sidePanel/SidebarNode';
+import SidebarNode, {
+  componentSourceVariant,
+} from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
 
@@ -29,11 +31,7 @@ const ComponentItem: React.FC<{
   const sidebarNode = (
     <SidebarNode
       title={component.name}
-      variant={
-        (component as CanvasComponent).source === 'Blocks'
-          ? 'dynamicComponent'
-          : 'component'
-      }
+      variant={componentSourceVariant((component as CanvasComponent).source)}
       disabled={disabled}
       broken={component.broken}
       onMenuOpenChange={onMenuOpenChange}

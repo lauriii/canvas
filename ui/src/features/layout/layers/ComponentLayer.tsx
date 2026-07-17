@@ -7,7 +7,9 @@ import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
 import { Box, Flex } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import SidebarNode from '@/components/sidePanel/SidebarNode';
+import SidebarNode, {
+  componentSourceVariant,
+} from '@/components/sidePanel/SidebarNode';
 import LayersDropZone from '@/features/layout/layers/LayersDropZone';
 import SlotLayer from '@/features/layout/layers/SlotLayer';
 import ComponentContextMenu, {
@@ -23,6 +25,7 @@ import {
 } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
 
 import type React from 'react';
 import type { CollapsibleTriggerProps } from '@radix-ui/react-collapsible';
@@ -58,6 +61,8 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
   const componentId = component.uuid;
   const isCollapsed = collapsedLayers.includes(componentId);
   const nodeName = useGetComponentName(component);
+  const { data: components } = useGetComponentsQuery();
+  const [componentType] = (component.type || '').split('@');
   const isSelected = useAppSelector((state) =>
     selectComponentIsSelected(state, componentId),
   );
@@ -146,7 +151,9 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
             className="canvas-drag-handle"
             title={nodeName}
             draggable={true}
-            variant="component"
+            variant={componentSourceVariant(
+              components?.[componentType]?.source,
+            )}
             hovered={isHovered}
             selected={isSelected}
             disabled={disableDrop || isDragging}

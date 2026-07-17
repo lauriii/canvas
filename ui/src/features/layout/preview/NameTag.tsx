@@ -5,6 +5,7 @@ import {
   Component1Icon,
   CubeIcon,
   FileTextIcon,
+  ListBulletIcon,
 } from '@radix-ui/react-icons';
 
 import { useAppSelector } from '@/app/hooks';
@@ -16,6 +17,7 @@ import {
   selectSelectedComponentUuid,
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
 
 import styles from './NameTag.module.css';
 
@@ -26,14 +28,21 @@ const VARIANTS = {
   page: <FileTextIcon width={10} height={10} />,
 };
 
+// Icons for components whose source warrants a distinct visual identity in
+// the name tag, keyed by the source label from the config/component endpoint.
+const SOURCE_ICONS: Record<string, React.ReactNode> = {
+  List: <ListBulletIcon width={10} height={10} />,
+};
+
 interface NameTagProps {
   name: string;
   id: string;
   nodeType: string;
+  icon?: React.ReactNode;
 }
 
 const NameTag: React.FC<NameTagProps> = (props) => {
-  const { name, nodeType, id } = props;
+  const { name, nodeType, id, icon } = props;
 
   return (
     <div
@@ -44,7 +53,7 @@ const NameTag: React.FC<NameTagProps> = (props) => {
         [styles.page]: nodeType === 'page',
       })}
     >
-      {VARIANTS[nodeType as keyof typeof VARIANTS]}
+      {icon ?? VARIANTS[nodeType as keyof typeof VARIANTS]}
       <span id={`${id}-name`}>{name}</span>
     </div>
   );
@@ -97,8 +106,10 @@ export const RegionNameTag: React.FC<NameTagProps> = (props) => {
   return <NameTag name={name} id={id} nodeType={props.nodeType} />;
 };
 
-export const ComponentNameTag: React.FC<NameTagProps> = (props) => {
-  const { name, id } = props;
+export const ComponentNameTag: React.FC<
+  NameTagProps & { componentType?: string }
+> = (props) => {
+  const { name, id, componentType } = props;
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const { isDragging } = useAppSelector(selectDragging);
   const isSelected = id === selectedComponent;
@@ -106,6 +117,7 @@ export const ComponentNameTag: React.FC<NameTagProps> = (props) => {
     return selectIsComponentHovered(state, id);
   });
   const noComponentIsHovered = useAppSelector(selectNoComponentIsHovered);
+  const { data: components } = useGetComponentsQuery();
 
   // Show the name of the hovered component or selected component when nothing else is hovered. Hide when dragging
   // Desired result is that only one NameTag is shown at a time:
@@ -116,5 +128,15 @@ export const ComponentNameTag: React.FC<NameTagProps> = (props) => {
   if (!showName) {
     return null;
   }
-  return <NameTag name={name} id={id} nodeType="component" />;
+  const source = componentType
+    ? components?.[componentType]?.source
+    : undefined;
+  return (
+    <NameTag
+      name={name}
+      id={id}
+      nodeType="component"
+      icon={source ? SOURCE_ICONS[source] : undefined}
+    />
+  );
 };
