@@ -19,8 +19,10 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
   public function addInput(string $input, mixed $value): AdapterBase {
     if (\array_key_exists($input, $this->getInputs())) {
       $json_schema_type = $this->getInputs()[$input];
+      // An empty schema means "any shape": accept the value as-is.
+      // @see \Drupal\canvas\Plugin\Adapter\Adapter::__construct()
       // @see \Drupal\Core\Theme\Component\ComponentValidator
-      if (!$this->validateConformanceToJsonSchemaType($json_schema_type, $value)) {
+      if ($json_schema_type !== [] && !$this->validateConformanceToJsonSchemaType($json_schema_type, $value)) {
         throw new \LogicException('…');
       }
       $this->$input = $value;
@@ -29,6 +31,10 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
   }
 
   public function getInputSchema(string $input): array {
+    // An empty schema means "any shape"; it cannot be standardized.
+    if ($this->getInputs()[$input] === []) {
+      return [];
+    }
     return PropShape::standardize($this->getInputs()[$input])->resolvedSchema;
   }
 
@@ -43,8 +49,22 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
    * @param JsonSchema $schema
    */
   public function matchesOutputSchema(array $schema): bool {
+    // Parametric adapters produce whatever shape their mirroring inputs are
+    // populated with, so they match any target shape.
+    // @see \Drupal\canvas\Plugin\Adapter\Adapter::__construct()
+    if ($this->getOutputMirroringInputs() !== []) {
+      return TRUE;
+    }
     $target = PropShape::standardize($schema)->resolvedSchema;
     return PropShape::normalizePropSchema($target) === PropShape::normalizePropSchema($this->getOutputSchema());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getOutputMirroringInputs(): array {
+    \assert(\is_array($this->getPluginDefinition()));
+    return $this->getPluginDefinition()['outputMirrorsInputs'] ?? [];
   }
 
   /**
@@ -79,7 +99,22 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
   public function getOutputSchema(): array {
     \assert(\is_array($this->getPluginDefinition()));
     \assert(\array_key_exists('output', $this->getPluginDefinition()));
+    // Parametric adapters have no static output schema.
+    // @see ::getOutputMirroringInputs()
+    if ($this->getPluginDefinition()['output'] === []) {
+      return [];
+    }
     return PropShape::standardize($this->getPluginDefinition()['output'])->resolvedSchema;
+  }
+
+  /**
+   * Whether an evaluated input value is considered empty.
+   *
+   * Adapters treating "no value" specially (e.g. `is_set`, `fallback`,
+   * `combine`) share this definition of emptiness.
+   */
+  protected static function isEmptyValue(mixed $value): bool {
+    return $value === NULL || $value === '' || $value === [];
   }
 
   /**

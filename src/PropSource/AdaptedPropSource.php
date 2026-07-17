@@ -11,7 +11,9 @@ use Drupal\Component\Plugin\Definition\PluginDefinitionInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * Adapted prop sources allow combining multiple prop sources, and chaining.
@@ -29,7 +31,7 @@ use Drupal\Core\Field\FieldItemListInterface;
  * @phpstan-import-type AdaptedPropSourceArray from PropSource
  * @internal
  */
-final class AdaptedPropSource extends PropSourceBase {
+final class AdaptedPropSource extends PropSourceBase implements LinkablePropSourceInterface {
 
   /**
    * @param \Drupal\canvas\Plugin\Adapter\AdapterInterface $adapter_instance
@@ -113,8 +115,37 @@ final class AdaptedPropSource extends PropSourceBase {
     return $this->adapter_instance->getPluginId();
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function label(EntityDataDefinitionInterface $host_entity_data_definition): TranslatableMarkup {
+    $definition = $this->adapter_instance->getPluginDefinition();
+    \assert(\is_array($definition));
+    $adapter_label = $definition['label'];
+    // Contextualize the adapter label with the first linkable input, e.g.
+    // "Date conversion: Authored on". Inputs that are themselves adapted
+    // recurse, describing a chain outermost-first.
+    foreach (\array_keys($this->adapter_inputs) as $input_name) {
+      $input_source = $this->getInputPropSource($input_name);
+      if ($input_source instanceof LinkablePropSourceInterface) {
+        return new TranslatableMarkup('@adapter: @input', [
+          '@adapter' => $adapter_label,
+          '@input' => $input_source->label($host_entity_data_definition),
+        ]);
+      }
+    }
+    return new TranslatableMarkup('@adapter', ['@adapter' => $adapter_label]);
+  }
+
   public function getInputPropSource(string $input_name) : PropSourceBase {
     return PropSource::parse($this->adapter_inputs[$input_name]);
+  }
+
+  /**
+   * @return list<string>
+   */
+  public function getInputNames(): array {
+    return \array_keys($this->adapter_inputs);
   }
 
   /**

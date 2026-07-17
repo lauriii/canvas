@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\ShapeMatcher;
 
-use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
@@ -12,6 +11,8 @@ use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
 use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
+use Drupal\canvas\PropShape\PropShape;
+use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\canvas\PropSource\LinkablePropSourceInterface;
@@ -47,6 +48,9 @@ use Drupal\Core\Theme\Component\ComponentMetadata;
  * @see \Drupal\canvas\ShapeMatcher\HostEntityUrlPropSourceMatcher
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getComponentInputsForMetadata()
  * @internal
+ *
+ * @phpstan-type AdapterSuggestionInput array{name: string, required: bool, mirrorsOutput: bool, schema: array<string, mixed>|null, candidates: list<array{id: string, label: string, source: array<string, mixed>}>, static: array<string, mixed>|null}
+ * @phpstan-type AdapterSuggestion array{id: string, label: string, adapter: array{id: string, inputs: list<AdapterSuggestionInput>}}
  */
 final readonly class PropSourceSuggester {
 
@@ -58,6 +62,7 @@ final readonly class PropSourceSuggester {
     private EntityDisplayRepositoryInterface $entityDisplayRepository,
     private Labeler $labeler,
     private EntityTypeManagerInterface $entityTypeManager,
+    private PropShapeRepositoryInterface $propShapeRepository,
   ) {}
 
   /**
@@ -139,7 +144,7 @@ final readonly class PropSourceSuggester {
    *   Host entity type + bundle, necessary to suggest certain types of prop
    *   sources.
    *
-   * @return array<string, array{required: bool, entity-field: array<string, EntityFieldPropSource>, adapter: array<AdapterInterface>, host-entity-url: array<string, HostEntityUrlPropSource>, host-entity: array<string, \Drupal\canvas\PropSource\HostEntityPropSource>}>
+   * @return array<string, array{required: bool, entity-field: array<string, EntityFieldPropSource>, adapter: list<AdapterSuggestion>, host-entity-url: array<string, HostEntityUrlPropSource>, host-entity: array<string, \Drupal\canvas\PropSource\HostEntityPropSource>}>
    */
   public function suggest(string $component_plugin_id, ComponentMetadata $component_metadata, EntityDataDefinitionInterface $host_entity_type): array {
     $host_entity_type_id = $host_entity_type->getEntityTypeId();
@@ -212,15 +217,9 @@ final readonly class PropSourceSuggester {
         );
       }
 
-      // Adapters.
-      $suggestions[$cpe][PropSource::Adapter->value] = array_combine(
-      // @todo Introduce a plugin definition class that provides a guaranteed label, which will allow removing the PHPStan ignore instruction.
-      // @phpstan-ignore-next-line
-        \array_map(fn (AdapterInterface $a): string => (string) $a->getPluginDefinition()['label'], $m[PropSource::Adapter->value]),
-        $m[PropSource::Adapter->value]
-      );
-      // Sort alphabetically by label.
-      ksort($suggestions[$cpe][PropSource::Adapter->value]);
+      // Adapters: already client-ready representations, ordered by label.
+      // @see ::buildAdapterSuggestions()
+      $suggestions[$cpe][PropSource::Adapter->value] = $m[PropSource::Adapter->value];
 
       // Host entity URLs: generate labels, retain match order.
       $suggestions[$cpe][PropSource::HostEntityUrl->value] = array_combine(
@@ -245,10 +244,14 @@ final readonly class PropSourceSuggester {
   }
 
   /**
-   * @return array<string, array{entity-field: array<EntityFieldPropSource>, adapter: array<\Drupal\canvas\Plugin\Adapter\AdapterInterface>, host-entity-url: array<HostEntityUrlPropSource>, host-entity: array<\Drupal\canvas\PropSource\HostEntityPropSource>}>
+   * @return array<string, array{entity-field: array<EntityFieldPropSource>, adapter: list<AdapterSuggestion>, host-entity-url: array<HostEntityUrlPropSource>, host-entity: array<\Drupal\canvas\PropSource\HostEntityPropSource>}>
    */
   private function getRawMatches(string $component_plugin_id, ComponentMetadata $component_metadata, string $host_entity_type, string $host_entity_bundle): array {
     $raw_matches = [];
+    // Memoizes computed field candidates and static source templates for the
+    // adapter input slots, because the same shapes recur across the adapters
+    // and props of a single suggestion request.
+    $slot_memo = [];
 
     foreach (JsonSchemaPropsComponentSourceBase::getComponentInputsForMetadata($component_plugin_id, $component_metadata) as $cpe_string => $prop_shape) {
       $cpe = ComponentPropExpression::fromString($cpe_string);
@@ -269,12 +272,161 @@ final readonly class PropSourceSuggester {
         $raw_matches[(string) $cpe][PropSource::EntityField->value][] = $created_as_date_string;
         $raw_matches[(string) $cpe][PropSource::EntityField->value][] = $changed_as_date_string;
       }
-      $raw_matches[(string) $cpe][PropSource::Adapter->value] = $this->adaptedPropSourceMatcher->match($is_required, $prop_shape);
+      $raw_matches[(string) $cpe][PropSource::Adapter->value] = $this->buildAdapterSuggestions(
+        $this->adaptedPropSourceMatcher->match($is_required, $prop_shape),
+        $prop_shape,
+        $host_entity_type,
+        $host_entity_bundle,
+        $slot_memo,
+      );
       $raw_matches[(string) $cpe][PropSource::HostEntityUrl->value] = $this->hostEntityUrlPropSourceMatcher->match($is_required, $prop_shape);
       $raw_matches[(string) $cpe][PropSource::HostEntity->value] = $this->hostEntityPropSourceMatcher->match($is_required, $prop_shape, $host_entity_type, $host_entity_bundle);
     }
 
     return $raw_matches;
+  }
+
+  /**
+   * The shapes offered as field candidates for "any"-shaped adapter inputs.
+   *
+   * An input declared with an empty (`[]`) schema accepts any value; there is
+   * no single shape to match fields against, so candidates are the union of
+   * fields matching these primitive shapes.
+   */
+  private const ANY_INPUT_CANDIDATE_SCHEMAS = [
+    ['type' => 'string'],
+    ['type' => 'integer'],
+    ['type' => 'number'],
+    ['type' => 'boolean'],
+  ];
+
+  /**
+   * Builds client-ready representations of adapter suggestions for one prop.
+   *
+   * Each representation carries everything the client needs to offer and
+   * configure the adapter: its ID and label, plus one entry per input slot
+   * with the slot's schema, whether it is required, whether it mirrors the
+   * output (parametric adapters), the field candidates that can populate it,
+   * and a template for populating it with a static (literal) value.
+   *
+   * @param list<\Drupal\canvas\Plugin\Adapter\AdapterInterface> $adapters
+   * @param array<string, mixed> $slot_memo
+   *
+   * @return list<AdapterSuggestion>
+   */
+  private function buildAdapterSuggestions(array $adapters, PropShape $prop_shape, string $host_entity_type_id, string $host_entity_bundle, array &$slot_memo): array {
+    $suggestions = [];
+    foreach ($adapters as $adapter) {
+      $definition = $adapter->getPluginDefinition();
+      \assert(\is_array($definition));
+      $mirroring_inputs = $adapter->getOutputMirroringInputs();
+
+      $inputs = [];
+      foreach ($adapter->getInputs() as $input_name => $declared_schema) {
+        $mirrors_output = \in_array($input_name, $mirroring_inputs, TRUE);
+        // Determine the shape(s) whose matching fields are candidates for
+        // this input slot: the target prop shape for mirroring inputs, a set
+        // of primitive shapes for "any"-shaped inputs, the declared shape
+        // otherwise.
+        if ($mirrors_output) {
+          $slot_shapes = [$prop_shape];
+        }
+        elseif ($declared_schema === []) {
+          $slot_shapes = \array_map(PropShape::normalize(...), self::ANY_INPUT_CANDIDATE_SCHEMAS);
+        }
+        else {
+          $slot_shapes = [PropShape::normalize($declared_schema)];
+          // Datetime strings occur as both `format: date` and
+          // `format: date-time`, depending on the field type and its
+          // settings. A slot declared as `date-time` accepts both, so offer
+          // both as candidates.
+          // @see \Drupal\canvas\Plugin\Adapter\FormatDateAdapter::addInput()
+          if (PropShape::normalizePropSchema($declared_schema) === ['type' => 'string', 'format' => 'date-time']) {
+            $slot_shapes[] = PropShape::normalize(['type' => 'string', 'format' => 'date']);
+          }
+        }
+
+        $inputs[] = [
+          'name' => $input_name,
+          'required' => $adapter->inputIsRequired($input_name),
+          'mirrorsOutput' => $mirrors_output,
+          'schema' => $mirrors_output
+            ? $prop_shape->resolvedSchema
+            : ($declared_schema === [] ? NULL : $adapter->getInputSchema($input_name)),
+          'candidates' => $this->getSlotCandidates($slot_shapes, $host_entity_type_id, $host_entity_bundle, $slot_memo),
+          // How the client should populate this slot with a literal value: a
+          // StaticPropSource template whose `value` it fills in. For
+          // "any"-shaped slots, literals are entered as text.
+          'static' => $this->getStaticSourceTemplate($slot_shapes[0], $slot_memo),
+        ];
+      }
+
+      $suggestions[] = [
+        'id' => \hash('xxh64', PropSource::Adapter->value . ':' . $adapter->getPluginId()),
+        'label' => (string) $definition['label'],
+        'adapter' => [
+          'id' => $adapter->getPluginId(),
+          'inputs' => $inputs,
+        ],
+      ];
+    }
+    \usort($suggestions, fn (array $a, array $b): int => \strcasecmp($a['label'], $b['label']));
+    return $suggestions;
+  }
+
+  /**
+   * Computes the field candidates for an adapter input slot.
+   *
+   * @param list<\Drupal\canvas\PropShape\PropShape> $slot_shapes
+   * @param array<string, mixed> $slot_memo
+   *
+   * @return list<array{id: string, label: string, source: array<string, mixed>}>
+   */
+  private function getSlotCandidates(array $slot_shapes, string $host_entity_type_id, string $host_entity_bundle, array &$slot_memo): array {
+    $host_entity_type = BetterEntityDataDefinition::create($host_entity_type_id, $host_entity_bundle);
+    $candidates = [];
+    foreach ($slot_shapes as $shape) {
+      $memo_key = 'candidates:' . $shape->uniquePropSchemaKey();
+      if (!\array_key_exists($memo_key, $slot_memo)) {
+        $entries = [];
+        // TRICKY: match with $is_required=FALSE: adapter inputs may be
+        // populated by optional fields even when the targeted prop is
+        // required — bridging that gap is the `fallback` adapter's purpose.
+        foreach ($this->entityFieldPropSourceMatcher->match(FALSE, $shape, $host_entity_type_id, $host_entity_bundle) as $source) {
+          if ($this->isConsideredIrrelevant($source->expression)) {
+            continue;
+          }
+          // Keyed by expression to dedupe across the union of shapes.
+          $entries[$source->asChoice()] = [
+            'id' => \hash('xxh64', $source->asChoice()),
+            'label' => (string) Labeler::flatten($this->labeler->label($source->expression, $host_entity_type)),
+            'source' => $source->toArray(),
+          ];
+        }
+        $slot_memo[$memo_key] = $entries;
+      }
+      $candidates += $slot_memo[$memo_key];
+    }
+    return \array_values($candidates);
+  }
+
+  /**
+   * Computes the static prop source template for an adapter input slot.
+   *
+   * @param array<string, mixed> $slot_memo
+   *
+   * @return array<string, mixed>|null
+   *   The array representation of an empty StaticPropSource for the given
+   *   shape (the client fills in its `value`), or NULL if the shape is not
+   *   storable.
+   */
+  private function getStaticSourceTemplate(PropShape $shape, array &$slot_memo): ?array {
+    $memo_key = 'static:' . $shape->uniquePropSchemaKey();
+    if (!\array_key_exists($memo_key, $slot_memo)) {
+      $storable = $this->propShapeRepository->getStorablePropShape($shape);
+      $slot_memo[$memo_key] = $storable?->toStaticPropSource()->toArray();
+    }
+    return $slot_memo[$memo_key];
   }
 
   public static function structureSuggestionsForResponse(array $suggestions): array {
@@ -297,29 +449,46 @@ final readonly class PropSourceSuggester {
       \array_map(
         // Second level keys: opaque identifiers for the suggestions to
         // populate the component prop.
-        fn (array $prop_sources): array => array_combine(
-          \array_map(
-            fn (LinkablePropSourceInterface $prop_source): string => \hash('xxh64', $prop_source->asChoice()),
-            array_values($prop_sources),
-          ),
-          // Values: objects with "label" and "source" keys, with:
-          // - "label": the human-readable label that the Content Template UI
-          //   should present to the human
-          // - "source": the array representation of the prop source that, if
-          //   selected by the human, the client should use verbatim as the
-          //   source to populate this component instance's prop.
-          \array_map(
-            function (string $label, LinkablePropSourceInterface $prop_source) {
-              return [
-                'label' => $label,
-                'source' => $prop_source->toArray(),
-              ];
-            },
-            \array_keys($prop_sources),
-            array_values($prop_sources),
-          ),
-        ),
+        function (array $prop_sources, array $adapter_suggestions): array {
+          $structured = array_combine(
+            \array_map(
+              fn (LinkablePropSourceInterface $prop_source): string => \hash('xxh64', $prop_source->asChoice()),
+              array_values($prop_sources),
+            ),
+            // Values: objects with "label" and "source" keys, with:
+            // - "label": the human-readable label that the Content Template UI
+            //   should present to the human
+            // - "source": the array representation of the prop source that, if
+            //   selected by the human, the client should use verbatim as the
+            //   source to populate this component instance's prop.
+            \array_map(
+              function (string $label, LinkablePropSourceInterface $prop_source) {
+                return [
+                  'label' => $label,
+                  'source' => $prop_source->toArray(),
+                ];
+              },
+              \array_keys($prop_sources),
+              array_values($prop_sources),
+            ),
+          );
+          // Adapter suggestions rank after all direct matches. Instead of a
+          // ready-to-use "source", they carry an "adapter" key describing how
+          // the client can let a human configure an AdaptedPropSource.
+          // @see ::buildAdapterSuggestions()
+          foreach ($adapter_suggestions as $adapter_suggestion) {
+            $structured[$adapter_suggestion['id']] = [
+              'label' => $adapter_suggestion['label'],
+              'adapter' => $adapter_suggestion['adapter'],
+            ];
+          }
+          return $structured;
+        },
         $combined_suggestions,
+        \array_map(
+          fn (array $value): array => $value[PropSource::Adapter->value] ?? [],
+          \array_values($suggestions),
+        ),
       )
     );
   }
@@ -373,6 +542,14 @@ final readonly class PropSourceSuggester {
 
     $hierarchical_response = [];
     foreach ($flat_response_structure as $prop_name => &$suggestions) {
+      // 0. Set aside adapter suggestions: they have no hierarchy, and rank
+      // after all direct matches.
+      $adapter_suggestions = \array_filter(
+        $suggestions,
+        fn (array $suggestion): bool => \array_key_exists('adapter', $suggestion),
+      );
+      $suggestions = \array_diff_key($suggestions, $adapter_suggestions);
+
       // 1. Enrich this prop's suggestions. The sorting is already correct based
       // on the form display.
       $enriched_suggestions = \array_map(
@@ -399,7 +576,15 @@ final readonly class PropSourceSuggester {
       // on leaf nodes!
       self::walkAndPopulateHierarchicalSuggestions($hierarchical_suggestions);
 
-      $hierarchical_response[$prop_name] = $hierarchical_suggestions;
+      // 4. Append the adapter suggestions, after all direct matches.
+      $hierarchical_response[$prop_name] = [
+        ...$hierarchical_suggestions,
+        ...\array_map(
+          fn (string $opaque_id, array $suggestion): array => ['id' => $opaque_id, ...$suggestion],
+          \array_keys($adapter_suggestions),
+          \array_values($adapter_suggestions),
+        ),
+      ];
     }
 
     return $hierarchical_response;

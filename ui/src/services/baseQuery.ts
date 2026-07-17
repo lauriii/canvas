@@ -234,6 +234,9 @@ export const withAutoSavesInjection: (
           'updateColor',
           'deleteColor',
           'setLangcode',
+          // Prop source preview is a read-only evaluation: it does not touch
+          // autosaved data and its request schema forbids extra keys.
+          'previewPropSource',
         ].includes(api.endpoint)
       ) {
         const state = api.getState() as RootState;

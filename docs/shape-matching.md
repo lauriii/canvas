@@ -274,6 +274,11 @@ For example: "timestamp" fields (which contain UNIX timestamps) can be made avai
 
 See `\Drupal\canvas\PropSource\EntityFieldPropSource`.
 
+ℹ️ The general-purpose form of this is the `adapted prop source`: any number of named inputs — each itself a
+`prop source` — transformed into one output value by an adapter plugin. This powers Canvas' no-code transform
+layer (date conversion, fallbacks, conditionals, combining fields, and more). See [prop-adapters](prop-adapters.md)
+and `\Drupal\canvas\PropSource\AdaptedPropSource`.
+
 ℹ️ The completeness of this is tested by `\Drupal\Tests\canvas\Kernel\EcosystemSupport\FieldInstanceSupportTest`.
 
 ### 3.1.2.c `structured data` that aren't `entity field`s: `host entity URL prop source` et cetera
