@@ -384,7 +384,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
    *
    * This is the server-side, defense-in-depth analogue of the exposed-slots
    * isolation in MR !1359 (per-entity edits cannot mutate the shared template):
-   * a mis-routed variant save is unexpressable regardless of client behavior.
+   * a mis-routed variant save is rejected regardless of client behavior.
    *
    * @see \Drupal\canvas\Controller\ApiLayoutController::post()
    * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
