@@ -1,0 +1,6 @@
+name: 'Drupal Canvas AI missing service test'
+type: module
+description: 'Simulates a partial or version-mismatched AI stack by removing a service Canvas AI injects.'
+package: Testing
+dependencies:
+  - canvas_ai:canvas_ai
