@@ -104,6 +104,36 @@ final class CanvasLanguageRoutesTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that a prefix configured for the default language is stripped too.
+   *
+   * @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::redirectCanvasToDefaultLanguage()
+   */
+  public function testDefaultLanguagePrefixedCanvasUrlRedirects(): void {
+    ConfigurableLanguage::createFromLangcode('es')->save();
+
+    // A prefix may be configured for every language, including the default.
+    $this->config('language.negotiation')
+      ->set('url.prefixes', ['en' => 'en', 'es' => 'es'])
+      ->save();
+
+    $this->container->get('kernel')->rebuildContainer();
+
+    $this->setUpCurrentUser([], [Page::EDIT_PERMISSION]);
+
+    $response = $this->request(Request::create('/en/canvas'));
+    self::assertSame(
+      302,
+      $response->getStatusCode(),
+      'A default-language-prefixed /canvas URL must trigger a 302 redirect.',
+    );
+    self::assertSame(
+      '/canvas',
+      $response->headers->get('Location'),
+      'A prefix configured for the default language must be stripped like any other prefix.',
+    );
+  }
+
+  /**
    * Verifies redirect safety for languages with custom URL prefixes.
    *
    * @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::redirectCanvasToDefaultLanguage()

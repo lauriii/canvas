@@ -42,29 +42,20 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
       return;
     }
 
-    // If the current language differs from the default, the URL will contain a
-    // language prefix (e.g. /es/canvas/editor/canvas_page/1). Strip it with a
-    // 302 redirect so that Canvas always receives a prefix-free path
-    // (/canvas/editor/canvas_page/1).
+    // Strip the prefix configured for the URL-negotiated language (the
+    // default language may carry a prefix too) with a 302 redirect, so that
+    // Canvas always receives a prefix-free path (/canvas/editor/canvas_page/1).
     // @todo Remove this redirect once Canvas natively supports
     //   language-prefixed URLs in
     //   https://git.drupalcode.org/project/canvas/-/work_items/3546597.
     // @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::preventRouteNormalization()
-    $default_langcode = $this->languageManager->getDefaultLanguage()->getId();
     $current_langcode = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_URL)->getId();
-    if ($current_langcode !== $default_langcode) {
-      $base_path = $request->getBasePath();
-      // Fetch the actual prefix configured for this language in Drupal's
-      // URL language negotiation settings, falling back to the langcode.
-      $config = $this->configFactory->get('language.negotiation');
-      $url_settings = $config->get('url');
-      $prefixes = $url_settings['prefixes'] ?? [];
-      $prefix = $prefixes[$current_langcode] ?? $current_langcode;
-      $prefix_path = "/$prefix/";
-      if (\str_starts_with($path, $prefix_path)) {
-        $canvas_path = substr_replace($path, '/', 0, strlen($prefix_path));
-        $event->setResponse(new LocalRedirectResponse($base_path . $canvas_path, 302));
-      }
+    $prefixes = $this->configFactory->get('language.negotiation')->get('url.prefixes') ?? [];
+    $prefix = $prefixes[$current_langcode] ?? '';
+    $prefix_path = "/$prefix/";
+    if ($prefix !== '' && \str_starts_with($path, $prefix_path)) {
+      $canvas_path = substr_replace($path, '/', 0, strlen($prefix_path));
+      $event->setResponse(new LocalRedirectResponse($request->getBasePath() . $canvas_path, 302));
     }
   }
 
