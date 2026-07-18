@@ -100,7 +100,16 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
 
       foreach ($component_structure_array['operations'] as $index => $operation) {
         $allErrors = array_merge($allErrors, $this->validatePlacementParams($operation, $index));
-        $this->responseValidator->validateComponentStructure($operation['components']);
+        // Only validate the component structure when components is a non-empty
+        // array. A missing, empty, or non-array `components` value makes
+        // validatePlacementParams() record a validation error for the operation,
+        // so it is rejected rather than applied; passing such a value to
+        // validateComponentStructure() would instead raise a TypeError (its
+        // argument is typed `array`), which is a \Error and would escape the
+        // catch below.
+        if (!empty($operation['components']) && \is_array($operation['components'])) {
+          $this->responseValidator->validateComponentStructure($operation['components']);
+        }
       }
 
       if (!empty($allErrors)) {
@@ -146,8 +155,8 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
       }
     }
 
-    // Operation must contain components.
-    if (empty($operation['components'])) {
+    // Operation must contain a non-empty list of components.
+    if (empty($operation['components']) || !\is_array($operation['components'])) {
       $errors[$errorKey][] = 'The operation must contain components.';
     }
 

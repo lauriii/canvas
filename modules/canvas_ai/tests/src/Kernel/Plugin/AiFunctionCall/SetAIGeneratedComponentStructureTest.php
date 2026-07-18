@@ -672,6 +672,41 @@ YAML;
           ],
         ],
       ],
+      // An operation without a `components` key at all (e.g. a removal the page
+      // builder agent attempts). This must be reported as a validation error
+      // rather than crashing with a TypeError.
+      'test_missing_components_key' => [
+        'layout_type' => 'multi_region_empty',
+        'yaml_input' => <<<YAML
+          operations:
+            - target: 'content'
+              reference_uuid: ''
+              placement: 'inside'
+          YAML,
+        'expected_error' => [
+          'Operation 0' => [
+            'The operation must contain components.',
+          ],
+        ],
+      ],
+      // A non-array `components` value (a scalar the agent may emit instead of a
+      // list). This must also be reported as a validation error rather than
+      // crashing with a TypeError.
+      'test_scalar_components' => [
+        'layout_type' => 'multi_region_empty',
+        'yaml_input' => <<<YAML
+          operations:
+            - target: 'content'
+              reference_uuid: ''
+              placement: 'inside'
+              components: 'hero'
+          YAML,
+        'expected_error' => [
+          'Operation 0' => [
+            'The operation must contain components.',
+          ],
+        ],
+      ],
     ];
   }
 
