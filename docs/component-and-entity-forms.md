@@ -83,40 +83,41 @@ These endpoints handle layout/model changes and return updated preview HTML:
 |----------|--------|---------|
 | `/canvas/api/v0/layout/{entity_type}/{entity}` | GET | Fetch initial layout, model, and preview |
 | `/canvas/api/v0/layout/{entity_type}/{entity}` | PATCH | Update a single component's model, returns preview |
-| `/canvas/api/v0/layout/{entity_type}/{entity}` | POST | Update full layout/model/page data, returns preview |
+| `/canvas/api/v0/layout/{entity_type}/{entity}` | POST | Update full layout/model/page data; renders a preview unless `render: false` (persist-only mode) |
+| `/canvas/api/v0/layout/{entity_type}/{entity}/render` | POST | Stateless partial render: returns markup, evaluated model, and asset deltas for the requested component instances only; no auto-save writes |
 
-The **PATCH** endpoint is used by `ComponentFormField` for uses cases such as AJAX field addition where a value might update without direct interaction with a form field.
+The **PATCH** endpoint is used for the authoritative background update on the code-component island fast path, and by `ComponentFormField` for use cases such as AJAX field addition where a value might update without direct interaction with a form field. Its full-page response is applied client-side as an in-place swap of just the edited component's marker range.
 
-The **POST** endpoint is used by the `Preview` component (`ui/src/features/layout/preview/Preview.tsx`) which watches for changes to:
-- The layout tree (component arrangement)
-- The component model (all component props)
-- The page data (entity form fields)
+The **render** endpoint serves the editor hot path for prop edits on server-rendered components: it is a pure function of draft state plus an optional client model overlay, so requests run concurrently and superseded ones are aborted (latest-wins per subtree via an opaque token). See `docs/adr/0017-preview-partial-rendering-frozen-regions.md`.
 
-When any of these Redux slices change, `Preview` sends the full state to the POST endpoint to generate an updated preview. Requests to the POST endpoint are queued to prevent parallel requests, which can result in locked entity errors and other race conditions.
+The **POST** endpoint serves three roles:
+- Full preview render: initial load, undo/redo, and the fallback/resync path for anything the partial path cannot bound.
+- Persist-only auto-save (`render: false`): the debounced persistence flow sends the full document state without any server rendering.
+- Both accept `frozen: "regions"|"content"`, declaring the tree the client is not editing; the server skips that tree's validation, overlay, writes, and rendering.
 
 ---
 
 ## Preview Generation
 
-The `Preview` component (`ui/src/features/layout/preview/Preview.tsx`) is responsible for keeping the visual preview in sync with the editor state. It watches three Redux selectors:
+Preview paint and auto-save persistence are decoupled flows (see
+`docs/adr/0017-preview-partial-rendering-frozen-regions.md`):
 
-- `selectLayout` — The component tree structure
-- `selectModel` — All component instance props
-- `selectPageData` — Entity form field values (title, path, etc.)
+- **Structural operations** (move, delete, duplicate, sort) are applied to the preview iframe DOM optimistically by
+  `previewDomUpdater.ts`, relocating or removing the node ranges between each component's HTML comment markers before
+  any network activity. Insert persists first, then renders the new component through the partial render endpoint and
+  splices it at its marker position.
+- **Prop edits on server-rendered components** go through the partial render endpoint (`partialRender.ts`): only the
+  edited component's subtree is re-rendered and swapped in place, with asset deltas injected first.
+- **Persistence** runs on its own trailing debounce (`autoSavePersister.ts`, cadence values in
+  `ui/src/utils/previewCadence.ts`), flushed on blur/pagehide/tab-hide, via the layout POST with `render: false`.
+- **Full renders** remain for initial load, undo/redo, template editing, and every fallback path. The `Preview`
+  component (`ui/src/features/layout/preview/Preview.tsx`) still watches `selectLayout`, `selectModel`, and
+  `selectPageData` and POSTs the full state when a full render is requested (the `updatePreview` flag survives), via
+  `useOrderedPostPreviewMutation`.
 
-When any of these change, `Preview` triggers a POST request via `useQueuedPostPreviewMutation`:
-
-```typescript
-await postPreview({
-  layout,
-  model,
-  entity_form_fields,
-  entityId,
-  entityType,
-});
-```
-
-The server renders the full page with the updated data and returns the HTML. A request queue ensures only one request is in flight at a time — if changes arrive while a request is pending, only the most recent state is sent after the current request completes.
+All auto-save writes (persists, PATCHes, full-document POSTs) run on a single client-side chain
+(`previewWriteChain.ts`) so they reach the server in dispatch order; every caller's promise settles with its own
+result. Read-only partial render requests bypass the chain and run concurrently, with superseded requests aborted.
 
 **AJAX awareness**: Preview requests wait for any in-progress Drupal AJAX operations to complete before firing, preventing race conditions with AJAX-dependent form widgets.
 
@@ -338,9 +339,9 @@ For AJAX specifically:
 
 ## Real-Time Preview Optimization
 
-For **scalar props** (string, number, boolean, integer) on components, the system fires a `ComponentPreviewUpdateEvent` before sending the PATCH request. Listeners can attempt a **real-time client-side preview update** by directly manipulating the preview DOM:
+For **scalar props** (string, number, boolean, integer) on components, the system fires a `ComponentPreviewUpdateEvent` before any server request. Listeners can attempt a **real-time client-side preview update** by directly manipulating the preview DOM:
 
-- **If successful**: The backend PATCH is debounced (1 second) to reduce server load while still persisting the change
-- **If not possible**: The PATCH fires immediately and the server returns the updated preview
+- **If successful**: The authoritative backend PATCH is debounced (see `previewCadence.ts`) to reduce server load while still persisting the change; its response is applied as an in-place subtree swap.
+- **If not possible**: The edit routes through the partial render endpoint immediately (or the legacy PATCH flow when partial rendering is disabled) and only the edited component's subtree is re-rendered.
 
-This optimization provides instant visual feedback for simple text/number changes while ensuring complex prop changes still get server-rendered previews. The full POST-based preview flow (see [Preview Generation](#preview-generation)) handles all other cases including layout rearrangement and undo/redo.
+This optimization provides instant visual feedback for simple text/number changes while ensuring complex prop changes still get server-rendered previews. The full POST-based preview flow (see [Preview Generation](#preview-generation)) handles undo/redo, template editing, and every fallback case.
