@@ -76,8 +76,12 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
     $saved_translation_is_forked = $entity->hasTranslation($sync_langcode)
       && self::isForkedTranslation($entity->getTranslation($sync_langcode));
     $net_new = $saved_translation_is_forked ? [] : $this->getDefaultTranslationNewComponentInstanceUuids($entity);
-    $this->decorated->synchronizeFields($entity, $sync_langcode, $original_langcode);
-    self::restoreComponentTreeValues($entity, $snapshot);
+    try {
+      $this->decorated->synchronizeFields($entity, $sync_langcode, $original_langcode);
+    }
+    finally {
+      self::restoreComponentTreeValues($entity, $snapshot);
+    }
     if (!$saved_translation_is_forked) {
       $this->synchronizeComponentInstanceInputs($entity, $net_new);
     }

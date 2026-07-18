@@ -35,19 +35,24 @@ const ExtensionPage: React.FC = () => {
   // parent address bar without reloading the iframe.
   useEffect(() => {
     function onMessage(e: MessageEvent) {
-      // Ignore messages from any source other than our iframe.
+      // Ignore messages from any source other than our iframe, and from any
+      // origin other than our own (the sandboxed iframe could have navigated
+      // itself elsewhere).
       if (e.source !== iframeRef.current?.contentWindow) return;
+      if (e.origin !== window.location.origin) return;
       if (!e.data) return;
 
       // The extension iframe is sandboxed without allow-top-navigation, so
       // links out of the extension into the Canvas app itself cannot use
       // target="_top". Extensions instead post an in-app route (relative to
       // the router basename, e.g. `/preview/canvas_page/1/full?language=fr`)
-      // and the parent navigates.
+      // and the parent navigates. `//host` would be a cross-origin URL, not
+      // an in-app route: reject it.
       if (
         e.data.type === 'canvas:navigate-app' &&
         typeof e.data.path === 'string' &&
-        e.data.path.startsWith('/')
+        e.data.path.startsWith('/') &&
+        !e.data.path.startsWith('//')
       ) {
         navigate(e.data.path);
         return;
