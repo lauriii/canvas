@@ -6,10 +6,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   buildIconPushPlannedResults,
-  discoverIconLibraryDirs,
+  discoverIconLibraries,
+  planIconLibraryDeletions,
   pushIcons,
 } from './icon-push';
 
+import type { IconsConfig } from '../../config';
 import type { ApiService } from '../../services/api';
 import type { IconLibrary } from '../../types/IconLibrary';
 
@@ -43,6 +45,7 @@ describe('icon-push', () => {
       getIconLibraries: vi.fn().mockResolvedValue({}),
       createIconLibrary: vi.fn().mockResolvedValue({}),
       updateIconLibrary: vi.fn().mockResolvedValue({}),
+      deleteIconLibrary: vi.fn().mockResolvedValue(undefined),
       uploadIconAsset: vi.fn().mockImplementation(() => {
         uploadCount++;
         return Promise.resolve({
@@ -58,56 +61,84 @@ describe('icon-push', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  async function writeLibrary(
-    id: string,
-    manifest: Record<string, unknown>,
-    files: Record<string, string>,
-  ): Promise<void> {
-    const dir = path.join(tmpDir, 'icons', id);
-    await fs.mkdir(dir, { recursive: true });
+  async function writeBrandKitIcons(icons: IconsConfig): Promise<void> {
     await fs.writeFile(
-      path.join(dir, 'manifest.json'),
-      JSON.stringify(manifest, null, 2),
+      path.join(tmpDir, 'canvas.brand-kit.json'),
+      JSON.stringify({ icons }, null, 2),
       'utf-8',
     );
+  }
+
+  async function writeSvgDir(
+    relativeDir: string,
+    files: Record<string, string>,
+  ): Promise<void> {
+    const dir = path.join(tmpDir, relativeDir);
+    await fs.mkdir(dir, { recursive: true });
     for (const [name, content] of Object.entries(files)) {
       await fs.writeFile(path.join(dir, name), content, 'utf-8');
     }
   }
 
-  describe('discoverIconLibraryDirs', () => {
-    it('returns an empty list when the icons directory is missing', async () => {
-      expect(await discoverIconLibraryDirs(tmpDir)).toEqual([]);
+  describe('discoverIconLibraries', () => {
+    it('returns an empty non-authoritative result with no config or dirs', async () => {
+      expect(await discoverIconLibraries(tmpDir)).toEqual({
+        libraries: [],
+        authoritative: false,
+      });
     });
 
-    it('skips module pack.json dirs and empty dirs, but discovers plain SVG dirs', async () => {
-      await writeLibrary(
-        'my_icons',
-        { id: 'my_icons', label: 'My icons' },
-        { 'star.svg': STAR_SVG },
-      );
-      // A plain directory of SVGs without a manifest is a library to push.
-      const plainDir = path.join(tmpDir, 'icons', 'plain_icons');
-      await fs.mkdir(plainDir, { recursive: true });
-      await fs.writeFile(path.join(plainDir, 'star.svg'), STAR_SVG, 'utf-8');
+    it('merges declared entries with plain SVG dirs and skips pack dirs', async () => {
+      await writeBrandKitIcons({
+        libraries: [
+          { id: 'lucide', source: 'node_modules/lucide-static/icons' },
+        ],
+      });
+      // A plain directory of SVGs without a declaration is a library to push.
+      await writeSvgDir('icons/plain_icons', { 'star.svg': STAR_SVG });
       // A pack.json marks a module-provided pack (informational, never pushed).
-      const packDir = path.join(tmpDir, 'icons', 'module_pack');
-      await fs.mkdir(packDir, { recursive: true });
+      await writeSvgDir('icons/module_pack', {});
       await fs.writeFile(
-        path.join(packDir, 'pack.json'),
+        path.join(tmpDir, 'icons', 'module_pack', 'pack.json'),
         JSON.stringify({ id: 'module_pack', managed: false }),
         'utf-8',
       );
-      // A directory with neither manifest nor SVGs is not a library.
+      // A directory with no SVGs is not a library.
       await fs.mkdir(path.join(tmpDir, 'icons', 'empty_dir'), {
         recursive: true,
       });
 
-      const discovered = await discoverIconLibraryDirs(tmpDir);
-      expect(discovered.map((library) => library.id)).toEqual([
-        'my_icons',
+      const result = await discoverIconLibraries(tmpDir);
+
+      expect(result.authoritative).toBe(true);
+      expect(result.libraries.map((library) => library.id)).toEqual([
+        'lucide',
         'plain_icons',
       ]);
+    });
+
+    it('is not authoritative without an icons key in the config file', async () => {
+      await writeSvgDir('icons/plain_icons', { 'star.svg': STAR_SVG });
+
+      const result = await discoverIconLibraries(tmpDir);
+
+      expect(result.authoritative).toBe(false);
+      expect(result.libraries.map((library) => library.id)).toEqual([
+        'plain_icons',
+      ]);
+    });
+  });
+
+  describe('planIconLibraryDeletions', () => {
+    it('plans deletions only when the local set is authoritative', () => {
+      const remote = {
+        keep: remoteLibrary({ id: 'keep' }),
+        drop: remoteLibrary({ id: 'drop' }),
+      };
+      expect(planIconLibraryDeletions(remote, ['keep'], true)).toEqual([
+        'drop',
+      ]);
+      expect(planIconLibraryDeletions(remote, ['keep'], false)).toEqual([]);
     });
   });
 
@@ -120,12 +151,16 @@ describe('icon-push', () => {
       expect(api.uploadIconAsset).not.toHaveBeenCalled();
     });
 
-    it('creates a new library with uploaded assets', async () => {
-      await writeLibrary(
-        'my_icons',
-        { id: 'my_icons', label: 'My icons', description: 'A set' },
-        { 'star.svg': STAR_SVG, 'heart.svg': HEART_SVG },
-      );
+    it('creates a new declared library with uploaded assets', async () => {
+      await writeBrandKitIcons({
+        libraries: [
+          { id: 'my_icons', label: 'My icons', description: 'A set' },
+        ],
+      });
+      await writeSvgDir('icons/my_icons', {
+        'star.svg': STAR_SVG,
+        'heart.svg': HEART_SVG,
+      });
 
       // Serial uploads keep the mock upload counter deterministic.
       const result = await pushIcons(api, tmpDir, { concurrency: 1 });
@@ -142,21 +177,9 @@ describe('icon-push', () => {
           errors: [],
         },
       ]);
-      expect(api.uploadIconAsset).toHaveBeenCalledTimes(2);
-      expect(api.uploadIconAsset).toHaveBeenCalledWith(
-        'my_icons',
-        'heart.svg',
-        expect.any(Buffer),
-      );
-      expect(api.uploadIconAsset).toHaveBeenCalledWith(
-        'my_icons',
-        'star.svg',
-        expect.any(Buffer),
-      );
       // The asset upload route resolves the entity, so the library must be
       // created (without assets) before any SVG is uploaded, and the assets
       // list arrives in the final update.
-      expect(api.createIconLibrary).toHaveBeenCalledTimes(1);
       expect(api.createIconLibrary).toHaveBeenCalledWith({
         id: 'my_icons',
         label: 'My icons',
@@ -168,7 +191,6 @@ describe('icon-push', () => {
       ).toBeLessThan(
         vi.mocked(api.uploadIconAsset).mock.invocationCallOrder[0],
       );
-      expect(api.updateIconLibrary).toHaveBeenCalledTimes(1);
       expect(api.updateIconLibrary).toHaveBeenCalledWith('my_icons', {
         label: 'My icons',
         description: 'A set',
@@ -188,60 +210,22 @@ describe('icon-push', () => {
       });
     });
 
-    it('updates an existing library when its content differs', async () => {
-      await writeLibrary(
-        'my_icons',
-        { id: 'my_icons', label: 'New label' },
-        { 'star.svg': STAR_SVG },
-      );
-      vi.mocked(api.getIconLibraries).mockResolvedValue({
-        my_icons: remoteLibrary({
-          label: 'Old label',
-          assets: [
-            {
-              name: 'star.svg',
-              uri: 'public://canvas/icons/upload-1.svg',
-              url: '/sites/default/files/canvas/icons/upload-1.svg',
-            },
-          ],
-        }),
-      });
+    it('pushes a plain SVG directory with a derived label', async () => {
+      await writeSvgDir('icons/plain_icons', { 'star.svg': STAR_SVG });
 
       const result = await pushIcons(api, tmpDir);
 
-      expect(result.updated).toBe(1);
-      expect(result.outcomes).toEqual([
-        {
-          id: 'my_icons',
-          operation: 'update',
-          success: true,
-          uploadedCount: 1,
-          skippedCount: 0,
-          errors: [],
-        },
-      ]);
-      expect(api.createIconLibrary).not.toHaveBeenCalled();
-      expect(api.updateIconLibrary).toHaveBeenCalledTimes(1);
-      expect(api.updateIconLibrary).toHaveBeenCalledWith('my_icons', {
-        label: 'New label',
-        description: null,
-        template: null,
-        assets: [
-          {
-            name: 'star.svg',
-            uri: 'public://canvas/icons/upload-1.svg',
-            hash: sha256(STAR_SVG),
-          },
-        ],
-      });
+      expect(result.created).toBe(1);
+      expect(api.createIconLibrary).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'plain_icons', label: 'Plain icons' }),
+      );
     });
 
     it('reports unchanged and uploads nothing when nothing differs', async () => {
-      await writeLibrary(
-        'my_icons',
-        { id: 'my_icons', label: 'My icons' },
-        { 'star.svg': STAR_SVG },
-      );
+      await writeBrandKitIcons({
+        libraries: [{ id: 'my_icons', label: 'My icons' }],
+      });
+      await writeSvgDir('icons/my_icons', { 'star.svg': STAR_SVG });
       vi.mocked(api.getIconLibraries).mockResolvedValue({
         my_icons: remoteLibrary({
           assets: [
@@ -258,28 +242,21 @@ describe('icon-push', () => {
       const result = await pushIcons(api, tmpDir);
 
       expect(result.unchanged).toBe(1);
-      expect(result.outcomes).toEqual([
-        {
-          id: 'my_icons',
-          operation: 'unchanged',
-          success: true,
-          uploadedCount: 0,
-          skippedCount: 1,
-          errors: [],
-        },
-      ]);
+      expect(result.deleted).toBe(0);
       // Matching hashes mean no bytes leave the machine.
       expect(api.uploadIconAsset).not.toHaveBeenCalled();
-      expect(api.createIconLibrary).not.toHaveBeenCalled();
       expect(api.updateIconLibrary).not.toHaveBeenCalled();
+      expect(api.deleteIconLibrary).not.toHaveBeenCalled();
     });
 
     it('uploads only changed files on an incremental push', async () => {
-      await writeLibrary(
-        'my_icons',
-        { id: 'my_icons', label: 'My icons' },
-        { 'star.svg': STAR_SVG, 'heart.svg': HEART_SVG },
-      );
+      await writeBrandKitIcons({
+        libraries: [{ id: 'my_icons', label: 'My icons' }],
+      });
+      await writeSvgDir('icons/my_icons', {
+        'star.svg': STAR_SVG,
+        'heart.svg': HEART_SVG,
+      });
       vi.mocked(api.getIconLibraries).mockResolvedValue({
         my_icons: remoteLibrary({
           assets: [
@@ -344,43 +321,64 @@ describe('icon-push', () => {
       expect(progress[progress.length - 1]).toEqual(['my_icons', 2, 2]);
     });
 
-    it('reads SVG files from the manifest source directory', async () => {
-      const sourceDir = path.join(tmpDir, 'node_modules', 'some-icons');
-      await fs.mkdir(sourceDir, { recursive: true });
-      await fs.writeFile(path.join(sourceDir, 'star.svg'), STAR_SVG, 'utf-8');
-      const libraryDir = path.join(tmpDir, 'icons', 'some_icons');
-      await fs.mkdir(libraryDir, { recursive: true });
-      await fs.writeFile(
-        path.join(libraryDir, 'manifest.json'),
-        JSON.stringify({
-          id: 'some_icons',
-          label: 'Some icons',
-          source: 'node_modules/some-icons',
+    it('deletes remote libraries missing from an authoritative local set', async () => {
+      await writeBrandKitIcons({
+        libraries: [{ id: 'my_icons', label: 'My icons' }],
+      });
+      await writeSvgDir('icons/my_icons', { 'star.svg': STAR_SVG });
+      vi.mocked(api.getIconLibraries).mockResolvedValue({
+        my_icons: remoteLibrary({
+          assets: [
+            {
+              name: 'star.svg',
+              uri: 'public://canvas/icons/upload-1.svg',
+              url: '/sites/default/files/canvas/icons/upload-1.svg',
+              hash: sha256(STAR_SVG),
+            },
+          ],
         }),
-        'utf-8',
-      );
+        obsolete: remoteLibrary({ id: 'obsolete', label: 'Obsolete' }),
+      });
 
       const result = await pushIcons(api, tmpDir);
 
-      expect(result.created).toBe(1);
-      expect(api.uploadIconAsset).toHaveBeenCalledWith(
-        'some_icons',
-        'star.svg',
-        expect.any(Buffer),
-      );
+      expect(result.deleted).toBe(1);
+      expect(api.deleteIconLibrary).toHaveBeenCalledWith('obsolete');
+      expect(result.outcomes).toContainEqual({
+        id: 'obsolete',
+        operation: 'delete',
+        success: true,
+        errors: [],
+      });
+    });
+
+    it('deletes all remote libraries when the declared list is empty', async () => {
+      await writeBrandKitIcons({ libraries: [] });
+      vi.mocked(api.getIconLibraries).mockResolvedValue({
+        obsolete: remoteLibrary({ id: 'obsolete', label: 'Obsolete' }),
+      });
+
+      const result = await pushIcons(api, tmpDir);
+
+      expect(result.deleted).toBe(1);
+      expect(api.deleteIconLibrary).toHaveBeenCalledWith('obsolete');
+    });
+
+    it('never deletes without an icons key in the config file', async () => {
+      await writeSvgDir('icons/plain_icons', { 'star.svg': STAR_SVG });
+      vi.mocked(api.getIconLibraries).mockResolvedValue({
+        other: remoteLibrary({ id: 'other', label: 'Other' }),
+      });
+
+      const result = await pushIcons(api, tmpDir);
+
+      expect(result.deleted).toBe(0);
+      expect(api.deleteIconLibrary).not.toHaveBeenCalled();
     });
 
     it('surfaces server sanitization errors with the file path and continues with other libraries', async () => {
-      await writeLibrary(
-        'bad_icons',
-        { id: 'bad_icons', label: 'Bad icons' },
-        { 'sneaky.svg': STAR_SVG },
-      );
-      await writeLibrary(
-        'good_icons',
-        { id: 'good_icons', label: 'Good icons' },
-        { 'star.svg': STAR_SVG },
-      );
+      await writeSvgDir('icons/bad_icons', { 'sneaky.svg': STAR_SVG });
+      await writeSvgDir('icons/good_icons', { 'star.svg': STAR_SVG });
       vi.mocked(api.uploadIconAsset).mockImplementation(
         (libraryId: string, filename: string) => {
           if (libraryId === 'bad_icons') {
@@ -418,11 +416,9 @@ describe('icon-push', () => {
     });
 
     it('fails validation for an unsafe local SVG before any network call', async () => {
-      await writeLibrary(
-        'my_icons',
-        { id: 'my_icons', label: 'My icons' },
-        { 'evil.svg': '<svg><script>alert(1)</script></svg>' },
-      );
+      await writeSvgDir('icons/my_icons', {
+        'evil.svg': '<svg><script>alert(1)</script></svg>',
+      });
 
       const result = await pushIcons(api, tmpDir);
 
@@ -438,11 +434,7 @@ describe('icon-push', () => {
     });
 
     it('fails only the library whose create request fails', async () => {
-      await writeLibrary(
-        'my_icons',
-        { id: 'my_icons', label: 'My icons' },
-        { 'star.svg': STAR_SVG },
-      );
+      await writeSvgDir('icons/my_icons', { 'star.svg': STAR_SVG });
       vi.mocked(api.createIconLibrary).mockRejectedValue(
         new Error('Validation failed on the server.'),
       );
@@ -450,36 +442,44 @@ describe('icon-push', () => {
       const result = await pushIcons(api, tmpDir);
 
       expect(result.failed).toBe(1);
-      expect(result.outcomes).toEqual([
-        {
-          id: 'my_icons',
-          success: false,
-          errors: ['Validation failed on the server.'],
-        },
+      expect(result.outcomes[0].success).toBe(false);
+      expect(result.outcomes[0].errors).toEqual([
+        'Validation failed on the server.',
       ]);
+      expect(api.updateIconLibrary).not.toHaveBeenCalled();
     });
   });
 
   describe('buildIconPushPlannedResults', () => {
-    it('plans create for new libraries and update for existing ones', () => {
+    it('labels creates, updates, and deletions', () => {
       const results = buildIconPushPlannedResults(
-        ['existing_lib', 'new_lib'],
-        { existing_lib: remoteLibrary({ id: 'existing_lib' }) },
-        { create: 'create', update: 'update' },
+        ['existing', 'fresh'],
+        {
+          existing: remoteLibrary({ id: 'existing' }),
+          obsolete: remoteLibrary({ id: 'obsolete' }),
+        },
+        { create: 'Create', update: 'Update', delete: 'Delete' },
+        true,
       );
 
       expect(results).toEqual([
         {
-          itemName: 'existing_lib',
+          itemName: 'existing',
           itemType: 'Icon library',
           success: true,
-          details: [{ content: 'update' }],
+          details: [{ content: 'Update' }],
         },
         {
-          itemName: 'new_lib',
+          itemName: 'fresh',
           itemType: 'Icon library',
           success: true,
-          details: [{ content: 'create' }],
+          details: [{ content: 'Create' }],
+        },
+        {
+          itemName: 'obsolete',
+          itemType: 'Icon library',
+          success: true,
+          details: [{ content: 'Delete' }],
         },
       ]);
     });

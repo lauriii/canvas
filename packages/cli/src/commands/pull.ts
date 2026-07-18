@@ -14,6 +14,7 @@ import {
   updateBrandKitConfig,
   variantKey,
 } from '../lib/fonts/font-pull.js';
+import { readBrandKitIconsConfig } from '../lib/icons/icon-config.js';
 import { pullIcons } from '../lib/icons/icon-pull.js';
 import { ICONS_DIR } from '../lib/icons/icon-validate.js';
 import { createApiService, ensureAuthConfig } from '../services/api';
@@ -845,11 +846,13 @@ export function createIconsPullTask(
 
       const libraryIds = Object.keys(libraries);
       if (libraryIds.length > 0) {
-        let existingCount = 0;
-        for (const id of libraryIds) {
-          if (await localFileExists(path.join(ICONS_DIR, id, 'manifest.json')))
-            existingCount++;
-        }
+        const iconsConfig = await readBrandKitIconsConfig(process.cwd());
+        const declaredIds = new Set(
+          (iconsConfig?.libraries ?? []).map((library) => library.id),
+        );
+        const existingCount = libraryIds.filter((id) =>
+          declaredIds.has(id),
+        ).length;
         lines.push(
           formatSummaryLine(
             'Icon libraries',

@@ -74,10 +74,11 @@ Uploaded SVGs pass through `\Drupal\canvas\Icon\SvgSanitizer`, which rejects scr
 external references — this is a trust boundary. Managing icon libraries requires the `administer icon libraries`
 permission (OAuth scope `canvas:icon_library`).
 
-Icon libraries are part of the CLI's brand kit workflow: the `--include-brand-kit` flag that syncs fonts also syncs
-the `icons/` directory in both push and pull. Importing an existing icon set requires no configuration — copy its SVG
-files into `icons/<library>/` and push; the directory name becomes the library id, each filename becomes an icon id,
-and a `manifest.json` is only needed to customize the label, description, or Twig template — or to point `source` at
-an npm package directory (for example `node_modules/lucide-static/icons`) so the SVGs stay out of the repository.
-Pushes are incremental: each asset's SHA-256 is stored on the library, so only new or changed files are uploaded.
-For the project layout and details, see the [`@drupal-canvas/cli` README](../packages/cli/README.md).
+Icon libraries are part of the CLI's brand kit workflow and mirror the fonts DX: the same `--include-brand-kit` flag
+governs both, and libraries are declared in `canvas.brand-kit.json` under `icons.libraries` (mirroring
+`fonts.families`) — each entry naming an id and, optionally, a label, description, Twig template, and a `source`
+directory such as `node_modules/lucide-static/icons` so npm-managed icon sets stay out of the repository. A declared
+list is authoritative like the fonts list: pushing removes canvas-managed libraries that are no longer in it. As a
+zero-config shortcut, any `icons/<library>/` directory of SVG files also pushes without a declaration. Pushes are
+incremental: each asset's SHA-256 is stored on the library, so only new or changed files are uploaded. For the
+project layout and details, see the [`@drupal-canvas/cli` README](../packages/cli/README.md).

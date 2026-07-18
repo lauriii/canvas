@@ -1,10 +1,11 @@
 import fs from 'fs/promises';
 import path from 'path';
 
+import { updateBrandKitIconsConfig } from './icon-config.js';
 import { ICON_FILENAME_PATTERN, ICONS_DIR } from './icon-validate.js';
 
+import type { IconLibraryEntry } from '../../config.js';
 import type { ApiService } from '../../services/api.js';
-import type { IconLibraryManifest } from './icon-validate.js';
 
 /** Server-provided ids become local directory names, so keep them restricted. */
 const SAFE_DIRECTORY_NAME_PATTERN = /^[a-zA-Z0-9._-]+$/;
@@ -22,11 +23,12 @@ export interface PullIconsResult {
 }
 
 /**
- * Pull icons from the server into the local icons/ directory.
- * Canvas-managed libraries (from the config API) are written as
- * icons/<id>/manifest.json plus their SVG assets, ready to push again.
- * Module-provided packs (in the icons listing but not the config API) are
- * written as informational icons/<id>/pack.json files that push skips.
+ * Pull icons from the server into the local project, mirroring the fonts
+ * workflow: canvas-managed libraries (from the config API) are declared in
+ * canvas.brand-kit.json (`icons.libraries`) and their SVG assets are written
+ * into icons/<id>/, ready to push again. Module-provided packs (in the icons
+ * listing but not the config API) are written as informational
+ * icons/<id>/pack.json files that push skips.
  */
 export async function pullIcons(
   api: ApiService,
@@ -42,26 +44,23 @@ export async function pullIcons(
   let assetCount = 0;
   let packCount = 0;
 
+  const pulledEntries: IconLibraryEntry[] = [];
   for (const library of Object.values(libraries)) {
     assertSafeDirectoryName(library.id, 'icon library');
     const libraryDir = path.join(iconsDir, library.id);
     await fs.mkdir(libraryDir, { recursive: true });
 
-    const manifest: IconLibraryManifest = {
+    const entry: IconLibraryEntry = {
       id: library.id,
       label: library.label,
     };
     if (library.description != null) {
-      manifest.description = library.description;
+      entry.description = library.description;
     }
     if (library.template != null) {
-      manifest.template = library.template;
+      entry.template = library.template;
     }
-    await fs.writeFile(
-      path.join(libraryDir, 'manifest.json'),
-      `${JSON.stringify(manifest, null, 2)}\n`,
-      'utf-8',
-    );
+    pulledEntries.push(entry);
 
     for (const asset of library.assets ?? []) {
       if (!ICON_FILENAME_PATTERN.test(asset.name)) {
@@ -76,6 +75,10 @@ export async function pullIcons(
 
     libraryCount++;
   }
+
+  // Declare the pulled libraries in canvas.brand-kit.json (mirroring how
+  // fonts merge pulled families), preserving existing entries.
+  await updateBrandKitIconsConfig(projectRoot, pulledEntries);
 
   for (const [packId, pack] of Object.entries(packs)) {
     // Canvas-managed packs are already covered by their library directory.

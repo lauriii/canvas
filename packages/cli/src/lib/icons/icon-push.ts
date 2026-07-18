@@ -3,8 +3,10 @@ import fs from 'fs/promises';
 import path from 'path';
 
 import { processInPool } from '../../utils/request-pool.js';
-import { ICONS_DIR, validateIconLibraryDir } from './icon-validate.js';
+import { readBrandKitIconsConfig } from './icon-config.js';
+import { ICONS_DIR, validateIconLibraryEntry } from './icon-validate.js';
 
+import type { IconLibraryEntry } from '../../config.js';
 import type { ApiService } from '../../services/api.js';
 import type {
   IconLibrary,
@@ -16,10 +18,10 @@ import type { ValidatedIconLibrary } from './icon-validate.js';
 
 export interface DiscoveredIconLibrary {
   id: string;
-  dir: string;
+  entry: IconLibraryEntry;
 }
 
-export type IconPushOperation = 'create' | 'update' | 'unchanged';
+export type IconPushOperation = 'create' | 'update' | 'unchanged' | 'delete';
 
 export interface IconLibraryPushOutcome {
   id: string;
@@ -51,6 +53,7 @@ export interface IconPushResult {
   created: number;
   updated: number;
   unchanged: number;
+  deleted: number;
   failed: number;
 }
 
@@ -59,17 +62,31 @@ function formatErrorMessage(error: unknown): string {
 }
 
 /**
- * Discovers local icon libraries: directories under icons/ that contain a
- * manifest.json. Directories without one (e.g. module-provided pack.json
- * directories written by pull) are skipped.
+ * Discovers local icon libraries, mirroring the fonts workflow: entries
+ * declared in canvas.brand-kit.json (`icons.libraries`) plus plain
+ * `icons/<id>/` directories of SVG files not already declared (id from the
+ * directory name, label derived). Directories holding a `pack.json`
+ * (module-provided packs written by pull) are never pushed.
+ *
+ * When the `icons` key is present in canvas.brand-kit.json, the resulting
+ * set is authoritative: push removes remote canvas-managed libraries that
+ * are not in it, the same replace semantics fonts use.
  */
-export async function discoverIconLibraryDirs(
-  projectRoot: string,
-): Promise<DiscoveredIconLibrary[]> {
+export async function discoverIconLibraries(projectRoot: string): Promise<{
+  libraries: DiscoveredIconLibrary[];
+  /** True when canvas.brand-kit.json declares an `icons` key. */
+  authoritative: boolean;
+}> {
+  const iconsConfig = await readBrandKitIconsConfig(projectRoot);
+  const libraries: DiscoveredIconLibrary[] = (iconsConfig?.libraries ?? []).map(
+    (entry) => ({ id: entry.id, entry }),
+  );
+  const declaredIds = new Set(libraries.map((library) => library.id));
+
   const iconsDir = path.resolve(projectRoot, ICONS_DIR);
-  let entries;
+  let directoryEntries;
   try {
-    entries = await fs.readdir(iconsDir, { withFileTypes: true });
+    directoryEntries = await fs.readdir(iconsDir, { withFileTypes: true });
   } catch (err) {
     // The icons directory is optional.
     if (
@@ -78,17 +95,19 @@ export async function discoverIconLibraryDirs(
       'code' in err &&
       err.code === 'ENOENT'
     ) {
-      return [];
+      return { libraries, authoritative: iconsConfig !== undefined };
     }
     throw err;
   }
 
-  const libraries: DiscoveredIconLibrary[] = [];
-  const directories = entries
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
+  const directories = directoryEntries
+    .filter((dirent) => dirent.isDirectory())
+    .map((dirent) => dirent.name)
     .sort((a, b) => a.localeCompare(b));
   for (const name of directories) {
+    if (declaredIds.has(name)) {
+      continue;
+    }
     const dir = path.join(iconsDir, name);
     // Directories holding a pack.json mirror module-provided packs (written
     // by pull for information only) and are never pushed.
@@ -99,24 +118,19 @@ export async function discoverIconLibraryDirs(
     if (isModulePack) {
       continue;
     }
-    // A manifest.json or at least one SVG file makes this a library to push;
-    // the manifest itself is optional (label derives from the directory name).
-    const hasManifest = await fs
-      .access(path.join(dir, 'manifest.json'))
-      .then(() => true)
+    const hasSvgFiles = await fs
+      .readdir(dir)
+      .then((files) => files.some((file) => /\.svg$/i.test(file)))
       .catch(() => false);
-    const hasSvgFiles =
-      !hasManifest &&
-      (await fs
-        .readdir(dir)
-        .then((files) => files.some((file) => /\.svg$/i.test(file)))
-        .catch(() => false));
-    if (!hasManifest && !hasSvgFiles) {
+    if (!hasSvgFiles) {
       continue;
     }
-    libraries.push({ id: name, dir });
+    libraries.push({ id: name, entry: { id: name } });
   }
-  return libraries;
+
+  // Keep a stable order for reporting.
+  libraries.sort((a, b) => a.id.localeCompare(b.id));
+  return { libraries, authoritative: iconsConfig !== undefined };
 }
 
 /**
@@ -126,14 +140,21 @@ export async function discoverIconLibraryDirs(
 export async function prepareIconLibrariesPush(projectRoot: string): Promise<{
   valid: Array<{ index: number; result: ValidatedIconLibrary }>;
   failed: IconLibraryPreparationFailure[];
+  /** True when canvas.brand-kit.json declares an `icons` key. */
+  authoritative: boolean;
+  /** Every locally known library id, valid or not. */
+  localIds: string[];
 }> {
-  const discovered = await discoverIconLibraryDirs(projectRoot);
+  const { libraries, authoritative } = await discoverIconLibraries(projectRoot);
   const valid: Array<{ index: number; result: ValidatedIconLibrary }> = [];
   const failed: IconLibraryPreparationFailure[] = [];
 
-  for (const [index, library] of discovered.entries()) {
+  for (const [index, library] of libraries.entries()) {
     try {
-      valid.push({ index, result: await validateIconLibraryDir(library.dir) });
+      valid.push({
+        index,
+        result: await validateIconLibraryEntry(library.entry, projectRoot),
+      });
     } catch (error) {
       failed.push({
         index,
@@ -143,11 +164,35 @@ export async function prepareIconLibrariesPush(projectRoot: string): Promise<{
     }
   }
 
-  return { valid, failed };
+  return {
+    valid,
+    failed,
+    authoritative,
+    localIds: libraries.map((library) => library.id),
+  };
 }
 
 /**
- * Returns true when the local manifest fields and uploaded assets match the
+ * Remote canvas-managed libraries to delete: those missing from the local
+ * set, when the local set is authoritative (an `icons` key exists in
+ * canvas.brand-kit.json). Mirrors fonts' replace-the-remote-set semantics.
+ */
+export function planIconLibraryDeletions(
+  remote: Record<string, IconLibrary>,
+  localIds: string[],
+  authoritative: boolean,
+): string[] {
+  if (!authoritative) {
+    return [];
+  }
+  const localSet = new Set(localIds);
+  return Object.keys(remote)
+    .filter((id) => !localSet.has(id))
+    .sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Returns true when the local library fields and uploaded assets match the
  * remote library, so the create/update request can be skipped.
  */
 function iconLibraryUnchanged(
@@ -155,12 +200,11 @@ function iconLibraryUnchanged(
   assets: IconLibraryAssetInput[],
   existing: IconLibrary,
 ): boolean {
-  const manifest = library.manifest;
-  if (manifest.label !== existing.label) return false;
-  if ((manifest.description ?? null) !== (existing.description ?? null)) {
+  if (library.label !== existing.label) return false;
+  if ((library.description ?? null) !== (existing.description ?? null)) {
     return false;
   }
-  if ((manifest.template ?? null) !== (existing.template ?? null)) {
+  if ((library.template ?? null) !== (existing.template ?? null)) {
     return false;
   }
   const remoteAssets = existing.assets ?? [];
@@ -200,7 +244,6 @@ export async function pushIconLibrary(
   existing: IconLibrary | undefined,
   options: IconPushOptions = {},
 ): Promise<IconLibraryPushOutcome> {
-  const manifest = library.manifest;
   const isNew = !existing;
   const concurrency = options.concurrency ?? 8;
 
@@ -208,12 +251,12 @@ export async function pushIconLibrary(
     try {
       await api.createIconLibrary({
         id: library.id,
-        label: manifest.label,
-        ...(manifest.description !== undefined && {
-          description: manifest.description,
+        label: library.label,
+        ...(library.description !== undefined && {
+          description: library.description,
         }),
-        ...(manifest.template !== undefined && {
-          template: manifest.template,
+        ...(library.template !== undefined && {
+          template: library.template,
         }),
         assets: null,
       });
@@ -325,9 +368,9 @@ export async function pushIconLibrary(
     }
 
     await api.updateIconLibrary(library.id, {
-      label: manifest.label,
-      description: manifest.description ?? null,
-      template: manifest.template ?? null,
+      label: library.label,
+      description: library.description ?? null,
+      template: library.template ?? null,
       assets,
     });
     return {
@@ -358,7 +401,8 @@ export async function pushIcons(
   projectRoot: string,
   options: IconPushOptions = {},
 ): Promise<IconPushResult> {
-  const { valid, failed } = await prepareIconLibrariesPush(projectRoot);
+  const { valid, failed, authoritative, localIds } =
+    await prepareIconLibrariesPush(projectRoot);
 
   const outcomeByIndex = new Map<number, IconLibraryPushOutcome>();
   for (const failure of failed) {
@@ -369,7 +413,8 @@ export async function pushIcons(
     });
   }
 
-  if (valid.length > 0) {
+  const deletions: IconLibraryPushOutcome[] = [];
+  if (valid.length > 0 || authoritative) {
     const remote = await api.getIconLibraries();
     for (const entry of valid) {
       outcomeByIndex.set(
@@ -382,17 +427,41 @@ export async function pushIcons(
         ),
       );
     }
+
+    // A declared library list is authoritative: remove remote canvas-managed
+    // libraries that are no longer listed, mirroring fonts' replace
+    // semantics.
+    for (const id of planIconLibraryDeletions(
+      remote,
+      localIds,
+      authoritative,
+    )) {
+      try {
+        await api.deleteIconLibrary(id);
+        deletions.push({ id, operation: 'delete', success: true, errors: [] });
+      } catch (error) {
+        deletions.push({
+          id,
+          success: false,
+          errors: [formatErrorMessage(error)],
+        });
+      }
+    }
   }
 
-  const outcomes = [...outcomeByIndex.entries()]
-    .sort(([a], [b]) => a - b)
-    .map(([, outcome]) => outcome);
+  const outcomes = [
+    ...[...outcomeByIndex.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([, outcome]) => outcome),
+    ...deletions,
+  ];
 
   return {
     outcomes,
     created: outcomes.filter((o) => o.operation === 'create').length,
     updated: outcomes.filter((o) => o.operation === 'update').length,
     unchanged: outcomes.filter((o) => o.operation === 'unchanged').length,
+    deleted: outcomes.filter((o) => o.operation === 'delete').length,
     failed: outcomes.filter((o) => !o.success).length,
   };
 }
@@ -401,6 +470,7 @@ const OPERATION_RESULT_LABELS: Record<IconPushOperation, string> = {
   create: 'Created',
   update: 'Updated',
   unchanged: 'Unchanged',
+  delete: 'Deleted',
 };
 
 /**
@@ -464,9 +534,10 @@ export function collectIconLibraryResults(
 export function buildIconPushPlannedResults(
   localLibraryIds: string[],
   remoteLibraries: Record<string, IconLibrary>,
-  operationLabels: { create: string; update: string },
+  operationLabels: { create: string; update: string; delete: string },
+  authoritative: boolean,
 ): Result[] {
-  return localLibraryIds.map((id) => ({
+  const planned: Result[] = localLibraryIds.map((id) => ({
     itemName: id,
     itemType: 'Icon library',
     success: true,
@@ -479,4 +550,17 @@ export function buildIconPushPlannedResults(
       },
     ],
   }));
+  for (const id of planIconLibraryDeletions(
+    remoteLibraries,
+    localLibraryIds,
+    authoritative,
+  )) {
+    planned.push({
+      itemName: id,
+      itemType: 'Icon library',
+      success: true,
+      details: [{ content: operationLabels.delete }],
+    });
+  }
+  return planned;
 }

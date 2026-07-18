@@ -84,7 +84,7 @@ describe('pullIcons', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('writes manifest.json and svg assets for canvas-managed libraries', async () => {
+  it('declares libraries in canvas.brand-kit.json and writes svg assets', async () => {
     const api = mockApiService({
       libraries: { my_icons: managedLibrary() },
       packs: {
@@ -97,16 +97,17 @@ describe('pullIcons', () => {
 
     expect(result).toEqual({ libraries: 1, assets: 2, packs: 0 });
 
-    const manifest = JSON.parse(
-      await fs.readFile(
-        path.join(tmpDir, 'icons', 'my_icons', 'manifest.json'),
-        'utf-8',
-      ),
+    const brandKit = JSON.parse(
+      await fs.readFile(path.join(tmpDir, 'canvas.brand-kit.json'), 'utf-8'),
     );
-    expect(manifest).toEqual({
-      id: 'my_icons',
-      label: 'My icons',
-      description: 'A managed set',
+    expect(brandKit.icons).toEqual({
+      libraries: [
+        {
+          id: 'my_icons',
+          label: 'My icons',
+          description: 'A managed set',
+        },
+      ],
     });
 
     expect(api.downloadFile).toHaveBeenCalledWith(
@@ -126,7 +127,7 @@ describe('pullIcons', () => {
     ).toBe(HEART_SVG);
   });
 
-  it('omits null description and keeps template in manifest.json', async () => {
+  it('omits null description and keeps template in the declared entry', async () => {
     const api = mockApiService({
       libraries: {
         my_icons: managedLibrary({
@@ -140,17 +141,48 @@ describe('pullIcons', () => {
 
     await pullIcons(api, tmpDir);
 
-    const manifest = JSON.parse(
-      await fs.readFile(
-        path.join(tmpDir, 'icons', 'my_icons', 'manifest.json'),
-        'utf-8',
-      ),
+    const brandKit = JSON.parse(
+      await fs.readFile(path.join(tmpDir, 'canvas.brand-kit.json'), 'utf-8'),
     );
-    expect(manifest).toEqual({
-      id: 'my_icons',
-      label: 'My icons',
-      template: '<span>{{ svg }}</span>',
+    expect(brandKit.icons.libraries).toEqual([
+      {
+        id: 'my_icons',
+        label: 'My icons',
+        template: '<span>{{ svg }}</span>',
+      },
+    ]);
+  });
+
+  it('preserves existing brand kit keys and entries when merging', async () => {
+    await fs.writeFile(
+      path.join(tmpDir, 'canvas.brand-kit.json'),
+      JSON.stringify({
+        fonts: { families: [{ name: 'Inter', provider: 'google' }] },
+        icons: { libraries: [{ id: 'my_icons', label: 'Customized label' }] },
+      }),
+      'utf-8',
+    );
+    const api = mockApiService({
+      libraries: {
+        my_icons: managedLibrary({ assets: [] }),
+        fresh: managedLibrary({ id: 'fresh', label: 'Fresh', assets: [] }),
+      },
+      packs: {},
     });
+
+    await pullIcons(api, tmpDir);
+
+    const brandKit = JSON.parse(
+      await fs.readFile(path.join(tmpDir, 'canvas.brand-kit.json'), 'utf-8'),
+    );
+    // Existing keys and entries stay untouched; only new libraries append.
+    expect(brandKit.fonts).toEqual({
+      families: [{ name: 'Inter', provider: 'google' }],
+    });
+    expect(brandKit.icons.libraries).toEqual([
+      { id: 'my_icons', label: 'Customized label' },
+      { id: 'fresh', label: 'Fresh', description: 'A managed set' },
+    ]);
   });
 
   it('writes pack.json for module-provided packs', async () => {

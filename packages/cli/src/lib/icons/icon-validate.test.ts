@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { validateIconLibraryDir, validateSvgSafety } from './icon-validate';
+import { validateIconLibraryEntry, validateSvgSafety } from './icon-validate';
 
 const BENIGN_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>';
@@ -62,7 +62,7 @@ describe('validateSvgSafety', () => {
   });
 });
 
-describe('validateIconLibraryDir', () => {
+describe('validateIconLibraryEntry', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
@@ -73,159 +73,114 @@ describe('validateIconLibraryDir', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  async function writeLibrary(
-    id: string,
-    manifest: unknown,
-    files: Record<string, string> = {},
-  ): Promise<string> {
-    const dir = path.join(tmpDir, id);
+  async function writeSvgDir(
+    relativeDir: string,
+    files: Record<string, string>,
+  ): Promise<void> {
+    const dir = path.join(tmpDir, relativeDir);
     await fs.mkdir(dir, { recursive: true });
-    if (manifest !== undefined) {
-      await fs.writeFile(
-        path.join(dir, 'manifest.json'),
-        typeof manifest === 'string'
-          ? manifest
-          : JSON.stringify(manifest, null, 2),
-        'utf-8',
-      );
-    }
     for (const [name, content] of Object.entries(files)) {
       await fs.writeFile(path.join(dir, name), content, 'utf-8');
     }
-    return dir;
   }
 
-  it('returns manifest and sorted svg files for a valid library', async () => {
-    const dir = await writeLibrary(
-      'my_icons',
+  it('validates a declared entry with explicit fields', async () => {
+    await writeSvgDir('icons/my_icons', {
+      'b.svg': BENIGN_SVG,
+      'a.svg': BENIGN_SVG,
+      'README.txt': 'ignored',
+    });
+
+    const result = await validateIconLibraryEntry(
       { id: 'my_icons', label: 'My icons', description: 'A set' },
-      { 'b.svg': BENIGN_SVG, 'a.svg': BENIGN_SVG },
+      tmpDir,
     );
 
-    const result = await validateIconLibraryDir(dir);
-
     expect(result.id).toBe('my_icons');
-    expect(result.manifest).toEqual({
-      id: 'my_icons',
-      label: 'My icons',
-      description: 'A set',
-    });
+    expect(result.label).toBe('My icons');
+    expect(result.description).toBe('A set');
+    expect(result.filesDir).toBe(path.join(tmpDir, 'icons', 'my_icons'));
     expect(result.svgFiles).toEqual(['a.svg', 'b.svg']);
   });
 
-  it('ignores non-SVG files', async () => {
-    const dir = await writeLibrary(
-      'my_icons',
-      { id: 'my_icons', label: 'My icons' },
-      { 'a.svg': BENIGN_SVG, 'README.txt': 'hello' },
+  it('derives the label from the id when omitted', async () => {
+    await writeSvgDir('icons/lucide_icons', { 'arrow.svg': BENIGN_SVG });
+
+    const result = await validateIconLibraryEntry(
+      { id: 'lucide_icons' },
+      tmpDir,
     );
 
-    const result = await validateIconLibraryDir(dir);
-    expect(result.svgFiles).toEqual(['a.svg']);
+    expect(result.label).toBe('Lucide icons');
   });
 
-  it('rejects an invalid library id from the directory name', async () => {
-    const dir = await writeLibrary('My-Icons', {
-      id: 'My-Icons',
-      label: 'My icons',
-    });
+  it('reads SVG files from the entry source directory', async () => {
+    await writeSvgDir('node_modules/some-icons', { 'star.svg': BENIGN_SVG });
 
-    await expect(validateIconLibraryDir(dir)).rejects.toThrow(
-      /Invalid library id "My-Icons"/,
+    const result = await validateIconLibraryEntry(
+      { id: 'some_icons', source: 'node_modules/some-icons' },
+      tmpDir,
     );
+
+    expect(result.filesDir).toBe(
+      path.join(tmpDir, 'node_modules', 'some-icons'),
+    );
+    expect(result.svgFiles).toEqual(['star.svg']);
   });
 
-  it('accepts a plain directory of SVGs without a manifest.json', async () => {
-    const dir = await writeLibrary('lucide_icons', undefined, {
-      'arrow.svg': BENIGN_SVG,
-    });
+  it('rejects a missing library directory', async () => {
+    await expect(
+      validateIconLibraryEntry({ id: 'missing' }, tmpDir),
+    ).rejects.toThrow(/The library directory does not exist: icons\/missing/);
+  });
 
-    const result = await validateIconLibraryDir(dir);
+  it('rejects an invalid library id', async () => {
+    await writeSvgDir('icons/My-Icons', { 'a.svg': BENIGN_SVG });
 
-    expect(result.manifest).toEqual({
-      id: 'lucide_icons',
-      label: 'Lucide icons',
-    });
-    expect(result.svgFiles).toEqual(['arrow.svg']);
+    await expect(
+      validateIconLibraryEntry(
+        { id: 'My-Icons', source: 'icons/My-Icons' },
+        tmpDir,
+      ),
+    ).rejects.toThrow(/Invalid library id "My-Icons"/);
   });
 
   it('rejects a library without any SVG icons', async () => {
-    const dir = await writeLibrary('my_icons', {
-      id: 'my_icons',
-      label: 'My icons',
-    });
+    await writeSvgDir('icons/my_icons', { 'README.txt': 'no icons here' });
 
-    await expect(validateIconLibraryDir(dir)).rejects.toThrow(
-      /contains no SVG icons/,
-    );
-  });
-
-  it('rejects invalid JSON in manifest.json', async () => {
-    const dir = await writeLibrary('my_icons', 'not json');
-
-    await expect(validateIconLibraryDir(dir)).rejects.toThrow(
-      /Invalid JSON in manifest\.json/,
-    );
-  });
-
-  it('rejects a manifest id that does not match the directory name', async () => {
-    const dir = await writeLibrary('my_icons', {
-      id: 'other',
-      label: 'My icons',
-    });
-
-    await expect(validateIconLibraryDir(dir)).rejects.toThrow(
-      /"id" must match the directory name "my_icons"/,
-    );
-  });
-
-  it('rejects a manifest without a label', async () => {
-    const dir = await writeLibrary('my_icons', { id: 'my_icons' });
-
-    await expect(validateIconLibraryDir(dir)).rejects.toThrow(
-      /missing a non-empty "label"/,
-    );
+    await expect(
+      validateIconLibraryEntry({ id: 'my_icons' }, tmpDir),
+    ).rejects.toThrow(/contains no SVG icons/);
   });
 
   it('rejects invalid icon filenames', async () => {
-    const dir = await writeLibrary(
-      'my_icons',
-      { id: 'my_icons', label: 'My icons' },
-      { 'bad icon.svg': BENIGN_SVG },
-    );
+    await writeSvgDir('icons/my_icons', {
+      'ok.svg': BENIGN_SVG,
+      'bad name.svg': BENIGN_SVG,
+    });
 
-    await expect(validateIconLibraryDir(dir)).rejects.toThrow(
-      /bad icon\.svg: invalid icon filename/,
-    );
+    await expect(
+      validateIconLibraryEntry({ id: 'my_icons' }, tmpDir),
+    ).rejects.toThrow(/bad name\.svg: invalid icon filename/);
   });
 
-  it('rejects unsafe SVG content with the filename in the error', async () => {
-    const dir = await writeLibrary(
-      'my_icons',
-      { id: 'my_icons', label: 'My icons' },
-      { 'evil.svg': '<svg><script>alert(1)</script></svg>' },
-    );
+  it('rejects unsafe SVG content and lists every issue', async () => {
+    await writeSvgDir('icons/my_icons', {
+      'evil.svg': '<svg><script>alert(1)</script></svg>',
+      'sneaky.svg': '<svg onload="x()"><path d="M0 0"/></svg>',
+    });
 
-    await expect(validateIconLibraryDir(dir)).rejects.toThrow(
-      /evil\.svg: contains a <script> element/,
-    );
-  });
-
-  it('lists all errors at once', async () => {
-    const dir = await writeLibrary(
-      'my_icons',
+    const error = await validateIconLibraryEntry(
       { id: 'my_icons' },
-      {
-        'evil.svg': '<svg onload="x()"/>',
-        'bad name.svg': BENIGN_SVG,
-      },
-    );
+      tmpDir,
+    ).catch((e: unknown) => e as Error);
 
-    const err = await validateIconLibraryDir(dir).catch((e) => e);
-    expect(err).toBeInstanceOf(Error);
-    const message = (err as Error).message;
-    expect(message).toContain('missing a non-empty "label"');
-    expect(message).toContain('bad name.svg: invalid icon filename');
-    expect(message).toContain('evil.svg: contains an event handler attribute');
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toContain(
+      'evil.svg: contains a <script> element',
+    );
+    expect((error as Error).message).toContain(
+      'sneaky.svg: contains an event handler attribute',
+    );
   });
 });

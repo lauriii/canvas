@@ -1,6 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
 
+import type { IconLibraryEntry } from '../../config.js';
+
 /** Directory in the project root that holds local icon libraries and packs. */
 export const ICONS_DIR = 'icons';
 
@@ -10,24 +12,9 @@ export const ICON_LIBRARY_ID_PATTERN = /^[a-z0-9_]+$/;
 /** Icon filenames become icon ids (minus .svg), so keep them restricted. */
 export const ICON_FILENAME_PATTERN = /^[a-zA-Z0-9._-]+\.svg$/;
 
-/** Local manifest.json shape for a canvas-managed icon library. */
-export interface IconLibraryManifest {
-  id: string;
-  label: string;
-  description?: string;
-  template?: string;
-  /**
-   * Optional directory to read SVG files from, relative to the project root
-   * (e.g. `node_modules/lucide-static/icons`). Keeps npm-managed icon sets
-   * out of the repository: the manifest declares the source, push reads the
-   * SVGs from there.
-   */
-  source?: string;
-}
-
 /**
- * Derives a human-readable library label from its directory name, for
- * libraries without a manifest.json: `lucide_icons` becomes "Lucide icons".
+ * Derives a human-readable library label from its id, for entries without an
+ * explicit label: `lucide_icons` becomes "Lucide icons".
  */
 export function deriveLibraryLabel(id: string): string {
   const words = id.replace(/_/g, ' ').trim();
@@ -37,9 +24,10 @@ export function deriveLibraryLabel(id: string): string {
 /** A validated local icon library, ready to push. */
 export interface ValidatedIconLibrary {
   id: string;
-  dir: string;
-  manifest: IconLibraryManifest;
-  /** Directory the SVG files are read from (the manifest `source`, if set). */
+  label: string;
+  description?: string;
+  template?: string;
+  /** Directory the SVG files are read from. */
   filesDir: string;
   /** Sorted icon filenames relative to `filesDir`. */
   svgFiles: string[];
@@ -82,130 +70,63 @@ export function validateSvgSafety(content: string): string[] {
   return issues;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
 /**
- * Validates a local icon library directory before push: library id (from the
- * directory name), manifest.json shape, icon filename rules, and SVG safety
- * pre-checks. Throws with all errors listed so the user can fix the library
- * in one go.
+ * Validates one icon library entry before push: id, entry fields, the source
+ * directory, icon filename rules, and SVG safety pre-checks. Throws with all
+ * errors listed so the user can fix the library in one go.
  *
- * A manifest.json is optional: a plain directory of SVG files is a valid
- * library, with the label derived from the directory name. The manifest only
- * needs to exist to customize the label, description, or Twig template.
+ * Entries come from `canvas.brand-kit.json` (`icons.libraries`, mirroring
+ * `fonts.families`) or are auto-derived from plain `icons/<id>/` directories
+ * of SVG files.
  */
-export async function validateIconLibraryDir(
-  libraryDir: string,
+export async function validateIconLibraryEntry(
+  entry: IconLibraryEntry,
+  projectRoot: string,
 ): Promise<ValidatedIconLibrary> {
-  const id = path.basename(libraryDir);
+  const id = entry.id;
   const errors: string[] = [];
 
-  if (!ICON_LIBRARY_ID_PATTERN.test(id)) {
+  if (typeof id !== 'string' || !ICON_LIBRARY_ID_PATTERN.test(id)) {
     errors.push(
       `Invalid library id "${id}". Ids may only contain lowercase letters, digits, and underscores.`,
     );
   }
-
-  let manifest: IconLibraryManifest | undefined;
-  const manifestPath = path.join(libraryDir, 'manifest.json');
-  let manifestRaw: string | null = null;
-  try {
-    manifestRaw = await fs.readFile(manifestPath, 'utf-8');
-  } catch {
-    // No manifest: derive the label from the directory name.
-    if (errors.length === 0) {
-      manifest = { id, label: deriveLibraryLabel(id) };
-    }
+  if (entry.label !== undefined && typeof entry.label !== 'string') {
+    errors.push('"label" must be a string.');
+  }
+  if (
+    entry.description !== undefined &&
+    typeof entry.description !== 'string'
+  ) {
+    errors.push('"description" must be a string.');
+  }
+  if (entry.template !== undefined && typeof entry.template !== 'string') {
+    errors.push('"template" must be a string.');
+  }
+  if (entry.source !== undefined && typeof entry.source !== 'string') {
+    errors.push('"source" must be a string.');
   }
 
-  if (manifestRaw !== null) {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(manifestRaw);
-    } catch (err) {
-      errors.push(
-        `Invalid JSON in manifest.json: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
-    if (parsed !== undefined) {
-      if (!isRecord(parsed)) {
-        errors.push('manifest.json must contain a JSON object.');
-      } else {
-        if (typeof parsed.id !== 'string' || parsed.id !== id) {
-          errors.push(
-            `manifest.json "id" must match the directory name "${id}".`,
-          );
-        }
-        if (typeof parsed.label !== 'string' || parsed.label.trim() === '') {
-          errors.push('manifest.json is missing a non-empty "label".');
-        }
-        if (
-          parsed.description !== undefined &&
-          typeof parsed.description !== 'string'
-        ) {
-          errors.push('manifest.json "description" must be a string.');
-        }
-        if (
-          parsed.template !== undefined &&
-          typeof parsed.template !== 'string'
-        ) {
-          errors.push('manifest.json "template" must be a string.');
-        }
-        if (parsed.source !== undefined && typeof parsed.source !== 'string') {
-          errors.push('manifest.json "source" must be a string.');
-        }
-        if (errors.length === 0) {
-          manifest = {
-            id,
-            label: (parsed.label as string).trim(),
-          };
-          if (parsed.description !== undefined) {
-            manifest.description = parsed.description as string;
-          }
-          if (parsed.template !== undefined) {
-            manifest.template = parsed.template as string;
-          }
-          if (parsed.source !== undefined) {
-            manifest.source = parsed.source as string;
-          }
-        }
-      }
-    }
-  }
-
-  // The manifest `source` (relative to the project root, which is always two
-  // levels above `icons/<id>/`) redirects where the SVG files are read from,
-  // so npm-managed icon sets stay in node_modules.
-  const projectRoot = path.dirname(path.dirname(libraryDir));
-  let filesDir = libraryDir;
-  if (manifest?.source !== undefined) {
-    filesDir = path.resolve(projectRoot, manifest.source);
-    const sourceExists = await fs
-      .stat(filesDir)
-      .then((stat) => stat.isDirectory())
-      .catch(() => false);
-    if (!sourceExists) {
-      errors.push(
-        `The manifest "source" directory does not exist: ${manifest.source}`,
-      );
-      throw new Error(
-        `Icon library "${id}" validation failed:\n${errors.join('\n')}`,
-      );
-    }
+  const relativeDir = entry.source ?? path.join(ICONS_DIR, id);
+  const filesDir = path.resolve(projectRoot, relativeDir);
+  const sourceExists = await fs
+    .stat(filesDir)
+    .then((stat) => stat.isDirectory())
+    .catch(() => false);
+  if (!sourceExists) {
+    errors.push(`The library directory does not exist: ${relativeDir}`);
+    throw new Error(
+      `Icon library "${id}" validation failed:\n${errors.join('\n')}`,
+    );
   }
 
   const svgFiles: string[] = [];
-  const entries = await fs.readdir(filesDir, { withFileTypes: true });
-  const fileNames = entries
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name)
+  const directoryEntries = await fs.readdir(filesDir, { withFileTypes: true });
+  const fileNames = directoryEntries
+    .filter((dirent) => dirent.isFile())
+    .map((dirent) => dirent.name)
     .sort((a, b) => a.localeCompare(b));
   for (const name of fileNames) {
-    if (name === 'manifest.json') {
-      continue;
-    }
     // Only files intended as icons are validated; other files are ignored.
     if (!/\.svg$/i.test(name)) {
       continue;
@@ -235,5 +156,12 @@ export async function validateIconLibraryDir(
     );
   }
 
-  return { id, dir: libraryDir, manifest: manifest!, filesDir, svgFiles };
+  return {
+    id,
+    label: entry.label?.trim() || deriveLibraryLabel(id),
+    ...(entry.description !== undefined && { description: entry.description }),
+    ...(entry.template !== undefined && { template: entry.template }),
+    filesDir,
+    svgFiles,
+  };
 }

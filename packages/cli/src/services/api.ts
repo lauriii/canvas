@@ -1115,6 +1115,19 @@ export class ApiService {
   /**
    * Update an existing icon library.
    */
+  /**
+   * Deletes a canvas-managed icon library.
+   */
+  async deleteIconLibrary(id: string): Promise<void> {
+    try {
+      await this.client.delete(
+        `/canvas/api/v0/config/icon_library/${encodeURIComponent(id)}`,
+      );
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
   async updateIconLibrary(
     id: string,
     data: {
