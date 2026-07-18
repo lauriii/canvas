@@ -128,25 +128,42 @@ final readonly class ContentTranslationHooks {
     $field_name = ComponentTreeTranslationFork::FIELD_NAME;
     foreach (\array_keys(\Drupal::entityTypeManager()->getDefinitions()) as $entity_type_id) {
       $definition = $definition_update_manager->getFieldStorageDefinition($field_name, $entity_type_id);
-      if ($definition !== NULL && $definition->getProvider() === 'canvas') {
+      if ($definition === NULL || $definition->getProvider() !== 'canvas') {
+        continue;
+      }
+      try {
         $definition_update_manager->uninstallFieldStorageDefinition($definition);
+      }
+      catch (\Exception $e) {
+        // A rapid enable → disable → enable → disable cycle can hit the
+        // deterministic deleted-data table from the previous cycle before
+        // cron purged it; skip this entity type rather than aborting the
+        // uninstall reaction chain mid-flight.
+        // @see \Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema::onFieldStorageDefinitionDelete()
+        \Drupal::logger('canvas')->warning('Could not uninstall the %field field storage definition for %entity_type: @message', [
+          '%field' => $field_name,
+          '%entity_type' => $entity_type_id,
+          '@message' => $e->getMessage(),
+        ]);
       }
     }
   }
 
   /**
-   * Implements hook_modules_uninstalled().
+   * Implements hook_module_preuninstall().
+   *
+   * Runs while every module's hooks are still registered. A plain
+   * hook_modules_uninstalled() implementation would never fire when canvas is
+   * uninstalled together with canvas_dev_translation in one batch (dependents
+   * are processed first and canvas's hooks are deregistered before the final
+   * hook invocation), permanently orphaning the fork field's installed
+   * storage definitions on non-canvas entity types.
    */
-  #[Hook('modules_uninstalled')]
-  public function modulesUninstalled(array $modules, bool $is_syncing): void {
-    if (\array_intersect(['content_translation', 'canvas_dev_translation'], $modules) === []) {
-      return;
+  #[Hook('module_preuninstall')]
+  public static function modulePreuninstall(string $module, bool $is_syncing): void {
+    if (\in_array($module, ['canvas', 'content_translation', 'canvas_dev_translation'], TRUE)) {
+      self::uninstallForkFieldStorageDefinitions();
     }
-    if ($this->moduleHandler->moduleExists('content_translation')
-      && $this->moduleHandler->moduleExists('canvas_dev_translation')) {
-      return;
-    }
-    self::uninstallForkFieldStorageDefinitions();
   }
 
   /**
@@ -157,7 +174,10 @@ final readonly class ContentTranslationHooks {
    * divergent trees; marking those translations forked protects them from
    * being overwritten by the now-enforced synchronization. Idempotent:
    * already-forked translations are skipped and only actual divergence is
-   * marked.
+   * marked. Only tree-structure divergence is detected: translations whose
+   * structure matches but whose non-translatable input values diverge are
+   * not marked, and those values are (and already were, before forks
+   * existed) overwritten by the input synchronization on the next save.
    *
    * Must only be called when ::translationForksEnabled() is TRUE.
    *

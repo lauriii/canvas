@@ -316,13 +316,17 @@ final class ApiLayoutController {
           : $entity
         );
         if ($entity instanceof ContentEntityInterface) {
+          $host_langcode = $entity->language()->getId();
           foreach ($entity->getTranslationLanguages(include_default: FALSE) as $language) {
             $translation = $entity->getTranslation($language->getId());
-            // Forked translations were not updated (their trees are
+            // Forked sibling translations were not updated (their trees are
             // independent), so they must not receive spurious auto-save
-            // entries.
+            // entries. The previewed translation itself is always saved: when
+            // it is forked, its own tree is exactly what was reconciled in
+            // place.
             // @see \Drupal\canvas\ComponentSource\ComponentSourceManager::updateComponentInstances()
-            if (ComponentTreeTranslationFork::isForkedTranslation($translation)) {
+            if ($language->getId() !== $host_langcode
+              && ComponentTreeTranslationFork::isForkedTranslation($translation)) {
               continue;
             }
             $this->autoSaveManager->saveEntity($translation);

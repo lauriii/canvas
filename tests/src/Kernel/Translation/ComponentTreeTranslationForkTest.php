@@ -9,6 +9,7 @@ namespace Drupal\Tests\canvas\Kernel\Translation;
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -185,6 +186,23 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
     self::assertSame($default_values_before, $entity->getUntranslated()->get($field_name)->getValue());
     self::assertSame($de_values_before, $entity->getTranslation('de')->get($field_name)->getValue());
     self::assertNotNull(self::tree($entity->getTranslation('fr'), $field_name)->getComponentTreeItemByUuid(self::FORK_ONLY_UUID));
+
+    // 4b. Saving the non-forked German sibling with a tree change (reversing
+    // the component order) synchronizes the default translation but leaves
+    // the forked French tree byte-identical: forked translations are skipped
+    // in every synchronization direction, not only on default-translation
+    // saves.
+    $fr_values_before = $entity->getTranslation('fr')->get($field_name)->getValue();
+    $de = $entity->getTranslation('de');
+    $de->set($field_name, \array_reverse(self::tree($de, $field_name)->getValue()));
+    $de->save();
+    $entity = $entity_storage->loadUnchanged($entity_id);
+    \assert($entity instanceof ContentEntityInterface);
+    self::assertSame($fr_values_before, $entity->getTranslation('fr')->get($field_name)->getValue());
+    // Positive control: the reorder reached the default translation.
+    $en_first = self::tree($entity->getUntranslated(), $field_name)->get(0);
+    self::assertInstanceOf(ComponentTreeItem::class, $en_first);
+    self::assertSame(self::SECOND_UUID, $en_first->getUuid());
 
     // 5. The symmetric translation constraint exempts the forked translation:
     // its non-translatable 'target' input diverges from the default

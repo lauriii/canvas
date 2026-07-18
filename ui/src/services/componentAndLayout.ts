@@ -333,6 +333,9 @@ export const componentAndLayoutApi = createApi({
         url,
         method: 'DELETE',
       }),
+      // Refetch the layout so the deleted translation's metadata and links
+      // disappear.
+      invalidatesTags: [{ type: 'Layout' }],
     }),
     forkPageTranslation: builder.mutation<void, string>({
       query: (url) => ({
@@ -341,6 +344,16 @@ export const componentAndLayoutApi = createApi({
       }),
       // Refetch the layout so the fork badge and unfork action appear.
       invalidatesTags: [{ type: 'Layout' }],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        await queryFulfilled;
+        // Forking writes an auto-save draft: surface it in the review panel
+        // immediately instead of waiting for the poll.
+        dispatch(
+          pendingChangesApi.util.invalidateTags([
+            { type: 'PendingChanges', id: 'LIST' },
+          ]),
+        );
+      },
     }),
     unforkPageTranslation: builder.mutation<void, string>({
       query: (url) => ({
@@ -350,6 +363,16 @@ export const componentAndLayoutApi = createApi({
       // Refetch the layout so the reverted (synced) layout and fork action
       // replace the forked state.
       invalidatesTags: [{ type: 'Layout' }],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        await queryFulfilled;
+        // Unforking writes an auto-save draft: surface it in the review
+        // panel immediately instead of waiting for the poll.
+        dispatch(
+          pendingChangesApi.util.invalidateTags([
+            { type: 'PendingChanges', id: 'LIST' },
+          ]),
+        );
+      },
     }),
     postTemplateLayout: builder.mutation<
       { html: string; autoSaves: AutoSavesHash },

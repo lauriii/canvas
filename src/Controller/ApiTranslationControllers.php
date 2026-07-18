@@ -8,6 +8,7 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -71,6 +72,19 @@ final class ApiTranslationControllers extends ApiControllerBase {
    * Applies a fork state change to a translation's auto-save draft.
    */
   private function setForkState(ContentEntityInterface $canvas_page, bool $forked): JsonResponse {
+    // Entity upcasting resolves the translation through the language fallback
+    // chain, so a request naming a language with no stored translation can
+    // silently hand this controller a *different* existing translation.
+    // Refuse instead of destructively operating on a translation the client
+    // never named.
+    // @see \Drupal\Core\Entity\EntityRepository::getTranslationFromContext()
+    $negotiated_langcode = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)->getId();
+    if ($canvas_page->language()->getId() !== $negotiated_langcode) {
+      return new JsonResponse(
+        ['message' => \sprintf('%s %s has no %s translation.', $canvas_page->getEntityTypeId(), $canvas_page->id(), $negotiated_langcode)],
+        Response::HTTP_NOT_FOUND,
+      );
+    }
     if ($canvas_page->isDefaultTranslation()) {
       return new JsonResponse(
         ['message' => \sprintf('Cannot change the component tree fork state of the default translation for %s %s.', $canvas_page->getEntityTypeId(), $canvas_page->id())],
