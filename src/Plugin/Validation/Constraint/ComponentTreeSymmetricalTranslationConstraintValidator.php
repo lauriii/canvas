@@ -68,7 +68,13 @@ final class ComponentTreeSymmetricalTranslationConstraintValidator extends Const
         if ($langcode === $default_langcode) {
           continue;
         }
-        $target_tree = $value->getTranslation($langcode)->get($field_name);
+        $translation = $value->getTranslation($langcode);
+        // Forked translations own an independent tree; their per-field
+        // constraints still validate it in isolation.
+        if (ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($translation)) {
+          continue;
+        }
+        $target_tree = $translation->get($field_name);
         \assert($target_tree instanceof ComponentTreeItemList);
 
         foreach ($target_tree->componentTreeItemsIterator() as $target_item) {

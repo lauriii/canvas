@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\ShapeMatcher;
 
+use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
@@ -104,7 +105,9 @@ final readonly class PropSourceSuggester {
     // 4. never suggest content_translation's `content_translation_source` and
     //    `content_translation_outdated` base fields, added with fixed names to
     //    a content entity type when one of its bundles is translatable.
+    // 5. never suggest Canvas's own `canvas_component_tree_fork` base field.
     // @see \Drupal\content_translation\ContentTranslationHandler::fieldStorageDefinitions()
+    // @see \Drupal\canvas\Hook\ContentTranslationHooks::entityBaseFieldInfo()
     $content_entity_type_definition = $this->entityTypeManager->getDefinition($entity_type_id);
     \assert($content_entity_type_definition instanceof ContentEntityTypeInterface);
     $is_irrelevant = \in_array($expression_field_name, [
@@ -113,6 +116,7 @@ final readonly class PropSourceSuggester {
       $content_entity_type_definition->getRevisionMetadataKey('revision_log_message'),
       'content_translation_source',
       'content_translation_outdated',
+      ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME,
     ], TRUE);
     if ($is_irrelevant) {
       return TRUE;
