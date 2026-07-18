@@ -94,7 +94,12 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
     // Only the GET routes the Canvas UI and Workbench preview through accept
     // a preview language hint.
     $route_name = $this->routeMatch->getRouteName();
-    if (!\in_array($route_name, ['canvas.api.layout.get', 'canvas.api.layout.get.content_template', 'canvas.api.page_data'], TRUE)) {
+    $preview_language_routes = [
+      'canvas.api.layout.get',
+      'canvas.api.layout.get.content_template',
+      'canvas.api.page_data',
+    ];
+    if (!\in_array($route_name, $preview_language_routes, TRUE)) {
       return;
     }
     $langcode = $request->query->get('canvas_preview_langcode');
