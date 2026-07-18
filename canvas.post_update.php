@@ -14,6 +14,7 @@ use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
+use Drupal\canvas\Hook\ContentTranslationHooks;
 use Drupal\canvas\PageVariantMigration;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -21,12 +22,14 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Config\Entity\ConfigEntityUpdater;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\TempStore\SharedTempStoreFactory;
 use Drupal\field\Entity\FieldConfig;
@@ -794,4 +797,84 @@ function canvas_post_update_0030_page_variant_selection_options(): void {
   // varchar column); only the field type and its settings change.
   $storage_definitions = \Drupal::service(EntityFieldManagerInterface::class)->getFieldStorageDefinitions('canvas_page');
   $update_manager->updateFieldStorageDefinition($storage_definitions['page_variant']);
+}
+
+/**
+ * Mark translations whose component trees already diverged as forked.
+ *
+ * Before symmetric synchronization was guaranteed, sites that translated
+ * Canvas fields without `translation_sync` settings could accumulate
+ * divergent trees; marking them forked protects them from being overwritten
+ * by the now-enforced synchronization. Only runs on sites opted into
+ * experimental translation forks (canvas_dev_translation).
+ */
+function canvas_post_update_0031_mark_divergent_component_tree_translations_forked(array &$sandbox): void {
+  if (!ContentTranslationHooks::translationForksEnabled()) {
+    $sandbox['#finished'] = 1;
+    return;
+  }
+  $entity_type_manager = \Drupal::entityTypeManager();
+
+  if (!isset($sandbox['work'])) {
+    $sandbox['work'] = [];
+    $field_map = \Drupal::service('entity_field.manager')
+      ->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);
+    foreach ($field_map as $entity_type_id => $fields) {
+      $entity_type = $entity_type_manager->getDefinition($entity_type_id);
+      if (!$entity_type instanceof ContentEntityTypeInterface || !$entity_type->isTranslatable()) {
+        continue;
+      }
+      $ids = $entity_type_manager->getStorage($entity_type_id)
+        ->getQuery()
+        ->accessCheck(FALSE)
+        ->execute();
+      foreach ($ids as $id) {
+        $sandbox['work'][] = [$entity_type_id, $id, \array_keys($fields)];
+      }
+    }
+    $sandbox['total'] = \count($sandbox['work']);
+  }
+
+  // The raw values of the columns shared across symmetric translations.
+  // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem::propertyDefinitions()
+  $tree_columns = \array_flip(['uuid', 'parent_uuid', 'slot', 'component_id', 'component_version']);
+  $extract_tree = static fn (FieldItemListInterface $items): array => \array_map(
+    static fn (array $item): array => \array_intersect_key($item, $tree_columns),
+    $items->getValue(),
+  );
+
+  foreach (\array_splice($sandbox['work'], 0, 20) as [$entity_type_id, $id, $field_names]) {
+    $entity = $entity_type_manager->getStorage($entity_type_id)->load($id);
+    if (!$entity instanceof ContentEntityInterface
+      || !$entity->hasField(ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME)) {
+      continue;
+    }
+    $default_translation = $entity->getUntranslated();
+    $changed = FALSE;
+    foreach ($entity->getTranslationLanguages(FALSE) as $langcode => $language) {
+      $translation = $entity->getTranslation($langcode);
+      if (ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($translation)) {
+        continue;
+      }
+      foreach ($field_names as $field_name) {
+        if (!$translation->hasField($field_name)) {
+          continue;
+        }
+        if ($extract_tree($translation->get($field_name)) !== $extract_tree($default_translation->get($field_name))) {
+          $translation->set(ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME, TRUE);
+          $changed = TRUE;
+          break;
+        }
+      }
+    }
+    if ($changed) {
+      // The just-set fork flags shield the divergent trees from the
+      // synchronization this save would otherwise apply.
+      $entity->save();
+    }
+  }
+
+  $sandbox['#finished'] = ($sandbox['total'] === 0 || $sandbox['work'] === [])
+    ? 1
+    : 1 - \count($sandbox['work']) / $sandbox['total'];
 }
