@@ -264,6 +264,10 @@ export const codeEditorSlice = createSlice({
       if (!prop) return;
 
       const propName = getPropMachineName(prop.name);
+      // An unnamed prop has no unique machine name, so it cannot be tracked in
+      // `required` without colliding with every other unnamed prop.
+      // @see https://www.drupal.org/i/3589193
+      if (!propName) return;
       if (state.codeComponent.required.includes(propName)) {
         state.codeComponent.required = state.codeComponent.required.filter(
           (name) => name !== propName,

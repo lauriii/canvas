@@ -18,6 +18,7 @@ import { makeStore } from '@/app/store';
 import {
   initialState,
   selectCodeComponentProperty,
+  toggleRequired,
   updateProp,
 } from '@/features/code-editor/codeEditorSlice';
 import { createDisplayArray } from '@/features/code-editor/utils/arrayPropUtils';
@@ -159,6 +160,11 @@ describe('props in code editor', () => {
           screen.getByRole('textbox', { name: 'Prop name' }),
         ).toBeInTheDocument();
       });
+      // The prop must be named before it can be marked required.
+      await userEvent.type(
+        screen.getByRole('textbox', { name: 'Prop name' }),
+        'Alpha',
+      );
       const propName = selectCodeComponentProperty('props')(store.getState())[0]
         .name;
       await userEvent.click(screen.getByRole('switch', { name: 'Required' }));
@@ -166,6 +172,59 @@ describe('props in code editor', () => {
       expect(
         selectCodeComponentProperty('required')(store.getState())[0],
       ).toEqual(getPropMachineName(propName));
+    });
+
+    // Regression test for https://www.drupal.org/i/3589193: a prop with no
+    // name has no unique machine name, so it cannot be marked required. Its
+    // switch is disabled, and toggling required on it is a no-op that must not
+    // leak an empty machine name into `required` (which would render every
+    // other unnamed prop as required too).
+    it('does not allow marking an unnamed prop as required', async () => {
+      await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+      const switches = screen.getAllByRole('switch', { name: 'Required' });
+      expect(switches).toHaveLength(2);
+      expect(switches[0]).toBeDisabled();
+      expect(switches[1]).toBeDisabled();
+      expect(switches[0]).not.toBeChecked();
+      expect(switches[1]).not.toBeChecked();
+
+      // Even dispatching the action directly (bypassing the disabled UI) must
+      // not add the empty machine name shared by every unnamed prop.
+      const [firstProp] = selectCodeComponentProperty('props')(
+        store.getState(),
+      );
+      store.dispatch(toggleRequired({ propId: firstProp.id }));
+      expect(selectCodeComponentProperty('required')(store.getState())).toEqual(
+        [],
+      );
+
+      // The second (still unnamed) prop must not appear required.
+      expect(
+        screen.getAllByRole('switch', { name: 'Required' })[1],
+      ).not.toBeChecked();
+    });
+
+    // Happy path guard: once props have distinct names, the disabling logic
+    // does not interfere with normal per-prop required toggling.
+    it('keeps required state independent per named prop', async () => {
+      await addProp('Text', 'Alpha');
+      await addProp('Text', 'Beta');
+
+      const switches = screen.getAllByRole('switch', { name: 'Required' });
+      expect(switches[0]).not.toBeDisabled();
+      await userEvent.click(switches[0]);
+
+      // Only the first prop is required.
+      const updatedSwitches = screen.getAllByRole('switch', {
+        name: 'Required',
+      });
+      expect(updatedSwitches[0]).toBeChecked();
+      expect(updatedSwitches[1]).not.toBeChecked();
+      expect(selectCodeComponentProperty('required')(store.getState())).toEqual(
+        ['alpha'],
+      );
     });
 
     it('changing type clears example data', async () => {

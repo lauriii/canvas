@@ -207,8 +207,10 @@ describe('Component data / props in code editor', () => {
   });
 
   it('adds and removes prop from required props', () => {
-    // Add a new prop and toggle it as required.
+    // Add a new prop, name it, and toggle it as required. A prop must be named
+    // before it can be marked required. @see https://www.drupal.org/i/3589193
     cy.findByText('Add').click();
+    cy.findByLabelText('Prop name').type('Title');
     cy.findByLabelText('Required').toggleToggle();
 
     // Check that the prop is now required.
