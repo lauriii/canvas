@@ -18,6 +18,15 @@ export interface IconLibraryManifest {
   template?: string;
 }
 
+/**
+ * Derives a human-readable library label from its directory name, for
+ * libraries without a manifest.json: `lucide_icons` becomes "Lucide icons".
+ */
+export function deriveLibraryLabel(id: string): string {
+  const words = id.replace(/_/g, ' ').trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 /** A validated local icon library, ready to push. */
 export interface ValidatedIconLibrary {
   id: string;
@@ -73,6 +82,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * directory name), manifest.json shape, icon filename rules, and SVG safety
  * pre-checks. Throws with all errors listed so the user can fix the library
  * in one go.
+ *
+ * A manifest.json is optional: a plain directory of SVG files is a valid
+ * library, with the label derived from the directory name. The manifest only
+ * needs to exist to customize the label, description, or Twig template.
  */
 export async function validateIconLibraryDir(
   libraryDir: string,
@@ -92,7 +105,10 @@ export async function validateIconLibraryDir(
   try {
     manifestRaw = await fs.readFile(manifestPath, 'utf-8');
   } catch {
-    errors.push('Missing manifest.json.');
+    // No manifest: derive the label from the directory name.
+    if (errors.length === 0) {
+      manifest = { id, label: deriveLibraryLabel(id) };
+    }
   }
 
   if (manifestRaw !== null) {
@@ -169,6 +185,12 @@ export async function validateIconLibraryDir(
       errors.push(`${name}: ${issue}.`);
     }
     svgFiles.push(name);
+  }
+
+  if (svgFiles.length === 0) {
+    errors.push(
+      'The library contains no SVG icons. Add at least one .svg file (the filename, minus .svg, becomes the icon id).',
+    );
   }
 
   if (errors.length > 0) {

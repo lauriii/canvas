@@ -6,6 +6,8 @@ namespace Drupal\Tests\canvas\Kernel\Icon;
 
 use Drupal\canvas\Entity\IconLibrary;
 use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Theme\Icon\IconDefinition;
 use Drupal\Core\Theme\Icon\IconDefinitionInterface;
 use Drupal\Core\Theme\Icon\Plugin\IconPackManagerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -86,6 +88,17 @@ final class IconLibraryPackRegistrationTest extends CanvasKernelTestBase {
     self::assertInstanceOf(IconDefinitionInterface::class, $icon);
     self::assertSame('star', $icon->getIconId());
     self::assertSame('demo', $icon->getPackId());
+
+    // The definitive Icon API availability check: a config-defined pack's
+    // icon renders through core's own `#type => 'icon'` render element and
+    // the library's Twig template, exactly like a module-provided pack.
+    $renderer = $this->container->get(RendererInterface::class);
+    \assert($renderer instanceof RendererInterface);
+    $build = IconDefinition::getRenderable('demo:star');
+    self::assertIsArray($build);
+    $html = (string) $renderer->renderInIsolation($build);
+    self::assertStringContainsString('<svg', $html);
+    self::assertStringContainsString('m12 3 2.6 5.9', $html);
 
     // Newly uploaded SVG files are discovered after the caches are cleared,
     // which IconLibrary::postSave() does.

@@ -171,24 +171,41 @@ directory in the project root:
 ```
 icons/
   my_icons/
-    manifest.json      # canvas-managed library: { id, label, description?, template? }
+    manifest.json      # optional: { id, label, description?, template? }
     star.svg           # icons; the filename (minus .svg) is the icon id
   lucide/
     pack.json          # module-provided pack info written by pull; not pushed
 ```
 
-- **Canvas-managed libraries** are directories with a `manifest.json`. `push`
-  uploads every `*.svg` file in the directory and creates or updates the
-  matching icon library on the site. `pull` writes these directories from the
-  site, so a pulled library can be pushed again unchanged.
-- **Module-provided packs** are icon packs installed on the site by modules.
-  `pull` writes an informational `pack.json` (with `managed: false`) for each;
-  `push` skips directories without a `manifest.json`.
+- **Canvas-managed libraries** are directories of SVG files. A `manifest.json`
+  is optional: without one, the library id is the directory name and the label
+  is derived from it (`lucide_icons` becomes "Lucide icons"). Add a manifest to
+  customize the label, description, or rendering template. `push` uploads every
+  `*.svg` file in the directory and creates or updates the matching icon library
+  on the site; the library is registered with Drupal core's Icon API, so its
+  icons work everywhere module-provided packs do. `pull` writes these
+  directories from the site, so a pulled library can be pushed again unchanged.
+- **Module-provided packs** are icon packs installed on the site by modules or
+  themes. `pull` writes an informational `pack.json` (with `managed: false`) for
+  each; `push` skips directories containing a `pack.json`.
 
 Library ids (directory names) may only contain lowercase letters, digits, and
 underscores. Icon filenames may only contain letters, digits, dots, underscores,
 and dashes, and must end in `.svg`. The `template` field is an optional
 rendering template override; omit it to use the server default.
+
+**Importing an existing icon set:** copy the SVG files into a new directory
+under `icons/` and push. For example, to make the outline variant of an icon set
+installed from npm available to Canvas:
+
+```bash
+mkdir -p icons/lucide_icons
+cp node_modules/lucide-static/icons/*.svg icons/lucide_icons/
+npx canvas push --include-brand-kit
+```
+
+Every SVG becomes an icon named after its filename, available in the Canvas icon
+picker and the Brand Kit, and rendered through the core Icon API.
 
 **SVG sanitization:** The server rejects unsafe SVG files (scripts, event
 handler attributes, `javascript:` URLs, DOCTYPE declarations, and external
@@ -598,8 +615,8 @@ component assets. Push can include:
    the `canvas:brand_kit` OAuth scope. See
    [Font push (Brand Kit)](#font-push-brand-kit).
 4. **Icon libraries** - With `--include-brand-kit` or
-   `CANVAS_INCLUDE_BRAND_KIT`, each `icons/<id>/` directory with a
-   `manifest.json` is validated, its SVG files are uploaded, and the icon
+   `CANVAS_INCLUDE_BRAND_KIT`, each `icons/<id>/` directory holding SVG files
+   (or a `manifest.json`) is validated, its SVG files are uploaded, and the icon
    library is created or updated (or reported unchanged). Files rejected by the
    server's SVG sanitizer fail that library with the file path and server error;
    other libraries continue. See [Icon libraries](#icon-libraries).

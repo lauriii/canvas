@@ -135,12 +135,28 @@ describe('validateIconLibraryDir', () => {
     );
   });
 
-  it('rejects a missing manifest.json', async () => {
-    const dir = path.join(tmpDir, 'my_icons');
-    await fs.mkdir(dir, { recursive: true });
+  it('accepts a plain directory of SVGs without a manifest.json', async () => {
+    const dir = await writeLibrary('lucide_icons', undefined, {
+      'arrow.svg': BENIGN_SVG,
+    });
+
+    const result = await validateIconLibraryDir(dir);
+
+    expect(result.manifest).toEqual({
+      id: 'lucide_icons',
+      label: 'Lucide icons',
+    });
+    expect(result.svgFiles).toEqual(['arrow.svg']);
+  });
+
+  it('rejects a library without any SVG icons', async () => {
+    const dir = await writeLibrary('my_icons', {
+      id: 'my_icons',
+      label: 'My icons',
+    });
 
     await expect(validateIconLibraryDir(dir)).rejects.toThrow(
-      /Missing manifest\.json/,
+      /contains no SVG icons/,
     );
   });
 
