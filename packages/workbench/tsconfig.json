@@ -5,6 +5,7 @@
     "paths": {
       "@wb/*": ["./src/*"],
       "@drupal-canvas/discovery": ["../discovery/src/index.ts"],
+      "@drupal-canvas/types": ["../types/src"],
       "@drupal-canvas/vite-compat": ["../vite-compat/src/index.ts"],
       "@drupal-canvas/vite-plugin": ["../vite-plugin/src/index.ts"],
       "@drupal-canvas/ui/*": ["../../ui/src/*"],

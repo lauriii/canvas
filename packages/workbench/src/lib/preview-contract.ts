@@ -1,7 +1,22 @@
 import { isSupportedPreviewModulePath, toViteFsUrl } from './preview-runtime';
 
+import type { DrupalSettings } from '@drupal-canvas/types';
 import type { Spec } from '@json-render/core';
 import type { DiscoveryResult, DiscoveryWarning } from './discovery-client';
+
+type CanvasDataV0 = DrupalSettings['canvasData']['v0'];
+
+/**
+ * The page-level subset of `drupalSettings.canvasData.v0`, exposed to code
+ * components via `getPageData()`. Site-level fields (branding, baseUrl,
+ * themeAssets, jsonapiSettings) are injected separately and are never part of
+ * a render request.
+ */
+export interface PreviewRenderCanvasData {
+  pageTitle: CanvasDataV0['pageTitle'];
+  breadcrumbs: CanvasDataV0['breadcrumbs'];
+  mainEntity: CanvasDataV0['mainEntity'];
+}
 
 export type PreviewIneligibilityReason =
   | 'missing_js_entry'
@@ -89,6 +104,13 @@ export interface PreviewRenderRequest {
     layout?: PreviewRenderLayout;
     /** Workbench shell path (pathname + search) so the preview iframe MemoryRouter stays aligned. */
     shellPath?: string;
+    /**
+     * Optional page-level `canvasData.v0` payload for the previewed target.
+     * When absent, the preview iframe resets the page-level fields to their
+     * empty fallbacks before rendering, so no render can observe a previous
+     * render's page data.
+     */
+    canvasData?: PreviewRenderCanvasData;
   };
 }
 
@@ -228,6 +250,31 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+function isPreviewRenderCanvasData(
+  value: unknown,
+): value is PreviewRenderCanvasData {
+  if (!isRecord(value)) {
+    return false;
+  }
+  const { pageTitle, breadcrumbs, mainEntity } = value;
+  return (
+    typeof pageTitle === 'string' &&
+    Array.isArray(breadcrumbs) &&
+    breadcrumbs.every(
+      (breadcrumb) =>
+        isRecord(breadcrumb) &&
+        typeof breadcrumb.key === 'string' &&
+        typeof breadcrumb.text === 'string' &&
+        typeof breadcrumb.url === 'string',
+    ) &&
+    (mainEntity === null ||
+      (isRecord(mainEntity) &&
+        typeof mainEntity.bundle === 'string' &&
+        typeof mainEntity.entityTypeId === 'string' &&
+        typeof mainEntity.uuid === 'string'))
+  );
+}
+
 export function isWorkbenchDiscoveryRefreshMessage(
   value: unknown,
 ): value is WorkbenchDiscoveryRefresh {
@@ -264,11 +311,15 @@ export function isPreviewRenderRequest(
     cssUrls,
     layout,
     shellPath,
+    canvasData,
   } = value.payload;
   if (
     shellPath !== undefined &&
     (typeof shellPath !== 'string' || shellPath.length === 0)
   ) {
+    return false;
+  }
+  if (canvasData !== undefined && !isPreviewRenderCanvasData(canvasData)) {
     return false;
   }
   if (layout !== undefined) {

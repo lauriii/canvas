@@ -2763,6 +2763,121 @@ paths:
           $ref: '#/components/responses/ClientErrorResponse'
         '403':
           $ref: '#/components/responses/AuthenticationErrorResponse'
+  /canvas/api/v0/page-data/{entity_type}/{entity}:
+    description: Returns the page-level canvasData.v0 fields for a target entity.
+    get:
+      summary: Returns the page-level canvasData.v0 fields for a target entity.
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          description: Entity type ID of the target entity.
+          schema:
+            type: string
+        - name: entity
+          in: path
+          required: true
+          description: Primary ID of the target entity.
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+      responses:
+        '200':
+          description: The page-level canvasData.v0 fields for the target entity.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - pageTitle
+                  - breadcrumbs
+                  - mainEntity
+                properties:
+                  pageTitle:
+                    type: string
+                    description: The target entity's label.
+                  breadcrumbs:
+                    type: array
+                    description: >
+                      Breadcrumbs built by the site's breadcrumb builders for
+                      the target entity's canonical route. Empty when the
+                      entity type has no core-standard canonical route.
+                    items:
+                      type: object
+                      required:
+                        - key
+                        - text
+                        - url
+                      properties:
+                        key:
+                          type: string
+                        text:
+                          type: string
+                        url:
+                          type: string
+                          format: uri-reference
+                  mainEntity:
+                    type: object
+                    required:
+                      - bundle
+                      - entityTypeId
+                      - uuid
+                      - requestedLanguage
+                      - renderedLanguage
+                      - translations
+                    properties:
+                      bundle:
+                        type: string
+                      entityTypeId:
+                        type: string
+                      uuid:
+                        type: string
+                        format: uuid
+                      requestedLanguage:
+                        type: string
+                        description: The negotiated content language of the request.
+                      renderedLanguage:
+                        type: string
+                        description: >
+                          The language of the returned translation; falls back
+                          to the default translation's language when the
+                          requested language has no translation.
+                      translations:
+                        type: array
+                        description: >
+                          Every enabled site language, for building a language
+                          switcher. Empty on a monolingual site.
+                        items:
+                          type: object
+                          required:
+                            - langcode
+                            - name
+                            - nativeName
+                            - url
+                            - translationAvailable
+                            - current
+                          properties:
+                            langcode:
+                              type: string
+                            name:
+                              type: string
+                            nativeName:
+                              type: string
+                            url:
+                              type: string
+                              format: uri-reference
+                            translationAvailable:
+                              type: boolean
+                            current:
+                              type: boolean
+        '401':
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '404':
+          description: Non-existent entity type or target entity.
+          $ref: '#/components/responses/ClientErrorResponse'
   /canvas/api/v0/push/complete:
     description: Signal that a CLI push completed successfully.
     post:

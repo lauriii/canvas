@@ -616,6 +616,22 @@ canvas.api.notifications.read:
   options:
     _format: 'json'
 
+canvas.api.page_data:
+  path: '/canvas/api/v0/page-data/{entity_type}/{entity}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\PageDataController::get'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+    _entity_access: 'entity.view'
+    _format: 'json'
+  methods: [GET]
+  options:
+    parameters:
+      entity:
+        type: entity:{entity_type}
+    canvas_external_api: true
+
 canvas.api.push.complete:
   path: '/canvas/api/v0/push/complete'
   defaults:
