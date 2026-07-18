@@ -76,7 +76,7 @@ final class ComponentTreeTranslationFork {
       $translated_inputs = [];
       foreach ($target_tree as $item) {
         \assert($item instanceof ComponentTreeItem);
-        $translated_inputs[$item->getUuid()] = $item->getInputs() ?? [];
+        $translated_inputs[$item->getUuid()] = self::getInputsSafely($item);
       }
 
       $default_tree = $default_translation->get($field_name);
@@ -95,10 +95,30 @@ final class ComponentTreeTranslationFork {
         \assert($inputs_typed_data instanceof ComponentInputs);
         $translatable_keys = \array_flip($inputs_typed_data->getTranslatableInputKeys());
         $item->setInput(\array_merge(
-          $item->getInputs() ?? [],
+          self::getInputsSafely($item),
           \array_intersect_key($translated_inputs[$uuid], $translatable_keys),
         ));
       }
+    }
+  }
+
+  /**
+   * Returns a component instance's inputs, treating broken state as empty.
+   *
+   * ComponentTreeItem::getInputs() throws for anticipated bad states (deleted
+   * Component config entity, unpopulated default value); a fork being
+   * unforked must survive those the same way getTranslatableInputKeys() and
+   * optimizeInputs() do, rather than aborting with a 500 and leaving the
+   * translation stuck forked.
+   *
+   * @see \Drupal\canvas\Plugin\DataType\ComponentInputs::getValues()
+   */
+  private static function getInputsSafely(ComponentTreeItem $item): array {
+    try {
+      return $item->getInputs() ?? [];
+    }
+    catch (\Exception) {
+      return [];
     }
   }
 
