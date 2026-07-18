@@ -874,13 +874,18 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     foreach ($prop_field_definitions as $sdc_prop_name => $static_prop_source_field_definition) {
       // Uncollapse if set; otherwise fall back to the default static prop
       // source, but *made empty* instead of the default value.
-      // Note that ::clientModelToInput() guarantees $inputValues contains a
-      // value for every required prop, even when a required property is allowed
-      // to be empty during editing for improved usability.
+      // A required prop may legitimately be absent here: when a Content Author
+      // empties its value while editing, ::clientModelToInput() only retains
+      // the emptied prop for field types that can supply a valid fallback value
+      // (0 for integer/float). For all other field types (e.g. link/uri or
+      // datetime/date) the emptied required prop is simply omitted. Build the
+      // widget with an empty value in that case and let the validation system
+      // surface the "required" error, rather than crashing while building the
+      // form.
       // @see ::getDefaultExplicitInput()
       // @see ::clientModelToInput()
       // @see https://www.drupal.org/i/3529788
-      \assert(\array_key_exists($sdc_prop_name, $inputValues) || !\in_array($sdc_prop_name, $this->getExplicitInputDefinitions()['required'], TRUE));
+      // @see https://www.drupal.org/i/3586183
       $source = $this->uncollapse($inputValues[$sdc_prop_name] ?? NULL, $sdc_prop_name);
       // Any component instance with props populated with a StaticPropSource
       // MUST use the StaticPropSource shape stored in the Component version. If
