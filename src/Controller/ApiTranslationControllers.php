@@ -84,7 +84,13 @@ final class ApiTranslationControllers extends ApiControllerBase {
       );
     }
     $draft = $this->autoSaveManager->getAutoSaveEntityForPreview($canvas_page);
-    $translation = $draft->isEmpty() ? $canvas_page : $draft->entity;
+    // Clone when falling back to the stored entity: it is the statically
+    // cached route parameter, and the mutations below must not leak into
+    // later loads within this request.
+    // @see \Drupal\canvas\AutoSave\AutoSaveManager::getAutoSaveEntityForPreview()
+    $translation = $draft->isEmpty()
+      ? (clone $canvas_page->getUntranslated())->getTranslation($canvas_page->language()->getId())
+      : $draft->entity;
     \assert($translation instanceof ContentEntityInterface);
     $translation->set(ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME, $forked);
     if (!$forked) {
