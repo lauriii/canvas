@@ -119,6 +119,8 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
 
     $entity = $this->createEntityWithDefaultTranslation($entity_type_id, $bundle, $field_name, $entity_storage);
     $entity->save();
+    $entity_id = $entity->id();
+    self::assertNotNull($entity_id);
 
     // 1. The fork flag exists (canvas_dev_translation + content_translation
     // are installed) and defaults to FALSE for new translations.
@@ -133,12 +135,12 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
     self::assertFalse(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($entity->getUntranslated()));
 
     // 2. Fork French. Only the flag flips: the tree is already the fork seed.
-    $entity = $entity_storage->loadUnchanged($entity->id());
+    $entity = $entity_storage->loadUnchanged($entity_id);
     \assert($entity instanceof ContentEntityInterface);
     $fr = $entity->getTranslation('fr');
     $fr->set(ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME, TRUE);
     $fr->save();
-    $entity = $entity_storage->loadUnchanged($entity->id());
+    $entity = $entity_storage->loadUnchanged($entity_id);
     \assert($entity instanceof ContentEntityInterface);
     self::assertTrue(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($entity->getTranslation('fr')));
 
@@ -153,7 +155,7 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
     ]));
     $default->save();
 
-    $entity = $entity_storage->loadUnchanged($entity->id());
+    $entity = $entity_storage->loadUnchanged($entity_id);
     \assert($entity instanceof ContentEntityInterface);
     // German followed the default translation: new component, new
     // non-translatable input value, translated text preserved.
@@ -177,7 +179,7 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
     ]));
     $fr->save();
 
-    $entity = $entity_storage->loadUnchanged($entity->id());
+    $entity = $entity_storage->loadUnchanged($entity_id);
     \assert($entity instanceof ContentEntityInterface);
     self::assertSame($default_values_before, $entity->getUntranslated()->get($field_name)->getValue());
     self::assertSame($de_values_before, $entity->getTranslation('de')->get($field_name)->getValue());
@@ -201,12 +203,12 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
 
     // 7. An empty forked tree stays empty when the default translation is
     // saved again.
-    $entity = $entity_storage->loadUnchanged($entity->id());
+    $entity = $entity_storage->loadUnchanged($entity_id);
     \assert($entity instanceof ContentEntityInterface);
     $fr = $entity->getTranslation('fr');
     $fr->set($field_name, []);
     $fr->save();
-    $entity = $entity_storage->loadUnchanged($entity->id());
+    $entity = $entity_storage->loadUnchanged($entity_id);
     \assert($entity instanceof ContentEntityInterface);
     self::assertTrue(self::tree($entity->getTranslation('fr'), $field_name)->isEmpty());
     $default = $entity->getUntranslated();
@@ -215,7 +217,7 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
       self::cta(self::SECOND_UUID, 'Second CTA'),
     ]));
     $default->save();
-    $entity = $entity_storage->loadUnchanged($entity->id());
+    $entity = $entity_storage->loadUnchanged($entity_id);
     \assert($entity instanceof ContentEntityInterface);
     self::assertTrue(self::tree($entity->getTranslation('fr'), $field_name)->isEmpty());
     self::assertFalse(self::tree($entity->getTranslation('de'), $field_name)->isEmpty());
@@ -231,7 +233,7 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
       self::cta(self::FORK_ONLY_UUID, 'Uniquement en français', '_blank'),
     ]));
     $fr->save();
-    $entity = $entity_storage->loadUnchanged($entity->id());
+    $entity = $entity_storage->loadUnchanged($entity_id);
     \assert($entity instanceof ContentEntityInterface);
     $fr = $entity->getTranslation('fr');
     $fr->set(ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME, FALSE);
@@ -254,7 +256,7 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
     // the symmetric constraint and follow future default-translation edits.
     self::assertEntityIsValid($fr);
     $fr->save();
-    $entity = $entity_storage->loadUnchanged($entity->id());
+    $entity = $entity_storage->loadUnchanged($entity_id);
     \assert($entity instanceof ContentEntityInterface);
     self::assertFalse(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($entity->getTranslation('fr')));
     $default = $entity->getUntranslated();
@@ -262,7 +264,7 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
     self::assertNotNull($default_item);
     $default_item->setInput(['text' => 'Click here again', 'href' => 'https://drupal.org', 'target' => '_self']);
     $default->save();
-    $entity = $entity_storage->loadUnchanged($entity->id());
+    $entity = $entity_storage->loadUnchanged($entity_id);
     \assert($entity instanceof ContentEntityInterface);
     self::assertSame('_self', self::tree($entity->getTranslation('fr'), $field_name)->getComponentTreeItemByUuid(self::CTA_UUID)?->getInputs()['target'] ?? NULL);
   }
