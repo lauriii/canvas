@@ -475,8 +475,23 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       \assert($item instanceof ComponentTreeItem);
       $component_id = $item->getComponentId();
       $uuid = $item->getUuid();
-      $component = $components[$component_id];
-      \assert($component instanceof Component);
+      $component = $components[$component_id] ?? NULL;
+      if (!$component instanceof Component) {
+        // The referenced Component config entity no longer exists. This can
+        // happen when a component tree stored in content outlives the Component
+        // config entity it references: for example when the content is deployed
+        // to an environment where that Component config entity was never
+        // created, or after it has been deleted. Store an exception to be
+        // re-thrown during rendering, so this component instance degrades
+        // gracefully instead of causing a fatal error.
+        // @see ::renderify()
+        $hydrated[$uuid] = [
+          'component' => $component_id,
+          self::HYDRATION_EXCEPTION_KEY => new \OutOfRangeException(\sprintf('The component "%s" does not exist.', $component_id)),
+        ];
+        // Continue hydrating the next component instance.
+        continue;
+      }
       $component->loadVersion($item->getComponentVersion());
 
       // Rendering always happens using the live implementation of a component,
@@ -524,6 +539,18 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     // last iteration assigning the last component to the component tree's root.
     foreach ($this->getSlotChildrenDepthFirst() as $parent_uuid => ['slot' => $slot, 'uuid' => $uuid]) {
       if ($parent_uuid === self::ROOT_UUID) {
+        continue;
+      }
+      // If the parent component instance failed to hydrate (for example because
+      // its Component config entity or its inputs could not be resolved), it is
+      // rendered as a fallback and has no slots to place children into. Drop the
+      // orphaned child subtree: the parent's fallback already conveys the
+      // failure, and the child cannot render inside a slot that is no longer
+      // available.
+      // @see ::getHydratedValue()
+      // @see ::renderify()
+      if (!\array_key_exists('slots', $hydrated[$parent_uuid])) {
+        unset($hydrated[$uuid]);
         continue;
       }
       \assert(\array_key_exists('slots', $hydrated[$parent_uuid]) && \is_array($hydrated[$parent_uuid]['slots']));

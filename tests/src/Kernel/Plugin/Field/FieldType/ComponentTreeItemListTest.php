@@ -294,6 +294,110 @@ class ComponentTreeItemListTest extends CanvasKernelTestBase {
     $this->assertSame($expected_cache_tags, array_values(CacheableMetadata::createFromRenderArray($renderable)->getCacheTags()));
   }
 
+  /**
+   * Tests graceful degradation when a referenced Component config entity is gone.
+   *
+   * A component tree stored in content may outlive the Component config entity
+   * it references: for example when the content is deployed to an environment
+   * where that Component config entity was never created, or after it has been
+   * deleted (which can happen while a developer renames or removes an SDC).
+   * Rendering such a tree must degrade gracefully instead of causing a fatal
+   * error, both for a leaf instance and for a container instance that has
+   * children nested in its slots.
+   *
+   * @see https://www.drupal.org/i/3561296
+   * @legacy-covers ::toRenderable
+   */
+  public function testRenderingWithMissingComponentConfigEntity(): void {
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+
+    $leaf_id = 'sdc.canvas_test_sdc.my-cta';
+    $parent_id = 'sdc.canvas_test_sdc.props-slots';
+    $child_id = 'sdc.canvas_test_sdc.heading';
+    $leaf = Component::load($leaf_id);
+    $parent = Component::load($parent_id);
+    self::assertInstanceOf(ComponentInterface::class, $leaf);
+    self::assertInstanceOf(ComponentInterface::class, $parent);
+    self::assertInstanceOf(ComponentInterface::class, Component::load($child_id));
+
+    $leaf_uuid = '9b1a2c3d-4e5f-4a7b-8c9d-0e1f2a3b4c5d';
+    $parent_uuid = '1f2e3d4c-5b6a-4978-8869-5a4b3c2d1e0f';
+    $child_uuid = '2a3b4c5d-6e7f-4081-9192-a3b4c5d6e7f8';
+
+    $page = Page::create([
+      'title' => 'Test page',
+      'components' => [
+        [
+          'uuid' => $leaf_uuid,
+          'component_id' => $leaf_id,
+          'component_version' => $leaf->getActiveVersion(),
+          'inputs' => [
+            'text' => 'Some text',
+            'href' => ['uri' => 'https://example.com', 'options' => []],
+          ],
+        ],
+        [
+          'uuid' => $parent_uuid,
+          'component_id' => $parent_id,
+          'component_version' => $parent->getActiveVersion(),
+          'inputs' => ['heading' => 'Parent heading'],
+        ],
+        // A child nested in the (to-be-missing) parent's slot. Its own Component
+        // config entity remains, so if the parent's failure were not contained
+        // the child would incorrectly render (at the tree root).
+        [
+          'uuid' => $child_uuid,
+          'parent_uuid' => $parent_uuid,
+          'slot' => 'the_body',
+          'component_id' => $child_id,
+          'component_version' => Component::load($child_id)->getActiveVersion(),
+          'inputs' => ['text' => 'Orphaned child heading', 'element' => 'h1'],
+        ],
+      ],
+    ]);
+    // Baseline: the component tree is valid while the Component config entities
+    // exist.
+    self::assertEntityIsValid($page);
+    $page->save();
+
+    // Simulate the referenced leaf and parent Component config entities going
+    // away, while the (already saved) content keeps referencing them. The
+    // child's Component config entity is intentionally left in place.
+    $leaf->delete();
+    $parent->delete();
+
+    $render_tree = function () use ($page): string {
+      $item_list = $page->get('components');
+      \assert($item_list instanceof ComponentTreeItemList);
+      $build = $item_list->toRenderable($page, FALSE);
+      return (string) $this->container->get(RendererInterface::class)->renderInIsolation($build);
+    };
+
+    // With verbose error reporting, rendering does not result in a fatal error
+    // and a developer-friendly message is shown to the privileged user for both
+    // the missing leaf and the missing container.
+    $this->config('system.logging')->set('error_level', ERROR_REPORTING_DISPLAY_VERBOSE)->save();
+    $html = $render_tree();
+    self::assertStringContainsString(sprintf('data-component-uuid="%s"', $leaf_uuid), $html);
+    self::assertStringContainsString(sprintf('data-component-uuid="%s"', $parent_uuid), $html);
+    self::assertStringContainsString('The component "sdc.canvas_test_sdc.my-cta" does not exist.', $html);
+    self::assertStringContainsString('The component "sdc.canvas_test_sdc.props-slots" does not exist.', $html);
+    // The orphaned child of the missing container is dropped, not promoted to
+    // the tree root.
+    self::assertStringNotContainsString('Orphaned child heading', $html);
+    self::assertStringNotContainsString(sprintf('data-component-uuid="%s"', $child_uuid), $html);
+
+    // With error reporting hidden, an unprivileged user sees a generic message
+    // instead of the exception details, and still no fatal error.
+    $this->config('system.logging')->set('error_level', ERROR_REPORTING_HIDE)->save();
+    $html = $render_tree();
+    self::assertStringContainsString(sprintf('data-component-uuid="%s"', $leaf_uuid), $html);
+    self::assertStringContainsString(sprintf('data-component-uuid="%s"', $parent_uuid), $html);
+    self::assertStringContainsString('Oops, something went wrong! Site admins have been notified.', $html);
+    self::assertStringNotContainsString('does not exist', $html);
+    self::assertStringNotContainsString('Orphaned child heading', $html);
+  }
+
   public static function modifyExpectationFromLiveToPreview(array $expectation, bool $is_preview): array {
     \array_walk_recursive($expectation['expected_renderable'], function (mixed &$value, mixed $key) use ($is_preview) {
       if ($key === '#is_preview' || $key === 'canvas_is_preview') {
