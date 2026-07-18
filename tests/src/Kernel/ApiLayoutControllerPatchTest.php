@@ -204,6 +204,80 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
   }
 
   /**
+   * Page-data field changes must survive a subsequent component PATCH.
+   *
+   * Regression test for https://www.drupal.org/i/3541275: editing a component
+   * must not discard changes previously made to the page-data form. A page-data
+   * field is changed and auto-saved via POST, then a component's prop is edited
+   * via PATCH. Because ::patch() PATCHes the auto-saved entity and only mutates
+   * its component tree (it never rewrites the entity's other fields), the
+   * page-data change must remain intact in the PATCH response, in the auto-save
+   * entity, and on a subsequent GET.
+   *
+   * The page-data change here uses the `title` field, which round-trips through
+   * the entity form without the AJAX form-state cache that media/file widgets
+   * rely on; the media-widget flow from the issue is covered by manual testing.
+   */
+  public function testPageDataFieldSurvivesComponentPatch(): void {
+    $entity = $this->getTestEntity('node');
+    \assert($entity instanceof Node);
+    $url = $this->getLayoutUrl($entity)->toString();
+    $this->setUpCurrentUser([], [
+      'administer url aliases',
+      PageRegion::ADMIN_PERMISSION,
+      self::getAdminPermission($entity),
+    ]);
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+
+    // 1. GET the layout to obtain the current model, entity_form_fields and
+    // auto-save hashes.
+    $getContent = $this->parentRequest(Request::create($url))->getContent();
+    self::assertIsString($getContent);
+    $json = \json_decode($getContent, TRUE);
+    $original_title = $json['entity_form_fields']['title[0][value]'];
+
+    // 2. POST the layout with a changed page-data field (mimics editing the
+    // page-data form, which auto-saves).
+    $new_title = 'Page data changed by the author';
+    self::assertNotSame($original_title, $new_title);
+    $postJson = $json;
+    $postJson['entity_form_fields']['title[0][value]'] = $new_title;
+    $postResponse = $this->request(Request::create($url, method: 'POST', content: $this->filterLayoutForPost(\json_encode($postJson, JSON_THROW_ON_ERROR))));
+    self::assertEquals(Response::HTTP_OK, $postResponse->getStatusCode());
+    $autoSavedEntity = $autoSave->getAutoSaveEntity($entity)->entity;
+    \assert($autoSavedEntity instanceof Node);
+    self::assertSame($new_title, $autoSavedEntity->label());
+
+    // 3. PATCH a component's prop (mimics editing a component in the layout).
+    $new_model = $json['model'][CanvasTestSetup::UUID_STATIC_CARD1];
+    $new_model['source']['heading']['value'] = 'Patched heading';
+    $new_model['resolved']['heading'] = 'Patched heading';
+    $patchData = [
+      'model' => $new_model,
+      'componentType' => 'sdc.canvas_test_sdc.my-hero@' . Component::load('sdc.canvas_test_sdc.my-hero')?->getActiveVersion(),
+      'componentInstanceUuid' => CanvasTestSetup::UUID_STATIC_CARD1,
+    ] + $this->getPatchContentsDefaults([$entity]);
+    $patchResponse = $this->request(Request::create($url, method: 'PATCH', content: \json_encode($patchData, JSON_THROW_ON_ERROR)));
+    self::assertEquals(Response::HTTP_OK, $patchResponse->getStatusCode());
+    $patchJson = self::decodeResponse($patchResponse);
+    self::assertSame('Patched heading', $patchJson['model'][CanvasTestSetup::UUID_STATIC_CARD1]['resolved']['heading']);
+
+    // 4. The page-data field change must still be present: in the PATCH response,
+    // in the auto-save entity, and on a fresh GET (mimics exiting the preview and
+    // the page-data form re-reading from the server).
+    self::assertSame($new_title, $patchJson['entity_form_fields']['title[0][value]']);
+    $autoSavedEntity = $autoSave->getAutoSaveEntity($entity)->entity;
+    \assert($autoSavedEntity instanceof Node);
+    self::assertSame($new_title, $autoSavedEntity->label());
+    $getAfterContent = $this->parentRequest(Request::create($url))->getContent();
+    self::assertIsString($getAfterContent);
+    $getAfterJson = \json_decode($getAfterContent, TRUE);
+    self::assertSame($new_title, $getAfterJson['entity_form_fields']['title[0][value]']);
+    self::assertSame('Patched heading', $getAfterJson['model'][CanvasTestSetup::UUID_STATIC_CARD1]['resolved']['heading']);
+  }
+
+  /**
    * Tests invalid.
    *
    * @param class-string<\Throwable> $exception
