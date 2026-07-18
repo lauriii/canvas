@@ -1412,6 +1412,69 @@ HTML
     self::assertEquals($expected_props_for_uuids, $actual_props);
   }
 
+  /**
+   * Tests that a removed (missing) multivalue prop resolves to an empty array.
+   *
+   * When a Content Creator removes all values from a multivalue prop, that
+   * prop is absent from the stored component instance inputs. Its explicit
+   * input must be materialized as an empty array, not fall back to the SDC
+   * example values, otherwise the removed values reappear in the preview.
+   *
+   * @legacy-covers ::getExplicitInput
+   * @see https://www.drupal.org/project/canvas/issues/3586289
+   */
+  public function testGetExplicitInputForMissingMultivalueProp(): void {
+    $this->generateComponentConfig();
+    $uuid = 'a0000000-0000-4000-8000-000000000000';
+    $item_list = $this->createDanglingComponentTreeItemList();
+    $item_list->setValue([
+      [
+        'uuid' => $uuid,
+        'component_id' => 'sdc.canvas_test_sdc.multivalue-props',
+        // Provide only the required prop; every optional multivalue prop is
+        // omitted, mirroring a component instance whose multivalue values have
+        // all been removed by the Content Creator.
+        'inputs' => [
+          'text_required' => ['Kept value'],
+        ],
+      ],
+    ]);
+    $item = $item_list->get(0);
+    \assert($item instanceof ComponentTreeItem);
+
+    $explicit_input = $item->getComponent()?->getComponentSource()->getExplicitInput(
+      uuid: $uuid,
+      item: $item,
+    );
+    \assert(\is_array($explicit_input));
+    $source = $explicit_input['source'];
+    $resolved = $explicit_input['resolved'];
+    \assert(\is_array($source));
+    \assert(\is_array($resolved));
+
+    // Both the omitted unlimited-cardinality `text` prop and the omitted
+    // limited-cardinality (maxItems) `text_limited` prop must be materialized
+    // with an explicit empty-array value, not fall back to the SDC example
+    // values ('Hello World', 'Sample Text').
+    foreach (['text', 'text_limited'] as $removed_prop) {
+      self::assertArrayHasKey($removed_prop, $source);
+      $prop_source = $source[$removed_prop];
+      \assert(\is_array($prop_source));
+      self::assertArrayHasKey('value', $prop_source);
+      self::assertSame([], $prop_source['value']);
+
+      self::assertArrayHasKey($removed_prop, $resolved);
+      $prop_resolved = $resolved[$removed_prop];
+      \assert($prop_resolved instanceof EvaluationResult);
+      self::assertSame([], $prop_resolved->value);
+    }
+
+    // The explicitly provided required prop is unaffected.
+    $required_resolved = $resolved['text_required'];
+    \assert($required_resolved instanceof EvaluationResult);
+    self::assertSame(['Kept value'], $required_resolved->value);
+  }
+
   public static function providerComponentResolving(): array {
     $test_cases = static::getValidTreeTestCases();
     $test_cases['valid values using static inputs'][] = [
