@@ -175,9 +175,7 @@ const ForkTranslationDialog = ({
       onClose();
     } catch (error) {
       console.error('Failed to fork translation:', error);
-      setForkError(
-        'Failed to translate the layout independently. Please try again.',
-      );
+      setForkError('Failed to fork the layout. Please try again.');
     }
   };
 
@@ -187,19 +185,19 @@ const ForkTranslationDialog = ({
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      title="Translate layout independently"
-      description={`The ${languageName ?? ''} translation will get its own copy of the layout. Changes to the original layout will no longer apply to it. You can revert to the synced layout later, but any independent changes will then be lost.`}
+      title="Fork layout"
+      description={`The ${languageName ?? ''} translation will get its own forked copy of the layout. Changes to the original layout will no longer apply to it. You can revert to the synced layout later, but any changes to the forked layout will then be lost.`}
       error={
         forkError
           ? {
-              title: 'Failed to translate layout independently',
+              title: 'Failed to fork layout',
               message: forkError,
             }
           : undefined
       }
       footer={{
         cancelText: 'Cancel',
-        confirmText: 'Translate independently',
+        confirmText: 'Fork layout',
         onConfirm: handleConfirmFork,
         onCancel: onClose,
         isConfirmLoading: isForkLoading,
@@ -265,7 +263,7 @@ const UnforkTranslationDialog = ({
         if (!open) onClose();
       }}
       title="Revert to synced layout"
-      description={`The independent ${languageName ?? ''} layout will be replaced by the synced layout. Translated text is kept for components that exist in the synced layout; everything else will be permanently lost when published.`}
+      description={`The forked ${languageName ?? ''} layout will be replaced by the synced layout. Translated text is kept for components that exist in the synced layout; everything else will be permanently lost when published.`}
       error={
         unforkError
           ? {
@@ -331,14 +329,25 @@ const LanguageSelect = () => {
   const { entityType, entityId, width, previewEntityId, bundle, viewMode } =
     useParams();
   const { isTemplateContext, isTemplatePreviewRoute } = useTemplateRef();
-  const translations = useAppSelector(selectTranslations);
+  const isTemplateRoute = isTemplateContext || isTemplatePreviewRoute;
+  const sliceTranslations = useAppSelector(selectTranslations);
+  // The slice's translations only update on initial layout load, so prefer
+  // the layout query's own (cache-shared, no extra request) result: it stays
+  // fresh across the Layout-tag refetches that fork/unfork/delete trigger.
+  // Template routes have no page layout query and keep using the slice.
+  const { translations: queryTranslations } = useGetPageLayoutQuery(
+    entityId && entityType && !isTemplateRoute
+      ? { entityId, entityType }
+      : skipToken,
+    { selectFromResult: ({ data }) => ({ translations: data?.translations }) },
+  );
+  const translations = queryTranslations ?? sliceTranslations;
 
   // Fresh translations metadata (a layout refetch) supersedes the in-session
   // deletion bookkeeping: rows are hidden or shown by the data itself again.
   useEffect(() => {
     setRemovedLanguages([]);
   }, [translations]);
-  const isTemplateRoute = isTemplateContext || isTemplatePreviewRoute;
   const templateCaption = useTemplateCaption();
   const pageData = useAppSelector(selectPageData);
   const snapshotTitle = useAppSelector(selectSnapshotTitle);
@@ -455,7 +464,7 @@ const LanguageSelect = () => {
     setOpenPopoverId(null);
   };
 
-  // A language whose translation owns an independent (forked) layout.
+  // A language whose translation owns a forked layout.
   const isForked = (languageId: string) =>
     Boolean(translations?.forked?.includes(languageId));
 
@@ -543,7 +552,7 @@ const LanguageSelect = () => {
                       ml="1"
                       data-testid={`language-forked-badge-${language.id}`}
                     >
-                      Independent
+                      Forked
                     </Badge>
                   )}
                 </Flex>
@@ -642,9 +651,7 @@ const LanguageSelect = () => {
                               onClick={() => handleForkTranslation(language.id)}
                             >
                               <LinkBreak2Icon width="14" height="14" />
-                              <Text size="2">
-                                Translate layout independently
-                              </Text>
+                              <Text size="2">Fork layout</Text>
                             </button>
                           )}
                         {!isNew &&
