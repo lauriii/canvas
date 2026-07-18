@@ -38,5 +38,8 @@ class CanvasUriDefinitions {
   // @see \Drupal\canvas\Controller\ApiTranslationControllers::unfork()
   const string LINK_REL_FORK = 'https://drupal.org/project/canvas#link-rel-fork';
   const string LINK_REL_UNFORK = 'https://drupal.org/project/canvas#link-rel-unfork';
+  // Make a language the entity's original (default) language.
+  // @see \Drupal\canvas\Controller\ApiContentControllers::patch()
+  const string LINK_REL_SET_DEFAULT_LANGUAGE = 'https://drupal.org/project/canvas#link-rel-set-default-language';
 
 }

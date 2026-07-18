@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Controller;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Controller\ApiContentControllers;
@@ -13,6 +14,10 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\language\Entity\ConfigurableLanguage;
+use Drupal\language\Entity\ContentLanguageSettings;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -43,6 +48,7 @@ class ApiContentControllersPatchTest extends CanvasKernelTestBase {
   protected static $modules = [
     'canvas_test_page',
     'field',
+    'language',
   ];
 
   private const string URL = '/canvas/api/v0/content/canvas_page/%s';
@@ -57,13 +63,53 @@ class ApiContentControllersPatchTest extends CanvasKernelTestBase {
     $this->installEntitySchema('canvas_page');
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema('media');
-    $this->installConfig(['system', 'field', 'filter', 'path_alias']);
+    $this->installConfig(['system', 'field', 'filter', 'path_alias', 'language']);
 
     $this->setUpCurrentUser([], ['access content', Page::CREATE_PERMISSION, Page::EDIT_PERMISSION]);
 
     $component_source_manager = \Drupal::service(ComponentSourceManager::class);
     \assert($component_source_manager instanceof ComponentSourceManager);
     $component_source_manager->generateComponents();
+  }
+
+  /**
+   * Sets up French and German plus URL-prefix negotiation for both.
+   *
+   * The container rebuild makes the prefixes active, so a language-prefixed
+   * request upcasts the matching translation — mirroring how the Canvas UI
+   * addresses translations.
+   */
+  private function setUpLanguages(): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    ConfigurableLanguage::createFromLangcode('de')->save();
+    $this->config('language.negotiation')
+      ->set('url.prefixes', ['en' => '', 'fr' => 'fr', 'de' => 'de'])
+      ->save();
+    \Drupal::service('kernel')->rebuildContainer();
+    $container = \Drupal::getContainer();
+    \assert($container instanceof ContainerBuilder);
+    $this->container = $container;
+  }
+
+  /**
+   * Allows changing the original language of canvas_page entities.
+   */
+  private function setLanguageAlterable(bool $alterable): void {
+    ContentLanguageSettings::loadByEntityTypeBundle(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID)
+      ->setLanguageAlterable($alterable)
+      ->save();
+  }
+
+  /**
+   * PATCHes a langcode change and returns the response.
+   */
+  private function patchLangcode(Page $page, string $langcode, string $url_prefix = ''): Response {
+    return $this->request(Request::create(
+      $url_prefix . \sprintf(self::URL, $page->id()),
+      'PATCH',
+      server: ['CONTENT_TYPE' => 'application/json'],
+      content: \json_encode(['langcode' => $langcode], JSON_THROW_ON_ERROR),
+    ));
   }
 
   /**
@@ -299,6 +345,149 @@ class ApiContentControllersPatchTest extends CanvasKernelTestBase {
       [],
       0,
     ];
+  }
+
+  /**
+   * Tests changing a page's original language via PATCH `langcode`.
+   */
+  public function testPatchLangcode(): void {
+    $this->setUpLanguages();
+    $this->setLanguageAlterable(TRUE);
+
+    $page = Page::create([
+      'title' => 'English original',
+      'status' => TRUE,
+      'path' => ['alias' => '/english-original'],
+      'components' => [],
+    ]);
+    self::assertEntityIsValid($page);
+    $page->save();
+
+    // A successful retag: the original language changes and field data is
+    // retagged in place.
+    $response = $this->patchLangcode($page, 'de');
+    $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $reloaded = $this->reload($page);
+    $this->assertSame('de', $reloaded->language()->getId());
+    $this->assertSame('de', $reloaded->get('title')->getLangcode());
+    $this->assertSame('English original', $reloaded->label());
+  }
+
+  /**
+   * Tests that sibling translations survive a language change.
+   */
+  public function testPatchLangcodeKeepsTranslations(): void {
+    $this->setUpLanguages();
+    $this->setLanguageAlterable(TRUE);
+
+    $page = Page::create([
+      'title' => 'English original',
+      'status' => TRUE,
+      'path' => ['alias' => '/english-original'],
+      'components' => [],
+    ]);
+    self::assertEntityIsValid($page);
+    $page->save();
+    $page->addTranslation('fr', [
+      'title' => 'French translation',
+      'status' => TRUE,
+      'path' => ['alias' => '/french-translation'],
+      'components' => $page->get('components')->getValue(),
+    ]);
+    $page->save();
+
+    $response = $this->patchLangcode($page, 'de');
+    $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $reloaded = $this->reload($page);
+    $this->assertSame('de', $reloaded->language()->getId());
+    $this->assertTrue($reloaded->hasTranslation('fr'));
+    $this->assertSame('French translation', $reloaded->getTranslation('fr')->label());
+  }
+
+  /**
+   * Tests the guards blocking a language change.
+   */
+  public function testPatchLangcodeGuards(): void {
+    $this->setUpLanguages();
+    $this->setLanguageAlterable(TRUE);
+
+    $page = Page::create([
+      'title' => 'English original',
+      'status' => TRUE,
+      'path' => ['alias' => '/english-original'],
+      'components' => [],
+    ]);
+    self::assertEntityIsValid($page);
+    $page->save();
+    $page->addTranslation('fr', [
+      'title' => 'French translation',
+      'status' => TRUE,
+      'path' => ['alias' => '/french-translation'],
+      'components' => $page->get('components')->getValue(),
+    ]);
+    $page->save();
+
+    // Unknown langcode: 400.
+    $response = $this->patchLangcode($page, 'xx');
+    $this->assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    $this->assertSame(
+      ['error' => 'The provided langcode "xx" is not one of the configured languages.'],
+      $this->decodeResponse($response),
+    );
+
+    // Occupied target language: 409, nothing changes.
+    $response = $this->patchLangcode($page, 'fr');
+    $this->assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+    $this->assertStringContainsString('Delete that translation', $this->decodeResponse($response)['error']);
+    $this->assertSame('en', $this->reload($page)->language()->getId());
+
+    // A language-prefixed request upcasts the French translation: 422.
+    $response = $this->patchLangcode($page, 'de', '/fr');
+    $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    $this->assertStringContainsString('default translation', $this->decodeResponse($response)['error']);
+    $this->assertSame('en', $this->reload($page)->language()->getId());
+
+    // Pending auto-save drafts anywhere in the translation group: 409.
+    $auto_save_manager = \Drupal::service(AutoSaveManager::class);
+    \assert($auto_save_manager instanceof AutoSaveManager);
+    $draft = $this->reload($page)->getTranslation('fr');
+    $draft->set('title', 'French draft');
+    $auto_save_manager->saveEntity($draft);
+    $response = $this->patchLangcode($page, 'de');
+    $this->assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+    $this->assertStringContainsString('Publish or discard', $this->decodeResponse($response)['error']);
+    $this->assertSame('en', $this->reload($page)->language()->getId());
+  }
+
+  /**
+   * Tests that `language_alterable` gates the language change.
+   */
+  public function testPatchLangcodeNotAlterable(): void {
+    $this->setUpLanguages();
+    $this->setLanguageAlterable(FALSE);
+
+    $page = Page::create([
+      'title' => 'English original',
+      'status' => TRUE,
+      'path' => ['alias' => '/english-original'],
+      'components' => [],
+    ]);
+    self::assertEntityIsValid($page);
+    $page->save();
+
+    $this->expectException(CacheableAccessDeniedHttpException::class);
+    $this->patchLangcode($page, 'de');
+  }
+
+  /**
+   * Reloads a page bypassing the static entity cache.
+   */
+  private function reload(Page $page): Page {
+    $page_id = $page->id();
+    \assert($page_id !== NULL);
+    $reloaded = \Drupal::entityTypeManager()->getStorage(Page::ENTITY_TYPE_ID)->loadUnchanged($page_id);
+    \assert($reloaded instanceof Page);
+    return $reloaded;
   }
 
 }

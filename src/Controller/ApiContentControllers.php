@@ -115,7 +115,50 @@ final class ApiContentControllers extends ApiControllerBase {
       $body['page_variant'] = $body['pageVariant'] !== '' ? $body['pageVariant'] : NULL;
     }
 
-    foreach (['title', 'status', 'path', 'components', 'description', 'page_variant'] as $field_name) {
+    // Changing the original language delegates to core's retag semantics:
+    // setting the langcode on the default translation retags all field data in
+    // place. These guards run before the generic field loop so core's
+    // exceptions surface as structured responses instead.
+    // @see \Drupal\Core\Entity\ContentEntityBase::onChange()
+    if (\array_key_exists('langcode', $body)) {
+      $langcode = $body['langcode'];
+      if (!\is_string($langcode) || !\array_key_exists($langcode, $this->languageManager->getLanguages())) {
+        return new JsonResponse(
+          ['error' => \sprintf('The provided langcode "%s" is not one of the configured languages.', \is_scalar($langcode) ? (string) $langcode : \gettype($langcode))],
+          Response::HTTP_BAD_REQUEST,
+        );
+      }
+      if (!$canvas_page->isDefaultTranslation()) {
+        // Core forbids retagging a translation; only the original (default
+        // translation) can change language.
+        return new JsonResponse(
+          ['error' => \sprintf('The original language can only be changed on the default translation. This request targeted the %s translation.', $canvas_page->language()->getId())],
+          Response::HTTP_UNPROCESSABLE_ENTITY,
+        );
+      }
+      if ($langcode !== $canvas_page->language()->getId()) {
+        if ($canvas_page->hasTranslation($langcode)) {
+          // Core cannot swap the original language with an existing
+          // translation; deleting that translation first composes from
+          // existing endpoints.
+          return new JsonResponse(
+            ['error' => \sprintf('This %s already has a %s translation. Delete that translation before making %s the default language.', $canvas_page->getEntityType()->getSingularLabel(), $langcode, $langcode)],
+            Response::HTTP_CONFLICT,
+          );
+        }
+        // Auto-save entries are keyed per langcode and are intentionally not
+        // rekeyed on a language change; refuse instead of leaving drafts
+        // behind under the old langcode.
+        if ($this->autoSaveManager->getTranslationGroupAutoSaves($canvas_page) !== []) {
+          return new JsonResponse(
+            ['error' => \sprintf('This %s has unpublished changes. Publish or discard them before changing its default language.', $canvas_page->getEntityType()->getSingularLabel())],
+            Response::HTTP_CONFLICT,
+          );
+        }
+      }
+    }
+
+    foreach (['title', 'status', 'path', 'components', 'description', 'page_variant', 'langcode'] as $field_name) {
       if (!\array_key_exists($field_name, $body)) {
         continue;
       }
@@ -182,6 +225,21 @@ final class ApiContentControllers extends ApiControllerBase {
         'description' => $requestDescription,
         'page_variant' => $requestPageVariant,
       ];
+      // Optional explicit original language. Omitted means core decides,
+      // which honors `ContentLanguageSettings.default_langcode` when the
+      // Language module is installed. The duplication branch above ignores
+      // `langcode`: duplicates keep the source entity's language.
+      // @see \Drupal\language\DefaultLanguageItem::applyDefaultValue()
+      if (isset($body['langcode'])) {
+        $langcode = $body['langcode'];
+        if (!\is_string($langcode) || !\array_key_exists($langcode, $this->languageManager->getLanguages())) {
+          return new JsonResponse(
+            ['error' => \sprintf('The provided langcode "%s" is not one of the configured languages.', \is_scalar($langcode) ? (string) $langcode : \gettype($langcode))],
+            Response::HTTP_BAD_REQUEST,
+          );
+        }
+        $values['langcode'] = $langcode;
+      }
       if (isset($body['uuid'])) {
         $values['uuid'] = $body['uuid'];
         $existing = $this->entityTypeManager->getStorage($entity_type)->loadByProperties(['uuid' => $body['uuid']]);

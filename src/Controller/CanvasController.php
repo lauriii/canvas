@@ -27,6 +27,7 @@ use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
@@ -43,6 +44,7 @@ use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrl;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class CanvasController {
@@ -189,6 +191,31 @@ HTML;
       $content_entity_create_operations[$entity_type_id][$bundle] = $create_link->getTargetAttributes()['label'];
     }
 
+    // The configured URL prefix per language. The Canvas UI uses it to pin
+    // editor API requests to an entity's original language when that differs
+    // from the site default, so `EntityConverter` upcasts the original
+    // translation instead of the negotiated one. Prefixes only take effect
+    // when URL-path-prefix language negotiation is active for some language
+    // type; expose none otherwise so the client never builds URLs the router
+    // cannot resolve.
+    // @see \Drupal\language\HttpKernel\PathProcessorLanguage
+    // @see ui/src/utils/entity-language.ts
+    $url_prefixes = [];
+    if ($this->moduleHandler->moduleExists('language')) {
+      $negotiation_config = $this->configFactory->get('language.negotiation');
+      $types_config = $this->configFactory->get('language.types');
+      $url_negotiation_enabled = FALSE;
+      foreach ((array) $types_config->get('negotiation') as $type_settings) {
+        if (\array_key_exists(LanguageNegotiationUrl::METHOD_ID, $type_settings['enabled'] ?? [])) {
+          $url_negotiation_enabled = TRUE;
+          break;
+        }
+      }
+      if ($url_negotiation_enabled && ($negotiation_config->get('url.source') ?? LanguageNegotiationUrl::CONFIG_PATH_PREFIX) === LanguageNegotiationUrl::CONFIG_PATH_PREFIX) {
+        $url_prefixes = $negotiation_config->get('url.prefixes') ?? [];
+      }
+    }
+
     // STATE_CONFIGURABLE excludes locked system placeholders (und/zxx) and
     // returns only languages visible at /admin/config/regional/language —
     // the only languages with URL prefixes a user can preview content in.
@@ -200,9 +227,14 @@ HTML;
         'name' => $language->getName(),
         'direction' => $language->getDirection(),
         'isDefault' => $language->isDefault(),
+        'urlPrefix' => $url_prefixes[$language->getId()] ?? '',
       ];
     }
-    $languages_cacheability = (new CacheableMetadata())->setCacheTags(['config:configurable_language_list']);
+    $languages_cacheability = (new CacheableMetadata())->setCacheTags([
+      'config:configurable_language_list',
+      'config:language.negotiation',
+      'config:language.types',
+    ]);
 
     // The absolute base URL of this Drupal site, without a trailing slash. The
     // UI passes it to commands that need to reach the site from elsewhere,
@@ -216,6 +248,10 @@ HTML;
       ->addCacheableDependency($all_content_entity_create_links)
       ->addCacheableDependency($languages_cacheability)
       ->addCacheableDependency($site_url_cacheability)
+      // `entityDefaultLangcode` must not outlive a change to the entity's
+      // original language. CacheableMetadata::createFromObject() treats NULL
+      // (the empty boot) as uncacheable, hence the fallback.
+      ->addCacheableDependency($entity ?? new CacheableMetadata())
       ->setAttachments([
         'library' => [
           'canvas/canvas-ui',
@@ -244,6 +280,13 @@ HTML;
             'contentTranslationEnabled' => $content_translation_enabled,
             'configTranslationEnabled' => $config_translation_enabled,
             'languages' => $languages_data,
+            // The boot entity's original language. The client seeds its
+            // per-entity language registry with it so even the first editor
+            // API request carries the right URL language prefix.
+            // @see ui/src/utils/entity-language.ts
+            'entityDefaultLangcode' => $entity instanceof ContentEntityInterface
+              ? $entity->getUntranslated()->language()->getId()
+              : NULL,
             'extensionsAvailable' => count($extensions) > 0,
             'pageExtensions' => $page_extensions,
             'aiExtensionAvailable' => $ai_extension_available,
