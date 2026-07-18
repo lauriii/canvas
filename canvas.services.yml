@@ -134,6 +134,8 @@ services:
     tags:
       - { name: event_subscriber }
   Drupal\canvas\EventSubscriber\PreviewEnvelopeViewSubscriber: {}
+  Drupal\canvas\Render\ServerTiming: {}
+  Drupal\canvas\EventSubscriber\ServerTimingResponseSubscriber: {}
   canvas.theme_negotiator.canvas:
     class: Drupal\canvas\Theme\CanvasThemeNegotiator
     tags:

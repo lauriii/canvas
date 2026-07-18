@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\DisplayVariant;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Controller\ApiLayoutController;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Render\ServerTiming;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Display\Attribute\PageDisplayVariant;
@@ -16,6 +18,7 @@ use Drupal\Core\Display\VariantBase;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Provides a page display variant decorating the main content with components.
@@ -97,7 +100,7 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
    */
   private $title = '';
 
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, private readonly AutoSaveManager $autoSaveManager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, private readonly AutoSaveManager $autoSaveManager, private readonly ServerTiming $serverTiming, private readonly RequestStack $requestStack) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
@@ -107,6 +110,8 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
       $plugin_id,
       $plugin_definition,
       $container->get(AutoSaveManager::class),
+      $container->get(ServerTiming::class),
+      $container->get('request_stack'),
     );
   }
 
@@ -150,6 +155,15 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
     // Track whether a block showing the messages is displayed.
     $messages_block_displayed = FALSE;
 
+    // When a preview request declares the global regions frozen, emit nothing
+    // for them: the client keeps the load-time snapshot in the live preview
+    // DOM and never applies a frozen response as a full document.
+    // @see \Drupal\canvas\Controller\ApiLayoutController::FROZEN_REGIONS_ATTRIBUTE
+    if ($this->requestStack->getCurrentRequest()?->attributes->get(ApiLayoutController::FROZEN_REGIONS_ATTRIBUTE) === TRUE) {
+      $regions = [];
+    }
+
+    $this->serverTiming->start('region-render');
     foreach ($regions as $region) {
       // If we are in preview mode replace the region with the auto-saved
       // version if any.
@@ -195,6 +209,7 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
       \assert($fiber->isTerminated());
       $build[$region->get('region')] = $fiber->getReturn();
     }
+    $this->serverTiming->stop('region-render');
 
     // Now render the special "content" region.
     // @see ::MAIN_CONTENT_REGION

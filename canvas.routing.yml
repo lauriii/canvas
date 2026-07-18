@@ -539,6 +539,21 @@ canvas.api.layout.patch.content_template:
     parameters:
       <<: *layout_get_route_content_template_parameters
 
+# Stateless partial render endpoint: renders only the requested component
+# instances as subtrees, with no auto-save writes or other side effects.
+# @see docs/adr/0017-preview-partial-rendering-frozen-regions.md
+canvas.api.layout.render:
+  path: '/canvas/api/v0/layout/{entity_type}/{entity}/render'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiLayoutController::render'
+  requirements:
+    <<: *layout_get_route_requirements
+  options:
+    parameters:
+      entity:
+        type: entity:{entity_type}
+  methods: [POST]
+
 canvas.api.layout.post: &layout_post_route
   path: '/canvas/api/v0/layout/{entity_type}/{entity}'
   defaults:

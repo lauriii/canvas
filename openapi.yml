@@ -2543,12 +2543,11 @@ paths:
               schema:
                 type: object
                 required:
-                  - html
                   - autoSaves
                 properties:
                   html:
                     type: string
-                    description: The HTML preview.
+                    description: 'The HTML preview. Absent when the request was sent with `render: false` (persist-only mode).'
                   autoSaves:
                     $ref: '#/components/schemas/AutoSaveConcurrencyControl'
         '401':
@@ -2570,6 +2569,109 @@ paths:
                   error:
                     type: string
                     description: Error message indicating the conflict.
+  '/canvas/api/v0/layout/{entityTypeId}/{entityId}/render':
+    description: >
+      Stateless partial render endpoint: renders only the requested component
+      instances as subtrees, from draft state plus an optional client-supplied
+      model overlay. Pure function: no auto-save writes, no cache tag
+      invalidation. Requests are safe to issue concurrently and to abort.
+    post:
+      summary: Renders the requested component instances as isolated subtrees with asset deltas.
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/entityId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              title: Partial render request
+              type: object
+              required:
+                - uuids
+              additionalProperties: false
+              properties:
+                uuids:
+                  type: array
+                  minItems: 1
+                  description: Component instance UUIDs to render, each as a subtree including its slot children.
+                  items:
+                    type: string
+                model:
+                  $ref: '#/components/schemas/Model'
+                libraries:
+                  description: >
+                    Asset libraries the preview document already has loaded;
+                    the response only contains assets outside this set. Either
+                    an expanded list (from a previous response) or the preview
+                    document's compressed ajaxPageState string.
+                  oneOf:
+                    - type: array
+                      items:
+                        type: string
+                    - type: string
+                token:
+                  type: [string, number, "null"]
+                  description: Opaque value echoed back unmodified; used client-side for latest-wins ordering.
+                # Sent by the shared auto-saves injection on the client; ignored
+                # by this side-effect-free endpoint.
+                autoSaves:
+                  $ref: '#/components/schemas/AutoSaveConcurrencyControl'
+                clientInstanceId:
+                  type: string
+      responses:
+        '200':
+          description: Rendered the requested subtrees successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - html
+                  - model
+                  - assets
+                properties:
+                  html:
+                    type: object
+                    description: Rendered subtree markup, keyed by component instance UUID.
+                    additionalProperties:
+                      type: string
+                  model:
+                    $ref: '#/components/schemas/Model'
+                  assets:
+                    type: object
+                    required:
+                      - css
+                      - js
+                      - importMap
+                      - libraries
+                    properties:
+                      css:
+                        type: array
+                        description: Rendered CSS tag markup for libraries the client did not already have.
+                        items:
+                          type: string
+                      js:
+                        type: array
+                        description: Rendered JS tag markup for libraries the client did not already have.
+                        items:
+                          type: string
+                      importMap:
+                        type: object
+                        description: The normalized import map required by the rendered subtrees; the client diffs it against the preview document's map.
+                      libraries:
+                        type: array
+                        description: The cumulative expanded library list, to echo back on the next render request.
+                        items:
+                          type: string
+                  token:
+                    type: [string, number, "null"]
+                    description: The echoed request token.
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
   /canvas/api/v0/log-error:
     description: TODO
     post:
@@ -3944,6 +4046,11 @@ components:
           description: Client instance ID for the layout preview
         entity_form_fields:
           type: object
+        frozen:
+          $ref: '#/components/schemas/FrozenTree'
+        render:
+          type: boolean
+          description: When false, the request only persists auto-save state and returns the auto-save hashes without rendering preview HTML (decoupled auto-save mode).
         translations:
           type: object
           description: Translation metadata for the entity.
@@ -3959,6 +4066,16 @@ components:
           type: boolean
         isPublished:
           type: boolean
+    FrozenTree:
+      title: Frozen tree declaration
+      type: string
+      enum:
+        - regions
+        - content
+      description: >
+        Declares the tree the client is NOT editing. The server skips
+        auto-save validation, overlay, writes, and rendering for the declared
+        tree. The client must never freeze a tree with unpersisted edits.
     AutoSaveConcurrencyControl:
       title: Auto Save Concurrency Control
       type: object
@@ -5316,6 +5433,8 @@ components:
               clientInstanceId:
                 type: string
                 description: Client instance ID for the layout preview
+              frozen:
+                $ref: '#/components/schemas/FrozenTree'
     NewContentRequest:
           content:
             application/json:

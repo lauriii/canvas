@@ -106,6 +106,22 @@ final class ImportMapResponseAttachmentsProcessor implements AttachmentsResponse
     return $this->htmlResponseAttachmentsProcessor->processAttachments($response);
   }
 
+  /**
+   * Normalizes raw `import_maps` attachments into import-map spec shape.
+   *
+   * @param array $import_maps
+   *   The value of an `#attached['import_maps']` entry (possibly merged
+   *   across render arrays, so paths may have been cast to arrays).
+   *
+   * @return array{imports?: array<string, string>, scopes?: array<string, array<string, string>>}
+   *   The normalized import map, with empty sections removed.
+   */
+  public static function normalizeImportMaps(array $import_maps): array {
+    $import_maps[self::GLOBAL_IMPORTS] = \array_map(self::flattenPaths(...), $import_maps[self::GLOBAL_IMPORTS] ?? []);
+    $import_maps[self::SCOPED_IMPORTS] = \array_map(static fn (array $entries): array => \array_map(self::flattenPaths(...), $entries), $import_maps[self::SCOPED_IMPORTS] ?? []);
+    return \array_filter($import_maps);
+  }
+
   public static function buildHtmlTagForAttachedImportMaps(AttachmentsInterface $something): ?array {
     $import_maps = $something->getAttachments()['import_maps'] ?? [];
 

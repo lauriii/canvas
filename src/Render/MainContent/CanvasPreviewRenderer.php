@@ -6,6 +6,7 @@ namespace Drupal\canvas\Render\MainContent;
 
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\canvas\Render\ServerTiming;
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\TitleResolverInterface;
@@ -56,6 +57,7 @@ final class CanvasPreviewRenderer extends HtmlRenderer {
     ThemeManagerInterface $theme_manager,
     #[Autowire(service: 'html_response.attachments_processor')]
     private readonly AttachmentsResponseProcessorInterface $attachmentsResponseProcessor,
+    private readonly ServerTiming $serverTiming,
   ) {
     parent::__construct($title_resolver, $display_variant_manager, $event_dispatcher, $module_handler, $renderer, $render_cache, $renderer_config, $theme_manager);
   }
@@ -69,9 +71,11 @@ final class CanvasPreviewRenderer extends HtmlRenderer {
    * @see \Drupal\Core\EventSubscriber\HtmlResponseSubscriber
    */
   public function renderResponse(array $main_content, Request $request, RouteMatchInterface $route_match, array $additionalData = []): JsonResponse {
-    $response = parent::renderResponse($main_content, $request, $route_match);
+    // Note: `content-render` includes the (separately reported) region render.
+    // @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
+    $response = $this->serverTiming->time('content-render', fn () => parent::renderResponse($main_content, $request, $route_match));
     \assert($response instanceof AttachmentsInterface);
-    $response = $this->attachmentsResponseProcessor->processAttachments($response);
+    $response = $this->serverTiming->time('attachments', fn () => $this->attachmentsResponseProcessor->processAttachments($response));
     \assert($response instanceof Response);
 
     // @todo Expose warnings and errors to the Canvas UI: https://www.drupal.org/project/canvas/issues/3489302#comment-15877293

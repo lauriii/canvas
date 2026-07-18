@@ -15,10 +15,21 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\canvas\Render\PreviewEnvelope;
+use Drupal\canvas\Render\ServerTiming;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Asset\AssetCollectionRendererInterface;
+use Drupal\Core\Asset\AssetResolverInterface;
+use Drupal\Core\Asset\AttachedAssets;
+use Drupal\Core\Asset\LibraryDependencyResolverInterface;
+use Drupal\Core\Block\MessagesBlockPluginInterface;
+use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
@@ -26,13 +37,16 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\Markup;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use GuzzleHttp\Psr7\Query;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -50,8 +64,30 @@ final class ApiLayoutController {
 
   use AutoSaveValidateTrait;
   use ClientServerConversionTrait;
+  use ComponentTreeItemListInstantiatorTrait;
   use EntityFormTrait;
   public const string AUTO_SAVED_QUERY_KEY = 'autoSaved';
+
+  /**
+   * Request attribute marking global regions as frozen for this render.
+   *
+   * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
+   */
+  public const string FROZEN_REGIONS_ATTRIBUTE = 'canvas_frozen_regions';
+
+  /**
+   * Valid values for the `frozen` preview request body key.
+   *
+   * The client declares, per request, which tree it is NOT editing: that
+   * tree's auto-save validation, overlay, writes, and rendering are skipped.
+   * The freeze is stateless: the client computes it from per-tree edit/persist
+   * version counters, and a tree with unpersisted edits is never frozen.
+   *
+   * @see docs/adr/0017-preview-partial-rendering-frozen-regions.md
+   */
+  public const string FROZEN_TREE_REGIONS = 'regions';
+  public const string FROZEN_TREE_CONTENT = 'content';
+
   private array $regions;
   private array $regionsClientSideIds;
 
@@ -66,6 +102,14 @@ final class ApiLayoutController {
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly LanguageManagerInterface $languageManager,
     private readonly AccountProxyInterface $currentUser,
+    private readonly ServerTiming $serverTiming,
+    private readonly RendererInterface $renderer,
+    private readonly AssetResolverInterface $assetResolver,
+    private readonly LibraryDependencyResolverInterface $libraryDependencyResolver,
+    #[Autowire(service: 'asset.css.collection_renderer')]
+    private readonly AssetCollectionRendererInterface $cssCollectionRenderer,
+    #[Autowire(service: 'asset.js.collection_renderer')]
+    private readonly AssetCollectionRendererInterface $jsCollectionRenderer,
   ) {
     $theme = $this->themeManager->getActiveTheme()->getName();
     $theme_regions = system_region_list($theme);
@@ -93,6 +137,7 @@ final class ApiLayoutController {
    */
   public function get(Request $request, (ContentEntityInterface&EntityPublishedInterface)|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
+    $this->serverTiming->recordBootstrap((float) $request->server->get('REQUEST_TIME_FLOAT'));
     $regions = self::shouldIncludeGlobalRegions($entity) ? PageRegion::loadForActiveTheme() : [];
 
     // @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3591732
@@ -110,9 +155,9 @@ final class ApiLayoutController {
       // re-saves all of them (symmetric component-tree columns must stay in
       // sync), so a sibling translation's draft must be present or it would be
       // clobbered.
-      $autoSaveData = $entity instanceof ContentEntityInterface
+      $autoSaveData = $this->serverTiming->time('auto-save-read', fn () => $entity instanceof ContentEntityInterface
         ? $this->autoSaveManager->getAutoSaveEntityForPreview($entity)
-        : $this->autoSaveManager->getAutoSaveEntity($entity);
+        : $this->autoSaveManager->getAutoSaveEntity($entity));
       if (!$autoSaveData->isEmpty()) {
         $entity = $autoSaveData->entity;
         \assert($entity instanceof ContentEntityInterface || $entity instanceof ContentTemplate);
@@ -121,6 +166,7 @@ final class ApiLayoutController {
 
     $model = [];
     // Build the content region.
+    $this->serverTiming->start('client-model');
     $tree = $this->componentTreeLoader->load($entity);
     $content_layout = $this->buildRegion(CanvasPageVariant::MAIN_CONTENT_REGION, $tree, $model, $preview_entity);
     $layout = [$content_layout];
@@ -139,6 +185,7 @@ final class ApiLayoutController {
         $layout_keyed_by_region
       ));
     }
+    $this->serverTiming->stop('client-model');
 
     $data = [
       // Maps to the `tree` property of the Canvas field type.
@@ -378,6 +425,7 @@ final class ApiLayoutController {
    */
   public function patch(Request $request, FieldableEntityInterface|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
+    $this->serverTiming->recordBootstrap((float) $request->server->get('REQUEST_TIME_FLOAT'));
     $body = \json_decode($request->getContent(), TRUE, flags: JSON_THROW_ON_ERROR);
     if (!\array_key_exists('componentInstanceUuid', $body)) {
       throw new BadRequestHttpException('Missing componentInstanceUuid');
@@ -401,6 +449,7 @@ final class ApiLayoutController {
       'autoSaves' => $autoSaves,
       'clientInstanceId' => $clientInstanceId,
     ] = $body;
+    $frozen = self::getFrozenTree($body, $entity);
 
     if (!str_contains($componentTypeAndVersion, '@')) {
       throw new NotFoundHttpException(\sprintf('Missing version for component %s', $componentTypeAndVersion));
@@ -424,19 +473,30 @@ final class ApiLayoutController {
     //   containing the component, determine if here we should only validate
     //   that entity in https://drupal.org/i/3532056 or implement concurrent
     //   editing in https://drupal.org/i/3492065.
-    $this->validateAutoSaves(
-      array_merge([$entity], self::getEditableRegions($entity)),
-      $autoSaves,
-      $clientInstanceId,
-    );
+    // When the client declares a frozen tree, that tree is exempt from
+    // validation: only the hot tree(s) are validated.
+    $this->serverTiming->time('auto-save-validate', fn () => $this->validateAutoSaves(
+      ...self::filterToHotTrees($frozen, $entity, $autoSaves),
+      clientId: $clientInstanceId,
+    ));
 
     // Determine which entity to PATCH.
+    $this->serverTiming->start('auto-save-read');
     $entity = $this->getAutoSavedVersionIfAvailable([$entity])[$entity->id()];
     \assert($entity instanceof FieldableEntityInterface || $entity instanceof ContentTemplate);
     $regions = self::shouldIncludeGlobalRegions($entity)
       ? $this->getAutoSavedVersionIfAvailable(PageRegion::loadForActiveTheme())
       : [];
+    $this->serverTiming->stop('auto-save-read');
     $entity_to_patch = $this->getEntityWithComponentInstance([$entity, ...$regions], $componentInstanceUuid);
+
+    // A frozen tree is exempt from validation above, so refuse to modify it:
+    // the client's freeze declaration and the targeted component disagree,
+    // which means the client must re-request with the correct declaration.
+    if (($frozen === self::FROZEN_TREE_REGIONS && $entity_to_patch instanceof PageRegion)
+      || ($frozen === self::FROZEN_TREE_CONTENT && !$entity_to_patch instanceof PageRegion)) {
+      throw new BadRequestHttpException(\sprintf('Cannot update component instance %s: it is part of the frozen %s tree.', $componentInstanceUuid, $frozen));
+    }
 
     // Route-level access checks already verified `edit` access to $entity. Only
     // perform an additional `edit` access check if $entity_to_patch is not
@@ -447,10 +507,11 @@ final class ApiLayoutController {
 
     // Update the entity & auto-save it. We might be updating a component
     // instance version aside of the model itself.
-    $this->updateComponentInstance($entity_to_patch, $componentInstanceUuid, $version, $model, $preview_entity);
-    $this->autoSaveManager->saveEntity($entity_to_patch, $clientInstanceId);
+    $this->serverTiming->time('conversion', fn () => $this->updateComponentInstance($entity_to_patch, $componentInstanceUuid, $version, $model, $preview_entity));
+    $this->serverTiming->time('auto-save-write', fn () => $this->autoSaveManager->saveEntity($entity_to_patch, $clientInstanceId));
 
     // Inform the UI of the updated reality.
+    $this->serverTiming->start('client-model');
     $data = $this->buildLayoutAndModel($entity, $regions, preview_entity: $preview_entity);
     \assert(['layout', 'model'] === \array_keys($data));
     if ($entity instanceof FieldableEntityInterface) {
@@ -460,8 +521,14 @@ final class ApiLayoutController {
       [$entity],
       self::getEditableRegions($entity),
     ));
+    $this->serverTiming->stop('client-model');
+    if ($frozen === self::FROZEN_TREE_REGIONS) {
+      $request->attributes->set(self::FROZEN_REGIONS_ATTRIBUTE, TRUE);
+    }
     return new PreviewEnvelope(
-      $this->buildPreviewRenderable($entity, $preview_entity),
+      $frozen === self::FROZEN_TREE_CONTENT
+        ? self::buildFrozenContentPlaceholder()
+        : $this->buildPreviewRenderable($entity, $preview_entity),
       additionalData: $data
     );
   }
@@ -469,10 +536,18 @@ final class ApiLayoutController {
   /**
    * Updates the auto-saved layout, model and entity form fields.
    *
+   * Two request body keys narrow the work performed:
+   * - `frozen` ("regions"|"content"): the declared tree is not validated,
+   *   overlaid, written, or rendered.
+   * - `render` (bool, default TRUE): when FALSE, the request only persists
+   *   auto-save state and returns the auto-save hashes without rendering any
+   *   preview HTML. This is the decoupled auto-save ("persist") mode.
+   *
    * @todo Remove this in https://drupal.org/i/3492065
    */
-  public function post(Request $request, FieldableEntityInterface|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
+  public function post(Request $request, FieldableEntityInterface|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope|JsonResponse {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
+    $this->serverTiming->recordBootstrap((float) $request->server->get('REQUEST_TIME_FLOAT'));
     $body = json_decode($request->getContent(), TRUE);
     if (!\array_key_exists('model', $body)) {
       throw new BadRequestHttpException('Missing model');
@@ -492,6 +567,11 @@ final class ApiLayoutController {
       'autoSaves' => $autoSaves,
       'clientInstanceId' => $clientInstanceId,
     ] = $body;
+    $frozen = self::getFrozenTree($body, $entity);
+    $render = $body['render'] ?? TRUE;
+    if (!\is_bool($render)) {
+      throw new BadRequestHttpException('The `render` key must be a boolean.');
+    }
 
     if ($entity instanceof FieldableEntityInterface) {
       if (!\array_key_exists('entity_form_fields', $body)) {
@@ -503,44 +583,58 @@ final class ApiLayoutController {
       $entity_form_fields = NULL;
     }
 
-    $this->validateAutoSaves(
-      array_merge([$entity], self::getEditableRegions($entity)),
-      $autoSaves,
-      $clientInstanceId,
-    );
+    // When the client declares a frozen tree, that tree is exempt from
+    // validation: only the hot tree(s) are validated.
+    $this->serverTiming->time('auto-save-validate', fn () => $this->validateAutoSaves(
+      ...self::filterToHotTrees($frozen, $entity, $autoSaves),
+      clientId: $clientInstanceId,
+    ));
 
-    // Route-level access checks already verified `edit` access to $entity. But
-    // any PageRegion entities present in the layout provided by the client
-    // still need their `edit` access checked.
-    $regions = PageRegion::loadForActiveThemeByClientSideId();
     $region_layouts = self::getRegionLayoutNodesKeyedByClientSideId($layout);
     \assert(\array_key_exists(CanvasPageVariant::MAIN_CONTENT_REGION, $region_layouts));
     // The main content region's component tree is for the edited entity.
     $main_content_layout = $region_layouts[CanvasPageVariant::MAIN_CONTENT_REGION];
     unset($region_layouts[CanvasPageVariant::MAIN_CONTENT_REGION]);
-    $missing_regions = array_diff_key($region_layouts, $regions);
-    if ($missing_regions) {
-      throw new NotFoundHttpException('Unknown regions: ' . implode(', ', \array_keys($missing_regions)));
+    if ($frozen === self::FROZEN_TREE_REGIONS) {
+      // Frozen regions: any region trees in the client payload are ignored,
+      // so no region is overlaid, access-checked, or written.
+      $region_layouts = [];
+      $regions = [];
     }
-    foreach (\array_keys($region_layouts) as $client_side_region_id) {
-      // Check access to regions if any component was added or removed.
-      if (!$regions[$client_side_region_id]->access('edit')) {
-        throw new AccessDeniedHttpException(\sprintf('Access denied for region %s', $client_side_region_id));
+    else {
+      // Route-level access checks already verified `edit` access to $entity.
+      // But any PageRegion entities present in the layout provided by the
+      // client still need their `edit` access checked.
+      $regions = PageRegion::loadForActiveThemeByClientSideId();
+      $missing_regions = array_diff_key($region_layouts, $regions);
+      if ($missing_regions) {
+        throw new NotFoundHttpException('Unknown regions: ' . implode(', ', \array_keys($missing_regions)));
+      }
+      foreach (\array_keys($region_layouts) as $client_side_region_id) {
+        // Check access to regions if any component was added or removed.
+        if (!$regions[$client_side_region_id]->access('edit')) {
+          throw new AccessDeniedHttpException(\sprintf('Access denied for region %s', $client_side_region_id));
+        }
       }
     }
 
     // We want to work with the auto-save entity from this point so that any
     // previously saved values from e.g. another user are respected.
+    $this->serverTiming->start('auto-save-read');
     $entity = $this->getAutoSavedVersionIfAvailable([$entity])[$entity->id()];
     $regions = $this->getAutoSavedVersionIfAvailable($regions);
+    $this->serverTiming->stop('auto-save-read');
 
-    // Update the entity & auto-save it. This can update both:
-    // - the component tree in the entity (using `layout` and `model`)
-    // - the fields in the entity, if any (using `entity_form_fields`)
-    $this->updateEntity($entity, $main_content_layout, $model, $entity_form_fields, $preview_entity);
-    $this->autoSaveManager->saveEntity($entity, $clientInstanceId);
+    if ($frozen !== self::FROZEN_TREE_CONTENT) {
+      // Update the entity & auto-save it. This can update both:
+      // - the component tree in the entity (using `layout` and `model`)
+      // - the fields in the entity, if any (using `entity_form_fields`)
+      $this->serverTiming->time('conversion', fn () => $this->updateEntity($entity, $main_content_layout, $model, $entity_form_fields, $preview_entity));
+      $this->serverTiming->time('auto-save-write', fn () => $this->autoSaveManager->saveEntity($entity, $clientInstanceId));
+    }
 
     // Update all PageRegions' component trees.
+    $this->serverTiming->start('auto-save-write');
     foreach ($region_layouts as $client_side_region_id => $region_layout) {
       $regions[$client_side_region_id] = $regions[$client_side_region_id]->forAutoSaveData([
         'layout' => $region_layout['components'],
@@ -548,23 +642,294 @@ final class ApiLayoutController {
       ], validate: FALSE);
       $this->autoSaveManager->saveEntity($regions[$client_side_region_id], $clientInstanceId);
     }
+    $this->serverTiming->stop('auto-save-write');
 
+    $data = [
+      'autoSaves' => $this->getAutoSaveHashes(array_merge(
+        [$entity],
+        self::getEditableRegions($entity),
+      )),
+    ];
+    if (!$render) {
+      // Persist-only mode: no preview HTML is rendered at all. The client
+      // paints through the partial render endpoint and optimistic DOM
+      // operations; this response only confirms (or 409-rejects) the write.
+      return new JsonResponse($data);
+    }
+    if ($frozen === self::FROZEN_TREE_REGIONS) {
+      $request->attributes->set(self::FROZEN_REGIONS_ATTRIBUTE, TRUE);
+    }
     return new PreviewEnvelope(
-      $this->buildPreviewRenderable($entity, $preview_entity),
-      additionalData: [
-        'autoSaves' => $this->getAutoSaveHashes(array_merge(
-          [$entity],
-          self::getEditableRegions($entity),
-        )),
-      ],
+      $frozen === self::FROZEN_TREE_CONTENT
+        ? self::buildFrozenContentPlaceholder()
+        : $this->buildPreviewRenderable($entity, $preview_entity),
+      additionalData: $data,
     );
   }
 
+  /**
+   * Renders a set of component instances as isolated subtrees.
+   *
+   * This endpoint is a pure function of draft state plus the optional client-
+   * supplied model overlay: it never writes auto-save entries, never
+   * invalidates cache tags, and never touches global region state. Requests
+   * are therefore safe to issue concurrently and to abort.
+   *
+   * Request body:
+   * - `uuids` (string[], required): component instance UUIDs to render. Each
+   *   is rendered as a subtree: a slot-bearing component includes its current
+   *   children.
+   * - `model` (object, optional): client-side model keyed by UUID, overlaid
+   *   on the draft state before rendering. Absent means "render the current
+   *   draft state" (the contract the realtime-collaboration op flow uses).
+   * - `libraries` (string[], optional): asset libraries the preview document
+   *   already has; the response contains only assets outside this set
+   *   (the ajaxPageState pattern).
+   * - `token` (string|int|null, optional): opaque value echoed back
+   *   unmodified; the client uses it for latest-wins ordering per component.
+   *
+   * Response body: `html` (markup keyed by UUID), `model` (evaluated client
+   * model for the rendered UUIDs), `assets` (`css`, `js`, `importMap`,
+   * `libraries`), and the echoed `token`.
+   *
+   * @see docs/adr/0017-preview-partial-rendering-frozen-regions.md
+   */
+  public function render(Request $request, FieldableEntityInterface $entity): JsonResponse {
+    $this->serverTiming->recordBootstrap((float) $request->server->get('REQUEST_TIME_FLOAT'));
+    $body = \json_decode($request->getContent(), TRUE, flags: JSON_THROW_ON_ERROR);
+    if (!\array_key_exists('uuids', $body) || !\is_array($body['uuids']) || $body['uuids'] === []) {
+      throw new BadRequestHttpException('Missing or empty uuids');
+    }
+    $uuids = $body['uuids'];
+    $client_model = $body['model'] ?? [];
+    $client_libraries = $body['libraries'] ?? [];
+    $token = $body['token'] ?? NULL;
+    if (!\is_array($client_model)) {
+      throw new BadRequestHttpException('The `model` key must be an object.');
+    }
+    // The first render request sends the preview document's own (compressed)
+    // ajaxPageState value; later requests echo the expanded list from the
+    // previous response.
+    if (\is_string($client_libraries)) {
+      $client_libraries = \array_filter(\explode(',', UrlHelper::uncompressQueryParameter($client_libraries)));
+    }
+    if (!\is_array($client_libraries)) {
+      throw new BadRequestHttpException('The `libraries` key must be an array or a compressed ajaxPageState string.');
+    }
+
+    // Read-only overlay of the draft state; nothing below may write to it.
+    $this->serverTiming->start('auto-save-read');
+    $entity = $this->getAutoSavedVersionIfAvailable([$entity])[$entity->id()];
+    \assert($entity instanceof FieldableEntityInterface);
+    $regions = self::shouldIncludeGlobalRegions($entity)
+      ? $this->getAutoSavedVersionIfAvailable(PageRegion::loadForActiveTheme())
+      : [];
+    $this->serverTiming->stop('auto-save-read');
+
+    $html = [];
+    $model = [];
+    $attached = [];
+    $this->serverTiming->start('render');
+    foreach ($uuids as $uuid) {
+      if (!\is_string($uuid)) {
+        throw new BadRequestHttpException('Each uuid must be a string.');
+      }
+      $source_entity = $this->getEntityWithComponentInstance([$entity, ...$regions], $uuid);
+      $subtree = $this->buildDanglingSubtree($source_entity, $uuid, $client_model);
+      $build = $this->renderSubtreeInFiber($subtree, $source_entity, (string) $entity->label());
+      $html[$uuid] = (string) $this->renderer->renderInIsolation($build);
+      $model += $subtree->getClientSideRepresentation()['model'];
+      $attached = NestedArray::mergeDeep($attached, $build['#attached'] ?? []);
+    }
+    $this->serverTiming->stop('render');
+
+    $this->serverTiming->start('attachments');
+    $assets = $this->buildAssetDelta($attached, $client_libraries);
+    $this->serverTiming->stop('attachments');
+
+    return new JsonResponse([
+      'html' => $html,
+      'model' => empty($model) ? new \stdClass() : $model,
+      'assets' => $assets,
+      'token' => $token,
+    ]);
+  }
+
+  /**
+   * Builds a dangling component tree containing one instance and its children.
+   *
+   * The dangling copy exists so that the shared (statically cached) auto-saved
+   * entity is never mutated: the client model overlay is applied to the copy.
+   */
+  private function buildDanglingSubtree(ComponentTreeEntityInterface|FieldableEntityInterface $source_entity, string $root_uuid, array $client_model): ComponentTreeItemList {
+    $tree = $this->componentTreeLoader->load($source_entity);
+    $subtree = $this->createDanglingComponentTreeItemList();
+
+    // Collect the root item plus all its slot descendants, breadth-first.
+    $collected = [$root_uuid];
+    $queue = [$root_uuid];
+    while ($queue) {
+      $parent_uuid = \array_shift($queue);
+      foreach ($tree->componentTreeItemsIterator(static fn (ComponentTreeItem $item): bool => $item->getParentUuid() === $parent_uuid) as $item) {
+        \assert($item instanceof ComponentTreeItem);
+        $collected[] = $item->getUuid();
+        $queue[] = $item->getUuid();
+      }
+    }
+    foreach ($collected as $uuid) {
+      $item = $tree->getComponentTreeItemByUuid($uuid);
+      \assert($item instanceof ComponentTreeItem);
+      $value = $item->getValue();
+      if ($uuid === $root_uuid) {
+        // The requested instance renders as the root of its own subtree.
+        unset($value['parent_uuid'], $value['slot']);
+      }
+      $subtree->appendItem($value);
+    }
+
+    // Overlay client-supplied inputs on the copy. Only inputs are overlaid:
+    // component version changes go through the full PATCH/POST flow.
+    foreach (\array_intersect($collected, \array_keys($client_model)) as $uuid) {
+      $item = $subtree->getComponentTreeItemByUuid($uuid);
+      \assert($item instanceof ComponentTreeItem);
+      $component = $item->getComponent()?->loadVersion($item->getComponentVersion());
+      \assert($component instanceof Component);
+      $item->setInput($component->getComponentSource()->clientModelToInput(
+        $uuid,
+        $component,
+        $client_model[$uuid],
+        NULL,
+      ));
+    }
+    return $subtree;
+  }
+
+  /**
+   * Renders a subtree inside a fiber so global-context blocks keep working.
+   *
+   * Mirrors the fiber handling in CanvasPageVariant::build(): title blocks
+   * receive the entity label (the render endpoint runs no page controller, so
+   * no routed page title exists).
+   *
+   * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
+   */
+  private function renderSubtreeInFiber(ComponentTreeItemList $subtree, ComponentTreeEntityInterface|FieldableEntityInterface $source_entity, string $title): array {
+    $fiber = new \Fiber(static fn (): array => $subtree->toRenderable($source_entity, isPreview: TRUE));
+    $suspended = $fiber->start();
+    while ($fiber->isSuspended()) {
+      $suspended = match (TRUE) {
+        $suspended instanceof TitleBlockPluginInterface => (static function () use ($suspended, $fiber, $title) {
+          $suspended->setTitle($title);
+          return $fiber->resume();
+        })(),
+        $suspended instanceof MessagesBlockPluginInterface => $fiber->resume(),
+        default => $fiber->resume(),
+      };
+    }
+    \assert($fiber->isTerminated());
+    $renderable = $fiber->getReturn();
+    return $renderable[ComponentTreeItemList::ROOT_UUID] ?? [];
+  }
+
+  /**
+   * Computes the asset payload not yet present in the preview document.
+   *
+   * @return array{css: list<string>, js: list<string>, importMap: array, libraries: list<string>}
+   *   Rendered CSS/JS tag markup for new assets, the subtree's normalized
+   *   import map (the client diffs it against the document's map), and the
+   *   cumulative expanded library list for the client to echo on the next
+   *   request.
+   */
+  private function buildAssetDelta(array $attached, array $client_libraries): array {
+    $assets = AttachedAssets::createFromRenderArray(['#attached' => $attached]);
+    $assets->setAlreadyLoadedLibraries($client_libraries);
+    $language = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_INTERFACE);
+    // Preview responses are uncached development-time responses: skip
+    // aggregation just like the preview document itself does not require it.
+    $css = $this->assetResolver->getCssAssets($assets, FALSE, $language);
+    [$js_header, $js_footer] = $this->assetResolver->getJsAssets($assets, FALSE, $language);
+    // Do not ship drupalSettings updates: the preview document keeps its
+    // load-time settings; components needing new settings fall back to a full
+    // render client-side.
+    unset($js_header['drupalSettings']);
+
+    $render_tags = function (AssetCollectionRendererInterface $collectionRenderer, array $collection): array {
+      if ($collection === []) {
+        return [];
+      }
+      $elements = $collectionRenderer->render($collection);
+      return \array_values(\array_map(fn (array $element): string => (string) $this->renderer->renderInIsolation($element), $elements));
+    };
+
+    $all_libraries = $this->libraryDependencyResolver->getLibrariesWithDependencies($assets->getLibraries());
+    $new_libraries = \array_diff($all_libraries, $this->libraryDependencyResolver->getLibrariesWithDependencies($client_libraries));
+
+    return [
+      'css' => $render_tags($this->cssCollectionRenderer, $css),
+      'js' => \array_merge($render_tags($this->jsCollectionRenderer, $js_header), $render_tags($this->jsCollectionRenderer, $js_footer)),
+      'importMap' => ImportMapResponseAttachmentsProcessor::normalizeImportMaps($attached['import_maps'] ?? []),
+      'libraries' => \array_values(\array_unique(\array_merge($client_libraries, $new_libraries))),
+    ];
+  }
+
+  /**
+   * Reads and validates the `frozen` key from a preview request body.
+   *
+   * @return string|null
+   *   One of the FROZEN_TREE_* constants, or NULL when nothing is frozen.
+   *   Always NULL for entities without global regions (nothing to freeze).
+   */
+  private static function getFrozenTree(array $body, ContentTemplate|FieldableEntityInterface $entity): ?string {
+    $frozen = $body['frozen'] ?? NULL;
+    if ($frozen === NULL || !self::shouldIncludeGlobalRegions($entity)) {
+      return NULL;
+    }
+    if (!\in_array($frozen, [self::FROZEN_TREE_REGIONS, self::FROZEN_TREE_CONTENT], TRUE)) {
+      throw new BadRequestHttpException('Invalid value for `frozen`: expected "regions" or "content".');
+    }
+    return $frozen;
+  }
+
+  /**
+   * Restricts auto-save validation to the trees the client is editing.
+   *
+   * @return array{0: array<\Drupal\Core\Entity\EntityInterface>, 1: array}
+   *   The entities to validate and the client-sent auto-save hashes filtered
+   *   to those entities, suitable for spreading into ::validateAutoSaves().
+   */
+  private static function filterToHotTrees(?string $frozen, ContentTemplate|FieldableEntityInterface $entity, array $autoSaves): array {
+    $entitiesToValidate = match ($frozen) {
+      self::FROZEN_TREE_REGIONS => [$entity],
+      self::FROZEN_TREE_CONTENT => self::getEditableRegions($entity),
+      default => array_merge([$entity], self::getEditableRegions($entity)),
+    };
+    if ($frozen !== NULL) {
+      $hotKeys = \array_map(AutoSaveManager::getAutoSaveKey(...), $entitiesToValidate);
+      $autoSaves = \array_intersect_key($autoSaves, \array_flip($hotKeys));
+    }
+    return [$entitiesToValidate, $autoSaves];
+  }
+
+  /**
+   * A stand-in for the content region when the content tree is frozen.
+   *
+   * Frozen responses are never applied as a full document by the client (the
+   * live preview DOM is the snapshot), so the content region only needs its
+   * markers to remain structurally valid.
+   */
+  private static function buildFrozenContentPlaceholder(): array {
+    return [
+      '#prefix' => Markup::create('<!-- canvas-region-start-content --><div class="canvas--region-empty-placeholder"></div>'),
+      '#suffix' => Markup::create('<!-- canvas-region-end-content -->'),
+      '#attached' => ['library' => ['canvas/preview']],
+    ];
+  }
+
   private function buildPreviewRenderable(ContentTemplate|FieldableEntityInterface $entity, ?FieldableEntityInterface $preview_entity = NULL): array {
-    $renderable = $entity instanceof ContentTemplate
+    $renderable = $this->serverTiming->time('hydration', fn (): array => $entity instanceof ContentTemplate
       // @phpstan-ignore-next-line
       ? $entity->build($preview_entity, isPreview: TRUE)
-      : $this->componentTreeLoader->load($entity)->toRenderable($entity, isPreview: TRUE);
+      : $this->componentTreeLoader->load($entity)->toRenderable($entity, isPreview: TRUE));
 
     $build = [];
     if (isset($renderable[ComponentTreeItemList::ROOT_UUID])) {
