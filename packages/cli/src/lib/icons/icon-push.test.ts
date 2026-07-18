@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
@@ -16,6 +17,9 @@ const STAR_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>';
 const HEART_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 21l-8-8a5 5 0 017-7l1 1 1-1a5 5 0 017 7z"/></svg>';
+
+const sha256 = (content: string): string =>
+  crypto.createHash('sha256').update(content).digest('hex');
 
 function remoteLibrary(overrides: Partial<IconLibrary> = {}): IconLibrary {
   return {
@@ -123,12 +127,20 @@ describe('icon-push', () => {
         { 'star.svg': STAR_SVG, 'heart.svg': HEART_SVG },
       );
 
-      const result = await pushIcons(api, tmpDir);
+      // Serial uploads keep the mock upload counter deterministic.
+      const result = await pushIcons(api, tmpDir, { concurrency: 1 });
 
       expect(result.created).toBe(1);
       expect(result.failed).toBe(0);
       expect(result.outcomes).toEqual([
-        { id: 'my_icons', operation: 'create', success: true, errors: [] },
+        {
+          id: 'my_icons',
+          operation: 'create',
+          success: true,
+          uploadedCount: 2,
+          skippedCount: 0,
+          errors: [],
+        },
       ]);
       expect(api.uploadIconAsset).toHaveBeenCalledTimes(2);
       expect(api.uploadIconAsset).toHaveBeenCalledWith(
@@ -165,10 +177,12 @@ describe('icon-push', () => {
           {
             name: 'heart.svg',
             uri: 'public://canvas/icons/upload-1.svg',
+            hash: sha256(HEART_SVG),
           },
           {
             name: 'star.svg',
             uri: 'public://canvas/icons/upload-2.svg',
+            hash: sha256(STAR_SVG),
           },
         ],
       });
@@ -197,7 +211,14 @@ describe('icon-push', () => {
 
       expect(result.updated).toBe(1);
       expect(result.outcomes).toEqual([
-        { id: 'my_icons', operation: 'update', success: true, errors: [] },
+        {
+          id: 'my_icons',
+          operation: 'update',
+          success: true,
+          uploadedCount: 1,
+          skippedCount: 0,
+          errors: [],
+        },
       ]);
       expect(api.createIconLibrary).not.toHaveBeenCalled();
       expect(api.updateIconLibrary).toHaveBeenCalledTimes(1);
@@ -206,12 +227,16 @@ describe('icon-push', () => {
         description: null,
         template: null,
         assets: [
-          { name: 'star.svg', uri: 'public://canvas/icons/upload-1.svg' },
+          {
+            name: 'star.svg',
+            uri: 'public://canvas/icons/upload-1.svg',
+            hash: sha256(STAR_SVG),
+          },
         ],
       });
     });
 
-    it('reports unchanged and skips the update when nothing differs', async () => {
+    it('reports unchanged and uploads nothing when nothing differs', async () => {
       await writeLibrary(
         'my_icons',
         { id: 'my_icons', label: 'My icons' },
@@ -224,6 +249,7 @@ describe('icon-push', () => {
               name: 'star.svg',
               uri: 'public://canvas/icons/upload-1.svg',
               url: '/sites/default/files/canvas/icons/upload-1.svg',
+              hash: sha256(STAR_SVG),
             },
           ],
         }),
@@ -233,11 +259,115 @@ describe('icon-push', () => {
 
       expect(result.unchanged).toBe(1);
       expect(result.outcomes).toEqual([
-        { id: 'my_icons', operation: 'unchanged', success: true, errors: [] },
+        {
+          id: 'my_icons',
+          operation: 'unchanged',
+          success: true,
+          uploadedCount: 0,
+          skippedCount: 1,
+          errors: [],
+        },
       ]);
-      expect(api.uploadIconAsset).toHaveBeenCalledTimes(1);
+      // Matching hashes mean no bytes leave the machine.
+      expect(api.uploadIconAsset).not.toHaveBeenCalled();
       expect(api.createIconLibrary).not.toHaveBeenCalled();
       expect(api.updateIconLibrary).not.toHaveBeenCalled();
+    });
+
+    it('uploads only changed files on an incremental push', async () => {
+      await writeLibrary(
+        'my_icons',
+        { id: 'my_icons', label: 'My icons' },
+        { 'star.svg': STAR_SVG, 'heart.svg': HEART_SVG },
+      );
+      vi.mocked(api.getIconLibraries).mockResolvedValue({
+        my_icons: remoteLibrary({
+          assets: [
+            {
+              name: 'star.svg',
+              uri: 'public://canvas/icons/star.svg',
+              url: '/sites/default/files/canvas/icons/star.svg',
+              hash: sha256(STAR_SVG),
+            },
+            {
+              name: 'heart.svg',
+              uri: 'public://canvas/icons/heart.svg',
+              url: '/sites/default/files/canvas/icons/heart.svg',
+              hash: sha256('<svg>old heart</svg>'),
+            },
+          ],
+        }),
+      });
+
+      const progress: Array<[string, number, number]> = [];
+      const result = await pushIcons(api, tmpDir, {
+        onProgress: (id, done, total) => progress.push([id, done, total]),
+      });
+
+      expect(result.outcomes).toEqual([
+        {
+          id: 'my_icons',
+          operation: 'update',
+          success: true,
+          uploadedCount: 1,
+          skippedCount: 1,
+          errors: [],
+        },
+      ]);
+      // Only the changed heart.svg is uploaded; star.svg reuses the remote
+      // entry.
+      expect(api.uploadIconAsset).toHaveBeenCalledTimes(1);
+      expect(api.uploadIconAsset).toHaveBeenCalledWith(
+        'my_icons',
+        'heart.svg',
+        expect.any(Buffer),
+      );
+      expect(api.updateIconLibrary).toHaveBeenCalledWith(
+        'my_icons',
+        expect.objectContaining({
+          assets: [
+            {
+              name: 'heart.svg',
+              uri: 'public://canvas/icons/upload-1.svg',
+              hash: sha256(HEART_SVG),
+            },
+            {
+              name: 'star.svg',
+              uri: 'public://canvas/icons/star.svg',
+              hash: sha256(STAR_SVG),
+            },
+          ],
+        }),
+      );
+      // Progress covers every file, uploaded or skipped.
+      expect(progress).toHaveLength(2);
+      expect(progress[progress.length - 1]).toEqual(['my_icons', 2, 2]);
+    });
+
+    it('reads SVG files from the manifest source directory', async () => {
+      const sourceDir = path.join(tmpDir, 'node_modules', 'some-icons');
+      await fs.mkdir(sourceDir, { recursive: true });
+      await fs.writeFile(path.join(sourceDir, 'star.svg'), STAR_SVG, 'utf-8');
+      const libraryDir = path.join(tmpDir, 'icons', 'some_icons');
+      await fs.mkdir(libraryDir, { recursive: true });
+      await fs.writeFile(
+        path.join(libraryDir, 'manifest.json'),
+        JSON.stringify({
+          id: 'some_icons',
+          label: 'Some icons',
+          source: 'node_modules/some-icons',
+        }),
+        'utf-8',
+      );
+
+      const result = await pushIcons(api, tmpDir);
+
+      expect(result.created).toBe(1);
+      expect(api.uploadIconAsset).toHaveBeenCalledWith(
+        'some_icons',
+        'star.svg',
+        expect.any(Buffer),
+      );
     });
 
     it('surfaces server sanitization errors with the file path and continues with other libraries', async () => {

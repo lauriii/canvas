@@ -1,6 +1,8 @@
+import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
 
+import { processInPool } from '../../utils/request-pool.js';
 import { ICONS_DIR, validateIconLibraryDir } from './icon-validate.js';
 
 import type { ApiService } from '../../services/api.js';
@@ -23,8 +25,19 @@ export interface IconLibraryPushOutcome {
   id: string;
   operation?: IconPushOperation;
   success: boolean;
+  /** Files actually uploaded (new or changed content). */
+  uploadedCount?: number;
+  /** Files skipped because the server already has identical content. */
+  skippedCount?: number;
   /** Per-file upload failures or the create/update error. */
   errors: string[];
+}
+
+export interface IconPushOptions {
+  /** Concurrent uploads per library. */
+  concurrency?: number;
+  /** Per-library upload progress: processed files out of the total. */
+  onProgress?: (libraryId: string, done: number, total: number) => void;
 }
 
 export interface IconLibraryPreparationFailure {
@@ -152,11 +165,16 @@ function iconLibraryUnchanged(
   }
   const remoteAssets = existing.assets ?? [];
   if (assets.length !== remoteAssets.length) return false;
-  const remoteUriByName = new Map(
-    remoteAssets.map((asset) => [asset.name, asset.uri]),
+  const remoteByName = new Map(
+    remoteAssets.map((asset) => [asset.name, asset]),
   );
   for (const asset of assets) {
-    if (remoteUriByName.get(asset.name) !== asset.uri) return false;
+    const remote = remoteByName.get(asset.name);
+    if (remote === undefined || remote.uri !== asset.uri) return false;
+    // A hash difference means changed content even at a stable URI. Entities
+    // saved before hashes existed have none; treat those as changed so the
+    // hash gets stored.
+    if ((remote.hash ?? null) !== (asset.hash ?? null)) return false;
   }
   return true;
 }
@@ -166,10 +184,12 @@ function iconLibraryUnchanged(
  *
  * The asset upload route resolves the icon_library entity, so a new library
  * must be created (with no assets yet) before its SVGs can be uploaded. The
- * order is therefore: create the entity if missing, upload each SVG, then
- * update the entity with the full assets list. A failed file fails the
- * library (no final update is sent); errors carry the file path and the
- * server's error strings.
+ * order is therefore: create the entity if missing, upload files, then update
+ * the entity with the full assets list. Files whose SHA-256 matches the
+ * remote asset entry are not re-uploaded, so incremental pushes only transfer
+ * what changed, and uploads run concurrently. A failed file fails the library
+ * (no final update is sent); errors carry the file path and the server's
+ * error strings.
  */
 export async function pushIconLibrary(
   api: Pick<
@@ -178,9 +198,11 @@ export async function pushIconLibrary(
   >,
   library: ValidatedIconLibrary,
   existing: IconLibrary | undefined,
+  options: IconPushOptions = {},
 ): Promise<IconLibraryPushOutcome> {
   const manifest = library.manifest;
   const isNew = !existing;
+  const concurrency = options.concurrency ?? 8;
 
   if (isNew) {
     try {
@@ -204,17 +226,73 @@ export async function pushIconLibrary(
     }
   }
 
-  const assets: IconLibraryAssetInput[] = [];
-  const errors: string[] = [];
+  const remoteByName = new Map(
+    (existing?.assets ?? []).map((asset) => [asset.name, asset]),
+  );
+  const total = library.svgFiles.length;
+  let done = 0;
+  const reportProgress = () => {
+    done++;
+    options.onProgress?.(library.id, done, total);
+  };
 
+  // Hash locally first so unchanged files never leave the machine.
+  const planned: Array<{
+    filename: string;
+    hash: string;
+    remoteUri?: string;
+  }> = [];
   for (const filename of library.svgFiles) {
-    try {
-      const buffer = await fs.readFile(path.join(library.dir, filename));
-      const uploaded = await api.uploadIconAsset(library.id, filename, buffer);
-      assets.push({ name: filename, uri: uploaded.uri });
-    } catch (error) {
+    const buffer = await fs.readFile(path.join(library.filesDir, filename));
+    const hash = crypto.createHash('sha256').update(buffer).digest('hex');
+    const remote = remoteByName.get(filename);
+    planned.push({
+      filename,
+      hash,
+      ...(remote?.hash === hash && { remoteUri: remote.uri }),
+    });
+  }
+
+  const assetByName = new Map<string, IconLibraryAssetInput>();
+  const errors: string[] = [];
+  const toUpload = planned.filter((entry) => entry.remoteUri === undefined);
+  for (const entry of planned) {
+    if (entry.remoteUri !== undefined) {
+      assetByName.set(entry.filename, {
+        name: entry.filename,
+        uri: entry.remoteUri,
+        hash: entry.hash,
+      });
+      reportProgress();
+    }
+  }
+
+  const uploadResults = await processInPool(
+    toUpload,
+    async (entry) => {
+      const buffer = await fs.readFile(
+        path.join(library.filesDir, entry.filename),
+      );
+      const uploaded = await api.uploadIconAsset(
+        library.id,
+        entry.filename,
+        buffer,
+      );
+      reportProgress();
+      return {
+        name: entry.filename,
+        uri: uploaded.uri,
+        hash: uploaded.hash ?? entry.hash,
+      };
+    },
+    concurrency,
+  );
+  for (const result of uploadResults) {
+    if (result.success && result.result) {
+      assetByName.set(result.result.name, result.result);
+    } else {
       errors.push(
-        `${path.join(ICONS_DIR, library.id, filename)}: ${formatErrorMessage(error)}`,
+        `${path.join(ICONS_DIR, library.id, toUpload[result.index].filename)}: ${formatErrorMessage(result.error)}`,
       );
     }
   }
@@ -223,12 +301,25 @@ export async function pushIconLibrary(
     return { id: library.id, success: false, errors };
   }
 
+  // Preserve the validated (sorted) file order in the assets list.
+  const assets = library.svgFiles.map((filename) => {
+    const asset = assetByName.get(filename);
+    if (asset === undefined) {
+      throw new Error(`Missing upload result for ${filename}`);
+    }
+    return asset;
+  });
+  const uploadedCount = toUpload.length;
+  const skippedCount = total - uploadedCount;
+
   try {
     if (!isNew && iconLibraryUnchanged(library, assets, existing)) {
       return {
         id: library.id,
         operation: 'unchanged',
         success: true,
+        uploadedCount,
+        skippedCount,
         errors: [],
       };
     }
@@ -243,6 +334,8 @@ export async function pushIconLibrary(
       id: library.id,
       operation: isNew ? 'create' : 'update',
       success: true,
+      uploadedCount,
+      skippedCount,
       errors: [],
     };
   } catch (error) {
@@ -263,6 +356,7 @@ export async function pushIconLibrary(
 export async function pushIcons(
   api: ApiService,
   projectRoot: string,
+  options: IconPushOptions = {},
 ): Promise<IconPushResult> {
   const { valid, failed } = await prepareIconLibrariesPush(projectRoot);
 
@@ -280,7 +374,12 @@ export async function pushIcons(
     for (const entry of valid) {
       outcomeByIndex.set(
         entry.index,
-        await pushIconLibrary(api, entry.result, remote[entry.result.id]),
+        await pushIconLibrary(
+          api,
+          entry.result,
+          remote[entry.result.id],
+          options,
+        ),
       );
     }
   }
@@ -318,10 +417,17 @@ export function collectIconLibraryResults(
     const outcome = result.result;
     const itemName = outcome?.id ?? discovered[result.index]?.id ?? 'unknown';
     if (result.success && outcome?.operation) {
+      const counts =
+        outcome.uploadedCount !== undefined &&
+        outcome.skippedCount !== undefined
+          ? ` (${outcome.uploadedCount} uploaded, ${outcome.skippedCount} unchanged)`
+          : '';
       results.push({
         itemName,
         success: true,
-        details: [{ content: OPERATION_RESULT_LABELS[outcome.operation] }],
+        details: [
+          { content: `${OPERATION_RESULT_LABELS[outcome.operation]}${counts}` },
+        ],
       });
     } else {
       const errors = outcome?.errors.length

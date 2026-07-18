@@ -26,7 +26,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
  * Each icon library is exposed to the core Icon API as an icon pack whose id
  * is the entity id, via hook_icon_pack_alter().
  *
- * @phpstan-type IconAssetEntry array{name: string, uri: string}
+ * @phpstan-type IconAssetEntry array{name: string, uri: string, hash?: string}
  *
  * @see \Drupal\canvas\Hook\IconPackHooks::iconPackAlter()
  */
@@ -127,7 +127,7 @@ final class IconLibrary extends ConfigEntityBase implements CanvasHttpApiEligibl
       static fn (array $entry): array => [
         'name' => (string) $entry['name'],
         'uri' => (string) $entry['uri'],
-      ],
+      ] + (isset($entry['hash']) ? ['hash' => (string) $entry['hash']] : []),
       \array_values($entries),
     );
   }

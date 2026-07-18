@@ -10,12 +10,14 @@ use Drupal\canvas\Icon\SvgSanitizer;
 use Drupal\Component\Plugin\Discovery\CachedDiscoveryInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Theme\Icon\IconCollector;
 use Drupal\Core\Theme\Icon\IconDefinition;
 use Drupal\Core\Theme\Icon\Plugin\IconPackManagerInterface;
+use Drupal\file\FileInterface;
 use Drupal\file\FileRepositoryInterface;
 use Drupal\file\Upload\ContentDispositionFilenameParser;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -52,6 +54,7 @@ final class ApiIconsController {
     private readonly FileRepositoryInterface $fileRepository,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly IconCollector $iconCollector,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   public function list(): CacheableJsonResponse {
@@ -140,6 +143,26 @@ final class ApiIconsController {
       throw new HttpException(500, 'Destination file path is not writable');
     }
 
+    // The content hash lets the CLI skip re-uploading unchanged files on
+    // incremental pushes; it is also stored on the library's asset entries.
+    $hash = \hash('sha256', $content);
+
+    // An identical file already at the destination needs no write and no
+    // cache invalidation; respond as if it was just uploaded.
+    $uri = $destination . $filename;
+    $existing_files = $this->entityTypeManager->getStorage('file')->loadByProperties(['uri' => $uri]);
+    $existing_file = \reset($existing_files);
+    if ($existing_file instanceof FileInterface && \is_string($existing_contents = @\file_get_contents($uri)) && \hash('sha256', $existing_contents) === $hash) {
+      $existing_uri = $existing_file->getFileUri();
+      \assert(\is_string($existing_uri));
+      return new JsonResponse(status: 201, data: [
+        'uri' => $existing_uri,
+        'fid' => (int) $existing_file->id(),
+        'url' => $this->fileUrlGenerator->generateString($existing_uri),
+        'hash' => $hash,
+      ]);
+    }
+
     // FileExists::Replace keeps the URI stable, making CLI re-pushes
     // idempotent. The written file is a permanent managed file; file usage is
     // tracked once the icon library's `assets` list references it.
@@ -159,6 +182,7 @@ final class ApiIconsController {
       'uri' => $file_uri,
       'fid' => (int) $file->id(),
       'url' => $this->fileUrlGenerator->generateString($file_uri),
+      'hash' => $hash,
     ]);
   }
 
