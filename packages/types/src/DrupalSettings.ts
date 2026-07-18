@@ -6,6 +6,9 @@ export type Language = {
   name: string;
   direction: 'ltr' | 'rtl';
   isDefault: boolean;
+  // The configured URL prefix for this language, empty when URL-path-prefix
+  // language negotiation does not apply to it.
+  urlPrefix?: string;
 };
 
 export interface HeadlessSettings {
@@ -74,6 +77,8 @@ export interface DrupalSettings {
     contentTranslationEnabled: boolean;
     configTranslationEnabled: boolean;
     languages: Language[];
+    // The boot entity's original language, null for non-content-entity boots.
+    entityDefaultLangcode?: string | null;
     dialogCss: string[];
     extensionsAvailable: boolean;
     pageExtensions: PageExtension[];

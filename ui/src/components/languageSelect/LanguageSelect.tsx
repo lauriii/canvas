@@ -9,6 +9,7 @@ import {
   GlobeIcon,
   Link2Icon,
   LinkBreak2Icon,
+  StarIcon,
   TrashIcon,
 } from '@radix-ui/react-icons';
 import {
@@ -37,7 +38,12 @@ import {
   useGetPageLayoutQuery,
   useUnforkPageTranslationMutation,
 } from '@/services/componentAndLayout';
-import { getCanvasPermissions, getLanguages } from '@/utils/drupal-globals';
+import { useSetDefaultLanguageMutation } from '@/services/content';
+import {
+  getBaseUrl,
+  getCanvasPermissions,
+  getLanguages,
+} from '@/utils/drupal-globals';
 import { getEntityTitle } from '@/utils/entityTitle';
 
 import styles from './LanguageSelect.module.css';
@@ -46,6 +52,10 @@ import styles from './LanguageSelect.module.css';
 // @see \Drupal\canvas\CanvasUriDefinitions
 const FORK_LINK_REL = 'https://drupal.org/project/canvas#link-rel-fork';
 const UNFORK_LINK_REL = 'https://drupal.org/project/canvas#link-rel-unfork';
+// Link relation for changing the entity's original (default) language.
+// @see \Drupal\canvas\CanvasUriDefinitions
+const SET_DEFAULT_LANGUAGE_LINK_REL =
+  'https://drupal.org/project/canvas#link-rel-set-default-language';
 
 interface DeleteTranslationDialogProps {
   languageId: string | null;
@@ -290,6 +300,93 @@ const UnforkTranslationDialog = ({
   );
 };
 
+interface SetDefaultLanguageDialogProps {
+  languageId: string | null;
+  languageName: string | undefined;
+  url: string | undefined;
+  onSuccess: () => void;
+  onClose: () => void;
+}
+
+const SetDefaultLanguageDialog = ({
+  languageId,
+  languageName,
+  url,
+  onSuccess,
+  onClose,
+}: SetDefaultLanguageDialogProps) => {
+  const [setDefaultLanguageError, setSetDefaultLanguageError] = useState<
+    string | null
+  >(null);
+  const [setDefaultLanguage, { isLoading: isSetDefaultLanguageLoading }] =
+    useSetDefaultLanguageMutation();
+
+  // Reset on every open and close, so a late failure from a dismissed dialog
+  // never leaks into the next one.
+  useEffect(() => {
+    setSetDefaultLanguageError(null);
+  }, [languageId]);
+
+  const handleConfirm = async () => {
+    if (!languageId) {
+      onClose();
+      return;
+    }
+    if (!url) {
+      // The layout refetched while the dialog was open and the link is gone
+      // (e.g. a translation in this language appeared in another session).
+      setSetDefaultLanguageError(
+        'The language state changed while this dialog was open. Close it and check the language menu again.',
+      );
+      return;
+    }
+    try {
+      await setDefaultLanguage({ url, langcode: languageId }).unwrap();
+      onSuccess();
+    } catch (error) {
+      console.error('Failed to set the default language:', error);
+      // Surface the server's message (e.g. the publish-or-discard 409) when
+      // available.
+      const serverMessage =
+        typeof error === 'object' &&
+        error !== null &&
+        'data' in error &&
+        typeof (error as { data?: { error?: unknown } }).data?.error ===
+          'string'
+          ? ((error as { data: { error: string } }).data.error as string)
+          : 'Failed to set the default language. Please try again.';
+      setSetDefaultLanguageError(serverMessage);
+    }
+  };
+
+  return (
+    <Dialog
+      open={!!languageId}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title="Set as default language"
+      description={`${languageName ?? 'This language'} will become the default language of this page, and the page's current content will belong to it. Other translations are kept. The editor will reload.`}
+      error={
+        setDefaultLanguageError
+          ? {
+              title: 'Failed to set the default language',
+              message: setDefaultLanguageError,
+            }
+          : undefined
+      }
+      footer={{
+        cancelText: 'Cancel',
+        confirmText: 'Set as default language',
+        onConfirm: handleConfirm,
+        onCancel: onClose,
+        isConfirmLoading: isSetDefaultLanguageLoading,
+        isConfirmDisabled: isSetDefaultLanguageLoading,
+      }}
+    />
+  );
+};
+
 const LanguageSelect = () => {
   const languages = getLanguages();
   const permissions = getCanvasPermissions();
@@ -298,6 +395,9 @@ const LanguageSelect = () => {
   const [deleteLanguageId, setDeleteLanguageId] = useState<string | null>(null);
   const [forkLanguageId, setForkLanguageId] = useState<string | null>(null);
   const [unforkLanguageId, setUnforkLanguageId] = useState<string | null>(null);
+  const [setDefaultLanguageId, setSetDefaultLanguageId] = useState<
+    string | null
+  >(null);
   // Languages whose translation was deleted in-session. Used to hide their
   // check mark and options trigger until the layout refetch lands; reset
   // below whenever fresh translations metadata arrives.
@@ -352,8 +452,14 @@ const LanguageSelect = () => {
   // Derive the active language directly from the URL.
   const activeLanguageId = searchParams.get('language') ?? '';
   const defaultLanguage = languages.find((lang) => lang.isDefault);
+  // The entity's original language drives the "(Default)" marker and the
+  // editor-vs-preview routing: it is the editable language, which for a page
+  // whose original language is not the site default differs from the
+  // site-level `isDefault` flag.
+  const entityDefaultLanguageId =
+    translations?.defaultLangcode || defaultLanguage?.id;
   const currentLanguage =
-    activeLanguageId || defaultLanguage?.id || languages[0]?.id || '';
+    activeLanguageId || entityDefaultLanguageId || languages[0]?.id || '';
 
   const handleLanguageChange = (languageId: string) => {
     setDropdownOpen(false);
@@ -363,7 +469,7 @@ const LanguageSelect = () => {
       return;
     }
 
-    if (selectedLang.isDefault) {
+    if (languageId === entityDefaultLanguageId) {
       if (isTemplateRoute) {
         navigate(
           `/template/${entityType}/${bundle}/${viewMode}/${entityId || previewEntityId}`,
@@ -410,6 +516,17 @@ const LanguageSelect = () => {
     setOpenPopoverId(null);
   };
 
+  const handleSetDefaultLanguage = (languageId: string) => {
+    setSetDefaultLanguageId(languageId);
+    setOpenPopoverId(null);
+  };
+
+  // A successful language change invalidates most loaded state (editable
+  // language, links, auto-save keys), so fully reload into the editor.
+  const handleSetDefaultLanguageSuccess = () => {
+    window.location.href = `${getBaseUrl()}canvas/editor/${entityType}/${entityId ?? previewEntityId}`;
+  };
+
   // A language whose translation owns a forked layout.
   const isForked = (languageId: string) =>
     Boolean(translations?.forked?.includes(languageId));
@@ -441,7 +558,13 @@ const LanguageSelect = () => {
         open={dropdownOpen}
         onOpenChange={(open) => {
           // Keep the dropdown open while a confirmation dialog is showing.
-          if (!open && (deleteLanguageId || forkLanguageId || unforkLanguageId))
+          if (
+            !open &&
+            (deleteLanguageId ||
+              forkLanguageId ||
+              unforkLanguageId ||
+              setDefaultLanguageId)
+          )
             return;
           setDropdownOpen(open);
         }}
@@ -479,7 +602,7 @@ const LanguageSelect = () => {
                     }
                   >
                     {language.name}
-                    {language.isDefault && ' (Default)'}
+                    {language.id === entityDefaultLanguageId && ' (Default)'}
                   </Text>
                   {isForked(language.id) && (
                     <Badge
@@ -557,6 +680,20 @@ const LanguageSelect = () => {
                                 ? 'Edit translation'
                                 : 'Add translation'}
                             </Text>
+                          </button>
+                        )}
+                        {translations?.links?.[language.id]?.[
+                          SET_DEFAULT_LANGUAGE_LINK_REL
+                        ] && (
+                          <button
+                            className={styles.popoverItem}
+                            data-testid="language-options-set-default-language"
+                            onClick={() =>
+                              handleSetDefaultLanguage(language.id)
+                            }
+                          >
+                            <StarIcon width="14" height="14" />
+                            <Text size="2">Set as default language</Text>
                           </button>
                         )}
                         {translations?.links?.[language.id]?.[
@@ -659,6 +796,21 @@ const LanguageSelect = () => {
             : undefined
         }
         onClose={() => setUnforkLanguageId(null)}
+      />
+      <SetDefaultLanguageDialog
+        languageId={setDefaultLanguageId}
+        languageName={
+          languages.find((lang) => lang.id === setDefaultLanguageId)?.name
+        }
+        url={
+          setDefaultLanguageId
+            ? translations?.links?.[setDefaultLanguageId]?.[
+                SET_DEFAULT_LANGUAGE_LINK_REL
+              ]
+            : undefined
+        }
+        onSuccess={handleSetDefaultLanguageSuccess}
+        onClose={() => setSetDefaultLanguageId(null)}
       />
     </>
   );
