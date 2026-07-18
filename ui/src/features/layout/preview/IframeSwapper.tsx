@@ -11,6 +11,7 @@ import clsx from 'clsx';
 import { useAppSelector } from '@/app/hooks';
 import { COMPONENT_PREVIEW_UPDATE_EVENT } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
 import { selectDragging } from '@/features/ui/uiSlice';
+import { previewPerfMark } from '@/utils/previewPerf';
 
 import type { Dispatch, Ref, SetStateAction } from 'react';
 import type { ComponentPreviewUpdateEvent } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
@@ -130,6 +131,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     useEffect(() => {
       whichActiveRef.current = whichActive;
       setIsReloading(false);
+      previewPerfMark('swap-visible');
     }, [getIFrames, setIsReloading, whichActive]);
 
     // Run when the srcDocument changes
@@ -160,6 +162,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
         // This means that when the swap occurs, both iframes are display: block; and we are just swapping the opacity from 0/1
         inactiveIFrame.style.display = 'block';
         inactiveIFrame.addEventListener('load', swapIFrames);
+        previewPerfMark('srcdoc-write');
         inactiveIFrame.srcdoc = srcDocument;
       }
 

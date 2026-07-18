@@ -20,7 +20,7 @@ import {
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import {
   useGetSnapshotPreviewQuery,
-  useQueuedPostPreviewMutation,
+  useOrderedPostPreviewMutation,
 } from '@/services/preview';
 import { getCanvasHeadlessSettings } from '@/utils/drupal-globals';
 import { getViewportSizes } from '@/utils/viewports';
@@ -78,7 +78,7 @@ const PagePreview = () => {
   const model = useAppSelector(selectModel);
   const entity_form_fields = useAppSelector(selectPageData);
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
-  const [postPreview] = useQueuedPostPreviewMutation();
+  const [postPreview] = useOrderedPostPreviewMutation();
   const { entityId, entityType, bundle, viewMode, width } = useParams();
   const [searchParams] = useSearchParams();
   const { showBoundary } = useErrorBoundary();

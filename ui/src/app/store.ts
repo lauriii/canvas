@@ -15,6 +15,7 @@ import {
   setInitialLayoutModel,
   setUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
+import { previewDomUpdaterMiddleware } from '@/features/layout/preview/previewDomUpdater';
 import { notificationsSlice } from '@/features/notifications/notificationsSlice';
 import {
   pageDataReducer,
@@ -251,6 +252,9 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         pendingChangesApi.middleware,
         contentApi.middleware,
         contentEntityReferenceApi.middleware,
+        // Optimistic structural preview updates + decoupled auto-save
+        // scheduling.
+        previewDomUpdaterMiddleware,
         rtkQueryErrorHandler, // Add the error handling middleware
       );
     },

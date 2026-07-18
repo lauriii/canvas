@@ -5,7 +5,17 @@ import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice
 import {
   setLayoutModel,
   setTranslations,
+  setUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
+import { flushPersist } from '@/features/layout/preview/autoSavePersister';
+import {
+  findTreeForUuid,
+  isStructureDirty,
+  isTreeDirty,
+  markPersisted,
+  snapshotEditVersions,
+} from '@/features/layout/preview/previewTreeState';
+import { applySubtreeFromFullPageHtml } from '@/features/layout/preview/subtreeApply';
 import { setHtml, setSnapshotHTML } from '@/features/pagePreview/previewSlice';
 import {
   baseQueryWithAutoSaves,
@@ -13,7 +23,10 @@ import {
   pushCanvasLayoutRequest,
 } from '@/services/baseQuery';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
+import { enqueueLayoutWrite } from '@/services/previewWriteChain';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
+import { getPreviewPerformanceFlags } from '@/utils/previewCadence';
+import { previewPerfMark } from '@/utils/previewPerf';
 
 import type { RootState } from '@/app/store';
 import type {
@@ -40,6 +53,37 @@ export type UpdateComponentQueryArg = {
   componentInstanceUuid: string;
   componentType: string;
   model: Omit<ComponentModel, 'name'> | Omit<EvaluatedComponentModel, 'name'>;
+  /** The tree this PATCH does not touch; set by usePatchComponent. */
+  frozen?: 'regions' | 'content';
+};
+
+export type RenderComponentsQueryArg = {
+  uuids: string[];
+  model?: Record<string, unknown>;
+  libraries?: string[] | string;
+  token?: number | string;
+};
+
+export type RenderComponentsResultType = {
+  html: Record<string, string>;
+  model: Record<string, any>;
+  assets: {
+    css: string[];
+    js: string[];
+    importMap: {
+      imports?: Record<string, string>;
+      scopes?: Record<string, Record<string, string>>;
+    };
+    libraries: string[];
+  };
+  token: number | string | null;
+};
+
+export type PersistLayoutQueryArg = {
+  layout: any;
+  model: any;
+  entity_form_fields: any;
+  frozen?: 'regions' | 'content';
 };
 
 export const previewApi = createApi({
@@ -63,9 +107,14 @@ export const previewApi = createApi({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         pushCanvasLayoutRequest();
+        previewPerfMark('full-render-request-start');
+        // Edits made while this request is in flight are not in its payload:
+        // snapshot what this request actually persists.
+        const persistSnapshot = snapshotEditVersions();
         try {
           const { data, meta } = await queryFulfilled;
           const { html, autoSaves } = data;
+          previewPerfMark('full-render-request-end');
           dispatch(
             pendingChangesApi.util.invalidateTags([
               { type: 'PendingChanges', id: 'LIST' },
@@ -73,6 +122,15 @@ export const previewApi = createApi({
           );
           dispatch(setHtml(html));
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+          // A successful full-document POST persisted everything it carried
+          // and repainted the whole preview: the render request cycle is
+          // complete until something requests a new one. Without decoupled
+          // auto-save the legacy engine (updatePreview stays true, every
+          // change re-POSTs) remains in charge.
+          if (getPreviewPerformanceFlags().decoupledAutoSave) {
+            markPersisted(persistSnapshot);
+            dispatch(setUpdatePreview(false));
+          }
           previewSuccessCount++;
           dispatch(setPostPreviewCompleted(true));
         } catch (error) {
@@ -171,15 +229,74 @@ export const previewApi = createApi({
             { type: 'PendingChanges', id: 'LIST' },
           ]),
         );
-        // Clear any stale snapshot (e.g. from a prior language/template preview)
-        // so selectPreviewHtml returns this fresh editor html instead of the
-        // preview snapshot, which selectPreviewHtml prefers while set.
-        dispatch(setSnapshotHTML(''));
-        dispatch(setHtml(html));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+        // Apply the response as an in-place swap of just the edited
+        // component's subtree: no srcdoc reload, no double-buffer swap, no
+        // document-wide re-hydration wait.
+        const applied =
+          getPreviewPerformanceFlags().subtreePatching &&
+          applySubtreeFromFullPageHtml(body.componentInstanceUuid, html);
+        if (!applied) {
+          if (body.frozen) {
+            // A frozen response must never be applied as a full document
+            // (its frozen tree is empty); request one full unfrozen
+            // re-render to resynchronize instead.
+            dispatch(setUpdatePreview(true));
+          } else {
+            // Clear any stale snapshot (e.g. from a prior language/template
+            // preview) so selectPreviewHtml returns this fresh editor html
+            // instead of the preview snapshot, which selectPreviewHtml
+            // prefers while set.
+            dispatch(setSnapshotHTML(''));
+            dispatch(setHtml(html));
+          }
+        }
         // Pass update preview false to prevent a subsequent preview update,
         // we have the data here.
         dispatch(setLayoutModel({ layout, model, updatePreview: false }));
+      },
+    }),
+    // Stateless partial render: renders only the requested component
+    // instances as subtrees from draft state plus the given model overlay.
+    // Pure function server-side, so requests are concurrent and abortable;
+    // orchestration (latest-wins, asset injection, DOM apply) lives in
+    // features/layout/preview/partialRender.ts.
+    renderComponents: builder.mutation<
+      RenderComponentsResultType,
+      RenderComponentsQueryArg
+    >({
+      query: (body) => ({
+        url: 'canvas/api/v0/layout/{entity_type}/{entity_id}/render',
+        method: 'POST',
+        body,
+      }),
+    }),
+    // Persist-only auto-save: same document payload as postPreview, but the
+    // server skips all rendering (`render: false`). Debounced and flushed by
+    // features/layout/preview/autoSavePersister.ts.
+    persistLayout: builder.mutation<
+      { autoSaves: AutoSavesHash },
+      PersistLayoutQueryArg
+    >({
+      query: (body) => ({
+        url: 'canvas/api/v0/layout/{entity_type}/{entity_id}',
+        method: 'POST',
+        body: { ...body, render: false },
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        pushCanvasLayoutRequest();
+        try {
+          const { data, meta } = await queryFulfilled;
+          dispatch(
+            pendingChangesApi.util.invalidateTags([
+              { type: 'PendingChanges', id: 'LIST' },
+            ]),
+          );
+          handleAutoSavesHashUpdate(dispatch, data.autoSaves, meta);
+          dispatch(setPostPreviewCompleted(true));
+        } finally {
+          popCanvasLayoutRequest();
+        }
       },
     }),
   }),
@@ -189,6 +306,7 @@ export const {
   usePostPreviewMutation,
   useGetSnapshotPreviewQuery,
   useUpdateComponentMutation,
+  usePersistLayoutMutation,
 } = previewApi;
 
 let lastBody = {};
@@ -215,12 +333,30 @@ export const usePatchComponent = () => {
       editorFrameContext,
     } = inputUIData;
 
-    const arg = {
+    const flags = getPreviewPerformanceFlags();
+    const arg: UpdateComponentQueryArg = {
       type: editorFrameContext,
       componentInstanceUuid: selectedComponent,
       componentType: `${selectedComponentType}@${version}`,
       model,
     };
+    // Declare the tree this PATCH does not touch as frozen, but only when it
+    // has no unpersisted edits, and only when the response will be applied as
+    // a subtree swap: a frozen response must never become the full document.
+    if (
+      flags.subtreePatching &&
+      flags.frozenTrees &&
+      editorFrameContext === 'entity'
+    ) {
+      const targetTree = findTreeForUuid(
+        inputUIData.layout as any,
+        selectedComponent,
+      );
+      const otherTree = targetTree === 'content' ? 'regions' : 'content';
+      if (!isTreeDirty(otherTree)) {
+        arg.frozen = otherTree;
+      }
+    }
 
     // Prevent duplicate requests
     const stringBody = JSON.stringify(arg);
@@ -229,7 +365,15 @@ export const usePatchComponent = () => {
       return Promise.resolve({ data: undefined }) as any;
     }
     lastBody = stringBody;
-    return updateComponent(arg);
+    // Auto-save writes stay ordered on the shared chain: a PATCH must not
+    // overtake a pending persist for an earlier structural change, or the
+    // server would resolve the component against a stale draft structure
+    // (e.g. a prop edit on a not-yet-persisted duplicate). Flushing enqueues
+    // the persist ahead of this PATCH.
+    if (isStructureDirty()) {
+      void flushPersist();
+    }
+    return enqueueLayoutWrite(() => updateComponent(arg));
   };
 };
 
@@ -309,61 +453,29 @@ type PostPreviewArg = {
   entityType: string;
 };
 
-// Module-level queue state for postPreview requests.
-// Prevents parallel requests to the endpoint - only the most recent
-// queued request executes when the active one completes.
-let activePreviewRequest: Promise<PostPreviewResult> | null = null;
-let pendingPreviewArg: PostPreviewArg | null = null;
-
 // Incremented each time a postPreview request completes successfully.
 // Used to detect whether an error has been superseded by a later success.
 let previewSuccessCount = 0;
 
 /**
- * Queued version of usePostPreviewMutation that prevents parallel requests.
+ * usePostPreviewMutation with all auto-save writes kept in dispatch order.
  *
- * When a request is in flight, subsequent calls are queued. Only the most
- * recent queued request executes when the active one completes - earlier
- * queued requests never resolve (their data would be stale since preview
- * values are cumulative).
- *
- * This prevents entity lock contention on the backend.
+ * Full-document POSTs share one client-side write chain with persists and
+ * PATCHes (see previewWriteChain.ts). Unlike the previous single-flight
+ * queue, superseded callers' promises still settle with their own result.
  */
-export function useQueuedPostPreviewMutation(
+export function useOrderedPostPreviewMutation(
   options?: Parameters<typeof usePostPreviewMutation>[0],
 ): [
   (arg: PostPreviewArg) => Promise<PostPreviewResult>,
   ReturnType<typeof usePostPreviewMutation>[1],
 ] {
   const [postPreview, mutationState] = usePostPreviewMutation(options);
-
-  const queuedPostPreview = async (
+  const orderedPostPreview = (
     arg: PostPreviewArg,
-  ): Promise<PostPreviewResult> => {
-    if (activePreviewRequest) {
-      pendingPreviewArg = arg;
-      await activePreviewRequest.catch(() => {});
-      if (pendingPreviewArg !== arg) {
-        // Superseded by a newer request - never resolve
-        return new Promise(() => {});
-      }
-      pendingPreviewArg = null;
-    }
-
-    activePreviewRequest = postPreview(arg).unwrap();
-    try {
-      return await activePreviewRequest;
-    } finally {
-      activePreviewRequest = null;
-      if (pendingPreviewArg) {
-        const nextArg = pendingPreviewArg;
-        pendingPreviewArg = null;
-        queuedPostPreview(nextArg);
-      }
-    }
-  };
-
-  return [queuedPostPreview, mutationState];
+  ): Promise<PostPreviewResult> =>
+    enqueueLayoutWrite(() => postPreview(arg).unwrap());
+  return [orderedPostPreview, mutationState];
 }
 
 // A selector that can be called from anywhere in the code base to

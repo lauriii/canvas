@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
+// eslint-disable-next-line @typescript-eslint/no-restricted-imports
+import { useStore } from 'react-redux';
 import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -8,6 +10,7 @@ import {
   selectModel,
   selectUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
+import { initAutoSavePersister } from '@/features/layout/preview/autoSavePersister';
 import ComponentHtmlMapProvider from '@/features/layout/preview/DataToHtmlMapContext';
 import HeadlessPreview from '@/features/layout/preview/HeadlessPreview';
 import { useHeadlessPreviewSettings } from '@/features/layout/preview/useHeadlessPreviewSettings';
@@ -28,9 +31,10 @@ import useSyncTitle from '@/hooks/useSyncTitle';
 import { usePostTemplateLayoutMutation } from '@/services/componentAndLayout';
 import {
   selectUpdateComponentLoadingState,
-  useQueuedPostPreviewMutation,
+  useOrderedPostPreviewMutation,
 } from '@/services/preview';
 import { isAjaxing } from '@/utils/isAjaxing';
+import { getPreviewPerformanceFlags } from '@/utils/previewCadence';
 
 import type React from 'react';
 
@@ -57,11 +61,10 @@ const Preview: React.FC = () => {
   );
 
   // --- API Mutations ---
-  const [postPreview, { isLoading: isFetching }] = useQueuedPostPreviewMutation(
-    {
+  const [postPreview, { isLoading: isFetching }] =
+    useOrderedPostPreviewMutation({
       fixedCacheKey: 'editorFramePreview',
-    },
-  );
+    });
 
   const [postTemplatePreview, { isLoading: isTemplateFetching }] =
     usePostTemplateLayoutMutation({
@@ -168,6 +171,16 @@ const Preview: React.FC = () => {
       }
     };
   }, []);
+
+  // Decoupled auto-save: persist on exit events (blur, pagehide, tab-hide)
+  // so half-finished work survives even though persistence is debounced.
+  const store = useStore();
+  useEffect(() => {
+    if (!getPreviewPerformanceFlags().decoupledAutoSave) {
+      return;
+    }
+    return initAutoSavePersister(store as any);
+  }, [store]);
 
   // When the canvas_headless module embeds a frontend app, the app owns
   // the rendering: the srcdoc preview pipeline is bypassed, while the

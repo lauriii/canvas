@@ -2,6 +2,7 @@ import qs from 'qs';
 
 import { isPropSourceComponent } from '@/types/Component';
 import { getDrupal } from '@/utils/drupal-globals';
+import { PREVIEW_CADENCE } from '@/utils/previewCadence';
 import transforms from '@/utils/transforms';
 
 import type { PropsValues } from '@drupal-canvas/types';
@@ -14,7 +15,9 @@ import type { FieldDataItem, PropSourceComponent } from '@/types/Component';
 import type { InputUIData } from '@/types/Form';
 import type { TransformConfig, Transforms } from '@/utils/transforms';
 
-export const DEBOUNCE_TIMEOUT = 400;
+// With rendering decoupled from persistence, the input debounce only paces
+// render requests (superseded ones are aborted), so it can be short.
+export const DEBOUNCE_TIMEOUT = PREVIEW_CADENCE.INPUT_DEBOUNCE;
 
 /**
  * Takes a prop form element's `name` attribute and returns the prop name.

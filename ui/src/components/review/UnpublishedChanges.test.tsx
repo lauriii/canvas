@@ -147,7 +147,7 @@ vi.mock('@/services/pendingChangesApi', () => ({
 }));
 
 vi.mock('@/services/preview', () => ({
-  useQueuedPostPreviewMutation: () => [vi.fn(), { isLoading: false }],
+  useOrderedPostPreviewMutation: () => [vi.fn(), { isLoading: false }],
   useUpdateComponentMutation: () => [vi.fn(), { isLoading: false }],
 }));
 
