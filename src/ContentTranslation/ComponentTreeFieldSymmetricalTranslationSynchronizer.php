@@ -27,17 +27,161 @@ use Drupal\Core\Field\FieldDefinitionInterface;
  */
 final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements FieldTranslationSynchronizerInterface {
 
+  /**
+   * Base field marking a translation's component trees as forked.
+   *
+   * A forked translation owns an independent component tree: it is excluded
+   * from symmetric synchronization in both directions. The field is added to
+   * all translatable content entity types when both content_translation and
+   * canvas_dev_translation are installed.
+   *
+   * @see \Drupal\canvas\Hook\ContentTranslationHooks::entityBaseFieldInfo()
+   */
+  public const string FORK_FIELD_NAME = 'canvas_component_tree_fork';
+
   public function __construct(
     private readonly FieldTranslationSynchronizerInterface $decorated,
   ) {}
 
   /**
+   * Returns TRUE if this translation's component trees are forked.
+   *
+   * The default translation is never forked (its tree is the reference the
+   * symmetric siblings synchronize with), and entities without the fork base
+   * field (fork support not enabled) are never forked.
+   */
+  public static function isForkedTranslation(ContentEntityInterface $translation): bool {
+    if ($translation->isDefaultTranslation()) {
+      return FALSE;
+    }
+    if (!$translation->hasField(self::FORK_FIELD_NAME)) {
+      return FALSE;
+    }
+    return (bool) $translation->get(self::FORK_FIELD_NAME)->value;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function synchronizeFields(ContentEntityInterface $entity, $sync_langcode, $original_langcode = NULL): void {
-    $net_new = $this->getDefaultTranslationNewComponentInstanceUuids($entity);
+    \assert(\is_string($sync_langcode));
+    // Forked translations are excluded from synchronization in both
+    // directions: snapshot their component tree values before core's
+    // synchronizer runs and restore them afterwards, rather than
+    // re-implementing core's merge semantics. When the translation being
+    // saved is itself forked, protect every translation: nothing the fork
+    // changed may propagate outward.
+    // @see https://git.drupalcode.org/project/canvas/-/work_items/3571130
+    $snapshot = $this->snapshotProtectedComponentTreeValues($entity, $sync_langcode);
+    $saved_translation_is_forked = $entity->hasTranslation($sync_langcode)
+      && self::isForkedTranslation($entity->getTranslation($sync_langcode));
+    $net_new = $saved_translation_is_forked ? [] : $this->getDefaultTranslationNewComponentInstanceUuids($entity);
     $this->decorated->synchronizeFields($entity, $sync_langcode, $original_langcode);
-    $this->synchronizeComponentInstanceInputs($entity, $net_new);
+    $this->restoreComponentTreeValues($entity, $snapshot);
+    if (!$saved_translation_is_forked) {
+      $this->synchronizeComponentInstanceInputs($entity, $net_new);
+    }
+  }
+
+  /**
+   * Snapshots component tree values that synchronization must not modify.
+   *
+   * @return array<string, array<string, array<int, array<string, mixed>>>>
+   *   Raw field values keyed by langcode, then field name.
+   */
+  private function snapshotProtectedComponentTreeValues(ContentEntityInterface $entity, string $sync_langcode): array {
+    $translations = $entity->getTranslationLanguages();
+    if (count($translations) < 2) {
+      return [];
+    }
+    $saved_translation_is_forked = $entity->hasTranslation($sync_langcode)
+      && self::isForkedTranslation($entity->getTranslation($sync_langcode));
+
+    $snapshot = [];
+    foreach ($entity->getFieldDefinitions() as $field_name => $field_definition) {
+      if ($field_definition->getType() !== ComponentTreeItem::PLUGIN_ID) {
+        continue;
+      }
+      foreach ($translations as $langcode => $language) {
+        $translation = $entity->getTranslation($langcode);
+        if ($saved_translation_is_forked || self::isForkedTranslation($translation)) {
+          $snapshot[$langcode][$field_name] = $translation->get($field_name)->getValue();
+        }
+      }
+    }
+    return $snapshot;
+  }
+
+  /**
+   * Restores component tree values captured before synchronization ran.
+   *
+   * Restoring values core did not touch is a no-op, which is what makes
+   * snapshot/restore safe regardless of which of core's merge branches ran.
+   *
+   * @param array<string, array<string, array<int, array<string, mixed>>>> $snapshot
+   *   The return value of ::snapshotProtectedComponentTreeValues().
+   */
+  private function restoreComponentTreeValues(ContentEntityInterface $entity, array $snapshot): void {
+    foreach ($snapshot as $langcode => $fields) {
+      if (!$entity->hasTranslation($langcode)) {
+        continue;
+      }
+      $translation = $entity->getTranslation($langcode);
+      foreach ($fields as $field_name => $values) {
+        $translation->get($field_name)->setValue($values);
+      }
+    }
+  }
+
+  /**
+   * Re-synchronizes a translation's component trees from the default one.
+   *
+   * Used when unforking: the translation's tree structure and
+   * non-translatable inputs are replaced by the default translation's current
+   * values, while the translation's own translatable input values are
+   * re-applied for component instances that still exist in the default tree.
+   * Component instances that exist only in the translation are discarded.
+   */
+  public static function resyncFromDefaultTranslation(ContentEntityInterface $translation): void {
+    $default_translation = $translation->getUntranslated();
+    if ($translation === $default_translation) {
+      return;
+    }
+    foreach ($translation->getFieldDefinitions() as $field_name => $field_definition) {
+      if ($field_definition->getType() !== ComponentTreeItem::PLUGIN_ID) {
+        continue;
+      }
+      $target_tree = $translation->get($field_name);
+      \assert($target_tree instanceof ComponentTreeItemList);
+      // Capture the translation's current input values by component instance
+      // UUID before overwriting the tree with the default translation's.
+      $translated_inputs = [];
+      foreach ($target_tree as $item) {
+        \assert($item instanceof ComponentTreeItem);
+        $translated_inputs[$item->getUuid()] = $item->getInputs() ?? [];
+      }
+
+      $default_tree = $default_translation->get($field_name);
+      \assert($default_tree instanceof ComponentTreeItemList);
+      $target_tree->setValue($default_tree->getValue());
+
+      // Re-apply the translation's translatable input values for surviving
+      // component instances; non-translatable keys come from the default.
+      foreach ($target_tree as $item) {
+        \assert($item instanceof ComponentTreeItem);
+        $uuid = $item->getUuid();
+        if (!\array_key_exists($uuid, $translated_inputs)) {
+          continue;
+        }
+        $inputs_typed_data = $item->get('inputs');
+        \assert($inputs_typed_data instanceof ComponentInputs);
+        $translatable_keys = \array_flip($inputs_typed_data->getTranslatableInputKeys());
+        $item->setInput(\array_merge(
+          $item->getInputs() ?? [],
+          \array_intersect_key($translated_inputs[$uuid], $translatable_keys),
+        ));
+      }
+    }
   }
 
   /**
@@ -118,8 +262,8 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
       $net_new = iterator_to_array($default_tree->componentTreeItemsIterator(
         ComponentTreeItemList::doesNotExistInOtherComponentTree($target_tree)
       ));
-      // All non-default translations must be in sync, so checking only the
-      // first non-default translation suffices.
+      // All symmetric (non-forked) non-default translations must be in sync,
+      // so checking only the first one suffices.
       return \array_values(\array_map(
         fn (ComponentTreeItem $i) => $i->getUuid(),
         $net_new,
@@ -133,7 +277,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
    *
    * Iterates every component tree field in symmetrical translation mode (tree
    * synced, inputs translatable) and yields each non-default translation's
-   * field item list.
+   * field item list. Forked translations own their trees and are skipped.
    *
    * @return \Generator<int, ComponentTreeItemList>
    */
@@ -158,7 +302,11 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
         if ($langcode === $default_langcode) {
           continue;
         }
-        $target_tree = $entity->getTranslation($langcode)->get($field_name);
+        $translation = $entity->getTranslation($langcode);
+        if (self::isForkedTranslation($translation)) {
+          continue;
+        }
+        $target_tree = $translation->get($field_name);
         \assert($target_tree instanceof ComponentTreeItemList);
         yield $target_tree;
       }

@@ -159,3 +159,15 @@ function canvas_update_11200(): void {
     // @see \Drupal\system\Controller\DbUpdateController::triggerBatch()
   }
 }
+
+/**
+ * Install the `canvas_component_tree_fork` base field storage definitions.
+ */
+function canvas_update_11201(): void {
+  // Only sites opted into experimental translation forks carry the field.
+  // Other sites get it when the gating modules are installed.
+  // @see \Drupal\canvas\Hook\ContentTranslationHooks::modulesInstalled()
+  if (\Drupal\canvas\Hook\ContentTranslationHooks::translationForksEnabled()) {
+    \Drupal\canvas\Hook\ContentTranslationHooks::installForkFieldStorageDefinitions();
+  }
+}
