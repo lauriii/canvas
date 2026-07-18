@@ -72,12 +72,12 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
     // saved is itself forked, protect every translation: nothing the fork
     // changed may propagate outward.
     // @see https://git.drupalcode.org/project/canvas/-/work_items/3571130
-    $snapshot = $this->snapshotProtectedComponentTreeValues($entity, $sync_langcode);
+    $snapshot = self::snapshotProtectedComponentTreeValues($entity, $sync_langcode);
     $saved_translation_is_forked = $entity->hasTranslation($sync_langcode)
       && self::isForkedTranslation($entity->getTranslation($sync_langcode));
     $net_new = $saved_translation_is_forked ? [] : $this->getDefaultTranslationNewComponentInstanceUuids($entity);
     $this->decorated->synchronizeFields($entity, $sync_langcode, $original_langcode);
-    $this->restoreComponentTreeValues($entity, $snapshot);
+    self::restoreComponentTreeValues($entity, $snapshot);
     if (!$saved_translation_is_forked) {
       $this->synchronizeComponentInstanceInputs($entity, $net_new);
     }
@@ -89,7 +89,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
    * @return array<string, array<string, array<int, array<string, mixed>>>>
    *   Raw field values keyed by langcode, then field name.
    */
-  private function snapshotProtectedComponentTreeValues(ContentEntityInterface $entity, string $sync_langcode): array {
+  private static function snapshotProtectedComponentTreeValues(ContentEntityInterface $entity, string $sync_langcode): array {
     $translations = $entity->getTranslationLanguages();
     if (count($translations) < 2) {
       return [];
@@ -121,7 +121,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
    * @param array<string, array<string, array<int, array<string, mixed>>>> $snapshot
    *   The return value of ::snapshotProtectedComponentTreeValues().
    */
-  private function restoreComponentTreeValues(ContentEntityInterface $entity, array $snapshot): void {
+  private static function restoreComponentTreeValues(ContentEntityInterface $entity, array $snapshot): void {
     foreach ($snapshot as $langcode => $fields) {
       if (!$entity->hasTranslation($langcode)) {
         continue;

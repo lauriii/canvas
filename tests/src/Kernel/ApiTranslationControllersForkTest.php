@@ -11,6 +11,8 @@ use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\Controller\ApiTranslationControllers;
 use Drupal\canvas\Entity\Page;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Url;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
@@ -81,7 +83,9 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
       ->set('url.prefixes', ['en' => '', 'es' => 'es'])
       ->save();
     \Drupal::service('kernel')->rebuildContainer();
-    $this->container = \Drupal::getContainer();
+    $container = \Drupal::getContainer();
+    \assert($container instanceof ContainerBuilder);
+    $this->container = $container;
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     $this->enableContentTranslation(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID);
     // Kernel tests do not run hook_modules_installed(), so enforce the
@@ -220,7 +224,9 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     self::assertFalse(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($stored->getTranslation('es')));
     $draft = $auto_save->getAutoSaveEntityForPreview($stored->getTranslation('es'));
     self::assertFalse($draft->isEmpty());
-    self::assertTrue(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($draft->entity));
+    $draft_entity = $draft->entity;
+    self::assertInstanceOf(ContentEntityInterface::class, $draft_entity);
+    self::assertTrue(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($draft_entity));
 
     // The layout response is draft-aware: Spanish is forked, with an unfork
     // link.

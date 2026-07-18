@@ -6,6 +6,7 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasNotificationHandler;
 use Drupal\canvas\Health\HealthCheck;
 use Drupal\canvas\Health\HealthRecords;
+use Drupal\canvas\Hook\ContentTranslationHooks;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Core\Extension\ThemeHandlerInterface;
@@ -167,7 +168,7 @@ function canvas_update_11201(): void {
   // Only sites opted into experimental translation forks carry the field.
   // Other sites get it when the gating modules are installed.
   // @see \Drupal\canvas\Hook\ContentTranslationHooks::modulesInstalled()
-  if (\Drupal\canvas\Hook\ContentTranslationHooks::translationForksEnabled()) {
-    \Drupal\canvas\Hook\ContentTranslationHooks::installForkFieldStorageDefinitions();
+  if (ContentTranslationHooks::translationForksEnabled()) {
+    ContentTranslationHooks::installForkFieldStorageDefinitions();
   }
 }

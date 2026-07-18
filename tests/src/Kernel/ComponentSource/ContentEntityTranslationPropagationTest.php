@@ -41,9 +41,9 @@ final class ContentEntityTranslationPropagationTest extends TranslationPropagati
   /**
    * {@inheritdoc}
    *
-   * canvas_dev_translation enables per-translation component tree forks,
-   * exercised by the fork-specific tests below; the fork flag defaults to
-   * FALSE, so the symmetric propagation tests are unaffected.
+   * The canvas_dev_translation module enables per-translation component tree
+   * forks, exercised by the fork-specific tests below; the fork flag defaults
+   * to FALSE, so the symmetric propagation tests are unaffected.
    */
   protected static $modules = [
     'canvas_dev_translation',

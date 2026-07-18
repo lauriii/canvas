@@ -37,8 +37,23 @@ const ExtensionPage: React.FC = () => {
     function onMessage(e: MessageEvent) {
       // Ignore messages from any source other than our iframe.
       if (e.source !== iframeRef.current?.contentWindow) return;
+      if (!e.data) return;
+
+      // The extension iframe is sandboxed without allow-top-navigation, so
+      // links out of the extension into the Canvas app itself cannot use
+      // target="_top". Extensions instead post an in-app route (relative to
+      // the router basename, e.g. `/preview/canvas_page/1/full?language=fr`)
+      // and the parent navigates.
       if (
-        !e.data ||
+        e.data.type === 'canvas:navigate-app' &&
+        typeof e.data.path === 'string' &&
+        e.data.path.startsWith('/')
+      ) {
+        navigate(e.data.path);
+        return;
+      }
+
+      if (
         e.data.type !== 'canvas:navigate' ||
         typeof e.data.subPath !== 'string'
       )
@@ -57,7 +72,7 @@ const ExtensionPage: React.FC = () => {
 
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [extensionId]);
+  }, [extensionId, navigate]);
 
   const handleBack = useCallback(() => {
     // React Router keeps its position in history.state.idx; at 0 this is the
