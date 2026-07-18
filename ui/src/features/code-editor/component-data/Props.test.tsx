@@ -663,7 +663,7 @@ describe('props in code editor', () => {
         screen.getByRole('combobox', { name: 'Link type' }),
       );
       const fullUrlOption = await screen.findByRole('option', {
-        name: 'Full URL',
+        name: 'External and internal links (absolute URLs)',
       });
       await userEvent.click(fullUrlOption);
 
@@ -695,6 +695,54 @@ describe('props in code editor', () => {
           example: 'https://example.com',
           format: 'uri',
           $ref: undefined,
+        });
+      });
+    });
+
+    // Regression test for #3542890: the "relative" link type (format:
+    // uri-reference) also accepts absolute URLs, so the dropdown labels must
+    // say so instead of the misleading "Relative path" / "Full URL".
+    it('clarifies that the relative link type also accepts absolute URLs', async () => {
+      await addProp('Link', 'Link');
+
+      // Open the Link type dropdown and assert the clarified option labels.
+      await userEvent.click(
+        screen.getByRole('combobox', { name: 'Link type' }),
+      );
+      expect(
+        await screen.findByRole('option', {
+          name: 'Internal links (relative and absolute URLs)',
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', {
+          name: 'External and internal links (absolute URLs)',
+        }),
+      ).toBeInTheDocument();
+
+      // Keep the default ("relative") option selected.
+      await userEvent.click(
+        screen.getByRole('option', {
+          name: 'Internal links (relative and absolute URLs)',
+        }),
+      );
+      await waitFor(() => {
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      });
+
+      // Behavior guard: with the relative type selected, a full absolute URL is
+      // accepted as valid — exactly what the clarified label communicates.
+      const input = screen.getByRole('textbox', { name: 'Example value' });
+      await userEvent.clear(input);
+      await userEvent.type(input, 'https://example.com');
+      await userEvent.tab();
+
+      expect(input).not.toHaveAttribute('data-invalid-prop-value');
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop).toMatchObject({
+          example: 'https://example.com',
+          format: 'uri-reference',
         });
       });
     });
@@ -2464,7 +2512,7 @@ describe('props in code editor', () => {
             );
             await userEvent.click(linkTypeSelect!);
             const fullUrlOption = await screen.findByRole('option', {
-              name: 'Full URL',
+              name: 'External and internal links (absolute URLs)',
             });
             await userEvent.click(fullUrlOption);
           },
@@ -4780,7 +4828,7 @@ describe('props in code editor', () => {
           );
           await userEvent.click(linkTypeSelect!);
           const fullUrlOption = await screen.findByRole('option', {
-            name: 'Full URL',
+            name: 'External and internal links (absolute URLs)',
           });
           await userEvent.click(fullUrlOption);
         },
@@ -5378,7 +5426,7 @@ describe('props in code editor', () => {
             );
             await userEvent.click(linkTypeSelect!);
             const fullUrlOption = await screen.findByRole('option', {
-              name: 'Full URL',
+              name: 'External and internal links (absolute URLs)',
             });
             await userEvent.click(fullUrlOption);
           },
