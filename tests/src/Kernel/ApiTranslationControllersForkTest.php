@@ -9,6 +9,7 @@ namespace Drupal\Tests\canvas\Kernel;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Controller\ApiTranslationControllers;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -221,12 +222,12 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     // The fork lives in the auto-save draft, not in storage.
     $stored = Page::load($page->id());
     \assert($stored instanceof Page);
-    self::assertFalse(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($stored->getTranslation('es')));
+    self::assertFalse(ComponentTreeTranslationFork::isForkedTranslation($stored->getTranslation('es')));
     $draft = $auto_save->getAutoSaveEntityForPreview($stored->getTranslation('es'));
     self::assertFalse($draft->isEmpty());
     $draft_entity = $draft->entity;
     self::assertInstanceOf(ContentEntityInterface::class, $draft_entity);
-    self::assertTrue(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($draft_entity));
+    self::assertTrue(ComponentTreeTranslationFork::isForkedTranslation($draft_entity));
 
     // The layout response is draft-aware: Spanish is forked, with an unfork
     // link.
@@ -241,7 +242,7 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     self::assertSame([], $layout['translations']['forked']);
     $stored = Page::load($page->id());
     \assert($stored instanceof Page);
-    self::assertFalse(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($stored->getTranslation('es')));
+    self::assertFalse(ComponentTreeTranslationFork::isForkedTranslation($stored->getTranslation('es')));
 
     // Fork again and publish: the fork state persists to storage. The publish
     // list only shows default-translation entries (whole-entity publish
@@ -255,7 +256,7 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
     $stored = Page::load($page->id());
     \assert($stored instanceof Page);
-    self::assertTrue(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($stored->getTranslation('es')));
+    self::assertTrue(ComponentTreeTranslationFork::isForkedTranslation($stored->getTranslation('es')));
 
     // Diverge the forked Spanish tree in storage: add a component only there.
     $es = $stored->getTranslation('es');
@@ -287,7 +288,7 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     self::assertFalse($draft->isEmpty());
     $draft_es = $draft->entity;
     \assert($draft_es instanceof Page);
-    self::assertFalse(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($draft_es));
+    self::assertFalse(ComponentTreeTranslationFork::isForkedTranslation($draft_es));
     self::assertNull($draft_es->getComponentTree()->getComponentTreeItemByUuid(self::UUID_B));
     self::assertSame('Hola A (es)', $draft_es->getComponentTree()->getComponentTreeItemByUuid(self::UUID_A)?->getInputs()['text'] ?? NULL);
 
@@ -297,7 +298,7 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
     $stored = Page::load($page->id());
     \assert($stored instanceof Page);
-    self::assertFalse(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($stored->getTranslation('es')));
+    self::assertFalse(ComponentTreeTranslationFork::isForkedTranslation($stored->getTranslation('es')));
     self::assertNull($stored->getTranslation('es')->getComponentTree()->getComponentTreeItemByUuid(self::UUID_B));
     self::assertSame('Hola A (es)', $stored->getTranslation('es')->getComponentTree()->getComponentTreeItemByUuid(self::UUID_A)?->getInputs()['text'] ?? NULL);
   }
