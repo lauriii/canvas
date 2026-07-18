@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\ShapeMatcher;
 
-use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
@@ -116,7 +115,10 @@ final readonly class PropSourceSuggester {
       $content_entity_type_definition->getRevisionMetadataKey('revision_log_message'),
       'content_translation_source',
       'content_translation_outdated',
-      ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME,
+      // Literal to avoid a layering dependency on the ContentTranslation
+      // namespace.
+      // @see \Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME
+      'canvas_component_tree_fork',
     ], TRUE);
     if ($is_irrelevant) {
       return TRUE;

@@ -334,6 +334,23 @@ export const componentAndLayoutApi = createApi({
         method: 'DELETE',
       }),
     }),
+    forkPageTranslation: builder.mutation<void, string>({
+      query: (url) => ({
+        url,
+        method: 'POST',
+      }),
+      // Refetch the layout so the fork badge and unfork action appear.
+      invalidatesTags: [{ type: 'Layout' }],
+    }),
+    unforkPageTranslation: builder.mutation<void, string>({
+      query: (url) => ({
+        url,
+        method: 'DELETE',
+      }),
+      // Refetch the layout so the reverted (synced) layout and fork action
+      // replace the forked state.
+      invalidatesTags: [{ type: 'Layout' }],
+    }),
     postTemplateLayout: builder.mutation<
       { html: string; autoSaves: AutoSavesHash },
       { layout: any; model: any; entity_form_fields: any }
@@ -836,4 +853,6 @@ export const {
   useGetViewModesQuery,
   useGetPreviewContentEntitiesQuery,
   useDeletePageTranslationMutation,
+  useForkPageTranslationMutation,
+  useUnforkPageTranslationMutation,
 } = componentAndLayoutApi;

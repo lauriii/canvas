@@ -66,7 +66,8 @@ final readonly class ContentTranslationHooks {
    */
   #[Hook('entity_base_field_info')]
   public function entityBaseFieldInfo(EntityTypeInterface $entity_type): array {
-    if (!self::translationForksEnabled()) {
+    if (!$this->moduleHandler->moduleExists('content_translation')
+      || !$this->moduleHandler->moduleExists('canvas_dev_translation')) {
       return [];
     }
     if (!$entity_type instanceof ContentEntityTypeInterface || !$entity_type->isTranslatable()) {
