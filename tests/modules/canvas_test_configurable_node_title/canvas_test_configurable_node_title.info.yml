@@ -1,0 +1,6 @@
+name: 'Test Canvas configurable node title'
+type: module
+description: 'Makes the node title base field display-configurable so tests can hide it and render the page title via a block.'
+dependencies:
+  - drupal:node
+package: Testing

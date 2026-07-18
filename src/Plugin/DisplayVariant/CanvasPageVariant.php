@@ -144,7 +144,12 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
       throw new \LogicException('This page display variant needs Drupal Canvas PageRegion config entities.');
     }
 
-    \assert(!empty($this->title));
+    // The page title may legitimately be empty: `HtmlRenderer::prepare()` passes
+    // an empty title when the rendered main content provides no `#title` and the
+    // route has no `_title`/`_title_callback` (for example, the node revision
+    // route). Core's own page display variants tolerate this, so this one must
+    // too — any `TitleBlockPluginInterface` block simply receives an empty title.
+    // @see \Drupal\block\Plugin\DisplayVariant\BlockPageVariant::build()
     \assert(!empty($this->mainContent));
 
     // Track whether a block showing the messages is displayed.
