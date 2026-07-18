@@ -35,6 +35,20 @@ export const pageDataSlice = createSlice({
         };
       },
     ),
+    // Removes the given keys from the page data. `setPageData` can only add or
+    // overwrite keys (it is a shallow merge), so removing a multivalue item's
+    // values requires an explicit delete. Used when a multivalue field item is
+    // removed on the page data form so the removal is reflected in the store
+    // that auto-save reads from.
+    removePageDataFields: create.reducer(
+      (state, action: PayloadAction<string[]>) => {
+        const newState = { ...state };
+        action.payload.forEach((key) => {
+          delete newState[key];
+        });
+        return newState;
+      },
+    ),
     externalUpdateComplete: create.reducer(
       (state, action: PayloadAction<string>) => {
         const { externalUpdates } = state;
@@ -68,6 +82,7 @@ export const pageDataSlice = createSlice({
 export const {
   setPageData,
   setInitialPageData,
+  removePageDataFields,
   updatePageDataExternally,
   externalUpdateComplete,
 } = pageDataSlice.actions;

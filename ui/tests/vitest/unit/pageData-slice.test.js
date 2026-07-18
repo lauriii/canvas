@@ -1,6 +1,7 @@
 import { makeStore } from '@/app/store';
 import {
   pageDataSlice,
+  removePageDataFields,
   selectPageDataHistory,
   setPageData,
 } from '@/features/pageData/pageDataSlice';
@@ -19,6 +20,36 @@ describe('Set page state', () => {
   it('Should set page state', () => {
     const state = pageDataSlice.reducer({}, setPageData(pageData));
     expect(state).to.deep.equal(pageData);
+  });
+});
+
+describe('Remove page data fields', () => {
+  it('Should delete the given keys and leave the rest untouched', () => {
+    const initial = {
+      'field_cvt_unlimited_text[0][value]': 'Marshmallow Coast',
+      'field_cvt_unlimited_text[0][_weight]': '0',
+      'field_cvt_unlimited_text[1][value]': 'Testing',
+      'field_cvt_unlimited_text[1][_weight]': '1',
+    };
+    const state = pageDataSlice.reducer(
+      initial,
+      removePageDataFields([
+        'field_cvt_unlimited_text[1][value]',
+        'field_cvt_unlimited_text[1][_weight]',
+      ]),
+    );
+    expect(state).to.deep.equal({
+      'field_cvt_unlimited_text[0][value]': 'Marshmallow Coast',
+      'field_cvt_unlimited_text[0][_weight]': '0',
+    });
+  });
+
+  it('Should ignore keys that are not present', () => {
+    const state = pageDataSlice.reducer(
+      { 'field_x[0][value]': 'keep' },
+      removePageDataFields(['field_x[9][value]']),
+    );
+    expect(state).to.deep.equal({ 'field_x[0][value]': 'keep' });
   });
 });
 
