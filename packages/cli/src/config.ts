@@ -188,6 +188,7 @@ const PAGE_SCOPES = 'canvas:page:create canvas:page:read canvas:page:edit';
 const CONTENT_TEMPLATE_SCOPES = 'canvas:content_template';
 const PAGE_TEMPLATE_SCOPES = 'canvas:page_variant';
 const BRAND_KIT_SCOPES = 'canvas:brand_kit';
+const ICON_LIBRARY_SCOPES = 'canvas:icon_library';
 
 export function getDefaultScope(
   includePages: boolean,
@@ -199,7 +200,8 @@ export function getDefaultScope(
   if (includePages) parts.push(PAGE_SCOPES);
   if (includeContentTemplates) parts.push(CONTENT_TEMPLATE_SCOPES);
   if (includePageTemplates) parts.push(PAGE_TEMPLATE_SCOPES);
-  if (includeBrandKit) parts.push(BRAND_KIT_SCOPES);
+  // Icon libraries are part of the brand kit workflow.
+  if (includeBrandKit) parts.push(BRAND_KIT_SCOPES, ICON_LIBRARY_SCOPES);
   return parts.join(' ');
 }
 
@@ -213,6 +215,7 @@ export function usesManagedDefaultScope(scope: string): boolean {
       PAGE_TEMPLATE_SCOPES,
       BRAND_KIT_SCOPES,
       CONTENT_TEMPLATE_SCOPES,
+      ICON_LIBRARY_SCOPES,
     ].flatMap((s) => s.split(/\s+/)),
   );
   for (const token of baseTokens) {

@@ -227,6 +227,41 @@ adds human-readable axis names (e.g. "Weight", "Optical size") for common
 OpenType axis tags so the Brand Kit UI shows the same CSS axes sliders and
 labels as for fonts uploaded via the UI.
 
+#### Icon libraries
+
+Icon libraries are part of the brand kit workflow: icon sync is enabled with
+`--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT=true` and uses an `icons/`
+directory in the project root:
+
+```
+icons/
+  my_icons/
+    manifest.json      # canvas-managed library: { id, label, description?, template? }
+    star.svg           # icons; the filename (minus .svg) is the icon id
+  lucide/
+    pack.json          # module-provided pack info written by pull; not pushed
+```
+
+- **Canvas-managed libraries** are directories with a `manifest.json`. `push`
+  uploads every `*.svg` file in the directory and creates or updates the
+  matching icon library on the site. `pull` writes these directories from the
+  site, so a pulled library can be pushed again unchanged.
+- **Module-provided packs** are icon packs installed on the site by modules.
+  `pull` writes an informational `pack.json` (with `managed: false`) for each;
+  `push` skips directories without a `manifest.json`.
+
+Library ids (directory names) may only contain lowercase letters, digits, and
+underscores. Icon filenames may only contain letters, digits, dots, underscores,
+and dashes, and must end in `.svg`. The `template` field is an optional
+rendering template override; omit it to use the server default.
+
+**SVG sanitization:** The server rejects unsafe SVG files (scripts, event
+handler attributes, `javascript:` URLs, DOCTYPE declarations, and external
+references) with a per-file error. The CLI runs the same checks locally before
+uploading for fast feedback, and reports server-side rejections with the file
+path and the server's error message. A rejected file fails its library, but
+other libraries continue to push.
+
 If you still have `CANVAS_COMPONENT_DIR` set in your shell, `.env`, or
 `.canvasrc`, the CLI will warn you and offer to create or update
 `canvas.config.json` with `componentDir`.
@@ -393,8 +428,8 @@ stay managed in the Canvas editor instead of the authored codebase.
 ### `pull`
 
 Pull code components, global CSS, package.json, local modules imported by
-components, pages, content templates, page templates, and brand kit (fonts and
-colors) from Drupal to your local filesystem. Brand kit sync is on by default
+components, pages, content templates, page templates, and brand kit (fonts,
+colors, and icon libraries) from Drupal to your local filesystem. Brand kit sync is on by default
 when `canvas.brand-kit.json` is present; use `--no-include-brand-kit` to skip
 it.
 
@@ -454,6 +489,12 @@ Skip brand kit sync:
 npx canvas pull --no-include-brand-kit
 ```
 
+Pull icon libraries:
+
+```bash
+npx canvas pull --include-brand-kit
+```
+
 Pull only new items (skip existing):
 
 ```bash
@@ -467,7 +508,7 @@ npx canvas pull --yes --skip-overwrite
 ```
 
 Pulls Code Components, global CSS, pages, content templates, page templates, and
-brand kit (fonts and colors) from your site by default. Use `--no-pages`,
+brand kit (fonts, colors, and icon libraries) from your site by default. Use `--no-pages`,
 `--no-content-templates`, `--no-page-templates`, or `--no-include-brand-kit` to
 exclude those resources for a single run, or set `sync.*` in
 `canvas.config.json` to change project defaults. Use `--skip-overwrite` to skip
@@ -486,6 +527,11 @@ Canvas UI for a family you already have in config are downloaded and appended to
 are kept byte-for-byte. Local-only entries (not on the site) are preserved at
 the end of the map and reported. `--skip-overwrite` only appends new colors and
 leaves existing entries untouched.
+
+**Icons:** With `--include-brand-kit`, the pull command writes every
+canvas-managed icon library to `icons/<id>/` (a `manifest.json` plus the SVG
+files) and an informational `icons/<id>/pack.json` for every module-provided
+icon pack. See [Icon libraries](#icon-libraries).
 
 ---
 
@@ -635,7 +681,8 @@ Non-headless push converts external components back to Canvas-managed React; a
 later headless sync makes them external again.
 
 Build and push local components, global CSS, build artifacts, pages, content
-templates, page templates, and brand kit (fonts and colors) to Drupal. Brand kit
+templates, page templates, and brand kit (fonts, colors, and icon libraries) to
+Drupal. Brand kit
 sync is on by default when `canvas.brand-kit.json` is present; use
 `--no-include-brand-kit` to skip it.
 
@@ -679,6 +726,12 @@ Skip brand kit sync:
 npx canvas push --no-include-brand-kit
 ```
 
+Push icon libraries:
+
+```bash
+npx canvas push --include-brand-kit
+```
+
 Push components in a specific directory:
 
 ```bash
@@ -707,21 +760,26 @@ component assets. Push can include:
    Brand Kit. Colors are created or updated on the site matched by CSS variable
    name. Colors on the site but not in the file are reported and left untouched
    unless `--prune-colors` is passed.
-4. **Vendor artifacts** - Bundled third-party dependencies
-5. **Local artifacts** - Bundled local imports (e.g., `@/utils`)
-6. **Shared chunks** - Common code shared between vendor bundles
-7. **Pages** - Canvas pages built from components, unless excluded with
+4. **Icon libraries** - When brand kit sync is on, each `icons/<id>/` directory with a
+   `manifest.json` is validated, its SVG files are uploaded, and the icon
+   library is created or updated (or reported unchanged). Files rejected by the
+   server's SVG sanitizer fail that library with the file path and server error;
+   other libraries continue. See [Icon libraries](#icon-libraries).
+5. **Vendor artifacts** - Bundled third-party dependencies
+6. **Local artifacts** - Bundled local imports (e.g., `@/utils`)
+7. **Shared chunks** - Common code shared between vendor bundles
+8. **Pages** - Canvas pages built from components, unless excluded with
    `--no-pages` or `sync.pages: false`.
-8. **Content Templates** - Content templates that define component layouts for
+9. **Content Templates** - Content templates that define component layouts for
    entity view modes, unless excluded with `--no-content-templates` or
    `sync.contentTemplates: false`.
-9. **Page templates** - Page variants that render the full page around the
-   content, unless excluded with `--no-page-templates` or
-   `sync.pageTemplates: false`. A page template file can set `"default": true`
-   to become the site default page variant (written through
-   `/canvas/api/v0/settings/default-page-variant` with the `canvas:page_variant`
-   scope); at most one file may claim it. The current site default is never
-   deleted by a push.
+10. **Page templates** - Page variants that render the full page around the
+    content, unless excluded with `--no-page-templates` or
+    `sync.pageTemplates: false`. A page template file can set `"default": true`
+    to become the site default page variant (written through
+    `/canvas/api/v0/settings/default-page-variant` with the `canvas:page_variant`
+    scope); at most one file may claim it. The current site default is never
+    deleted by a push.
 
 ---
 

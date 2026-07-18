@@ -23,6 +23,8 @@ import {
   updateBrandKitConfig,
   variantKey,
 } from '../lib/fonts/font-pull.js';
+import { pullIcons } from '../lib/icons/icon-pull.js';
+import { ICONS_DIR } from '../lib/icons/icon-validate.js';
 import { createApiService, ensureAuthConfig } from '../services/api';
 import {
   applySyncOptionAliasesAndWarnings,
@@ -68,6 +70,7 @@ import type {
   Component,
 } from '../types/Component';
 import type { ContentTemplateListItem } from '../types/ContentTemplate';
+import type { IconLibrary } from '../types/IconLibrary';
 import type { Metadata } from '../types/Metadata';
 import type { PageListItem } from '../types/Page';
 import type { PageVariant } from '../types/PageVariant';
@@ -1446,11 +1449,112 @@ export function createBrandKitPullTask(
   };
 }
 
+export function createIconsPullTask(
+  apiService: ApiService,
+  projectRoot: string,
+): PullTask {
+  let remoteLibraries: Record<string, IconLibrary> = {};
+  let remotePackIds: string[] = [];
+
+  async function localFileExists(relativePath: string): Promise<boolean> {
+    return fs
+      .access(path.resolve(projectRoot, relativePath))
+      .then(() => true)
+      .catch(() => false);
+  }
+
+  return {
+    startLabel: 'Pulling icons',
+    stopLabel: 'Pulled icons',
+
+    async prepare(): Promise<PullTaskPrepareResult> {
+      const [libraries, packs] = await Promise.all([
+        apiService.getIconLibraries(),
+        apiService.getIconPacks(),
+      ]);
+
+      remoteLibraries = libraries;
+      remotePackIds = Object.keys(packs).filter((id) => !(id in libraries));
+
+      const lines: string[] = [];
+
+      const libraryIds = Object.keys(libraries);
+      if (libraryIds.length > 0) {
+        let existingCount = 0;
+        for (const id of libraryIds) {
+          if (await localFileExists(path.join(ICONS_DIR, id, 'manifest.json')))
+            existingCount++;
+        }
+        lines.push(
+          formatSummaryLine(
+            'Icon libraries',
+            libraryIds.length,
+            libraryIds.length - existingCount,
+            existingCount,
+            'icon library',
+            'icon libraries',
+          ),
+        );
+      }
+
+      if (remotePackIds.length > 0) {
+        let existingCount = 0;
+        for (const id of remotePackIds) {
+          if (await localFileExists(path.join(ICONS_DIR, id, 'pack.json')))
+            existingCount++;
+        }
+        lines.push(
+          formatSummaryLine(
+            'Icon packs',
+            remotePackIds.length,
+            remotePackIds.length - existingCount,
+            existingCount,
+            'icon pack',
+          ),
+        );
+      }
+
+      return { summaryLines: lines, localOnlyCount: 0 };
+    },
+
+    async execute(): Promise<PullTaskResult> {
+      const result = await pullIcons(apiService, projectRoot);
+
+      const results: Result[] = [];
+
+      for (const library of Object.values(remoteLibraries)) {
+        results.push({
+          itemName: library.id,
+          success: true,
+        });
+      }
+
+      if (result.packs > 0) {
+        results.push({
+          itemName: 'icon packs',
+          success: true,
+          details: [
+            {
+              content: `Wrote pack.json for ${result.packs} module-provided ${pluralizeLabel(result.packs, 'pack')}`,
+            },
+          ],
+        });
+      }
+
+      return {
+        results,
+        title: 'Pulled icons',
+        label: 'Icon library',
+      };
+    },
+  };
+}
+
 export function pullCommand(program: Command): void {
   program
     .command('pull')
     .description(
-      'pull components, global CSS, and optional fonts and pages from Drupal',
+      'pull components, global CSS, and optional fonts, icons, and pages from Drupal',
     )
     .option('--client-id <id>', 'Client ID')
     .option('--client-secret <secret>', 'Client Secret')
@@ -1518,6 +1622,8 @@ export function pullCommand(program: Command): void {
         const includesContentTemplates = config.includeContentTemplates;
         const includesPageTemplates = config.includePageTemplates;
         const includesBrandKit = config.includeBrandKit;
+        // Icon libraries are part of the brand kit workflow.
+        const includesIcons = includesBrandKit;
 
         // Shared ref to pass brand kit colors from brand kit task to component task.
         const brandKitColorsRef: BrandKitColorsRef = { colors: [] };
@@ -1560,6 +1666,10 @@ export function pullCommand(program: Command): void {
               colorFolderRef,
             ),
           );
+        }
+
+        if (includesIcons) {
+          tasks.push(createIconsPullTask(apiService, projectRoot));
         }
 
         if (includesPages) {
