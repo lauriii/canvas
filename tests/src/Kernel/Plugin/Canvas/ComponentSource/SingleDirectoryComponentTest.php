@@ -29,6 +29,7 @@ use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Plugin\Component as SdcPlugin;
 use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\file\Entity\File;
 use Drupal\link\LinkItemInterface;
@@ -44,6 +45,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\Filesystem\Path;
 use Twig\Error\Error;
 use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
@@ -1363,6 +1365,86 @@ HTML
     $generated_url = $source->rewriteExampleUrl('https://www.example.com/');
     self::assertSame('https://www.example.com/', $generated_url->getGeneratedUrl());
     $assert_cacheability($generated_url);
+  }
+
+  /**
+   * Tests that an absolute component template path does not leak into the URL.
+   *
+   * On some environments (for example, a local Windows stack) Drupal core fails
+   * to make the component's path relative to the app root — because of a
+   * path-separator or drive-letter mismatch — leaving the template path
+   * absolute. The rewritten example URL must still be root-relative and must
+   * not contain the absolute filesystem path.
+   *
+   * @see https://www.drupal.org/project/canvas/issues/3584619
+   * @see \Drupal\Core\Theme\Component\ComponentMetadata::__construct()
+   */
+  public function testRewriteExampleUrlWithAbsoluteTemplatePath(): void {
+    $this->generateComponentConfig();
+    $component = Component::load(SingleDirectoryComponentDiscovery::getComponentConfigEntityId('canvas_test_sdc:image'));
+    self::assertNotNull($component);
+    $source = $component->getComponentSource();
+    self::assertInstanceOf(SingleDirectoryComponent::class, $source);
+
+    $app_root = $this->container->getParameter('app.root');
+    \assert(\is_string($app_root));
+
+    // Simulate the Windows stack: construct the SDC plugin with an app root
+    // that does not match the (absolute) discovered path, so core leaves
+    // ComponentMetadata::$path absolute.
+    $definition = $this->container->get(ComponentPluginManager::class)->getDefinition('canvas_test_sdc:image');
+    self::assertStringStartsWith($app_root, (string) $definition['path']);
+    $absolute_plugin = new SdcPlugin(
+      ['app_root' => '/mismatched-root', 'enforce_schemas' => FALSE],
+      'canvas_test_sdc:image',
+      $definition,
+    );
+    self::assertTrue(Path::isAbsolute((string) $absolute_plugin->getTemplatePath()));
+
+    // Inject the plugin whose template path is absolute.
+    $reflection = new \ReflectionProperty(JsonSchemaPropsComponentSourceBase::class, 'componentPlugin');
+    $reflection->setValue($source, $absolute_plugin);
+
+    $generated_url = $source->rewriteExampleUrl('600x400.png');
+    $url = $generated_url->getGeneratedUrl();
+    self::assertStringNotContainsString($app_root, $url);
+    self::assertStringEndsWith('/components/image/600x400.png', $url);
+    self::assertEqualsCanonicalizing(['component_plugins'], $generated_url->getCacheTags());
+  }
+
+  /**
+   * Tests that an asset on a different filesystem root does not crash.
+   *
+   * When an absolute asset path cannot be expressed relative to the app root
+   * (for example, a Windows drive or UNC share other than the one Drupal runs
+   * from), `Path::makeRelative()` throws. Rewriting the example URL must degrade
+   * to the unchanged path rather than surface a server error.
+   *
+   * @see https://www.drupal.org/project/canvas/issues/3584619
+   */
+  public function testRewriteExampleUrlWithAssetOnDifferentRoot(): void {
+    $this->generateComponentConfig();
+    $component = Component::load(SingleDirectoryComponentDiscovery::getComponentConfigEntityId('canvas_test_sdc:image'));
+    self::assertNotNull($component);
+    $source = $component->getComponentSource();
+    self::assertInstanceOf(SingleDirectoryComponent::class, $source);
+
+    // The plugin's template path is absolute (the Windows condition).
+    $definition = $this->container->get(ComponentPluginManager::class)->getDefinition('canvas_test_sdc:image');
+    $absolute_plugin = new SdcPlugin(
+      ['app_root' => '/mismatched-root', 'enforce_schemas' => FALSE],
+      'canvas_test_sdc:image',
+      $definition,
+    );
+    (new \ReflectionProperty(JsonSchemaPropsComponentSourceBase::class, 'componentPlugin'))->setValue($source, $absolute_plugin);
+
+    // Force `Path::makeRelative()` to throw by giving the source an app root on
+    // a different filesystem root than the (absolute) asset path.
+    (new \ReflectionProperty(SingleDirectoryComponent::class, 'appRoot'))->setValue($source, 'different-root');
+
+    // Must not throw; the path stays as-is instead of causing a server error.
+    $generated_url = $source->rewriteExampleUrl('600x400.png');
+    self::assertStringEndsWith('/components/image/600x400.png', $generated_url->getGeneratedUrl());
   }
 
   /**
