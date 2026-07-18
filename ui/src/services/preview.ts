@@ -151,6 +151,14 @@ export const previewApi = createApi({
       async onQueryStarted(body, { dispatch, queryFulfilled }) {
         // Force any ajax calls to wait.
         pushCanvasLayoutRequest();
+        // Record this request's position in the sequence of updateComponent
+        // requests. Rapid form changes can leave several requests in flight at
+        // once, and their responses may arrive out of order. An earlier
+        // request's (stale) response must not overwrite the preview and model
+        // produced by a later one, which would revert the preview to a previous
+        // state and cause the flicker described in the issue.
+        // @see https://git.drupalcode.org/project/canvas/-/issues/3547665
+        const requestSequence = ++updateComponentRequestSequence;
         let data: any;
         let meta: any;
         try {
@@ -165,6 +173,15 @@ export const previewApi = createApi({
           // Tell ajax calls they're good to go regardless of success/failure.
           popCanvasLayoutRequest();
         }
+        // Discard this response only if a newer request has already applied its
+        // response. Comparing against the last applied (successful) request —
+        // rather than the last started one — means a later request that fails
+        // (e.g. an invalid value the server rejects) does not throw away this
+        // earlier request's committed result.
+        if (requestSequence <= lastAppliedUpdateComponentSequence) {
+          return;
+        }
+        lastAppliedUpdateComponentSequence = requestSequence;
         const { html, layout, model, autoSaves } = data;
         dispatch(
           pendingChangesApi.util.invalidateTags([
@@ -314,6 +331,14 @@ type PostPreviewArg = {
 // queued request executes when the active one completes.
 let activePreviewRequest: Promise<PostPreviewResult> | null = null;
 let pendingPreviewArg: PostPreviewArg | null = null;
+
+// Incremented each time an updateComponent request starts, giving every request
+// a monotonic sequence number. `lastAppliedUpdateComponentSequence` tracks the
+// highest sequence whose response has been applied, so an out-of-order (stale)
+// response can be discarded when a newer one has already won.
+// @see https://git.drupalcode.org/project/canvas/-/issues/3547665
+let updateComponentRequestSequence = 0;
+let lastAppliedUpdateComponentSequence = 0;
 
 // Incremented each time a postPreview request completes successfully.
 // Used to detect whether an error has been superseded by a later success.
