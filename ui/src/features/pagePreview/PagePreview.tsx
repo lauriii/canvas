@@ -9,7 +9,6 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectLayout,
   selectModel,
-  selectTranslations,
   selectUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
 import { useHeadlessDraftSession } from '@/features/layout/preview/useHeadlessDraftSession';
@@ -115,7 +114,7 @@ const PagePreview = () => {
   // the generic /layout route, which only supports canvas_page entities, so it
   // is skipped for templates (their preview entity is rendered via the
   // snapshot query below).
-  useGetPageLayoutQuery(
+  const { data: defaultLayoutData } = useGetPageLayoutQuery(
     entityId && entityType && !isContentTemplate
       ? { entityId, entityType }
       : skipToken,
@@ -146,8 +145,9 @@ const PagePreview = () => {
   // translation's layout was replaced server-side, and the layout refetch
   // that reported the change also reset the snapshot to the default-language
   // render. Re-fetch the language snapshot so the preview shows the actual
-  // translation again.
-  const translations = useAppSelector(selectTranslations);
+  // translation again. Read fork state from the layout query itself: the
+  // slice's translations only update on initial load.
+  const translations = defaultLayoutData?.translations;
   const activeLanguageForked =
     !!language && !!translations?.forked?.includes(language);
   const activeLanguageForkedRef = useRef(activeLanguageForked);
