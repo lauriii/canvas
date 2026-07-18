@@ -647,6 +647,86 @@ describe('Transforms - dateTime', () => {
   });
 });
 
+describe('Transforms - dateTime (datetime type)', () => {
+  const dateTimePropSource = {
+    sourceType: 'static:field_item:datetime',
+    sourceTypeSettings: {
+      storage: { datetime_type: 'datetime' },
+    },
+  };
+
+  // Selecting a date while leaving the time empty used to build an unparseable
+  // date and throw "RangeError: Invalid time value"; the empty time now falls
+  // back to noon UTC.
+  // @see https://www.drupal.org/project/canvas/issues/3573426
+  it('should map a selected date with an empty time to noon UTC without throwing', () => {
+    expect(() =>
+      transforms.dateTime(
+        { date: '2026-02-13', time: '' },
+        { type: 'datetime' },
+        dateTimePropSource,
+      ),
+    ).not.toThrow();
+    expect(
+      transforms.dateTime(
+        { date: '2026-02-13', time: '' },
+        { type: 'datetime' },
+        dateTimePropSource,
+      ),
+    ).toEqual('2026-02-13T12:00:00.000Z');
+  });
+
+  it('should map a full datetime record to a UTC ISO string', () => {
+    expect(
+      transforms.dateTime(
+        { date: '2026-02-13', time: '10:30:00' },
+        { type: 'datetime' },
+        dateTimePropSource,
+      ),
+    ).toEqual('2026-02-13T10:30:00.000Z');
+  });
+
+  // A present time with a missing date also produced an Invalid Date; it must
+  // degrade to null rather than throw.
+  it('should return null for a missing date rather than throwing', () => {
+    expect(() =>
+      transforms.dateTime(
+        { date: '', time: '10:30:00' },
+        { type: 'datetime' },
+        dateTimePropSource,
+      ),
+    ).not.toThrow();
+    expect(
+      transforms.dateTime(
+        { date: '', time: '10:30:00' },
+        { type: 'datetime' },
+        dateTimePropSource,
+      ),
+    ).toEqual(null);
+    expect(
+      transforms.dateTime(
+        { date: '', time: '' },
+        { type: 'datetime' },
+        dateTimePropSource,
+      ),
+    ).toEqual(null);
+  });
+
+  it('should drop empty datetime rows in multiple mode', () => {
+    expect(
+      transforms.dateTime(
+        [
+          { date: '', time: '' },
+          { date: '2026-02-13', time: '10:30:00' },
+          { date: '', time: '' },
+        ],
+        { type: 'datetime', multiple: true },
+        dateTimePropSource,
+      ),
+    ).toEqual(['2026-02-13T10:30:00.000Z']);
+  });
+});
+
 describe('Transforms - dateRange', () => {
   const fieldData = {
     sourceTypeSettings: {
