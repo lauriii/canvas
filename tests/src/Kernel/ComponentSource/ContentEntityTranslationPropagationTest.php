@@ -8,7 +8,7 @@ namespace Drupal\Tests\canvas\Kernel\ComponentSource;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
-use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Controller\ApiAutoSaveController;
 use Drupal\canvas\Controller\ApiLayoutController;
 use Drupal\canvas\Entity\Component;
@@ -242,7 +242,7 @@ final class ContentEntityTranslationPropagationTest extends TranslationPropagati
   public function testForkedHostReconciledInPlace(): void {
     $page = $this->createPageWithTranslation();
     $es = $page->getTranslation('es');
-    $es->set(ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME, TRUE);
+    $es->set(ComponentTreeTranslationFork::FIELD_NAME, TRUE);
     $es->save();
 
     $this->addRequiredProp();
@@ -278,7 +278,7 @@ final class ContentEntityTranslationPropagationTest extends TranslationPropagati
   public function testForkedSiblingSkippedOnDefaultUpdate(): void {
     $page = $this->createPageWithTranslation();
     $es = $page->getTranslation('es');
-    $es->set(ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME, TRUE);
+    $es->set(ComponentTreeTranslationFork::FIELD_NAME, TRUE);
     $es->save();
 
     $this->addRequiredProp();

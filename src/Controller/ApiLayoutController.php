@@ -8,7 +8,7 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ClientDataToEntityConverter;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
-use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
@@ -178,8 +178,8 @@ final class ApiLayoutController {
           // Fork state and fork/unfork links. $entity is the auto-save draft
           // when one exists, so the reported state is draft-aware.
           // @see canvas_dev_translation.routing.yml
-          if ($forks_enabled && $translation->hasField(ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME)) {
-            $is_forked = ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($translation);
+          if ($forks_enabled && $translation->hasField(ComponentTreeTranslationFork::FIELD_NAME)) {
+            $is_forked = ComponentTreeTranslationFork::isForkedTranslation($translation);
             if ($is_forked) {
               $forked_translations[] = $langcode;
             }
@@ -322,7 +322,7 @@ final class ApiLayoutController {
             // independent), so they must not receive spurious auto-save
             // entries.
             // @see \Drupal\canvas\ComponentSource\ComponentSourceManager::updateComponentInstances()
-            if (ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($translation)) {
+            if (ComponentTreeTranslationFork::isForkedTranslation($translation)) {
               continue;
             }
             $this->autoSaveManager->saveEntity($translation);

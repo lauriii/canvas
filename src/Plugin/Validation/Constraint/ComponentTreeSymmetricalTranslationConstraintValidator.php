@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Plugin\DataType\ComponentInputs;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
@@ -71,7 +72,7 @@ final class ComponentTreeSymmetricalTranslationConstraintValidator extends Const
         $translation = $value->getTranslation($langcode);
         // Forked translations own an independent tree; their per-field
         // constraints still validate it in isolation.
-        if (ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($translation)) {
+        if (ComponentTreeTranslationFork::isForkedTranslation($translation)) {
           continue;
         }
         $target_tree = $translation->get($field_name);

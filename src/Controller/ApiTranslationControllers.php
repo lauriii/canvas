@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -77,7 +77,7 @@ final class ApiTranslationControllers extends ApiControllerBase {
         Response::HTTP_BAD_REQUEST,
       );
     }
-    if (!$canvas_page->hasField(ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME)) {
+    if (!$canvas_page->hasField(ComponentTreeTranslationFork::FIELD_NAME)) {
       return new JsonResponse(
         ['message' => \sprintf('Translation forks are not enabled for %s entities.', $canvas_page->getEntityTypeId())],
         Response::HTTP_BAD_REQUEST,
@@ -92,9 +92,9 @@ final class ApiTranslationControllers extends ApiControllerBase {
       ? (clone $canvas_page->getUntranslated())->getTranslation($canvas_page->language()->getId())
       : $draft->entity;
     \assert($translation instanceof ContentEntityInterface);
-    $translation->set(ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME, $forked);
+    $translation->set(ComponentTreeTranslationFork::FIELD_NAME, $forked);
     if (!$forked) {
-      ComponentTreeFieldSymmetricalTranslationSynchronizer::resyncFromDefaultTranslation($translation);
+      ComponentTreeTranslationFork::resyncFromDefaultTranslation($translation);
     }
     $this->autoSaveManager->saveEntity($translation);
     return new JsonResponse(status: Response::HTTP_NO_CONTENT);
