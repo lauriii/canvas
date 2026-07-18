@@ -1,0 +1,103 @@
+/*
+ * Icon picker visuals, per the "Icon Libraries" Figma file (node 73-13758,
+ * subnode 73:22639). Colors use the Radix theme tokens already used by the
+ * Canvas UI instead of the raw hex values in the Figma file.
+ */
+.picker {
+  overflow: hidden;
+  width: 304px;
+  max-height: 420px;
+  border-radius: var(--radius-3);
+  background: var(--color-panel-solid);
+}
+
+.header {
+  padding: var(--space-2) var(--space-3);
+  background: var(--blue-2);
+}
+
+.libraryChip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--blue-11);
+  border-radius: 3px;
+  background: var(--blue-4);
+}
+
+.libraryName {
+  color: var(--gray-12);
+}
+
+.libraryCount {
+  color: var(--gray-11);
+}
+
+.searchWrapper {
+  padding: var(--space-2);
+}
+
+.search {
+  width: 100%;
+}
+
+.scrollArea {
+  overflow-y: auto;
+  padding: 0 var(--space-2) var(--space-2);
+}
+
+.packHeading {
+  display: block;
+  margin: var(--space-2) 0 var(--space-1);
+  color: var(--gray-11);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: var(--space-3);
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-1);
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: var(--radius-2);
+  background: none;
+  gap: var(--space-1);
+  /* ponytail: large packs (thousands of icons) rely on content-visibility to
+     keep rendering cheap; per-pack lazy fetch is the upgrade path if the
+     payload itself becomes the bottleneck. */
+  content-visibility: auto;
+  contain-intrinsic-size: 68px 44px;
+}
+
+.cell:hover {
+  background: var(--gray-2);
+}
+
+.cellSelected,
+.cellSelected:hover {
+  border-color: var(--blue-9);
+  background: var(--blue-3);
+}
+
+.cellSelected .cellLabel {
+  color: var(--blue-9);
+}
+
+.cellLabel {
+  overflow: hidden;
+  max-width: 100%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+}

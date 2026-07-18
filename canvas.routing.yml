@@ -133,7 +133,7 @@ canvas.api.config.delete:
     _entity_access: 'canvas_config_entity.delete'
     _canvas_http_eligible_config_entity: 'TRUE'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|icon_library|page_region)'
   options:
     parameters:
       canvas_config_entity:
@@ -152,7 +152,7 @@ canvas.api.config.get:
     _canvas_http_eligible_config_entity: 'TRUE'
     _entity_access: 'canvas_config_entity.view'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|icon_library|page_region)'
     # The UI client can fetch all the components the current user has access too, regardless of which kind of Canvas-enabled
     # entity you're editing.
     _canvas_ui_access: 'TRUE'
@@ -176,7 +176,7 @@ canvas.api.config.list: &config_list_route
     # But deter users from trying to access other config entities via this route: this ensures 404 responses rather than
     # 403.
     # @see \Drupal\Tests\canvas\Functional\CanvasConfigEntityHttpApiTest::testNonCanvasConfigEntity()
-    canvas_config_entity_type_id: '(folder|content_template|component|pattern|js_component|asset_library|brand_kit|page_region)'
+    canvas_config_entity_type_id: '(folder|content_template|component|pattern|js_component|asset_library|brand_kit|icon_library|page_region)'
     # The UI client can fetch all the components the current user has access too, regardless of which kind of Canvas-enabled
     # entity you're editing.
     _canvas_ui_access: 'TRUE'
@@ -208,7 +208,7 @@ canvas.api.config.patch:
     _canvas_http_eligible_config_entity: 'TRUE'
     _entity_access: 'canvas_config_entity.update'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|icon_library|page_region)'
   options:
     parameters:
       canvas_config_entity:
@@ -228,7 +228,7 @@ canvas.api.config.post:
     # @todo: Use _entity_create_access once dynamic entity types are supported. See https://www.drupal.org/project/drupal/issues/3516775
     _canvas_entity_create_access: 'canvas_config_entity_type_id'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|icon_library|page_region)'
   options:
     # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
     canvas_external_api: true
@@ -460,6 +460,34 @@ canvas.api.form.content_entity:
     - GET
     # Used by Drupal's AJAX system.
     - POST
+
+canvas.api.icons.list:
+  path: '/canvas/api/v0/icons'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiIconsController::list'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_icons_access: 'TRUE'
+  methods: [GET]
+  options:
+    _format: 'json'
+    # Also reachable by the Canvas CLI (icon library pull).
+    canvas_external_api: true
+
+canvas.api.icons.upload:
+  path: '/canvas/api/v0/icon-libraries/{icon_library}/assets'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiIconsController::upload'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _entity_access: 'icon_library.update'
+  methods: [POST]
+  options:
+    _format: 'json'
+    canvas_external_api: true
+    parameters:
+      icon_library:
+        type: entity:icon_library
 
 canvas.api.layout.content_template_draft:
   path: '/canvas/api/v0/layout-content-template-draft/{entity_type}/{preview_entity}'

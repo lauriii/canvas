@@ -8,6 +8,7 @@ use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\IconLibrary;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\Core\Authentication\AuthenticationProviderInterface;
@@ -63,6 +64,8 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
     // and draft content-template preview.
     $named_routes = [
       'canvas.api.artifacts.upload',
+      'canvas.api.icons.list',
+      'canvas.api.icons.upload',
       'canvas.api.push.complete',
       'canvas.api.push.fail',
       'canvas.api.push.start',
@@ -90,6 +93,7 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       AssetLibrary::ENTITY_TYPE_ID,
       BrandKit::ENTITY_TYPE_ID,
       ContentTemplate::ENTITY_TYPE_ID,
+      IconLibrary::ENTITY_TYPE_ID,
       PageRegion::ENTITY_TYPE_ID,
     ];
 

@@ -126,6 +126,11 @@
         }
       }
     },
+    "icon": {
+      "title": "Icon",
+      "type": "string",
+      "pattern": "^[a-z0-9_]+:.+$"
+    },
     "shoe-icon": {
       "title": "Icon",
       "type": "object",

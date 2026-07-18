@@ -34,6 +34,7 @@ import FormPropTypeContentEntityReference from '@/features/code-editor/component
 import FormPropTypeDate from '@/features/code-editor/component-data/forms/FormPropTypeDate';
 import FormPropTypeEnum from '@/features/code-editor/component-data/forms/FormPropTypeEnum';
 import FormPropTypeFormattedText from '@/features/code-editor/component-data/forms/FormPropTypeFormattedText';
+import FormPropTypeIcon from '@/features/code-editor/component-data/forms/FormPropTypeIcon';
 import FormPropTypeImage from '@/features/code-editor/component-data/forms/FormPropTypeImage';
 import FormPropTypeLink, {
   DEFAULT_LINK_EXAMPLES,
@@ -207,11 +208,18 @@ export default function Props() {
                       value === 'image' || value === 'video';
                     const isContentEntityReference =
                       value === 'contentEntityReference';
+                    // The icon example depends on the installed icon packs, so
+                    // it is picked in the icon form rather than defaulted here.
+                    // @see FormPropTypeIcon
+                    const isIcon = value === 'icon';
                     // Default examples for image and video are handled in their own components
                     // regardless of required or not.
                     // @see FormPropTypeImage and FormPropTypeVideo
                     const defaultExample =
-                      isRequired && !isImageOrVideo && !isContentEntityReference
+                      isRequired &&
+                      !isImageOrVideo &&
+                      !isContentEntityReference &&
+                      !isIcon
                         ? DEFAULT_EXAMPLES[value]
                         : '';
                     dispatch(
@@ -221,6 +229,7 @@ export default function Props() {
                           derivedType: value,
                           $ref: undefined,
                           format: undefined,
+                          pattern: undefined,
                           // Explicitly clear type-specific fields so they are not
                           // carried over from a previously selected prop type.
                           // When adding a new prop type with type-specific fields,
@@ -333,6 +342,15 @@ export default function Props() {
                   allowMultiple={prop.allowMultiple}
                   valueMode={prop.valueMode}
                   limitedCount={prop.limitedCount}
+                />
+              );
+            case 'icon':
+              return (
+                <FormPropTypeIcon
+                  id={prop.id}
+                  example={prop.example as string}
+                  pattern={prop.pattern}
+                  isDisabled={disabledPropIds.has(prop.id)}
                 />
               );
             case 'image':

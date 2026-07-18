@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\JsonSchemaInterpreter;
 
+use Drupal\canvas\Icon\IconPropShape;
 use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
@@ -306,6 +307,11 @@ enum JsonSchemaType: string {
           // Other `x-formatting-context` values do not make sense.
           default => NULL,
         },
+        // Icons: the core Icon API's full icon id (`pack_id:icon_id`) stored
+        // as a plain string. Recognized either by the well-known `$ref` or by
+        // its (potentially pack-scoped) `pattern` after `$ref` resolution.
+        // @see \Drupal\canvas\Icon\IconPropShape
+        IconPropShape::isIconSchema($schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('string', 'value'), fieldWidget: 'canvas_icon'),
         // Require $ref to be resolved, because that might add some of the other
         // keywords.
         \array_key_exists('$ref', $schema) => NULL,

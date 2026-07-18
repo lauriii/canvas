@@ -984,6 +984,59 @@ canvas.brand_kit.*:
                   type: float
                   label: 'Default axis value'
 
+canvas.icon_library.*:
+  type: config_entity
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    id:
+      type: machine_name
+      label: 'Icon library ID'
+      constraints:
+        # Restates the `machine_name` type's constraints: constraints defined
+        # at the use site replace the type-level ones instead of merging.
+        # @see \Drupal\Core\Config\TypedConfigManager::buildDataDefinition()
+        Regex:
+          pattern: '/^[a-z0-9_]+$/'
+          message: "The %value machine name is not valid."
+        Length:
+          # @see \Drupal\Core\Config\Entity\ConfigEntityStorage::MAX_ID_LENGTH
+          max: 166
+        Callback:
+          callback: ['\Drupal\canvas\Entity\IconLibrary', validateIconPackIdCollision]
+    label:
+      type: required_label
+      label: 'Human-readable label'
+    description:
+      type: text
+      label: 'Human-readable description'
+      nullable: true
+      requiredKey: false
+    template:
+      type: string
+      label: 'Twig template used to render icons in this library'
+      nullable: true
+      requiredKey: false
+    assets:
+      type: sequence
+      label: 'Uploaded SVG files'
+      nullable: true
+      orderby: value
+      # Should be omitted when there are no assets.
+      requiredKey: false
+      constraints:
+        # There must be >=1 SVG file; otherwise the key should be omitted.
+        NotBlank: ~
+        Unique:
+          fields: [name]
+          errorPath: name
+          message: 'Asset names must be unique.'
+          stopOnFirstError: false
+        Callback:
+          callback: ['\Drupal\canvas\Entity\IconLibrary', validateAssets]
+      sequence:
+        type: canvas.asset_library_manifest_entry
+
 canvas.compilable_code:
   type: mapping
   label: 'Compilable code'

@@ -121,6 +121,7 @@ The following scopes are created as dynamic scopes (stored as config entities) u
 | `canvas:js_component`                | `administer code components` |
 | `canvas:asset_library`               | `administer code components` |
 | `canvas:brand_kit`                   | `administer brand kit`       |
+| `canvas:icon_library`                | `administer icon libraries`  |
 | `canvas:page:read`                   | `access content`             |
 | `canvas:page:create`                 | `create canvas_page`         |
 | `canvas:page:edit`                   | `edit canvas_page`           |

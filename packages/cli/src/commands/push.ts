@@ -10,6 +10,13 @@ import {
   buildFontPushPlannedResults,
   pushFonts,
 } from '../lib/fonts/font-push.js';
+import {
+  buildIconPushPlannedResults,
+  collectIconLibraryResults,
+  discoverIconLibraryDirs,
+  prepareIconLibrariesPush,
+  pushIconLibrary,
+} from '../lib/icons/icon-push.js';
 import { createApiService, ensureAuthConfig } from '../services/api.js';
 import { buildCanvasProject } from '../utils/build-project';
 import {
@@ -66,6 +73,7 @@ import type {
   UploadedArtifactResult,
 } from '../types/Component.js';
 import type { ContentTemplateListItem } from '../types/ContentTemplate.js';
+import type { IconLibrary } from '../types/IconLibrary.js';
 import type { PageListItem } from '../types/Page.js';
 import type { Result } from '../types/Result.js';
 import type { CommandSummaryResource } from '../utils/command-summary';
@@ -91,7 +99,8 @@ type PlannedPushResourceKey =
   | 'pages'
   | 'content-templates'
   | 'global-regions'
-  | 'brand-kit';
+  | 'brand-kit'
+  | 'icons';
 
 interface NotStartedPushResource {
   key: PlannedPushResourceKey;
@@ -169,6 +178,7 @@ function buildNotStartedResources(
       itemType: 'Global region',
     },
     { key: 'brand-kit', label: 'brand kit', itemType: 'Font variant' },
+    { key: 'icons', label: 'Icon libraries', itemType: 'Icon library' },
   ];
 
   return resourceDefinitions
@@ -614,7 +624,7 @@ export function pushCommand(program: Command): void {
   program
     .command('push')
     .description(
-      'build and push local components, global CSS, component dependencies, and optional fonts and content to Drupal',
+      'build and push local components, global CSS, component dependencies, and optional fonts, icons, and content to Drupal',
     )
     .option('--client-id <id>', 'Client ID')
     .option('--client-secret <secret>', 'Client Secret')
@@ -682,7 +692,12 @@ export function pushCommand(program: Command): void {
         const includesContentTemplates = config.includeContentTemplates;
         const includesRegions = config.includeRegions;
         const includesBrandKit = config.includeBrandKit;
+        // Icon libraries are part of the brand kit workflow.
+        const includesIcons = includesBrandKit;
         const hasBrandKitFontsConfig = config.fonts !== undefined;
+        const discoveredIconLibraries = includesIcons
+          ? await discoverIconLibraryDirs(process.cwd())
+          : [];
         // Step 1. Discover all components, pages, content templates and regions.
         const discoveryResult = await discoverCanvasProject({
           componentRoot: componentDir,
@@ -774,6 +789,7 @@ export function pushCommand(program: Command): void {
           discoveredPages.length === 0 &&
           discoveredContentTemplates.length === 0 &&
           discoveredRegions.length === 0 &&
+          discoveredIconLibraries.length === 0 &&
           !(includesBrandKit && hasBrandKitFontsConfig)
         ) {
           logIgnoredLocalResources();
@@ -819,6 +835,16 @@ export function pushCommand(program: Command): void {
             remoteBrandKitFonts = brandKit.fonts ?? [];
           } catch {
             remoteBrandKitFonts = [];
+          }
+        }
+
+        // Fetch remote icon libraries early for the planned operations summary.
+        let remoteIconLibraries: Record<string, IconLibrary> = {};
+        if (includesIcons && discoveredIconLibraries.length > 0) {
+          try {
+            remoteIconLibraries = await apiService.getIconLibraries();
+          } catch {
+            remoteIconLibraries = {};
           }
         }
 
@@ -950,6 +976,14 @@ export function pushCommand(program: Command): void {
                 delete: operationLabels.delete,
               })
             : []),
+          ...buildIconPushPlannedResults(
+            discoveredIconLibraries.map((library) => library.id),
+            remoteIconLibraries,
+            {
+              create: operationLabels.create,
+              update: operationLabels.update,
+            },
+          ),
         ];
         if (plannedResults.length > 0) {
           notStartedResources.push(...buildNotStartedResources(plannedResults));
@@ -981,6 +1015,11 @@ export function pushCommand(program: Command): void {
           }
           if (includesBrandKit && hasBrandKitFontsConfig) {
             parts.push('brand kit fonts (canvas.brand-kit.json)');
+          }
+          if (discoveredIconLibraries.length > 0) {
+            parts.push(
+              `${discoveredIconLibraries.length} icon ${pluralize(discoveredIconLibraries.length, 'library', 'libraries')}`,
+            );
           }
           const confirmed = await p.confirm({
             message: `Push these changes to ${config.siteUrl}?`,
@@ -1201,6 +1240,63 @@ export function pushCommand(program: Command): void {
               'Brand kit push failed',
               formatErrorMessage(err),
             );
+          }
+        }
+
+        // Step 4c: Push icon libraries from icons/ (when enabled).
+        if (includesIcons && discoveredIconLibraries.length > 0) {
+          const iconSummary = await runPushResourcePipeline({
+            labels: {
+              start: 'Pushing icon libraries',
+              validating: 'Validating icon libraries',
+              preparing: 'Preparing icon libraries',
+              pushing: 'Pushing icon libraries',
+              done: 'Pushed icon libraries',
+            },
+            phases: {
+              validation: 'Icon library validation failed',
+              preparation: 'Icon library preparation failed',
+              push: 'Icon library push failed',
+            },
+            messages: {
+              validation: 'Icon library validation failed.',
+              noValidItems: 'No valid icon libraries to push.',
+              push: 'Some icon libraries failed to push.',
+            },
+            itemLabel: 'Icon library',
+            markStarted: () =>
+              removeNotStartedResource(notStartedResources, 'icons'),
+            prepare: () => prepareIconLibrariesPush(process.cwd()),
+            push: async (validLibraries) => {
+              const remoteLibraries = await pushApiService.getIconLibraries();
+              const results = await processInPool(validLibraries, (entry) =>
+                pushIconLibrary(
+                  pushApiService,
+                  entry.result,
+                  remoteLibraries[entry.result.id],
+                ),
+              );
+              return results.map((result) => ({
+                ...result,
+                success: Boolean(result.success && result.result?.success),
+                index: validLibraries[result.index]?.index ?? result.index,
+              }));
+            },
+            collectResults: (pushResults, failedPreps) =>
+              collectIconLibraryResults(
+                pushResults,
+                failedPreps,
+                discoveredIconLibraries,
+              ),
+            reportOptions: PUSH_REPORT_OPTIONS,
+            summary: {
+              label: 'Icon libraries',
+              unit: 'icon library',
+              unitPlural: 'icon libraries',
+            },
+          });
+          if (iconSummary) {
+            completedResources.push(iconSummary);
           }
         }
 

@@ -22,10 +22,12 @@ import {
   getImportsFromAst,
 } from '@/features/code-editor/utils/ast-utils';
 import {
+  getPropMachineName,
   getPropValuesForPreview,
   getSlotNamesForPreview,
 } from '@/features/code-editor/utils/utils';
 import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
+import { useGetIconPacksQuery } from '@/services/icons';
 import {
   getBaseUrl,
   getCanvasSettings,
@@ -79,6 +81,10 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const [isJsImportError, setIsJsImportError] = useState(false);
   const { data: codeComponents } = useGetCodeComponentsQuery();
+  // Only fetch the installed icon packs when an icon prop needs resolving.
+  const { data: iconPacks } = useGetIconPacksQuery(undefined, {
+    skip: !props.some((prop) => prop.derivedType === 'icon'),
+  });
   const [jsImportNameWithError, setJsImportNameWithError] = useState('');
 
   const [iframeSrcDoc, setIframeSrcDoc] = useState('');
@@ -242,6 +248,29 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     // restrictions.
     // @see ui/lib/code-editor-preview.js
     const propValues = getPropValuesForPreview(props);
+    // Resolve icon props into renderable values (inline SVG or URL) using the
+    // installed icon packs, mirroring the server-side resolution at render
+    // time. An empty or unresolvable value becomes null.
+    // @see \Drupal\canvas\Icon\IconResolver
+    props
+      .filter((prop) => prop.name && prop.derivedType === 'icon')
+      .forEach((prop) => {
+        const machineName = getPropMachineName(prop.name);
+        const value = propValues[machineName];
+        const icon =
+          typeof value === 'string' && value !== ''
+            ? (iconPacks ?? [])
+                .flatMap((pack) => pack.icons)
+                .find((icon) => icon.id === value)
+            : undefined;
+        propValues[machineName] = icon
+          ? {
+              id: icon.id,
+              ...(icon.svg ? { svg: icon.svg } : {}),
+              ...(icon.url ? { url: icon.url } : {}),
+            }
+          : null;
+      });
     const slotNames = getSlotNamesForPreview(slots);
     const previewGlobalFontCss = buildFontFaceStyles(brandKitFonts ?? []);
     const previewGlobalFontPreloads = getFontPreloadDefinitions(
@@ -282,6 +311,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     compiledJs,
     getIframeSrc,
     brandKitFonts,
+    iconPacks,
     previewCompiledJsForSlots,
     props,
     slots,

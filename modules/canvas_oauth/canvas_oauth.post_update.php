@@ -308,3 +308,44 @@ function canvas_oauth_post_update_0006_page_region_scope(array &$sandbox): void 
     ])->save();
   }
 }
+
+/**
+ * Install the canvas:icon_library scope.
+ */
+function canvas_oauth_post_update_0007_icon_library_scope(array &$sandbox): void {
+  $scope = Oauth2Scope::load('canvas_icon_library');
+  if (!$scope) {
+    Oauth2Scope::create([
+      'id' => 'canvas_icon_library',
+      'name' => 'canvas:icon_library',
+      'description' => 'Grants access to manage icon libraries.',
+      'status' => TRUE,
+      'grant_types' => [
+        'authorization_code' => [
+          'status' => TRUE,
+          'description' => 'Authorization code access for icon libraries',
+        ],
+        'refresh_token' => [
+          'status' => TRUE,
+          'description' => 'Refresh token access for icon libraries',
+        ],
+        'client_credentials' => [
+          'status' => TRUE,
+          'description' => 'Client credentials access for icon libraries',
+        ],
+      ],
+      'umbrella' => FALSE,
+      'granularity_id' => 'permission',
+      'granularity_configuration' => [
+        'permission' => 'administer icon libraries',
+      ],
+      'dependencies' => [
+        'enforced' => [
+          'module' => [
+            'canvas_oauth',
+          ],
+        ],
+      ],
+    ])->save();
+  }
+}

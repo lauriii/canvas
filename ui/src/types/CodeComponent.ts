@@ -91,6 +91,7 @@ export interface CodeComponentProp {
     | CodeComponentPropVideoExample[];
   $ref?: string;
   format?: string;
+  pattern?: string;
   derivedType: (typeof derivedPropTypes)[number]['type'] | null;
   contentMediaType?: string;
   'x-formatting-context'?: string;
@@ -144,6 +145,7 @@ export interface CodeComponentPropSerialized {
   )[];
   $ref?: string;
   format?: string;
+  pattern?: string;
   contentMediaType?: string;
   'x-formatting-context'?: string;
   'x-allowed-entity-type-id'?: string;
@@ -183,7 +185,24 @@ export type CodeComponentPropPreviewValue =
   | string[]
   | number[]
   | CodeComponentPropImageExample[]
-  | CodeComponentPropVideoExample[];
+  | CodeComponentPropVideoExample[]
+  // Icon props resolve to a renderable value for the preview, mirroring the
+  // server-side resolution at render time.
+  | CodeComponentPropIconPreviewValue
+  | null;
+
+/**
+ * The renderable value an icon prop resolves to.
+ *
+ * Mirrors the server-side resolution: inline `svg` markup or an asset `url`.
+ *
+ * @see \Drupal\canvas\Icon\IconResolver
+ */
+export interface CodeComponentPropIconPreviewValue {
+  id: string;
+  svg?: string;
+  url?: string;
+}
 
 export interface AssetLibrary {
   id: string;

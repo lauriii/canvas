@@ -28,6 +28,10 @@ administer content templates:
 administer brand kit:
   title: 'Administer brand kit'
 
+# @see \Drupal\canvas\Entity\IconLibrary::ADMIN_PERMISSION
+administer icon libraries:
+  title: 'Administer icon libraries'
+
 # @see \Drupal\canvas\Entity\Page::CREATE_PERMISSION
 create canvas_page:
   title: 'Create Canvas Page'

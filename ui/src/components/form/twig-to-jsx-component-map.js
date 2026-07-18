@@ -10,6 +10,7 @@ import DrupalDetails from '@/components/form/components/drupal/DrupalDetails';
 import DrupalForm from '@/components/form/components/drupal/DrupalForm';
 import DrupalFormElement from '@/components/form/components/drupal/DrupalFormElement';
 import DrupalFormElementLabel from '@/components/form/components/drupal/DrupalFormElementLabel';
+import DrupalIconPicker from '@/components/form/components/drupal/DrupalIconPicker';
 import DrupalInput from '@/components/form/components/drupal/DrupalInput';
 import DrupalInputMultivalueForm from '@/components/form/components/drupal/DrupalInputMultivalueForm';
 import DrupalMediaLibraryFieldset from '@/components/form/components/drupal/DrupalMediaLibraryFieldset.tsx';
@@ -43,6 +44,7 @@ const twigToJSXComponentMap = {
   'drupal-canvas-input--checkbox--inwidget-boolean-checkbox': DrupalToggle,
   'drupal-canvas-input--url': DrupalInput,
   'drupal-canvas-input--textfield--inwidget-path': DrupalPathWidget,
+  'drupal-canvas-icon-picker': DrupalIconPicker,
   'drupal-canvas-input--multivalue-form': DrupalInputMultivalueForm,
   'drupal-canvas-datetime-wrapper--multivalue-form':
     DrupalDatetimeMultivalueForm,

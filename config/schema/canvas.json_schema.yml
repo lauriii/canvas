@@ -147,6 +147,26 @@ canvas.json_schema.prop_shape.string:
         Choice:
           choices:
             - 'text/html'
+    # Currently the only supported `type: string` shape using `$ref` is the
+    # icon shape.
+    # @see \Drupal\canvas\Icon\IconPropShape
+    '$ref':
+      requiredKey: false
+      type: string
+      constraints:
+        Choice:
+          choices:
+            - 'json-schema-definitions://canvas.module/icon'
+    # Only supported for icon props: either the icon shape's base pattern, or
+    # a generated pack-scope pattern such as `^(phosphor|heroicons):.+$`.
+    # @see \Drupal\canvas\Icon\IconPropShape
+    pattern:
+      requiredKey: false
+      type: string
+      label: 'Pattern'
+      constraints:
+        Regex:
+          pattern: '/^\^\(([a-z0-9_]+(\|[a-z0-9_]+)*)\):\.\+\$$|^\^\[a-z0-9_\]\+:\.\+\$$/'
     # @see docs/shape-matching-into-field-types.md#3.2
     'x-formatting-context':
       requiredKey: false

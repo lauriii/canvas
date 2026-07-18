@@ -162,6 +162,41 @@ adds human-readable axis names (e.g. "Weight", "Optical size") for common
 OpenType axis tags so the Brand Kit UI shows the same CSS axes sliders and
 labels as for fonts uploaded via the UI.
 
+#### Icon libraries
+
+Icon libraries are part of the brand kit workflow: icon sync is enabled with
+`--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT=true` and uses an `icons/`
+directory in the project root:
+
+```
+icons/
+  my_icons/
+    manifest.json      # canvas-managed library: { id, label, description?, template? }
+    star.svg           # icons; the filename (minus .svg) is the icon id
+  lucide/
+    pack.json          # module-provided pack info written by pull; not pushed
+```
+
+- **Canvas-managed libraries** are directories with a `manifest.json`. `push`
+  uploads every `*.svg` file in the directory and creates or updates the
+  matching icon library on the site. `pull` writes these directories from the
+  site, so a pulled library can be pushed again unchanged.
+- **Module-provided packs** are icon packs installed on the site by modules.
+  `pull` writes an informational `pack.json` (with `managed: false`) for each;
+  `push` skips directories without a `manifest.json`.
+
+Library ids (directory names) may only contain lowercase letters, digits, and
+underscores. Icon filenames may only contain letters, digits, dots, underscores,
+and dashes, and must end in `.svg`. The `template` field is an optional
+rendering template override; omit it to use the server default.
+
+**SVG sanitization:** The server rejects unsafe SVG files (scripts, event
+handler attributes, `javascript:` URLs, DOCTYPE declarations, and external
+references) with a per-file error. The CLI runs the same checks locally before
+uploading for fast feedback, and reports server-side rejections with the file
+path and the server's error message. A rejected file fails its library, but
+other libraries continue to push.
+
 If you still have `CANVAS_COMPONENT_DIR` set in your shell, `.env`, or
 `.canvasrc`, the CLI will warn you and offer to create or update
 `canvas.config.json` with `componentDir`.
@@ -302,8 +337,8 @@ import Button from '@/components/button';
 ### `pull`
 
 Pull code components, global CSS, pages, content templates, and global regions
-from Drupal to your local filesystem. Brand Kit fonts are only included when
-explicitly enabled.
+from Drupal to your local filesystem. Brand Kit fonts and icon libraries are
+only included when explicitly enabled.
 
 **Usage:**
 
@@ -350,6 +385,12 @@ Pull Brand Kit fonts:
 npx canvas pull --include-brand-kit
 ```
 
+Pull icon libraries:
+
+```bash
+npx canvas pull --include-brand-kit
+```
+
 Pull only new items (skip existing):
 
 ```bash
@@ -366,8 +407,9 @@ Pulls Code Components, global CSS, pages, content templates, and global regions
 from your site by default. Use `--no-pages`, `--no-content-templates`, or
 `--no-regions` to exclude those resources for a single run, or set `sync.*` in
 `canvas.config.json` to change project defaults. Use `--include-brand-kit` or
-`CANVAS_INCLUDE_BRAND_KIT=true` to include Brand Kit fonts. Use
-`--skip-overwrite` to skip items that already exist locally.
+`CANVAS_INCLUDE_BRAND_KIT=true` to include Brand Kit fonts, and
+`--include-brand-kit` also pulls icon libraries. Use `--skip-overwrite` to skip
+items that already exist locally.
 
 **Fonts:** The pull command fetches fonts from the global Brand Kit, downloads
 font files into a `fonts/` directory, and adds local `src` entries to
@@ -377,6 +419,11 @@ push) are skipped, so push-then-pull is idempotent. New variants added via the
 Canvas UI for a family you already have in config are downloaded and appended to
 `families`. Requires `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT` which
 will add the `canvas:brand_kit` OAuth scope.
+
+**Icons:** With `--include-brand-kit`, the pull command writes every
+canvas-managed icon library to `icons/<id>/` (a `manifest.json` plus the SVG
+files) and an informational `icons/<id>/pack.json` for every module-provided
+icon pack. See [Icon libraries](#icon-libraries).
 
 ---
 
@@ -480,8 +527,8 @@ tree-shaking, and dependency management.
 ### `push`
 
 Build and push local components, global CSS, build artifacts, pages, content
-templates, and global regions to Drupal. Brand Kit fonts are only included when
-explicitly enabled.
+templates, and global regions to Drupal. Brand Kit fonts and icon libraries are
+only included when explicitly enabled.
 
 **Usage:**
 
@@ -519,6 +566,12 @@ Push Brand Kit fonts:
 npx canvas push --include-brand-kit
 ```
 
+Push icon libraries:
+
+```bash
+npx canvas push --include-brand-kit
+```
+
 Push components in a specific directory:
 
 ```bash
@@ -544,16 +597,22 @@ component assets. Push can include:
    Requires `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT` which will add
    the `canvas:brand_kit` OAuth scope. See
    [Font push (Brand Kit)](#font-push-brand-kit).
-4. **Vendor artifacts** - Bundled third-party dependencies
-5. **Local artifacts** - Bundled local imports (e.g., `@/utils`)
-6. **Shared chunks** - Common code shared between vendor bundles
-7. **Pages** - Canvas pages built from components, unless excluded with
+4. **Icon libraries** - With `--include-brand-kit` or
+   `CANVAS_INCLUDE_BRAND_KIT`, each `icons/<id>/` directory with a
+   `manifest.json` is validated, its SVG files are uploaded, and the icon
+   library is created or updated (or reported unchanged). Files rejected by the
+   server's SVG sanitizer fail that library with the file path and server error;
+   other libraries continue. See [Icon libraries](#icon-libraries).
+5. **Vendor artifacts** - Bundled third-party dependencies
+6. **Local artifacts** - Bundled local imports (e.g., `@/utils`)
+7. **Shared chunks** - Common code shared between vendor bundles
+8. **Pages** - Canvas pages built from components, unless excluded with
    `--no-pages` or `sync.pages: false`.
-8. **Content Templates** - Content templates that define component layouts for
+9. **Content Templates** - Content templates that define component layouts for
    entity view modes, unless excluded with `--no-content-templates` or
    `sync.contentTemplates: false`.
-9. **Global regions** - Theme global regions, unless excluded with
-   `--no-regions` or `sync.regions: false`.
+10. **Global regions** - Theme global regions, unless excluded with
+    `--no-regions` or `sync.regions: false`.
 
 ---
 
