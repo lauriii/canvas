@@ -27,7 +27,8 @@ import {
 import {
   buildIconPushPlannedResults,
   collectIconLibraryResults,
-  discoverIconLibraryDirs,
+  discoverIconLibraries,
+  planIconLibraryDeletions,
   prepareIconLibrariesPush,
   pushIconLibrary,
 } from '../lib/icons/icon-push.js';
@@ -805,9 +806,12 @@ export function pushCommand(program: Command): void {
         // .astro, .svelte) that the Canvas build pipeline cannot compile, so
         // discovery must not require a JavaScript entry in this mode.
         const headlessSdkDetected = detectHeadlessSdk(process.cwd());
-        const discoveredIconLibraries = includesIcons
-          ? await discoverIconLibraryDirs(process.cwd())
-          : [];
+        const {
+          libraries: discoveredIconLibraries,
+          authoritative: iconsAuthoritative,
+        } = includesIcons
+          ? await discoverIconLibraries(process.cwd())
+          : { libraries: [], authoritative: false };
         // Step 1. Discover all components, pages, content templates and page
         // templates.
         const discoveryResult = await discoverCanvasProject({
@@ -989,7 +993,10 @@ export function pushCommand(program: Command): void {
 
         // Fetch remote icon libraries early for the planned operations summary.
         let remoteIconLibraries: Record<string, IconLibrary> = {};
-        if (includesIcons && discoveredIconLibraries.length > 0) {
+        if (
+          includesIcons &&
+          (discoveredIconLibraries.length > 0 || iconsAuthoritative)
+        ) {
           try {
             remoteIconLibraries = await apiService.getIconLibraries();
           } catch {
@@ -1144,7 +1151,9 @@ export function pushCommand(program: Command): void {
             {
               create: operationLabels.create,
               update: operationLabels.update,
+              delete: operationLabels.delete,
             },
+            iconsAuthoritative,
           ),
           ...(includesBrandKit && config.colors !== undefined
             ? buildColorPushPlannedResults(
@@ -1459,7 +1468,11 @@ export function pushCommand(program: Command): void {
         }
 
         // Step 4c: Push icon libraries from icons/ (when enabled).
-        if (includesIcons && discoveredIconLibraries.length > 0) {
+        if (
+          includesIcons &&
+          (discoveredIconLibraries.length > 0 ||
+            (iconsAuthoritative && Object.keys(remoteIconLibraries).length > 0))
+        ) {
           const iconSummary = await runPushResourcePipeline({
             labels: {
               start: 'Pushing icon libraries',
@@ -1502,11 +1515,49 @@ export function pushCommand(program: Command): void {
                   ),
                 1,
               );
-              return results.map((result) => ({
+              const mapped = results.map((result) => ({
                 ...result,
                 success: Boolean(result.success && result.result?.success),
                 index: validLibraries[result.index]?.index ?? result.index,
               }));
+              // A declared library list is authoritative: remove remote
+              // canvas-managed libraries that are no longer listed,
+              // mirroring fonts' replace semantics.
+              const deletions = planIconLibraryDeletions(
+                remoteLibraries,
+                discoveredIconLibraries.map((library) => library.id),
+                iconsAuthoritative,
+              );
+              let deletionIndex = discoveredIconLibraries.length;
+              for (const id of deletions) {
+                context?.updateMessage(`Deleting icon library ${id}`);
+                try {
+                  await pushApiService.deleteIconLibrary(id);
+                  mapped.push({
+                    success: true,
+                    result: {
+                      id,
+                      operation: 'delete',
+                      success: true,
+                      errors: [],
+                    },
+                    index: deletionIndex++,
+                  });
+                } catch (error) {
+                  mapped.push({
+                    success: false,
+                    result: {
+                      id,
+                      success: false,
+                      errors: [
+                        error instanceof Error ? error.message : String(error),
+                      ],
+                    },
+                    index: deletionIndex++,
+                  });
+                }
+              }
+              return mapped;
             },
             collectResults: (pushResults, failedPreps) =>
               collectIconLibraryResults(
