@@ -45,6 +45,11 @@ use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\TypedData\PrimitiveInterface;
+use Drupal\Core\TypedData\TraversableTypedDataInterface;
+use Drupal\Core\TypedData\Type\FloatInterface;
+use Drupal\Core\TypedData\Type\IntegerInterface;
+use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\system\Plugin\Block\SystemBreadcrumbBlock;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\ConstraintViolation;
@@ -483,7 +488,81 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     // plugin ID.
     $input += $defaults;
     unset($input['provider'], $input['id']);
+
+    // Cast each input value to the native PHP type its config schema dictates,
+    // mirroring how core casts a Block config entity's settings when the entity
+    // is saved: an integer setting such as a menu block's `level` and `depth` is
+    // then stored as an integer, not a string. Only valid input is cast:
+    // invalid intermediate input is stored verbatim so that validation can flag
+    // it and the Content Creator can correct it, exactly as core leaves an
+    // unsaved, invalid block form untouched.
+    // @see \Drupal\Core\Config\StorableConfigBase::castValue()
+    $definition = $block_plugin->getPluginDefinition();
+    \assert(\is_array($definition));
+    $typed_input = $this->typedConfigManager->createFromNameAndData(
+      'block.settings.' . $block_plugin->getPluginId(),
+      // `id` and `provider` are required by the config schema for validation,
+      // but are not stored; they are re-derived from the plugin ID.
+      // @see ::validateComponentInput()
+      $input + [
+        'id' => $block_plugin->getPluginId(),
+        'provider' => $definition['provider'] ?? 'system',
+      ],
+    );
+    if ($typed_input->validate()->count() === 0) {
+      $casted = self::castToConfigSchemaTypes($typed_input);
+      \assert(\is_array($casted));
+      unset($casted['id'], $casted['provider']);
+      $input = $casted;
+    }
     return $input;
+  }
+
+  /**
+   * Casts typed config to native PHP types, mirroring core's config casting.
+   *
+   * Recursively casts every primitive leaf via
+   * `PrimitiveInterface::getCastedValue()`, but preserves NULL and treats an
+   * empty string for a numeric type as NULL, exactly as core does when it saves
+   * config. Without the NULL handling, a menu block's "Unlimited" depth (stored
+   * as NULL) would be coerced to 0 and then rejected by its `MenuLinkDepth`
+   * (min 1) constraint.
+   *
+   * This deliberately does not reuse
+   * `ComponentSourceBase::castRawTypedConfigToPhpTypes()`: that helper feeds the
+   * component version hash and intentionally casts NULL primitives, so widening
+   * it to preserve NULL could change existing components' version ids.
+   *
+   * @param \Drupal\Core\TypedData\TypedDataInterface $element
+   *   The typed config element to extract from.
+   *
+   * @return mixed
+   *   Scalar/NULL for primitives; an array (keys preserved) for mappings and
+   *   sequences.
+   *
+   * @see \Drupal\Core\Config\StorableConfigBase::castValue()
+   */
+  private static function castToConfigSchemaTypes(TypedDataInterface $element): mixed {
+    if ($element instanceof PrimitiveInterface) {
+      $value = $element->getValue();
+      if ($value === NULL || ($value === '' && ($element instanceof IntegerInterface || $element instanceof FloatInterface))) {
+        return NULL;
+      }
+      return $element->getCastedValue();
+    }
+    if ($element instanceof TraversableTypedDataInterface) {
+      if ($element->getValue() === NULL) {
+        return NULL;
+      }
+      $casted = [];
+      foreach ($element as $name => $child) {
+        $casted[$name] = self::castToConfigSchemaTypes($child);
+      }
+      return $casted;
+    }
+    // Anything neither primitive nor traversable (e.g. an `ignore` element) has
+    // no canonical config-schema type; use its value verbatim.
+    return $element->getValue();
   }
 
   /**
