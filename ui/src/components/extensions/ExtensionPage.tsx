@@ -46,13 +46,15 @@ const ExtensionPage: React.FC = () => {
       // links out of the extension into the Canvas app itself cannot use
       // target="_top". Extensions instead post an in-app route (relative to
       // the router basename, e.g. `/preview/canvas_page/1/full?language=fr`)
-      // and the parent navigates. `//host` would be a cross-origin URL, not
-      // an in-app route: reject it.
+      // and the parent navigates. `//host` (and its `\` spellings — URL
+      // parsing normalizes backslashes to slashes) would be a cross-origin
+      // URL, not an in-app route: reject those.
       if (
         e.data.type === 'canvas:navigate-app' &&
         typeof e.data.path === 'string' &&
         e.data.path.startsWith('/') &&
-        !e.data.path.startsWith('//')
+        !e.data.path.startsWith('//') &&
+        !e.data.path.includes('\\')
       ) {
         navigate(e.data.path);
         return;

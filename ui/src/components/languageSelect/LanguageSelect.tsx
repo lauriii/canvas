@@ -139,17 +139,26 @@ const ForkTranslationDialog = ({
   onClose,
 }: ForkTranslationDialogProps) => {
   const [forkError, setForkError] = useState<string | null>(null);
-  const [forkPageTranslation] = useForkPageTranslationMutation();
+  const [forkPageTranslation, { isLoading: isForkLoading }] =
+    useForkPageTranslationMutation();
 
+  // Reset on every open and close, so a late failure from a dismissed dialog
+  // never leaks into the next one.
   useEffect(() => {
-    if (languageId === null) {
-      setForkError(null);
-    }
+    setForkError(null);
   }, [languageId]);
 
   const handleConfirmFork = async () => {
-    if (!languageId || !url) {
+    if (!languageId) {
       onClose();
+      return;
+    }
+    if (!url) {
+      // The layout refetched while the dialog was open and the fork link is
+      // gone (e.g. another session already forked this translation).
+      setForkError(
+        'The translation state changed while this dialog was open. Close it and check the language menu again.',
+      );
       return;
     }
     try {
@@ -184,6 +193,8 @@ const ForkTranslationDialog = ({
         confirmText: 'Translate independently',
         onConfirm: handleConfirmFork,
         onCancel: onClose,
+        isConfirmLoading: isForkLoading,
+        isConfirmDisabled: isForkLoading,
       }}
     />
   );
@@ -204,19 +215,27 @@ const UnforkTranslationDialog = ({
 }: UnforkTranslationDialogProps) => {
   const [confirmText, setConfirmText] = useState('');
   const [unforkError, setUnforkError] = useState<string | null>(null);
-  const [unforkPageTranslation] = useUnforkPageTranslationMutation();
+  const [unforkPageTranslation, { isLoading: isUnforkLoading }] =
+    useUnforkPageTranslationMutation();
 
-  // Reset the form whenever the dialog is dismissed.
+  // Reset on every open and close, so a late failure from a dismissed dialog
+  // never leaks into the next one.
   useEffect(() => {
-    if (languageId === null) {
-      setConfirmText('');
-      setUnforkError(null);
-    }
+    setConfirmText('');
+    setUnforkError(null);
   }, [languageId]);
 
   const handleConfirmUnfork = async () => {
-    if (!languageId || !url) {
+    if (!languageId) {
       onClose();
+      return;
+    }
+    if (!url) {
+      // The layout refetched while the dialog was open and the unfork link is
+      // gone (e.g. another session already reverted this translation).
+      setUnforkError(
+        'The translation state changed while this dialog was open. Close it and check the language menu again.',
+      );
       return;
     }
     try {
@@ -251,7 +270,8 @@ const UnforkTranslationDialog = ({
         confirmText: 'Revert to synced layout',
         onConfirm: handleConfirmUnfork,
         onCancel: onClose,
-        isConfirmDisabled: confirmText !== 'REVERT',
+        isConfirmDisabled: confirmText !== 'REVERT' || isUnforkLoading,
+        isConfirmLoading: isUnforkLoading,
         isDanger: true,
       }}
     >
@@ -279,7 +299,8 @@ const LanguageSelect = () => {
   const [forkLanguageId, setForkLanguageId] = useState<string | null>(null);
   const [unforkLanguageId, setUnforkLanguageId] = useState<string | null>(null);
   // Languages whose translation was deleted in-session. Used to hide their
-  // check mark and options trigger without re-fetching the layout.
+  // check mark and options trigger until the layout refetch lands; reset
+  // below whenever fresh translations metadata arrives.
   const [removedLanguages, setRemovedLanguages] = useState<string[]>([]);
   const popoverOffsetsRef = useRef<Record<string, number>>({});
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -301,6 +322,12 @@ const LanguageSelect = () => {
     useParams();
   const { isTemplateContext, isTemplatePreviewRoute } = useTemplateRef();
   const translations = useAppSelector(selectTranslations);
+
+  // Fresh translations metadata (a layout refetch) supersedes the in-session
+  // deletion bookkeeping: rows are hidden or shown by the data itself again.
+  useEffect(() => {
+    setRemovedLanguages([]);
+  }, [translations]);
   const isTemplateRoute = isTemplateContext || isTemplatePreviewRoute;
   const templateCaption = useTemplateCaption();
   const pageData = useAppSelector(selectPageData);

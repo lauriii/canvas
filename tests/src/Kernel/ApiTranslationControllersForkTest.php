@@ -180,11 +180,13 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
    * per-language publish lands, so tests publish fork drafts by grouping them
    * with a default-translation draft, matching the current product behavior.
    */
-  private function stageDefaultTranslationDraft(string $title): void {
+  private function stageDefaultTranslationDraft(Page $page, string $title): void {
     $auto_save = $this->container->get(AutoSaveManager::class);
     \assert($auto_save instanceof AutoSaveManager);
     $storage = $this->container->get('entity_type.manager')->getStorage(Page::ENTITY_TYPE_ID);
-    $stored = $storage->loadUnchanged(1);
+    $page_id = $page->id();
+    \assert($page_id !== NULL);
+    $stored = $storage->loadUnchanged($page_id);
     \assert($stored instanceof Page);
     $draft = $auto_save->getAutoSaveEntityForPreview($stored);
     $default = $draft->isEmpty() ? $stored : $draft->entity;
@@ -228,6 +230,25 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     $draft_entity = $draft->entity;
     self::assertInstanceOf(ContentEntityInterface::class, $draft_entity);
     self::assertTrue(ComponentTreeTranslationFork::isForkedTranslation($draft_entity));
+    // The fork seed is the translation's current symmetric state: only the
+    // flag flipped, the draft keeps the same tree and the translation's own
+    // translated input values.
+    \assert($draft_entity instanceof Page);
+    $draft_tree = $draft_entity->getComponentTree();
+    self::assertCount(1, $draft_tree);
+    self::assertSame(
+      'Hola A (es)',
+      $draft_tree->getComponentTreeItemByUuid(self::UUID_A)?->getInputs()['text'] ?? NULL,
+    );
+
+    // Forking an already-forked translation is an idempotent no-op.
+    $response = $this->request(Request::create($this->forkUrl($page, 'es'), 'POST'));
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+    $draft = $auto_save->getAutoSaveEntityForPreview($stored->getTranslation('es'));
+    self::assertFalse($draft->isEmpty());
+    $repeat_entity = $draft->entity;
+    self::assertInstanceOf(ContentEntityInterface::class, $repeat_entity);
+    self::assertTrue(ComponentTreeTranslationFork::isForkedTranslation($repeat_entity));
 
     // The layout response is draft-aware: Spanish is forked, with an unfork
     // link.
@@ -251,7 +272,11 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     // @see \Drupal\canvas\Controller\ApiAutoSaveController::includeSiblingTranslationAutoSaves()
     $response = $this->request(Request::create($this->forkUrl($page, 'es'), 'POST'));
     self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
-    $this->stageDefaultTranslationDraft('English title updated');
+    // The fork is still draft-only: publishing below is what persists it.
+    $stored = Page::load($page->id());
+    \assert($stored instanceof Page);
+    self::assertFalse(ComponentTreeTranslationFork::isForkedTranslation($stored->getTranslation('es')));
+    $this->stageDefaultTranslationDraft($page, 'English title updated');
     $response = $this->makePublishAllRequest();
     self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
     $stored = Page::load($page->id());
@@ -292,8 +317,13 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     self::assertNull($draft_es->getComponentTree()->getComponentTreeItemByUuid(self::UUID_B));
     self::assertSame('Hola A (es)', $draft_es->getComponentTree()->getComponentTreeItemByUuid(self::UUID_A)?->getInputs()['text'] ?? NULL);
 
+    // Unforking a not-forked translation is an idempotent no-op resync: 204,
+    // and the draft still matches the default translation's tree.
+    $response = $this->request(Request::create($this->forkUrl($page, 'es', unfork: TRUE), 'DELETE'));
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+
     // Publish the unfork; Spanish is symmetric again in storage.
-    $this->stageDefaultTranslationDraft('English title updated again');
+    $this->stageDefaultTranslationDraft($page, 'English title updated again');
     $response = $this->makePublishAllRequest();
     self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
     $stored = Page::load($page->id());
@@ -318,6 +348,35 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
 
     $stored = Page::load($page->id());
     \assert($stored instanceof Page);
+    self::assertTrue($this->container->get(AutoSaveManager::class)->getAutoSaveEntity($stored)->isEmpty());
+  }
+
+  /**
+   * Tests requesting a language the page has no translation for.
+   *
+   * Entity upcasting resolves through the language fallback chain, so
+   * without the controller's guard this would silently fork a different,
+   * existing translation.
+   */
+  public function testForkUnknownTranslationRejected(): void {
+    $this->setUpCurrentUser(permissions: [Page::EDIT_PERMISSION]);
+    ConfigurableLanguage::createFromLangcode('de')->save();
+    $this->config('language.negotiation')
+      ->set('url.prefixes', ['en' => '', 'es' => 'es', 'de' => 'de'])
+      ->save();
+    \Drupal::service('kernel')->rebuildContainer();
+    $container = \Drupal::getContainer();
+    \assert($container instanceof ContainerBuilder);
+    $this->container = $container;
+    $page = $this->createTranslatedPage();
+
+    $response = $this->request(Request::create($this->forkUrl($page, 'de'), 'POST'));
+    self::assertSame(Response::HTTP_NOT_FOUND, $response->getStatusCode(), (string) $response->getContent());
+
+    // Nothing was forked and no draft was created for any translation.
+    $stored = Page::load($page->id());
+    \assert($stored instanceof Page);
+    self::assertFalse(ComponentTreeTranslationFork::isForkedTranslation($stored->getTranslation('es')));
     self::assertTrue($this->container->get(AutoSaveManager::class)->getAutoSaveEntity($stored)->isEmpty());
   }
 
