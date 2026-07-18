@@ -32,7 +32,7 @@ symmetric synchronization, validation, and component version propagation, and to
   divergence away) and makes accidental divergence indistinguishable from intent. Plain field data gets revisions,
   workspaces, JSON:API, and default_content behavior for free.
 - The single predicate is
-  `ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation(ContentEntityInterface $translation)`.
+  `ComponentTreeTranslationFork::isForkedTranslation(ContentEntityInterface $translation)`.
 - Forked translations are excluded from symmetric synchronization via snapshot/restore around the decorated core
   `FieldTranslationSynchronizer::synchronizeFields()`: forked translations' raw component tree values are captured
   before core's sync and restored after; when the saved translation is itself forked, every translation's values are

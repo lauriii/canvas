@@ -117,7 +117,7 @@ final readonly class PropSourceSuggester {
       'content_translation_outdated',
       // Literal to avoid a layering dependency on the ContentTranslation
       // namespace.
-      // @see \Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME
+      // @see \Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork::FIELD_NAME
       'canvas_component_tree_fork',
     ], TRUE);
     if ($is_irrelevant) {

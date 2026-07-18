@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeSymmetricalTranslationConstraint;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -66,7 +67,7 @@ final readonly class ContentTranslationHooks {
    * individual translations. One flag covers all component tree fields on the
    * entity. The flag on the default translation is ignored.
    *
-   * @see \Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation()
+   * @see \Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork::isForkedTranslation()
    */
   #[Hook('entity_base_field_info')]
   public function entityBaseFieldInfo(EntityTypeInterface $entity_type): array {
@@ -78,7 +79,7 @@ final readonly class ContentTranslationHooks {
       return [];
     }
     return [
-      ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME => self::forkBaseFieldDefinition(),
+      ComponentTreeTranslationFork::FIELD_NAME => self::forkBaseFieldDefinition(),
     ];
   }
 
@@ -96,7 +97,7 @@ final readonly class ContentTranslationHooks {
    */
   public static function installForkFieldStorageDefinitions(): void {
     $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
-    $field_name = ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME;
+    $field_name = ComponentTreeTranslationFork::FIELD_NAME;
     foreach (\Drupal::entityTypeManager()->getDefinitions() as $entity_type_id => $entity_type) {
       if (!$entity_type instanceof ContentEntityTypeInterface || !$entity_type->isTranslatable()) {
         continue;
@@ -124,7 +125,7 @@ final readonly class ContentTranslationHooks {
    */
   public static function uninstallForkFieldStorageDefinitions(): void {
     $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
-    $field_name = ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME;
+    $field_name = ComponentTreeTranslationFork::FIELD_NAME;
     foreach (\array_keys(\Drupal::entityTypeManager()->getDefinitions()) as $entity_type_id) {
       $definition = $definition_update_manager->getFieldStorageDefinition($field_name, $entity_type_id);
       if ($definition !== NULL && $definition->getProvider() === 'canvas') {
@@ -166,7 +167,7 @@ final readonly class ContentTranslationHooks {
     $entity_type_manager = \Drupal::entityTypeManager();
     $entity_field_manager = \Drupal::service('entity_field.manager');
     \assert($entity_field_manager instanceof EntityFieldManagerInterface);
-    $fork_field_name = ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME;
+    $fork_field_name = ComponentTreeTranslationFork::FIELD_NAME;
 
     // The raw values of the columns shared across symmetric translations.
     // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem::propertyDefinitions()
@@ -194,7 +195,7 @@ final readonly class ContentTranslationHooks {
         $changed = FALSE;
         foreach ($entity->getTranslationLanguages(FALSE) as $langcode => $language) {
           $translation = $entity->getTranslation($langcode);
-          if (ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($translation)) {
+          if (ComponentTreeTranslationFork::isForkedTranslation($translation)) {
             continue;
           }
           foreach (\array_keys($fields) as $field_name) {

@@ -7,7 +7,7 @@ namespace Drupal\canvas\ComponentSource;
 use Drupal\canvas\Attribute\ComponentSource;
 use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
 use Drupal\canvas\ComponentIncompatibilityReasonRepository;
-use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
@@ -298,7 +298,7 @@ final class ComponentSourceManager extends DefaultPluginManager {
     // @see https://git.drupalcode.org/project/canvas/-/work_items/3571130
     $host = $component_tree->getParent() !== NULL ? $component_tree->getEntity() : NULL;
     $host_is_forked = $host instanceof ContentEntityInterface
-      && ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($host);
+      && ComponentTreeTranslationFork::isForkedTranslation($host);
     if ($host instanceof ContentEntityInterface && !$host->isDefaultTranslation() && !$host_is_forked) {
       $field_name = $component_tree->getName();
       $default = $host->getUntranslated();
@@ -330,7 +330,7 @@ final class ComponentSourceManager extends DefaultPluginManager {
           continue;
         }
         if ($translation instanceof ContentEntityInterface
-          && ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($translation)) {
+          && ComponentTreeTranslationFork::isForkedTranslation($translation)) {
           continue;
         }
         $translation_tree = $translation->get($field_name);

@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Translation;
 // cspell:ignore Cliquez Klicken
 
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -128,21 +129,21 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
     $fr->save();
     $de = $this->addSeededTranslation($entity, 'de', $field_name, 'Klicken Sie');
     $de->save();
-    self::assertTrue($fr->hasField(ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME));
-    self::assertFalse(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($fr));
-    self::assertFalse(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($de));
+    self::assertTrue($fr->hasField(ComponentTreeTranslationFork::FIELD_NAME));
+    self::assertFalse(ComponentTreeTranslationFork::isForkedTranslation($fr));
+    self::assertFalse(ComponentTreeTranslationFork::isForkedTranslation($de));
     // The default translation is never considered forked, even if flagged.
-    self::assertFalse(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($entity->getUntranslated()));
+    self::assertFalse(ComponentTreeTranslationFork::isForkedTranslation($entity->getUntranslated()));
 
     // 2. Fork French. Only the flag flips: the tree is already the fork seed.
     $entity = $entity_storage->loadUnchanged($entity_id);
     \assert($entity instanceof ContentEntityInterface);
     $fr = $entity->getTranslation('fr');
-    $fr->set(ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME, TRUE);
+    $fr->set(ComponentTreeTranslationFork::FIELD_NAME, TRUE);
     $fr->save();
     $entity = $entity_storage->loadUnchanged($entity_id);
     \assert($entity instanceof ContentEntityInterface);
-    self::assertTrue(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($entity->getTranslation('fr')));
+    self::assertTrue(ComponentTreeTranslationFork::isForkedTranslation($entity->getTranslation('fr')));
 
     // 3. Saving the default translation with a structural edit (new component,
     // changed non-translatable input) syncs the non-forked German sibling but
@@ -236,8 +237,8 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
     $entity = $entity_storage->loadUnchanged($entity_id);
     \assert($entity instanceof ContentEntityInterface);
     $fr = $entity->getTranslation('fr');
-    $fr->set(ComponentTreeFieldSymmetricalTranslationSynchronizer::FORK_FIELD_NAME, FALSE);
-    ComponentTreeFieldSymmetricalTranslationSynchronizer::resyncFromDefaultTranslation($fr);
+    $fr->set(ComponentTreeTranslationFork::FIELD_NAME, FALSE);
+    ComponentTreeTranslationFork::resyncFromDefaultTranslation($fr);
 
     $fr_tree = self::tree($fr, $field_name);
     // Same structure as the default translation.
@@ -258,7 +259,7 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
     $fr->save();
     $entity = $entity_storage->loadUnchanged($entity_id);
     \assert($entity instanceof ContentEntityInterface);
-    self::assertFalse(ComponentTreeFieldSymmetricalTranslationSynchronizer::isForkedTranslation($entity->getTranslation('fr')));
+    self::assertFalse(ComponentTreeTranslationFork::isForkedTranslation($entity->getTranslation('fr')));
     $default = $entity->getUntranslated();
     $default_item = self::tree($default, $field_name)->getComponentTreeItemByUuid(self::CTA_UUID);
     self::assertNotNull($default_item);
