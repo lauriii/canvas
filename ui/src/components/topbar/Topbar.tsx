@@ -87,86 +87,91 @@ const Topbar = () => {
     window.sessionStorage.getItem(PREVIOUS_URL_STORAGE_KEY) ?? '/';
 
   return (
-    <Menubar.Root data-testid="canvas-topbar" asChild>
-      <Box
-        className={clsx(styles.root, styles.topBar, {
-          [styles.inPreview]: isPreview,
-        })}
-        pr="4"
-      >
-        <Grid columns="1fr 1fr 1fr" gap="0" width="100%" height="100%">
-          <Flex align="center" gap="2">
-            <Tooltip content="Exit Drupal Canvas">
-              <a
-                href={backHref}
-                aria-labelledby="back-to-previous-label"
-                className={clsx(styles.topBarButton, styles.exitButton)}
-              >
-                <span className="visually-hidden" id="back-to-previous-label">
-                  Exit Drupal Canvas
-                </span>
-                <DropIcon
-                  className={styles.drupalLogo}
-                  height="24"
-                  width="auto"
+    <header aria-labelledby="canvas-topbar-heading">
+      <h2 className="visually-hidden" id="canvas-topbar-heading">
+        Toolbar
+      </h2>
+      <Menubar.Root data-testid="canvas-topbar" asChild>
+        <Box
+          className={clsx(styles.root, styles.topBar, {
+            [styles.inPreview]: isPreview,
+          })}
+          pr="4"
+        >
+          <Grid columns="1fr 1fr 1fr" gap="0" width="100%" height="100%">
+            <Flex align="center" gap="2">
+              <Tooltip content="Exit Drupal Canvas">
+                <a
+                  href={backHref}
+                  aria-labelledby="back-to-previous-label"
+                  className={clsx(styles.topBarButton, styles.exitButton)}
+                >
+                  <span className="visually-hidden" id="back-to-previous-label">
+                    Exit Drupal Canvas
+                  </span>
+                  <DropIcon
+                    className={styles.drupalLogo}
+                    height="24"
+                    width="auto"
+                  />
+                </a>
+              </Tooltip>
+              {!isPreview && hasAiExtensionAvailable && (
+                <>
+                  <div className={clsx(styles.verticalDivider)}></div>
+                  <AIToggleButton />
+                </>
+              )}
+              {!isPreview && hasPersonalizeExtensionAvailable && (
+                <>
+                  <Button
+                    variant={isEditor ? 'soft' : 'ghost'}
+                    color={isEditor ? 'blue' : 'gray'}
+                    onClick={() => navigate('/editor')}
+                  >
+                    <CardStackPlusIcon />
+                    <span className={isEditor ? '' : 'visually-hidden'}>
+                      Builder
+                    </span>
+                  </Button>
+                  <Button
+                    variant={isSegments ? 'soft' : 'ghost'}
+                    color={isSegments ? 'blue' : 'gray'}
+                    onClick={() => navigate('/segments')}
+                  >
+                    <PersonIcon />
+                    <span className={isSegments ? '' : 'visually-hidden'}>
+                      Segments
+                    </span>
+                  </Button>
+                </>
+              )}
+              <div className={clsx(styles.verticalDivider)}></div>
+              {!isPreview && !isHeadlessFrontends && <UndoRedo />}
+              {isFrontendEmbedded && (
+                <FrontendSelect settings={headlessSettings} />
+              )}
+            </Flex>
+            <Flex align="center" justify="center" gap="2">
+              <PageInfo />
+              {isTemplateEditorContext && (
+                <ContentPreviewSelector
+                  items={previewEntities}
+                  selectedItemId={previewEntityId}
+                  onSelectionChange={handlePreviewEntityChange}
                 />
-              </a>
-            </Tooltip>
-            {!isPreview && hasAiExtensionAvailable && (
-              <>
-                <div className={clsx(styles.verticalDivider)}></div>
-                <AIToggleButton />
-              </>
-            )}
-            {!isPreview && hasPersonalizeExtensionAvailable && (
-              <>
-                <Button
-                  variant={isEditor ? 'soft' : 'ghost'}
-                  color={isEditor ? 'blue' : 'gray'}
-                  onClick={() => navigate('/editor')}
-                >
-                  <CardStackPlusIcon />
-                  <span className={isEditor ? '' : 'visually-hidden'}>
-                    Builder
-                  </span>
-                </Button>
-                <Button
-                  variant={isSegments ? 'soft' : 'ghost'}
-                  color={isSegments ? 'blue' : 'gray'}
-                  onClick={() => navigate('/segments')}
-                >
-                  <PersonIcon />
-                  <span className={isSegments ? '' : 'visually-hidden'}>
-                    Segments
-                  </span>
-                </Button>
-              </>
-            )}
-            <div className={clsx(styles.verticalDivider)}></div>
-            {!isPreview && !isHeadlessFrontends && <UndoRedo />}
-            {isFrontendEmbedded && (
-              <FrontendSelect settings={headlessSettings} />
-            )}
-          </Flex>
-          <Flex align="center" justify="center" gap="2">
-            <PageInfo />
-            {isTemplateEditorContext && (
-              <ContentPreviewSelector
-                items={previewEntities}
-                selectedItemId={previewEntityId}
-                onSelectionChange={handlePreviewEntityChange}
-              />
-            )}
-          </Flex>
-          <Flex align="center" justify="end" gap="2">
-            <NotificationBell />
-            {isTranslationEnabled && <LanguageSelect />}
-            <PreviewControls isPreview={isPreview} />
-            <UnpublishedChanges />
-          </Flex>
-        </Grid>
-      </Box>
-    </Menubar.Root>
+              )}
+            </Flex>
+            <Flex align="center" justify="end" gap="2">
+              <NotificationBell />
+              {isTranslationEnabled && <LanguageSelect />}
+              <PreviewControls isPreview={isPreview} />
+              <UnpublishedChanges />
+            </Flex>
+          </Grid>
+        </Box>
+      </Menubar.Root>
+    </header>
   );
 };
 

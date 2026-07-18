@@ -142,7 +142,14 @@ const EditorLayout: React.FC<EditorLayoutProps> = ({ context }) => {
 
   return (
     <div ref={layoutRef} className={styles.layout}>
-      <div className={styles.center}>
+      <div
+        className={styles.center}
+        role="main"
+        aria-labelledby="canvas-editor-main-heading"
+      >
+        <h2 className="visually-hidden" id="canvas-editor-main-heading">
+          Canvas
+        </h2>
         <Editor context={context} />
       </div>
       {showHandle && (

@@ -32,6 +32,10 @@ vi.mock('@/components/aiExtension/AiWizard', () => ({
   default: () => <div>AI wizard</div>,
 }));
 
+vi.mock('@/components/sidePanel/Library', () => ({
+  default: () => <div>Library content</div>,
+}));
+
 vi.mock('@/utils/drupal-globals', () => ({
   getDrupal: () => ({}),
   getBaseUrl: () => '/',
@@ -64,6 +68,52 @@ describe('PrimaryPanel', () => {
       screen.getByRole('heading', { name: 'Brand kit' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Brand kit panel content')).toBeInTheDocument();
+  });
+
+  it('exposes the left sidebar as a complementary landmark with a level-2 heading', () => {
+    hasPermissionMock.mockReturnValue(true);
+    const store = makeStore({
+      primaryPanel: {
+        activePanel: 'library',
+        isHidden: false,
+        aiPanelOpen: false,
+        manageLibraryTab: null,
+      },
+    });
+
+    render(
+      <AppWrapper store={store} location="/" path="/">
+        <PrimaryPanel />
+      </AppWrapper>,
+    );
+
+    expect(
+      screen.getByRole('complementary', { name: 'Library' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Library' }),
+    ).toBeInTheDocument();
+  });
+
+  it('adds no landmark or heading when no panel is open', () => {
+    const store = makeStore({
+      primaryPanel: {
+        activePanel: '',
+        isHidden: false,
+        aiPanelOpen: false,
+        manageLibraryTab: null,
+      },
+    });
+
+    render(
+      <AppWrapper store={store} location="/" path="/">
+        <PrimaryPanel />
+      </AppWrapper>,
+    );
+
+    // The collapsed sidebar must not contribute an empty, nameless landmark.
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
   });
 
   it('does not render the Brand kit panel without permission', () => {

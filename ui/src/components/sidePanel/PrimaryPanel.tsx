@@ -57,11 +57,18 @@ export const PrimaryPanel = () => {
       className={clsx(styles.primaryPanel, ...offLeftClasses)}
       data-testid="canvas-primary-panel"
       direction="column"
+      role={activePanel ? 'complementary' : undefined}
+      aria-labelledby={activePanel ? 'canvas-primary-panel-heading' : undefined}
     >
       {!!activePanel && (
         <>
           <Flex align="center" className={styles.header} px="4" flexShrink="0">
-            <Heading as="h4" size="2" trim="both">
+            <Heading
+              as="h2"
+              size="2"
+              trim="both"
+              id="canvas-primary-panel-heading"
+            >
               {panelMap[activePanel]}
             </Heading>
             <Box ml="auto">

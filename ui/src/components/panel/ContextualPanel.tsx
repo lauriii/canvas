@@ -70,12 +70,17 @@ const ContextualPanel: React.FC = () => {
     <Box
       data-testid="canvas-contextual-panel"
       pt="2"
+      role="complementary"
+      aria-labelledby="canvas-contextual-panel-heading"
       className={clsx(
         styles.contextualPanel,
         { [styles.hidePanel]: hidePanel },
         ...offRightClasses,
       )}
     >
+      <h2 className="visually-hidden" id="canvas-contextual-panel-heading">
+        Settings
+      </h2>
       <Flex
         flexGrow="1"
         direction="column"
