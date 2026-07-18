@@ -104,6 +104,66 @@ final class CanvasLanguageRoutesTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that /canvas under the default language's own URL prefix redirects.
+   *
+   * The demo_umami profile gives the default (English) language a non-empty URL
+   * prefix ('en' => 'en'), so every path — including /canvas — is served /en.
+   * The Canvas client-side router is mounted at /canvas, so if it receives the
+   * prefixed /en/canvas its basename never matches the browser URL and the app
+   * renders nothing: a white screen. The prefix must be stripped even when it
+   * belongs to the default language.
+   *
+   * @see https://git.drupalcode.org/project/canvas/-/issues/3569487
+   * @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::redirectCanvasToDefaultLanguage()
+   */
+  public function testDefaultLanguagePrefixedCanvasUrlRedirects(): void {
+    ConfigurableLanguage::createFromLangcode('es')->save();
+
+    // Give the default language a non-empty URL prefix, matching demo_umami.
+    $this->config('language.negotiation')
+      ->set('url.prefixes', ['en' => 'en', 'es' => 'es'])
+      ->save();
+
+    $this->container->get('kernel')->rebuildContainer();
+
+    $this->setUpCurrentUser([], [Page::EDIT_PERMISSION]);
+
+    // Assert /en/canvas (the default language's own prefix) redirects to the
+    // prefix-free /canvas.
+    $response = $this->request(Request::create('/en/canvas'));
+    self::assertSame(
+      302,
+      $response->getStatusCode(),
+      'A /canvas URL under the default language prefix must trigger a 302 redirect.',
+    );
+    self::assertSame(
+      '/canvas',
+      $response->headers->get('Location'),
+      'The redirect must point to /canvas with the default language prefix stripped.',
+    );
+
+    // Assert the editor route under the default language prefix strips it too.
+    $page = Page::create([
+      'title' => 'Test page',
+      'path' => '/test-page',
+      'status' => TRUE,
+    ]);
+    $page->save();
+    $editor_path = "/canvas/editor/canvas_page/{$page->id()}";
+    $response = $this->request(Request::create("/en$editor_path"));
+    self::assertSame(
+      302,
+      $response->getStatusCode(),
+      'A /canvas/editor URL under the default language prefix must trigger a 302 redirect.',
+    );
+    self::assertSame(
+      $editor_path,
+      $response->headers->get('Location'),
+      'The redirect must point to the editor URL with the default language prefix stripped.',
+    );
+  }
+
+  /**
    * Verifies redirect safety for languages with custom URL prefixes.
    *
    * @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::redirectCanvasToDefaultLanguage()

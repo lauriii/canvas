@@ -42,29 +42,38 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
       return;
     }
 
-    // If the current language differs from the default, the URL will contain a
-    // language prefix (e.g. /es/canvas/editor/canvas_page/1). Strip it with a
-    // 302 redirect so that Canvas always receives a prefix-free path
-    // (/canvas/editor/canvas_page/1).
+    // When Canvas is reached through a URL language prefix (e.g.
+    // /es/canvas/editor/canvas_page/1), strip it with a 302 redirect so Canvas
+    // always receives a prefix-free path (/canvas/editor/canvas_page/1). This
+    // must happen even when the prefix belongs to the default language:
+    // demo_umami configures 'en' => 'en', so /en/canvas is the default-language
+    // URL, yet the Canvas client-side router is mounted at /canvas and would
+    // render nothing (a white screen) if handed /en/canvas.
     // @todo Remove this redirect once Canvas natively supports
     //   language-prefixed URLs in
     //   https://git.drupalcode.org/project/canvas/-/work_items/3546597.
     // @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::preventRouteNormalization()
-    $default_langcode = $this->languageManager->getDefaultLanguage()->getId();
+    // URL language prefixes exist only on multilingual sites: core's
+    // PathProcessorLanguage adds a prefix solely when the site is
+    // multilingual, so a single-language site never has a prefix to strip.
+    if (!$this->languageManager->isMultilingual()) {
+      return;
+    }
     $current_langcode = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_URL)->getId();
-    if ($current_langcode !== $default_langcode) {
-      $base_path = $request->getBasePath();
-      // Fetch the actual prefix configured for this language in Drupal's
-      // URL language negotiation settings, falling back to the langcode.
-      $config = $this->configFactory->get('language.negotiation');
-      $url_settings = $config->get('url');
-      $prefixes = $url_settings['prefixes'] ?? [];
-      $prefix = $prefixes[$current_langcode] ?? $current_langcode;
-      $prefix_path = "/$prefix/";
-      if (\str_starts_with($path, $prefix_path)) {
-        $canvas_path = substr_replace($path, '/', 0, strlen($prefix_path));
-        $event->setResponse(new LocalRedirectResponse($base_path . $canvas_path, 302));
-      }
+    // Fetch the actual prefix configured for the active language in Drupal's
+    // URL language negotiation settings, falling back to the langcode.
+    $config = $this->configFactory->get('language.negotiation');
+    $url_settings = $config->get('url');
+    $prefixes = $url_settings['prefixes'] ?? [];
+    $prefix = $prefixes[$current_langcode] ?? $current_langcode;
+    // A language with an empty prefix produces no /prefix/ segment to strip.
+    if ($prefix === '') {
+      return;
+    }
+    $prefix_path = "/$prefix/";
+    if (\str_starts_with($path, $prefix_path)) {
+      $canvas_path = substr_replace($path, '/', 0, strlen($prefix_path));
+      $event->setResponse(new LocalRedirectResponse($request->getBasePath() . $canvas_path, 302));
     }
   }
 
