@@ -37,7 +37,18 @@ final class ComponentTreeEditAccessCheck implements AccessInterface {
    */
   public function access(EntityInterface $entity, AccountInterface $account): AccessResultInterface {
     if ($entity instanceof FieldableEntityInterface || $entity instanceof ComponentTreeEntityInterface) {
-      $tree = $this->componentTreeLoader->load($entity);
+      try {
+        $tree = $this->componentTreeLoader->load($entity);
+      }
+      catch (\LogicException) {
+        // The entity type or bundle does not support Canvas component tree
+        // editing, so there is no component tree to edit. Deny access rather
+        // than letting the exception surface as a 500 error. Depend on the
+        // entity's cacheability so this result is invalidated if the entity
+        // (and hence its Canvas support) changes.
+        return AccessResult::forbidden('This entity does not support Canvas component tree editing.')
+          ->addCacheableDependency($entity);
+      }
       // TRICKY: field access hooks must return AccessResult::forbidden() to
       // override the default field access. Then the forbidden field access's
       // reason would overwrite that of non-allowed entity access. Avoid that by

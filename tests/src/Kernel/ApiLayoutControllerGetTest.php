@@ -824,6 +824,40 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   }
 
   /**
+   * Tests that an entity without Canvas support gets a 403, not a 500.
+   *
+   * When the routed entity does not support Canvas component tree editing
+   * (e.g. a node bundle that has no Canvas field), ComponentTreeLoader::load()
+   * throws a \LogicException. The access check must catch that and deny access,
+   * so the request results in a 403 Forbidden rather than an uncaught
+   * exception surfacing as a 500 Internal Server Error.
+   *
+   * @legacy-covers \Drupal\canvas\Access\ComponentTreeEditAccessCheck::access
+   */
+  public function testUnsupportedEntityAccessDenied(): void {
+    NodeType::create([
+      'type' => 'page',
+      'name' => 'Page',
+    ])->save();
+    $node = Node::create([
+      'type' => 'page',
+      'title' => 'Test',
+    ]);
+    $node->save();
+    // Grant entity update access so the only possible denial comes from the
+    // component tree edit access check, not from missing entity update access.
+    $this->setUpCurrentUser([], ['edit any page content']);
+
+    $url = Url::fromRoute('canvas.api.layout.get', [
+      'entity' => $node->id(),
+      'entity_type' => 'node',
+    ]);
+    $this->expectException(AccessDeniedHttpException::class);
+    $this->expectExceptionMessage('This entity does not support Canvas component tree editing.');
+    $this->parentRequest(Request::create($url->toString()));
+  }
+
+  /**
    * @return \Drupal\canvas\Entity\PageRegion[]
    */
   protected function enableGlobalRegions(string $theme = 'stark', int $expected_region_count = 11): array {
