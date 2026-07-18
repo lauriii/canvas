@@ -76,12 +76,17 @@ describe('icon-push', () => {
       expect(await discoverIconLibraryDirs(tmpDir)).toEqual([]);
     });
 
-    it('skips directories without a manifest.json (module pack.json dirs)', async () => {
+    it('skips module pack.json dirs and empty dirs, but discovers plain SVG dirs', async () => {
       await writeLibrary(
         'my_icons',
         { id: 'my_icons', label: 'My icons' },
         { 'star.svg': STAR_SVG },
       );
+      // A plain directory of SVGs without a manifest is a library to push.
+      const plainDir = path.join(tmpDir, 'icons', 'plain_icons');
+      await fs.mkdir(plainDir, { recursive: true });
+      await fs.writeFile(path.join(plainDir, 'star.svg'), STAR_SVG, 'utf-8');
+      // A pack.json marks a module-provided pack (informational, never pushed).
       const packDir = path.join(tmpDir, 'icons', 'module_pack');
       await fs.mkdir(packDir, { recursive: true });
       await fs.writeFile(
@@ -89,9 +94,16 @@ describe('icon-push', () => {
         JSON.stringify({ id: 'module_pack', managed: false }),
         'utf-8',
       );
+      // A directory with neither manifest nor SVGs is not a library.
+      await fs.mkdir(path.join(tmpDir, 'icons', 'empty_dir'), {
+        recursive: true,
+      });
 
       const discovered = await discoverIconLibraryDirs(tmpDir);
-      expect(discovered.map((library) => library.id)).toEqual(['my_icons']);
+      expect(discovered.map((library) => library.id)).toEqual([
+        'my_icons',
+        'plain_icons',
+      ]);
     });
   });
 

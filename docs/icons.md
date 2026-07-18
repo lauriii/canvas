@@ -75,5 +75,7 @@ external references — this is a trust boundary. Managing icon libraries requir
 permission (OAuth scope `canvas:icon_library`).
 
 Icon libraries are part of the CLI's brand kit workflow: the `--include-brand-kit` flag that syncs fonts also syncs
-the `icons/` directory in both push and pull. For the project layout and details, see the
-[`@drupal-canvas/cli` README](../packages/cli/README.md).
+the `icons/` directory in both push and pull. Importing an existing icon set requires no configuration — copy its SVG
+files into `icons/<library>/` and push; the directory name becomes the library id, each filename becomes an icon id,
+and a `manifest.json` is only needed to customize the label, description, or Twig template. For the project layout
+and details, see the [`@drupal-canvas/cli` README](../packages/cli/README.md).

@@ -77,11 +77,28 @@ export async function discoverIconLibraryDirs(
     .sort((a, b) => a.localeCompare(b));
   for (const name of directories) {
     const dir = path.join(iconsDir, name);
+    // Directories holding a pack.json mirror module-provided packs (written
+    // by pull for information only) and are never pushed.
+    const isModulePack = await fs
+      .access(path.join(dir, 'pack.json'))
+      .then(() => true)
+      .catch(() => false);
+    if (isModulePack) {
+      continue;
+    }
+    // A manifest.json or at least one SVG file makes this a library to push;
+    // the manifest itself is optional (label derives from the directory name).
     const hasManifest = await fs
       .access(path.join(dir, 'manifest.json'))
       .then(() => true)
       .catch(() => false);
-    if (!hasManifest) {
+    const hasSvgFiles =
+      !hasManifest &&
+      (await fs
+        .readdir(dir)
+        .then((files) => files.some((file) => /\.svg$/i.test(file)))
+        .catch(() => false));
+    if (!hasManifest && !hasSvgFiles) {
       continue;
     }
     libraries.push({ id: name, dir });
