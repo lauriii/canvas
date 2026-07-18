@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin;
 
+use Drupal\canvas\JsonSchemaDefinitionsUriRetriever;
 use Drupal\Component\Plugin\CategorizingPluginManagerInterface;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use JsonSchema\Constraints\BaseConstraint;
@@ -46,7 +47,11 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
    *   JSON schema of a component, with references resolved.
    */
   public function resolveJsonSchemaReferences(array $schema, int $depth = 0): array {
-    $this->schemaStorage ??= new SchemaStorage();
+    // Resolve `json-schema-definitions://` `$ref`s directly from each
+    // extension's `schema.json`, rather than through the stream wrapper, whose
+    // scheme is not guaranteed to be registered on every code path.
+    // @see \Drupal\canvas\JsonSchemaDefinitionsUriRetriever
+    $this->schemaStorage ??= new SchemaStorage(new JsonSchemaDefinitionsUriRetriever());
 
     if ($depth > self::MAXIMUM_RECURSION_LEVEL) {
       return $schema;
