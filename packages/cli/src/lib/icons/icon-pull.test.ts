@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
@@ -19,6 +20,9 @@ const SVG_BY_URL: Record<string, string> = {
   '/sites/default/files/canvas/icons/heart.svg': HEART_SVG,
 };
 
+const sha256 = (content: string): string =>
+  crypto.createHash('sha256').update(content).digest('hex');
+
 function managedLibrary(overrides: Partial<IconLibrary> = {}): IconLibrary {
   return {
     id: 'my_icons',
@@ -30,11 +34,13 @@ function managedLibrary(overrides: Partial<IconLibrary> = {}): IconLibrary {
         name: 'star.svg',
         uri: 'public://canvas/icons/star.svg',
         url: '/sites/default/files/canvas/icons/star.svg',
+        hash: sha256(STAR_SVG),
       },
       {
         name: 'heart.svg',
         uri: 'public://canvas/icons/heart.svg',
         url: '/sites/default/files/canvas/icons/heart.svg',
+        hash: sha256(HEART_SVG),
       },
     ],
     ...overrides,
@@ -228,19 +234,17 @@ describe('pullIcons', () => {
     const result = await pushIcons(pushApi, tmpDir);
 
     expect(result.outcomes).toEqual([
-      { id: 'my_icons', operation: 'unchanged', success: true, errors: [] },
+      {
+        id: 'my_icons',
+        operation: 'unchanged',
+        success: true,
+        uploadedCount: 0,
+        skippedCount: 2,
+        errors: [],
+      },
     ]);
-    expect(pushApi.uploadIconAsset).toHaveBeenCalledTimes(2);
-    expect(pushApi.uploadIconAsset).toHaveBeenCalledWith(
-      'my_icons',
-      'star.svg',
-      expect.any(Buffer),
-    );
-    expect(pushApi.uploadIconAsset).toHaveBeenCalledWith(
-      'my_icons',
-      'heart.svg',
-      expect.any(Buffer),
-    );
+    // Hash-aware delta: identical pulled content is never re-uploaded.
+    expect(pushApi.uploadIconAsset).not.toHaveBeenCalled();
     // The module-provided pack directory (pack.json only) is not pushed.
     expect(pushApi.createIconLibrary).not.toHaveBeenCalled();
     expect(pushApi.updateIconLibrary).not.toHaveBeenCalled();

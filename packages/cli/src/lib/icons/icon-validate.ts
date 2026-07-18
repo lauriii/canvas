@@ -16,6 +16,13 @@ export interface IconLibraryManifest {
   label: string;
   description?: string;
   template?: string;
+  /**
+   * Optional directory to read SVG files from, relative to the project root
+   * (e.g. `node_modules/lucide-static/icons`). Keeps npm-managed icon sets
+   * out of the repository: the manifest declares the source, push reads the
+   * SVGs from there.
+   */
+  source?: string;
 }
 
 /**
@@ -32,7 +39,9 @@ export interface ValidatedIconLibrary {
   id: string;
   dir: string;
   manifest: IconLibraryManifest;
-  /** Sorted icon filenames relative to the library directory. */
+  /** Directory the SVG files are read from (the manifest `source`, if set). */
+  filesDir: string;
+  /** Sorted icon filenames relative to `filesDir`. */
   svgFiles: string[];
 }
 
@@ -144,6 +153,9 @@ export async function validateIconLibraryDir(
         ) {
           errors.push('manifest.json "template" must be a string.');
         }
+        if (parsed.source !== undefined && typeof parsed.source !== 'string') {
+          errors.push('manifest.json "source" must be a string.');
+        }
         if (errors.length === 0) {
           manifest = {
             id,
@@ -155,13 +167,37 @@ export async function validateIconLibraryDir(
           if (parsed.template !== undefined) {
             manifest.template = parsed.template as string;
           }
+          if (parsed.source !== undefined) {
+            manifest.source = parsed.source as string;
+          }
         }
       }
     }
   }
 
+  // The manifest `source` (relative to the project root, which is always two
+  // levels above `icons/<id>/`) redirects where the SVG files are read from,
+  // so npm-managed icon sets stay in node_modules.
+  const projectRoot = path.dirname(path.dirname(libraryDir));
+  let filesDir = libraryDir;
+  if (manifest?.source !== undefined) {
+    filesDir = path.resolve(projectRoot, manifest.source);
+    const sourceExists = await fs
+      .stat(filesDir)
+      .then((stat) => stat.isDirectory())
+      .catch(() => false);
+    if (!sourceExists) {
+      errors.push(
+        `The manifest "source" directory does not exist: ${manifest.source}`,
+      );
+      throw new Error(
+        `Icon library "${id}" validation failed:\n${errors.join('\n')}`,
+      );
+    }
+  }
+
   const svgFiles: string[] = [];
-  const entries = await fs.readdir(libraryDir, { withFileTypes: true });
+  const entries = await fs.readdir(filesDir, { withFileTypes: true });
   const fileNames = entries
     .filter((entry) => entry.isFile())
     .map((entry) => entry.name)
@@ -180,7 +216,7 @@ export async function validateIconLibraryDir(
       );
       continue;
     }
-    const content = await fs.readFile(path.join(libraryDir, name), 'utf-8');
+    const content = await fs.readFile(path.join(filesDir, name), 'utf-8');
     for (const issue of validateSvgSafety(content)) {
       errors.push(`${name}: ${issue}.`);
     }
@@ -199,5 +235,5 @@ export async function validateIconLibraryDir(
     );
   }
 
-  return { id, dir: libraryDir, manifest: manifest!, svgFiles };
+  return { id, dir: libraryDir, manifest: manifest!, filesDir, svgFiles };
 }

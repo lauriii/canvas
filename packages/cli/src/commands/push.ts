@@ -1267,14 +1267,25 @@ export function pushCommand(program: Command): void {
             markStarted: () =>
               removeNotStartedResource(notStartedResources, 'icons'),
             prepare: () => prepareIconLibrariesPush(process.cwd()),
-            push: async (validLibraries) => {
+            push: async (validLibraries, context) => {
               const remoteLibraries = await pushApiService.getIconLibraries();
-              const results = await processInPool(validLibraries, (entry) =>
-                pushIconLibrary(
-                  pushApiService,
-                  entry.result,
-                  remoteLibraries[entry.result.id],
-                ),
+              // Uploads are parallelized per library, so libraries themselves
+              // push sequentially to keep the progress message coherent.
+              const results = await processInPool(
+                validLibraries,
+                (entry) =>
+                  pushIconLibrary(
+                    pushApiService,
+                    entry.result,
+                    remoteLibraries[entry.result.id],
+                    {
+                      onProgress: (libraryId, done, total) =>
+                        context?.updateMessage(
+                          `Pushing icon library ${libraryId}: ${done}/${total} files`,
+                        ),
+                    },
+                  ),
+                1,
               );
               return results.map((result) => ({
                 ...result,

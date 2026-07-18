@@ -1145,7 +1145,7 @@ export class ApiService {
     libraryId: string,
     filename: string,
     fileBuffer: Buffer,
-  ): Promise<UploadedArtifactResult> {
+  ): Promise<UploadedArtifactResult & { hash?: string }> {
     try {
       const response = await this.client.post(
         `/canvas/api/v0/icon-libraries/${encodeURIComponent(libraryId)}/assets`,

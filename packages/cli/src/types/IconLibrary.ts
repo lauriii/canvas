@@ -3,12 +3,15 @@ export interface IconLibraryAsset {
   name: string;
   uri: string;
   url: string;
+  /** SHA-256 of the file contents; absent on entries saved before hashing. */
+  hash?: string | null;
 }
 
 /** Asset entry sent when creating or updating an icon library (no server url). */
 export interface IconLibraryAssetInput {
   name: string;
   uri: string;
+  hash?: string;
 }
 
 /** Icon library config entity (normalized shape from the config API). */

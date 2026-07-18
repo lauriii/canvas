@@ -2173,6 +2173,10 @@ paths:
                   url:
                     type: string
                     description: The public URL to the file
+                  hash:
+                    type: string
+                    pattern: '^[0-9a-f]{64}$'
+                    description: SHA-256 of the file contents
         '422':
           description: The SVG file was rejected.
           content:
@@ -4448,6 +4452,10 @@ components:
                   uri:
                     type: string
                     description: Managed file URI
+                  hash:
+                    type: [string, "null"]
+                    pattern: '^[0-9a-f]{64}$'
+                    description: SHA-256 of the file contents; lets the CLI skip re-uploading unchanged files
                   url:
                     type: string
                     readOnly: true

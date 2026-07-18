@@ -1035,7 +1035,35 @@ canvas.icon_library.*:
         Callback:
           callback: ['\Drupal\canvas\Entity\IconLibrary', validateAssets]
       sequence:
-        type: canvas.asset_library_manifest_entry
+        type: canvas.icon_library_asset_entry
+
+canvas.icon_library_asset_entry:
+  type: mapping
+  label: 'Icon library asset entry'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    name:
+      type: string
+      label: 'File name'
+      constraints:
+        NotBlank: []
+    uri:
+      type: uri
+      label: 'Managed file URI'
+      constraints:
+        NotBlank: []
+        UriScheme: ['public']
+    hash:
+      # SHA-256 of the file contents, returned by the upload endpoint. Lets
+      # the CLI skip re-uploading unchanged files on incremental pushes.
+      type: string
+      label: 'SHA-256 hash of the file contents'
+      nullable: true
+      requiredKey: false
+      constraints:
+        Regex:
+          pattern: '/^[0-9a-f]{64}$/'
 
 canvas.compilable_code:
   type: mapping

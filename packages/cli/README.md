@@ -171,7 +171,7 @@ directory in the project root:
 ```
 icons/
   my_icons/
-    manifest.json      # optional: { id, label, description?, template? }
+    manifest.json      # optional: { id, label, description?, template?, source? }
     star.svg           # icons; the filename (minus .svg) is the icon id
   lucide/
     pack.json          # module-provided pack info written by pull; not pushed
@@ -204,8 +204,25 @@ cp node_modules/lucide-static/icons/*.svg icons/lucide_icons/
 npx canvas push --include-brand-kit
 ```
 
+For npm-managed icon sets, skip the copy entirely: declare the package directory
+as the library's `source` (relative to the project root) and the SVGs stay in
+`node_modules`:
+
+```json
+{
+  "id": "lucide",
+  "label": "Lucide",
+  "source": "node_modules/lucide-static/icons"
+}
+```
+
 Every SVG becomes an icon named after its filename, available in the Canvas icon
 picker and the Brand Kit, and rendered through the core Icon API.
+
+**Incremental pushes:** every uploaded file's SHA-256 is stored on the icon
+library, so a re-push uploads only new or changed files — unchanged icons never
+leave your machine, and an unchanged library skips its update entirely. Uploads
+run concurrently with live per-library progress.
 
 **SVG sanitization:** The server rejects unsafe SVG files (scripts, event
 handler attributes, `javascript:` URLs, DOCTYPE declarations, and external
