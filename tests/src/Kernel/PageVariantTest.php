@@ -247,6 +247,32 @@ final class PageVariantTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that module uninstall can delete the site default variant.
+   *
+   * Core's ConfigManager cascade-deletes config that depends on an uninstalling
+   * module, marking each dependent `isUninstalling()` while `isSyncing()` stays
+   * FALSE. The site-default guard must exempt those, or uninstalling a module
+   * whose component sits in the default variant's tree would abort mid-way.
+   *
+   * @see \Drupal\canvas\Entity\PageVariant::preDelete()
+   */
+  public function testSiteDefaultDeletableDuringModuleUninstall(): void {
+    $variant = PageVariant::create(['id' => 'uninstalling', 'label' => 'Uninstalling', 'component_tree' => [self::markerInstance()]]);
+    $variant->save();
+    $this->config('canvas.settings')->set(PageVariant::DEFAULT_SETTING, 'uninstalling')->save();
+    $variant = PageVariant::load('uninstalling');
+    self::assertInstanceOf(PageVariant::class, $variant);
+    self::assertTrue($variant->isSiteDefault());
+
+    // Deleting the site default during a module uninstall is exempt from the
+    // guard and succeeds. (A plain delete throwing is covered by
+    // testSiteDefaultDeletionGuard.)
+    $variant->setUninstalling(TRUE);
+    $variant->delete();
+    self::assertNull(PageVariant::load('uninstalling'));
+  }
+
+  /**
    * Tests the `page_variant` base field on the `canvas_page` entity type.
    */
   public function testPageEntityHasPageVariantBaseField(): void {
@@ -380,6 +406,53 @@ final class PageVariantTest extends CanvasKernelTestBase {
     self::assertInstanceOf(Page::class, $reloaded_page);
     self::assertNull($reloaded_page->get('page_variant')->value);
     self::assertSaveWithoutViolations($reloaded_page);
+  }
+
+  /**
+   * Tests that deleting a variant clears an auto-saved page selection.
+   *
+   * A selection can live only in a page's auto-saved draft, never persisted, so
+   * the persisted-page sweep cannot reach it. Left behind, the dangling value
+   * fails options validation and blocks publishing the draft. postDelete() must
+   * sweep drafts too, clearing just the selection.
+   *
+   * @see \Drupal\canvas\Entity\PageVariant::postDelete()
+   */
+  public function testDeletingVariantClearsAutoSavedPageSelection(): void {
+    PageVariant::create(['id' => 'draft_target', 'label' => 'Draft target', 'component_tree' => [self::markerInstance()]])->save();
+    $variant = PageVariant::load('draft_target');
+    self::assertInstanceOf(PageVariant::class, $variant);
+
+    // A saved page with no persisted selection: the persisted-page sweep in
+    // postDelete() cannot reach it.
+    $page = Page::create(['title' => 'Original title']);
+    self::assertSaveWithoutViolations($page);
+
+    $auto_save_manager = $this->container->get(AutoSaveManager::class);
+    self::assertInstanceOf(AutoSaveManager::class, $auto_save_manager);
+
+    // The draft selects the variant and carries an unrelated edit, so it does
+    // not revert to the stored page once the selection is swept out.
+    $draft = Page::load($page->id());
+    self::assertInstanceOf(Page::class, $draft);
+    $draft->set('title', 'Draft title');
+    $draft->set('page_variant', 'draft_target');
+    $auto_save_manager->saveEntity($draft);
+    $stored_draft = $auto_save_manager->getAutoSaveEntity($page)->entity;
+    self::assertInstanceOf(Page::class, $stored_draft);
+    self::assertSame('draft_target', $stored_draft->get('page_variant')->value);
+
+    // The variant is not the site default, so deletion is allowed.
+    $variant->delete();
+    self::assertNull(PageVariant::load('draft_target'));
+
+    // The draft survives with its unrelated edit; only the dangling selection
+    // was cleared, so options validation passes and publishing is unblocked.
+    $swept_draft = $auto_save_manager->getAutoSaveEntity($page)->entity;
+    self::assertInstanceOf(Page::class, $swept_draft);
+    self::assertSame('Draft title', $swept_draft->label());
+    self::assertNull($swept_draft->get('page_variant')->value);
+    self::assertSaveWithoutViolations($swept_draft);
   }
 
   /**

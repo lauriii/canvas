@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\Controller\ClientServerConversionTrait;
 use Drupal\canvas\EntityHandlers\PageVariantAccessControlHandler;
@@ -231,14 +232,16 @@ final class PageVariant extends ComponentTreeConfigEntityBase implements CanvasH
    *
    * Blocks deleting the site default variant, so that content and content
    * templates without an explicit selection always resolve to a real variant.
-   * Set another variant as the default first. Config sync (import, module
-   * uninstall) is exempt.
+   * Set another variant as the default first. Config sync (import) and module
+   * uninstall are exempt: core cascade-deletes dependents during uninstall
+   * (marking them `isUninstalling()` while `isSyncing()` stays FALSE), and
+   * blocking that would abort the uninstall mid-way.
    */
   public static function preDelete(EntityStorageInterface $storage, array $entities): void {
     parent::preDelete($storage, $entities);
     foreach ($entities as $entity) {
       \assert($entity instanceof self);
-      if (!$entity->isSyncing() && $entity->isSiteDefault()) {
+      if (!$entity->isSyncing() && !$entity->isUninstalling() && $entity->isSiteDefault()) {
         throw new ConfigException(\sprintf('The page variant "%s" cannot be deleted because it is the site default. Set another variant as the default first.', $entity->id()));
       }
     }
@@ -247,11 +250,14 @@ final class PageVariant extends ComponentTreeConfigEntityBase implements CanvasH
   /**
    * {@inheritdoc}
    *
-   * Clears `page_variant` selections referencing the deleted variants: the
-   * selection is an options list, so a dangling value would fail validation
-   * on the page's next save. Cleared pages fall back to the site default.
+   * Clears `page_variant` selections referencing the deleted variants, in both
+   * persisted pages and their auto-saved drafts: the selection is an options
+   * list, so a dangling value would fail validation on the page's next save
+   * (and, for a draft, block publishing the whole changeset). Cleared pages
+   * fall back to the site default.
    *
    * @see \Drupal\canvas\Entity\Page::baseFieldDefinitions()
+   * @see \Drupal\canvas\Entity\PageVariant::allowedValues()
    * @see \Drupal\canvas\PageVariantResolver
    */
   public static function postDelete(EntityStorageInterface $storage, array $entities): void {
@@ -260,15 +266,33 @@ final class PageVariant extends ComponentTreeConfigEntityBase implements CanvasH
     if (!$entity_type_manager->hasDefinition(Page::ENTITY_TYPE_ID)) {
       return;
     }
+    $deleted_ids = \array_keys($entities);
     $page_storage = $entity_type_manager->getStorage(Page::ENTITY_TYPE_ID);
     $page_ids = $page_storage->getQuery()
       ->accessCheck(FALSE)
-      ->condition('page_variant', \array_keys($entities), 'IN')
+      ->condition('page_variant', $deleted_ids, 'IN')
       ->execute();
     foreach ($page_storage->loadMultiple($page_ids) as $page) {
       \assert($page instanceof Page);
       $page->set('page_variant', NULL);
       $page->save();
+    }
+
+    // The query above only reaches persisted selections. An editor's selection
+    // can live solely in a page's auto-saved draft, never persisted; that
+    // dangling value survives here and later fails options validation, blocking
+    // the draft's publish. Sweep auto-saved page drafts too, rewriting a
+    // matching `page_variant` to NULL while preserving the rest of the draft.
+    $auto_save_manager = \Drupal::service(AutoSaveManager::class);
+    foreach ($auto_save_manager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: FALSE) as $entry) {
+      $draft = $entry['entity'];
+      if (!$draft instanceof Page || !$draft->hasField('page_variant')) {
+        continue;
+      }
+      if (\in_array($draft->get('page_variant')->value, $deleted_ids, TRUE)) {
+        $draft->set('page_variant', NULL);
+        $auto_save_manager->saveEntity($draft);
+      }
     }
   }
 
