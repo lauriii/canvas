@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router';
 import {
@@ -223,11 +223,55 @@ const CombinePillEditor = ({
 }) => {
   const atCap = emittedPartCount(parts) >= COMBINE_MAX_PARTS;
   const hasPrevious = parts.some((part) => part.kind === 'previous');
+  const inputRefs = useRef(new Map<number, HTMLInputElement | null>());
 
   const updateText = (index: number, text: string) => {
     onChange(
       parts.map((part, i) => (i === index ? { kind: 'text', text } : part)),
     );
+  };
+  // Arrow keys walk across pills: pressing ArrowLeft at the start (or
+  // ArrowRight at the end) of a text run moves the caret to the text run on
+  // the other side of the adjacent pill, so the row edits like one
+  // continuous field.
+  const focusTextPart = (index: number, caret: 'start' | 'end') => {
+    const input = inputRefs.current.get(index);
+    if (!input) {
+      return;
+    }
+    input.focus();
+    const position = caret === 'end' ? input.value.length : 0;
+    input.setSelectionRange(position, position);
+  };
+  const onTextKeyDown = (
+    index: number,
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    const input = event.currentTarget;
+    if (input.selectionStart !== input.selectionEnd) {
+      return;
+    }
+    if (event.key === 'ArrowLeft' && input.selectionStart === 0) {
+      for (let i = index - 1; i >= 0; i--) {
+        if (parts[i].kind === 'text') {
+          event.preventDefault();
+          focusTextPart(i, 'end');
+          return;
+        }
+      }
+    }
+    if (
+      event.key === 'ArrowRight' &&
+      input.selectionStart === input.value.length
+    ) {
+      for (let i = index + 1; i < parts.length; i++) {
+        if (parts[i].kind === 'text') {
+          event.preventDefault();
+          focusTextPart(i, 'start');
+          return;
+        }
+      }
+    }
   };
   const removePill = (index: number) => {
     onChange(
@@ -266,6 +310,9 @@ const CombinePillEditor = ({
             return (
               <input
                 key={index}
+                ref={(element) => {
+                  inputRefs.current.set(index, element);
+                }}
                 className={styles.combineTextInput}
                 value={part.text}
                 size={Math.max(part.text.length, 2)}
@@ -274,6 +321,7 @@ const CombinePillEditor = ({
                 }
                 aria-label="Combined text"
                 onChange={(event) => updateText(index, event.target.value)}
+                onKeyDown={(event) => onTextKeyDown(index, event)}
               />
             );
           }
