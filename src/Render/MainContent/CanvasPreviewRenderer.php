@@ -109,7 +109,9 @@ final class CanvasPreviewRenderer extends HtmlRenderer {
         continue;
       }
       $page_regions = PageRegion::loadForActiveThemeByClientSideId();
-      if (!empty($page_regions)) {
+      // Not every themed region has a PageRegion entity: with page variants,
+      // regions render through the variant tree instead.
+      if (isset($page_regions[$region])) {
         $access = $page_regions[$region]->access('edit', return_as_object: TRUE);
         if ($access->isAllowed()) {
           $page[$region]['#prefix'] = Markup::create("<!-- canvas-region-start-$region -->");

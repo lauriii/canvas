@@ -35,6 +35,9 @@ export type LayoutApiResponse = RootLayoutModel & {
   html: string;
   autoSaves: AutoSavesHash;
   translations?: Record<string, any>;
+  // For content entities: the page variant rendering this entity, null when
+  // core block layout renders the page. Absent for config entities.
+  resolvedPageVariant?: string | null;
 };
 
 export type TemplateViewMode = {
@@ -46,6 +49,7 @@ export type TemplateViewMode = {
   status: boolean;
   id: string;
   suggestedPreviewEntityId?: number;
+  pageVariant?: string | null;
 };
 
 export type TemplateInBundle = {
@@ -615,6 +619,17 @@ export const componentAndLayoutApi = createApi({
         { type: 'ViewModes', id: 'LIST' },
       ],
     }),
+    updateContentTemplate: builder.mutation<
+      TemplateViewMode,
+      { id: string; pageVariant?: string | null; status?: boolean }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `canvas/api/v0/config/content_template/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: [{ type: 'ContentTemplates', id: 'LIST' }],
+    }),
     getContentTemplates: builder.query<TemplateList, void>({
       query: () => `canvas/api/v0/config/content_template`,
       providesTags: () => [{ type: 'ContentTemplates', id: 'LIST' }],
@@ -658,6 +673,7 @@ export const {
   useUpdateAutoSaveMutation,
   useCreateContentTemplateMutation,
   useDeleteContentTemplateMutation,
+  useUpdateContentTemplateMutation,
   useGetContentTemplatesQuery,
   useGetViewModesQuery,
   useGetPreviewContentEntitiesQuery,

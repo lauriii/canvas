@@ -4,38 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_ai\Form;
 
-use Drupal\canvas\Entity\PageRegion;
-use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Extension\ThemeHandlerInterface;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Url;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Configure the theme regions for AI content generation.
+ * Configure the page variant descriptions for AI content generation.
  */
 final class CanvasAIThemeRegionSettingsForm extends ConfigFormBase {
-
-  /**
-   * The default site theme.
-   *
-   * @var string
-   */
-  private readonly string $defaultTheme;
-
-  public function __construct(ThemeHandlerInterface $themeHandler) {
-    $this->defaultTheme = $themeHandler->getDefault();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container): static {
-    return new static(
-      $container->get('theme_handler'),
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -56,41 +32,37 @@ final class CanvasAIThemeRegionSettingsForm extends ConfigFormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $config = $this->config('canvas_ai.theme_region.settings');
-    $active_regions = $this->getEnabledRegionsForDefaultSiteTheme();
+    $variants = $this->getEnabledPageVariants();
     $form['#tree'] = TRUE;
 
-    if (empty($active_regions)) {
-      $theme_settings_url = Url::fromRoute('system.theme_settings_theme', ['theme' => $this->defaultTheme]);
-
+    if (empty($variants)) {
       $form['message'] = [
         '#type' => 'markup',
-        '#markup' => $this->t('No page regions are enabled in your theme. Visit the <a href=":url">theme settings</a> to enable regions.', [
-          ':url' => $theme_settings_url->toString(),
-        ]),
+        '#markup' => $this->t('No page variants exist yet. Create a page variant before describing how it should be used.'),
       ];
       return $form;
     }
 
     $form['message'] = [
       '#type' => 'markup',
-      '#markup' => $this->t('<p>The following page regions are available in your theme and can be used by the <strong>Canvas Template Builder Agent</strong> to build the layout for a complete page (for example, building a homepage for a pizza shop).</p><p>Use this form to describe how each region should be used.</p>'),
+      '#markup' => $this->t('<p>The following page variants can be used by the <strong>Canvas Template Builder Agent</strong> to build the layout for a complete page (for example, building a homepage for a pizza shop).</p><p>Use this form to describe how each variant should be used.</p>'),
     ];
 
-    $descriptions = $config->get('region_descriptions') ?? [];
+    $descriptions = $config->get('variant_descriptions') ?? [];
 
-    foreach ($active_regions as $region) {
-      $region_id = $this->getRegionId($region);
-      $form[$this->defaultTheme][$region_id] = [
+    foreach ($variants as $variant) {
+      $variant_id = $variant->id();
+      $form[$variant_id] = [
         '#type' => 'details',
-        '#title' => $region->label(),
+        '#title' => $variant->label(),
         '#open' => TRUE,
       ];
-      $form[$this->defaultTheme][$region_id]['description'] = [
+      $form[$variant_id]['description'] = [
         '#type' => 'textarea',
         '#title' => $this->t('Description'),
-        '#description' => $this->t('Provide a description for what kind of content should be placed in this region.'),
-        '#default_value' => NestedArray::getValue($descriptions, [$this->defaultTheme, $region_id, 'description']),
-        '#placeholder' => $this->t("Example: If your theme has two footer regions enabled (footer_top and footer_bottom), you can add instructions like:\n\nFooter Top: \"This region should contain the site name, site logo, and footer navigation links, wrapped in a container component with the 'margin' prop set to 'large'. Use button components with the 'type' prop set to 'link' for navigation links.\"\n\nFooter Bottom: \"This region should contain social media icons using the social media component and a copyright notice using the paragraph component, wrapped in a container component with the 'margin' prop set to 'large'.\""),
+        '#description' => $this->t('Provide a description for what kind of content should be placed in this page variant.'),
+        // Fall back to the variant's own description when none is configured yet.
+        '#default_value' => $descriptions[$variant_id]['description'] ?? (string) $variant->get('description'),
         '#rows' => 7,
       ];
     }
@@ -102,51 +74,37 @@ final class CanvasAIThemeRegionSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $active_regions = $this->getEnabledRegionsForDefaultSiteTheme();
+    $variants = $this->getEnabledPageVariants();
 
-    $descriptions = $this->config('canvas_ai.theme_region.settings')->get('region_descriptions') ?? [];
-    foreach ($active_regions as $region) {
-      $region_id = $this->getRegionId($region);
-      $region_name = $region->label();
-      NestedArray::setValue($descriptions, [$this->defaultTheme, $region_id], [
-        'name' => $region_name,
-        'description' => $form_state->getValue([$this->defaultTheme, $region_id, 'description']),
-      ]);
+    $descriptions = [];
+    foreach ($variants as $variant) {
+      $variant_id = $variant->id();
+      $descriptions[$variant_id] = [
+        'name' => (string) $variant->label(),
+        'description' => $form_state->getValue([$variant_id, 'description']),
+      ];
     }
 
+    // @todo The Canvas Template Builder Agent still reads theme-region-keyed descriptions in CanvasAiPageBuilderHelper::getAvailableRegions(); wire it to these page variant descriptions.
     $this->config('canvas_ai.theme_region.settings')
-      ->set('region_descriptions', $descriptions)
+      ->set('variant_descriptions', $descriptions)
       ->save();
 
     parent::submitForm($form, $form_state);
   }
 
   /**
-   * Get the enabled theme regions for the default site theme.
+   * Gets the enabled page variants, sorted alphabetically by label.
    *
-   * @return \Drupal\canvas\Entity\PageRegion[]
-   *   An array of enabled PageRegion entities, sorted alphabetically by label.
+   * @return \Drupal\canvas\Entity\PageVariant[]
+   *   An array of enabled PageVariant entities.
    */
-  protected function getEnabledRegionsForDefaultSiteTheme(): array {
-    $regions = PageRegion::loadForTheme($this->defaultTheme);
-    $regions = array_filter($regions, fn($region) => $region->status());
-    // Sort regions alphabetically by label.
-    usort($regions, fn($a, $b) => \strnatcasecmp((string) $a->label(), (string) $b->label()));
+  protected function getEnabledPageVariants(): array {
+    $variants = PageVariant::loadMultiple();
+    $variants = array_filter($variants, fn($variant) => $variant->status());
+    usort($variants, fn($a, $b) => \strnatcasecmp((string) $a->label(), (string) $b->label()));
 
-    return $regions;
-  }
-
-  /**
-   * Get region ID.
-   *
-   * @param \Drupal\canvas\Entity\PageRegion $region
-   *   The page region.
-   *
-   * @return string
-   *   The region ID.
-   */
-  protected function getRegionId(PageRegion $region): string {
-    return $region->get('region');
+    return $variants;
   }
 
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useParams } from 'react-router-dom';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import {
   Box,
@@ -24,6 +24,7 @@ import {
   selectSelection,
 } from '@/features/ui/uiSlice';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
+import { PAGE_VARIANT_ENTITY_TYPE } from '@/services/pageVariants';
 
 import type React from 'react';
 
@@ -35,7 +36,13 @@ const ContextualPanel: React.FC = () => {
   const selection = useAppSelector(selectSelection);
   const dispatch = useAppDispatch();
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
+  const { entityType } = useParams();
   const isTemplateContext = editorFrameContext === EditorFrameContext.TEMPLATE;
+  // Page variants are config entities without entity form fields, so like
+  // templates they have no "Page data" tab: the panel only shows component
+  // settings.
+  const hasPageDataTab =
+    !isTemplateContext && entityType !== PAGE_VARIANT_ENTITY_TYPE;
   const mainTabText = isTemplateContext ? 'Template data' : 'Page data';
 
   const [activePanel, setActivePanel] = useState('pageData');
@@ -59,12 +66,12 @@ const ContextualPanel: React.FC = () => {
   }, [dispatch, selectedComponent, isMultiSelect]);
 
   useEffect(() => {
-    if (isTemplateContext && !isMultiSelect && !selectedComponent) {
+    if (!hasPageDataTab && !isMultiSelect && !selectedComponent) {
       setHidePanel(true);
     } else {
       setHidePanel(false);
     }
-  }, [selectedComponent, isMultiSelect, isTemplateContext]);
+  }, [selectedComponent, isMultiSelect, hasPageDataTab]);
 
   return (
     <Box
@@ -90,7 +97,7 @@ const ContextualPanel: React.FC = () => {
             className={clsx(styles.tabRoot)}
           >
             <Tabs.List justify="start" mx="4" size="1">
-              {!isTemplateContext && (
+              {hasPageDataTab && (
                 <Tabs.Trigger
                   value="pageData"
                   data-testid="canvas-contextual-panel--page-data"
@@ -169,7 +176,7 @@ const ContextualPanel: React.FC = () => {
                     <Outlet />
                   </ErrorBoundary>
                 </Tabs.Content>
-                {!isTemplateContext && (
+                {hasPageDataTab && (
                   <Tabs.Content
                     value={'pageData'}
                     forceMount={true}

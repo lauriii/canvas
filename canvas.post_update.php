@@ -10,8 +10,10 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Config\Entity\ConfigEntityUpdater;
 use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
 use Drupal\field\Entity\FieldConfig;
@@ -470,4 +472,103 @@ function canvas_post_update_0022_enforce_symmetrical_canvas_page_components_tran
   // it created.
   // @see \Drupal\Tests\canvas\Functional\Update\SymmetricalCanvasPageComponentsTranslationUpdateTest::testMissingOverride
   ComponentTreeFieldSymmetricalTranslationSynchronizer::ensureSymmetricalCanvasPageComponents();
+}
+
+/**
+ * Install page variants: entity type, selection field, marker, and settings.
+ */
+function canvas_post_update_0023_install_page_variants(): void {
+  $update_manager = \Drupal::service('entity.definition_update_manager');
+  \assert($update_manager instanceof EntityDefinitionUpdateManagerInterface);
+  $entity_type_manager = \Drupal::entityTypeManager();
+
+  // 1. Install the page_variant config entity type.
+  if ($update_manager->getEntityType(PageVariant::ENTITY_TYPE_ID) === NULL) {
+    $update_manager->installEntityType($entity_type_manager->getDefinition(PageVariant::ENTITY_TYPE_ID));
+  }
+
+  // 2. Install the page_variant selection field on canvas_page.
+  if ($update_manager->getFieldStorageDefinition('page_variant', 'canvas_page') === NULL) {
+    $storage_definitions = \Drupal::service('entity_field.manager')->getFieldStorageDefinitions('canvas_page');
+    if (isset($storage_definitions['page_variant'])) {
+      $update_manager->installFieldStorageDefinition('page_variant', 'canvas_page', 'canvas', $storage_definitions['page_variant']);
+    }
+  }
+
+  // 3. Create the "Page content" marker component (shipped in config/install,
+  // which existing sites do not import).
+  // @see config/install/canvas.component.marker.page_content.yml
+  if (Component::load(Marker::PAGE_CONTENT_COMPONENT_ID) === NULL) {
+    Component::create([
+      'id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+      'label' => 'Page content',
+      'provider' => 'canvas',
+      'source' => Marker::SOURCE_PLUGIN_ID,
+      'source_local_id' => Marker::PAGE_CONTENT_LOCAL_ID,
+      'active_version' => '3b12c0b99a6caecc',
+      'versioned_properties' => [
+        'active' => [
+          'settings' => [],
+          'fallback_metadata' => ['slot_definitions' => []],
+        ],
+      ],
+      'dependencies' => ['enforced' => ['module' => ['canvas']]],
+    ])->save();
+  }
+
+  // 4. Create the settings object holding the default page variant.
+  $settings = \Drupal::configFactory()->getEditable('canvas.settings');
+  if ($settings->isNew()) {
+    $settings->set('default_page_variant', NULL)->save();
+  }
+}
+
+/**
+ * Convert each theme's page regions into one page variant.
+ */
+function canvas_post_update_0024_migrate_page_regions_to_variants(): void {
+  $all_regions = PageRegion::loadMultiple();
+  if (!$all_regions) {
+    // Sites that never used page regions need no migration.
+    return;
+  }
+
+  $default_theme = \Drupal::config('system.theme')->get('default');
+
+  // Group the regions by theme.
+  $by_theme = [];
+  foreach ($all_regions as $region) {
+    \assert($region instanceof PageRegion);
+    $by_theme[$region->get('theme')][$region->get('region')] = $region;
+  }
+
+  foreach ($by_theme as $theme => $regions) {
+    $variant = canvas_page_variant_from_page_regions((string) $theme, $regions);
+    if (!$variant instanceof PageVariant) {
+      // The theme is no longer installed; a manual variant is needed.
+      continue;
+    }
+
+    if ($theme === $default_theme) {
+      \Drupal::configFactory()->getEditable('canvas.settings')
+        ->set(PageVariant::DEFAULT_SETTING, $variant->id())
+        ->save();
+    }
+  }
+}
+
+/**
+ * Updates the canvas_page `page_variant` selection field to an options list.
+ */
+function canvas_post_update_0025_page_variant_selection_options(): void {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  if ($update_manager->getFieldStorageDefinition('page_variant', 'canvas_page') === NULL) {
+    // Fresh installs (and sites upgraded by post_update 0023 running after
+    // this code landed) already have the options-list definition.
+    return;
+  }
+  // The stored values and column schema are unchanged (a machine name in a
+  // varchar column); only the field type and its settings change.
+  $storage_definitions = \Drupal::service('entity_field.manager')->getFieldStorageDefinitions('canvas_page');
+  $update_manager->updateFieldStorageDefinition($storage_definitions['page_variant']);
 }

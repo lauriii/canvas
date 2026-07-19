@@ -278,6 +278,9 @@ final class ComponentAuditControllerTest extends CanvasKernelTestBase {
     self::assertEqualsCanonicalizing([
       'rendered',
       'http_response',
+      // The page variant resolver checks the site default selection.
+      // @see \Drupal\canvas\PageVariantResolver
+      'config:canvas.settings',
       // Cache tag bubbled by the conditional attaching of the asset library for
       // tracking which page to navigate to when exiting the Canvas UI.
       // @see \Drupal\canvas\Hook\ModuleHooks::pageAttachments()
@@ -320,6 +323,9 @@ final class ComponentAuditControllerTest extends CanvasKernelTestBase {
     self::assertEqualsCanonicalizing([
       'rendered',
       'http_response',
+      // The page variant resolver checks the site default selection.
+      // @see \Drupal\canvas\PageVariantResolver
+      'config:canvas.settings',
       // Cache tag bubbled by the conditional attaching of the asset library for
       // tracking which page to navigate to when exiting the Canvas UI.
       // @see \Drupal\canvas\Hook\ModuleHooks::pageAttachments()

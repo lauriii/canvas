@@ -308,3 +308,44 @@ function canvas_oauth_post_update_0006_page_region_scope(array &$sandbox): void 
     ])->save();
   }
 }
+
+/**
+ * Install the canvas:page_variant scope.
+ */
+function canvas_oauth_post_update_0007_page_variant_scope(array &$sandbox): void {
+  $scope = Oauth2Scope::load('canvas_page_variant');
+  if (!$scope) {
+    Oauth2Scope::create([
+      'id' => 'canvas_page_variant',
+      'name' => 'canvas:page_variant',
+      'description' => 'Drupal Canvas: Full access to page variants',
+      'status' => TRUE,
+      'grant_types' => [
+        'authorization_code' => [
+          'status' => TRUE,
+          'description' => 'Authorization code access for page variants',
+        ],
+        'refresh_token' => [
+          'status' => TRUE,
+          'description' => 'Refresh token access for page variants',
+        ],
+        'client_credentials' => [
+          'status' => TRUE,
+          'description' => 'Client credentials access for page variants',
+        ],
+      ],
+      'umbrella' => FALSE,
+      'granularity_id' => 'permission',
+      'granularity_configuration' => [
+        'permission' => 'administer page variants',
+      ],
+      'dependencies' => [
+        'enforced' => [
+          'module' => [
+            'canvas_oauth',
+          ],
+        ],
+      ],
+    ])->save();
+  }
+}

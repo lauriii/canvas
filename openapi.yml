@@ -1212,6 +1212,149 @@ paths:
           description: Translation deleted successfully.
         '400':
           description: No translation exists for the current language.
+  /canvas/api/v0/config/page_variant:
+    description: Endpoint for managing Page Variants.
+    get:
+      summary: Retrieves all available Page Variants.
+      responses:
+        '200':
+          description: All available Page Variants
+          content:
+            application/json:
+              schema:
+                type: object
+                minProperties: 0
+                additionalProperties:
+                  $ref: '#/components/schemas/PageVariant'
+              examples:
+                page_variants:
+                  summary: A single page variant containing only the "Page content" marker
+                  value:
+                    homepage:
+                      id: homepage
+                      label: Homepage
+                      description: null
+                      status: true
+                      component_tree:
+                        - uuid: 14b2e2b7-5e05-42e2-9f6e-2ffdbb37df35
+                          component_id: marker.page_content
+                          component_version: 3b12c0b99a6caecc
+                          inputs: {}
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+    post:
+      summary: Creates a new Page Variant.
+      requestBody:
+        description: Create a new Page Variant.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPageVariant'
+            examples:
+              variant_with_content_marker:
+                value:
+                  id: homepage
+                  label: Homepage
+                  status: true
+                  component_tree:
+                    - uuid: 14b2e2b7-5e05-42e2-9f6e-2ffdbb37df35
+                      component_id: marker.page_content
+                      component_version: 3b12c0b99a6caecc
+                      inputs: {}
+      responses:
+        '201':
+          description: Created Page Variant successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageVariant'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '409':
+          description: Page Variant with the same ID already exists.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
+  '/canvas/api/v0/config/page_variant/{configEntityId}':
+    description: Endpoint for managing a specific Page Variant.
+    get:
+      summary: Retrieves details of a specific Page Variant.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Page Variant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageVariant'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+    patch:
+      summary: Updates a specific Page Variant.
+      requestBody:
+        description: Update specific Page Variant.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PageVariant'
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Page Variant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageVariant'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
+    delete:
+      summary: Deletes a Page Variant.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '204':
+          description: Deleted individual Page Variant
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+  '/canvas/api/v0/config/page_variant/{configEntityId}/translations':
+    description: Endpoint for deleting a specific translation of a Page Variant. Note that the path can be prefixed with a langcode to negotiate deleting that particular translation.
+    delete:
+      summary: Deletes the language config override (translation) for a page_variant config entity.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '204':
+          description: Translation deleted successfully.
+        '400':
+          description: No translation exists for the current language.
   /canvas/api/v0/config/pattern:
     description: TODO
     get:
@@ -1995,7 +2138,7 @@ paths:
     description: TODO
     parameters:
       - $ref: '#/components/parameters/entityTypeId'
-      - $ref: '#/components/parameters/entityId'
+      - $ref: '#/components/parameters/layoutEntityId'
     patch:
       summary: Generates a component instance form.
       responses:
@@ -2304,7 +2447,7 @@ paths:
       summary: Gets html markup, layout, model, entity form fields and various meta properties for a specified entity type and id.
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
+        - $ref: '#/components/parameters/layoutEntityId'
         - in: query
           name: autoSaved
           required: false
@@ -2447,6 +2590,10 @@ paths:
                     # @see \Drupal\Core\Entity\EntityPublishedInterface
                     # @see https://www.drupal.org/node/3505118#comment-15982801
                     description: Whether the edited content entity is marked as published.
+                  resolvedPageVariant:
+                    type: [string, "null"]
+                    # @see \Drupal\canvas\PageVariantResolver
+                    description: For content entities, the page variant that renders this entity (null when core block layout renders the page). Absent when editing config entities.
                   updated:
                     type: integer
                     title: Updated timestamp
@@ -2471,7 +2618,7 @@ paths:
         time as it is published)
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
+        - $ref: '#/components/parameters/layoutEntityId'
       requestBody:
         $ref: '#/components/requestBodies/PatchLayout'
       responses:
@@ -2532,7 +2679,7 @@ paths:
         it is published)
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
+        - $ref: '#/components/parameters/layoutEntityId'
       requestBody:
         $ref: '#/components/requestBodies/Layout'
       responses:
@@ -2800,6 +2947,51 @@ paths:
           description: Push start recorded.
         '403':
           $ref: '#/components/responses/AuthenticationErrorResponse'
+  /canvas/api/v0/settings/default-page-variant:
+    description: Endpoint for reading and setting the site default page variant.
+    get:
+      summary: Retrieves the site default page variant.
+      responses:
+        '200':
+          description: The site default page variant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultPageVariantSetting'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+    patch:
+      summary: Sets the site default page variant.
+      requestBody:
+        description: The page variant to use as the site default; null means no default (pages render through core block layout).
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DefaultPageVariantSetting'
+      responses:
+        '200':
+          description: The updated site default page variant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultPageVariantSetting'
+        '400':
+          description: The `default_page_variant` key is missing from the request body.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '422':
+          description: The referenced page variant does not exist or is disabled.
+          $ref: '#/components/responses/ClientErrorResponse'
   /canvas/api/v0/site-data:
     description: Returns the site-level canvasData.v0 payload.
     get:
@@ -3980,6 +4172,10 @@ components:
           type: boolean
         isPublished:
           type: boolean
+        # Response-only in practice; accepted here so layout GET responses can
+        # round-trip into POST bodies, like isNew/isPublished/translations.
+        resolvedPageVariant:
+          type: [string, "null"]
     AutoSaveConcurrencyControl:
       title: Auto Save Concurrency Control
       type: object
@@ -4290,57 +4486,104 @@ components:
           type: boolean
           description: Whether the region is editable (active).
         component_tree:
-          type: array
-          description: |
-            The component instances rendered inside this page region. Each entry
-            is a flat node with its `parent_uuid`/`slot` referencing another
-            entry to express tree structure. The HTTP API accepts an array
-            (deltas); the underlying config storage transforms it into a
-            UUID-keyed sequence on save.
-          items:
-            type: object
-            required:
-              - uuid
-              - component_id
-            additionalProperties: false
-            properties:
-              uuid:
-                type: string
-                format: uuid
-                description: Unique identifier of this component instance.
-              component_id:
-                type: string
-                description: The component config entity ID (e.g. "js.hero").
-              component_version:
-                type: string
-                description: The component version hash.
-              parent_uuid:
-                type:
-                  - string
-                  - 'null'
-                format: uuid
-                description: UUID of the parent component (null for root items).
-              slot:
-                type:
-                  - string
-                  - 'null'
-                description: The slot name in the parent component (null for root items).
-              inputs:
-                type:
-                  - object
-                  - 'null'
-                description: The component input values (prop sources).
-              label:
-                type:
-                  - string
-                  - 'null'
-                description: Optional label for the component instance.
+          description: The component instances rendered inside this page region.
+          $ref: '#/components/schemas/ConfigComponentTree'
     NewPageRegion:
       type: object
       allOf:
         - $ref: '#/components/schemas/PageRegion'
       required:
         - region
+    ConfigComponentTree:
+      title: Config entity component tree
+      type: array
+      description: |
+        The component instances of a config entity's component tree. Each entry
+        is a flat node with its `parent_uuid`/`slot` referencing another
+        entry to express tree structure. The HTTP API accepts an array
+        (deltas); the underlying config storage transforms it into a
+        UUID-keyed sequence on save.
+      items:
+        type: object
+        required:
+          - uuid
+          - component_id
+        additionalProperties: false
+        properties:
+          uuid:
+            type: string
+            format: uuid
+            description: Unique identifier of this component instance.
+          component_id:
+            type: string
+            description: The component config entity ID (e.g. "js.hero").
+          component_version:
+            type: string
+            description: The component version hash.
+          parent_uuid:
+            type:
+              - string
+              - 'null'
+            format: uuid
+            description: UUID of the parent component (null for root items).
+          slot:
+            type:
+              - string
+              - 'null'
+            description: The slot name in the parent component (null for root items).
+          inputs:
+            type:
+              - object
+              - 'null'
+            description: The component input values (prop sources).
+          label:
+            type:
+              - string
+              - 'null'
+            description: Optional label for the component instance.
+    PageVariant:
+      title: Page Variant
+      description: A named, theme-independent, full-page component tree. Its tree must contain exactly one "Page content" marker (component ID `marker.page_content`), where the route's main content is injected.
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Page Variant machine name.
+        label:
+          type: string
+          description: Human-readable Page Variant label.
+        description:
+          type:
+            - string
+            - 'null'
+          description: Optional description shown in the variant management UI.
+        status:
+          type: boolean
+          description: Whether the variant is enabled.
+        component_tree:
+          description: The full-page component tree, containing exactly one "Page content" marker.
+          $ref: '#/components/schemas/ConfigComponentTree'
+    NewPageVariant:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/PageVariant'
+      required:
+        - id
+        - label
+        - component_tree
+    DefaultPageVariantSetting:
+      title: Default page variant setting
+      type: object
+      required:
+        - default_page_variant
+      additionalProperties: false
+      properties:
+        default_page_variant:
+          type:
+            - string
+            - 'null'
+          description: The machine name of the page variant that renders pages without an explicit selection; null means no default (pages render through core block layout).
     SuggestedPropSources:
       title: A list of suggested prop sources (a level in the tree of hierarchical suggestions)
       type: array
@@ -4715,6 +4958,9 @@ components:
         status:
           type: boolean
           description: ContentTemplate entity status.
+        pageVariant:
+          type: [string, "null"]
+          description: The page variant that renders this template's pages; null (or an empty string) uses the site default.
         component_tree:
           $ref: '#/components/schemas/ComponentTree'
           description: Replacement component tree.
@@ -5000,6 +5246,7 @@ components:
         - suggestedPreviewEntityId
         - label
         - viewModeLabel
+        - pageVariant
         - component_tree
       properties:
         entityType:
@@ -5026,6 +5273,9 @@ components:
         viewModeLabel:
           type: string
           description: Entity View Mode label.
+        pageVariant:
+          type: [string, "null"]
+          description: The page variant that renders this template's pages; null uses the site default.
         component_tree:
           $ref: '#/components/schemas/ComponentTree'
           description: The persisted component tree.
@@ -5225,6 +5475,18 @@ components:
       examples:
         arbitraryEntityId:
           value: 42
+    layoutEntityId:
+      name: entityId
+      in: path
+      required: true
+      description: "The edited entity's ID: a content entity ID, or a page variant machine name."
+      schema:
+        type: string
+      examples:
+        contentEntityId:
+          value: '42'
+        pageVariantId:
+          value: marketing
     entityUuid:
       name: entityUuid
       in: path

@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\block\Entity\Block;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\Component\Uuid\Uuid;
 use Drupal\Core\Url;
 use Drupal\Tests\BrowserTestBase;
@@ -49,6 +50,10 @@ class CanvasPageVariantEnableTest extends BrowserTestBase {
     $this->drupalGet($front);
     $this->assertSession()->statusCodeEquals(200);
     $content_cache_tags = [
+      // The page variant resolver checks the site default selection even
+      // before any variant exists.
+      // @see \Drupal\canvas\PageVariantResolver
+      'config:canvas.settings',
       'config:system.menu.account',
       'config:system.menu.main',
       'config:system.site',
@@ -146,6 +151,12 @@ class CanvasPageVariantEnableTest extends BrowserTestBase {
         $this->assertStringStartsWith('block.', $component['component_id']);
       }
     }
+    // Enabling converted the block layout into the theme's page variant and
+    // selected it as the site default, so Canvas now renders the page.
+    $variant = PageVariant::load('theme_olivero');
+    self::assertInstanceOf(PageVariant::class, $variant);
+    self::assertSame('theme_olivero', \Drupal::config('canvas.settings')->get(PageVariant::DEFAULT_SETTING));
+
     $front = Url::fromRoute('<front>');
     $this->drupalGet($front);
     $this->assertSession()->statusCodeEquals(200);
@@ -162,21 +173,14 @@ class CanvasPageVariantEnableTest extends BrowserTestBase {
       'config:canvas.component.block.system_menu_block.main',
       'config:canvas.component.block.system_messages_block',
       'config:canvas.component.block.system_powered_by_block',
-      'config:canvas.page_region.olivero.breadcrumb',
-      'config:canvas.page_region.olivero.content_above',
-      'config:canvas.page_region.olivero.content_below',
-      'config:canvas.page_region.olivero.footer_bottom',
-      'config:canvas.page_region.olivero.footer_top',
-      'config:canvas.page_region.olivero.header',
-      'config:canvas.page_region.olivero.hero',
-      'config:canvas.page_region.olivero.highlighted',
-      'config:canvas.page_region.olivero.primary_menu',
-      'config:canvas.page_region.olivero.secondary_menu',
-      'config:canvas.page_region.olivero.sidebar',
-      'config:canvas.page_region.olivero.social',
+      'config:canvas.component.marker.page_content',
+      'config:canvas.component.theme_page_template.olivero',
+      'config:canvas.page_variant.theme_olivero',
     ]);
 
-    // The template is disabled again when we disable Canvas.
+    // The template is disabled again when we disable Canvas: the site default
+    // selection is cleared (the variant is kept for re-enabling) and core
+    // block layout renders the page again.
     $this->drupalGet('/admin/appearance/settings/olivero');
     $this->submitForm(['use_canvas' => FALSE], 'Save configuration');
     $regions = PageRegion::loadMultiple();
@@ -184,9 +188,12 @@ class CanvasPageVariantEnableTest extends BrowserTestBase {
     foreach ($regions as $region) {
       $this->assertFalse($region->status());
     }
+    self::assertNull(\Drupal::config('canvas.settings')->get(PageVariant::DEFAULT_SETTING));
+    self::assertInstanceOf(PageVariant::class, PageVariant::load('theme_olivero'));
 
     $this->drupalGet($front);
     $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->responseContains('block-olivero-site-branding');
   }
 
 }

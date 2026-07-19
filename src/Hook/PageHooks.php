@@ -14,6 +14,8 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -132,6 +134,28 @@ final class PageHooks {
       \assert($pathauto_item instanceof PathautoItem);
       $pathauto_item->set('pathauto', PathautoState::SKIP);
     }
+  }
+
+  /**
+   * Implements hook_field_widget_single_element_WIDGET_TYPE_form_alter().
+   *
+   * An empty `page_variant` selection means "follow the site default": the
+   * page re-resolves whenever the default changes, instead of pinning the
+   * current default's id. Present that as "Site default" instead of the
+   * widget's "- None -".
+   *
+   * @see \Drupal\canvas\PageVariantResolver
+   */
+  #[Hook('field_widget_single_element_options_select_form_alter')]
+  public static function pageVariantSelectionEmptyOption(array &$element, FormStateInterface $form_state, array $context): void {
+    $items = $context['items'] ?? NULL;
+    if (!$items instanceof FieldItemListInterface
+      || $items->getEntity()->getEntityTypeId() !== Page::ENTITY_TYPE_ID
+      || $items->getFieldDefinition()->getName() !== 'page_variant'
+      || !isset($element['#options']['_none'])) {
+      return;
+    }
+    $element['#options']['_none'] = new TranslatableMarkup('Site default');
   }
 
   /**

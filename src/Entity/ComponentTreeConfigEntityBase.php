@@ -179,7 +179,9 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
     // do not have deltas but sequence keys. Manipulate the config entity
     // property directly.
     // @see \Drupal\canvas\CanvasConfigUpdater::needsConfigEntityWithComponentTreeSequenceKeysUpdate()
-    $this->set('component_tree', self::asDeterministicallyAndTranslatableKeyedComponentTreeSequence(\array_values($this->get('component_tree'))));
+    // The `component_tree` schema is nullable, so an entity may be saved with
+    // no tree (for example a page variant before any component is added).
+    $this->set('component_tree', self::asDeterministicallyAndTranslatableKeyedComponentTreeSequence(\array_values($this->get('component_tree') ?? [])));
   }
 
   /**

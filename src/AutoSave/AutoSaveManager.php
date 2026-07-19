@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -1108,8 +1109,8 @@ class AutoSaveManager implements EventSubscriberInterface {
     return $events;
   }
 
-  public static function entityIsConsideredNew(ContentEntityInterface|ContentTemplate $entity): bool {
-    if ($entity instanceof ContentTemplate) {
+  public static function entityIsConsideredNew(ContentEntityInterface|ContentTemplate|PageVariant $entity): bool {
+    if ($entity instanceof ContentTemplate || $entity instanceof PageVariant) {
       return !$entity->status();
     }
     return (string) $entity->label() == ApiContentControllers::defaultTitle($entity->getEntityType()) || str_ends_with((string) $entity->label(), self::ENTITY_DUPLICATE_SUFFIX);

@@ -51,7 +51,7 @@ canvas_ai.component_description.settings:
 
 canvas_ai.theme_region.settings:
   type: config_object
-  label: 'Canvas AI Theme Region Settings'
+  label: 'Canvas AI Page Variant Settings'
   mapping:
     region_descriptions:
       type: sequence
@@ -69,3 +69,16 @@ canvas_ai.theme_region.settings:
             description:
               type: text
               label: 'Region description'
+    variant_descriptions:
+      type: sequence
+      label: 'Variant descriptions'
+      sequence:
+        type: mapping
+        label: 'Variant'
+        mapping:
+          name:
+            type: label
+            label: 'Variant name'
+          description:
+            type: text
+            label: 'Variant description'

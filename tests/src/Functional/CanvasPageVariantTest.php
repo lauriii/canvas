@@ -15,8 +15,9 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\PropSource\PropSource;
@@ -25,6 +26,7 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\Context\CacheContextsManager;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Render\Plugin\DisplayVariant\SimplePageVariant;
 use Drupal\Core\Session\AccountInterface;
@@ -55,6 +57,13 @@ class CanvasPageVariantTest extends FunctionalTestBase {
   private const string UUID_BRANDING = 'b8fd639d-f1df-413a-8926-8d2c7a3d6493';
   private const string UUID_MESSAGES = '4d866c38-7261-45c6-9b1e-0b94096d51e8';
   private const string UUID_IN_ROOT_ANOTHER = '5944ef12-4a3d-4f3a-8e67-086661be9ffc';
+  private const string UUID_MARKER = '43b53da4-c1e2-4b8c-b3f2-8e6d2a1f9c47';
+  private const string UUID_MARKER_UNSELECTED = '9a8272da-b09e-4a03-8c48-3fd608e5c1a9';
+
+  /**
+   * The ID of the PageVariant config entity selected as the site default.
+   */
+  private const string VARIANT_ID = 'site_default';
 
   /**
    * {@inheritdoc}
@@ -127,15 +136,21 @@ class CanvasPageVariantTest extends FunctionalTestBase {
 
     // 4. Drupal Canvas module installed: nothing changes, except the
     //    conditional attaching of the global asset library, which adds the
-    //    `route.name` cache context.
+    //    `route.name` cache context, and the `config:canvas.settings` cache
+    //    tag that every front-end page now carries (the site default page
+    //    variant selection is consulted even when no variant resolves).
     // @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant
     // @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments
+    // @see \Drupal\canvas\EventSubscriber\PageVariantSelectorSubscriber
     $this->container->get(ModuleInstallerInterface::class)->install([
       'canvas',
       // Install module that provides test SDCs.
       'canvas_test_sdc',
     ]);
-    Role::load('canvaspageadmin')?->grantPermission(Page::EDIT_PERMISSION)->save();
+    Role::load('canvaspageadmin')
+      ?->grantPermission(Page::EDIT_PERMISSION)
+        ->grantPermission(PageVariant::ADMIN_PERMISSION)
+        ->save();
     $this->rebuildContainer();
     $this->generateComponentConfig();
     $this->assertPageDisplayVariant(BlockPageVariant::class, [$block], expected_additional_cache_contexts: ['route.name']);
@@ -144,14 +159,24 @@ class CanvasPageVariantTest extends FunctionalTestBase {
       'js_components' => [],
     ], $this->getRenderedComponentInstances());
 
-    // 5. Once >=1 enabled Drupal Canvas PageRegion config entity is
-    // created for the default theme, Canvas's CanvasPageVariant is used instead.
+    // 5. Once a Drupal Canvas PageVariant config entity is created and
+    // selected as the site default (`canvas.settings:default_page_variant`),
+    // Canvas's CanvasPageVariant is used instead: the variant's component tree
+    // renders the whole page, with the route's main content injected where the
+    // "Page content" marker component instance is placed.
+    // @see \Drupal\canvas\PageVariantResolver
     $slogan = 'JavaScript is the future!';
     $this->config('system.site')->set('slogan', $slogan)->save();
-    $pageRegion = PageRegion::create([
-      'theme' => $this->defaultTheme,
-      'region' => 'sidebar_first',
+    $pageVariant = PageVariant::create([
+      'id' => self::VARIANT_ID,
+      'label' => 'Site default',
       'component_tree' => [
+        [
+          'uuid' => self::UUID_MARKER,
+          'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+          'component_version' => Component::load(Marker::PAGE_CONTENT_COMPONENT_ID)?->getActiveVersion(),
+          'inputs' => [],
+        ],
         [
           'uuid' => self::UUID_IN_ROOT,
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
@@ -240,7 +265,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
       'Using a static prop source that deviates from the configuration for Component <em class="placeholder">sdc.canvas_test_sdc.props-slots</em> at version <em class="placeholder">0e79e884426a53ae</em>.',
     ], \array_map(
       fn (ConstraintViolationInterface $v) => (string) $v->getMessage(),
-      iterator_to_array($pageRegion->getTypedData()->validate()),
+      iterator_to_array($pageVariant->getTypedData()->validate()),
     ));
     // Create a new version on the Component that shows the name of a User.
     $component = Component::load('sdc.canvas_test_sdc.props-slots');
@@ -262,7 +287,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
       ->save();
     self::assertCount(2, $component->getVersions());
     // Update the component instance.
-    $tree = $pageRegion->getComponentTree();
+    $tree = $pageVariant->getComponentTree();
     $index = $tree->getComponentTreeDeltaByUuid(self::UUID_IN_ROOT_ANOTHER);
     \assert($index !== NULL);
     $tree->removeItem($index);
@@ -276,34 +301,47 @@ class CanvasPageVariantTest extends FunctionalTestBase {
         'heading' => ['target_id' => 2],
       ],
     ]);
-    $pageRegion->setComponentTree($tree->getValue());
+    $pageVariant->setComponentTree($tree->getValue());
     self::assertSame([], \array_map(
       fn (ConstraintViolationInterface $v) => (string) $v->getMessage(),
-      iterator_to_array($pageRegion->getTypedData()->validate()),
+      iterator_to_array($pageVariant->getTypedData()->validate()),
     ));
-    $pageRegion->save();
+    $pageVariant->save();
 
-    // Create a second enabled PageRegion, but leave it empty.
-    $empty_page_region = PageRegion::create([
-      'theme' => $this->defaultTheme,
-      'region' => 'sidebar_second',
-      'component_tree' => [],
+    // Create a second enabled PageVariant containing only the required marker,
+    // but do not select it anywhere: only the resolved variant's cache tag may
+    // appear on the rendered page (the exact-match cache tag assertion below
+    // verifies the absence of `config:canvas.page_variant.unselected`).
+    $unselected_variant = PageVariant::create([
+      'id' => 'unselected',
+      'label' => 'Unselected',
+      'component_tree' => [
+        [
+          'uuid' => self::UUID_MARKER_UNSELECTED,
+          'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+          'component_version' => Component::load(Marker::PAGE_CONTENT_COMPONENT_ID)?->getActiveVersion(),
+          'inputs' => [],
+        ],
+      ],
     ]);
-    self::assertTrue($empty_page_region->status());
+    self::assertTrue($unselected_variant->status());
     self::assertSame([], \array_map(
       fn (ConstraintViolationInterface $v) => (string) $v->getMessage(),
-      iterator_to_array($empty_page_region->getTypedData()->validate()),
+      iterator_to_array($unselected_variant->getTypedData()->validate()),
     ));
-    $empty_page_region->save();
+    $unselected_variant->save();
+
+    // Select the first variant as the site default: from here on, it renders
+    // every front-end page that has no more specific selection.
+    $this->config('canvas.settings')->set(PageVariant::DEFAULT_SETTING, self::VARIANT_ID)->save();
 
     // ⚠️ In the future, we may want to reduce the number of cache tags and rely
-    // solely on the Canvas PageRegion config entity's list cache tag. That would
+    // solely on the Canvas PageVariant config entity's cache tag. That would
     // require intersecting every Canvas Component config entity cache tag
-    // invalidation against all Canvas PageTemplate config entities that depend
-    // it, and then invalidating *those* cache tags. Since the number of
-    // PageRegion config entities is relatively small (one per region per theme)
-    // this should be totally plausible. FOR NOW THIS WOULD BE PREMATURE
-    // OPTIMIZATION.
+    // invalidation against all Canvas PageVariant config entities that depend
+    // on it, and then invalidating *those* cache tags. Since the number of
+    // PageVariant config entities is relatively small, this should be totally
+    // plausible. FOR NOW THIS WOULD BE PREMATURE OPTIMIZATION.
     $this->assertPageDisplayVariant(CanvasPageVariant::class,
       Component::loadMultiple([
         'block.page_title_block',
@@ -393,7 +431,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
     $branding_component->enable()->save();
     $matching_component = Component::load(JsComponent::componentIdFromJavascriptComponentId($branding_component->id()));
     \assert($matching_component instanceof ComponentInterface);
-    $tree = $pageRegion->getComponentTree();
+    $tree = $pageVariant->getComponentTree();
     // Replace the block item with a JS Component.
     $index = $tree->getComponentTreeDeltaByUuid(self::UUID_BRANDING);
     \assert($index !== NULL);
@@ -416,8 +454,8 @@ class CanvasPageVariantTest extends FunctionalTestBase {
         'heading' => $slogan,
       ],
     ]);
-    $pageRegion->setComponentTree($tree->getValue());
-    $pageRegion->save();
+    $pageVariant->setComponentTree($tree->getValue());
+    $pageVariant->save();
     $role = Role::load('anonymous');
     $this->assertInstanceOf(Role::class, $role);
     $this->assertPageDisplayVariant(
@@ -508,13 +546,23 @@ class CanvasPageVariantTest extends FunctionalTestBase {
     self::assertNotNull($this->mink);
     $this->mink->setDefaultSessionName('canvas_ui');
 
-    // Canvas UI: 1. The draft version of the JavaScriptComponent is rendered.
-    // (The Canvas UI must preview all changes that, to allow reviewing and then
-    // publishing them.)
+    // Canvas UI: 0. A page's layout response points the editor at the page
+    // variant that renders its chrome, so the editor can offer to jump to
+    // editing it. The branding component lives in the variant's tree, so the
+    // variant's own layout endpoint is where the Canvas UI previews it.
     $canvas_ui_session = $this->getSession('canvas_ui');
     $page = Page::create(['title' => 'Test page']);
     $page->save();
     $this->drupalGet(Url::fromRoute('canvas.api.layout.get', ['entity' => $page->id(), 'entity_type' => Page::ENTITY_TYPE_ID]));
+    $this->assertSame('application/json', $canvas_ui_session->getResponseHeader('Content-Type'));
+    $layout_response_decoded = json_decode($canvas_ui_session->getPage()->getContent(), TRUE);
+    $this->assertArrayHasKey('html', $layout_response_decoded);
+    $this->assertSame(self::VARIANT_ID, $layout_response_decoded['resolvedPageVariant']);
+
+    // Canvas UI: 1. The draft version of the JavaScriptComponent is rendered
+    // in the page variant's layout preview. (The Canvas UI must preview all
+    // changes, to allow reviewing and then publishing them.)
+    $this->drupalGet(Url::fromRoute('canvas.api.layout.get', ['entity' => $pageVariant->id(), 'entity_type' => PageVariant::ENTITY_TYPE_ID]));
     $this->assertSame('application/json', $canvas_ui_session->getResponseHeader('Content-Type'));
     $layout_response_decoded = json_decode($canvas_ui_session->getPage()->getContent(), TRUE);
     $this->assertArrayHasKey('html', $layout_response_decoded);
@@ -541,10 +589,10 @@ class CanvasPageVariantTest extends FunctionalTestBase {
     self::assertNotNull($this->mink);
     $this->mink->setDefaultSessionName('default');
 
-    // 10. If all Drupal Canvas PageRegion config entities are disabled,
-    // BlockPageVariant is used once again.
-    $pageRegion->disable()->save();
-    $empty_page_region->disable()->save();
+    // 10. If the site default page variant selection is cleared, no variant
+    // resolves anymore and BlockPageVariant is used once again. (The variants
+    // themselves are kept: disabling the site default is not allowed.)
+    $this->config('canvas.settings')->set(PageVariant::DEFAULT_SETTING, NULL)->save();
     $this->assertPageDisplayVariant(BlockPageVariant::class, [$block], expected_additional_cache_contexts: ['route.name']);
     $this->assertSame([
       'blocks' => [$block->id()],
@@ -562,6 +610,15 @@ class CanvasPageVariantTest extends FunctionalTestBase {
       'http_response',
       'rendered',
     ];
+    // Once the Drupal Canvas module is installed, every front-end page carries
+    // the site default page variant selection as a cacheable dependency: even
+    // when no variant resolves and core renders the page, changing the
+    // selection must invalidate it. (::assertCacheTags() sorts internally, so
+    // the position in this array is irrelevant.)
+    // @see \Drupal\canvas\EventSubscriber\PageVariantSelectorSubscriber
+    if ($this->container->get(ModuleHandlerInterface::class)->moduleExists('canvas')) {
+      $expected_baseline_cache_tags[] = 'config:canvas.settings';
+    }
     $expected_dependency_cacheability = new CacheableMetadata();
     array_walk(
       $expected_cacheable_dependencies,
@@ -588,12 +645,14 @@ class CanvasPageVariantTest extends FunctionalTestBase {
         ...$expected_dependency_cacheability->getCacheTags(),
         ...$expected_additional_cache_tags,
       ],
-      // The Canvas PageRegion config entities' cache tags appear on top of the
-      // baseline — even for empty PageRegions.
+      // The rendered Canvas PageVariant config entity's cache tag appears on
+      // top of the baseline, plus that of the "Page content" marker component
+      // every variant tree must contain. The other components in the variant's
+      // tree are passed in as cacheable dependencies by the caller.
       CanvasPageVariant::class => [
         ...$expected_baseline_cache_tags,
-        'config:canvas.page_region.stark.sidebar_first',
-        'config:canvas.page_region.stark.sidebar_second',
+        'config:canvas.page_variant.' . self::VARIANT_ID,
+        'config:canvas.component.' . Marker::PAGE_CONTENT_COMPONENT_ID,
         ...$expected_dependency_cacheability->getCacheTags(),
         ...$expected_additional_cache_tags,
       ],

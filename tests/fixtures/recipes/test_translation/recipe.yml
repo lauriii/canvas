@@ -37,9 +37,14 @@ config:
         third_party_settings:
           content_translation:
             enabled: true
+    # The chrome page variant renders every page; select it as the site
+    # default so its heading appears around the test pages.
+    canvas.settings:
+      simpleConfigUpdate:
+        default_page_variant: chrome
     # @todo Remove setLanguageOverride and replace with config/language/{langcode}/
     #   files once https://drupal.org/i/3453331 is fixed.
-    canvas.page_region.stark.sidebar_first:
+    canvas.page_variant.chrome:
       setLanguageOverride:
         language: fr
         data:

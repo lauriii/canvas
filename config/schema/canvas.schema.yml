@@ -75,6 +75,10 @@ canvas.component.*:
           - js
           # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent
           - block
+          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+          - marker
+          # @see \Drupal\canvas_page_template_component\Plugin\Canvas\ComponentSource\ThemePageTemplate
+          - theme_page_template
     source_local_id:
       type: canvas.component_source_local_id.[%parent.source]
     versioned_properties:
@@ -352,6 +356,55 @@ canvas.page_region.*:
       type: canvas.component_tree
       # A region that is left empty may be `null`.
       nullable: true
+
+canvas.page_variant.*:
+  type: config_entity
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    status:
+      constraints:
+        # The site default must stay enabled: disabled variants keep rendering
+        # where already selected, but cannot be selected anew.
+        SiteDefaultPageVariantEnabled: ~
+    id:
+      type: machine_name
+      label: 'ID'
+    label:
+      type: required_label
+      label: 'Label'
+    description:
+      type: text
+      label: 'Description'
+      nullable: true
+    component_tree:
+      type: canvas.component_tree
+      # A variant with no components yet may be `null`.
+      nullable: true
+      constraints:
+        # A page variant must contain exactly one "Page content" marker.
+        # @see \Drupal\canvas\Plugin\Block\PageContentBlockInterface
+        PageVariantHasContentMarker: ~
+
+# Site-wide Drupal Canvas settings.
+canvas.settings:
+  type: config_object
+  label: 'Drupal Canvas settings'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    default_page_variant:
+      type: string
+      label: 'Default page variant'
+      # The machine name of the page_variant that renders everything without an
+      # explicit selection. `null` means no default: pages render through core
+      # block layout.
+      nullable: true
+      constraints:
+        Regex:
+          pattern: '/^[a-z0-9_]+$/'
+        ConfigExists:
+          prefix: canvas.page_variant.
 
 # The config equivalent of a ComponentTreeItemList, validated by the same constraints.
 # This is a list of component items in a tree, one item per component instance.
@@ -734,6 +787,40 @@ canvas.component_source_settings.block:
     default_settings:
       type: block.settings.[%parent.%parent.%parent.%parent.source_local_id]
 
+# Marker components (intrinsic placeholders such as the page content marker).
+# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+canvas.component_source_local_id.marker:
+  type: canvas.component_source_local_id.*
+  label: 'Marker component ID'
+  constraints:
+    FullyValidatable: ~
+    Choice:
+      - page_content
+canvas.component_source_settings.marker:
+  type: canvas.component_source_settings.*
+  label: 'Marker component settings'
+  constraints:
+    FullyValidatable: ~
+
+# Theme page template components (one per installed theme, provided by the
+# optional canvas_page_template_component module). The source-local ID is the
+# theme's machine name.
+# @see \Drupal\canvas_page_template_component\Plugin\Canvas\ComponentSource\ThemePageTemplate
+canvas.component_source_local_id.theme_page_template:
+  type: canvas.component_source_local_id.*
+  label: 'Theme'
+  constraints:
+    FullyValidatable: ~
+    # Matches the `theme` validation of `type: canvas.page_region.*`.
+    NotBlank: [ ]
+    ExtensionName: [ ]
+    ExtensionExists: theme
+canvas.component_source_settings.theme_page_template:
+  type: canvas.component_source_settings.*
+  label: 'Theme page template component settings'
+  constraints:
+    FullyValidatable: ~
+
 # The `fallback` plugin ID is the only one not required to specify a source-local ID.
 canvas.component_source_settings.fallback:
   constraints:
@@ -778,6 +865,9 @@ field.value.component_tree:
         absence:
           - Drupal\Core\Block\TitleBlockPluginInterface
           - Drupal\Core\Block\MessagesBlockPluginInterface
+          # The page content marker is only allowed in page_variant trees.
+          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+          - marker.page_content
         presence: ~
     FullyValidatable: ~
 
@@ -820,6 +910,9 @@ canvas.pattern.*:
               # @see `type: canvas.page_region.*`
               - Drupal\Core\Block\TitleBlockPluginInterface
               - Drupal\Core\Block\MessagesBlockPluginInterface
+              # The page content marker is only allowed in page_variant trees.
+              # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+              - marker.page_content
             presence: ~
 canvas.asset_library.*:
   type: config_entity
@@ -1068,6 +1161,9 @@ canvas.content_template.*.*.*:
               # @see `type: canvas.page_region.*`
               - Drupal\Core\Block\TitleBlockPluginInterface
               - Drupal\Core\Block\MessagesBlockPluginInterface
+              # The page content marker is only allowed in page_variant trees.
+              # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+              - marker.page_content
             presence: ~
       label: 'Component tree'
     exposed_slots:
@@ -1115,6 +1211,17 @@ canvas.content_template.*.*.*:
           # @see \Drupal\canvas\Plugin\Validation\Constraint\ValidSlotNameConstraint::VALID_NAME
           pattern: '/^[a-z0-9]+([a-z0-9_-]+)[a-z0-9]+$/'
           message: "%value is not a valid exposed slot name."
+    page_variant:
+      type: string
+      label: 'Page variant'
+      # The machine name of the page_variant that renders content using this
+      # template. `null` uses the site default.
+      nullable: true
+      constraints:
+        Regex:
+          pattern: '/^[a-z0-9_]+$/'
+        ConfigExists:
+          prefix: canvas.page_variant.
 
 canvas.staged_config_update.*:
   type: config_entity

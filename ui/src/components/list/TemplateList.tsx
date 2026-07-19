@@ -13,7 +13,9 @@ import { useSmartRedirect } from '@/hooks/useSmartRedirect';
 import {
   useDeleteContentTemplateMutation,
   useGetContentTemplatesQuery,
+  useUpdateContentTemplateMutation,
 } from '@/services/componentAndLayout';
+import { useGetPageVariantsQuery } from '@/services/pageVariants';
 
 import type {
   TemplateInBundle,
@@ -129,6 +131,8 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteContentTemplate, { isLoading, error, isError, reset }] =
     useDeleteContentTemplateMutation();
+  const [updateContentTemplate] = useUpdateContentTemplateMutation();
+  const { data: pageVariants } = useGetPageVariantsQuery();
   const selectedTemplateId = useGetEditedTemplateId();
   const { redirectToNextBestPage } = useSmartRedirect();
   const { urlForTemplateEditor } = useEditorNavigation();
@@ -190,6 +194,35 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
   const menuItems = (
     <>
       <UnifiedMenu.Label>{viewMode.viewModeLabel}</UnifiedMenu.Label>
+      <UnifiedMenu.Separator />
+      <UnifiedMenu.Sub>
+        <UnifiedMenu.SubTrigger>Page template</UnifiedMenu.SubTrigger>
+        <UnifiedMenu.SubContent>
+          <UnifiedMenu.RadioGroup
+            value={viewMode.pageVariant ?? ''}
+            onValueChange={(value) =>
+              updateContentTemplate({
+                id: viewMode.id,
+                pageVariant: value || null,
+              })
+            }
+          >
+            <UnifiedMenu.RadioItem value="">Site default</UnifiedMenu.RadioItem>
+            {Object.values(pageVariants ?? {})
+              // Disabled templates keep rendering where already selected, but
+              // cannot be selected anew.
+              .filter(
+                (variant) =>
+                  variant.status || variant.id === viewMode.pageVariant,
+              )
+              .map((variant) => (
+                <UnifiedMenu.RadioItem key={variant.id} value={variant.id}>
+                  {variant.label || variant.id}
+                </UnifiedMenu.RadioItem>
+              ))}
+          </UnifiedMenu.RadioGroup>
+        </UnifiedMenu.SubContent>
+      </UnifiedMenu.Sub>
       <UnifiedMenu.Separator />
       <UnifiedMenu.Item
         color="red"

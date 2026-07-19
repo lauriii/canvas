@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Functional\Form;
 
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\BrowserTestBase;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
- * Tests the Canvas AI Theme Region Settings form.
+ * Tests the Canvas AI Page Variant Settings form.
  */
 #[Group('canvas_ai')]
 final class CanvasAIThemeRegionSettingsFormTest extends BrowserTestBase {
@@ -33,10 +34,9 @@ final class CanvasAIThemeRegionSettingsFormTest extends BrowserTestBase {
    * Tests the form.
    */
   public function testForm(): void {
-    // Create a user with the USE_CANVAS_AI permission and administer themes.
+    // Create a user with the USE_CANVAS_AI permission.
     $user = $this->drupalCreateUser([
       CanvasAiPermissions::USE_CANVAS_AI,
-      'administer themes',
     ]);
     \assert($user instanceof AccountInterface);
     $this->drupalLogin($user);
@@ -46,61 +46,45 @@ final class CanvasAIThemeRegionSettingsFormTest extends BrowserTestBase {
 
     // Assert that the form title is displayed.
     $this->assertSession()->statusCodeEquals(200);
-    $this->assertSession()->pageTextContains('Canvas AI Theme Region Settings');
+    $this->assertSession()->pageTextContains('Canvas AI Page Variant Settings');
 
-    // By default, no page regions are enabled in the theme.
-    // Assert that the appropriate message is displayed.
-    $this->assertSession()->pageTextContains('No page regions are enabled in your theme.');
-    $this->assertSession()->linkExists('theme settings');
+    // With no page variants, assert that the informational message is shown.
+    $this->assertSession()->pageTextContains('No page variants exist yet.');
 
-    // Enable Drupal Canvas for the Stark theme to enable page regions.
-    $this->drupalGet('/admin/appearance/settings/stark');
-    $this->assertSession()->pageTextContains('Drupal Canvas');
-    $this->assertSession()->fieldExists('use_canvas');
+    // Create two page variants.
+    PageVariant::create([
+      'id' => 'homepage',
+      'label' => 'Homepage',
+      'description' => 'The site homepage.',
+    ])->save();
+    PageVariant::create([
+      'id' => 'landing',
+      'label' => 'Landing',
+      'description' => '',
+    ])->save();
 
-    // Enable Canvas for the Stark theme.
-    $this->submitForm(['use_canvas' => TRUE], 'Save configuration');
-    $this->assertSession()->pageTextContains('The configuration options have been saved.');
-
-    $this->drupalGet('/admin/appearance/settings/stark');
-    // Disable some regions.
-    $this->submitForm([
-      'editable[stark.sidebar_first]' => FALSE,
-      'editable[stark.header]' => FALSE,
-      'editable[stark.page_bottom]' => FALSE,
-    ], 'Save configuration');
-    $this->assertSession()->pageTextContains('The configuration options have been saved.');
-
-    // Now navigate back to the Canvas AI Theme Region Settings form.
+    // Navigate back to the form. The "no variants" message is gone.
     $this->drupalGet('/admin/config/ai/canvas-ai-theme-region-settings');
-    // The "no regions" message should no longer be displayed.
-    $this->assertSession()->pageTextNotContains('No page regions are enabled in your theme.');
+    $this->assertSession()->pageTextNotContains('No page variants exist yet.');
 
-    // We should see the form to add descriptions to the enabled regions.
-    $this->assertSession()->pageTextContains('The following page regions are available in your theme');
-    $this->assertSession()->pageTextNotContains('Left sidebar');
-    $this->assertSession()->pageTextContains('Right sidebar');
-    $this->assertSession()->pageTextContains('Content');
-    $this->assertSession()->pageTextNotContains('Header');
-    $this->assertSession()->pageTextContains('Primary menu');
-    $this->assertSession()->pageTextContains('Secondary menu');
-    $this->assertSession()->pageTextContains('Footer');
-    $this->assertSession()->pageTextContains('Highlighted');
-    $this->assertSession()->pageTextContains('Help');
-    $this->assertSession()->pageTextContains('Page top');
-    $this->assertSession()->pageTextNotContains('Page bottom');
-    $this->assertSession()->pageTextContains('Breadcrumb');
+    // We should see the form to add descriptions for the variants.
+    $this->assertSession()->pageTextContains('The following page variants can be used');
+    $this->assertSession()->pageTextContains('Homepage');
+    $this->assertSession()->pageTextContains('Landing');
 
-    // Submit the form with a description for the breadcrumb region.
-    $breadcrumb_description = 'Breadcrumb region description updated';
+    // The variant's own description pre-fills the textarea.
+    $this->assertSession()->fieldValueEquals('homepage[description]', 'The site homepage.');
+
+    // Submit the form with a description for the landing variant.
+    $landing_description = 'Landing page for marketing campaigns.';
     $this->submitForm([
-      'stark[breadcrumb][description]' => $breadcrumb_description,
+      'landing[description]' => $landing_description,
     ], 'Save configuration');
     $this->assertSession()->pageTextContains('The configuration options have been saved.');
 
     // Navigate back to the form and verify the description was saved.
     $this->drupalGet('/admin/config/ai/canvas-ai-theme-region-settings');
-    $this->assertSession()->fieldValueEquals('stark[breadcrumb][description]', $breadcrumb_description);
+    $this->assertSession()->fieldValueEquals('landing[description]', $landing_description);
   }
 
 }

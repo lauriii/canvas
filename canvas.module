@@ -11,11 +11,92 @@
 ini_set('assert.active', 1);
 
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
+use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\PropSource\FieldStorageDefinition;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Render\Markup;
+
+/**
+ * Creates (or returns) the page variant representing a theme's block layout.
+ *
+ * The variant wraps the theme page template component, with the "Page
+ * content" marker in its content slot and each region's components in the
+ * matching slot. An existing variant for the theme is returned unchanged, so
+ * content edited through the variant editor survives re-enabling Canvas.
+ *
+ * @param string $theme
+ *   The theme machine name.
+ * @param \Drupal\canvas\Entity\PageRegion[] $regions
+ *   The theme's PageRegion config entities, keyed by region machine name.
+ *
+ * @return \Drupal\canvas\Entity\PageVariant|null
+ *   The theme's page variant, or NULL when the theme page template component
+ *   cannot be generated (the theme is not installed).
+ */
+function canvas_page_variant_from_page_regions(string $theme, array $regions): ?PageVariant {
+  $variant_id = 'theme_' . \preg_replace('/[^a-z0-9_]/', '_', $theme);
+  $existing = PageVariant::load($variant_id);
+  if ($existing instanceof PageVariant) {
+    return $existing;
+  }
+
+  // The theme page template component reproduces the theme's original markup.
+  if (!\Drupal::moduleHandler()->moduleExists('canvas_page_template_component')) {
+    \Drupal::service('module_installer')->install(['canvas_page_template_component']);
+  }
+  $template = canvas_page_template_component_ensure_component($theme);
+  if (!$template instanceof Component) {
+    return NULL;
+  }
+  $marker = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
+  \assert($marker instanceof Component);
+
+  $uuid = \Drupal::service('uuid');
+  $template_uuid = $uuid->generate();
+  $tree = [
+    [
+      'uuid' => $template_uuid,
+      'component_id' => $template->id(),
+      'component_version' => $template->getActiveVersion(),
+      'inputs' => [],
+    ],
+    [
+      'uuid' => $uuid->generate(),
+      'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+      'component_version' => $marker->getActiveVersion(),
+      'parent_uuid' => $template_uuid,
+      'slot' => CanvasPageVariant::MAIN_CONTENT_REGION,
+      'inputs' => [],
+    ],
+  ];
+  foreach ($regions as $region_name => $region) {
+    \assert($region instanceof PageRegion);
+    if ($region_name === CanvasPageVariant::MAIN_CONTENT_REGION) {
+      continue;
+    }
+    foreach ($region->getComponentTree()->getValue() as $item) {
+      if (empty($item['parent_uuid'])) {
+        // Re-parent this region's root components into the template slot.
+        $item['parent_uuid'] = $template_uuid;
+        $item['slot'] = $region_name;
+      }
+      $tree[] = $item;
+    }
+  }
+
+  $variant = PageVariant::create([
+    'id' => $variant_id,
+    'label' => \ucfirst($theme) . ' theme',
+    'component_tree' => $tree,
+  ]);
+  $variant->save();
+  return $variant;
+}
 
 /**
  * Provides allowed values for a 'list_*' field used in a StaticPropSource.

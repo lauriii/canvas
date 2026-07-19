@@ -10,7 +10,7 @@ canvas_ai.component_description_settings:
   weight: 10
 
 canvas_ai.theme_region_settings:
-  title: 'Page Region Descriptions'
+  title: 'Page Variant Descriptions'
   route_name: canvas_ai.theme_region_settings
   base_route: canvas_ai.setting
   weight: 20
