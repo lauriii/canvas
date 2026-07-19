@@ -232,6 +232,7 @@ turbopack
 ultrawide
 unaddressable
 unbuilt
+unmappable
 unrenderable
 uncollapse
 uncollapsed
