@@ -61,6 +61,7 @@ import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
 
 import type React from 'react';
 
+import widgetStyles from '@/components/form/EntityFormWidgets.module.css';
 import styles from './ContextualPanel.module.css';
 
 interface ContextualPanelProps {
@@ -503,7 +504,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = ({
                         ? 'content'
                         : 'page-data'
                     }
-                    className={styles.partitionedForm}
+                    className={clsx(styles.partitionedForm, widgetStyles.root)}
                   >
                     {editorFrameContext === 'entity' && <PageDataForm />}
                   </Tabs.Content>

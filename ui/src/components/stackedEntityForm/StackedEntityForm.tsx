@@ -10,6 +10,8 @@ import { usePatchEntityFormFieldsMutation } from '@/services/content';
 import { useGetStackedEntityFormQuery } from '@/services/pageDataForm';
 import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
 
+import widgetStyles from '@/components/form/EntityFormWidgets.module.css';
+
 interface StackedEntityFormProps {
   entityType: string;
   entityId: string;
@@ -160,7 +162,11 @@ const StackedEntityForm: React.FC<StackedEntityFormProps> = ({
   );
 
   return (
-    <Box data-testid="canvas-stacked-entity-form" my="2">
+    <Box
+      data-testid="canvas-stacked-entity-form"
+      my="2"
+      className={widgetStyles.root}
+    >
       <Flex direction="column" gap="2" align="start">
         {showBackButton && (
           <Button

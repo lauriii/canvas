@@ -1,0 +1,59 @@
+/* Cleanups for Drupal entity form widgets rendered inside Canvas panels (the
+   Page data/Content tabs and the stacked reference-editing form). The widgets
+   arrive with Drupal's stock markup; these rules give them the panel's
+   vertical rhythm and typography. */
+
+/* One consistent gap between field widgets. */
+.root :global([class*='field--name-']) {
+  margin-block-end: var(--space-4);
+}
+
+/* Descriptions and upload constraints: quiet, small, close to their field. */
+.root :global(.description) {
+  margin-block: var(--space-1);
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
+}
+
+.root :global(input[type='file']) {
+  max-width: 100%;
+  font-size: var(--font-size-1);
+}
+
+/* The text-with-summary widget renders its "(Hide summary)" toggle inside the
+   label; style it as a quiet inline link instead of bold label text. */
+.root :global(.field-edit-link) {
+  color: var(--gray-11);
+  font-weight: var(--font-weight-regular);
+}
+
+.root :global(.field-edit-link button) {
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  color: inherit;
+  border: 0;
+  background: none;
+  font: inherit;
+}
+
+/* The multivalue popover widget (tags, media) hides its label because the
+   component props panel names the prop elsewhere; in an entity form the field
+   label is the only name the user gets, so surface it. */
+.root
+  :global(.form-no-label)
+  > :global(element-prop)
+  > :global(label.visually-hidden) {
+  position: static !important;
+  display: block;
+  /* Core's clip/clip-path only apply while absolutely positioned, which
+     position: static above undoes. */
+  overflow: visible !important;
+  clip-path: none !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  margin-block-end: var(--space-1) !important;
+  white-space: normal !important;
+}
