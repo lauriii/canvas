@@ -543,8 +543,8 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       }
       // If the parent component instance failed to hydrate (for example because
       // its Component config entity or its inputs could not be resolved), it is
-      // rendered as a fallback and has no slots to place children into. Drop the
-      // orphaned child subtree: the parent's fallback already conveys the
+      // rendered as a fallback and has no slots to place children into. Drop
+      // the orphaned child subtree: the parent's fallback already conveys the
       // failure, and the child cannot render inside a slot that is no longer
       // available.
       // @see ::getHydratedValue()

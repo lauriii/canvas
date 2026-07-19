@@ -378,21 +378,21 @@ class ComponentTreeItemListTest extends CanvasKernelTestBase {
     // the missing leaf and the missing container.
     $this->config('system.logging')->set('error_level', ERROR_REPORTING_DISPLAY_VERBOSE)->save();
     $html = $render_tree();
-    self::assertStringContainsString(sprintf('data-component-uuid="%s"', $leaf_uuid), $html);
-    self::assertStringContainsString(sprintf('data-component-uuid="%s"', $parent_uuid), $html);
+    self::assertStringContainsString(\sprintf('data-component-uuid="%s"', $leaf_uuid), $html);
+    self::assertStringContainsString(\sprintf('data-component-uuid="%s"', $parent_uuid), $html);
     self::assertStringContainsString('The component "sdc.canvas_test_sdc.my-cta" does not exist.', $html);
     self::assertStringContainsString('The component "sdc.canvas_test_sdc.props-slots" does not exist.', $html);
     // The orphaned child of the missing container is dropped, not promoted to
     // the tree root.
     self::assertStringNotContainsString('Orphaned child heading', $html);
-    self::assertStringNotContainsString(sprintf('data-component-uuid="%s"', $child_uuid), $html);
+    self::assertStringNotContainsString(\sprintf('data-component-uuid="%s"', $child_uuid), $html);
 
     // With error reporting hidden, an unprivileged user sees a generic message
     // instead of the exception details, and still no fatal error.
     $this->config('system.logging')->set('error_level', ERROR_REPORTING_HIDE)->save();
     $html = $render_tree();
-    self::assertStringContainsString(sprintf('data-component-uuid="%s"', $leaf_uuid), $html);
-    self::assertStringContainsString(sprintf('data-component-uuid="%s"', $parent_uuid), $html);
+    self::assertStringContainsString(\sprintf('data-component-uuid="%s"', $leaf_uuid), $html);
+    self::assertStringContainsString(\sprintf('data-component-uuid="%s"', $parent_uuid), $html);
     self::assertStringContainsString('Oops, something went wrong! Site admins have been notified.', $html);
     self::assertStringNotContainsString('does not exist', $html);
     self::assertStringNotContainsString('Orphaned child heading', $html);
