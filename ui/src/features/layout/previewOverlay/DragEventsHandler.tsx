@@ -6,8 +6,9 @@ import {
   restrictToWindowEdges,
 } from '@dnd-kit/modifiers';
 
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
+  selectSelection,
   setCodeDragging,
   setListDragging,
   setPreviewDragging,
@@ -37,6 +38,7 @@ import styles from './DragOverlay.module.css';
 
 const DragEventsHandler: React.FC = () => {
   const dispatch = useAppDispatch();
+  const selection = useAppSelector(selectSelection);
   const [componentName, setComponentName] = useState('...');
   const [dragOrigin, setDragOrigin] = useState('');
   const [isDraggingFolder, setIsDraggingFolder] = useState(false);
@@ -127,7 +129,18 @@ const DragEventsHandler: React.FC = () => {
 
   function handleDragStart(event: DragStartEvent) {
     initMouseTracking();
-    setComponentName(event.active.data?.current?.name);
+    // Dragging a member of the current multi-selection moves the whole
+    // selection, so the drag overlay shows the item count instead of one name.
+    const draggedUuid = event.active.data?.current?.component?.uuid;
+    if (
+      draggedUuid &&
+      selection.items.length > 1 &&
+      selection.items.includes(draggedUuid)
+    ) {
+      setComponentName(`${selection.items.length} items`);
+    } else {
+      setComponentName(event.active.data?.current?.name);
+    }
     const isFolderDrag = event.active.data?.current?.type === 'folder';
     setIsDraggingFolder(isFolderDrag);
     setIsFolderAtBoundary(false);

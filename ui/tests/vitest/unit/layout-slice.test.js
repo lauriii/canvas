@@ -440,6 +440,87 @@ describe('Delete multiple nodes', () => {
   });
 });
 
+describe('Move multiple nodes', () => {
+  it('Should move an ordered group into a slot in one action, preserving order', () => {
+    const state = layoutModelSlice.reducer(
+      layout,
+      moveNode({
+        uuid: ['static-static-card2df', 'static-static-card3rr'],
+        to: [0, 4, 0, 0],
+      }),
+    );
+    expect(state.layout[0].components.map((item) => item.uuid)).to.deep.equal([
+      'a7470350-deb2-4d9f-982c-464d356403d4',
+      'static-image-static-imageStyle-something7d',
+      'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+    ]);
+    expect(
+      state.layout[0].components[2].slots[0].components.map(
+        (item) => item.uuid,
+      ),
+    ).to.deep.equal([
+      'static-static-card2df',
+      'static-static-card3rr',
+      '6f3224e2-cb61-46e4-a9e4-35b4d18f0a82',
+    ]);
+  });
+
+  it('Should collapse a non-consecutive group to a contiguous run at the target', () => {
+    // static-static-card1ab lives in a nested slot, static-static-card3rr in
+    // the region root: different parents, moved as one group.
+    const state = layoutModelSlice.reducer(
+      layout,
+      moveNode({
+        uuid: ['static-static-card1ab', 'static-static-card3rr'],
+        to: [0, 1],
+      }),
+    );
+    expect(state.layout[0].components.map((item) => item.uuid)).to.deep.equal([
+      'a7470350-deb2-4d9f-982c-464d356403d4',
+      'static-static-card1ab',
+      'static-static-card3rr',
+      'static-static-card2df',
+      'static-image-static-imageStyle-something7d',
+      'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+    ]);
+    expect(
+      state.layout[0].components[0].slots[0].components.map(
+        (item) => item.uuid,
+      ),
+    ).to.deep.equal(['static-image-udf7d']);
+  });
+
+  it('Should create a single undo history entry for a batch move', () => {
+    const store = makeStore({
+      layoutModel: { present: layout, past: [initialState], future: [] },
+      ui: uiInitialState,
+    });
+    store.dispatch(
+      moveNode({
+        uuid: ['static-static-card2df', 'static-static-card3rr'],
+        to: [0, 4, 0, 0],
+      }),
+    );
+
+    let state = selectLayoutHistory(store.getState());
+    expect(state.past.length).to.eq(2);
+    expect(state.present.layout[0].components.length).to.eq(3);
+
+    // One undo restores the whole group to its original positions.
+    store.dispatch(UndoRedoActionCreators.undo('layoutModel'));
+    state = selectLayoutHistory(store.getState());
+    expect(
+      state.present.layout[0].components.map((item) => item.uuid),
+    ).to.deep.equal([
+      'a7470350-deb2-4d9f-982c-464d356403d4',
+      'static-static-card2df',
+      'static-static-card3rr',
+      'static-image-static-imageStyle-something7d',
+      'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+    ]);
+  });
+});
+
 describe('Duplicate multiple nodes', () => {
   it('Should duplicate a consecutive sibling set after the originals, preserving order', () => {
     const state = layoutModelSlice.reducer(

@@ -14,7 +14,7 @@ import {
   findComponentByUuid,
   findNodePathByUuid,
   insertNodeAtPath,
-  moveNodeToPath,
+  moveNodesToPath,
   recurseNodes,
   removeComponentByUuid,
   replaceUUIDsAndUpdateModel,
@@ -100,7 +100,13 @@ export interface StateWithHistoryWrapper {
 }
 
 type MoveNodePayload = {
-  uuid: string | undefined;
+  /**
+   * A single UUID, or an ordered array of UUIDs to move as one group. An
+   * array is moved in one state mutation so the whole batch is a single undo
+   * history entry: the components are inserted contiguously at `to` in the
+   * given order and removed from their original positions.
+   */
+  uuid: string | string[] | undefined;
   to: number[] | undefined;
 };
 
@@ -406,7 +412,8 @@ export const layoutModelSlice = createSlice({
     moveNode: create.reducer(
       (state, action: PayloadAction<MoveNodePayload>) => {
         const { uuid, to } = action.payload;
-        if (!uuid || !Array.isArray(to)) {
+        const uuids = Array.isArray(uuid) ? uuid : uuid ? [uuid] : [];
+        if (!uuids.length || !Array.isArray(to)) {
           console.error(
             `Cannot move ${uuid} to position ${to}. Check both uuid and to are defined/valid.`,
           );
@@ -414,7 +421,7 @@ export const layoutModelSlice = createSlice({
         }
 
         // Create a mutable copy of the path array since action payloads are frozen.
-        state.layout = moveNodeToPath(state.layout, uuid, [...to]);
+        state.layout = moveNodesToPath(state.layout, [...uuids], [...to]);
         // Flag a preview update.
         state.updatePreview = true;
       },
