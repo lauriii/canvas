@@ -45,6 +45,20 @@ extractor into a renderable value — inline SVG markup or an asset URL — so c
 SVG sources by hand. A stored id whose pack or icon no longer exists resolves to nothing plus a logged warning, the
 same failure mode core accepts for its own icon render element.
 
+**Icons are a shared field type, not a code-component feature.** An icon-shaped prop maps to a dedicated `canvas_icon`
+field type (extending core's `string`) paired with the icon picker widget, registered in the shared prop-shape layer
+that every JSON-Schema-prop component source uses. Render-time resolution of the stored id lives in the shared
+component-source base and is keyed off that field type, so Single-Directory Components and code components alike get
+both the picker widget when binding the prop and id-to-SVG resolution when rendering — nothing about icons is specific
+to code components. The two sources differ only in the shape the resolved value takes for their render technology:
+code components receive the plain `{id, svg|url}` array their client runtime consumes, while SDCs receive a render
+array (inline SVG or an image) that Twig renders and that satisfies core's prop validation (which dismisses type
+errors for render-array prop values). Validation and storage are unaffected: the evaluated prop value stays the
+`pack_id:icon_id` string, so save-time schema validation still sees a string; only the render-time value is resolved.
+Rejected: keeping resolution inside the code-component source (limits icons to code components, and would duplicate
+the logic the moment an SDC needed an icon prop); a computed field property that resolves at evaluation time (would
+feed the resolved object to schema validation, which expects the stored string).
+
 **CLI push creates Canvas-managed icon libraries as config entities registered through `hook_icon_pack_alter()`.**
 An `IconLibrary` config entity holds the library's id, label, template, and references to uploaded SVG asset files
 stored under `public://canvas/icons/<library>/`. Canvas implements `hook_icon_pack_alter()` to append one complete

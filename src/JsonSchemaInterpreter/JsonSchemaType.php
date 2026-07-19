@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\JsonSchemaInterpreter;
 
 use Drupal\canvas\Icon\IconPropShape;
+use Drupal\canvas\Plugin\Field\FieldType\IconItem;
 use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
@@ -308,10 +309,14 @@ enum JsonSchemaType: string {
           default => NULL,
         },
         // Icons: the core Icon API's full icon id (`pack_id:icon_id`) stored
-        // as a plain string. Recognized either by the well-known `$ref` or by
-        // its (potentially pack-scoped) `pattern` after `$ref` resolution.
+        // as a plain string in the dedicated `canvas_icon` field type.
+        // Recognized either by the well-known `$ref` or by its (potentially
+        // pack-scoped) `pattern` after `$ref` resolution. The dedicated field
+        // type is what lets any component source — SDC or code component —
+        // recognize the prop as an icon and resolve it at render time.
         // @see \Drupal\canvas\Icon\IconPropShape
-        IconPropShape::isIconSchema($schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('string', 'value'), fieldWidget: 'canvas_icon'),
+        // @see \Drupal\canvas\Plugin\Field\FieldType\IconItem
+        IconPropShape::isIconSchema($schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression(IconItem::PLUGIN_ID, 'value'), fieldWidget: 'canvas_icon'),
         // Require $ref to be resolved, because that might add some of the other
         // keywords.
         \array_key_exists('$ref', $schema) => NULL,

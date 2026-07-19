@@ -148,6 +148,12 @@ final class SingleDirectoryComponent extends JsonSchemaPropsComponentSourceBase 
    */
   public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview = FALSE): array {
     [$props, $props_cacheability] = self::getResolvedPropsAndCacheability($inputs[self::EXPLICIT_INPUT_NAME] ?? []);
+    // Resolve stored icon ids into renderable values. SDC props render through
+    // Twig, so icons are wrapped in a render array: this renders the inline
+    // SVG (or image) and satisfies core's prop validation, which dismisses
+    // type errors for render-array prop values.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::resolveIconProps()
+    $props = $this->resolveIconProps($props, $props_cacheability, wrap_for_twig: TRUE);
     $build = [
       '#type' => 'component',
       '#component' => $this->getSourceSpecificComponentId(),

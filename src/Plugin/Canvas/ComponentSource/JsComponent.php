@@ -14,8 +14,6 @@ use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\GlobalImports;
-use Drupal\canvas\Icon\IconPropShape;
-use Drupal\canvas\Icon\IconResolver;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
@@ -82,7 +80,6 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
   protected EntityTypeManagerInterface $entityTypeManager;
   protected CodeComponentDataProvider $codeComponentDataProvider;
   protected ConfigFactoryInterface $configFactory;
-  protected IconResolver $iconResolver;
 
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
@@ -93,7 +90,6 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     $instance->entityTypeManager = $container->get(EntityTypeManagerInterface::class);
     $instance->codeComponentDataProvider = $container->get(CodeComponentDataProvider::class);
     $instance->configFactory = $container->get(ConfigFactoryInterface::class);
-    $instance->iconResolver = $container->get(IconResolver::class);
     return $instance;
   }
 
@@ -492,48 +488,22 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     // @see https://www.drupal.org/project/canvas/issues/3583639
     \assert($this->componentValidator->validateProps($props, $this->getComponentPlugin()));
 
-    // Resolve stored icon ids into renderable values (inline SVG markup or an
-    // asset URL), so code components never embed or manage SVG sources by
-    // hand. This happens after validation: what is stored and validated is
-    // the plain `pack_id:icon_id` string. An unresolvable icon becomes NULL
-    // (empty render plus a logged warning).
-    // @see \Drupal\canvas\Icon\IconResolver::resolve()
-    $has_icon_props = FALSE;
-    foreach ($this->getComponentPlugin()->metadata->schema['properties'] ?? [] as $prop_name => $prop_schema) {
-      // Multi-value icon props are `type: array` with the icon shape in
-      // `items`. Not (yet) creatable through the code editor UI, but storable
-      // via hand-authored config, so resolve them the same way.
-      $is_array_of_icons = ((array) ($prop_schema['type'] ?? NULL))[0] === 'array'
-        && \is_array($prop_schema['items'] ?? NULL)
-        && IconPropShape::isIconSchema($prop_schema['items']);
-      if (!$is_array_of_icons && !IconPropShape::isIconSchema($prop_schema)) {
-        continue;
-      }
-      $has_icon_props = TRUE;
-      if (!isset($props[$prop_name])) {
-        continue;
-      }
-      if ($is_array_of_icons && \is_array($props[$prop_name])) {
-        $props[$prop_name] = \array_map(
-          fn (mixed $value): ?array => \is_string($value) && $value !== '' ? $this->iconResolver->resolve($value) : NULL,
-          $props[$prop_name],
-        );
-      }
-      elseif (\is_string($props[$prop_name]) && $props[$prop_name] !== '') {
-        $props[$prop_name] = $this->iconResolver->resolve($props[$prop_name]);
-      }
-    }
-
     $cacheability = CacheableMetadata::createFromRenderArray($build)
       ->addCacheableDependency($component)
       ->addCacheableDependency($props_cacheability);
     if ($headless_settings !== NULL) {
       $cacheability->addCacheableDependency($headless_settings);
     }
-    if ($has_icon_props) {
-      // Resolved icon values depend on the installed icon packs.
-      $cacheability->addCacheTags(['icon_pack_plugin', 'icon_pack_collector', 'config:icon_library_list']);
-    }
+
+    // Resolve stored icon ids into renderable values (inline SVG markup or an
+    // asset URL) via the shared, source-agnostic icon resolution, so code
+    // components never embed or manage SVG sources by hand. This happens after
+    // validation: what is stored and validated is the plain `pack_id:icon_id`
+    // string. An unresolvable icon becomes NULL (empty render plus a logged
+    // warning). Icon cache tags are added by the shared method when the
+    // component declares any icon prop.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::resolveIconProps()
+    $props = $this->resolveIconProps($props, $cacheability);
     // When this component reads `canvasData.v0.mainEntity`, its data embeds the
     // per-language translation list, derived from the enabled-language list and
     // the URL negotiation config. Rebuild it when either changes.

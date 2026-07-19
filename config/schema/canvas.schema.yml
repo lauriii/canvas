@@ -786,6 +786,18 @@ field.field_settings.component_tree:
   constraints:
     FullyValidatable: ~
 
+# Schema for the `canvas_icon` field type: an Icon API icon id (`pack_id:icon_id`)
+# stored as a plain string. `IconItem` extends core's `string` field type, so
+# its storage settings and stored value reuse the `string` field schema.
+# @see \Drupal\canvas\Plugin\Field\FieldType\IconItem
+field.storage_settings.canvas_icon:
+  type: field.storage_settings.string
+  label: 'Icon settings'
+
+field.value.canvas_icon:
+  type: field.value.string
+  label: 'Default value'
+
 canvas.pattern.*:
   type: config_entity
   constraints:

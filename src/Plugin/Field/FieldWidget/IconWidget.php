@@ -31,7 +31,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 #[FieldWidget(
   id: 'canvas_icon',
   label: new TranslatableMarkup('Icon picker'),
-  field_types: ['string'],
+  field_types: ['canvas_icon'],
 )]
 final class IconWidget extends StringTextfieldWidget {
 
