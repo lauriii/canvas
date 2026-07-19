@@ -89,11 +89,11 @@ stored tree fails loudly instead of silently emptying a required prop.
 
 In the content template editor, the prop picker (the link icon next to a prop
 label) lists adapter suggestions in a "Transform" submenu after all direct
-field matches. Fallback's field candidates are listed inline with the direct
-matches (they are fields of the prop's own shape, merely optional; picking one
-opens the panel to collect the fallback default), while other bridging
-adapters, such as date formatting, keep a labeled submenu group. Selecting a
-transform opens the transform configuration panel:
+field matches. The bridging adapters' field candidates (an optional field
+needing a fallback, a date field needing a format) are listed inline with the
+direct matches, deduplicated; picking one opens the panel to collect only the
+adapter's remaining inputs. Selecting a transform opens the transform
+configuration panel:
 
 - Each transform is a step; steps chain linearly (step N's primary input is
   step N-1's output). Composition is deliberately a linear list, not a
