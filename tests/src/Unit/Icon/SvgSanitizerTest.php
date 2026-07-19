@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\Icon;
 
+// cspell:ignore Njcmlwd mport xpression
+
 use Drupal\canvas\Icon\SvgSanitizer;
 use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;

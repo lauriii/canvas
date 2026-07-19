@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Icon;
 
+// cspell:ignore NOENT mport
+
 /**
  * Validates uploaded SVG files before they are stored as icon assets.
  *

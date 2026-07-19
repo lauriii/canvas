@@ -14,9 +14,9 @@ import styles from '@/components/icons/IconPickerContent.module.css';
  * file (nodes 73-13758 and 73-15448).
  *
  * The header identifies a single library (name and icon count). When more
- * than one pack is browsable, the header summarizes all of them, and the grid
- * is grouped by pack with one section heading per pack. Search always filters
- * across all browsable packs at once.
+ * than one pack is shown, the header summarizes all of them, and the grid is
+ * grouped by pack with one section heading per pack. Search always filters
+ * across all shown packs at once.
  */
 const IconPickerContent = ({
   packs,
