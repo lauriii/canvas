@@ -25,18 +25,6 @@ async function openTemplatesPanel(page: Page) {
     .click();
 }
 
-// The templates list can get stuck loading when it mounts with an already
-// fulfilled variants cache, so remount it (toggle to Pages and back) before
-// creating a second variant.
-async function remountTemplatesPanel(page: Page) {
-  await openTemplatesPanel(page);
-  await page
-    .getByTestId('canvas-side-menu')
-    .getByRole('button', { name: 'Pages' })
-    .click();
-  await openTemplatesPanel(page);
-}
-
 async function createVariant(page: Page, label: string, id: string) {
   await page.getByTestId('canvas-page-variant-new-button').click();
   await page.getByTestId('canvas-page-variant-label-input').fill(label);
@@ -79,7 +67,6 @@ test.describe('Page variant state isolation', () => {
 
     await openTemplatesPanel(page);
     await createVariant(page, 'Alpha', 'alpha');
-    await remountTemplatesPanel(page);
     await createVariant(page, 'Beta', 'beta');
 
     // Give Alpha a distinctive heading.

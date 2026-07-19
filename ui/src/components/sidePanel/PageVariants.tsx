@@ -352,11 +352,7 @@ const emptyFormValues: VariantFormValues = { label: '', description: '' };
 
 const PageVariants = () => {
   const { navigateToEditor } = useEditorNavigation();
-  const {
-    data: variants,
-    isLoading: isVariantsLoading,
-    error: variantsError,
-  } = useGetPageVariantsQuery();
+  const { data: variants, error: variantsError } = useGetPageVariantsQuery();
   const { data: defaultVariant } = useGetDefaultPageVariantQuery();
   const { data: components } = useGetComponentsQuery();
 
@@ -449,7 +445,16 @@ const PageVariants = () => {
         </Button>
       </Flex>
 
-      <Skeleton height="1.2rem" loading={isVariantsLoading} width="100%" my="3">
+      {/* Show the skeleton only until there is something to render (a list or an
+          error). Deriving from the data/error, rather than the query's
+          `isLoading` flag, keeps a remount that already has the variants cached
+          from getting stuck on the skeleton. */}
+      <Skeleton
+        height="1.2rem"
+        loading={!variants && !variantsError}
+        width="100%"
+        my="3"
+      >
         <Box>
           {variantsError && (
             <ErrorCard
