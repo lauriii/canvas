@@ -99,18 +99,20 @@ class EntityFormControllerTest extends FunctionalTestBase {
   }
 
   /**
-   * Tests the per-content trim to page data (exposed slots decision 10).
+   * Tests the per-content form partition (content-entity-editing phase 2).
    *
-   * When the entity's bundle has an enabled content template with an active
-   * exposed slot, the form served to the Canvas editor keeps only page-level
-   * metadata: the label field plus the elements the node form attaches to its
-   * sidebar (URL alias, menu settings, authoring information, comment
-   * settings). Content field widgets are removed; the editor's Content tab
-   * links to Drupal's own edit form instead.
+   * When the entity's bundle has an enabled full view mode content template,
+   * the form served to the Canvas editor is partitioned rather than trimmed:
+   * content field widgets stay in the response, annotated with
+   * `data-canvas-form-partition="content"` so the editor's Content tab can
+   * render them, while page-level metadata (the label field plus the elements
+   * the node form attaches to its sidebar: URL alias, menu settings,
+   * authoring information, comment settings) stays unannotated for the Page
+   * data tab.
    *
    * @legacy-covers \Drupal\canvas\Hook\ContentTemplateHooks::formAlter
    */
-  public function testPerContentFormTrimsToPageData(): void {
+  public function testPerContentFormPartition(): void {
     // Drupal 11.4's `standard` profile creates `article` without a comment
     // field (see ::setUp()); ensure one exists because it is the canonical
     // case of a configurable field whose widget renders in the sidebar.
@@ -120,12 +122,13 @@ class EntityFormControllerTest extends FunctionalTestBase {
     $this->createTestNode();
     $path = 'canvas/api/v0/form/content-entity/node/1/default';
 
-    // Without an exposed-slot template, the full entity form is served.
+    // Without a template, the full entity form is served unpartitioned.
     $html = $this->getFormHtml($path);
     $this->assertStringContainsString('edit-body-0-value', $html);
+    $this->assertStringNotContainsString('data-canvas-form-partition', $html);
 
     // Expose a slot on the article's full-view template: the bundle enters
-    // per-content mode and the served form is trimmed to page data.
+    // per-content mode and the served form is partitioned.
     $this->generateComponentConfig();
     $component = Component::load('sdc.canvas_test_sdc.props-slots');
     $this->assertInstanceOf(Component::class, $component);
@@ -152,9 +155,18 @@ class EntityFormControllerTest extends FunctionalTestBase {
     ])->setStatus(TRUE)->save();
 
     $html = $this->getFormHtml($path);
-    // Content fields are gone.
-    $this->assertStringNotContainsString('edit-body-0-value', $html);
-    $this->assertStringNotContainsString('edit-field-image', $html);
+    $crawler = new Crawler($html);
+    // Content fields are still served, annotated into the content partition.
+    $this->assertStringContainsString('edit-body-0-value', $html);
+    $this->assertCount(1, $crawler->filter('div[data-canvas-form-partition="content"].field--name-body'));
+    $this->assertCount(1, $crawler->filter('div[data-canvas-form-partition="content"].field--name-field-image'));
+    // Page-data elements are not annotated: only content fields carry the
+    // partition marker.
+    foreach ($crawler->filter('[data-canvas-form-partition]') as $element) {
+      $class = $element->getAttribute('class');
+      $this->assertStringNotContainsString('field--name-comment', $class);
+      $this->assertStringNotContainsString('field--name-path', $class);
+    }
     // The read-only meta block (published state, last saved, author) is gone.
     $this->assertStringNotContainsString('edit-meta', $html);
     // The label field and the sidebar elements stay.
@@ -175,6 +187,15 @@ class EntityFormControllerTest extends FunctionalTestBase {
     $this->assertLessThan($menu_pos, $path_pos);
     // And as a plain field, not the sidebar "URL path settings" details.
     $this->assertStringNotContainsString('URL path settings', $html);
+
+    // A template without exposed slots partitions the form the same way: the
+    // "no creative freedom" tier still edits fields in the Content tab.
+    $template = ContentTemplate::load('node.article.full');
+    $this->assertInstanceOf(ContentTemplate::class, $template);
+    $template->set('exposed_slots', [])->save();
+    $html = $this->getFormHtml($path);
+    $crawler = new Crawler($html);
+    $this->assertCount(1, $crawler->filter('div[data-canvas-form-partition="content"].field--name-body'));
 
     // Drupal's own node edit form is unaffected.
     $this->drupalGet('node/1/edit');

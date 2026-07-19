@@ -2,7 +2,9 @@ name: Canvas CI
 
 on:
   pull_request:
-    branches: [1.x]
+    # `mr-1359-github` is included so stacked PRs building on the exposed-slots
+    # branch get CI before that branch merges to 1.x.
+    branches: [1.x, mr-1359-github]
   push:
     # `ci/drop-ddev` is included so the workflow runs on this branch before it is
     # merged to 1.x (push events use the workflow from the pushed branch).

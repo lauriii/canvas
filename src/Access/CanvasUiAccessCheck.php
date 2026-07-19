@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Access;
 
+use Drupal\canvas\EditableContentDiscovery;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Access\AccessResult;
@@ -31,6 +33,7 @@ class CanvasUiAccessCheck implements AccessInterface {
   public function __construct(
     private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly EditableContentDiscovery $editableContentDiscovery,
   ) {}
 
   public function access(AccountInterface $account): AccessResult {
@@ -93,7 +96,30 @@ class CanvasUiAccessCheck implements AccessInterface {
         }
       }
     }
-    return $access;
+
+    // Canvas-editable templated bundles have no Canvas field when their
+    // template exposes no slots, yet their entities are created and edited in
+    // the Canvas editor (Content tab); users who may do either need the UI.
+    // @see \Drupal\canvas\EditableContentDiscovery
+    foreach ($this->editableContentDiscovery->getEditableTypeBundlePairs() as $entity_type_id => $bundles) {
+      if ($entity_type_id === Page::ENTITY_TYPE_ID) {
+        // Covered by the Canvas-field checks above.
+        continue;
+      }
+      $access_control_handler = $this->entityTypeManager->getAccessControlHandler($entity_type_id);
+      foreach ($bundles as $bundle) {
+        $access = $access->orIf($access_control_handler->createAccess($bundle, $account, return_as_object: TRUE));
+        $dummy = $this->entityTypeManager->getStorage($entity_type_id)->create([
+          $this->entityTypeManager->getDefinition($entity_type_id)->getKey('bundle') => $bundle,
+        ]);
+        $access = $access->orIf($dummy->access('update', $account, TRUE));
+        if ($access->isAllowed()) {
+          return $access->addCacheableDependency($this->editableContentDiscovery->getCacheability());
+        }
+      }
+    }
+    \assert($access instanceof AccessResult);
+    return $access->addCacheableDependency($this->editableContentDiscovery->getCacheability());
   }
 
 }

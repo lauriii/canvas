@@ -1,17 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router';
-import { Outlet } from 'react-router-dom';
-import { ExternalLinkIcon, InfoCircledIcon } from '@radix-ui/react-icons';
+import { Outlet, useNavigate } from 'react-router-dom';
+import {
+  DotsHorizontalIcon,
+  ExternalLinkIcon,
+  InfoCircledIcon,
+} from '@radix-ui/react-icons';
 import {
   Box,
   Button,
   Callout,
+  DropdownMenu,
   Flex,
+  IconButton,
   ScrollArea,
   Tabs,
   Text,
 } from '@radix-ui/themes';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
@@ -19,6 +26,7 @@ import PageDataForm from '@/components/PageDataForm';
 import LockedSlotPanel from '@/components/panel/LockedSlotPanel';
 import SlotExposePanel from '@/components/panel/SlotExposePanel';
 import SlotUsagePanel from '@/components/panel/SlotUsagePanel';
+import StackedEntityForm from '@/components/stackedEntityForm/StackedEntityForm';
 import { setCurrentComponent } from '@/features/form/formStateSlice';
 import {
   findExposedSlotEntry,
@@ -29,6 +37,7 @@ import {
   selectExposedSlots,
   selectIsPerContentMode,
   selectLayout,
+  selectPerContentTemplateInfo,
   selectSlotDefaults,
   selectSlotOverrides,
 } from '@/features/layout/layoutModelSlice';
@@ -44,15 +53,25 @@ import {
   selectSelectedComponentUuid,
   selectSelection,
 } from '@/features/ui/uiSlice';
+import { FOCUS_ENTITY_FORM_FIELD_EVENT } from '@/features/validation/entityFormViolations';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
-import { getBaseUrl } from '@/utils/drupal-globals';
+import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
+import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
 
 import type React from 'react';
 
+import widgetStyles from '@/components/form/EntityFormWidgets.module.css';
 import styles from './ContextualPanel.module.css';
 
-const ContextualPanel: React.FC = () => {
+interface ContextualPanelProps {
+  /** Reports the active tab so the layout can widen the sidebar for Content. */
+  onActivePanelChange?: (activePanel: string) => void;
+}
+
+const ContextualPanel: React.FC<ContextualPanelProps> = ({
+  onActivePanelChange,
+}) => {
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const isMultiSelect = useAppSelector(selectIsMultiSelect);
   const selection = useAppSelector(selectSelection);
@@ -61,12 +80,29 @@ const ContextualPanel: React.FC = () => {
   const isTemplateContext = editorFrameContext === EditorFrameContext.TEMPLATE;
   const mainTabText = isTemplateContext ? 'Template data' : 'Page data';
 
-  // Per-content mode (a templated entity with exposed slots): the panel gains
-  // a Content tab ahead of Page data. Phase 1 links out to Drupal's own edit
-  // form for the entity's content fields; Page data carries only page-level
-  // metadata (the server trims the entity form).
+  // Per-content mode (a templated entity): the panel gains a Content tab next
+  // to Page data. Both tabs render disjoint slices of the same mounted entity
+  // form: the server annotates content field widgets with
+  // `data-canvas-form-partition="content"` and the active tab decides which
+  // slice is visible, so react-hook-form state, auto-save, and undo carry
+  // over unchanged. Page data carries only page-level metadata (title, URL
+  // alias, and the form's sidebar groups).
   const isPerContentMode = useAppSelector(selectIsPerContentMode);
+  const perContentTemplateInfo = useAppSelector(selectPerContentTemplateInfo);
+  const navigate = useNavigate();
   const { entityType, entityId, bundle, viewMode } = useParams();
+  // The open entity's bundle and its label, for the more-actions menu's
+  // "View all" action (templated entities only).
+  const contentBundle = perContentTemplateInfo?.bundle;
+  const entityTypeLabels = getCanvasSettings()?.entityTypeLabels as
+    | Record<string, Record<string, string> | string>
+    | undefined;
+  const typeLabels =
+    entityType !== undefined ? entityTypeLabels?.[entityType] : undefined;
+  const contentBundleLabel =
+    contentBundle !== undefined && typeof typeLabels === 'object'
+      ? (typeLabels[contentBundle] ?? contentBundle)
+      : contentBundle;
   const editFormUrl =
     isPerContentMode && entityType && entityId
       ? buildEntityEditFormUrl(getBaseUrl(), entityType, entityId)
@@ -144,6 +180,30 @@ const ContextualPanel: React.FC = () => {
   const offRightClasses = useHidePanelClasses('right');
   const [hidePanel, setHidePanel] = useState(false);
 
+  // Stacked reference editing: a referenced entity opened over the Content
+  // tab (one level deep). The list of editable referenced entities comes with
+  // the layout response.
+  const [stackedTarget, setStackedTarget] = useState<{
+    entityType: string;
+    entityId: string;
+    label: string;
+  } | null>(null);
+  const { data: layoutData } = useGetPageLayoutQuery(
+    editorFrameContext === EditorFrameContext.ENTITY && entityId && entityType
+      ? { entityId, entityType }
+      : skipToken,
+  );
+  const referencedEditable = layoutData?.referencedEditable ?? [];
+  // Leaving the entity or the Content tab closes the stack.
+  useEffect(() => {
+    setStackedTarget(null);
+  }, [entityType, entityId]);
+  useEffect(() => {
+    if (activePanel !== 'content') {
+      setStackedTarget(null);
+    }
+  }, [activePanel]);
+
   useEffect(() => {
     if (selectedComponent) {
       // One component is selected
@@ -178,6 +238,52 @@ const ContextualPanel: React.FC = () => {
     }
   }, [isPerContentMode]);
 
+  useEffect(() => {
+    onActivePanelChange?.(activePanel);
+  }, [activePanel, onActivePanelChange]);
+
+  // Jump-to-field requests (validation errors, review panel): activate the
+  // tab whose partition holds the control, then scroll to and focus it. The
+  // entity form is force-mounted, so the control exists even while hidden.
+  useEffect(() => {
+    const onFocusField = (event: Event) => {
+      const fieldName = (event as CustomEvent<{ fieldName?: string }>).detail
+        ?.fieldName;
+      if (!fieldName) {
+        return;
+      }
+      const escapedName = fieldName.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      // Entity-level constraint violations carry bare field names
+      // (e.g. `title`) while the control registers under a delta path
+      // (`title[0][value]`); fall back to the field's first control.
+      const control =
+        document.querySelector<HTMLElement>(
+          `[data-testid="canvas-contextual-panel"] form [name="${escapedName}"]`,
+        ) ??
+        document.querySelector<HTMLElement>(
+          `[data-testid="canvas-contextual-panel"] form [name^="${escapedName}["]`,
+        );
+      if (!control) {
+        return;
+      }
+      const isContentField =
+        control.closest('[data-canvas-form-partition="content"]') !== null;
+      setActivePanel(
+        isContentField && isPerContentMode ? 'content' : 'pageData',
+      );
+      // Wait a tick so the newly active tab's partition is visible before
+      // scrolling and focusing.
+      window.setTimeout(() => {
+        control.scrollIntoView({ block: 'center' });
+        control.focus();
+      }, 0);
+    };
+    document.addEventListener(FOCUS_ENTITY_FORM_FIELD_EVENT, onFocusField);
+    return () => {
+      document.removeEventListener(FOCUS_ENTITY_FORM_FIELD_EVENT, onFocusField);
+    };
+  }, [isPerContentMode]);
+
   return (
     <Box
       data-testid="canvas-contextual-panel"
@@ -201,32 +307,94 @@ const ContextualPanel: React.FC = () => {
             value={activePanel}
             className={clsx(styles.tabRoot)}
           >
-            <Tabs.List justify="start" mx="4" size="1">
-              {!isTemplateContext && (
-                <Tabs.Trigger
-                  value="pageData"
-                  data-testid="canvas-contextual-panel--page-data"
-                >
-                  {mainTabText}
-                </Tabs.Trigger>
-              )}
-              {isPerContentMode && (
-                <Tabs.Trigger
-                  value="content"
-                  data-testid="canvas-contextual-panel--content"
-                >
-                  Content
-                </Tabs.Trigger>
-              )}
-              {(selectedComponent || isMultiSelect) && (
-                <Tabs.Trigger
-                  value="settings"
-                  data-testid="canvas-contextual-panel--settings"
-                >
-                  Settings
-                </Tabs.Trigger>
-              )}
-            </Tabs.List>
+            <Flex justify="between" align="center" mx="4" gap="2">
+              <Tabs.List justify="start" size="1">
+                {!isTemplateContext && (
+                  <Tabs.Trigger
+                    value="pageData"
+                    data-testid="canvas-contextual-panel--page-data"
+                  >
+                    {mainTabText}
+                  </Tabs.Trigger>
+                )}
+                {isPerContentMode && (
+                  <Tabs.Trigger
+                    value="content"
+                    data-testid="canvas-contextual-panel--content"
+                  >
+                    Content
+                  </Tabs.Trigger>
+                )}
+                {(selectedComponent || isMultiSelect) && (
+                  <Tabs.Trigger
+                    value="settings"
+                    data-testid="canvas-contextual-panel--settings"
+                  >
+                    Settings
+                  </Tabs.Trigger>
+                )}
+              </Tabs.List>
+              {isPerContentMode &&
+                (editFormUrl ||
+                  referencedEditable.length > 0 ||
+                  contentBundle) && (
+                  <DropdownMenu.Root>
+                    <DropdownMenu.Trigger>
+                      <IconButton
+                        size="1"
+                        variant="ghost"
+                        color="gray"
+                        aria-label="More actions"
+                        data-testid="canvas-content-tab-actions"
+                      >
+                        <DotsHorizontalIcon />
+                      </IconButton>
+                    </DropdownMenu.Trigger>
+                    <DropdownMenu.Content align="end">
+                      {editFormUrl && (
+                        <DropdownMenu.Item asChild>
+                          <a
+                            href={editFormUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            data-testid="canvas-content-tab-edit-form-link"
+                          >
+                            Edit in Drupal form
+                            <ExternalLinkIcon />
+                          </a>
+                        </DropdownMenu.Item>
+                      )}
+                      {contentBundle && entityType && (
+                        <DropdownMenu.Item
+                          data-testid="canvas-content-tab-view-all"
+                          onSelect={() =>
+                            navigate(
+                              `/content?type=${entityType}:${contentBundle}`,
+                            )
+                          }
+                        >
+                          View all {contentBundleLabel} content
+                        </DropdownMenu.Item>
+                      )}
+                      {referencedEditable.length > 0 && (
+                        <DropdownMenu.Separator />
+                      )}
+                      {referencedEditable.map((reference) => (
+                        <DropdownMenu.Item
+                          key={`${reference.entityType}-${reference.entityId}`}
+                          onSelect={() => {
+                            setActivePanel('content');
+                            setStackedTarget(reference);
+                          }}
+                          data-testid={`canvas-content-tab-edit-reference-${reference.entityType}-${reference.entityId}`}
+                        >
+                          Edit {reference.label} ({reference.fieldLabel})
+                        </DropdownMenu.Item>
+                      ))}
+                    </DropdownMenu.Content>
+                  </DropdownMenu.Root>
+                )}
+            </Flex>
             <ScrollArea scrollbars="vertical" className={styles.scrollArea}>
               <Box px="4" width="100%">
                 <Tabs.Content value={'settings'}>
@@ -307,31 +475,36 @@ const ContextualPanel: React.FC = () => {
                 </Tabs.Content>
                 {isPerContentMode && (
                   <Tabs.Content value={'content'}>
-                    <Flex direction="column" gap="2" my="2" align="start">
-                      <Text size="1" color="gray">
-                        Content fields are edited in the Drupal edit form.
-                      </Text>
-                      {editFormUrl && (
-                        <Button asChild size="1" className="canvas-button">
-                          <a
-                            href={editFormUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            data-testid="canvas-content-tab-edit-form-link"
-                          >
-                            Edit content
-                            <ExternalLinkIcon />
-                          </a>
-                        </Button>
-                      )}
-                    </Flex>
+                    {stackedTarget && (
+                      <ErrorBoundary title="An unexpected error has occurred while rendering the referenced entity's form.">
+                        <StackedEntityForm
+                          entityType={stackedTarget.entityType}
+                          entityId={stackedTarget.entityId}
+                          label={stackedTarget.label}
+                          onClose={() => setStackedTarget(null)}
+                        />
+                      </ErrorBoundary>
+                    )}
                   </Tabs.Content>
                 )}
                 {!isTemplateContext && (
                   <Tabs.Content
                     value={'pageData'}
                     forceMount={true}
-                    hidden={activePanel !== 'pageData'}
+                    hidden={
+                      activePanel !== 'pageData' &&
+                      !(
+                        isPerContentMode &&
+                        activePanel === 'content' &&
+                        !stackedTarget
+                      )
+                    }
+                    data-canvas-form-partition-view={
+                      isPerContentMode && activePanel === 'content'
+                        ? 'content'
+                        : 'page-data'
+                    }
+                    className={clsx(styles.partitionedForm, widgetStyles.root)}
                   >
                     {editorFrameContext === 'entity' && <PageDataForm />}
                   </Tabs.Content>

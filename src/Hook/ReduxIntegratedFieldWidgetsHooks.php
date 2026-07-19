@@ -436,6 +436,10 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
       // Remove the help text container when in Drupal Canvas.
       // @todo Remove after https://www.drupal.org/i/3505370 has landed.
       unset($element['format']['help']);
+      // Remove the filter guidelines too: the allowed-tags lists are noise in
+      // the editor sidebar, and the format select is integrated into the
+      // formatted text editor component.
+      unset($element['format']['guidelines']);
     }
     return $element;
   }

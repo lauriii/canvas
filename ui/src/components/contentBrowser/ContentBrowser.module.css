@@ -1,0 +1,41 @@
+.page {
+  overflow-y: auto;
+  height: 100%;
+}
+
+/* An unstyled button wrapping a sortable header label, so the whole label is
+   the click and focus target without changing the header's typography. */
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  border: 0;
+  background: none;
+  font: inherit;
+  gap: var(--space-1);
+}
+
+.clickableRow {
+  cursor: pointer;
+}
+
+.clickableRow:hover {
+  background-color: var(--gray-2);
+}
+
+.selectedRow {
+  background-color: var(--accent-a3);
+}
+
+/* Selecting a row opens the entity's form here, editable in the context of
+   the table view. */
+.sidePanel {
+  overflow-y: auto;
+  flex-shrink: 0;
+  width: 440px;
+  height: 100%;
+  border-left: 1px solid var(--gray-a5);
+  background-color: var(--color-panel-solid);
+}

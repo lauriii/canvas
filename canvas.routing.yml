@@ -265,14 +265,20 @@ canvas.api.content.auto-save.patch:
     _format: 'json'
   methods: [PATCH]
 
-# @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 canvas.api.content.create:
   path: '/canvas/api/v0/content/{entity_type}'
   defaults:
     _controller: 'Drupal\canvas\Controller\ApiContentControllers::post'
   requirements:
     _canvas_authentication_required: TRUE
-    _entity_create_access: 'canvas_page:canvas_page'
+    # Any Canvas-editable entity type may be created. For canvas_page this
+    # applies the same entity create access the route required before; for
+    # other types, bundle-level create access is checked in the controller
+    # because the bundle is in the request body, so a route requirement cannot
+    # know it.
+    # @see \Drupal\canvas\Access\EditableContentAccessCheck
+    # @see \Drupal\canvas\Controller\ApiContentControllers::post()
+    _canvas_editable_content: 'create'
   options:
     # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
     canvas_external_api: true
@@ -293,6 +299,23 @@ canvas.api.content.delete:
     # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
     canvas_external_api: true
   methods: ['DELETE']
+canvas.api.content.entity_form_fields.patch:
+  path: '/canvas/api/v0/content/{entity_type}/{entity}/entity-form-fields'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiContentControllers::patchEntityFormFields'
+  requirements:
+    _canvas_authentication_required: TRUE
+    # Same gate as the entity form GET route this endpoint pairs with: the
+    # stacked reference-editing panel renders the referenced entity's form via
+    # `canvas.api.form.content_entity` and writes it back here.
+    _canvas_component_tree_edit_access: TRUE
+    _entity_access: 'entity.update'
+  options:
+    parameters:
+      entity:
+        type: entity:{entity_type}
+    _format: 'json'
+  methods: [PATCH]
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 canvas.api.content.get:
   path: '/canvas/api/v0/content/canvas_page/{canvas_page}'
@@ -325,14 +348,23 @@ canvas.api.content.get.by_uuid:
     # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
     canvas_external_api: true
   methods: [GET]
-# @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 canvas.api.content.list:
   path: '/canvas/api/v0/content/{entity_type}'
   defaults:
     _controller: 'Drupal\canvas\Controller\ApiContentControllers::list'
   requirements:
     _canvas_authentication_required: TRUE
-    _permission: 'edit canvas_page'
+    # The list is an editorial surface (it includes auto-save labels and
+    # paths of unpublished work), so it requires Canvas UI access, not just
+    # authentication.
+    # @see \Drupal\canvas\Access\CanvasUiAccessCheck
+    _canvas_ui_access: 'TRUE'
+    # For canvas_page this preserves the historical `edit canvas_page`
+    # permission gate; for other Canvas-editable types, per-entity access is
+    # enforced by the controller: rows are filtered to update-accessible
+    # entities.
+    # @see \Drupal\canvas\Access\EditableContentAccessCheck
+    _canvas_editable_content: 'list'
   methods: [GET]
   options:
     _format: 'json'

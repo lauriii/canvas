@@ -20,11 +20,11 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 final class ComponentTreeLoader {
 
   /**
-   * Per-request memo of exposed-slot bundles, keyed by entity type.
+   * Per-request memo of templated bundles, keyed by entity type.
    *
    * @var array<string, string[]>
    */
-  private array $exposedSlotBundles = [];
+  private array $templatedBundles = [];
 
   public function __construct(
     private readonly EntityFieldManagerInterface $entityFieldManager,
@@ -143,56 +143,70 @@ final class ComponentTreeLoader {
   }
 
   /**
-   * Whether the bundle has an enabled template with exposed slots.
+   * Whether the bundle has an enabled `full` view mode template.
+   *
+   * The template does not need to expose any slot: a templated bundle without
+   * exposed slots is still editable per-entity in Canvas (fully locked
+   * canvas, editable entity fields), the "no creative freedom" tier.
    *
    * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
    *   The entity whose bundle to check.
    *
    * @return bool
-   *   TRUE if at least one enabled content template for the entity's type and
-   *   bundle exposes at least one slot.
+   *   TRUE if an enabled content template exists for the entity's type and
+   *   bundle in the `full` view mode.
    */
-  public function hasContentTemplateWithExposedSlots(FieldableEntityInterface $entity): bool {
+  public function hasContentTemplate(FieldableEntityInterface $entity): bool {
     return \in_array(
       $entity->bundle(),
-      $this->getBundlesWithExposedSlots($entity->getEntityTypeId()),
+      $this->getTemplatedBundles($entity->getEntityTypeId()),
       TRUE,
     );
   }
 
   /**
-   * Lists the bundles of an entity type with exposed slots.
-   *
-   * A bundle qualifies when it has an enabled `full` content template that
-   * exposes at least one slot: per-content editing always resolves the `full`
-   * template (@see \Drupal\canvas\Controller\ApiLayoutController), so slots
-   * exposed only in other view modes must not qualify a bundle here.
+   * Lists the bundles of an entity type with an enabled `full` template.
    *
    * @param string $entity_type_id
    *   The content entity type ID.
    *
    * @return string[]
-   *   The bundle IDs (values, deduplicated) with exposed slots. Empty if the
-   *   entity type has no such bundle.
+   *   The bundle IDs (values, deduplicated) with an enabled full view mode
+   *   content template. Empty if the entity type has no such bundle.
    */
-  public function getBundlesWithExposedSlots(string $entity_type_id): array {
-    if (\array_key_exists($entity_type_id, $this->exposedSlotBundles)) {
-      return $this->exposedSlotBundles[$entity_type_id];
+  public function getTemplatedBundles(string $entity_type_id): array {
+    if (\array_key_exists($entity_type_id, $this->templatedBundles)) {
+      return $this->templatedBundles[$entity_type_id];
     }
+    $bundles = [];
+    foreach ($this->loadEnabledFullViewTemplates($entity_type_id) as $template) {
+      $bundles[$template->getTargetBundle()] = $template->getTargetBundle();
+    }
+    return $this->templatedBundles[$entity_type_id] = \array_values($bundles);
+  }
+
+  /**
+   * Loads the enabled `full` view mode templates of an entity type.
+   *
+   * Only the `full` view mode qualifies a bundle for per-content editing:
+   * per-content editing always resolves the `full` template
+   * (@see \Drupal\canvas\Controller\ApiLayoutController).
+   *
+   * @param string $entity_type_id
+   *   The content entity type ID.
+   *
+   * @return \Drupal\canvas\Entity\ContentTemplate[]
+   *   The enabled templates.
+   */
+  private function loadEnabledFullViewTemplates(string $entity_type_id): array {
     $storage = $this->entityTypeManager->getStorage(ContentTemplate::ENTITY_TYPE_ID);
-    $enabled_templates = $storage->loadByProperties([
+    $templates = $storage->loadByProperties([
       'content_entity_type_id' => $entity_type_id,
       'content_entity_type_view_mode' => 'full',
       'status' => TRUE,
     ]);
-    $bundles = [];
-    foreach ($enabled_templates as $template) {
-      \assert($template instanceof ContentTemplate);
-      if (!empty($template->getExposedSlots())) {
-        $bundles[$template->getTargetBundle()] = $template->getTargetBundle();
-      }
-    }
-    return $this->exposedSlotBundles[$entity_type_id] = \array_values($bundles);
+    \assert(\array_reduce($templates, static fn (bool $carry, $template): bool => $carry && $template instanceof ContentTemplate, TRUE));
+    return \array_values($templates);
   }
 
 }

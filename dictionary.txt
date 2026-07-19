@@ -232,6 +232,7 @@ turbopack
 ultrawide
 unaddressable
 unbuilt
+unmappable
 unrenderable
 uncollapse
 uncollapsed
@@ -265,3 +266,5 @@ wght
 xmdi
 ymls
 zencoder
+desyncs
+untemplated

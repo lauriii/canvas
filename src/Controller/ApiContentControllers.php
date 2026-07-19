@@ -6,6 +6,8 @@ namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
+use Drupal\canvas\ClientDataToEntityConverter;
+use Drupal\canvas\EditableContentDiscovery;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -22,10 +24,13 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
+use Drupal\Core\Entity\EntityChangedInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityReferenceSelection\SelectionInterface;
 use Drupal\Core\Entity\EntityReferenceSelection\SelectionPluginManagerInterface;
+use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -39,6 +44,7 @@ use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
+use Drupal\user\EntityOwnerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -73,6 +79,10 @@ final class ApiContentControllers extends ApiControllerBase {
     private readonly TransliterationInterface $transliteration,
     private readonly HomePageHelper $homePageHelper,
     private readonly ComponentTreeLoader $componentTreeLoader,
+    private readonly EditableContentDiscovery $editableContentDiscovery,
+    private readonly EntityFieldManagerInterface $entityFieldManager,
+    private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
+    private readonly ClientDataToEntityConverter $converter,
   ) {}
 
   /**
@@ -157,9 +167,10 @@ final class ApiContentControllers extends ApiControllerBase {
 
     // If entity is provided, duplicate it, otherwise create a new entity.
     if ($entity) {
+      self::checkCreateAccess($this->entityTypeManager, $entity_type, $entity->bundle());
       $new = $this->duplicate($entity);
     }
-    else {
+    elseif ($entity_type === Page::ENTITY_TYPE_ID) {
       // Note: this intentionally does not catch content entity type storage
       // handler exceptions: the generic Canvas API exception subscriber handles
       // them.
@@ -195,6 +206,34 @@ final class ApiContentControllers extends ApiControllerBase {
       }
       $new->save();
     }
+    else {
+      // Create a real unpublished draft entity for a templated bundle: a
+      // placeholder label plus field defaults, with constraint validation
+      // intentionally deferred to publish, because the editing lifecycle
+      // allows drafts to be invalid while they are being worked on.
+      // @see docs/adr/0021-content-entity-field-editing-generalizes-the-semi-coupled-form-pipeline.md
+      $bundle = $body['bundle'] ?? NULL;
+      if (!\is_string($bundle) || !$this->editableContentDiscovery->isEditable($entity_type, $bundle)) {
+        throw new BadRequestHttpException('The `bundle` request body property must name a Canvas-editable bundle of this entity type.');
+      }
+      self::checkCreateAccess($this->entityTypeManager, $entity_type, $bundle);
+      $entity_type_definition = $this->entityTypeManager->getDefinition($entity_type);
+      $values = [];
+      $bundle_key = $entity_type_definition->getKey('bundle');
+      if (\is_string($bundle_key) && $bundle_key !== '') {
+        $values[$bundle_key] = $bundle;
+      }
+      $label_key = $entity_type_definition->getKey('label');
+      if (\is_string($label_key) && $label_key !== '') {
+        $bundle_label = $this->entityTypeBundleInfo->getBundleInfo($entity_type)[$bundle]['label'] ?? $bundle;
+        $values[$label_key] = (string) ($body['title'] ?? static::defaultDraftTitle($bundle_label));
+      }
+      $new = $this->entityTypeManager->getStorage($entity_type)->create($values);
+      if ($new instanceof EntityPublishedInterface) {
+        $new->setUnpublished();
+      }
+      $new->save();
+    }
     \assert($new instanceof ContentEntityInterface && $new instanceof EntityPublishedInterface);
     $data = $this->normalizeWithMetadataAndComponents($new, new CacheableMetadata());
     // This was the app client uses instead of `id`, added for BC compatibility.
@@ -203,6 +242,58 @@ final class ApiContentControllers extends ApiControllerBase {
     $data['entity_id'] = $new->id();
     $data['entity_type'] = $entity_type;
     return new JsonResponse($data, RESPONSE::HTTP_CREATED);
+  }
+
+  /**
+   * Throws unless the current user may create entities of the given bundle.
+   *
+   * The create route cannot check bundle-level create access itself because
+   * the bundle is in the request body.
+   *
+   * @see \Drupal\canvas\Access\EditableContentAccessCheck
+   */
+  private static function checkCreateAccess(EntityTypeManagerInterface $entity_type_manager, string $entity_type, string $bundle): void {
+    $access = $entity_type_manager->getAccessControlHandler($entity_type)
+      ->createAccess($bundle, return_as_object: TRUE);
+    \assert($access instanceof AccessResult);
+    if (!$access->isAllowed()) {
+      throw new CacheableAccessDeniedHttpException(CacheableMetadata::createFromObject($access), 'You do not have permission to create this content.');
+    }
+  }
+
+  /**
+   * Auto-saves entity field values without touching any component tree.
+   *
+   * The write path for editing a referenced entity's fields in a stacked form
+   * panel: the same `entity_form_fields` form replay the layout POST uses
+   * (one write path for entity field data), minus the layout/model, because
+   * the stacked panel edits the referenced entity's fields only. The edit is
+   * captured as that entity's own pending change, so the review UI lists it
+   * alongside the host entity's and both publish atomically together.
+   *
+   * @see \Drupal\canvas\ClientDataToEntityConverter::applyEntityFormFields()
+   * @see docs/adr/0021-content-entity-field-editing-generalizes-the-semi-coupled-form-pipeline.md
+   */
+  public function patchEntityFormFields(Request $request, string $entity_type, FieldableEntityInterface $entity): JsonResponse {
+    $body = self::decode($request);
+    $entity_form_fields = $body['entity_form_fields'] ?? NULL;
+    if (!\is_array($entity_form_fields) || $entity_form_fields === []) {
+      throw new BadRequestHttpException('Missing entity_form_fields.');
+    }
+    // Work on the auto-saved draft when one exists so successive stacked
+    // edits accumulate instead of resetting to the stored entity.
+    // @todo Add auto-save conflict detection (the hash validation the layout
+    //   POST performs) once the stacked panel tracks auto-save hashes;
+    //   concurrent stacked editors currently last-write-win.
+    $auto_save_entity = $this->autoSaveManager->getAutoSaveEntity($entity)->entity;
+    if ($auto_save_entity instanceof FieldableEntityInterface) {
+      $entity = $auto_save_entity;
+    }
+    // Validation is deferred to publish: violations are stored, not returned,
+    // matching the layout POST's auto-save semantics.
+    $this->converter->applyEntityFormFields($entity, $entity_form_fields, validate: FALSE);
+    $this->autoSaveManager->saveEntity($entity, isset($body['clientInstanceId']) && \is_string($body['clientInstanceId']) ? $body['clientInstanceId'] : NULL);
+    return new JsonResponse(status: Response::HTTP_NO_CONTENT);
   }
 
   /**
@@ -232,28 +323,42 @@ final class ApiContentControllers extends ApiControllerBase {
    * @see https://www.drupal.org/project/canvas/issues/3500052#comment-15966496
    */
   public function list(string $entity_type, Request $request): CacheableJsonResponse {
-    // Beyond Canvas pages, the navigator lists entities of templated bundles
-    // with active exposed slots so they can be opened in the per-content editor
-    // (decision 6). Only bundles whose content template exposes at least one
-    // active slot are listable; other bundles of the same entity type are
-    // excluded. Entity access is enforced by the queries below, never by
-    // permission-string heuristics.
-    $active_bundles = $entity_type === Page::ENTITY_TYPE_ID
-      ? []
-      : $this->componentTreeLoader->getBundlesWithExposedSlots($entity_type);
+    // Beyond Canvas pages, every Canvas-editable bundle (an enabled `full`
+    // view mode content template) is listable so the content browser can
+    // browse, search, filter, and open all supported content. Other bundles
+    // of the same entity type are excluded. Entity access is enforced by the
+    // queries below (and, for templated types, by the update-access row
+    // filter), never by permission-string heuristics.
+    $editable_bundles = $this->editableContentDiscovery->getEditableBundles($entity_type);
+    $active_bundles = $entity_type === Page::ENTITY_TYPE_ID ? [] : $editable_bundles;
     if ($entity_type !== Page::ENTITY_TYPE_ID && $active_bundles === []) {
-      throw new BadRequestHttpException('Only the `canvas_page` content entity type and bundles with active exposed slots are supported right now, will be generalized in a child issue of https://www.drupal.org/project/canvas/issues/3498525.');
+      throw new BadRequestHttpException('Only the `canvas_page` content entity type and bundles with an enabled full view mode content template are supported right now, will be generalized further in a child issue of https://www.drupal.org/project/canvas/issues/3498525.');
     }
     $storage = $this->entityTypeManager->getStorage($entity_type);
 
     $query_cacheability = (new CacheableMetadata())
       ->addCacheContexts($storage->getEntityType()->getListCacheContexts())
       ->addCacheTags($storage->getEntityType()->getListCacheTags());
-    // The listable set changes when a template starts or stops exposing slots.
+    // The listable set changes when templates are created, deleted, enabled,
+    // or disabled.
     if ($entity_type !== Page::ENTITY_TYPE_ID) {
       $query_cacheability->addCacheTags([ContentTemplate::ENTITY_TYPE_ID . '_list']);
     }
     $bundle_key = $storage->getEntityType()->getKey('bundle');
+
+    // An optional bundle filter narrows the list to one editable bundle
+    // ("Content type" filter in the content browser).
+    $query_cacheability->addCacheContexts(['url.query_args:filter']);
+    $filter = $request->query->all('filter');
+    $bundle_filter = $filter['bundle'] ?? NULL;
+    if ($bundle_filter !== NULL) {
+      if (!\is_string($bundle_filter) || !\in_array($bundle_filter, $editable_bundles, TRUE)) {
+        throw new BadRequestHttpException('The `filter[bundle]` query parameter must name a Canvas-editable bundle of this entity type.');
+      }
+      if ($entity_type !== Page::ENTITY_TYPE_ID) {
+        $active_bundles = [$bundle_filter];
+      }
+    }
 
     // Prepare search term and determine if we're performing a search
     $search = $request->query->get('search', default: NULL);
@@ -287,9 +392,26 @@ final class ApiContentControllers extends ApiControllerBase {
         $query_cacheability
       );
 
+      // An optional JSON:API-style sort (`sort=title`, `sort=-created`, ...)
+      // backs the content browser's sortable columns; without it, the newest
+      // content comes first (the historical order).
+      $query_cacheability->addCacheContexts(['url.query_args:sort']);
+      $sort_param = $request->query->get('sort');
       $entity_query = $storage->getQuery()
-        ->accessCheck(TRUE)
-        ->sort($revision_created_field_name, direction: 'DESC')
+        ->accessCheck(TRUE);
+      if ($sort_param !== NULL) {
+        \assert(\is_string($sort_param));
+        $sort_key = \ltrim($sort_param, '-');
+        $sortable_fields = $this->getSortableFields($entity_type);
+        if (!\array_key_exists($sort_key, $sortable_fields)) {
+          throw new BadRequestHttpException(\sprintf('The `sort` query parameter must be one of: %s, each optionally prefixed with `-` for descending order.', \implode(', ', \array_keys($sortable_fields))));
+        }
+        $entity_query->sort($sortable_fields[$sort_key], \str_starts_with($sort_param, '-') ? 'DESC' : 'ASC');
+      }
+      else {
+        $entity_query->sort($revision_created_field_name, direction: 'DESC');
+      }
+      $entity_query
         // Add a secondary sort by entity ID to ensure stable pagination when
         // multiple entities have the same revision_created timestamp. Without
         // this, the database may return items in different orders across
@@ -323,6 +445,20 @@ final class ApiContentControllers extends ApiControllerBase {
     $content_entities = $storage->loadMultiple($ids);
     $data = [];
     foreach ($content_entities as $content_entity) {
+      // For templated types the list is an editorial surface (rows carry
+      // auto-save labels and paths of unpublished work and link into the
+      // editor), so rows are restricted to entities the user may update.
+      // canvas_page keeps its historical view-filtered listing, whose route
+      // requires the `edit canvas_page` permission. `meta.count` stays
+      // query-based, so it may exceed the visible rows for users with
+      // partial update access.
+      if ($entity_type !== Page::ENTITY_TYPE_ID) {
+        $update_access = $content_entity->access('update', return_as_object: TRUE);
+        $query_cacheability->addCacheableDependency($update_access);
+        if (!$update_access->isAllowed()) {
+          continue;
+        }
+      }
       $data[] = $this->normalize($content_entity, $query_cacheability);
     }
 
@@ -336,6 +472,34 @@ final class ApiContentControllers extends ApiControllerBase {
     $json_response->addCacheableDependency($query_cacheability);
 
     return $json_response;
+  }
+
+  /**
+   * Maps public sort keys to entity base field names for an entity type.
+   *
+   * @param string $entity_type_id
+   *   The content entity type ID.
+   *
+   * @return array<string, string>
+   *   Base field names keyed by the public sort key. Only fields the entity
+   *   type actually has are included, so unsupported sorts are rejected with
+   *   a helpful message.
+   */
+  private function getSortableFields(string $entity_type_id): array {
+    $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
+    \assert($entity_type instanceof ContentEntityTypeInterface);
+    $base_fields = $this->entityFieldManager->getBaseFieldDefinitions($entity_type_id);
+    $map = [];
+    $label_key = $entity_type->getKey('label');
+    if (\is_string($label_key) && $label_key !== '') {
+      $map['title'] = $label_key;
+    }
+    foreach (['created', 'changed'] as $timestamp_field) {
+      if (isset($base_fields[$timestamp_field])) {
+        $map[$timestamp_field] = $timestamp_field;
+      }
+    }
+    return $map;
   }
 
   /**
@@ -432,10 +596,25 @@ final class ApiContentControllers extends ApiControllerBase {
       ->addCacheableDependency($autoSaveData);
 
     \assert($content_entity instanceof ContentEntityInterface);
+    $bundle_info = $this->entityTypeBundleInfo->getBundleInfo($content_entity->getEntityTypeId());
+    $owner = $content_entity instanceof EntityOwnerInterface ? $content_entity->getOwner() : NULL;
+    if ($owner !== NULL) {
+      // `authorName` must refresh when the owner's display name changes.
+      $url_cacheability->addCacheableDependency($owner);
+    }
     return [
       'id' => (int) $content_entity->id(),
       'uuid' => $content_entity->uuid(),
       'title' => $content_entity->label(),
+      // Browser columns: the entity type and bundle ("Type"), the author, and
+      // the created/changed timestamps. NULL when the entity type does not
+      // have the concept.
+      'entityType' => $content_entity->getEntityTypeId(),
+      'bundle' => $content_entity->bundle(),
+      'bundleLabel' => (string) ($bundle_info[$content_entity->bundle()]['label'] ?? $content_entity->getEntityType()->getSingularLabel()),
+      'authorName' => $owner?->getDisplayName(),
+      'created' => $content_entity->hasField('created') ? (int) $content_entity->get('created')->getString() : NULL,
+      'changed' => $content_entity instanceof EntityChangedInterface ? (int) $content_entity->getChangedTime() : NULL,
       // Return the effective status (autosaved if exists, otherwise original).
       'status' => $effective_status,
       // Indicates if this is a new (draft) page that has never been published.
@@ -697,6 +876,15 @@ final class ApiContentControllers extends ApiControllerBase {
 
   public static function defaultTitle(EntityTypeInterface $entity_type): TranslatableMarkup {
     return new TranslatableMarkup('Untitled @singular_entity_type_label', ['@singular_entity_type_label' => $entity_type->getSingularLabel()]);
+  }
+
+  /**
+   * The placeholder label for a newly created draft of a templated bundle.
+   *
+   * @see \Drupal\canvas\AutoSave\AutoSaveManager::entityIsConsideredNew()
+   */
+  public static function defaultDraftTitle(string|TranslatableMarkup $bundle_label): TranslatableMarkup {
+    return new TranslatableMarkup('Untitled @bundle', ['@bundle' => $bundle_label]);
   }
 
   public function getEntityOperations(EntityPublishedInterface $content_entity, ?EntityPublishedInterface $autoSaveEntity = NULL): CanvasResourceLinkCollection {

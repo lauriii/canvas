@@ -236,6 +236,15 @@ Built-in transforms include:
 
 ℹ️ The completeness of this is tested by `\Drupal\Tests\canvas\Kernel\EcosystemSupport\FieldWidgetSupportTest`.
 
+ℹ️ The entity ("Content"/"Page data") form does not use transforms: its raw
+form values are replayed server-side through the Form API
+(see [component-and-entity-forms.md](component-and-entity-forms.md)), so any
+widget whose markup the `canvas_stark` → React pipeline can render works
+there, including `field_group` `details`/`fieldset` containers. Widgets that
+do not render usable are covered by the Content tab's persistent "Edit in
+Drupal form" escape hatch; contrib widget adapters (focal point, Linkit) are
+added per widget via this transform matrix.
+
 The transforms that apply to each prop are attached to the [ComponentInstanceForm](../src/Form/ComponentInstanceForm.php) by
 the [JSON schema props ComponentSource base class](../src/Plugin/Canvas/ComponentSource/JsonSchemaPropsComponentSourceBase.php)
 which is used by both SDC and Code (JavaScript) components.

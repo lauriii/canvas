@@ -7,6 +7,10 @@ import {
   setPageData,
 } from '@/features/pageData/pageDataSlice';
 import { setHtml, setSnapshotHTML } from '@/features/pagePreview/previewSlice';
+import {
+  applyEntityFormViolations,
+  clearEntityFormViolations,
+} from '@/features/validation/entityFormViolations';
 import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
@@ -19,6 +23,7 @@ import type {
   SlotDefaultContent,
   SlotOverrideState,
 } from '@/features/layout/layoutModelSlice';
+import type { EntityFormViolation } from '@/features/validation/entityFormViolations';
 import type {
   UpdateComponentQueryArg,
   UpdateComponentResultType,
@@ -42,6 +47,19 @@ export type LayoutApiResponse = RootLayoutModel & {
   html: string;
   autoSaves: AutoSavesHash;
   translations?: Record<string, any>;
+  // Stored entity-form constraint violations from earlier auto-saves, emitted
+  // by the Layout API GET for content entities so (re)opening a draft restores
+  // its validation errors. @see ApiLayoutController.
+  entityFormViolations?: EntityFormViolation[];
+  // Referenced entities editable in the stacked reference-editing panel:
+  // update-accessible targets of the entity's reference fields whose bundle
+  // is Canvas-editable. @see ApiLayoutController::getEditableReferencedEntities().
+  referencedEditable?: {
+    entityType: string;
+    entityId: string;
+    label: string;
+    fieldLabel: string;
+  }[];
   // Per-content editing (templated entity with exposed slots), emitted by the
   // slot-scoped Layout API GET. @see ApiLayoutController per-content mode.
   exposedSlots?: Record<string, ExposedSlotDefinition>;
@@ -216,10 +234,18 @@ export const componentAndLayoutApi = createApi({
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const {
-            data: { entity_form_fields, html, autoSaves },
+            data: { entity_form_fields, html, autoSaves, entityFormViolations },
             meta,
           } = await queryFulfilled;
           dispatch(setInitialPageData(entity_form_fields));
+          // Replay stored entity-form violations from earlier auto-saves onto
+          // the sidebar form; when this layout has none, drop errors left over
+          // from a previously open entity or an already-corrected draft.
+          if (entityFormViolations?.length) {
+            applyEntityFormViolations(dispatch, entityFormViolations);
+          } else {
+            clearEntityFormViolations(dispatch);
+          }
           // Clear any stale snapshot (e.g. from a prior template preview) so
           // selectPreviewHtml returns the fresh html.
           dispatch(setSnapshotHTML(''));
@@ -260,10 +286,18 @@ export const componentAndLayoutApi = createApi({
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const {
-            data: { entity_form_fields, html, autoSaves },
+            data: { entity_form_fields, html, autoSaves, entityFormViolations },
             meta,
           } = await queryFulfilled;
           dispatch(setInitialPageData(entity_form_fields));
+          // Same violation replay/clear as getPageLayout: template layouts do
+          // not carry stored violations (the template is a config entity), so
+          // this in practice clears errors left over from an entity editor.
+          if (entityFormViolations?.length) {
+            applyEntityFormViolations(dispatch, entityFormViolations);
+          } else {
+            clearEntityFormViolations(dispatch);
+          }
           // Clear any stale snapshot (e.g. from a prior language/template
           // preview) so selectPreviewHtml returns this fresh editor html.
           // Mirrors getPageLayout; without it a leftover preview snapshot masks

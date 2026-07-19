@@ -7,6 +7,7 @@ import {
 } from '@/components/form/contexts/FormContext';
 import { ComponentFormField } from '@/components/form/react-hook-form/fields/ComponentFormField';
 import { PageDataFormField } from '@/components/form/react-hook-form/fields/PageDataFormField';
+import { StackedEntityFormField } from '@/components/form/react-hook-form/fields/StackedEntityFormField';
 import { useAjaxFieldRegistration } from '@/components/form/react-hook-form/hooks/useAjaxFieldRegistration';
 import { useFormBuildIdSync } from '@/components/form/react-hook-form/hooks/useFormBuildIdSync';
 import {
@@ -70,6 +71,9 @@ export const withRHF = <P extends Record<string, any>>(
         )}
         {formContext?.formId === 'component_instance_form' && (
           <ComponentFormField {...formFieldProps} />
+        )}
+        {formContext?.formId === 'stacked_entity_form' && (
+          <StackedEntityFormField {...formFieldProps} />
         )}
       </>
     );

@@ -1,19 +1,18 @@
 /**
  * Pure helpers for the in-editor content navigator's templated-entity groups.
  *
- * Beyond Canvas pages, the navigator lists entities of templated bundles whose
- * content template exposes at least one active (non-disabled) slot, grouped so
- * they can be opened in the per-content editor (exposed-slots decision 6). The
- * source of truth for which bundles are templated is the content-templates
- * listing (`getContentTemplates`); the entities themselves come from the
+ * Beyond Canvas pages, the navigator lists entities of bundles with an enabled
+ * full-view content template, grouped so they can be opened in the per-content
+ * editor. Exposed slots are not required: zero-slot templated bundles open in
+ * the editor with a locked canvas and an editable Content tab. The source of
+ * truth for which bundles are templated is the content-templates listing
+ * (`getContentTemplates`); the entities themselves come from the
  * per-entity-type content list endpoint (`/canvas/api/v0/content/{entityType}`,
- * which the server already access-filters to active-exposed-slot bundles).
+ * which the server already access-filters to enabled-template bundles).
  *
- * These functions are side-effect free so the grouping, filtering and
- * add-form-link logic can be unit tested without a store or a backend.
+ * These functions are side-effect free so the grouping, filtering, and
+ * creation-option logic can be unit tested without a store or a backend.
  */
-
-import { countExposedSlots } from '@/features/layout/exposedSlots';
 
 import type { TemplateList } from '@/services/componentAndLayout';
 
@@ -44,7 +43,7 @@ export interface TemplatedEntityGroup {
 /**
  * Derives the templated entity groups from the content-templates listing.
  *
- * Excludes Canvas pages and any bundle whose templates expose no active slot.
+ * Excludes Canvas pages and any bundle without an enabled full-view template.
  *
  * @param templates
  *   The `getContentTemplates` response, or undefined while it loads.
@@ -65,15 +64,13 @@ export function getTemplatedEntityGroups(
     }
     const bundles: TemplatedBundle[] = [];
     for (const [bundle, bundleData] of Object.entries(typeData.bundles ?? {})) {
-      // "Active" means the enabled `full` template exposes slots: per-content
+      // A bundle is editable when its `full` template is enabled: per-content
       // editing always resolves the full template (matching the server's
-      // bundle gate), so slots exposed only in other view modes, or only in
-      // disabled templates, must not enter the navigator.
+      // bundle gate). Exposed slots are not required — zero-slot bundles open
+      // with a locked canvas and an editable Content tab — but templates for
+      // other view modes, or disabled ones, must not enter the navigator.
       const fullViewMode = bundleData.viewModes?.full;
-      const hasActiveExposedSlot =
-        !!fullViewMode?.status &&
-        countExposedSlots(fullViewMode.exposed_slots) > 0;
-      if (hasActiveExposedSlot) {
+      if (fullViewMode?.status) {
         bundles.push({ bundle, label: bundleData.label });
       }
     }
@@ -87,45 +84,13 @@ export function getTemplatedEntityGroups(
 }
 
 /**
- * Builds the URL of Drupal's own creation form for a bundle.
- *
- * "Add new" links out to Drupal's entity creation form for v1 (required base
- * fields live there); the navigator does not build an in-Canvas creation flow.
- * Only `node` is supported, matching the current templated-entity scope; other
- * entity types return null (exposing a general add-form URL in `drupalSettings`
- * would be the server-side follow-up).
- *
- * @param baseUrl
- *   The Drupal base URL (`drupalSettings.path.baseUrl`, e.g. `/` or `/sub/`).
- * @param entityType
- *   The entity type machine name.
- * @param bundle
- *   The bundle machine name.
- *
- * @return
- *   The add-form URL, or null when the entity type is unsupported.
- */
-export function buildEntityAddFormUrl(
-  baseUrl: string | undefined,
-  entityType: string,
-  bundle: string,
-): string | null {
-  if (entityType !== 'node') {
-    return null;
-  }
-  const base = baseUrl && baseUrl.length > 0 ? baseUrl : '/';
-  const normalized = base.endsWith('/') ? base : `${base}/`;
-  return `${normalized}node/add/${bundle}`;
-}
-
-/**
  * Builds the URL of Drupal's own edit form for an entity.
  *
  * In per-content mode the contextual panel's Content tab links out to
  * Drupal's edit form for the entity's content fields (exposed-slots decision
  * 10, phase 1); rendering those widgets inline in the panel is phase 2. Only
- * `node` is supported, matching `buildEntityAddFormUrl` and the current
- * templated-entity scope; other entity types return null.
+ * `node` is supported, matching the current templated-entity scope; other
+ * entity types return null.
  *
  * @param baseUrl
  *   The Drupal base URL (`drupalSettings.path.baseUrl`, e.g. `/` or `/sub/`).
@@ -216,11 +181,14 @@ export function buildContentEditActions(
   return actions;
 }
 
-/** A creatable bundle in a group: its label and Drupal add-form URL. */
+/**
+ * A creatable bundle: the coordinates for an in-canvas creation request
+ * (`POST /canvas/api/v0/content/{entityType}` with `{bundle}`) and its label.
+ */
 export interface AddNewOption {
+  entityType: string;
   bundle: string;
   label: string;
-  url: string;
 }
 
 /**
@@ -229,23 +197,21 @@ export interface AddNewOption {
  * Gated by `drupalSettings.canvas.contentEntityCreateOperations`, which the
  * server computes from create access plus the presence of a Canvas field on the
  * bundle, so a bundle only becomes creatable once its template has provisioned
- * the field. Entries whose entity type has no derivable add-form URL are
- * dropped.
+ * the field. Choosing an option creates an unpublished draft in Canvas
+ * (`useCreateContentMutation`) and opens it in the editor; there is no
+ * link-out to Drupal's add form.
  *
  * @param group
  *   The templated entity group.
  * @param createOperations
  *   `contentEntityCreateOperations`: entity type -> bundle -> label.
- * @param baseUrl
- *   The Drupal base URL.
  *
  * @return
- *   The creatable bundles, with labels and add-form URLs.
+ *   The creatable bundles, with labels and creation coordinates.
  */
 export function getAddNewOptions(
   group: TemplatedEntityGroup,
   createOperations: Record<string, Record<string, string>> | undefined,
-  baseUrl: string | undefined,
 ): AddNewOption[] {
   const operations = createOperations?.[group.entityType] ?? {};
   const options: AddNewOption[] = [];
@@ -253,11 +219,7 @@ export function getAddNewOptions(
     if (!(bundle in operations)) {
       continue;
     }
-    const url = buildEntityAddFormUrl(baseUrl, group.entityType, bundle);
-    if (url === null) {
-      continue;
-    }
-    options.push({ bundle, label, url });
+    options.push({ entityType: group.entityType, bundle, label });
   }
   return options;
 }
@@ -268,22 +230,20 @@ export function getAddNewOptions(
  *
  * Enumerates all of `contentEntityCreateOperations` (entity type -> bundle ->
  * label), which the server already scopes to Canvas-editable bundles the user
- * can create (create access + a Canvas field on the bundle) — so this is not
- * limited to bundles with an active exposed slot. Canvas pages are excluded
- * (they have their own creation in the Pages panel). Entries whose entity type
- * has no derivable add-form URL are dropped.
+ * can create (a Canvas field on the bundle, or an enabled full-view content
+ * template — exposed slots not required). Canvas pages are excluded (they
+ * have their own creation in the Pages panel). Choosing an option creates an
+ * unpublished draft in Canvas and opens it in the editor.
  *
  * @param createOperations
  *   `contentEntityCreateOperations`: entity type -> bundle -> label.
- * @param baseUrl
- *   The Drupal base URL.
  *
  * @return
- *   The creatable bundles, with labels and add-form URLs, one per bundle.
+ *   The creatable bundles, with labels and creation coordinates, one per
+ *   bundle.
  */
 export function getAllAddNewOptions(
   createOperations: Record<string, Record<string, string>> | undefined,
-  baseUrl: string | undefined,
 ): AddNewOption[] {
   const options: AddNewOption[] = [];
   for (const [entityType, bundles] of Object.entries(createOperations ?? {})) {
@@ -291,12 +251,60 @@ export function getAllAddNewOptions(
       continue;
     }
     for (const [bundle, label] of Object.entries(bundles)) {
-      const url = buildEntityAddFormUrl(baseUrl, entityType, bundle);
-      if (url === null) {
-        continue;
-      }
-      options.push({ bundle, label, url });
+      options.push({ entityType, bundle, label });
     }
   }
   return options;
+}
+
+/** One option in the top-bar navigation popover's content-type switcher. */
+export interface ContentNavigationTypeOption {
+  entityType: string;
+  label: string;
+}
+
+/**
+ * The content-type options for the top-bar navigation popover: Canvas pages
+ * first, then one option per templated entity type. A multi-bundle entity type
+ * still yields a single option because the per-entity-type content list API
+ * already returns every editable bundle of the type.
+ *
+ * @param groups
+ *   The templated entity groups (see `getTemplatedEntityGroups`).
+ *
+ * @return
+ *   The switcher options, Pages first.
+ */
+export function getContentNavigationTypeOptions(
+  groups: TemplatedEntityGroup[],
+): ContentNavigationTypeOption[] {
+  return [
+    { entityType: PAGE_ENTITY_TYPE, label: 'Pages' },
+    ...groups.map((group) => ({
+      entityType: group.entityType,
+      label: group.title,
+    })),
+  ];
+}
+
+/**
+ * Resolves the selected content type against the available options, falling
+ * back to Canvas pages. Guards the switcher while the templates query is still
+ * loading and against a stale selection (e.g. a template disabled meanwhile).
+ *
+ * @param selected
+ *   The entity type the user picked.
+ * @param options
+ *   The available switcher options.
+ *
+ * @return
+ *   The selected entity type when it is available, `canvas_page` otherwise.
+ */
+export function resolveContentNavigationType(
+  selected: string,
+  options: ContentNavigationTypeOption[],
+): string {
+  return options.some((option) => option.entityType === selected)
+    ? selected
+    : PAGE_ENTITY_TYPE;
 }

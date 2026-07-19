@@ -1,27 +1,30 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  buildEntityAddFormUrl,
   getAddNewOptions,
+  getAllAddNewOptions,
+  getContentNavigationTypeOptions,
   getTemplatedEntityGroups,
+  resolveContentNavigationType,
 } from '@/features/navigator/templatedContent';
 
 import type { ExposedSlotServerDefinition } from '@/features/layout/exposedSlots';
 import type { TemplateViewMode } from '@/services/componentAndLayout';
 
 // Builds a content-templates listing entry for one view mode with the given
-// exposed slots (server, snake_case shape).
+// status and exposed slots (server, snake_case shape).
 const viewMode = (
   entityType: string,
   bundle: string,
   exposed_slots: Record<string, ExposedSlotServerDefinition>,
+  status: boolean = true,
 ): TemplateViewMode => ({
   entityType,
   bundle,
   viewMode: 'full',
   viewModeLabel: 'Full',
   label: 'Full',
-  status: true,
+  status,
   id: `${entityType}.${bundle}.full`,
   exposed_slots,
 });
@@ -37,14 +40,14 @@ describe('getTemplatedEntityGroups', () => {
     expect(getTemplatedEntityGroups(undefined)).toEqual([]);
   });
 
-  it('excludes Canvas pages and lists templated bundles with an exposed slot', () => {
+  it('excludes Canvas pages and lists templated bundles', () => {
     const groups = getTemplatedEntityGroups({
       canvas_page: {
         label: 'Canvas Page',
         bundles: {
           canvas_page: {
             label: 'Canvas Page',
-            // Even if a page template had exposed slots, canvas_page is listed
+            // Even though a page template is enabled, canvas_page is listed
             // separately and must never appear as a templated group.
             viewModes: {
               full: viewMode('canvas_page', 'canvas_page', {
@@ -75,9 +78,10 @@ describe('getTemplatedEntityGroups', () => {
     ]);
   });
 
-  it('excludes bundles whose templates expose no slot', () => {
-    // Slots are exposed or absent; there is no "disabled" flag. A bundle whose
-    // view modes carry an empty `exposed_slots` map contributes no group.
+  it('includes bundles whose enabled template exposes no slot', () => {
+    // Exposed slots are not required: a zero-slot templated bundle opens in
+    // the editor with a locked canvas and an editable Content tab, so an
+    // enabled full-view template alone qualifies the bundle.
     const groups = getTemplatedEntityGroups({
       node: {
         label: 'Content',
@@ -85,6 +89,47 @@ describe('getTemplatedEntityGroups', () => {
           no_slots: {
             label: 'No slots',
             viewModes: { full: viewMode('node', 'no_slots', {}) },
+          },
+        },
+      },
+    });
+    expect(groups).toHaveLength(1);
+    expect(groups[0].bundles).toEqual([
+      { bundle: 'no_slots', label: 'No slots' },
+    ]);
+  });
+
+  it('excludes bundles whose full-view template is disabled', () => {
+    const groups = getTemplatedEntityGroups({
+      node: {
+        label: 'Content',
+        bundles: {
+          article: {
+            label: 'Article',
+            viewModes: {
+              full: viewMode('node', 'article', { body: activeSlot }, false),
+            },
+          },
+        },
+      },
+    });
+    expect(groups).toEqual([]);
+  });
+
+  it('excludes bundles with a template only for another view mode', () => {
+    const groups = getTemplatedEntityGroups({
+      node: {
+        label: 'Content',
+        bundles: {
+          article: {
+            label: 'Article',
+            viewModes: {
+              teaser: {
+                ...viewMode('node', 'article', {}),
+                viewMode: 'teaser',
+                id: 'node.article.teaser',
+              },
+            },
           },
         },
       },
@@ -106,7 +151,7 @@ describe('getTemplatedEntityGroups', () => {
           landing: {
             label: 'Landing page',
             viewModes: {
-              full: viewMode('node', 'landing', { hero: activeSlot }),
+              full: viewMode('node', 'landing', {}),
             },
           },
         },
@@ -123,27 +168,6 @@ describe('getTemplatedEntityGroups', () => {
   });
 });
 
-describe('buildEntityAddFormUrl', () => {
-  it('builds the Drupal node add-form URL', () => {
-    expect(buildEntityAddFormUrl('/', 'node', 'article')).toBe(
-      '/node/add/article',
-    );
-  });
-
-  it('normalizes a base URL without a trailing slash and a subdirectory', () => {
-    expect(buildEntityAddFormUrl('/sub', 'node', 'article')).toBe(
-      '/sub/node/add/article',
-    );
-    expect(buildEntityAddFormUrl(undefined, 'node', 'page')).toBe(
-      '/node/add/page',
-    );
-  });
-
-  it('returns null for unsupported entity types', () => {
-    expect(buildEntityAddFormUrl('/', 'block_content', 'basic')).toBe(null);
-  });
-});
-
 describe('getAddNewOptions', () => {
   const group = {
     entityType: 'node',
@@ -154,33 +178,92 @@ describe('getAddNewOptions', () => {
     ],
   };
 
-  it('offers only bundles the user may create, with add-form URLs', () => {
-    const options = getAddNewOptions(
-      group,
-      { node: { article: 'Create Article' } },
-      '/',
-    );
+  it('offers only bundles the user may create, as creation coordinates', () => {
+    const options = getAddNewOptions(group, {
+      node: { article: 'Create Article' },
+    });
     expect(options).toEqual([
-      { bundle: 'article', label: 'Article', url: '/node/add/article' },
+      { entityType: 'node', bundle: 'article', label: 'Article' },
     ]);
   });
 
   it('returns nothing when the user cannot create any bundle', () => {
-    expect(getAddNewOptions(group, {}, '/')).toEqual([]);
-    expect(getAddNewOptions(group, undefined, '/')).toEqual([]);
+    expect(getAddNewOptions(group, {})).toEqual([]);
+    expect(getAddNewOptions(group, undefined)).toEqual([]);
   });
 
-  it('drops bundles with no derivable add-form URL', () => {
+  it('supports any entity type, not only nodes', () => {
+    // Creation goes through the generic Canvas content API, so no entity type
+    // is dropped for lacking a derivable Drupal add-form URL.
     const blockGroup = {
       entityType: 'block_content',
       title: 'Blocks',
       bundles: [{ bundle: 'basic', label: 'Basic' }],
     };
-    const options = getAddNewOptions(
-      blockGroup,
-      { block_content: { basic: 'Create Basic' } },
-      '/',
+    const options = getAddNewOptions(blockGroup, {
+      block_content: { basic: 'Create Basic' },
+    });
+    expect(options).toEqual([
+      { entityType: 'block_content', bundle: 'basic', label: 'Basic' },
+    ]);
+  });
+});
+
+describe('getAllAddNewOptions', () => {
+  it('enumerates every creatable bundle except Canvas pages', () => {
+    const options = getAllAddNewOptions({
+      canvas_page: { canvas_page: 'Create page' },
+      node: { article: 'Article', landing: 'Landing page' },
+      block_content: { basic: 'Basic' },
+    });
+    expect(options).toEqual([
+      { entityType: 'node', bundle: 'article', label: 'Article' },
+      { entityType: 'node', bundle: 'landing', label: 'Landing page' },
+      { entityType: 'block_content', bundle: 'basic', label: 'Basic' },
+    ]);
+  });
+
+  it('returns nothing without create operations', () => {
+    expect(getAllAddNewOptions(undefined)).toEqual([]);
+    expect(getAllAddNewOptions({})).toEqual([]);
+  });
+});
+
+describe('getContentNavigationTypeOptions', () => {
+  it('lists Pages first, then one option per templated entity type', () => {
+    const options = getContentNavigationTypeOptions([
+      { entityType: 'node', title: 'Article', bundles: [] },
+      { entityType: 'block_content', title: 'Blocks', bundles: [] },
+    ]);
+    expect(options).toEqual([
+      { entityType: 'canvas_page', label: 'Pages' },
+      { entityType: 'node', label: 'Article' },
+      { entityType: 'block_content', label: 'Blocks' },
+    ]);
+  });
+
+  it('offers only Pages when no templated entity types exist', () => {
+    expect(getContentNavigationTypeOptions([])).toEqual([
+      { entityType: 'canvas_page', label: 'Pages' },
+    ]);
+  });
+});
+
+describe('resolveContentNavigationType', () => {
+  const options = [
+    { entityType: 'canvas_page', label: 'Pages' },
+    { entityType: 'node', label: 'Article' },
+  ];
+
+  it('keeps an available selection', () => {
+    expect(resolveContentNavigationType('node', options)).toBe('node');
+  });
+
+  it('falls back to Canvas pages for an unavailable selection', () => {
+    expect(resolveContentNavigationType('block_content', options)).toBe(
+      'canvas_page',
     );
-    expect(options).toEqual([]);
+    // While the templates query still loads there are no options at all.
+    expect(resolveContentNavigationType('node', [])).toBe('canvas_page');
   });
 });

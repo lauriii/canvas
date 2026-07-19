@@ -8,6 +8,7 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ClientDataToEntityConverter;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\EditableContentDiscovery;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
@@ -27,6 +28,8 @@ use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
+use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\Markup;
@@ -40,6 +43,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
@@ -68,6 +72,7 @@ final class ApiLayoutController {
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly LanguageManagerInterface $languageManager,
     private readonly AccountProxyInterface $currentUser,
+    private readonly EditableContentDiscovery $editableContentDiscovery,
   ) {
     $theme = $this->themeManager->getActiveTheme()->getName();
     $theme_regions = system_region_list($theme);
@@ -236,6 +241,20 @@ final class ApiLayoutController {
       $data['isPublished'] = $entity->isPublished();
       $data['entity_form_fields'] = $this->getFilteredEntityData($entity);
 
+      // Surface stored entity form violations so (re)opening a draft restores
+      // earlier validation errors on the form fields, not just the invalid
+      // values ::getFilteredEntityData() already replays.
+      $stored_violations = $this->autoSaveManager->getEntityFormViolations($entity);
+      if (\count($stored_violations) > 0) {
+        $data['entityFormViolations'] = \array_map(
+          static fn (ConstraintViolationInterface $violation): array => [
+            'propertyPath' => $violation->getPropertyPath(),
+            'message' => (string) $violation->getMessage(),
+          ],
+          \iterator_to_array($stored_violations),
+        );
+      }
+
       // Determine if there's an unsaved status change by comparing the current
       // entity (which may be autosaved) with the original stored entity.
       $data['hasUnsavedStatusChange'] = FALSE;
@@ -243,6 +262,11 @@ final class ApiLayoutController {
         && $entity !== $original_entity) {
         $data['hasUnsavedStatusChange'] = $entity->isPublished() !== $original_entity->isPublished();
       }
+
+      // Referenced entities the editor can open in the stacked
+      // reference-editing panel: update-accessible targets of this entity's
+      // entity reference fields whose own bundle is Canvas-editable.
+      $data['referencedEditable'] = $this->getEditableReferencedEntities($entity);
     }
 
     // Add 'updated' property that provides value for 'Updated' element in the
@@ -951,8 +975,11 @@ final class ApiLayoutController {
     if (!$entity instanceof FieldableEntityInterface || $entity instanceof ComponentTreeEntityInterface) {
       return NULL;
     }
+    // Exposed slots are not required: a zero-slot template still puts the
+    // entity in per-content mode (fully locked canvas, editable entity
+    // fields).
     $template = ContentTemplate::loadForEntity($entity, 'full');
-    if (!$template instanceof ContentTemplate || !$template->status() || empty($template->getExposedSlots())) {
+    if (!$template instanceof ContentTemplate || !$template->status()) {
       return NULL;
     }
     // The preview renders the pending draft whenever one exists, so the slot
@@ -962,6 +989,53 @@ final class ApiLayoutController {
     // @see \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder::loadTemplate()
     $draft = $this->autoSaveManager->getAutoSaveEntity($template)->entity;
     return $draft instanceof ContentTemplate ? $draft : $template;
+  }
+
+  /**
+   * Lists referenced entities that are editable in the stacked form panel.
+   *
+   * A referenced entity qualifies when its type+bundle pair is
+   * Canvas-editable (so the entity form endpoint's access check admits it)
+   * and the current user may update it. The client renders these as "edit
+   * referenced content" affordances in the Content tab; edits auto-save as
+   * the referenced entity's own pending change.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The entity opened in the editor.
+   *
+   * @return array<int, array{entityType: string, entityId: string, label: string, fieldLabel: string}>
+   *   One entry per unique referenced editable entity.
+   */
+  private function getEditableReferencedEntities(ContentEntityInterface $entity): array {
+    $references = [];
+    foreach ($entity->getFieldDefinitions() as $field_name => $field_definition) {
+      if (!\is_a($field_definition->getItemDefinition()->getClass(), EntityReferenceItem::class, TRUE)) {
+        continue;
+      }
+      // Computed fields and base fields pointing at users, revisions, etc.
+      // fall out naturally: their targets are not Canvas-editable.
+      $field = $entity->get($field_name);
+      if (!$field instanceof EntityReferenceFieldItemListInterface) {
+        continue;
+      }
+      foreach ($field->referencedEntities() as $referenced) {
+        if (!$referenced instanceof FieldableEntityInterface
+          || $referenced->id() === NULL
+          || ($referenced->getEntityTypeId() === $entity->getEntityTypeId() && $referenced->id() === $entity->id())
+          || !$this->editableContentDiscovery->isEditable($referenced->getEntityTypeId(), $referenced->bundle())
+          || !$referenced->access('update')) {
+          continue;
+        }
+        $key = $referenced->getEntityTypeId() . ':' . $referenced->id();
+        $references[$key] ??= [
+          'entityType' => $referenced->getEntityTypeId(),
+          'entityId' => (string) $referenced->id(),
+          'label' => (string) $referenced->label(),
+          'fieldLabel' => (string) $field_definition->getLabel(),
+        ];
+      }
+    }
+    return \array_values($references);
   }
 
   /**

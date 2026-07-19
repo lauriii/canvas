@@ -58,9 +58,9 @@ test.describe('Content (CMS) panel', () => {
     await canvas.createCanvas();
     await canvas.openContentPanel();
 
-    // The templated Article bundle renders as a content-type group holding
-    // the seeded entities.
-    const group = page.getByTestId('canvas-templated-content-node');
+    // The templated Article bundle renders as a content-type folder holding
+    // the seeded entities (one folder per bundle).
+    const group = page.getByTestId('canvas-templated-content-node-article');
     await expect(group).toBeVisible();
     await expect(group.getByText('Templated alpha')).toBeVisible();
     await expect(group.getByText('Templated beta')).toBeVisible();
@@ -86,16 +86,9 @@ test.describe('Content (CMS) panel', () => {
     await expect(page).toHaveURL(/\/editor\/node\/\d+/);
   });
 
-  // @todo Cover the per-content contextual panel on the article_exposed_slots fixture (phase 1 of the Content/Page data split, exposed-slots decision 10); details below.
-  // In
-  // `/editor/node/{id}` assert: the tab bar shows Page data (leftmost, the
-  // default) and Content (`canvas-contextual-panel--content`); the Content
-  // tab holds only a link out to Drupal's edit form
-  // (`canvas-content-tab-edit-form-link`, href `/node/{id}/edit`); the Page
-  // data tab renders the trimmed form: title, then URL alias as a plain
-  // field (no "URL path settings" details), menu settings, authoring
-  // information, and NO body/content fields and NO read-only meta block
-  // (Published / Last saved / Author). Server-side coverage already exists in
-  // EntityFormControllerTest::testPerContentFormTrimsToPageData(); this spec
-  // covers the tab UI. Do not write this as a Cypress test.
+  // The per-content contextual panel (Content/Page data split, phase 2) is
+  // covered in contentTab.spec.ts: the Content tab renders the entity's
+  // content field widgets inline from the partitioned form, edits auto-save,
+  // and validation errors surface on the fields. Server-side coverage:
+  // EntityFormControllerTest::testPerContentFormPartition().
 });

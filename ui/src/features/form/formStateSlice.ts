@@ -14,6 +14,7 @@ export interface FormState {
 export interface FormStateSliceFormsState {
   [FORM_TYPES.COMPONENT_INSTANCE_FORM]: FormState;
   [FORM_TYPES.ENTITY_FORM]: FormState;
+  [FORM_TYPES.STACKED_ENTITY_FORM]: FormState;
 }
 
 export interface FormStateSliceState extends FormStateSliceFormsState {
@@ -29,6 +30,7 @@ export const initialState: FormStateSliceState = {
   currentComponent: undefined,
   [FORM_TYPES.COMPONENT_INSTANCE_FORM]: emptyFormState,
   [FORM_TYPES.ENTITY_FORM]: emptyFormState,
+  [FORM_TYPES.STACKED_ENTITY_FORM]: emptyFormState,
 };
 
 type ComponentId = string;
@@ -97,6 +99,15 @@ export const formStateSlice = createSlice({
         return state;
       },
     ),
+    // Clears every error on a form while preserving its values. Used to drop
+    // stale entity-form violations when a layout loads without any.
+    clearFormErrors: create.reducer((state, action: PayloadAction<FormId>) => ({
+      ...state,
+      [action.payload]: {
+        ...state[action.payload],
+        errors: {},
+      },
+    })),
     setFieldValue: create.reducer(
       (state, action: PayloadAction<SetFieldValuePayload>) => {
         const newState = {
@@ -203,5 +214,6 @@ export const {
   setFieldValue,
   clearFieldError,
   clearFieldValues,
+  clearFormErrors,
   removeFieldValue,
 } = formStateSlice.actions;

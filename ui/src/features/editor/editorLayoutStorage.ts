@@ -10,6 +10,9 @@ export const EDITOR_SIDEBAR_LAYOUT_KEY = 'canvas-editor-sidebar-layout';
 export const SIDEBAR_MIN_PX = 320;
 export const SIDEBAR_MAX_PX = 640;
 export const SIDEBAR_DEFAULT_PX = 320;
+// The Content tab renders full entity field widgets (rich text, media,
+// groups), so the sidebar widens to this floor while it is active.
+export const SIDEBAR_CONTENT_TAB_PX = 480;
 
 function isValidRightPx(value: unknown): value is number {
   return (

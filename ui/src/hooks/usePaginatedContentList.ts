@@ -6,6 +6,7 @@ import { useGetContentListQuery } from '@/services/content';
 export const usePaginatedContentList = (
   entityType: string,
   searchTerm: string,
+  bundle?: string,
 ) => {
   const [offset, setOffset] = useState(0);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -14,6 +15,7 @@ export const usePaginatedContentList = (
     entityType,
     search: debouncedSearchTerm,
     offset,
+    bundle,
   });
   const items = data?.items;
   const totalCount = data?.totalCount;

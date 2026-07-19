@@ -5,14 +5,19 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Unit\Access;
 
 use Drupal\canvas\Access\CanvasUiAccessCheck;
+use Drupal\canvas\EditableContentDiscovery;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Cache\Context\CacheContextsManager;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -48,11 +53,29 @@ class CanvasUiAccessCheckTest extends UnitTestCase {
       ->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID)
       ->willReturn([]);
     $entityTypeManager = $this->prophesize(EntityTypeManagerInterface::class);
+    // No content templates exist: the discovery contributes only canvas_page,
+    // which the templated-bundle loop skips.
+    $templateQuery = $this->createMock(QueryInterface::class);
+    $templateQuery->method('condition')->willReturnSelf();
+    $templateQuery->method('execute')->willReturn([]);
+    $templateStorage = $this->createMock(EntityStorageInterface::class);
+    $templateStorage->method('getQuery')->willReturn($templateQuery);
+    $entityTypeManager->getStorage(ContentTemplate::ENTITY_TYPE_ID)->willReturn($templateStorage);
     $account = $this->createMock(AccountInterface::class);
     $account->expects($this->atLeastOnce())
       ->method('hasPermission')
       ->willReturnCallback(fn (string $argPermission): bool => $argPermission === $permission);
-    $accessChecker = new CanvasUiAccessCheck($entityFieldManager->reveal(), $entityTypeManager->reveal());
+    // EditableContentDiscovery and ComponentTreeLoader are final, so real
+    // instances are wired over the mocked services.
+    $editableContentDiscovery = new EditableContentDiscovery(
+      $entityTypeManager->reveal(),
+      new ComponentTreeLoader(
+        $entityFieldManager->reveal(),
+        $this->prophesize(ModuleHandlerInterface::class)->reveal(),
+        $entityTypeManager->reveal(),
+      ),
+    );
+    $accessChecker = new CanvasUiAccessCheck($entityFieldManager->reveal(), $entityTypeManager->reveal(), $editableContentDiscovery);
     $result = $accessChecker->access($account);
     $this->assertEquals($accessGranted, $result->isAllowed());
   }
