@@ -8,6 +8,7 @@ import {
   combineHasContent,
   combinePartsToInputs,
   combineSourceToParts,
+  combineTextCandidates,
   createStep,
   createStepWithPrimaryField,
   getPrimaryInputName,
@@ -823,6 +824,24 @@ describe('combine pill editor helpers', () => {
         text_2: textStatic('!'),
         separator: textStatic(''),
       });
+    });
+  });
+
+  describe('combineTextCandidates', () => {
+    it('unions candidates across all text slots, deduplicated by id', () => {
+      // text_1 is restricted (required fields only) while text_2 offers the
+      // full set including followed references; the union offers both.
+      const slots = [
+        makeSlot('text_1', true, { candidates: [titleCandidate] }),
+        makeSlot('text_2', false, {
+          candidates: [titleCandidate, altCandidate],
+        }),
+        makeSlot('separator', false, { candidates: [] }),
+      ];
+      expect(combineTextCandidates(slots)).toEqual([
+        titleCandidate,
+        altCandidate,
+      ]);
     });
   });
 

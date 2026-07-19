@@ -27,6 +27,7 @@ import { usePreviewPropSourceMutation } from '@/services/componentAndLayout';
 import {
   candidateShortLabel,
   COMBINE_MAX_PARTS,
+  combineTextCandidates,
   createStep,
   getPrimaryInputName,
   humanizeInputName,
@@ -58,8 +59,6 @@ const DATE_FORMAT_OPTIONS = [
   { value: 'long', label: 'Long' },
 ];
 const DATE_FORMAT_CUSTOM = '__custom__';
-
-const COMBINE_TEXT_PATTERN = /^text_\d+$/;
 
 const formatPreviewValue = (value: unknown): string =>
   typeof value === 'string' ? value : (JSON.stringify(value) ?? '');
@@ -714,9 +713,6 @@ const AdapterConfigPanel = ({
   };
 
   const renderCombineEditor = (step: AdapterStep, stepIndex: number) => {
-    const textSlot = step.adapter.inputs.find((slot) =>
-      COMBINE_TEXT_PATTERN.test(slot.name),
-    );
     // A later chain step feeds text_1 from the previous step, shown as a fixed
     // leading indicator; the parts fill the remaining slots.
     const parts = ensureTrailingText(
@@ -727,7 +723,7 @@ const AdapterConfigPanel = ({
         {stepIndex > 0 && <Badge color="gray">Previous step, then…</Badge>}
         <CombinePillEditor
           parts={parts}
-          candidates={textSlot?.candidates ?? []}
+          candidates={combineTextCandidates(step.adapter.inputs)}
           onChange={(next) => updateCombineParts(stepIndex, next)}
         />
       </>

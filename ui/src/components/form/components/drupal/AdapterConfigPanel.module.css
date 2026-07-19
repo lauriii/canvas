@@ -108,6 +108,12 @@
   &:focus {
     outline: none;
   }
+
+  /* The empty editor shows a full-length placeholder; without this the
+     2-character size attribute clips it. */
+  &:placeholder-shown {
+    width: 100%;
+  }
 }
 
 .combinePill {
