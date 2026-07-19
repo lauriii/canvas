@@ -138,7 +138,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->assertSame('Updated title', $entityFromAutoSave->label());
   }
 
-  #[DataProvider('providerEntityTypes')]
+  #[DataProvider('providerCanvasTestSetupTreeEntityTypes')]
   public function testEmpty(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
@@ -160,7 +160,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->assertEquals('<div class="canvas--region-empty-placeholder"></div>', $root);
   }
 
-  #[DataProvider('providerEntityTypes')]
+  #[DataProvider('providerCanvasTestSetupTreeEntityTypes')]
   public function testMissingSlot(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
