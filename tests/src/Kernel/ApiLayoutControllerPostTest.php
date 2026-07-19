@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\MemoryCache\MemoryCacheInterface;
@@ -464,6 +465,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     self::assertInstanceOf(PageVariant::class, $stored_beta);
     self::assertCount(1, $stored_beta->getComponentTree());
     foreach ($stored_beta->getComponentTree() as $item) {
+      self::assertInstanceOf(ComponentTreeItem::class, $item);
       self::assertSame(Marker::PAGE_CONTENT_COMPONENT_ID, $item->getComponentId());
       self::assertSame('22222222-2222-4222-8222-222222222222', $item->getUuid());
     }
