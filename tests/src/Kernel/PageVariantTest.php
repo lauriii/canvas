@@ -8,10 +8,12 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Controller\ApiSettingsController;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\EventSubscriber\PageVariantSelectorSubscriber;
 use Drupal\canvas\PageVariantResolver;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\Core\Config\ConfigException;
@@ -543,6 +545,102 @@ final class PageVariantTest extends CanvasKernelTestBase {
     $live_build = $variant->getComponentTree()->toRenderable($variant, isPreview: FALSE);
     $live = (string) $renderer->renderInIsolation($live_build);
     self::assertStringNotContainsString('canvas--page-content-marker-placeholder', $live);
+  }
+
+  /**
+   * Tests preview rendering of the variant chrome around edited page content.
+   *
+   * Two preview-only behaviors of the display variant, both regressions from
+   * the removed per-region rendering:
+   * - An invalid auto-saved variant draft is not rendered; the published
+   *   variant is used instead, so a broken draft (drafts are written without
+   *   validation) does not break every editor preview of a page that uses it.
+   * - The variant tree renders in preview mode, so a code component placed in
+   *   the chrome loads its own auto-saved draft.
+   *
+   * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
+   */
+  public function testPreviewChromeDraftHandling(): void {
+    $sentinel = 'canvas-main-content-preview-7a2b';
+    $variant_manager = $this->container->get('plugin.manager.display_variant');
+    self::assertInstanceOf(VariantManager::class, $variant_manager);
+    $renderer = $this->container->get(RendererInterface::class);
+    self::assertInstanceOf(RendererInterface::class, $renderer);
+    $auto_save = $this->container->get(AutoSaveManager::class);
+    self::assertInstanceOf(AutoSaveManager::class, $auto_save);
+
+    $render_preview = function (string $variant_id) use ($variant_manager, $renderer, $sentinel): string {
+      $plugin = $variant_manager->createInstance(CanvasPageVariant::PLUGIN_ID, [
+        CanvasPageVariant::PREVIEW_KEY => TRUE,
+        CanvasPageVariant::VARIANT_ID_KEY => $variant_id,
+      ]);
+      self::assertInstanceOf(CanvasPageVariant::class, $plugin);
+      $plugin->setMainContent(['#markup' => $sentinel]);
+      $plugin->setTitle('Preview title');
+      return (string) $renderer->renderInIsolation($plugin->build()['#content']);
+    };
+
+    // An invalid auto-saved variant draft falls back to the published variant.
+    // The published variant carries the "Page content" marker, so the route's
+    // main content is injected; if the invalid draft (which has no marker) were
+    // rendered instead, that injection point would be gone.
+    PageVariant::create(['id' => 'chrome', 'label' => 'Chrome', 'component_tree' => [self::markerInstance()]])->save();
+    $draft = PageVariant::load('chrome');
+    self::assertInstanceOf(PageVariant::class, $draft);
+    // A variant tree with no "Page content" marker is invalid.
+    $draft->setComponentTree([]);
+    self::assertNotCount(0, $draft->getTypedData()->validate());
+    $auto_save->saveEntity($draft);
+    // The reconstructed draft that build() sees is invalid too.
+    $stored_draft = $auto_save->getAutoSaveEntity($draft)->entity;
+    self::assertInstanceOf(PageVariant::class, $stored_draft);
+    self::assertNotCount(0, $stored_draft->getTypedData()->validate());
+
+    // Rendering does not throw, and the published chrome (its marker) rendered.
+    $html = $render_preview('chrome');
+    self::assertStringContainsString($sentinel, $html);
+
+    // A code component placed in the chrome renders its auto-saved draft when
+    // the surrounding page is previewed.
+    $code_component = JavaScriptComponent::create([
+      'machineName' => 'chrome_logo',
+      'name' => 'Chrome logo',
+      'status' => TRUE,
+      'props' => [],
+      'slots' => [],
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
+    ]);
+    $code_component->save();
+    $component = Component::load(JsComponent::componentIdFromJavascriptComponentId('chrome_logo'));
+    self::assertInstanceOf(Component::class, $component);
+
+    // Auto-save a draft of the code component with a distinctive name.
+    $code_draft = JavaScriptComponent::create(['name' => 'Chrome logo DRAFT'] + $code_component->toArray());
+    $auto_save->saveEntity($code_draft);
+
+    PageVariant::create([
+      'id' => 'chrome_with_code',
+      'label' => 'Chrome with code',
+      'component_tree' => [
+        self::markerInstance(),
+        [
+          'uuid' => \Drupal::service('uuid')->generate(),
+          'component_id' => $component->id(),
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => [],
+        ],
+      ],
+    ])->save();
+
+    $html = $render_preview('chrome_with_code');
+    // The draft code component rendered: its draft name appears, and its Astro
+    // island points at the auto-save endpoint rather than a published asset URL.
+    self::assertStringContainsString('Chrome logo DRAFT', $html);
+    self::assertStringContainsString('/canvas/api/v0/auto-saves/js/', $html);
+    // The route's main content is still injected at the marker.
+    self::assertStringContainsString($sentinel, $html);
   }
 
   /**

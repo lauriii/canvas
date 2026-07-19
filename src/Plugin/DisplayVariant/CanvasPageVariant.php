@@ -153,7 +153,16 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
     if ($is_preview) {
       $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($variant);
       if (!$autoSaveData->isEmpty() && $autoSaveData->entity instanceof PageVariant) {
-        $variant = $autoSaveData->entity;
+        // Auto-save drafts are written without validation, so an invalid draft
+        // is an expected input here. Only render a draft that validates;
+        // otherwise fall back to the published variant, degrading gracefully
+        // instead of rendering broken chrome (or throwing) in every editor
+        // preview of a page that uses this variant.
+        // @see \Drupal\canvas\Controller\ApiLayoutController::updateEntity()
+        $violations = $autoSaveData->entity->getTypedData()->validate();
+        if (\count($violations) === 0) {
+          $variant = $autoSaveData->entity;
+        }
       }
     }
 
@@ -168,17 +177,16 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
     // information can be injected into special Canvas Components: the title and
     // messages blocks receive their data, and the "Page content" marker is
     // replaced with the route's main content.
-    // TRICKY: the tree renders in NON-preview mode even when previewing a
-    // draft ($is_preview only selects the draft variant and draft asset
-    // libraries above/below): here the variant is the chrome around edited
-    // content, not the edit target, so editing helpers (slot annotations,
-    // empty-slot placeholders) must not render. Only the layout API's variant
-    // editing route renders a variant tree in preview mode.
+    // On preview, the tree renders in preview mode so its code components load
+    // their auto-saved drafts, matching the draft global asset libraries
+    // attached below. The "Page content" marker is still replaced with the
+    // injected main content, so its edit placeholder never renders here.
     // @see \Drupal\Core\Display\PageVariantInterface
     // @see \Drupal\canvas\ComponentSource\ComponentSourceInterface::renderComponent()
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::renderComponent()
     // @see \Drupal\canvas\EventSubscriber\PageVariantSelectorSubscriber
-    $fiber = new \Fiber(fn() => $component_tree->toRenderable($variant, FALSE));
+    $fiber = new \Fiber(fn() => $component_tree->toRenderable($variant, $is_preview));
     $component_instance = $fiber->start();
     while ($fiber->isSuspended()) {
       $component_instance = match (TRUE) {
