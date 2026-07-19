@@ -36,11 +36,13 @@ shape-matching machinery.
 
 Build on the existing Adapter plugin system (adopt, not build):
 
-1. **Phase 1 catalog as eight small plugins**: `is_set`, `format_date`,
-   `prefix_suffix`, `fallback`, `equals`, `contains`, `mapping`, `combine`.
+1. **Phase 1 catalog as seven small plugins**: `is_set`, `format_date`,
+   `fallback`, `equals`, `contains`, `mapping`, `combine`.
    `equals`/`contains` model if/then/else (their `then`/`else` inputs are prop
-   sources themselves); `mapping` is the multi-case switch; `combine` joins up
-   to ten text inputs, skipping empty ones.
+   sources themselves); `mapping` is the multi-case switch; `combine`
+   ("Compose text") joins up to ten text inputs, skipping empty ones — its
+   literal runs also cover prefix/suffix wrapping, so no separate
+   prefix/suffix adapter exists.
 2. **Parametric output schemas instead of plugin derivers**: an adapter may
    declare `outputMirrorsInputs: ['then', 'else']` (instead of `output`) in
    its `Adapter` attribute, meaning its output shape mirrors those inputs.

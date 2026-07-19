@@ -33,6 +33,7 @@ import {
   humanizeInputName,
   isChainComplete,
   isMappingRowsSlot,
+  normalizeChainSteps,
   stepsToSource,
   supportsLiteralBinding,
 } from './adapterSource';
@@ -195,26 +196,33 @@ const ensureTrailingText = (parts: CombinePart[]): CombinePart[] =>
     ? [...parts, { kind: 'text', text: '' }]
     : parts;
 
-// The number of parts that serialize to a slot (field pills and non-empty
-// text runs). Empty text runs are skipped and do not count toward the cap.
+// The number of parts that serialize to a slot (pills and non-empty text
+// runs). Empty text runs are skipped and do not count toward the cap.
 const emittedPartCount = (parts: CombinePart[]): number =>
-  parts.filter((part) => part.kind === 'field' || part.text !== '').length;
+  parts.filter((part) => part.kind !== 'text' || part.text !== '').length;
 
 /**
  * Token/pill editor for the combine adapter: the author writes free text and
  * inserts field references as inline pills. The ordered parts serialize to
- * combine's text_1…text_10 inputs (see combinePartsToInputs).
+ * combine's text_1…text_10 inputs (see combinePartsToInputs). In a later
+ * chain step, the previous step's output is a movable pill too — remove it
+ * and re-insert it to place it anywhere among the text and fields.
  */
 const CombinePillEditor = ({
   parts,
   candidates,
+  previousLabel,
   onChange,
 }: {
   parts: CombinePart[];
   candidates: SlotCandidate[];
+  // Set when this step follows another: the label of the previous step,
+  // shown on its (movable, re-insertable) pill.
+  previousLabel?: string;
   onChange: (parts: CombinePart[]) => void;
 }) => {
   const atCap = emittedPartCount(parts) >= COMBINE_MAX_PARTS;
+  const hasPrevious = parts.some((part) => part.kind === 'previous');
 
   const updateText = (index: number, text: string) => {
     onChange(
@@ -241,6 +249,9 @@ const CombinePillEditor = ({
       ]),
     );
   };
+  const insertPrevious = () => {
+    onChange(ensureTrailingText([...parts, { kind: 'previous' }]));
+  };
 
   const onlyEmpty =
     parts.length === 1 && parts[0].kind === 'text' && parts[0].text === '';
@@ -248,33 +259,46 @@ const CombinePillEditor = ({
   return (
     <Box data-testid="combine-editor" className={styles.combineEditor}>
       <Flex wrap="wrap" align="center" gap="1" className={styles.combineParts}>
-        {parts.map((part, index) =>
-          part.kind === 'text' ? (
-            <input
+        {parts.map((part, index) => {
+          if (part.kind === 'text') {
+            return (
+              <input
+                key={index}
+                className={styles.combineTextInput}
+                value={part.text}
+                size={Math.max(part.text.length, 2)}
+                placeholder={
+                  onlyEmpty ? 'Type text or insert a field…' : undefined
+                }
+                aria-label="Combined text"
+                onChange={(event) => updateText(index, event.target.value)}
+              />
+            );
+          }
+          const label =
+            part.kind === 'previous'
+              ? (previousLabel ?? 'Previous step')
+              : part.label;
+          return (
+            <span
               key={index}
-              className={styles.combineTextInput}
-              value={part.text}
-              size={Math.max(part.text.length, 2)}
-              placeholder={
-                onlyEmpty ? 'Type text or insert a field…' : undefined
+              className={styles.combinePill}
+              data-testid={
+                part.kind === 'previous' ? 'combine-previous-pill' : undefined
               }
-              aria-label="Combined text"
-              onChange={(event) => updateText(index, event.target.value)}
-            />
-          ) : (
-            <span key={index} className={styles.combinePill}>
-              <span className={styles.combinePillLabel}>{part.label}</span>
+            >
+              <span className={styles.combinePillLabel}>{label}</span>
               <button
                 type="button"
                 className={styles.combinePillRemove}
-                aria-label={`Remove ${part.label}`}
+                aria-label={`Remove ${label}`}
                 onClick={() => removePill(index)}
               >
                 <Cross2Icon />
               </button>
             </span>
-          ),
-        )}
+          );
+        })}
       </Flex>
       <Flex align="center" gap="2" mt="1">
         <DropdownMenu.Root>
@@ -290,6 +314,14 @@ const CombinePillEditor = ({
             </Button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Content>
+            {previousLabel !== undefined && !hasPrevious && (
+              <DropdownMenu.Item
+                data-testid="combine-insert-previous"
+                onClick={insertPrevious}
+              >
+                {previousLabel} (previous step)
+              </DropdownMenu.Item>
+            )}
             <CandidateTreeMenuItems
               candidates={candidates}
               onSelect={insertField}
@@ -299,6 +331,11 @@ const CombinePillEditor = ({
         {atCap && (
           <Text size="1" color="gray">
             A combined value can hold at most {COMBINE_MAX_PARTS} parts
+          </Text>
+        )}
+        {previousLabel !== undefined && !hasPrevious && (
+          <Text size="1" color="gray">
+            Insert the previous step&#8217;s value to complete this step
           </Text>
         )}
       </Flex>
@@ -350,7 +387,7 @@ const AdapterConfigPanel = ({
   // Re-seed the editing state each time the panel opens.
   useEffect(() => {
     if (open) {
-      setSteps(initialSteps);
+      setSteps(normalizeChainSteps(initialSteps));
       setSeedKey((previous) => previous + 1);
     }
   }, [open, initialSteps]);
@@ -426,7 +463,7 @@ const AdapterConfigPanel = ({
   };
 
   const removeStep = (index: number) => {
-    setSteps((prev) => prev.filter((_, i) => i !== index));
+    setSteps((prev) => normalizeChainSteps(prev.filter((_, i) => i !== index)));
   };
 
   const moveStep = (index: number, delta: number) => {
@@ -437,12 +474,12 @@ const AdapterConfigPanel = ({
       }
       const next = [...prev];
       [next[index], next[target]] = [next[target], next[index]];
-      return next;
+      return normalizeChainSteps(next);
     });
   };
 
   const addStep = (suggestion: AdapterSuggestion) => {
-    setSteps((prev) => [...prev, createStep(suggestion)]);
+    setSteps((prev) => normalizeChainSteps([...prev, createStep(suggestion)]));
   };
 
   const changeMode = (
@@ -713,20 +750,18 @@ const AdapterConfigPanel = ({
   };
 
   const renderCombineEditor = (step: AdapterStep, stepIndex: number) => {
-    // A later chain step feeds text_1 from the previous step, shown as a fixed
-    // leading indicator; the parts fill the remaining slots.
+    // A later chain step holds the previous step's output as a movable pill
+    // among the parts (see normalizeChainSteps).
     const parts = ensureTrailingText(
       step.parts ?? [{ kind: 'text', text: '' }],
     );
     return (
-      <>
-        {stepIndex > 0 && <Badge color="gray">Previous step, then…</Badge>}
-        <CombinePillEditor
-          parts={parts}
-          candidates={combineTextCandidates(step.adapter.inputs)}
-          onChange={(next) => updateCombineParts(stepIndex, next)}
-        />
-      </>
+      <CombinePillEditor
+        parts={parts}
+        candidates={combineTextCandidates(step.adapter.inputs)}
+        previousLabel={stepIndex > 0 ? steps[stepIndex - 1].label : undefined}
+        onChange={(next) => updateCombineParts(stepIndex, next)}
+      />
     );
   };
 

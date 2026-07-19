@@ -96,10 +96,12 @@ export interface SlotBinding {
   rows?: MappingRow[];
 }
 
-// One part of the combine pill editor's ordered content: a literal text run
-// or an inline field reference (pill).
+// One part of the combine pill editor's ordered content: a literal text run,
+// an inline field reference (pill), or — in a later chain step — the movable
+// pill holding the previous step's output.
 export type CombinePart =
   | { kind: 'text'; text: string }
+  | { kind: 'previous' }
   | {
       kind: 'field';
       // Display label for the pill (short field name).
@@ -358,6 +360,32 @@ export const createStep = (suggestion: AdapterSuggestion): AdapterStep => {
   return step;
 };
 
+// Restores the combine `previous`-pill invariants after a structural chain
+// change (step added, removed, or reordered): a combine step that became the
+// first step loses its `previous` pill, and one that became a later step
+// gains a leading one. Part edits within a step are NOT normalized — the
+// author may remove the pill to reposition it, and Apply stays disabled
+// until it is re-inserted (see isStepComplete).
+export const normalizeChainSteps = (steps: AdapterStep[]): AdapterStep[] =>
+  steps.map((step, index) => {
+    if (step.adapter.id !== 'combine') {
+      return step;
+    }
+    const parts = step.parts ?? [{ kind: 'text', text: '' }];
+    const hasPrevious = parts.some((part) => part.kind === 'previous');
+    if (index === 0 && hasPrevious) {
+      const stripped = parts.filter((part) => part.kind !== 'previous');
+      return {
+        ...step,
+        parts: stripped.length > 0 ? stripped : [{ kind: 'text', text: '' }],
+      };
+    }
+    if (index > 0 && !hasPrevious) {
+      return { ...step, parts: [{ kind: 'previous' }, ...parts] };
+    }
+    return step;
+  });
+
 // The static template shared by combine's text_1…text_10 inputs, used to write
 // literal text runs.
 const combineTextStatic = (
@@ -369,19 +397,27 @@ const combineTextStatic = (
 // Maps the ordered pill-editor parts to combine's text_1…text_10 inputs plus
 // an empty separator (so the parts concatenate directly). Empty text runs are
 // skipped, and no more than the 10 available slots are emitted. When
-// `leadingSource` is provided (combine used as a later step in a chain), it
-// occupies text_1 and the parts fill text_2 onward.
+// `previousSource` is provided (combine used as a later step in a chain), it
+// is written at the position of the `previous` part — the author decides
+// where the previous step's output lands. A missing `previous` part falls
+// back to the leading position so the chain link is never dropped.
 export const combinePartsToInputs = (
   parts: CombinePart[],
   slots: AdapterInputSlot[],
-  leadingSource?: PropSource,
+  previousSource?: PropSource,
 ): Record<string, PropSource> => {
   const textStatic = combineTextStatic(slots);
   const ordered: PropSource[] = [];
-  if (leadingSource) {
-    ordered.push(leadingSource);
+  if (previousSource && !parts.some((part) => part.kind === 'previous')) {
+    ordered.push(previousSource);
   }
   parts.forEach((part) => {
+    if (part.kind === 'previous') {
+      if (previousSource) {
+        ordered.push(previousSource);
+      }
+      return;
+    }
     if (part.kind === 'text') {
       if (part.text === '' || textStatic === null) {
         return;
@@ -426,26 +462,42 @@ export const combineTextCandidates = (
   return [...byId.values()];
 };
 
+// The name of the text input holding the previous step's output in a stored
+// combine source: the first one holding a nested adapter source. NULL when
+// none does (combine as the first step of a chain).
+export const combineChainInputName = (
+  source: AdaptedPropSource,
+): string | null => {
+  for (let index = 1; index <= COMBINE_MAX_PARTS; index++) {
+    if (isAdaptedSource(source.adapterInputs?.[`text_${index}`])) {
+      return `text_${index}`;
+    }
+  }
+  return null;
+};
+
 // Reconstructs the ordered pill-editor parts from a stored combine source:
 // text_1…text_10 read in order, a static input becomes a literal text run and
 // any other source becomes a field pill (its label resolved from the text
 // slots' combined candidates, falling back to a generic label while
-// preserving the source). When `skipPrimary` is true (combine used as a later
-// chain step), text_1 holds the previous step's output and is not part of the
-// editor.
+// preserving the source). When `chainInputName` is given (combine used as a
+// later chain step), that input holds the previous step's output and becomes
+// the movable `previous` part.
 export const combineSourceToParts = (
   source: AdaptedPropSource,
   slots: AdapterInputSlot[],
-  skipPrimary = false,
+  chainInputName: string | null = null,
 ): CombinePart[] => {
   const candidates = combineTextCandidates(slots);
   const parts: CombinePart[] = [];
   for (let index = 1; index <= COMBINE_MAX_PARTS; index++) {
-    if (index === 1 && skipPrimary) {
+    const inputName = `text_${index}`;
+    const input = source.adapterInputs?.[inputName];
+    if (input === undefined) {
       continue;
     }
-    const input = source.adapterInputs?.[`text_${index}`];
-    if (input === undefined) {
+    if (inputName === chainInputName) {
+      parts.push({ kind: 'previous' });
       continue;
     }
     const sourceType =
@@ -543,9 +595,12 @@ export const isStepComplete = (
   stepIndex: number,
 ): boolean => {
   if (step.adapter.id === 'combine') {
-    // A later chain step already has text_1 fed by the previous step; the
-    // first step needs at least one non-empty part.
-    return stepIndex > 0 || combineHasContent(step.parts ?? []);
+    // A later chain step must place the previous step's output somewhere
+    // (the pill can be moved, but removing it breaks the chain); the first
+    // step needs at least one non-empty part.
+    return stepIndex > 0
+      ? (step.parts ?? []).some((part) => part.kind === 'previous')
+      : combineHasContent(step.parts ?? []);
   }
   const primary = getPrimaryInputName(step.adapter);
   return step.adapter.inputs.every((slot) => {
@@ -578,12 +633,13 @@ export const stepsToSource = (
     let adapterInputs: Record<string, PropSource>;
     if (step.adapter.id === 'combine') {
       // Combine is serialized from its pill-editor parts. As a later chain
-      // step, the previous step's output leads (occupying text_1).
-      const leadingSource = index > 0 ? (current ?? undefined) : undefined;
+      // step, the previous step's output lands at the `previous` part's
+      // position.
+      const previousSource = index > 0 ? (current ?? undefined) : undefined;
       adapterInputs = combinePartsToInputs(
         step.parts ?? [],
         step.adapter.inputs,
-        leadingSource,
+        previousSource,
       );
     } else {
       adapterInputs = {};
@@ -686,7 +742,12 @@ export const sourceToSteps = (
       break;
     }
     layers.push({ suggestion, source: current });
-    current = current.adapterInputs?.[getPrimaryInputName(suggestion.adapter)];
+    // Combine's chain link is the (movable) text input holding a nested
+    // adapter source; every other adapter chains through its primary input.
+    current =
+      suggestion.adapter.id === 'combine'
+        ? current.adapterInputs?.[combineChainInputName(current) ?? '']
+        : current.adapterInputs?.[getPrimaryInputName(suggestion.adapter)];
   }
   if (layers.length === 0) {
     return null;
@@ -697,13 +758,13 @@ export const sourceToSteps = (
   return layers.map(({ suggestion, source: layerSource }, index) => {
     const step = createStep(suggestion);
     // Combine reconstructs its pill-editor parts rather than per-slot
-    // bindings. As a later chain step, text_1 holds the previous step's
-    // output and is not part of the editor.
+    // bindings. As a later chain step, the input holding the previous step's
+    // output becomes the movable `previous` part.
     if (suggestion.adapter.id === 'combine') {
       step.parts = combineSourceToParts(
         layerSource,
         suggestion.adapter.inputs,
-        index > 0,
+        index > 0 ? combineChainInputName(layerSource) : null,
       );
       return step;
     }

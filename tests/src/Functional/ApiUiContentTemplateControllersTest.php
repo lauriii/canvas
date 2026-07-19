@@ -228,7 +228,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     // mirrors designated inputs), in alphabetical label order.
     $text_adapters = $adapters_for_prop('text');
     self::assertSame(
-      ['Combine', 'Contains', 'Date conversion', 'Equals', 'Fallback', 'Mapping', 'Prefix and suffix'],
+      ['Compose text', 'Contains', 'Date conversion', 'Equals', 'Fallback', 'Mapping'],
       \array_column($text_adapters, 'label'),
     );
 
@@ -348,16 +348,21 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     $json = $this->assertExpectedResponse('POST', $url, [
       RequestOptions::JSON => [
         'source' => [
-          'sourceType' => 'adapter:prefix_suffix',
+          'sourceType' => 'adapter:combine',
           'adapterInputs' => [
-            'value' => [
-              'sourceType' => PropSource::EntityField->value,
-              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
-            ],
-            'prefix' => [
+            'text_1' => [
               'sourceType' => 'static:field_item:string',
               'expression' => 'ℹ︎string␟value',
               'value' => 'Published: ',
+            ],
+            'text_2' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+            'separator' => [
+              'sourceType' => 'static:field_item:string',
+              'expression' => 'ℹ︎string␟value',
+              'value' => '',
             ],
           ],
         ],

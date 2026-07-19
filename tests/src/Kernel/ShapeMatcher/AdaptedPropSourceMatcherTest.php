@@ -95,7 +95,7 @@ class AdaptedPropSourceMatcherTest extends PropSourceMatcherTestBase {
       'type=number' => self::PARAMETRIC_ADAPTERS,
       'type=object&$ref=json-schema-definitions://canvas.module/image' => self::withParametric('image_apply_style', 'image_url_rel_to_abs'),
       'type=object&$ref=json-schema-definitions://canvas.module/video' => self::PARAMETRIC_ADAPTERS,
-      'type=string' => self::withParametric('combine', 'format_date', 'prefix_suffix'),
+      'type=string' => self::withParametric('combine', 'format_date'),
       'type=string&$ref=json-schema-definitions://canvas.module/heading-element' => self::PARAMETRIC_ADAPTERS,
       'type=string&$ref=json-schema-definitions://canvas.module/image-uri' => self::withParametric('image_extract_url'),
       'type=string&$ref=json-schema-definitions://canvas.module/stream-wrapper-image-uri' => self::PARAMETRIC_ADAPTERS,
