@@ -258,7 +258,9 @@ const CombinePillEditor = ({
 
   return (
     <Box data-testid="combine-editor" className={styles.combineEditor}>
-      <Flex wrap="wrap" align="center" gap="1" className={styles.combineParts}>
+      {/* No flex gap: the composed value concatenates the parts directly,
+          so spacing around pills comes only from the typed text. */}
+      <Flex wrap="wrap" align="center" className={styles.combineParts}>
         {parts.map((part, index) => {
           if (part.kind === 'text') {
             return (

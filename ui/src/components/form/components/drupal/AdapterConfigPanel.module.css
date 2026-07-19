@@ -98,12 +98,17 @@
 }
 
 .combineTextInput {
-  min-width: 2ch;
+  min-width: 1ch;
   padding: 2px 0;
   color: inherit;
   border: none;
   background: transparent;
   font: inherit;
+
+  /* Hug the typed text exactly; the size attribute (an average-character
+     estimate that renders too wide) is only the fallback for browsers
+     without field-sizing support. */
+  field-sizing: content;
 
   &:focus {
     outline: none;
