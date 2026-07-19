@@ -12,8 +12,8 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Render\PageDisplayVariantSelectionEvent;
 use Drupal\Core\Render\RenderEvents;
+use Drupal\Core\Routing\AdminContext;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\Core\Theme\ThemeManagerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -27,7 +27,7 @@ final class PageVariantSelectorSubscriber implements EventSubscriberInterface {
 
   public function __construct(
     private readonly PageVariantResolver $resolver,
-    private readonly ThemeManagerInterface $themeManager,
+    private readonly AdminContext $adminContext,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly AutoSaveManager $autoSaveManager,
   ) {}
@@ -39,9 +39,9 @@ final class PageVariantSelectorSubscriber implements EventSubscriberInterface {
    *   The event to process.
    */
   public function onSelectPageDisplayVariant(PageDisplayVariantSelectionEvent $event): void {
-    // Page variants render front-end pages only, never the administration
-    // theme (the Canvas editor, admin pages, and so on).
-    if ($this->themeManager->getActiveTheme()->getName() === $this->configFactory->get('system.theme')->get('admin')) {
+    // Page variants render front-end pages only, never administration routes
+    // (the Canvas editor, admin pages, and so on).
+    if ($this->adminContext->isAdminRoute($event->getRouteMatch()->getRouteObject())) {
       return;
     }
 

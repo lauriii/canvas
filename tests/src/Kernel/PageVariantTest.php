@@ -577,6 +577,45 @@ final class PageVariantTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that admin routes are excluded by admin context, not theme name.
+   *
+   * The selector must key off the route's admin flag, not a comparison of the
+   * configured admin theme to the active theme. Sites can point the admin
+   * theme at the front-end theme (a name comparison would then bail on every
+   * front-end request) or leave it empty (a name comparison would never match,
+   * wrapping admin routes in page chrome).
+   *
+   * @see \Drupal\canvas\EventSubscriber\PageVariantSelectorSubscriber
+   * @see \Drupal\Core\Routing\AdminContext::isAdminRoute()
+   */
+  public function testAdminRoutesExcludedByAdminContext(): void {
+    PageVariant::create(['id' => 'site_default', 'label' => 'Site default', 'component_tree' => [self::markerInstance()]])->save();
+    $this->config('canvas.settings')->set(PageVariant::DEFAULT_SETTING, 'site_default')->save();
+
+    $subscriber = $this->container->get(PageVariantSelectorSubscriber::class);
+    self::assertInstanceOf(PageVariantSelectorSubscriber::class, $subscriber);
+
+    // Point the admin theme at the default (front-end) theme. The removed name
+    // comparison would have bailed here; the site default variant must still be
+    // selected on a non-admin route.
+    $default_theme = $this->config('system.theme')->get('default');
+    $this->config('system.theme')->set('admin', $default_theme)->save();
+    $front_end = new Route('/a-front-end-page');
+    $event = new PageDisplayVariantSelectionEvent('simple_page', new RouteMatch('canvas.test', $front_end, [], []));
+    $subscriber->onSelectPageDisplayVariant($event);
+    self::assertSame(CanvasPageVariant::PLUGIN_ID, $event->getPluginId());
+
+    // Clear the admin theme ("use default theme"). The removed name comparison
+    // would never match, so an admin route would be wrapped in page chrome; the
+    // admin-context check must exclude it instead.
+    $this->config('system.theme')->set('admin', '')->save();
+    $admin_route = new Route('/admin/a-page', [], [], ['_admin_route' => TRUE]);
+    $event = new PageDisplayVariantSelectionEvent('simple_page', new RouteMatch('canvas.test', $admin_route, [], []));
+    $subscriber->onSelectPageDisplayVariant($event);
+    self::assertSame('simple_page', $event->getPluginId());
+  }
+
+  /**
    * Tests the settings endpoint that reads and writes the default variant.
    *
    * @see \Drupal\canvas\Controller\ApiSettingsController
