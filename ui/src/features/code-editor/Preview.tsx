@@ -4,6 +4,7 @@ import { Flex, ScrollArea, Spinner } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorCard from '@/components/error/ErrorCard';
+import { resolveIconValue } from '@/components/icons/iconScope';
 import {
   buildFontFaceStyles,
   getFontPreloadDefinitions,
@@ -256,20 +257,10 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
       .filter((prop) => prop.name && prop.derivedType === 'icon')
       .forEach((prop) => {
         const machineName = getPropMachineName(prop.name);
-        const value = propValues[machineName];
-        const icon =
-          typeof value === 'string' && value !== ''
-            ? (iconPacks ?? [])
-                .flatMap((pack) => pack.icons)
-                .find((icon) => icon.id === value)
-            : undefined;
-        propValues[machineName] = icon
-          ? {
-              id: icon.id,
-              ...(icon.svg ? { svg: icon.svg } : {}),
-              ...(icon.url ? { url: icon.url } : {}),
-            }
-          : null;
+        propValues[machineName] = resolveIconValue(
+          propValues[machineName],
+          iconPacks,
+        );
       });
     const slotNames = getSlotNamesForPreview(slots);
     const previewGlobalFontCss = buildFontFaceStyles(brandKitFonts ?? []);
