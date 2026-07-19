@@ -189,4 +189,69 @@ class CanvasPageVariantEnableTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(200);
   }
 
+  /**
+   * Tests enabling Canvas for a theme with a block that has invalid settings.
+   *
+   * Pre-existing blocks may have settings that do not pass validation, for
+   * example a `system_menu_block` with the legacy `depth: 0` value that used
+   * to mean "unlimited". Enabling Canvas for the theme must not crash: such
+   * blocks are omitted from the generated page regions and a warning names
+   * them.
+   *
+   * @see https://www.drupal.org/project/canvas/issues/3545795
+   */
+  public function testEnableWithInvalidBlockSettings(): void {
+    $assert = $this->assertSession();
+
+    $this->drupalLogin($this->rootUser);
+    $this->generateComponentConfig();
+
+    // A menu block with settings that predate stricter validation in Drupal
+    // core: `depth: 0` violates the `MenuLinkDepth` constraint, which
+    // requires a value between 1 and 8.
+    // @see core.data_types.schema.yml `block.settings.system_menu_block:*`
+    $invalid_block = Block::create([
+      'id' => 'olivero_legacy_menu',
+      'theme' => 'olivero',
+      'region' => 'primary_menu',
+      'plugin' => 'system_menu_block:main',
+      'weight' => 0,
+      'settings' => [
+        'id' => 'system_menu_block:main',
+        'label' => 'Legacy menu block',
+        'label_display' => '0',
+        'provider' => 'system',
+        'level' => 1,
+        'depth' => 0,
+        'expand_all_items' => \FALSE,
+      ],
+    ]);
+    $invalid_block->enable()->save();
+
+    $this->drupalGet('/admin/appearance/settings/olivero');
+    $this->submitForm(['use_canvas' => TRUE], 'Save configuration');
+    $assert->statusCodeEquals(200);
+    $assert->statusMessageContains('The configuration options have been saved.', 'status');
+    $assert->statusMessageContains('Legacy menu block', 'warning');
+
+    // All page regions were created despite the invalid block.
+    $regions = PageRegion::loadMultiple();
+    $this->assertCount(12, $regions);
+
+    // The invalid block was omitted, but the valid blocks in the same region
+    // were added to the page region.
+    $region = PageRegion::load('olivero.primary_menu');
+    $this->assertInstanceOf(PageRegion::class, $region);
+    $uuids = \array_column($region->getComponentTree()->getValue(), 'uuid');
+    $this->assertNotContains($invalid_block->uuid(), $uuids);
+    $valid_menu_block = Block::load('olivero_main_menu');
+    $this->assertNotNull($valid_menu_block);
+    $this->assertContains($valid_menu_block->uuid(), $uuids);
+
+    // Every saved page region is valid.
+    foreach ($regions as $region) {
+      $this->assertSame([], \iterator_to_array($region->getTypedData()->validate()));
+    }
+  }
+
 }

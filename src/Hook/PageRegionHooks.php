@@ -72,7 +72,9 @@ class PageRegionHooks {
     if ($enable) {
       // When enabling: ensure every theme region gets a PageRegion config
       // entity.
-      $page_regions_generated_from_block_layout = PageRegion::createFromBlockLayout($theme);
+      $skipped_blocks = [];
+      $page_regions_generated_from_block_layout = PageRegion::createFromBlockLayout($theme, $skipped_blocks);
+      $skipped_blocks_in_saved_regions = [];
       foreach ($editable as $key => $value) {
         // The `content` region never gets a PageRegion config entity.
         if ($key === $theme . '.' . CanvasPageVariant::MAIN_CONTENT_REGION) {
@@ -89,7 +91,19 @@ class PageRegionHooks {
         // Otherwise, create a PageRegion config, but only for editable regions.
         if ($value) {
           $page_regions_generated_from_block_layout[$key]->enable()->save();
+          $skipped_blocks_in_saved_regions += $skipped_blocks[$key] ?? [];
         }
+      }
+      if ($skipped_blocks_in_saved_regions !== []) {
+        // Do not fail silently: these blocks will no longer be rendered, as
+        // Drupal Canvas now takes over rendering their regions.
+        // @see \Drupal\canvas\Entity\PageRegion::createFromBlockLayout()
+        \Drupal::messenger()->addWarning(\Drupal::translation()->formatPlural(
+          \count($skipped_blocks_in_saved_regions),
+          'The %blocks block has invalid settings and was not added to the Drupal Canvas page templates. It will not be displayed while Drupal Canvas is enabled for this theme; you can add it again in Drupal Canvas.',
+          'The following blocks have invalid settings and were not added to the Drupal Canvas page templates: %blocks. They will not be displayed while Drupal Canvas is enabled for this theme; you can add them again in Drupal Canvas.',
+          ['%blocks' => implode(', ', $skipped_blocks_in_saved_regions)],
+        ));
       }
     }
     else {
