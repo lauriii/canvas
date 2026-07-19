@@ -489,13 +489,13 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     $input += $defaults;
     unset($input['provider'], $input['id']);
 
-    // Cast each input value to the native PHP type its config schema dictates,
-    // mirroring how core casts a Block config entity's settings when the entity
-    // is saved: an integer setting such as a menu block's `level` and `depth` is
-    // then stored as an integer, not a string. Only valid input is cast:
-    // invalid intermediate input is stored verbatim so that validation can flag
-    // it and the Content Creator can correct it, exactly as core leaves an
-    // unsaved, invalid block form untouched.
+    // Cast each input value to the native PHP type its config schema
+    // dictates, mirroring how core casts a Block config entity's settings
+    // when the entity is saved: an integer setting such as a menu block's
+    // `level` and `depth` is then stored as an integer, not a string. Only
+    // valid input is cast: invalid intermediate input is stored verbatim so
+    // that validation can flag it and the Content Creator can correct it,
+    // exactly as core leaves an unsaved, invalid block form untouched.
     // @see \Drupal\Core\Config\StorableConfigBase::castValue()
     $definition = $block_plugin->getPluginDefinition();
     \assert(\is_array($definition));
@@ -529,9 +529,10 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    * (min 1) constraint.
    *
    * This deliberately does not reuse
-   * `ComponentSourceBase::castRawTypedConfigToPhpTypes()`: that helper feeds the
-   * component version hash and intentionally casts NULL primitives, so widening
-   * it to preserve NULL could change existing components' version ids.
+   * `ComponentSourceBase::castRawTypedConfigToPhpTypes()`: that helper feeds
+   * the component version hash and intentionally casts NULL primitives, so
+   * widening it to preserve NULL could change existing components' version
+   * ids.
    *
    * @param \Drupal\Core\TypedData\TypedDataInterface $element
    *   The typed config element to extract from.
