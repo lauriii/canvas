@@ -270,6 +270,65 @@ test.describe('Page variants', () => {
     await expect(previewFrame.getByText('MarketingChrome')).toBeVisible();
   });
 
+  test('the variant layer is not a link for users without variant permission', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    // As an editor (who has "administer page variants"), create a variant and
+    // set it as the site default so every page resolves to it.
+    await drupal.login({ username: 'editor', password: 'editor' });
+    const canvasPage = await canvas.createCanvas({ title: 'No perms host' });
+    await canvas.openCanvas(canvasPage);
+    await createMarketingVariant(page);
+    const row = page.getByTestId('canvas-page-variant-marketing');
+    await row.hover();
+    await row.getByLabel('Open contextual menu').click();
+    const setDefault = page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes('/canvas/api/v0/settings/default-page-variant') &&
+        response.request().method() === 'PATCH',
+    );
+    await page.getByRole('menuitem', { name: 'Set as default' }).click();
+    await setDefault;
+
+    // A user with only "edit canvas_page" lacks "administer page variants".
+    await drupal.createRole({ name: 'canvas_no_variant_perms' });
+    await drupal.addPermissions({
+      role: 'canvas_no_variant_perms',
+      permissions: ['edit canvas_page'],
+    });
+    const user = {
+      email: 'novariantperms@example.com',
+      // cspell:disable-next-line
+      username: 'novariantperms',
+      password: 'superstrongpassword1337',
+      roles: ['canvas_no_variant_perms'],
+    };
+    await drupal.createUser(user);
+    await drupal.logout();
+    await drupal.login(user);
+
+    // The page resolves to the default variant, so the layer row renders, but
+    // without the permission it must be a plain label (not a link into the
+    // 403-guarded variant editor) and must not expose the machine name.
+    await canvas.openCanvas(canvasPage);
+    await canvas.waitForEditorUi();
+    await canvas.openLayersPanel();
+    const variantLayer = page.getByTestId('canvas-page-variant-layer');
+    await expect(variantLayer).toBeVisible();
+    await expect(variantLayer.getByText('Page template')).toBeVisible();
+    await expect(variantLayer.getByText('marketing')).toHaveCount(0);
+    // Non-navigating: the row is not wrapped in an anchor.
+    await expect(variantLayer.locator('a')).toHaveCount(0);
+    // Clicking must not navigate into the variant editor (which would 403 and
+    // replace the editor with the error boundary).
+    await variantLayer.getByText('Page template').click();
+    await expect(page).not.toHaveURL(/\/canvas\/editor\/page_variant\//);
+  });
+
   test('the Edit template link opens the currently selected template', async ({
     page,
     drupal,
