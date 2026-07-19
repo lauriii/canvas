@@ -29,6 +29,7 @@ final class PageVariantsInstallAndMigrateUpdateTest extends CanvasUpdatePathTest
   protected function setDatabaseDumpFiles(): void {
     $this->databaseDumpFiles[] = \dirname(__DIR__, 3) . '/fixtures/update/drupal-11.2.10-with-canvas-1.2.0.bare.php.gz';
     $this->databaseDumpFiles[] = \dirname(__DIR__, 3) . '/fixtures/update/page_variants/add-stark-page-region.php';
+    $this->databaseDumpFiles[] = \dirname(__DIR__, 3) . '/fixtures/update/page_variants/add-disabled-page-region.php';
   }
 
   /**
@@ -79,6 +80,15 @@ final class PageVariantsInstallAndMigrateUpdateTest extends CanvasUpdatePathTest
       'label' => '',
       'label_display' => '0',
     ], $by_component['block.system_powered_by_block']['inputs']);
+
+    // The disabled `stark.header` region must not resurrect: its block does not
+    // appear in the `theme_stark` variant (the tree above stays at 3 items).
+    $this->assertArrayNotHasKey('block.system_messages_block', $by_component);
+
+    // Claro's only region is disabled, so no variant is created for it and it
+    // is not promoted to the site default (which stays `theme_stark`).
+    $this->assertNull(PageVariant::load('theme_claro'));
+    $this->assertSame('theme_stark', \Drupal::config('canvas.settings')->get(PageVariant::DEFAULT_SETTING));
   }
 
 }

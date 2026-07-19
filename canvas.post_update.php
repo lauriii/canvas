@@ -535,10 +535,17 @@ function canvas_post_update_0024_migrate_page_regions_to_variants(): void {
 
   $default_theme = \Drupal::config('system.theme')->get('default');
 
-  // Group the regions by theme.
+  // Group the enabled regions by theme. The old render path only ever
+  // consulted PageRegion::loadForActiveTheme(), which filters status = TRUE, so
+  // disabled regions never rendered; do not resurrect them as a variant. A
+  // theme left with no enabled regions is skipped entirely below, so its
+  // variant is neither created nor promoted to the site default.
   $by_theme = [];
   foreach ($all_regions as $region) {
     \assert($region instanceof PageRegion);
+    if (!$region->status()) {
+      continue;
+    }
     $by_theme[$region->get('theme')][$region->get('region')] = $region;
   }
 
