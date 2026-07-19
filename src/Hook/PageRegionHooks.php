@@ -41,56 +41,29 @@ class PageRegionHooks {
       '#title' => new TranslatableMarkup('Use Drupal Canvas for page templates in this theme.'),
       '#default_value' => $enabled,
     ];
-    $possible_page_region_ids = \array_combine(\array_map(fn(string $region_name): string => "{$theme}.{$region_name}", \array_keys(\system_region_list($theme))), \system_region_list($theme));
-    $form['canvas']['editable'] = [
-      '#type' => 'checkboxes',
-      '#title' => new TranslatableMarkup('Exposed regions'),
-      '#options' => $possible_page_region_ids,
-      '#states' => ['visible' => [':input[name="use_canvas"]' => ['checked' => \TRUE]]],
-      '#default_value' => !empty($page_regions) ? \array_keys($page_regions) : \array_keys($possible_page_region_ids),
-    ];
-    // The `content` region is a special case.
-    // @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::MAIN_CONTENT_REGION
-    $form['canvas']['editable'][$theme . '.' . CanvasPageVariant::MAIN_CONTENT_REGION] = ['#disabled' => \TRUE];
-    $form['canvas']['editable']['#description'] = new TranslatableMarkup('Checked regions can be modified via Drupal Canvas. The <q>Content</q> region contains "the main content" on any route and cannot be modified further.');
-    \array_unshift($form['#validate'], [self::class, 'formSystemThemeSettingsValidate']);
     \array_unshift($form['#submit'], [self::class, 'formSystemThemeSettingsSubmit']);
-  }
-
-  public static function formSystemThemeSettingsValidate(array &$form, FormStateInterface $form_state): void {
-    $enable = $form_state->getValue('use_canvas');
-    $editable = $form_state->getValue('editable');
-    if ($enable && empty(array_filter($editable))) {
-      $form_state->setErrorByName('editable', t('At least one region must be enabled for Drupal Canvas to use Drupal Canvas for page templates in this theme.'));
-    }
   }
 
   public static function formSystemThemeSettingsSubmit(array &$form, FormStateInterface $form_state): void {
     $theme = $form_state->getBuildInfo()['args'][0];
     $enable = $form_state->getValue('use_canvas');
-    $editable = $form_state->getValue('editable');
     $existing_page_regions = PageRegion::loadForTheme($theme, TRUE);
     if ($enable) {
-      // When enabling: ensure every theme region gets a PageRegion config
-      // entity.
+      // When enabling: ensure every theme region (other than `content`, a
+      // special case that never gets a PageRegion config entity) gets a
+      // PageRegion config entity.
+      // @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::MAIN_CONTENT_REGION
       $page_regions_generated_from_block_layout = PageRegion::createFromBlockLayout($theme);
-      foreach ($editable as $key => $value) {
-        // The `content` region never gets a PageRegion config entity.
+      foreach (\array_keys(\system_region_list($theme)) as $region_name) {
+        $key = "{$theme}.{$region_name}";
         if ($key === $theme . '.' . CanvasPageVariant::MAIN_CONTENT_REGION) {
           continue;
         }
-
-        // Update existing PageRegion config entity's if it exists: mark
-        // editable or not based on the checkbox value.
         if (\array_key_exists($key, $existing_page_regions)) {
-          $existing_page_regions[$key]->setStatus((bool) $value)->save();
+          $existing_page_regions[$key]->setStatus(TRUE)->save();
           continue;
         }
-
-        // Otherwise, create a PageRegion config, but only for editable regions.
-        if ($value) {
-          $page_regions_generated_from_block_layout[$key]->enable()->save();
-        }
+        $page_regions_generated_from_block_layout[$key]->enable()->save();
       }
 
       // Rendering happens through the theme's page variant: convert the
@@ -126,7 +99,6 @@ class PageRegionHooks {
 
     // Avoid polluting the theme settings config entity.
     $form_state->unsetValue('use_canvas');
-    $form_state->unsetValue('editable');
   }
 
 }
