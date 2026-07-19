@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import clsx from 'clsx';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
   CaretSortIcon,
   ChevronDownIcon,
+  Cross2Icon,
   DotsHorizontalIcon,
   MagnifyingGlassIcon,
   PlusIcon,
@@ -39,8 +41,11 @@ import {
   toApiSort,
 } from '@/components/contentBrowser/contentBrowserHelpers';
 import EmptyStateCallout from '@/components/EmptyStateCallout';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
 import ErrorCard from '@/components/error/ErrorCard';
+import StackedEntityForm from '@/components/stackedEntityForm/StackedEntityForm';
 import {
+  buildEntityEditFormUrl,
   getTemplatedEntityGroups,
   PAGE_ENTITY_TYPE,
 } from '@/features/navigator/templatedContent';
@@ -51,7 +56,7 @@ import {
   useCreateContentMutation,
   useGetContentListQuery,
 } from '@/services/content';
-import { getCanvasSettings } from '@/utils/drupal-globals';
+import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
 
 import type {
   ContentListSource,
@@ -148,9 +153,13 @@ const SortableColumnHeader = ({
 
 const ContentBrowserRow = ({
   item,
+  isSelected,
+  onSelect,
   onOpen,
 }: {
   item: ContentStub;
+  isSelected: boolean;
+  onSelect: (item: ContentStub) => void;
   onOpen: (item: ContentStub) => void;
 }) => {
   // The presence of the edit-form link is the access gate: rows without it
@@ -161,8 +170,13 @@ const ContentBrowserRow = ({
   return (
     <Table.Row
       data-testid={`canvas-content-browser-row-${item.entityType ?? ''}-${item.id}`}
-      className={canOpen ? styles.clickableRow : undefined}
-      onClick={canOpen ? () => onOpen(item) : undefined}
+      className={
+        canOpen
+          ? clsx(styles.clickableRow, { [styles.selectedRow]: isSelected })
+          : undefined
+      }
+      onClick={canOpen ? () => onSelect(item) : undefined}
+      onDoubleClick={canOpen ? () => onOpen(item) : undefined}
     >
       <Table.Cell>
         <Flex align="center" gap="2">
@@ -327,6 +341,28 @@ const ContentBrowser = () => {
     [navigateToEditor],
   );
 
+  // Selecting a row (single click) opens the entity's form in a side panel so
+  // its fields are editable in the context of the table; opening the row
+  // (double click, or the actions menu) enters the editor.
+  const [selectedItem, setSelectedItem] = useState<ContentStub | null>(null);
+  const handleSelect = useCallback(
+    (item: ContentStub) => {
+      setSelectedItem((current) =>
+        current?.entityType === item.entityType && current?.id === item.id
+          ? current
+          : item,
+      );
+    },
+    [setSelectedItem],
+  );
+  const selectedEditFormUrl = selectedItem
+    ? buildEntityEditFormUrl(
+        getBaseUrl(),
+        selectedItem.entityType ?? '',
+        String(selectedItem.id),
+      )
+    : null;
+
   const handleSort = (key: ContentSortKey) => {
     setSort((current) => getNextSort(current, key));
     setPage(0);
@@ -392,6 +428,11 @@ const ContentBrowser = () => {
               <ContentBrowserRow
                 key={`${item.entityType}-${item.id}`}
                 item={item}
+                isSelected={
+                  selectedItem?.entityType === item.entityType &&
+                  selectedItem?.id === item.id
+                }
+                onSelect={handleSelect}
                 onOpen={handleOpen}
               />
             ))}
@@ -430,7 +471,7 @@ const ContentBrowser = () => {
   }
 
   return (
-    <Box
+    <Flex
       width="100%"
       className={styles.page}
       data-testid="canvas-content-browser"
@@ -444,7 +485,7 @@ const ContentBrowser = () => {
           onResult={handleResult}
         />
       ))}
-      <Box maxWidth="1100px" mx="auto" px="6" py="6">
+      <Box flexGrow="1" maxWidth="1100px" mx="auto" px="6" py="6">
         <Flex direction="column" gap="4">
           <Flex justify="between" align="center" gap="3">
             <Heading as="h1" size="5">
@@ -515,7 +556,69 @@ const ContentBrowser = () => {
           {body}
         </Flex>
       </Box>
-    </Box>
+      {selectedItem && selectedItem.entityType && (
+        <aside
+          className={styles.sidePanel}
+          data-testid="canvas-content-browser-side-panel"
+          aria-label={`Edit ${getDisplayTitle(selectedItem)}`}
+        >
+          <Flex align="center" justify="between" gap="2" px="4" pt="4">
+            <Button size="1" onClick={() => handleOpen(selectedItem)}>
+              Open in editor
+            </Button>
+            <Flex align="center" gap="2">
+              {selectedEditFormUrl && (
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger>
+                    <IconButton
+                      size="1"
+                      variant="ghost"
+                      color="gray"
+                      aria-label="More actions"
+                    >
+                      <DotsHorizontalIcon />
+                    </IconButton>
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Content align="end">
+                    <DropdownMenu.Item asChild>
+                      <a
+                        href={selectedEditFormUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Edit in Drupal form
+                      </a>
+                    </DropdownMenu.Item>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Root>
+              )}
+              <IconButton
+                size="1"
+                variant="ghost"
+                color="gray"
+                aria-label="Close panel"
+                data-testid="canvas-content-browser-side-panel-close"
+                onClick={() => setSelectedItem(null)}
+              >
+                <Cross2Icon />
+              </IconButton>
+            </Flex>
+          </Flex>
+          <Box px="4" pb="4">
+            <ErrorBoundary title="An unexpected error has occurred while rendering the entity's form.">
+              <StackedEntityForm
+                key={`${selectedItem.entityType}-${selectedItem.id}`}
+                entityType={selectedItem.entityType}
+                entityId={String(selectedItem.id)}
+                label={getDisplayTitle(selectedItem)}
+                showBackButton={false}
+                onClose={() => setSelectedItem(null)}
+              />
+            </ErrorBoundary>
+          </Box>
+        </aside>
+      )}
+    </Flex>
   );
 };
 

@@ -2,12 +2,18 @@ import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router';
 import { Outlet } from 'react-router-dom';
-import { ExternalLinkIcon, InfoCircledIcon } from '@radix-ui/react-icons';
+import {
+  DotsHorizontalIcon,
+  ExternalLinkIcon,
+  InfoCircledIcon,
+} from '@radix-ui/react-icons';
 import {
   Box,
   Button,
   Callout,
+  DropdownMenu,
   Flex,
+  IconButton,
   ScrollArea,
   Tabs,
   Text,
@@ -56,7 +62,14 @@ import type React from 'react';
 
 import styles from './ContextualPanel.module.css';
 
-const ContextualPanel: React.FC = () => {
+interface ContextualPanelProps {
+  /** Reports the active tab so the layout can widen the sidebar for Content. */
+  onActivePanelChange?: (activePanel: string) => void;
+}
+
+const ContextualPanel: React.FC<ContextualPanelProps> = ({
+  onActivePanelChange,
+}) => {
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const isMultiSelect = useAppSelector(selectIsMultiSelect);
   const selection = useAppSelector(selectSelection);
@@ -208,6 +221,10 @@ const ContextualPanel: React.FC = () => {
       );
     }
   }, [isPerContentMode]);
+
+  useEffect(() => {
+    onActivePanelChange?.(activePanel);
+  }, [activePanel, onActivePanelChange]);
 
   // Jump-to-field requests (validation errors, review panel): activate the
   // tab whose partition holds the control, then scroll to and focus it. The
@@ -378,6 +395,66 @@ const ContextualPanel: React.FC = () => {
                     </ErrorBoundary>
                   )}
                 </Tabs.Content>
+                {isPerContentMode && (
+                  <Tabs.Content value={'content'}>
+                    {stackedTarget ? (
+                      <ErrorBoundary title="An unexpected error has occurred while rendering the referenced entity's form.">
+                        <StackedEntityForm
+                          entityType={stackedTarget.entityType}
+                          entityId={stackedTarget.entityId}
+                          label={stackedTarget.label}
+                          onClose={() => setStackedTarget(null)}
+                        />
+                      </ErrorBoundary>
+                    ) : (
+                      (editFormUrl || referencedEditable.length > 0) && (
+                        <Flex justify="end" mt="2">
+                          <DropdownMenu.Root>
+                            <DropdownMenu.Trigger>
+                              <IconButton
+                                size="1"
+                                variant="ghost"
+                                color="gray"
+                                aria-label="More actions"
+                                data-testid="canvas-content-tab-actions"
+                              >
+                                <DotsHorizontalIcon />
+                              </IconButton>
+                            </DropdownMenu.Trigger>
+                            <DropdownMenu.Content align="end">
+                              {referencedEditable.map((reference) => (
+                                <DropdownMenu.Item
+                                  key={`${reference.entityType}-${reference.entityId}`}
+                                  onSelect={() => setStackedTarget(reference)}
+                                  data-testid={`canvas-content-tab-edit-reference-${reference.entityType}-${reference.entityId}`}
+                                >
+                                  Edit {reference.label} ({reference.fieldLabel}
+                                  )
+                                </DropdownMenu.Item>
+                              ))}
+                              {referencedEditable.length > 0 && editFormUrl && (
+                                <DropdownMenu.Separator />
+                              )}
+                              {editFormUrl && (
+                                <DropdownMenu.Item asChild>
+                                  <a
+                                    href={editFormUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    data-testid="canvas-content-tab-edit-form-link"
+                                  >
+                                    Edit in Drupal form
+                                    <ExternalLinkIcon />
+                                  </a>
+                                </DropdownMenu.Item>
+                              )}
+                            </DropdownMenu.Content>
+                          </DropdownMenu.Root>
+                        </Flex>
+                      )
+                    )}
+                  </Tabs.Content>
+                )}
                 {!isTemplateContext && (
                   <Tabs.Content
                     value={'pageData'}
@@ -398,54 +475,6 @@ const ContextualPanel: React.FC = () => {
                     className={styles.partitionedForm}
                   >
                     {editorFrameContext === 'entity' && <PageDataForm />}
-                  </Tabs.Content>
-                )}
-                {isPerContentMode && (
-                  <Tabs.Content value={'content'}>
-                    {stackedTarget ? (
-                      <ErrorBoundary title="An unexpected error has occurred while rendering the referenced entity's form.">
-                        <StackedEntityForm
-                          entityType={stackedTarget.entityType}
-                          entityId={stackedTarget.entityId}
-                          label={stackedTarget.label}
-                          onClose={() => setStackedTarget(null)}
-                        />
-                      </ErrorBoundary>
-                    ) : (
-                      <Flex direction="column" my="2" gap="3" align="start">
-                        {referencedEditable.length > 0 && (
-                          <Flex direction="column" gap="1" align="start">
-                            <Text size="1" weight="bold">
-                              Referenced content
-                            </Text>
-                            {referencedEditable.map((reference) => (
-                              <Button
-                                key={`${reference.entityType}-${reference.entityId}`}
-                                size="1"
-                                variant="ghost"
-                                onClick={() => setStackedTarget(reference)}
-                                data-testid={`canvas-content-tab-edit-reference-${reference.entityType}-${reference.entityId}`}
-                              >
-                                Edit {reference.label} ({reference.fieldLabel})
-                              </Button>
-                            ))}
-                          </Flex>
-                        )}
-                        {editFormUrl && (
-                          <Button asChild size="1" variant="ghost" color="gray">
-                            <a
-                              href={editFormUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              data-testid="canvas-content-tab-edit-form-link"
-                            >
-                              Edit in Drupal form
-                              <ExternalLinkIcon />
-                            </a>
-                          </Button>
-                        )}
-                      </Flex>
-                    )}
                   </Tabs.Content>
                 )}
               </Box>

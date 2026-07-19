@@ -7,6 +7,7 @@ import Editor from '@/features/editor/Editor';
 import {
   loadRightSidebarWidthPx,
   saveRightSidebarWidthPx,
+  SIDEBAR_CONTENT_TAB_PX,
   SIDEBAR_MAX_PX,
   SIDEBAR_MIN_PX,
 } from '@/features/editor/editorLayoutStorage';
@@ -39,7 +40,16 @@ const EditorLayout: React.FC<EditorLayoutProps> = ({ context }) => {
     (isTemplateContext && !isMultiSelect && !selectedComponent);
 
   const [rightWidthPx, setRightWidthPx] = useState(loadRightSidebarWidthPx);
+  // The Content tab (per-content entity editing) needs room for full field
+  // widgets, so the sidebar gets a wider floor while it is active. The user's
+  // stored width is untouched; a manual drag on the tab still wins.
+  const [isContentTabActive, setIsContentTabActive] = useState(false);
+  const handleActivePanelChange = useCallback((activePanel: string) => {
+    setIsContentTabActive(activePanel === 'content');
+  }, []);
   const rightWidthPxRef = useRef(rightWidthPx);
+  const isContentTabActiveRef = useRef(isContentTabActive);
+  isContentTabActiveRef.current = isContentTabActive;
   const layoutRef = useRef<HTMLDivElement>(null);
   const rightColumnRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement | null>(null);
@@ -64,10 +74,10 @@ const EditorLayout: React.FC<EditorLayoutProps> = ({ context }) => {
         return;
       const rect = layoutRef.current.getBoundingClientRect();
       const newRight = rect.right - e.clientX;
-      const clamped = Math.max(
-        SIDEBAR_MIN_PX,
-        Math.min(SIDEBAR_MAX_PX, newRight),
-      );
+      const minPx = isContentTabActiveRef.current
+        ? SIDEBAR_CONTENT_TAB_PX
+        : SIDEBAR_MIN_PX;
+      const clamped = Math.max(minPx, Math.min(SIDEBAR_MAX_PX, newRight));
       rightWidthPxRef.current = clamped;
       rightColumnRef.current.style.width = `${clamped}px`;
       setRightWidthPx(clamped);
@@ -135,7 +145,9 @@ const EditorLayout: React.FC<EditorLayoutProps> = ({ context }) => {
     };
   }, [handlePointerMove, handlePointerUp]);
 
-  const effectiveRightWidth = isPanelHidden ? 0 : rightWidthPx;
+  const effectiveRightWidth = isPanelHidden
+    ? 0
+    : Math.max(rightWidthPx, isContentTabActive ? SIDEBAR_CONTENT_TAB_PX : 0);
   const showHandle = !isPanelHidden;
 
   const resizeCursor = getResizeCursor(rightWidthPx);
@@ -165,7 +177,7 @@ const EditorLayout: React.FC<EditorLayoutProps> = ({ context }) => {
         })}
         style={{ width: effectiveRightWidth }}
       >
-        <ContextualPanel />
+        <ContextualPanel onActivePanelChange={handleActivePanelChange} />
       </div>
     </div>
   );

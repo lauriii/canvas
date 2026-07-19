@@ -15,6 +15,8 @@ interface StackedEntityFormProps {
   entityId: string;
   label: string;
   onClose: () => void;
+  /** The contextual panel stack shows a Back breadcrumb; the content browser's side panel has its own close control. */
+  showBackButton?: boolean;
 }
 
 const AUTO_SAVE_DEBOUNCE_MS = 800;
@@ -36,6 +38,7 @@ const StackedEntityForm: React.FC<StackedEntityFormProps> = ({
   entityId,
   label,
   onClose,
+  showBackButton = true,
 }) => {
   const {
     currentData: formTemplate,
@@ -159,16 +162,18 @@ const StackedEntityForm: React.FC<StackedEntityFormProps> = ({
   return (
     <Box data-testid="canvas-stacked-entity-form" my="2">
       <Flex direction="column" gap="2" align="start">
-        <Button
-          size="1"
-          variant="ghost"
-          color="gray"
-          onClick={onClose}
-          data-testid="canvas-stacked-entity-form-back"
-        >
-          <ArrowLeftIcon />
-          Back
-        </Button>
+        {showBackButton && (
+          <Button
+            size="1"
+            variant="ghost"
+            color="gray"
+            onClick={onClose}
+            data-testid="canvas-stacked-entity-form-back"
+          >
+            <ArrowLeftIcon />
+            Back
+          </Button>
+        )}
         <Text size="2" weight="bold">
           {label}
         </Text>
