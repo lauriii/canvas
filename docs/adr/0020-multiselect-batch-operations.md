@@ -14,7 +14,7 @@ components are consecutive siblings — same parent region or slot, adjacent pos
 parent-child exclusion: a component and one of its descendants can never be selected together, because an operation
 that acted on both would process the descendant twice.
 
-Operations on such a selection — delete, copy, paste, duplicate, save as pattern — need three policy decisions:
+Operations on such a selection — delete, copy, paste, duplicate, save as pattern, move — need three policy decisions:
 
 - What is the unit of work? If each selected component is mutated by its own action, one user gesture produces N
   undo history entries and N preview refreshes, and undo after "delete five" silently restores only one component.
@@ -45,12 +45,22 @@ selection is not consecutive, these actions are disabled and the UI explains tha
 Delete is exempt: removing components is well defined for any selection, including one spanning different parents,
 because parent-child exclusion guarantees no member is inside another member's subtree.
 
+**Move by drag is also exempt from the consecutive constraint.** Dragging any member of the selection moves the
+whole selection to the drop position; dragging a non-member moves only the dragged component. Unlike duplicate or
+paste, a drag's insertion point is not inferred from the group — the user chooses it explicitly — so collapsing a
+non-consecutive selection into a contiguous run at the drop point is well defined, and parent-child exclusion
+guarantees the collapse cannot nest a component into its own subtree. Two drops are rejected as no-ops: a drop
+inside a selected component's subtree (the target would vanish with the moved original), and a consecutive group
+dropped onto its own position.
+
 **Selection state is the operation input.** Operations read the selection from the editor state, not from the URL.
 The URL only ever carries a single component (as a deep link to its props form) and is empty during multi-select, so
 keyboard shortcuts and menus keyed to the URL would go dead exactly when a multi-selection exists.
 
 **Selection afterwards.** Delete clears the selection. Duplicate and paste select the newly created components, in
-document order, so a follow-up operation (move, delete, duplicate again) applies to the result.
+document order, so a follow-up operation (move, delete, duplicate again) applies to the result. Move keeps the moved
+components selected, with their adjacency recomputed against the new layout — a scattered selection becomes
+consecutive once dropped as a group, which enables the group-producing operations on it.
 
 ## Consequences
 

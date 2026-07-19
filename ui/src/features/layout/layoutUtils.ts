@@ -489,28 +489,65 @@ export function moveNodeToPath(
   uuid: string,
   path: number[],
 ): Array<RegionNode> {
-  const child = findComponentByUuid(rootNodes, uuid);
-  if (!child) {
-    throw new Error(`Node with UUID ${uuid} not found.`);
-  }
-  // Make a clone of the node that is being moved.
-  const clone = JSON.parse(JSON.stringify(child));
-  // flag the original node for deletion
-  child.uuid = child.uuid + '_remove';
+  return moveNodesToPath(rootNodes, [uuid], path);
+}
 
-  // Insert the clone at toPath
+/**
+ * Move an ordered group of nodes to a new path as one mutation.
+ *
+ * The nodes are inserted contiguously at `path`, in the order given, and then
+ * removed from their original positions. Inserting before removing means the
+ * path can be interpreted against the current layout, and flagging the
+ * originals by UUID makes their removal independent of index shifts. The
+ * group does not need to be consecutive or share a parent.
+ *
+ * @param rootNodes - The root nodes of the layout.
+ * @param uuids - UUIDs of the components to move, in the desired result order.
+ * @param path - The path the first moved node should end up at.
+ * @returns A deep clone of `rootNodes` with the nodes moved to the `path`.
+ */
+export function moveNodesToPath(
+  rootNodes: Array<RegionNode>,
+  uuids: string[],
+  path: number[],
+): Array<RegionNode> {
+  // Validate the whole group before mutating anything, so a missing UUID
+  // cannot leave the layout half-moved.
+  const children: ComponentNode[] = uuids.map((uuid) => {
+    const child = findComponentByUuid(rootNodes, uuid);
+    if (!child) {
+      throw new Error(`Node with UUID ${uuid} not found.`);
+    }
+    return child;
+  });
+
+  // Make clones of the nodes being moved and flag the originals for deletion.
+  const clones: ComponentNode[] = children.map((child) => {
+    const clone = JSON.parse(JSON.stringify(child));
+    child.uuid = child.uuid + '_remove';
+    return clone;
+  });
+
   const rootIndex = path.shift();
   if (rootIndex === undefined) {
     throw new Error(
       'Path should be at least two items long, starting from the root region',
     );
   }
-  const root = rootNodes[rootIndex];
-  const newState = rootNodes;
-  newState[rootIndex] = insertNodeAtPath(root, path, clone);
+  // Insert the clones in reverse order at the same path so they keep the
+  // given order.
+  let root = rootNodes[rootIndex];
+  for (let i = clones.length - 1; i >= 0; i--) {
+    root = insertNodeAtPath(root, path, clones[i]);
+  }
+  let newState = rootNodes;
+  newState[rootIndex] = root;
 
-  // Remove the original node by finding it by uuid (which is now `${child.uuid}_remove`)
-  return removeComponentByUuid(newState, child.uuid);
+  // Remove the original nodes by their flagged UUIDs.
+  for (const uuid of uuids) {
+    newState = removeComponentByUuid(newState, uuid + '_remove');
+  }
+  return newState;
 }
 
 /**
@@ -862,6 +899,7 @@ const layoutUtils = {
   findNodeParents,
   insertNodeAtPath,
   moveNodeToPath,
+  moveNodesToPath,
   isChildNode,
   getNodeDepth,
   replaceUUIDsAndUpdateModel,
