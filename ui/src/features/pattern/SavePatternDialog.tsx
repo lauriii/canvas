@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Flex, TextField } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -7,13 +7,14 @@ import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
 import {
   findComponentByUuid,
   recurseNodes,
+  sortUuidsByDocumentOrder,
 } from '@/features/layout/layoutUtils';
 import {
   selectDialogOpen,
   setDialogClosed,
   setDialogOpen,
 } from '@/features/ui/dialogSlice';
-import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
+import { selectSelection } from '@/features/ui/uiSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import { useSavePatternMutation } from '@/services/patterns';
 
@@ -46,11 +47,19 @@ function getErrorMessage(error: FetchBaseQueryError | SerializedError): string {
 const SavePatternDialog: React.FC = () => {
   const { saveAsPattern } = useAppSelector(selectDialogOpen);
   const dispatch = useAppDispatch();
-  const selectedComponent = useAppSelector(selectSelectedComponentUuid);
+  const selection = useAppSelector(selectSelection);
   const model = useAppSelector(selectModel);
   const layout = useAppSelector(selectLayout);
+  // The pattern contains every selected component subtree, in document order.
+  // A single selection is simply a list of one.
+  const selectedUuids = useMemo(
+    () => sortUuidsByDocumentOrder(layout, selection.items),
+    [layout, selection.items],
+  );
+  const selectedComponent = selectedUuids[0];
   const selectedNode = findComponentByUuid(layout, selectedComponent || '');
   const selectedComponentName = useGetComponentName(selectedNode);
+  const isMultiSelect = selectedUuids.length > 1;
   const [patternName, setPatternName] = useState('My pattern');
   const [
     savePattern,
@@ -70,36 +79,46 @@ const SavePatternDialog: React.FC = () => {
   );
 
   useEffect(() => {
-    if (selectedComponent) {
+    if (isMultiSelect) {
+      setPatternName(`${selectedUuids.length} components pattern`);
+    } else if (selectedComponent) {
       setPatternName(`${selectedComponentName} pattern`);
     }
-  }, [model, selectedComponent, selectedComponentName]);
+  }, [
+    model,
+    selectedComponent,
+    selectedComponentName,
+    isMultiSelect,
+    selectedUuids.length,
+  ]);
 
   const handleSaveClick = useCallback(() => {
-    if (!selectedComponent || !layout) {
+    if (!selectedUuids.length || !layout) {
       return;
     }
 
-    const modelsToSave = {
-      [selectedComponent]: model[selectedComponent],
-    };
-    const thisNode = findComponentByUuid(layout, selectedComponent);
-    if (!thisNode) {
-      return;
-    }
-
-    recurseNodes(thisNode, (node) => {
-      if (model[node.uuid]) {
-        modelsToSave[node.uuid] = model[node.uuid];
+    const nodesToSave = [];
+    const modelsToSave = {} as typeof model;
+    for (const uuid of selectedUuids) {
+      const thisNode = findComponentByUuid(layout, uuid);
+      if (!thisNode) {
+        return;
       }
-    });
+      nodesToSave.push(thisNode);
+      modelsToSave[uuid] = model[uuid];
+      recurseNodes(thisNode, (node) => {
+        if (model[node.uuid]) {
+          modelsToSave[node.uuid] = model[node.uuid];
+        }
+      });
+    }
 
     savePattern({
-      layout: [thisNode],
+      layout: nodesToSave,
       model: modelsToSave,
       name: patternName,
     });
-  }, [layout, model, savePattern, selectedComponent, patternName]);
+  }, [layout, model, savePattern, selectedUuids, patternName]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setPatternName(event.target.value);
@@ -114,16 +133,20 @@ const SavePatternDialog: React.FC = () => {
     }
   }, [isSuccess, isError, dispatch, error]);
 
-  if (!selectedComponent) {
+  if (!selectedUuids.length) {
     return null;
   }
+
+  const patternSubject = isMultiSelect
+    ? `these ${selectedUuids.length} components`
+    : `this configuration of "${selectedComponentName}"`;
 
   return (
     <Dialog
       open={saveAsPattern}
       onOpenChange={handleOpenChange}
       title="Add new pattern"
-      description={`Saving this configuration of "${selectedComponentName}" as a pattern allows it to be used again later and customized there without affecting other copies.`}
+      description={`Saving ${patternSubject} as a pattern allows it to be used again later and customized there without affecting other copies.`}
       error={
         isError
           ? {

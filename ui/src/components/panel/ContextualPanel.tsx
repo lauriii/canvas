@@ -24,6 +24,7 @@ import {
   selectSelection,
 } from '@/features/ui/uiSlice';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
+import useMultiSelectionOperations from '@/hooks/useMultiSelectionOperations';
 
 import type React from 'react';
 
@@ -41,6 +42,8 @@ const ContextualPanel: React.FC = () => {
   const [activePanel, setActivePanel] = useState('pageData');
   const offRightClasses = useHidePanelClasses('right');
   const [hidePanel, setHidePanel] = useState(false);
+  const { copySelection, saveSelectionAsPattern } =
+    useMultiSelectionOperations();
 
   useEffect(() => {
     if (selectedComponent) {
@@ -121,11 +124,7 @@ const ContextualPanel: React.FC = () => {
                           <Button
                             size="1"
                             disabled={!selection.consecutive}
-                            onClick={() =>
-                              alert(
-                                'Copy functionality will be implemented later',
-                              )
-                            }
+                            onClick={copySelection}
                             className="canvas-button"
                           >
                             Copy
@@ -136,11 +135,7 @@ const ContextualPanel: React.FC = () => {
                           <Button
                             size="1"
                             disabled={!selection.consecutive}
-                            onClick={() =>
-                              alert(
-                                'Save as Pattern functionality will be implemented later',
-                              )
-                            }
+                            onClick={saveSelectionAsPattern}
                             className="canvas-button"
                           >
                             Save as Pattern

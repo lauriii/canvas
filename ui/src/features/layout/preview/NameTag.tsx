@@ -10,10 +10,10 @@ import {
 import { useAppSelector } from '@/app/hooks';
 import {
   DEFAULT_REGION,
+  selectComponentIsSelected,
   selectDragging,
   selectIsComponentHovered,
   selectNoComponentIsHovered,
-  selectSelectedComponentUuid,
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
 
@@ -99,16 +99,19 @@ export const RegionNameTag: React.FC<NameTagProps> = (props) => {
 
 export const ComponentNameTag: React.FC<NameTagProps> = (props) => {
   const { name, id } = props;
-  const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const { isDragging } = useAppSelector(selectDragging);
-  const isSelected = id === selectedComponent;
+  // Selection-aware rather than single-select: every component in a
+  // multi-selection renders its name tag.
+  const isSelected = useAppSelector((state) => {
+    return selectComponentIsSelected(state, id);
+  });
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, id);
   });
   const noComponentIsHovered = useAppSelector(selectNoComponentIsHovered);
 
   // Show the name of the hovered component or selected component when nothing else is hovered. Hide when dragging
-  // Desired result is that only one NameTag is shown at a time:
+  // Desired result is that only one NameTag is shown at a time (or one per selected component during multi-select):
   // either the selected or the hovered component or, when dragging, the target slot or region.
   const showName =
     !isDragging && ((isSelected && noComponentIsHovered) || isHovered);

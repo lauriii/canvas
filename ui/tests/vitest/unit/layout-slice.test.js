@@ -376,3 +376,119 @@ describe('Duplicate node', () => {
     );
   });
 });
+
+describe('Delete multiple nodes', () => {
+  it('Should delete all nodes of a batch, including across parents, in one action', () => {
+    // static-static-card2df sits in the region root, eaa37ee1 in a nested
+    // slot of another component: two different parents.
+    const state = layoutModelSlice.reducer(
+      layout,
+      deleteNode([
+        'static-static-card2df',
+        'eaa37ee1-7d50-4041-b04c-c80bdbac3412',
+      ]),
+    );
+    expect(state.layout[0].components.map((item) => item.uuid)).to.deep.equal([
+      'a7470350-deb2-4d9f-982c-464d356403d4',
+      'static-static-card3rr',
+      'static-image-static-imageStyle-something7d',
+      'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+    ]);
+    expect(
+      state.layout[0].components[3].slots[1].components.map(
+        (item) => item.uuid,
+      ),
+    ).to.deep.equal(['3b709ed2-99d3-4db2-869d-ca426f69fbb9']);
+    // The model entries of all deleted components are removed.
+    expect(state.model).to.not.have.property('static-static-card2df');
+    expect(state.model).to.not.have.property(
+      'eaa37ee1-7d50-4041-b04c-c80bdbac3412',
+    );
+  });
+
+  it('Should create a single undo history entry for a batch delete', () => {
+    const store = makeStore({
+      layoutModel: { present: layout, past: [initialState], future: [] },
+      ui: uiInitialState,
+    });
+    store.dispatch(
+      deleteNode(['static-static-card2df', 'static-static-card3rr']),
+    );
+
+    let state = selectLayoutHistory(store.getState());
+    expect(state.past.length).to.eq(2);
+    expect(
+      state.present.layout[0].components.map((item) => item.uuid),
+    ).to.deep.equal([
+      'a7470350-deb2-4d9f-982c-464d356403d4',
+      'static-image-static-imageStyle-something7d',
+      'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+    ]);
+
+    // One undo restores the whole batch.
+    store.dispatch(UndoRedoActionCreators.undo('layoutModel'));
+    state = selectLayoutHistory(store.getState());
+    expect(
+      state.present.layout[0].components.map((item) => item.uuid),
+    ).to.deep.equal([
+      'a7470350-deb2-4d9f-982c-464d356403d4',
+      'static-static-card2df',
+      'static-static-card3rr',
+      'static-image-static-imageStyle-something7d',
+      'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+    ]);
+  });
+});
+
+describe('Duplicate multiple nodes', () => {
+  it('Should duplicate a consecutive sibling set after the originals, preserving order', () => {
+    const state = layoutModelSlice.reducer(
+      layout,
+      duplicateNode({
+        uuid: ['static-static-card2df', 'static-static-card3rr'],
+        useUUIDs: ['duplicate-card2', 'duplicate-card3'],
+      }),
+    );
+    expect(state.layout[0].components.map((item) => item.uuid)).to.deep.equal([
+      'a7470350-deb2-4d9f-982c-464d356403d4',
+      'static-static-card2df',
+      'static-static-card3rr',
+      'duplicate-card2',
+      'duplicate-card3',
+      'static-image-static-imageStyle-something7d',
+      'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+    ]);
+    // The duplicates get their own model entries.
+    expect(state.model['duplicate-card2']).to.deep.equal(
+      state.model['static-static-card2df'],
+    );
+    expect(state.model['duplicate-card3']).to.deep.equal(
+      state.model['static-static-card3rr'],
+    );
+  });
+
+  it('Should create a single undo history entry for a batch duplicate', () => {
+    const store = makeStore({
+      layoutModel: { present: layout, past: [initialState], future: [] },
+      ui: uiInitialState,
+    });
+    store.dispatch(
+      duplicateNode({
+        uuid: ['static-static-card2df', 'static-static-card3rr'],
+        useUUIDs: ['duplicate-card2', 'duplicate-card3'],
+      }),
+    );
+
+    let state = selectLayoutHistory(store.getState());
+    expect(state.past.length).to.eq(2);
+    expect(state.present.layout[0].components.length).to.eq(7);
+
+    // One undo removes the whole batch of duplicates.
+    store.dispatch(UndoRedoActionCreators.undo('layoutModel'));
+    state = selectLayoutHistory(store.getState());
+    expect(state.present.layout[0].components.length).to.eq(5);
+    expect(
+      state.present.layout[0].components.map((item) => item.uuid),
+    ).to.not.include('duplicate-card2');
+  });
+});

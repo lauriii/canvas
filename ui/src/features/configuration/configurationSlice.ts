@@ -59,7 +59,6 @@ export const selectEntityType = (state: RootState) =>
   state.configuration.entityType;
 export const selectEntityId = (state: RootState) => state.configuration.entity;
 
-export const selectDevMode = (state: RootState) => state.configuration.devMode;
 export const selectHomepagePath = (state: RootState) =>
   state.configuration.homepagePath;
 

@@ -110,7 +110,17 @@ type ShiftNodePayload = {
 };
 
 type DuplicateNodePayload = {
-  uuid: string;
+  /**
+   * A single UUID, or an array of UUIDs of consecutive siblings in document
+   * order. An array is duplicated in one state mutation so the whole batch is
+   * a single undo history entry.
+   */
+  uuid: string | string[];
+  /**
+   * Optional UUIDs assigned to the duplicated top-level nodes, index-aligned
+   * with `uuid`. Allows callers to select the duplicates after dispatching.
+   */
+  useUUIDs?: string[];
 };
 
 type InsertMultipleNodesPayload = {
@@ -119,8 +129,10 @@ type InsertMultipleNodesPayload = {
   /**
    * Pass an optional UUID that will be assigned to the last, top level node being inserted. Allows you to define the UUID
    * so that you can then do something with the newly inserted node using that UUID.
+   * An array assigns a UUID to each top level node, index-aligned with
+   * `layoutModel.layout`.
    */
-  useUUID?: string;
+  useUUID?: string | string[];
 };
 
 type AddNewNodePayload = {
@@ -287,57 +299,89 @@ export const layoutModelSlice = createSlice({
         updatePreview: action.payload,
       }),
     ),
-    deleteNode: create.reducer((state, action: PayloadAction<string>) => {
-      const deletedComponent = findComponentByUuid(
-        state.layout,
-        action.payload,
-      );
+    deleteNode: create.reducer(
+      (state, action: PayloadAction<string | string[]>) => {
+        // An array deletes the whole batch in one state mutation, keeping it a
+        // single undo history entry. Parent-child exclusion in the selection
+        // guarantees no UUID in the batch is inside another one's subtree.
+        const uuids = Array.isArray(action.payload)
+          ? action.payload
+          : [action.payload];
 
-      const removableModelsUuids = [action.payload];
-      if (deletedComponent) {
-        recurseNodes(deletedComponent, (node: ComponentNode) => {
-          removableModelsUuids.push(node.uuid);
-        });
-      }
-      for (const uuid of removableModelsUuids) {
-        if (state.model[uuid]) delete state.model[uuid];
-      }
+        for (const uuid of uuids) {
+          const deletedComponent = findComponentByUuid(state.layout, uuid);
 
-      state.layout = removeComponentByUuid(state.layout, action.payload);
-      // Flag a preview update.
-      state.updatePreview = true;
-    }),
+          const removableModelsUuids = [uuid];
+          if (deletedComponent) {
+            recurseNodes(deletedComponent, (node: ComponentNode) => {
+              removableModelsUuids.push(node.uuid);
+            });
+          }
+          for (const modelUuid of removableModelsUuids) {
+            if (state.model[modelUuid]) delete state.model[modelUuid];
+          }
+
+          state.layout = removeComponentByUuid(state.layout, uuid);
+        }
+        // Flag a preview update.
+        state.updatePreview = true;
+      },
+    ),
     duplicateNode: create.reducer(
       (state, action: PayloadAction<DuplicateNodePayload>) => {
-        const { uuid } = action.payload;
-        const nodeToDuplicate = findComponentByUuid(state.layout, uuid);
+        const { uuid, useUUIDs } = action.payload;
+        // A batch of consecutive siblings (in document order) is duplicated in
+        // one state mutation so it is a single undo history entry.
+        const uuids = Array.isArray(uuid) ? uuid : [uuid];
 
-        if (!nodeToDuplicate) {
-          console.error(`Cannot duplicate ${uuid}. Check the uuid is valid.`);
-          return;
-        }
-
-        if (nodeToDuplicate.nodeType !== 'component') {
-          console.error(
-            `Cannot duplicate Slots or Regions. Check the uuid ${uuid} is a valid Component.`,
+        // Validate the whole batch before mutating anything, so an invalid
+        // UUID cannot leave the state half-applied.
+        const nodesToDuplicate: ComponentNode[] = [];
+        for (const currentUuid of uuids) {
+          const nodeToDuplicate = findComponentByUuid(
+            state.layout,
+            currentUuid,
           );
-          return;
+
+          if (!nodeToDuplicate) {
+            console.error(
+              `Cannot duplicate ${currentUuid}. Check the uuid is valid.`,
+            );
+            return;
+          }
+
+          if (nodeToDuplicate.nodeType !== 'component') {
+            console.error(
+              `Cannot duplicate Slots or Regions. Check the uuid ${currentUuid} is a valid Component.`,
+            );
+            return;
+          }
+          nodesToDuplicate.push(nodeToDuplicate);
         }
 
-        const { updatedNode, updatedModel } = replaceUUIDsAndUpdateModel(
-          nodeToDuplicate,
-          state.model,
+        // The duplicates are inserted directly after the last original.
+        const nodePath = findNodePathByUuid(
+          state.layout,
+          uuids[uuids.length - 1],
         );
-
-        // Add the updated model to the state
-        state.model = { ...state.model, ...updatedModel };
-
-        const nodePath = findNodePathByUuid(state.layout, uuid);
         if (nodePath === null) {
           console.error(
-            `Cannot find ${uuid} in layout. Check the uuid is valid.`,
+            `Cannot find ${uuids[uuids.length - 1]} in layout. Check the uuid is valid.`,
           );
           return;
+        }
+
+        const duplicates: ComponentNode[] = [];
+        for (const [index, nodeToDuplicate] of nodesToDuplicate.entries()) {
+          const { updatedNode, updatedModel } = replaceUUIDsAndUpdateModel(
+            nodeToDuplicate,
+            state.model,
+            useUUIDs?.[index],
+          );
+
+          // Add the updated model to the state
+          state.model = { ...state.model, ...updatedModel };
+          duplicates.push(updatedNode);
         }
         nodePath[nodePath.length - 1]++;
         const rootIndex = nodePath.shift();
@@ -346,13 +390,14 @@ export const layoutModelSlice = createSlice({
             'Path should be at least two items long, starting from the root region',
           );
         }
-        const root = state.layout[rootIndex];
+        let root = state.layout[rootIndex];
+        // Insert in reverse order at the same path so the duplicates keep
+        // their document order.
+        for (let i = duplicates.length - 1; i >= 0; i--) {
+          root = insertNodeAtPath(root, nodePath, duplicates[i]) as RegionNode;
+        }
         const newState = state.layout;
-        newState[rootIndex] = insertNodeAtPath(
-          root,
-          nodePath,
-          updatedNode,
-        ) as RegionNode;
+        newState[rootIndex] = root;
         state.layout = newState;
         // Flag a preview update.
         state.updatePreview = true;
@@ -406,13 +451,16 @@ export const layoutModelSlice = createSlice({
         // Loop through each node in reverse order to maintain the correct insert positions
         for (let i = components.length - 1; i >= 0; i--) {
           const node = components[i];
-          const specifyUUID = i === 0;
+          // An array of UUIDs is index-aligned with the inserted nodes; a
+          // single UUID keeps the pre-existing behavior of naming only the
+          // first node.
+          const assignedUUID = Array.isArray(useUUID)
+            ? useUUID[i]
+            : i === 0
+              ? useUUID
+              : undefined;
           const { updatedNode, updatedModel: nodeUpdatedModel } =
-            replaceUUIDsAndUpdateModel(
-              node,
-              model,
-              specifyUUID ? useUUID : undefined,
-            );
+            replaceUUIDsAndUpdateModel(node, model, assignedUUID);
           updatedModel = { ...updatedModel, ...nodeUpdatedModel };
           regionRoot = insertNodeAtPath(regionRoot, toPath, updatedNode);
         }
