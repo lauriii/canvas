@@ -85,7 +85,8 @@ final class CanvasAIThemeRegionSettingsForm extends ConfigFormBase {
       ];
     }
 
-    // @todo The Canvas Template Builder Agent still reads theme-region-keyed descriptions in CanvasAiPageBuilderHelper::getAvailableRegions(); wire it to these page variant descriptions.
+    // These descriptions are consumed by the Canvas Template Builder Agent via
+    // CanvasAiPageBuilderHelper::getAvailableRegions().
     $this->config('canvas_ai.theme_region.settings')
       ->set('variant_descriptions', $descriptions)
       ->save();

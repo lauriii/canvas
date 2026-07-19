@@ -7,11 +7,14 @@ namespace Drupal\Tests\canvas_ai\Kernel;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Drupal\canvas_personalization\Plugin\Canvas\ComponentSource\Personalization;
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Session\AnonymousUserSession;
@@ -133,6 +136,85 @@ final class CanvasAiPageBuilderHelperTest extends CanvasKernelTestBase {
 
     $result = $this->canvasAiPageBuilderHelper->convertCurrentLayoutToTree($input);
     $this->assertEquals($expected_output, $result);
+  }
+
+  /**
+   * Tests that admin-entered page variant descriptions reach the agent prompt.
+   *
+   * The settings form saves descriptions under `variant_descriptions`, keyed by
+   * page variant id. getAvailableRegions() must surface the resolved variant's
+   * description as the `info` for the content region the agent fills.
+   */
+  public function testGetAvailableRegionsSurfacesVariantDescription(): void {
+    // The stored active version of the "Page content" marker component. Mirrors
+    // config/install/canvas.component.marker.page_content.yml.
+    $marker_version = '3b12c0b99a6caecc';
+
+    // The marker component ships in config/install (not auto-discovered); make
+    // it available so a valid variant can be seeded with the content marker.
+    if (Component::load(Marker::PAGE_CONTENT_COMPONENT_ID) === NULL) {
+      Component::create([
+        'id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+        'label' => 'Page content',
+        'provider' => 'canvas',
+        'source' => Marker::SOURCE_PLUGIN_ID,
+        'source_local_id' => Marker::PAGE_CONTENT_LOCAL_ID,
+        'active_version' => $marker_version,
+        'versioned_properties' => [
+          'active' => [
+            'settings' => [],
+            'fallback_metadata' => ['slot_definitions' => []],
+          ],
+        ],
+        'dependencies' => ['enforced' => ['module' => ['canvas']]],
+      ])->save();
+    }
+
+    PageVariant::create([
+      'id' => 'homepage',
+      'label' => 'Homepage',
+      'description' => 'Fallback description from the variant itself.',
+      'component_tree' => [
+        [
+          'uuid' => \Drupal::service('uuid')->generate(),
+          'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+          'component_version' => $marker_version,
+          'inputs' => [],
+        ],
+      ],
+    ])->save();
+
+    $layout = Json::encode([
+      'regions' => [
+        'content' => [
+          'nodePathPrefix' => [0],
+          'components' => [],
+        ],
+      ],
+    ]);
+
+    // Editing the variant directly, before any AI guidance is configured, falls
+    // back to the variant's own description.
+    $regions = $this->canvasAiPageBuilderHelper->getAvailableRegions($layout, PageVariant::ENTITY_TYPE_ID, 'homepage');
+    $this->assertSame('Fallback description from the variant itself.', $regions['content']['info']);
+
+    // Guidance saved through the settings form is what the agent sees.
+    $guidance = 'Homepage variant: lead with a hero, then feature sections.';
+    $this->config('canvas_ai.theme_region.settings')
+      // The descriptions are translatable, so the config object needs a
+      // langcode, exactly as ConfigFormBase sets when the settings form saves.
+      ->set('langcode', 'en')
+      ->set('variant_descriptions', [
+        'homepage' => [
+          'name' => 'Homepage',
+          'description' => $guidance,
+        ],
+      ])
+      ->save();
+
+    $regions = $this->canvasAiPageBuilderHelper->getAvailableRegions($layout, PageVariant::ENTITY_TYPE_ID, 'homepage');
+    $this->assertSame($guidance, $regions['content']['info']);
+    $this->assertSame(0, $regions['content']['nodePathPrefix']);
   }
 
   /**

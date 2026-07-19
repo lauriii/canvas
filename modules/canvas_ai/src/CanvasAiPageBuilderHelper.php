@@ -5,20 +5,22 @@ namespace Drupal\canvas_ai;
 use Drupal\canvas\Component\Schema\PropMetadataNormalizer;
 use Drupal\canvas\Controller\ApiConfigControllers;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
+use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\Component\Render\MarkupInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\DiffArray;
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\VariationCacheInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Extension\ThemeHandlerInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Template\Attribute as TemplateAttribute;
@@ -56,8 +58,8 @@ class CanvasAiPageBuilderHelper {
    * @param \Drupal\Core\Cache\VariationCacheInterface $memoryVariationCache
    *   The in-request variation cache, backed by the memory bin so it honors
    *   tag invalidations that happen mid-request.
-   * @param \Drupal\Core\Extension\ThemeHandlerInterface $themeHandler
-   *   The theme handler.
+   * @param \Drupal\canvas\PageVariantResolver $pageVariantResolver
+   *   Resolves the page variant that renders a given entity.
    * @param \Drupal\canvas\Component\Schema\PropMetadataNormalizer $propMetadataNormalizer
    *   The prop metadata normalizer.
    * @param \Drupal\canvas\Controller\ApiConfigControllers $apiConfigControllers
@@ -77,7 +79,7 @@ class CanvasAiPageBuilderHelper {
     private readonly VariationCacheInterface $variationCache,
     #[Autowire(service: 'cache.variation.canvas_ai_memory')]
     private readonly VariationCacheInterface $memoryVariationCache,
-    private readonly ThemeHandlerInterface $themeHandler,
+    private readonly PageVariantResolver $pageVariantResolver,
     private readonly PropMetadataNormalizer $propMetadataNormalizer,
     private readonly ApiConfigControllers $apiConfigControllers,
     #[Autowire(service: 'logger.factory')]
@@ -1459,24 +1461,85 @@ class CanvasAiPageBuilderHelper {
   /**
    * Gets the available regions from the current layout along with their descriptions, if configured.
    *
+   * A page renders inside a single "content" region; the surrounding chrome is
+   * supplied by the page variant. The admin describes how each page variant
+   * should be used in the AI settings form, so the resolved variant's
+   * description guides the content region the agent fills.
+   *
    * @param string $current_layout
    *   The current layout JSON string.
+   * @param string|null $entity_type
+   *   The entity type being edited, used to resolve the applicable page
+   *   variant. NULL falls back to the site default variant.
+   * @param string|int|null $entity_id
+   *   The entity id being edited. NULL falls back to the site default variant.
    *
    * @return array
    *   An array with region names as keys and their nodePathPrefix values and descriptions.
    */
-  public function getAvailableRegions(string $current_layout) : array {
+  public function getAvailableRegions(string $current_layout, ?string $entity_type = NULL, string|int|null $entity_id = NULL) : array {
     $region_index_mapping = $this->getRegionIndex($current_layout);
-    $region_descriptions = $this->configFactory->get('canvas_ai.theme_region.settings')->get('region_descriptions') ?? [];
+    $variant_description = $this->getVariantDescription($this->resolveVariantForContext($entity_type, $entity_id));
     $available_regions = [];
-    $active_theme = $this->themeHandler->getDefault();
     foreach ($region_index_mapping as $region_name => $region_index) {
       $available_regions[$region_name] = [
         'nodePathPrefix' => $region_index,
-        'info' => NestedArray::getValue($region_descriptions, [$active_theme, $region_name]),
+        'info' => $region_name === CanvasPageVariant::MAIN_CONTENT_REGION ? $variant_description : NULL,
       ];
     }
     return $available_regions;
+  }
+
+  /**
+   * Resolves the page variant that applies to the entity being edited.
+   *
+   * @param string|null $entity_type
+   *   The entity type being edited, or NULL when there is no entity.
+   * @param string|int|null $entity_id
+   *   The entity id being edited, or NULL when there is no entity.
+   *
+   * @return \Drupal\canvas\Entity\PageVariant|null
+   *   The applicable page variant, or NULL when none applies.
+   */
+  private function resolveVariantForContext(?string $entity_type, string|int|null $entity_id): ?PageVariant {
+    // Editing a page variant directly: its own description applies.
+    if ($entity_type === PageVariant::ENTITY_TYPE_ID) {
+      return $entity_id !== NULL ? PageVariant::load((string) $entity_id) : NULL;
+    }
+    // Editing content: resolve the variant that renders it, falling back to the
+    // site default when the entity is new or unknown.
+    $entity = NULL;
+    if ($entity_type !== NULL && $entity_id !== NULL && $this->entityTypeManager->hasDefinition($entity_type)) {
+      $loaded = $this->entityTypeManager->getStorage($entity_type)->load($entity_id);
+      if ($loaded instanceof FieldableEntityInterface) {
+        $entity = $loaded;
+      }
+    }
+    return $this->pageVariantResolver->resolve($entity);
+  }
+
+  /**
+   * Gets the AI guidance description configured for a page variant.
+   *
+   * Falls back to the variant's own description when no AI-specific guidance is
+   * configured, matching the settings form's default value.
+   *
+   * @param \Drupal\canvas\Entity\PageVariant|null $variant
+   *   The page variant, or NULL.
+   *
+   * @return string|null
+   *   The description, or NULL when none is available.
+   */
+  private function getVariantDescription(?PageVariant $variant): ?string {
+    if ($variant === NULL) {
+      return NULL;
+    }
+    $descriptions = $this->configFactory->get('canvas_ai.theme_region.settings')->get('variant_descriptions') ?? [];
+    $description = $descriptions[$variant->id()]['description'] ?? NULL;
+    if ($description === NULL || $description === '') {
+      $description = (string) ($variant->get('description') ?? '');
+    }
+    return $description === '' ? NULL : $description;
   }
 
   /**

@@ -228,3 +228,20 @@ function canvas_ai_post_update_0008_reimport_component_agent(): void {
     \Drupal::logger('canvas_ai')->warning($message);
   }
 }
+
+/**
+ * Remove the obsolete theme-region-keyed AI descriptions.
+ *
+ * Page variants replaced theme regions, so the settings form now stores
+ * page-variant descriptions under `variant_descriptions`. The old
+ * `region_descriptions` key is no longer read or written; drop it so active
+ * configuration matches the schema. The old region descriptions described theme
+ * regions that no longer drive rendering, so they are discarded rather than
+ * migrated.
+ */
+function canvas_ai_post_update_0009_remove_region_descriptions(): void {
+  $config = \Drupal::configFactory()->getEditable('canvas_ai.theme_region.settings');
+  if (!$config->isNew() && $config->get('region_descriptions') !== NULL) {
+    $config->clear('region_descriptions')->save(TRUE);
+  }
+}
