@@ -1773,37 +1773,6 @@ paths:
       responses:
         '204':
           description: Content deleted successfully
-  '/canvas/api/v0/content/{entityTypeId}/{entityId}/entity-form-fields':
-    patch:
-      summary: >
-        Auto-saves entity field values without touching any component tree.
-        Backs the stacked reference-editing panel: the referenced entity's
-        field edits become that entity's own pending change. Validation is
-        deferred to publish.
-      parameters:
-        - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required:
-                - entity_form_fields
-              properties:
-                entity_form_fields:
-                  type: object
-                  description: Entity form values keyed by form element name.
-                clientInstanceId:
-                  type: string
-                  description: Client instance ID for auto-save concurrency control.
-      responses:
-        '204':
-          description: Field values auto-saved as the entity's pending change.
-        '400':
-          description: Missing or empty entity_form_fields.
   '/canvas/api/v0/content/canvas_page/{entityId}/translations':
     description: Endpoint for deleting a specific translation of a Page content entity. Note that the path can be prefixed with a langcode to negotiate deleting that particular translation.
     delete:
@@ -2114,6 +2083,37 @@ paths:
                   error:
                     type: string
                     example: Cannot find entity to duplicate.
+  '/canvas/api/v0/content/{entityTypeId}/{entityId}/entity-form-fields':
+    patch:
+      summary: >
+        Auto-saves entity field values without touching any component tree.
+        Backs the stacked reference-editing panel: the referenced entity's
+        field edits become that entity's own pending change. Validation is
+        deferred to publish.
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/entityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - entity_form_fields
+              properties:
+                entity_form_fields:
+                  type: object
+                  description: Entity form values keyed by form element name.
+                clientInstanceId:
+                  type: string
+                  description: Client instance ID for auto-save concurrency control.
+      responses:
+        '204':
+          description: Field values auto-saved as the entity's pending change.
+        '400':
+          description: Missing or empty entity_form_fields.
   '/canvas/api/v0/extensions':
     description: Returns the available extensions metadata
     get:

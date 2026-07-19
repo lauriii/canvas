@@ -266,3 +266,5 @@ wght
 xmdi
 ymls
 zencoder
+desyncs
+untemplated

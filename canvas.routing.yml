@@ -299,6 +299,23 @@ canvas.api.content.delete:
     # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
     canvas_external_api: true
   methods: ['DELETE']
+canvas.api.content.entity_form_fields.patch:
+  path: '/canvas/api/v0/content/{entity_type}/{entity}/entity-form-fields'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiContentControllers::patchEntityFormFields'
+  requirements:
+    _canvas_authentication_required: TRUE
+    # Same gate as the entity form GET route this endpoint pairs with: the
+    # stacked reference-editing panel renders the referenced entity's form via
+    # `canvas.api.form.content_entity` and writes it back here.
+    _canvas_component_tree_edit_access: TRUE
+    _entity_access: 'entity.update'
+  options:
+    parameters:
+      entity:
+        type: entity:{entity_type}
+    _format: 'json'
+  methods: [PATCH]
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 canvas.api.content.get:
   path: '/canvas/api/v0/content/canvas_page/{canvas_page}'
@@ -368,24 +385,6 @@ canvas.api.content.patch:
     _format: 'json'
     # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
     canvas_external_api: true
-  methods: [PATCH]
-
-canvas.api.content.entity_form_fields.patch:
-  path: '/canvas/api/v0/content/{entity_type}/{entity}/entity-form-fields'
-  defaults:
-    _controller: 'Drupal\canvas\Controller\ApiContentControllers::patchEntityFormFields'
-  requirements:
-    _canvas_authentication_required: TRUE
-    # Same gate as the entity form GET route this endpoint pairs with: the
-    # stacked reference-editing panel renders the referenced entity's form via
-    # `canvas.api.form.content_entity` and writes it back here.
-    _canvas_component_tree_edit_access: TRUE
-    _entity_access: 'entity.update'
-  options:
-    parameters:
-      entity:
-        type: entity:{entity_type}
-    _format: 'json'
   methods: [PATCH]
 
 canvas.api.content.translation.delete:
