@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
+import { useSearchParams } from 'react-router-dom';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -243,7 +244,12 @@ const ContentBrowser = () => {
   const { navigateToEditor } = useEditorNavigation();
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch: string = useDebounce(searchTerm, 300);
-  const [filterValue, setFilterValue] = useState('all');
+  // Deep-linkable type filter (`?type=node:article`), used by the editor's
+  // "View all {bundle} content" action.
+  const [searchParams] = useSearchParams();
+  const [filterValue, setFilterValue] = useState(
+    searchParams.get('type') ?? 'all',
+  );
   const [sort, setSort] = useState(DEFAULT_CONTENT_SORT);
   const [page, setPage] = useState(0);
   const [results, setResults] = useState<Record<string, SourceResult>>({});

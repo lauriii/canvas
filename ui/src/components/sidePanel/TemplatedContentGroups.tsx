@@ -29,18 +29,23 @@ import listStyles from '@/components/list/List.module.css';
  */
 const TemplatedContentGroup = ({
   group,
+  bundle,
+  bundleLabel,
   searchTerm,
   onEmptyChange,
 }: {
   group: TemplatedEntityGroup;
+  bundle: string;
+  bundleLabel: string;
   searchTerm: string;
-  onEmptyChange: (entityType: string, isEmpty: boolean) => void;
+  onEmptyChange: (groupKey: string, isEmpty: boolean) => void;
 }) => {
   const { entityType: routeEntityType, entityId } = useParams();
   const { navigateToEditor } = useEditorNavigation();
   const [isOpen, setIsOpen] = useState(true);
   const { items, isLoading, error, hasMore, handleLoadMore } =
-    usePaginatedContentList(group.entityType, searchTerm);
+    usePaginatedContentList(group.entityType, searchTerm, bundle);
+  const groupKey = `${group.entityType}:${bundle}`;
 
   // The list is access-checked for viewing, but a row's only action is
   // opening the per-content editor, so show only entities the user may edit
@@ -58,8 +63,8 @@ const TemplatedContentGroup = ({
   const isEmpty =
     !isLoading && !error && editableItems.length === 0 && !hasMore;
   useEffect(() => {
-    onEmptyChange(group.entityType, isEmpty);
-  }, [onEmptyChange, group.entityType, isEmpty]);
+    onEmptyChange(groupKey, isEmpty);
+  }, [onEmptyChange, groupKey, isEmpty]);
 
   if (isLoading) {
     return <Skeleton height="1.2rem" width="100%" my="3" />;
@@ -85,7 +90,9 @@ const TemplatedContentGroup = ({
 
   return (
     <Collapsible.Root open={isOpen} onOpenChange={setIsOpen} asChild>
-      <Box data-testid={`canvas-templated-content-${group.entityType}`}>
+      <Box
+        data-testid={`canvas-templated-content-${group.entityType}-${bundle}`}
+      >
         <Flex align="center" className={listStyles.folderTrigger} pt="2" pb="2">
           {/* One native button spanning the whole row: keyboard focusable, and
               Radix adds aria-expanded. The visible title labels it. */}
@@ -96,7 +103,7 @@ const TemplatedContentGroup = ({
               </Flex>
               <Flex px="2" align="center" flexGrow="1" style={{ minWidth: 0 }}>
                 <Text size="1" weight="medium" truncate>
-                  {group.title}
+                  {bundleLabel}
                 </Text>
               </Flex>
               <Flex px="2" align="center" flexShrink="0">
@@ -146,7 +153,8 @@ const TemplatedContentGroup = ({
 /**
  * Renders the Content panel's templated-entity groups (entities of bundles
  * with an enabled full-view template), one collapsible section per entity
- * type. The single shared search term filters every group.
+ * type (bundle): content is sorted per content type, the content type is
+ * the folder. The single shared search term filters every folder.
  */
 const TemplatedContentGroups = ({
   groups,
@@ -157,32 +165,39 @@ const TemplatedContentGroups = ({
 }) => {
   const [emptyGroups, setEmptyGroups] = useState<Record<string, boolean>>({});
   const handleEmptyChange = useCallback(
-    (entityType: string, isEmpty: boolean) => {
+    (groupKey: string, isEmpty: boolean) => {
       setEmptyGroups((previous) =>
-        previous[entityType] === isEmpty
+        previous[groupKey] === isEmpty
           ? previous
-          : { ...previous, [entityType]: isEmpty },
+          : { ...previous, [groupKey]: isEmpty },
       );
     },
     [],
   );
-  if (groups.length === 0) {
+  // One folder per content type (bundle), per the design.
+  const bundleFolders = groups.flatMap((group) =>
+    group.bundles.map(({ bundle, label }) => ({ group, bundle, label })),
+  );
+  if (bundleFolders.length === 0) {
     return null;
   }
-  // Every group hides itself when empty; show one aggregate empty state so
+  // Every folder hides itself when empty; show one aggregate empty state so
   // the panel is never silently blank (e.g. a search with zero results).
-  const allEmpty = groups.every(
-    (group) => emptyGroups[group.entityType] === true,
+  const allEmpty = bundleFolders.every(
+    ({ group, bundle }) =>
+      emptyGroups[`${group.entityType}:${bundle}`] === true,
   );
   return (
     <>
       {allEmpty && (
         <EmptyStateCallout title="No content found" variant="surface" />
       )}
-      {groups.map((group) => (
+      {bundleFolders.map(({ group, bundle, label }) => (
         <TemplatedContentGroup
-          key={group.entityType}
+          key={`${group.entityType}:${bundle}`}
           group={group}
+          bundle={bundle}
+          bundleLabel={label}
           searchTerm={searchTerm}
           onEmptyChange={handleEmptyChange}
         />

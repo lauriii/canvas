@@ -58,9 +58,9 @@ test.describe('Content (CMS) panel', () => {
     await canvas.createCanvas();
     await canvas.openContentPanel();
 
-    // The templated Article bundle renders as a content-type group holding
-    // the seeded entities.
-    const group = page.getByTestId('canvas-templated-content-node');
+    // The templated Article bundle renders as a content-type folder holding
+    // the seeded entities (one folder per bundle).
+    const group = page.getByTestId('canvas-templated-content-node-article');
     await expect(group).toBeVisible();
     await expect(group.getByText('Templated alpha')).toBeVisible();
     await expect(group.getByText('Templated beta')).toBeVisible();

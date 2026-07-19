@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import {
   DotsHorizontalIcon,
   ExternalLinkIcon,
@@ -37,6 +37,7 @@ import {
   selectExposedSlots,
   selectIsPerContentMode,
   selectLayout,
+  selectPerContentTemplateInfo,
   selectSlotDefaults,
   selectSlotOverrides,
 } from '@/features/layout/layoutModelSlice';
@@ -56,7 +57,7 @@ import { FOCUS_ENTITY_FORM_FIELD_EVENT } from '@/features/validation/entityFormV
 import useGetComponentName from '@/hooks/useGetComponentName';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
-import { getBaseUrl } from '@/utils/drupal-globals';
+import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
 
 import type React from 'react';
 
@@ -86,7 +87,21 @@ const ContextualPanel: React.FC<ContextualPanelProps> = ({
   // over unchanged. Page data carries only page-level metadata (title, URL
   // alias, and the form's sidebar groups).
   const isPerContentMode = useAppSelector(selectIsPerContentMode);
+  const perContentTemplateInfo = useAppSelector(selectPerContentTemplateInfo);
+  const navigate = useNavigate();
   const { entityType, entityId, bundle, viewMode } = useParams();
+  // The open entity's bundle and its label, for the more-actions menu's
+  // "View all" action (templated entities only).
+  const contentBundle = perContentTemplateInfo?.bundle;
+  const entityTypeLabels = getCanvasSettings()?.entityTypeLabels as
+    | Record<string, Record<string, string> | string>
+    | undefined;
+  const typeLabels =
+    entityType !== undefined ? entityTypeLabels?.[entityType] : undefined;
+  const contentBundleLabel =
+    contentBundle !== undefined && typeof typeLabels === 'object'
+      ? (typeLabels[contentBundle] ?? contentBundle)
+      : contentBundle;
   const editFormUrl =
     isPerContentMode && entityType && entityId
       ? buildEntityEditFormUrl(getBaseUrl(), entityType, entityId)
@@ -291,32 +306,94 @@ const ContextualPanel: React.FC<ContextualPanelProps> = ({
             value={activePanel}
             className={clsx(styles.tabRoot)}
           >
-            <Tabs.List justify="start" mx="4" size="1">
-              {!isTemplateContext && (
-                <Tabs.Trigger
-                  value="pageData"
-                  data-testid="canvas-contextual-panel--page-data"
-                >
-                  {mainTabText}
-                </Tabs.Trigger>
-              )}
-              {isPerContentMode && (
-                <Tabs.Trigger
-                  value="content"
-                  data-testid="canvas-contextual-panel--content"
-                >
-                  Content
-                </Tabs.Trigger>
-              )}
-              {(selectedComponent || isMultiSelect) && (
-                <Tabs.Trigger
-                  value="settings"
-                  data-testid="canvas-contextual-panel--settings"
-                >
-                  Settings
-                </Tabs.Trigger>
-              )}
-            </Tabs.List>
+            <Flex justify="between" align="center" mx="4" gap="2">
+              <Tabs.List justify="start" size="1">
+                {!isTemplateContext && (
+                  <Tabs.Trigger
+                    value="pageData"
+                    data-testid="canvas-contextual-panel--page-data"
+                  >
+                    {mainTabText}
+                  </Tabs.Trigger>
+                )}
+                {isPerContentMode && (
+                  <Tabs.Trigger
+                    value="content"
+                    data-testid="canvas-contextual-panel--content"
+                  >
+                    Content
+                  </Tabs.Trigger>
+                )}
+                {(selectedComponent || isMultiSelect) && (
+                  <Tabs.Trigger
+                    value="settings"
+                    data-testid="canvas-contextual-panel--settings"
+                  >
+                    Settings
+                  </Tabs.Trigger>
+                )}
+              </Tabs.List>
+              {isPerContentMode &&
+                (editFormUrl ||
+                  referencedEditable.length > 0 ||
+                  contentBundle) && (
+                  <DropdownMenu.Root>
+                    <DropdownMenu.Trigger>
+                      <IconButton
+                        size="1"
+                        variant="ghost"
+                        color="gray"
+                        aria-label="More actions"
+                        data-testid="canvas-content-tab-actions"
+                      >
+                        <DotsHorizontalIcon />
+                      </IconButton>
+                    </DropdownMenu.Trigger>
+                    <DropdownMenu.Content align="end">
+                      {editFormUrl && (
+                        <DropdownMenu.Item asChild>
+                          <a
+                            href={editFormUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            data-testid="canvas-content-tab-edit-form-link"
+                          >
+                            Edit in Drupal form
+                            <ExternalLinkIcon />
+                          </a>
+                        </DropdownMenu.Item>
+                      )}
+                      {contentBundle && entityType && (
+                        <DropdownMenu.Item
+                          data-testid="canvas-content-tab-view-all"
+                          onSelect={() =>
+                            navigate(
+                              `/content?type=${entityType}:${contentBundle}`,
+                            )
+                          }
+                        >
+                          View all {contentBundleLabel} content
+                        </DropdownMenu.Item>
+                      )}
+                      {referencedEditable.length > 0 && (
+                        <DropdownMenu.Separator />
+                      )}
+                      {referencedEditable.map((reference) => (
+                        <DropdownMenu.Item
+                          key={`${reference.entityType}-${reference.entityId}`}
+                          onSelect={() => {
+                            setActivePanel('content');
+                            setStackedTarget(reference);
+                          }}
+                          data-testid={`canvas-content-tab-edit-reference-${reference.entityType}-${reference.entityId}`}
+                        >
+                          Edit {reference.label} ({reference.fieldLabel})
+                        </DropdownMenu.Item>
+                      ))}
+                    </DropdownMenu.Content>
+                  </DropdownMenu.Root>
+                )}
+            </Flex>
             <ScrollArea scrollbars="vertical" className={styles.scrollArea}>
               <Box px="4" width="100%">
                 <Tabs.Content value={'settings'}>
@@ -397,7 +474,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = ({
                 </Tabs.Content>
                 {isPerContentMode && (
                   <Tabs.Content value={'content'}>
-                    {stackedTarget ? (
+                    {stackedTarget && (
                       <ErrorBoundary title="An unexpected error has occurred while rendering the referenced entity's form.">
                         <StackedEntityForm
                           entityType={stackedTarget.entityType}
@@ -406,52 +483,6 @@ const ContextualPanel: React.FC<ContextualPanelProps> = ({
                           onClose={() => setStackedTarget(null)}
                         />
                       </ErrorBoundary>
-                    ) : (
-                      (editFormUrl || referencedEditable.length > 0) && (
-                        <Flex justify="end" mt="2">
-                          <DropdownMenu.Root>
-                            <DropdownMenu.Trigger>
-                              <IconButton
-                                size="1"
-                                variant="ghost"
-                                color="gray"
-                                aria-label="More actions"
-                                data-testid="canvas-content-tab-actions"
-                              >
-                                <DotsHorizontalIcon />
-                              </IconButton>
-                            </DropdownMenu.Trigger>
-                            <DropdownMenu.Content align="end">
-                              {referencedEditable.map((reference) => (
-                                <DropdownMenu.Item
-                                  key={`${reference.entityType}-${reference.entityId}`}
-                                  onSelect={() => setStackedTarget(reference)}
-                                  data-testid={`canvas-content-tab-edit-reference-${reference.entityType}-${reference.entityId}`}
-                                >
-                                  Edit {reference.label} ({reference.fieldLabel}
-                                  )
-                                </DropdownMenu.Item>
-                              ))}
-                              {referencedEditable.length > 0 && editFormUrl && (
-                                <DropdownMenu.Separator />
-                              )}
-                              {editFormUrl && (
-                                <DropdownMenu.Item asChild>
-                                  <a
-                                    href={editFormUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    data-testid="canvas-content-tab-edit-form-link"
-                                  >
-                                    Edit in Drupal form
-                                    <ExternalLinkIcon />
-                                  </a>
-                                </DropdownMenu.Item>
-                              )}
-                            </DropdownMenu.Content>
-                          </DropdownMenu.Root>
-                        </Flex>
-                      )
                     )}
                   </Tabs.Content>
                 )}
