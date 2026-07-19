@@ -24,6 +24,7 @@ use Drupal\canvas\EntityHandlers\StagedLanguageConfigOverrideAccessControlHandle
 use Drupal\canvas\EntityHandlers\StagedLanguageConfigOverrideStorage;
 use Drupal\canvas\GlobalImports;
 use Drupal\canvas\Hook\ShapeMatchingHooks;
+use Drupal\canvas\Icon\IconResolver;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
@@ -335,6 +336,12 @@ final class Layers {
         Selector::classname(JsonSchemaType::class),
         Selector::classname(JsonSchemaStringFormat::class),
         Selector::classname(CanvasStaticPropSourceFieldWidget::class),
+        // Resolving an icon prop's stored id into a renderable value is a
+        // storable-prop concern shared by every source (SDC and code
+        // components alike), not a per-source one, so it lives here.
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::resolveIconProps()
+        // @see docs/adr/0017-icon-libraries-on-core-icon-api.md
+        Selector::classname(IconResolver::class),
         // Canvas utilities.
         Selector::inNamespace('Drupal\canvas\Utility'),
         // Plus specific Drupal core namespaces.
