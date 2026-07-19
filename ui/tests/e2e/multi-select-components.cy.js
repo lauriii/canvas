@@ -290,7 +290,11 @@ describe('Multi-select components', () => {
       'have.length',
       2,
     );
-    cy.getAllComponentsInPreview('Test SDC Image').should('have.length', 2);
+    // Two components share the "Test SDC Image" name: the one in column one
+    // and the "Magnificent image!" instance in column two (the overlay name
+    // comes from the SDC, not the instance label). Pasting the column-one
+    // group adds a third.
+    cy.getAllComponentsInPreview('Test SDC Image').should('have.length', 3);
 
     cy.log('The pasted components become the selection.');
     cy.get('[data-testid="canvas-contextual-panel"]')
@@ -298,18 +302,21 @@ describe('Multi-select components', () => {
       .should('be.visible');
 
     cy.log(
-      'The layers tree lists the pasted group in document order after the originals.',
+      'The preview lists the pasted group in document order after the originals.',
     );
-    cy.get('.primaryPanelContent [aria-label^="Draggable component"]').then(
-      ($els) => {
-        const names = [...$els].map((el) =>
-          el.getAttribute('aria-label').replace('Draggable component ', ''),
-        );
-        expect(names.join('|')).to.include(
-          'Test SDC Image|Hero|Test Code Component|Test SDC Image|Hero|Test Code Component|One Column',
-        );
-      },
-    );
+    // The draggable overlays carry an "aria-label" of "Draggable component
+    // <name>"; the layers tree items use "aria-roledescription" instead, so
+    // read the order from the preview overlay.
+    cy.get(
+      '#canvasPreviewOverlay .canvas--viewport-overlay .canvas--region-overlay__content [aria-label^="Draggable component"]',
+    ).then(($els) => {
+      const names = [...$els].map((el) =>
+        el.getAttribute('aria-label').replace('Draggable component ', ''),
+      );
+      expect(names.join('|')).to.include(
+        'Test SDC Image|Hero|Test Code Component|Test SDC Image|Hero|Test Code Component|One Column',
+      );
+    });
 
     cy.log('Restore the baseline layout: one undo removes the pasted group.');
     cy.realPress(['Meta', 'Z']);
@@ -318,7 +325,8 @@ describe('Multi-select components', () => {
       'have.length',
       1,
     );
-    cy.getAllComponentsInPreview('Test SDC Image').should('have.length', 1);
+    // Back to the two baseline "Test SDC Image" instances.
+    cy.getAllComponentsInPreview('Test SDC Image').should('have.length', 2);
   });
 
   it('should duplicate a consecutive selection from the context menu', () => {
@@ -333,7 +341,12 @@ describe('Multi-select components', () => {
       .contains('2 items selected')
       .should('be.visible');
 
-    cy.getAllComponentsInPreview('Hero').eq(2).rightclick({ force: true });
+    // Right-click the component's draggable overlay, which is the context
+    // menu's trigger; the outer selection overlay does not open the menu.
+    cy.getAllComponentsInPreview('Hero')
+      .eq(2)
+      .find('[data-canvas-overlay="true"]')
+      .rightclick({ force: true });
     cy.findByText('Duplicate 2 items').click();
 
     cy.getAllComponentsInPreview('Hero').should('have.length', 5);
@@ -398,8 +411,15 @@ describe('Multi-select components', () => {
       .click({ metaKey: true, force: true });
     cy.previewReady();
 
-    cy.getAllComponentsInPreview('Hero').eq(1).rightclick({ force: true });
-    cy.findByText('3 items selected').should('exist');
+    cy.getAllComponentsInPreview('Hero')
+      .eq(1)
+      .find('[data-canvas-overlay="true"]')
+      .rightclick({ force: true });
+    // Scope the count label to the menu: the contextual panel also shows
+    // "3 items selected", so an unscoped query would match two elements.
+    cy.get('[aria-label="Context menu for 3 selected items"]')
+      .findByText('3 items selected')
+      .should('exist');
     cy.findByText('Copy 3 items').should('exist');
     cy.findByText('Duplicate 3 items').should('exist');
 
@@ -429,6 +449,7 @@ describe('Multi-select components', () => {
 
     cy.getAllComponentsInPreview('Test Code Component')
       .first()
+      .find('[data-canvas-overlay="true"]')
       .rightclick({ force: true });
 
     cy.log('The single-component menu is shown, not the batch menu.');
@@ -473,6 +494,7 @@ describe('Multi-select components', () => {
 
     cy.getAllComponentsInPreview('Test SDC Image')
       .first()
+      .find('[data-canvas-overlay="true"]')
       .rightclick({ force: true });
     cy.findByText('Copy 2 items').should('have.attr', 'data-disabled');
     cy.findByText('Duplicate 2 items').should('have.attr', 'data-disabled');
@@ -482,9 +504,9 @@ describe('Multi-select components', () => {
     cy.get('#canvasPreviewOverlay')
       .findByLabelText('Test Code Component')
       .should('not.exist');
-    cy.get('#canvasPreviewOverlay')
-      .findByLabelText('Test SDC Image')
-      .should('not.exist');
+    // The deleted "Test SDC Image" is the column-one one; the column-two
+    // "Magnificent image!" instance shares the name and remains.
+    cy.getAllComponentsInPreview('Test SDC Image').should('have.length', 1);
 
     cy.log('Restore the baseline layout.');
     cy.realPress(['Meta', 'Z']);
@@ -492,6 +514,6 @@ describe('Multi-select components', () => {
       'have.length',
       1,
     );
-    cy.getAllComponentsInPreview('Test SDC Image').should('have.length', 1);
+    cy.getAllComponentsInPreview('Test SDC Image').should('have.length', 2);
   });
 });
