@@ -217,7 +217,7 @@ const CombinePillEditor = ({
   parts: CombinePart[];
   candidates: SlotCandidate[];
   // Set when this step follows another: the label of the previous step,
-  // shown on its (movable, re-insertable) pill.
+  // shown on its pill (which can be removed and inserted again to move it).
   previousLabel?: string;
   onChange: (parts: CombinePart[]) => void;
 }) => {
