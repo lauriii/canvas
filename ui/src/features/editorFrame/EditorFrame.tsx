@@ -49,6 +49,25 @@ import styles from './EditorFrame.module.css';
 const WHEEL_ZOOM_SENSITIVITY = 0.001; // Using a mouse wheel (or trackpad two finger up/down while holding ctrl/cmd)
 const PINCH_ZOOM_SENSITIVITY = 0.01; // Using a trackpad pinch gesture
 
+// While dragging a component, holding the pointer near the top or bottom edge of
+// the editor pane auto-scrolls the canvas vertically, so you can place a component
+// above or below the fold on a long page. It is deliberately vertical-only and
+// "reluctant": components stack vertically, so horizontal auto-scroll on a
+// centered canvas is rarely wanted (and was the original bug), and on a
+// canvas you freely pan and zoom an eager auto-scroll feels like it runs away.
+//
+// Height, in pixels, of the strip at the top/bottom edge that triggers it.
+const DRAG_AUTOSCROLL_EDGE_PX = 60;
+// The pointer must dwell in the strip this long before scrolling starts, so
+// sweeping past the edge does nothing — only parking there engages it.
+const DRAG_AUTOSCROLL_DWELL_MS = 300;
+// After the dwell, the speed eases in from zero to full over this long, so it
+// starts gently instead of jumping.
+const DRAG_AUTOSCROLL_RAMP_MS = 250;
+// Maximum auto-scroll speed, in pixels per animation frame (~480px/s at 60fps),
+// reached at the very edge; it tapers to zero at the strip's inner boundary.
+const DRAG_AUTOSCROLL_MAX_SPEED_PX = 8;
+
 const EditorFrame: React.FC = () => {
   const dispatch = useAppDispatch();
   useSyncParamsToState();
@@ -80,7 +99,14 @@ const EditorFrame: React.FC = () => {
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
   const { isUndoable, dispatchUndo } = useUndoRedo();
-  const { isDragging } = useAppSelector(selectDragging);
+  const { isDragging, previewDragging, listDragging } =
+    useAppSelector(selectDragging);
+  // The custom pane auto-scroll only applies to drags that target the canvas:
+  // placing a component from the library (list) or moving one in the preview.
+  // Layers-tree and code-panel drags scroll their own containers, not the canvas.
+  const isCanvasDrag = previewDragging || listDragging;
+  // Read the latest dragging state from event handlers without recreating them.
+  const isDraggingRef = useRef(isDragging);
 
   useHotkeys(['NumpadAdd', 'Equal'], () => dispatch(editorViewPortZoomIn()));
   useHotkeys(['Minus', 'NumpadSubtract'], () =>
@@ -182,6 +208,110 @@ const EditorFrame: React.FC = () => {
   }, [panningMode]);
 
   useEffect(() => {
+    isDraggingRef.current = isDragging;
+  }, [isDragging]);
+
+  // Vertically auto-scroll the editor pane while a component is being dragged
+  // onto/around the canvas, when the pointer is parked near the top or bottom
+  // edge. This is intentionally not dnd-kit's built-in auto-scroll: that only
+  // fires while the pointer is over a drop target (so it does nothing near the
+  // bottom edge over empty space) and only after the drag has moved in the scroll
+  // direction, which made scrolling to place a component above or below the fold
+  // feel inconsistent. See the DRAG_AUTOSCROLL_* constants above for
+  // why it is vertical-only and reluctant.
+  useEffect(() => {
+    if (!isCanvasDrag) {
+      return;
+    }
+    const pane = editorPaneRef.current;
+    if (!pane) {
+      return;
+    }
+
+    // Latest pointer position, in viewport coordinates. The pointer moves
+    // continuously during a drag, so a listener keeps this current.
+    let pointer: { x: number; y: number } | null = null;
+    // The top/bottom edge each arm only once the pointer has been more than a
+    // strip's height away from it, so picking a component up already near an edge
+    // and holding still doesn't scroll.
+    let armedTop = false;
+    let armedBottom = false;
+    // Timestamp the pointer entered the top/bottom strip; reset when it leaves.
+    // The dwell before scrolling is measured from here.
+    let dwellStart: number | null = null;
+    let frame: number | null = null;
+
+    const onPointerMove = (event: PointerEvent) => {
+      pointer = { x: event.clientX, y: event.clientY };
+    };
+
+    const tick = (time: number) => {
+      if (pointer) {
+        const rect = pane.getBoundingClientRect();
+        const edge = DRAG_AUTOSCROLL_EDGE_PX;
+        if (pointer.y > rect.top + edge) armedTop = true;
+        if (pointer.y < rect.bottom - edge) armedBottom = true;
+
+        const insidePane =
+          pointer.x >= rect.left &&
+          pointer.x <= rect.right &&
+          pointer.y >= rect.top &&
+          pointer.y <= rect.bottom;
+
+        // Direction toward the near edge (-1 up, +1 down) and how far into the
+        // strip the pointer is, but only for an armed edge and over the pane.
+        let direction = 0;
+        let penetration = 0;
+        if (insidePane && armedTop && pointer.y < rect.top + edge) {
+          direction = -1;
+          penetration = rect.top + edge - pointer.y;
+        } else if (
+          insidePane &&
+          armedBottom &&
+          pointer.y > rect.bottom - edge
+        ) {
+          direction = 1;
+          penetration = pointer.y - (rect.bottom - edge);
+        }
+
+        if (direction !== 0) {
+          if (dwellStart === null) {
+            dwellStart = time;
+          }
+          const held = time - dwellStart;
+          if (held >= DRAG_AUTOSCROLL_DWELL_MS) {
+            // Ease speed in over the ramp window after the dwell, and taper it by
+            // how deep into the strip the pointer is.
+            const rampFactor = Math.min(
+              1,
+              (held - DRAG_AUTOSCROLL_DWELL_MS) / DRAG_AUTOSCROLL_RAMP_MS,
+            );
+            const depthFactor = Math.min(1, penetration / edge);
+            const speed =
+              DRAG_AUTOSCROLL_MAX_SPEED_PX * depthFactor * rampFactor;
+            if (speed > 0) {
+              pane.scrollBy(0, direction * speed);
+            }
+          }
+        } else {
+          dwellStart = null;
+        }
+      }
+      frame = requestAnimationFrame(tick);
+    };
+
+    window.addEventListener('pointermove', onPointerMove, true);
+    frame = requestAnimationFrame(tick);
+
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove, true);
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
+    };
+  }, [isCanvasDrag]);
+
+  useEffect(() => {
     zoomModifierKeyPressedRef.current = zoomModifierKeyPressed;
   }, [zoomModifierKeyPressed]);
 
@@ -221,11 +351,20 @@ const EditorFrame: React.FC = () => {
 
   const handlePaneScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
-      if (event.currentTarget) {
+      if (!event.currentTarget) {
+        return;
+      }
+      // dnd-kit auto-scroll fires this handler while a component is being
+      // dragged. Do not enter panning mode then: `.isPanning` sets
+      // pointer-events: none on the preview overlay, which drops the drag's drop
+      // target and stalls the auto-scroll before it can reveal the off-screen
+      // slots the user is dragging toward (top or bottom edge). Panning proper
+      // (space/middle-mouse drag) is unaffected — it never runs mid-drag.
+      if (!isDraggingRef.current) {
         dispatch(setIsPanning(true));
-        debouncedScrollPosUpdate();
         debouncedIsPanningUpdate();
       }
+      debouncedScrollPosUpdate();
     },
     [debouncedIsPanningUpdate, debouncedScrollPosUpdate, dispatch],
   );
@@ -461,6 +600,9 @@ const EditorFrame: React.FC = () => {
         onMouseDown={handleMouseDown}
         onScroll={handlePaneScroll}
         ref={editorPaneRef}
+        // Marks this element as the editor pane so the app can exclude it from
+        // dnd-kit's built-in auto-scroll (it auto-scrolls itself, see above).
+        data-canvas-editor-pane="true"
       >
         <div
           className={clsx(styles.editorFrame, {
