@@ -22,7 +22,7 @@ import listStyles from '@/components/list/List.module.css';
 /**
  * One templated entity type's group, rendered as a collapsible content-type
  * folder: its entities (loaded from the per-entity type content list,
- * server-filtered to active-exposed-slot bundles and access checked), reusing
+ * server-filtered to enabled-template bundles and access checked), reusing
  * the pages row so selecting an entity opens it in the per-content editor.
  * Empty groups are hidden to keep the panel quiet, especially while searching.
  * Creating content is a single "Add new" control in the panel header, not here.
@@ -144,9 +144,9 @@ const TemplatedContentGroup = ({
 };
 
 /**
- * Renders the Content panel's templated-entity groups (entities of templated
- * bundles with active exposed slots), one collapsible section per entity type.
- * The single shared search term filters every group.
+ * Renders the Content panel's templated-entity groups (entities of bundles
+ * with an enabled full-view template), one collapsible section per entity
+ * type. The single shared search term filters every group.
  */
 const TemplatedContentGroups = ({
   groups,

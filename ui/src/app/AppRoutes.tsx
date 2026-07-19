@@ -10,6 +10,7 @@ import { Flex } from '@radix-ui/themes';
 import App from '@/app/App';
 import CodeEditorRouteGuard from '@/app/CodeEditorRouteGuard';
 import ComponentInstanceForm from '@/components/ComponentInstanceForm';
+import ContentBrowser from '@/components/contentBrowser/ContentBrowser';
 import { RouteErrorBoundary } from '@/components/error/ErrorBoundary';
 import ErrorCard from '@/components/error/ErrorCard';
 import ExtensionDialog from '@/components/extensions/ExtensionDialog';
@@ -243,6 +244,16 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             element: (
               <UiShell>
                 <ExtensionPage />
+              </UiShell>
+            ),
+          },
+          {
+            // The content browser: a full-page table of all Canvas-editable
+            // content, inside the same shell as the editor routes.
+            path: '/content',
+            element: (
+              <UiShell>
+                <ContentBrowser />
               </UiShell>
             ),
           },

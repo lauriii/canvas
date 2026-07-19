@@ -8,6 +8,12 @@ export interface ContentStub {
   hasUnsavedStatusChange?: boolean;
   autoSaveLabel: string | null;
   autoSavePath: string;
+  entityType?: string;
+  bundle?: string;
+  bundleLabel?: string;
+  authorName?: string | null;
+  created?: number | null;
+  changed?: number | null;
   links: {
     'delete-form'?: string;
     'edit-form'?: string;

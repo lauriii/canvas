@@ -19,6 +19,7 @@ import {
   Heading,
   IconButton,
   ScrollArea,
+  SegmentedControl,
   Text,
   TextField,
   Tooltip,
@@ -28,9 +29,11 @@ import { useAppSelector } from '@/app/hooks';
 import EmptyStateCallout from '@/components/EmptyStateCallout';
 import InfiniteScrollObserver from '@/components/InfiniteScrollObserver';
 import { selectHomepagePath } from '@/features/configuration/configurationSlice';
+import { PAGE_ENTITY_TYPE } from '@/features/navigator/templatedContent';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 
 import type { FormEvent } from 'react';
+import type { ContentNavigationTypeOption } from '@/features/navigator/templatedContent';
 import type { ContentStub } from '@/types/Content';
 
 import styles from './Navigation.module.css';
@@ -195,6 +198,7 @@ const renderDeleteButton = (
 
 // Component for individual navigation item to manage menu state
 const NavigationItem = ({
+  entityType,
   item,
   homepagePath,
   onSelect,
@@ -204,6 +208,7 @@ const NavigationItem = ({
   onPublish,
   onDelete,
 }: {
+  entityType: string;
   item: ContentStub;
   homepagePath?: string;
   onSelect?: (value: ContentStub) => void;
@@ -215,6 +220,16 @@ const NavigationItem = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { urlForEditor } = useEditorNavigation();
+
+  // The options menu holds page-management actions only; each is gated by its
+  // link relation, so rows of templated entity types (which only expose
+  // `edit-form`) render no menu at all instead of an empty one.
+  const hasMenuActions =
+    hasPermission('duplicate', item) ||
+    (hasPermission('homepage', item) && item.internalPath !== homepagePath) ||
+    hasPermission('unpublish', item) ||
+    hasPermission('publish', item) ||
+    hasPermission('delete', item);
 
   // Determine unpublished status:
   // - Show "Clock icon + Unpublish" if there's an unsaved status change to unpublished
@@ -237,7 +252,7 @@ const NavigationItem = ({
       data-canvas-page-id={item.id}
     >
       <Link
-        to={urlForEditor('canvas_page', item.id)}
+        to={urlForEditor(entityType, item.id)}
         role={'listitem'}
         className={styles.pageLink}
         onClick={onSelect ? () => onSelect(item) : undefined}
@@ -272,7 +287,7 @@ const NavigationItem = ({
           )}
         </Flex>
       )}
-      {Object.keys(item.links).length && (
+      {hasMenuActions && (
         <DropdownMenu.Root onOpenChange={setIsMenuOpen}>
           <DropdownMenu.Trigger>
             <IconButton
@@ -299,6 +314,7 @@ const NavigationItem = ({
 
 const ContentGroup = ({
   title,
+  entityType,
   items,
   onSelect,
   onDuplicate,
@@ -308,6 +324,7 @@ const ContentGroup = ({
   onDelete,
 }: {
   title: string;
+  entityType: string;
   items: ContentStub[];
   onSelect?: (value: ContentStub) => void;
   onDuplicate?: (page: ContentStub) => void;
@@ -321,7 +338,11 @@ const ContentGroup = ({
     return (
       <EmptyStateCallout
         data-testid="canvas-navigation-results"
-        title="No pages found"
+        title={
+          entityType === PAGE_ENTITY_TYPE
+            ? 'No pages found'
+            : 'No content found'
+        }
         variant="surface"
       />
     );
@@ -341,6 +362,7 @@ const ContentGroup = ({
         {items.map((item) => (
           <NavigationItem
             key={`${item.id}-${item.status}`}
+            entityType={entityType}
             item={item}
             homepagePath={homepagePath}
             onSelect={onSelect}
@@ -356,10 +378,21 @@ const ContentGroup = ({
   );
 };
 
+/**
+ * The top-bar navigation popover's body: a content-type switcher (rendered
+ * only when templated entity types exist besides pages), a search field, the
+ * per-type "New" control, and the content list of the selected type. Rows of
+ * templated types navigate to the per-content editor and expose no
+ * page-management menu (their links carry only `edit-form`).
+ */
 const Navigation = ({
   loading = false,
   showNew,
   items = [],
+  entityType = PAGE_ENTITY_TYPE,
+  groupTitle = 'Pages',
+  typeOptions = [],
+  onTypeChange,
   onNewPage,
   onSearch,
   onSelect,
@@ -374,6 +407,10 @@ const Navigation = ({
   loading: boolean;
   showNew: boolean;
   items: ContentStub[];
+  entityType?: string;
+  groupTitle?: string;
+  typeOptions?: ContentNavigationTypeOption[];
+  onTypeChange?: (entityType: string) => void;
   onNewPage?: () => void;
   onSearch?: (value: string) => void;
   onSelect?: (value: ContentStub) => void;
@@ -396,6 +433,27 @@ const Navigation = ({
 
   return (
     <div data-testid="canvas-navigation-content">
+      {typeOptions.length > 1 && (
+        <Flex mb="3">
+          <SegmentedControl.Root
+            size="1"
+            value={entityType}
+            onValueChange={onTypeChange}
+            style={{ width: '100%' }}
+            data-testid="canvas-navigation-type-switcher"
+          >
+            {typeOptions.map((option) => (
+              <SegmentedControl.Item
+                key={option.entityType}
+                value={option.entityType}
+                data-testid={`canvas-navigation-type-${option.entityType}`}
+              >
+                {option.label}
+              </SegmentedControl.Item>
+            ))}
+          </SegmentedControl.Root>
+        </Flex>
+      )}
       <Flex direction="row" gap="2" mb="4">
         <form
           className={styles.search}
@@ -454,7 +512,8 @@ const Navigation = ({
         {!loading && (
           <>
             <ContentGroup
-              title="Pages"
+              title={groupTitle}
+              entityType={entityType}
               items={items}
               onSelect={onSelect}
               onDuplicate={onDuplicate}

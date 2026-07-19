@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { NavLink, useLocation, useParams } from 'react-router-dom';
 import TemplateIcon from '@assets/icons/template.svg?react';
@@ -33,6 +33,12 @@ import {
   setHomepagePath,
 } from '@/features/configuration/configurationSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
+import {
+  getContentNavigationTypeOptions,
+  getTemplatedEntityGroups,
+  PAGE_ENTITY_TYPE,
+  resolveContentNavigationType,
+} from '@/features/navigator/templatedContent';
 import { DEFAULT_REGION, selectPreviouslyEdited } from '@/features/ui/uiSlice';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useEntityTitle } from '@/hooks/useEntityTitle';
@@ -40,7 +46,10 @@ import { usePaginatedContentList } from '@/hooks/usePaginatedContentList';
 import { useSmartRedirect } from '@/hooks/useSmartRedirect';
 import { useTemplateCaption } from '@/hooks/useTemplateCaption';
 import { useTemplateRef } from '@/hooks/useTemplateRef';
-import { componentAndLayoutApi } from '@/services/componentAndLayout';
+import {
+  componentAndLayoutApi,
+  useGetContentTemplatesQuery,
+} from '@/services/componentAndLayout';
 import {
   useCreateContentMutation,
   useDeleteContentMutation,
@@ -101,18 +110,44 @@ const PageInfo = () => {
   const templateCaption = useTemplateCaption();
 
   const [searchTerm, setSearchTerm] = useState<string>('');
-  // @todo: https://www.drupal.org/i/3513566 this needs to be generalized to check all content entity types.
+  // The top bar's New button creates Canvas pages only; creating templated
+  // entity types lives in the Content panel and the content browser.
   const canCreatePages =
     !!canvasSettings.contentEntityCreateOperations?.canvas_page?.canvas_page;
-  // @todo Generalize in https://www.drupal.org/i/3498525
+
+  // The popover lists one content type at a time: Canvas pages, or any
+  // templated entity type (a bundle with an enabled full-view template),
+  // switchable inside the popover. Defaults to the type of the open entity so
+  // the list starts where the editor is.
+  const { data: contentTemplates } = useGetContentTemplatesQuery();
+  const templatedGroups = useMemo(
+    () => getTemplatedEntityGroups(contentTemplates),
+    [contentTemplates],
+  );
+  const typeOptions = useMemo(
+    () => getContentNavigationTypeOptions(templatedGroups),
+    [templatedGroups],
+  );
+  const [selectedNavType, setSelectedNavType] = useState<string>(
+    entityType ?? PAGE_ENTITY_TYPE,
+  );
+  // Guards against a not-yet-loaded templates query and stale selections by
+  // falling back to pages.
+  const listedEntityType = resolveContentNavigationType(
+    selectedNavType,
+    typeOptions,
+  );
+  const listedTypeLabel =
+    typeOptions.find((option) => option.entityType === listedEntityType)
+      ?.label ?? 'Pages';
   const {
-    items: pageItems,
-    isLoading: isPageItemsLoading,
-    error: pageItemsError,
-    isSuccess: isGetPageItemsSuccess,
+    items: contentItems,
+    isLoading: isContentItemsLoading,
+    error: contentItemsError,
+    isSuccess: isGetContentItemsSuccess,
     hasMore,
     handleLoadMore,
-  } = usePaginatedContentList('canvas_page', searchTerm);
+  } = usePaginatedContentList(listedEntityType, searchTerm);
 
   const [
     createContent,
@@ -137,16 +172,26 @@ const PageInfo = () => {
   const [popoverOpen, setPopoverOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    if (isGetPageItemsSuccess) {
+    // Only a canvas_page listing can answer the homepage question; skip while
+    // the popover lists a templated entity type so switching types does not
+    // clobber the current answer.
+    if (isGetContentItemsSuccess && listedEntityType === PAGE_ENTITY_TYPE) {
       // Check if the current page is the homepage.
-      const homepage = pageItems?.find(
+      const homepage = contentItems?.find(
         (page) => page.internalPath === homepagePath,
       );
       setIsCurrentPageHomepage(
         entityType === 'canvas_page' && entityId === String(homepage?.id),
       );
     }
-  }, [entityId, entityType, homepagePath, isGetPageItemsSuccess, pageItems]);
+  }, [
+    entityId,
+    entityType,
+    homepagePath,
+    isGetContentItemsSuccess,
+    contentItems,
+    listedEntityType,
+  ]);
 
   useEffect(() => {
     if (isGetStagedUpdateSuccess) {
@@ -339,7 +384,9 @@ const PageInfo = () => {
                     {title !== undefined
                       ? title
                         ? title
-                        : 'Untitled page'
+                        : entityType && entityType !== PAGE_ENTITY_TYPE
+                          ? 'Untitled'
+                          : 'Untitled page'
                       : 'No page selected'}
                   </>
                 )}
@@ -355,11 +402,17 @@ const PageInfo = () => {
             align="center"
           >
             <Panel className="canvas-app" mt="4">
-              {!pageItemsError && (
+              {!contentItemsError && (
                 <Navigation
-                  loading={isPageItemsLoading}
-                  items={pageItems || []}
-                  showNew={canCreatePages}
+                  loading={isContentItemsLoading}
+                  items={contentItems || []}
+                  entityType={listedEntityType}
+                  groupTitle={listedTypeLabel}
+                  typeOptions={typeOptions}
+                  onTypeChange={setSelectedNavType}
+                  showNew={
+                    canCreatePages && listedEntityType === PAGE_ENTITY_TYPE
+                  }
                   onNewPage={handleNewPage}
                   onSearch={setSearchTerm}
                   onSelect={() => setPopoverOpen(false)}
@@ -372,10 +425,10 @@ const PageInfo = () => {
                   onLoadMore={handleLoadMore}
                 />
               )}
-              {pageItemsError && (
+              {contentItemsError && (
                 <ErrorCard
-                  title="An unexpected error has occurred while loading pages."
-                  error={getQueryErrorMessage(pageItemsError)}
+                  title="An unexpected error has occurred while loading content."
+                  error={getQueryErrorMessage(contentItemsError)}
                 />
               )}
             </Panel>

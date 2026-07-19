@@ -85,6 +85,7 @@ services:
     tags:
       - { name: cache.bin.memory }
   Drupal\canvas\Storage\ComponentTreeLoader: {}
+  Drupal\canvas\EditableContentDiscovery: {}
   Drupal\canvas\CodeComponentDataProvider: {}
   Drupal\canvas\Version: {}
   Drupal\canvas\CanvasConfigUpdater: ~
@@ -189,6 +190,9 @@ services:
   Drupal\canvas\Access\AuthenticationAccessChecker:
     tags:
       - { name: access_check, applies_to: _canvas_authentication_required }
+  Drupal\canvas\Access\EditableContentAccessCheck:
+    tags:
+      - { name: access_check, applies_to: _canvas_editable_content }
 
   # Twig.
   Drupal\canvas\Twig\CanvasTwigExtension:

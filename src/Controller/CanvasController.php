@@ -8,6 +8,7 @@ use Drupal\canvas\AssetRenderer;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\Config\ThemeSettingsDiscovery;
+use Drupal\canvas\EditableContentDiscovery;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -66,6 +67,7 @@ final class CanvasController {
     private readonly ThemeSettingsDiscovery $themeSettingsDiscovery,
     private readonly GlobalImports $globalImports,
     private readonly LanguageManagerInterface $languageManager,
+    private readonly EditableContentDiscovery $editableContentDiscovery,
   ) {}
 
   private const HTML = <<<HTML
@@ -427,35 +429,51 @@ HTML;
       'entity_bundles',
       // Invalidate whenever the set of entity types changes.
       'entity_types',
+      // Invalidate whenever content templates change: templated bundles are
+      // creatable even without a component tree (exposed slot) field.
+      ContentTemplate::ENTITY_TYPE_ID . '_list',
     ]);
+    // Creatable pairs: any bundle with a `component_tree` field (canvas_page,
+    // and bundles whose template exposes slots), plus every Canvas-editable
+    // templated bundle (which may have no such field when its template
+    // exposes no slots).
+    $pairs = [];
     foreach ($field_map as $entity_type_id => $detail) {
-      $bundleInfo = $this->entityTypeBundleInfo->getBundleInfo($entity_type_id);
-      $field_names = \array_keys($detail);
       // This assumes one component tree field per bundle/entity.
       // If this assumption is willing to change, will need to be updated in
       // https://www.drupal.org/i/3526189.
-      foreach ($field_names as $field_name) {
-        $bundles = $detail[$field_name]['bundles'];
-        foreach ($bundles as $bundle) {
-          $access = $this->entityTypeManager->getAccessControlHandler($entity_type_id)->createAccess($bundle, return_as_object: TRUE);
-          \assert($access instanceof AccessResult);
-          if ($access->isAllowed()) {
-            $links = $links->withLink(
-              "$entity_type_id:$bundle",
-              new CanvasResourceLink(
-                $access,
-                Url::fromRoute('canvas.api.content.create', [
-                  // @todo Add bundle support in https://www.drupal.org/i/3513566
-                  'entity_type' => $entity_type_id,
-                ]),
-                CanvasUriDefinitions::LINK_REL_CREATE,
-                ['label' => (string) $bundleInfo[$bundle]['label']],
-              )
-            );
-          }
-          else {
-            $links->addCacheableDependency($access);
-          }
+      foreach ($detail as $field_detail) {
+        foreach ($field_detail['bundles'] as $bundle) {
+          $pairs[$entity_type_id][$bundle] = $bundle;
+        }
+      }
+    }
+    foreach ($this->editableContentDiscovery->getEditableTypeBundlePairs() as $entity_type_id => $bundles) {
+      foreach ($bundles as $bundle) {
+        $pairs[$entity_type_id][$bundle] = $bundle;
+      }
+    }
+    foreach ($pairs as $entity_type_id => $bundles) {
+      $bundleInfo = $this->entityTypeBundleInfo->getBundleInfo($entity_type_id);
+      foreach ($bundles as $bundle) {
+        $access = $this->entityTypeManager->getAccessControlHandler($entity_type_id)->createAccess($bundle, return_as_object: TRUE);
+        \assert($access instanceof AccessResult);
+        if ($access->isAllowed()) {
+          $links = $links->withLink(
+            "$entity_type_id:$bundle",
+            new CanvasResourceLink(
+              $access,
+              Url::fromRoute('canvas.api.content.create', [
+                // @todo Add bundle support in https://www.drupal.org/i/3513566
+                'entity_type' => $entity_type_id,
+              ]),
+              CanvasUriDefinitions::LINK_REL_CREATE,
+              ['label' => (string) $bundleInfo[$bundle]['label']],
+            )
+          );
+        }
+        else {
+          $links->addCacheableDependency($access);
         }
       }
     }

@@ -61,7 +61,10 @@ final class ContentTemplateHooks {
       // @see \Drupal\canvas\InternalCanvasFieldNameResolver::getCanvasFieldName()
       $canvas_fields = \array_filter($field_definitions, fn(FieldDefinitionInterface $field_definition) => \is_a($field_definition->getItemDefinition()
         ->getClass(), ComponentTreeItem::class, \TRUE));
-      if (empty($canvas_fields)) {
+      // Templated bundles without exposed slots have no canvas field but are
+      // still edited (and published) through the Canvas editor.
+      $is_templated_bundle = \in_array($form_display->getTargetBundle(), $this->componentTreeLoader->getTemplatedBundles($target_entity_type_id), TRUE);
+      if (empty($canvas_fields) && !$is_templated_bundle) {
         return;
       }
       // Publishable entities are automatically published when publishing
@@ -74,14 +77,18 @@ final class ContentTemplateHooks {
   /**
    * Implements hook_form_alter().
    *
-   * Trims the entity form served to the Canvas editor for templated entities
-   * (per-content mode) down to page-level metadata: the entity's label field
-   * plus the elements the form attaches to its sidebar groups (URL alias,
-   * menu settings, authoring information, promotion options, comment
-   * settings). Content field widgets are removed; the editor's Content tab
-   * links to Drupal's own edit form instead. Only applies to entity forms
-   * built under `canvas.api.*` routes (the same scoping as
-   * ::entityFormDisplayAlter()), so Drupal's own entity forms are unaffected.
+   * Partitions the entity form served to the Canvas editor for templated
+   * entities (per-content mode) into two disjoint slices rendered by two
+   * sidebar tabs: page-level metadata (the entity's label field plus the
+   * elements the form attaches to its sidebar groups: URL alias, menu
+   * settings, authoring information, promotion options, comment settings)
+   * stays unannotated and renders under "Page data"; every other field widget
+   * is annotated with `data-canvas-form-partition="content"` and renders
+   * under the "Content" tab. Both slices share one form model, so
+   * react-hook-form state, auto-save, and undo carry over unchanged. Only
+   * applies to entity forms built under `canvas.api.*` routes (the same
+   * scoping as ::entityFormDisplayAlter()), so Drupal's own entity forms are
+   * unaffected.
    */
   #[Hook('form_alter')]
   public function formAlter(array &$form, FormStateInterface $form_state): void {
@@ -95,18 +102,35 @@ final class ContentTemplateHooks {
     $entity = $form_object->getEntity();
     if ($entity instanceof ComponentTreeEntityInterface
       || !$entity instanceof FieldableEntityInterface
-      || !$this->componentTreeLoader->hasContentTemplateWithExposedSlots($entity)) {
+      || !$this->componentTreeLoader->hasContentTemplate($entity)) {
       return;
     }
     $label_key = $entity->getEntityType()->getKey('label');
-    foreach (\array_keys($form_object->getFormDisplay($form_state)->getComponents()) as $name) {
-      if ($name === $label_key || !isset($form[$name]) || !\is_array($form[$name])) {
+    // Annotate every top-level element that is not page-level metadata — not
+    // only form display widgets but also containers added by form alters
+    // (for example field_group wrappers, which host content widgets at render
+    // time and would otherwise hide them in the Content tab). Skipped keys:
+    // the label field, the sidebar tab-set and footer containers the
+    // page-data elements group into, and the form actions.
+    $skip = [$label_key, 'advanced', 'footer', 'actions'];
+    foreach (Element::children($form) as $name) {
+      if (\in_array($name, $skip, TRUE) || !\is_array($form[$name])) {
+        continue;
+      }
+      // Form API internals (hidden inputs, tokens) belong to no partition:
+      // they must stay functional in both tabs.
+      if (\in_array($form[$name]['#type'] ?? NULL, ['hidden', 'token', 'value'], TRUE)) {
         continue;
       }
       if (!self::isPageDataElement($form[$name], $form)) {
-        $form[$name]['#access'] = FALSE;
+        $form[$name]['#attributes']['data-canvas-form-partition'] = 'content';
       }
     }
+    // field_group containers do not exist yet at form-alter time (the module
+    // creates them in a #process callback on the root form), so annotate them
+    // in an after-build pass; without it a content-side group would render
+    // unannotated and hide the content widgets moved into it.
+    $form['#after_build'][] = [self::class, 'afterBuildAnnotateGroupContainers'];
     // The read-only meta block (published state, last-saved time, author) is
     // noise inside the editor, which has its own publish state UI.
     // @see \Drupal\node\Form\NodeForm::form()
@@ -133,6 +157,34 @@ final class ContentTemplateHooks {
       $label_weight = $form[$label_key]['#weight'] ?? NULL;
       $form['path']['#weight'] = (\is_numeric($label_weight) ? $label_weight : 0) + 1;
     }
+  }
+
+  /**
+   * After-build callback: annotates field_group containers with a partition.
+   *
+   * Runs once the group containers exist. A container whose own group chain
+   * does not land in the sidebar (`advanced`/`footer`) belongs to the content
+   * partition, matching how its child widgets were annotated at form-alter
+   * time.
+   *
+   * @param array<string, mixed> $form
+   *   The built form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   *
+   * @return array<string, mixed>
+   *   The form.
+   */
+  public static function afterBuildAnnotateGroupContainers(array $form, FormStateInterface $form_state): array {
+    foreach (\array_keys((array) ($form['#fieldgroups'] ?? [])) as $group_name) {
+      if (!isset($form[$group_name]) || !\is_array($form[$group_name])) {
+        continue;
+      }
+      if (!self::isPageDataElement($form[$group_name], $form)) {
+        $form[$group_name]['#attributes']['data-canvas-form-partition'] = 'content';
+      }
+    }
+    return $form;
   }
 
   /**

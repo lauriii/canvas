@@ -29,3 +29,29 @@
   max-width: 100%;
 }
 
+/* Per-content form split, phase 2: the entity form is mounted once and both
+   the Page data and Content tabs show disjoint slices of it. The server
+   annotates content field widgets with data-canvas-form-partition="content";
+   unannotated elements are page-level metadata. */
+.partitionedForm[data-canvas-form-partition-view='page-data']
+  [data-canvas-form-partition='content'] {
+  display: none;
+}
+.partitionedForm[data-canvas-form-partition-view='content']
+  form
+  > *:not([data-canvas-form-partition='content']) {
+  display: none;
+}
+
+/* Defense in depth: a content-annotated widget nested inside an unannotated
+   top-level container (e.g. a wrapper added by a contrib form alter after
+   the annotation pass) must not vanish from both tabs — keep its container
+   visible in the Content tab. */
+.partitionedForm[data-canvas-form-partition-view='content']
+  form
+  > *:not([data-canvas-form-partition='content']):has(
+    [data-canvas-form-partition='content']
+  ) {
+  display: revert;
+}
+

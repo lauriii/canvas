@@ -141,6 +141,18 @@ The Drupal entity edit form (e.g., node title, path, publishing options) rendere
 - **Input Validation**: HTML5 native validation API (`checkValidity()`)
 - **Data flow**: Form values → `setPageData()` → Redux pageData slice
 
+For templated entities (a bundle with an enabled full view mode content
+template), the same form is served partitioned: the server annotates content
+field widgets with `data-canvas-form-partition="content"`
+(`ContentTemplateHooks::formAlter()`), and the contextual panel renders the
+one mounted form as two disjoint slices — page-level metadata under the
+"Page data" tab, content fields under the "Content" tab. The form always uses
+the `default` form display, because the replay path
+(`ClientDataToEntityConverter::setEntityFields()`) builds the default form;
+see ADR 0021. Stacked reference editing writes through
+`PATCH /canvas/api/v0/content/{entity_type}/{entity}/entity-form-fields`,
+which wraps the same form replay.
+
 ---
 
 ## `DrupalForm` — The Form Root

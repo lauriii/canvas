@@ -26,6 +26,8 @@ export interface CreateContentResponse {
 export interface CreateContentRequest {
   entity_id?: string;
   entity_type: string;
+  /** Creates an unpublished draft of this Canvas-editable bundle (non-canvas_page types). */
+  bundle?: string;
 }
 
 export interface UpdateContentRequest {
@@ -44,6 +46,10 @@ export interface ContentListParams {
   entityType: string;
   search?: string;
   offset?: number;
+  /** Restrict to one Canvas-editable bundle. */
+  bundle?: string;
+  /** JSON:API-style sort: title, created, or changed, `-`-prefixed for descending. */
+  sort?: string;
 }
 
 const buildUpdateContentBody = ({
@@ -65,7 +71,7 @@ export const contentApi = createApi({
   tagTypes: ['Content', 'StagedConfig', 'PendingChanges'],
   endpoints: (builder) => ({
     getContentList: builder.query<ContentListResult, ContentListParams>({
-      query: ({ entityType, search, offset }) => {
+      query: ({ entityType, search, offset, bundle, sort }) => {
         const params = new URLSearchParams();
         if (search) {
           const normalizedSearch = search.toLowerCase().trim();
@@ -73,6 +79,12 @@ export const contentApi = createApi({
         }
         if (offset && offset > 0) {
           params.append('page[offset]', String(offset));
+        }
+        if (bundle) {
+          params.append('filter[bundle]', bundle);
+        }
+        if (sort) {
+          params.append('sort', sort);
         }
         const hasParams = params.toString().length > 0;
         return {
@@ -87,7 +99,7 @@ export const contentApi = createApi({
         totalCount: response.meta?.count ?? null,
       }),
       serializeQueryArgs: ({ queryArgs }) => {
-        return `${queryArgs.entityType}-${queryArgs.search || ''}`;
+        return `${queryArgs.entityType}-${queryArgs.search || ''}-${queryArgs.bundle || ''}-${queryArgs.sort || ''}`;
       },
       merge: (currentCache, newItems, { arg }) => {
         if (arg.offset && arg.offset > 0) {
@@ -159,10 +171,10 @@ export const contentApi = createApi({
       CreateContentResponse,
       CreateContentRequest
     >({
-      query: ({ entity_type, entity_id }) => ({
+      query: ({ entity_type, entity_id, bundle }) => ({
         url: `/canvas/api/v0/content/${entity_type}`,
         method: 'POST',
-        body: entity_id ? { entity_id } : {},
+        body: entity_id ? { entity_id } : bundle ? { bundle } : {},
       }),
       // Instead of invalidating the cache tag { type: 'Content', id: 'LIST' }, we manually refetch the first 50 items after creation.
       // The newly added page is ensured to be the first item of the pages due to the sort order used by the backend.
@@ -178,8 +190,41 @@ export const contentApi = createApi({
               { forceRefetch: true },
             ),
           );
+          // Also invalidate the tag so cache entries with other args (the
+          // content browser's sorted/filtered lists key separately) refetch.
+          dispatch(
+            contentApi.util.invalidateTags([{ type: 'Content', id: 'LIST' }]),
+          );
         } catch {
           // If creation fails, no refetch needed
+        }
+      },
+    }),
+    patchEntityFormFields: builder.mutation<
+      void,
+      {
+        entityType: string;
+        entityId: string;
+        entityFormFields: Record<string, string>;
+      }
+    >({
+      query: ({ entityType, entityId, entityFormFields }) => ({
+        url: `/canvas/api/v0/content/${entityType}/${entityId}/entity-form-fields`,
+        method: 'PATCH',
+        body: { entity_form_fields: entityFormFields },
+      }),
+      // The edit becomes the referenced entity's own pending change; refresh
+      // the review UI's list.
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(
+            pendingChangesApi.util.invalidateTags([
+              { type: 'PendingChanges', id: 'LIST' },
+            ]),
+          );
+        } catch {
+          // Surfaced by the mutation's error state.
         }
       },
     }),
@@ -294,6 +339,7 @@ export const {
   useGetContentListQuery,
   useDeleteContentMutation,
   useCreateContentMutation,
+  usePatchEntityFormFieldsMutation,
   useUpdateContentMutation,
   useGetStagedConfigQuery,
   useSetStagedConfigMutation,

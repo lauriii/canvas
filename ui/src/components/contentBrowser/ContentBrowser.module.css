@@ -1,0 +1,26 @@
+.page {
+  overflow-y: auto;
+  height: 100%;
+}
+
+/* An unstyled button wrapping a sortable header label, so the whole label is
+   the click and focus target without changing the header's typography. */
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  border: 0;
+  background: none;
+  font: inherit;
+  gap: var(--space-1);
+}
+
+.clickableRow {
+  cursor: pointer;
+}
+
+.clickableRow:hover {
+  background-color: var(--gray-2);
+}

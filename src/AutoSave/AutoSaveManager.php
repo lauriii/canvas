@@ -1112,7 +1112,13 @@ class AutoSaveManager implements EventSubscriberInterface {
     if ($entity instanceof ContentTemplate) {
       return !$entity->status();
     }
-    return (string) $entity->label() == ApiContentControllers::defaultTitle($entity->getEntityType()) || str_ends_with((string) $entity->label(), self::ENTITY_DUPLICATE_SUFFIX);
+    if ((string) $entity->label() == ApiContentControllers::defaultTitle($entity->getEntityType()) || str_ends_with((string) $entity->label(), self::ENTITY_DUPLICATE_SUFFIX)) {
+      return TRUE;
+    }
+    // Drafts of templated bundles are created with a bundle-label placeholder.
+    // @see \Drupal\canvas\Controller\ApiContentControllers::post()
+    $bundle_label = \Drupal::service('entity_type.bundle.info')->getBundleInfo($entity->getEntityTypeId())[$entity->bundle()]['label'] ?? NULL;
+    return $bundle_label !== NULL && (string) $entity->label() == ApiContentControllers::defaultDraftTitle($bundle_label);
   }
 
   /**

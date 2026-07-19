@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import clsx from 'clsx';
+import { useParams } from 'react-router';
 import { Link } from 'react-router-dom';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import {
@@ -8,6 +9,7 @@ import {
 } from '@radix-ui/react-icons';
 import {
   Box,
+  Button,
   ChevronDownIcon,
   Flex,
   Heading,
@@ -15,8 +17,15 @@ import {
   Text,
 } from '@radix-ui/themes';
 
+import { useAppDispatch } from '@/app/hooks';
 import ChangeIcon from '@/components/review/changes/ChangeIcon';
 import { getGroupLabel } from '@/components/review/utils';
+import {
+  applyEntityFormViolations,
+  focusFormField,
+  isViolationForOpenEntity,
+  propertyPathToFormElementName,
+} from '@/features/validation/entityFormViolations';
 
 import type { ErrorResponse } from '@/services/pendingChangesApi';
 
@@ -95,6 +104,7 @@ const getErrorPath = (error: EntityError): string | null => {
 
 const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
   const [isOpen, setIsOpen] = useState(true);
+  const { entityType, entityId } = useParams();
   return (
     <Collapsible.Root
       data-testid="error-details"
@@ -122,6 +132,15 @@ const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
       >
         {errorGroup.map((error: EntityError, ix: number) => {
           const errorPath = getErrorPath(error);
+          // For the entity open in the editor, a pointer that maps to a form
+          // field becomes a jump-to-field action instead of a navigation link:
+          // the field error is already shown on the sidebar form.
+          const jumpFieldName = isViolationForOpenEntity(error.meta, {
+            entityType,
+            entityId,
+          })
+            ? propertyPathToFormElementName(error.source?.pointer ?? '')
+            : null;
 
           return (
             <Flex px="5" py="1" gap="2" align="start" key={ix}>
@@ -130,17 +149,28 @@ const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
               </Flex>
               <Text size="1" data-testid="publish-error-detail">
                 {error.detail}{' '}
-                {errorPath && (
-                  <Link data-testid="publish-error-link" to={errorPath}>
-                    {
-                      <OpenInNewWindowIcon
-                        color="blue"
-                        width="16"
-                        height="16"
-                        style={{ position: 'relative', top: '4px' }}
-                      />
-                    }
-                  </Link>
+                {jumpFieldName ? (
+                  <Button
+                    size="1"
+                    variant="ghost"
+                    data-testid="publish-error-jump-to-field"
+                    onClick={() => focusFormField(jumpFieldName)}
+                  >
+                    Jump to field
+                  </Button>
+                ) : (
+                  errorPath && (
+                    <Link data-testid="publish-error-link" to={errorPath}>
+                      {
+                        <OpenInNewWindowIcon
+                          color="blue"
+                          width="16"
+                          height="16"
+                          style={{ position: 'relative', top: '4px' }}
+                        />
+                      }
+                    </Link>
+                  )
                 )}
               </Text>
             </Flex>
@@ -153,6 +183,29 @@ const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
 
 const ReviewErrors: React.FC<ReviewErrorsProps> = ({ errorState }) => {
   const [isOpen, setIsOpen] = useState(true);
+  const dispatch = useAppDispatch();
+  const { entityType, entityId } = useParams();
+  const errors = errorState?.errors;
+
+  // Surface publish errors that belong to the entity open in the editor as
+  // blocking errors on its sidebar form fields. Dispatched from an effect,
+  // not during render; unmappable pointers are skipped by the helper.
+  useEffect(() => {
+    if (!errors?.length) {
+      return;
+    }
+    const violations = errors
+      .filter((error) =>
+        isViolationForOpenEntity(error.meta, { entityType, entityId }),
+      )
+      .map((error) => ({
+        propertyPath: error.source?.pointer ?? '',
+        message: error.detail,
+      }));
+    if (violations.length) {
+      applyEntityFormViolations(dispatch, violations);
+    }
+  }, [dispatch, errors, entityType, entityId]);
 
   if (errorState?.errors?.length) {
     // Organize errors by entity label.

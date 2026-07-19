@@ -14,8 +14,8 @@ use Drupal\Core\Routing\RouteMatchInterface;
  * Placed on a content entity's canonical route, this task links to the generic
  * Canvas editor route (`canvas.boot.entity`), whose access requirements
  * (`_entity_access: entity.update` plus `_canvas_component_tree_edit_access`)
- * hide the tab unless the bundle has an enabled content template with active
- * exposed slots and the user may update the entity.
+ * hide the tab unless the bundle has an enabled `full` view mode content
+ * template and the user may update the entity.
  *
  * The canonical route exposes the entity under a type-specific parameter name
  * (for example `node`), while the editor route expects `entity_type` and
@@ -23,7 +23,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
  * match, so the same task works for any content entity type.
  *
  * @see \Drupal\canvas\Access\ComponentTreeEditAccessCheck
- * @see \Drupal\canvas\Storage\ComponentTreeLoader::hasContentTemplateWithExposedSlots()
+ * @see \Drupal\canvas\Storage\ComponentTreeLoader::hasContentTemplate()
  * @internal
  */
 final class ContentTemplateLayoutTask extends LocalTaskDefault {

@@ -1773,6 +1773,37 @@ paths:
       responses:
         '204':
           description: Content deleted successfully
+  '/canvas/api/v0/content/{entityTypeId}/{entityId}/entity-form-fields':
+    patch:
+      summary: >
+        Auto-saves entity field values without touching any component tree.
+        Backs the stacked reference-editing panel: the referenced entity's
+        field edits become that entity's own pending change. Validation is
+        deferred to publish.
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/entityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - entity_form_fields
+              properties:
+                entity_form_fields:
+                  type: object
+                  description: Entity form values keyed by form element name.
+                clientInstanceId:
+                  type: string
+                  description: Client instance ID for auto-save concurrency control.
+      responses:
+        '204':
+          description: Field values auto-saved as the entity's pending change.
+        '400':
+          description: Missing or empty entity_form_fields.
   '/canvas/api/v0/content/canvas_page/{entityId}/translations':
     description: Endpoint for deleting a specific translation of a Page content entity. Note that the path can be prefixed with a langcode to negotiate deleting that particular translation.
     delete:
@@ -1818,6 +1849,24 @@ paths:
             maximum: 50
             default: 50
           example: 25
+        - in: query
+          name: filter[bundle]
+          required: false
+          description: Restrict the list to one Canvas-editable bundle of the entity type.
+          schema:
+            type: string
+          example: article
+        - in: query
+          name: sort
+          required: false
+          description: >
+            Sort the list by `title`, `created`, or `changed`, each optionally
+            prefixed with `-` for descending order. Other values are rejected
+            with a 400. Ignored when `search` is present. Defaults to newest
+            first.
+          schema:
+            type: string
+          example: -changed
       responses:
         200:
           description: Page list generated successfully.
@@ -1844,6 +1893,12 @@ paths:
                         - internalPath
                         - isNew
                         - hasUnsavedStatusChange
+                        - entityType
+                        - bundle
+                        - bundleLabel
+                        - authorName
+                        - created
+                        - changed
                         - links
                       additionalProperties: false
                       properties:
@@ -1860,6 +1915,24 @@ paths:
                         status:
                           type: boolean
                           description: The page status.
+                        entityType:
+                          type: string
+                          description: The entity type ID.
+                        bundle:
+                          type: string
+                          description: The bundle machine name.
+                        bundleLabel:
+                          type: string
+                          description: The human-readable bundle (content type) label.
+                        authorName:
+                          type: [string, "null"]
+                          description: The author display name, or null when the entity type has no owner.
+                        created:
+                          type: [integer, "null"]
+                          description: The created timestamp, or null when the entity type has no created field.
+                        changed:
+                          type: [integer, "null"]
+                          description: The changed timestamp, or null when the entity type does not track changes.
                         autoSaveLabel:
                           type: [string, "null"]
                           description: The auto-save title.
@@ -1927,6 +2000,12 @@ paths:
                         autoSaveLabel: Homer
                         autoSavePath: /updated-path
                         internalPath: /page/1
+                        entityType: canvas_page
+                        bundle: canvas_page
+                        bundleLabel: Page
+                        authorName: null
+                        created: 1750000000
+                        changed: 1750000000
                         links:
                           edit-form: /canvas/editor/canvas_page/1
                       - id: 2
@@ -1937,6 +2016,12 @@ paths:
                         autoSaveLabel: About who?
                         autoSavePath: /page/1
                         internalPath: /page/2
+                        entityType: canvas_page
+                        bundle: canvas_page
+                        bundleLabel: Page
+                        authorName: null
+                        created: 1750000000
+                        changed: 1750000000
                         links:
                           edit-form: /canvas/editor/canvas_page/2
                     meta:
@@ -1966,11 +2051,16 @@ paths:
                 # @todo Move duplication to a separate path?
                 - $ref: '#/components/schemas/DuplicateContentRequestBody'
                 - $ref: '#/components/schemas/NewContentRequestBody'
+                - $ref: '#/components/schemas/NewDraftContentRequestBody'
             examples:
               "Duplicate existing page":
                 summary: "Duplicate existing page"
                 value:
                   entity_id: "1"
+              "A draft article":
+                summary: An unpublished draft of a templated bundle, fields at defaults
+                value:
+                  bundle: article
               "An empty page":
                 summary: A page with no components
                 value:
@@ -2486,6 +2576,48 @@ paths:
                   entity_form_fields:
                     type: object
                     description: Entity field values that the user has edit access to.
+                  entityFormViolations:
+                    type: array
+                    description: >
+                      Stored entity form violations from earlier auto-saves, so
+                      reopening a draft restores validation errors on the form
+                      fields. Present only when violations exist.
+                    items:
+                      type: object
+                      required:
+                        - propertyPath
+                        - message
+                      properties:
+                        propertyPath:
+                          type: string
+                          description: The violated property path, dot-separated (e.g. "title.0.value").
+                        message:
+                          type: string
+                          description: The violation message.
+                  referencedEditable:
+                    type: array
+                    description: >
+                      Referenced entities the editor can open in the stacked
+                      reference-editing panel: update-accessible targets of
+                      the entity's reference fields whose bundle is
+                      Canvas-editable.
+                    items:
+                      type: object
+                      required:
+                        - entityType
+                        - entityId
+                        - label
+                        - fieldLabel
+                      properties:
+                        entityType:
+                          type: string
+                        entityId:
+                          type: string
+                        label:
+                          type: string
+                        fieldLabel:
+                          type: string
+                          description: The label of the reference field on the host entity.
                   translations:
                     type: object
                     description: Translation metadata for the entity.
@@ -4842,7 +4974,6 @@ components:
         - autoSaveLabel
         - autoSavePath
         - internalPath
-        - components
         - links
       properties:
         id:
@@ -4858,6 +4989,24 @@ components:
         status:
           type: boolean
           description: The page status.
+        entityType:
+          type: string
+          description: The entity type ID.
+        bundle:
+          type: string
+          description: The bundle machine name.
+        bundleLabel:
+          type: string
+          description: The human-readable bundle (content type) label.
+        authorName:
+          type: [ string, "null" ]
+          description: The author display name, or null when the entity type has no owner.
+        created:
+          type: [ integer, "null" ]
+          description: The created timestamp, or null when the entity type has no created field.
+        changed:
+          type: [ integer, "null" ]
+          description: The changed timestamp, or null when the entity type does not track changes.
         autoSaveLabel:
           type: [ string, "null" ]
           description: The auto-save title.
@@ -4881,7 +5030,11 @@ components:
           description: >
             The stored component tree as a flat array of items. Each
             item references its parent via parent_uuid, matching the
-            data shape exposed by JSON:API or GraphQL.
+            data shape exposed by JSON:API or GraphQL. Present for
+            canvas_page; other entity types expose one such array per
+            component tree field, keyed by the field's machine name
+            (for example an exposed slot field like `canvas_slot_main`),
+            so `components` is not required.
           items:
             type: object
             required:
@@ -5036,6 +5189,25 @@ components:
               label:
                 type: [ 'null', string ]
                 description: Optional label for the component instance.
+    NewDraftContentRequestBody:
+      type: object
+      additionalProperties: false
+      required:
+        - bundle
+      properties:
+        bundle:
+          type: string
+          description: >
+            The Canvas-editable bundle (an enabled full view mode content
+            template exists for it) to create an unpublished draft of. Field
+            values start at their defaults; constraint validation is deferred
+            to publish.
+        title:
+          type: string
+          description: Optional label. Defaults to a placeholder ("Untitled {bundle label}").
+        clientInstanceId:
+          type: string
+          description: Client instance ID, injected by the Canvas UI's base query.
     DuplicatedContentEntity:
       type: object
       required:
@@ -5044,12 +5216,10 @@ components:
       properties:
         entity_type:
           type: string
-          description: The entity type ID
-          # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types
-          enum:
-            - canvas_page
+          description: The entity type ID of any Canvas-editable entity type
           examples:
             - canvas_page
+            - node
         entity_id:
           # @todo This is a bug https://www.drupal.org/i/3510925 introduced, fix it in https://www.drupal.org/i/3498525
           type: string

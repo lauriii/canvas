@@ -12,6 +12,7 @@ import {
   Tabs,
   Text,
 } from '@radix-ui/themes';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
@@ -19,6 +20,7 @@ import PageDataForm from '@/components/PageDataForm';
 import LockedSlotPanel from '@/components/panel/LockedSlotPanel';
 import SlotExposePanel from '@/components/panel/SlotExposePanel';
 import SlotUsagePanel from '@/components/panel/SlotUsagePanel';
+import StackedEntityForm from '@/components/stackedEntityForm/StackedEntityForm';
 import { setCurrentComponent } from '@/features/form/formStateSlice';
 import {
   findExposedSlotEntry,
@@ -44,8 +46,10 @@ import {
   selectSelectedComponentUuid,
   selectSelection,
 } from '@/features/ui/uiSlice';
+import { FOCUS_ENTITY_FORM_FIELD_EVENT } from '@/features/validation/entityFormViolations';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
+import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import { getBaseUrl } from '@/utils/drupal-globals';
 
 import type React from 'react';
@@ -61,10 +65,13 @@ const ContextualPanel: React.FC = () => {
   const isTemplateContext = editorFrameContext === EditorFrameContext.TEMPLATE;
   const mainTabText = isTemplateContext ? 'Template data' : 'Page data';
 
-  // Per-content mode (a templated entity with exposed slots): the panel gains
-  // a Content tab ahead of Page data. Phase 1 links out to Drupal's own edit
-  // form for the entity's content fields; Page data carries only page-level
-  // metadata (the server trims the entity form).
+  // Per-content mode (a templated entity): the panel gains a Content tab next
+  // to Page data. Both tabs render disjoint slices of the same mounted entity
+  // form: the server annotates content field widgets with
+  // `data-canvas-form-partition="content"` and the active tab decides which
+  // slice is visible, so react-hook-form state, auto-save, and undo carry
+  // over unchanged. Page data carries only page-level metadata (title, URL
+  // alias, and the form's sidebar groups).
   const isPerContentMode = useAppSelector(selectIsPerContentMode);
   const { entityType, entityId, bundle, viewMode } = useParams();
   const editFormUrl =
@@ -144,6 +151,30 @@ const ContextualPanel: React.FC = () => {
   const offRightClasses = useHidePanelClasses('right');
   const [hidePanel, setHidePanel] = useState(false);
 
+  // Stacked reference editing: a referenced entity opened over the Content
+  // tab (one level deep). The list of editable referenced entities comes with
+  // the layout response.
+  const [stackedTarget, setStackedTarget] = useState<{
+    entityType: string;
+    entityId: string;
+    label: string;
+  } | null>(null);
+  const { data: layoutData } = useGetPageLayoutQuery(
+    editorFrameContext === EditorFrameContext.ENTITY && entityId && entityType
+      ? { entityId, entityType }
+      : skipToken,
+  );
+  const referencedEditable = layoutData?.referencedEditable ?? [];
+  // Leaving the entity or the Content tab closes the stack.
+  useEffect(() => {
+    setStackedTarget(null);
+  }, [entityType, entityId]);
+  useEffect(() => {
+    if (activePanel !== 'content') {
+      setStackedTarget(null);
+    }
+  }, [activePanel]);
+
   useEffect(() => {
     if (selectedComponent) {
       // One component is selected
@@ -176,6 +207,48 @@ const ContextualPanel: React.FC = () => {
         current === 'content' ? 'pageData' : current,
       );
     }
+  }, [isPerContentMode]);
+
+  // Jump-to-field requests (validation errors, review panel): activate the
+  // tab whose partition holds the control, then scroll to and focus it. The
+  // entity form is force-mounted, so the control exists even while hidden.
+  useEffect(() => {
+    const onFocusField = (event: Event) => {
+      const fieldName = (event as CustomEvent<{ fieldName?: string }>).detail
+        ?.fieldName;
+      if (!fieldName) {
+        return;
+      }
+      const escapedName = fieldName.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      // Entity-level constraint violations carry bare field names
+      // (e.g. `title`) while the control registers under a delta path
+      // (`title[0][value]`); fall back to the field's first control.
+      const control =
+        document.querySelector<HTMLElement>(
+          `[data-testid="canvas-contextual-panel"] form [name="${escapedName}"]`,
+        ) ??
+        document.querySelector<HTMLElement>(
+          `[data-testid="canvas-contextual-panel"] form [name^="${escapedName}["]`,
+        );
+      if (!control) {
+        return;
+      }
+      const isContentField =
+        control.closest('[data-canvas-form-partition="content"]') !== null;
+      setActivePanel(
+        isContentField && isPerContentMode ? 'content' : 'pageData',
+      );
+      // Wait a tick so the newly active tab's partition is visible before
+      // scrolling and focusing.
+      window.setTimeout(() => {
+        control.scrollIntoView({ block: 'center' });
+        control.focus();
+      }, 0);
+    };
+    document.addEventListener(FOCUS_ENTITY_FORM_FIELD_EVENT, onFocusField);
+    return () => {
+      document.removeEventListener(FOCUS_ENTITY_FORM_FIELD_EVENT, onFocusField);
+    };
   }, [isPerContentMode]);
 
   return (
@@ -305,35 +378,74 @@ const ContextualPanel: React.FC = () => {
                     </ErrorBoundary>
                   )}
                 </Tabs.Content>
-                {isPerContentMode && (
-                  <Tabs.Content value={'content'}>
-                    <Flex direction="column" gap="2" my="2" align="start">
-                      <Text size="1" color="gray">
-                        Content fields are edited in the Drupal edit form.
-                      </Text>
-                      {editFormUrl && (
-                        <Button asChild size="1" className="canvas-button">
-                          <a
-                            href={editFormUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            data-testid="canvas-content-tab-edit-form-link"
-                          >
-                            Edit content
-                            <ExternalLinkIcon />
-                          </a>
-                        </Button>
-                      )}
-                    </Flex>
-                  </Tabs.Content>
-                )}
                 {!isTemplateContext && (
                   <Tabs.Content
                     value={'pageData'}
                     forceMount={true}
-                    hidden={activePanel !== 'pageData'}
+                    hidden={
+                      activePanel !== 'pageData' &&
+                      !(
+                        isPerContentMode &&
+                        activePanel === 'content' &&
+                        !stackedTarget
+                      )
+                    }
+                    data-canvas-form-partition-view={
+                      isPerContentMode && activePanel === 'content'
+                        ? 'content'
+                        : 'page-data'
+                    }
+                    className={styles.partitionedForm}
                   >
                     {editorFrameContext === 'entity' && <PageDataForm />}
+                  </Tabs.Content>
+                )}
+                {isPerContentMode && (
+                  <Tabs.Content value={'content'}>
+                    {stackedTarget ? (
+                      <ErrorBoundary title="An unexpected error has occurred while rendering the referenced entity's form.">
+                        <StackedEntityForm
+                          entityType={stackedTarget.entityType}
+                          entityId={stackedTarget.entityId}
+                          label={stackedTarget.label}
+                          onClose={() => setStackedTarget(null)}
+                        />
+                      </ErrorBoundary>
+                    ) : (
+                      <Flex direction="column" my="2" gap="3" align="start">
+                        {referencedEditable.length > 0 && (
+                          <Flex direction="column" gap="1" align="start">
+                            <Text size="1" weight="bold">
+                              Referenced content
+                            </Text>
+                            {referencedEditable.map((reference) => (
+                              <Button
+                                key={`${reference.entityType}-${reference.entityId}`}
+                                size="1"
+                                variant="ghost"
+                                onClick={() => setStackedTarget(reference)}
+                                data-testid={`canvas-content-tab-edit-reference-${reference.entityType}-${reference.entityId}`}
+                              >
+                                Edit {reference.label} ({reference.fieldLabel})
+                              </Button>
+                            ))}
+                          </Flex>
+                        )}
+                        {editFormUrl && (
+                          <Button asChild size="1" variant="ghost" color="gray">
+                            <a
+                              href={editFormUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              data-testid="canvas-content-tab-edit-form-link"
+                            >
+                              Edit in Drupal form
+                              <ExternalLinkIcon />
+                            </a>
+                          </Button>
+                        )}
+                      </Flex>
+                    )}
                   </Tabs.Content>
                 )}
               </Box>
