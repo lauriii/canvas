@@ -12,14 +12,16 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  *
  * Empty inputs are skipped along with their separator, so e.g. combining a
  * first name and an empty last name does not leave a dangling separator.
+ * Literal text runs mixed with the inputs also cover wrapping a single value
+ * in a prefix and/or suffix.
  *
  * Adapter inputs are a fixed, declared dictionary, so "variadic" is modeled
- * as ten optional slots (`text_1` … `text_10`); the editor UI reveals them
- * incrementally.
+ * as ten optional slots (`text_1` … `text_10`); the editor UI presents them
+ * as an ordered token/pill editor.
  */
 #[Adapter(
   id: self::PLUGIN_ID,
-  label: new TranslatableMarkup('Combine'),
+  label: new TranslatableMarkup('Compose text'),
   inputs: [
     'text_1' => ['type' => 'string'],
     'text_2' => ['type' => 'string'],

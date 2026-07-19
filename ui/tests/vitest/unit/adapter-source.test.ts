@@ -5,6 +5,7 @@ import {
   buildCandidateTree,
   candidateShortLabel,
   COMBINE_MAX_PARTS,
+  combineChainInputName,
   combineHasContent,
   combinePartsToInputs,
   combineSourceToParts,
@@ -15,6 +16,7 @@ import {
   humanizeInputName,
   isChainComplete,
   isStepComplete,
+  normalizeChainSteps,
   parseMappingRows,
   serializeMappingRows,
   sourceToSteps,
@@ -98,11 +100,11 @@ const equalsSuggestion: AdapterSuggestion = {
   },
 };
 
-const prefixSuffixSuggestion: AdapterSuggestion = {
-  id: 'suggestion-prefix-suffix',
-  label: 'Prefix / suffix',
+const wrapSuggestion: AdapterSuggestion = {
+  id: 'suggestion-wrap',
+  label: 'Wrap',
   adapter: {
-    id: 'prefix_suffix',
+    id: 'wrap',
     inputs: [
       makeSlot('value', true),
       makeSlot('prefix', false),
@@ -160,7 +162,7 @@ const fallbackSuggestion: AdapterSuggestion = {
 
 const allSuggestions = [
   equalsSuggestion,
-  prefixSuffixSuggestion,
+  wrapSuggestion,
   mappingSuggestion,
   combineSuggestion,
 ];
@@ -217,10 +219,10 @@ describe('stepsToSource', () => {
   });
 
   it('nests a two-step chain with the last step outermost', () => {
-    const wrapper = createStep(prefixSuffixSuggestion);
+    const wrapper = createStep(wrapSuggestion);
     wrapper.bindings.prefix = { mode: 'literal', enabled: true, value: '$' };
     expect(stepsToSource([buildEqualsStep(), wrapper])).toEqual({
-      sourceType: 'adapter:prefix_suffix',
+      sourceType: 'adapter:wrap',
       adapterInputs: {
         value: serializedEquals,
         prefix: { ...stringStatic, value: '$' },
@@ -339,7 +341,7 @@ describe('isChainComplete', () => {
   });
 
   it('auto-binds the primary input of steps after the first', () => {
-    const wrapper = createStep(prefixSuffixSuggestion);
+    const wrapper = createStep(wrapSuggestion);
     // The wrapper's `value` primary input is fed by the previous step, so the
     // chain is complete without a user binding for it.
     expect(isChainComplete([buildEqualsStep(), wrapper])).toBe(true);
@@ -370,7 +372,7 @@ describe('sourceToSteps', () => {
 
   it('round-trips a two-step chain', () => {
     const chained = {
-      sourceType: 'adapter:prefix_suffix',
+      sourceType: 'adapter:wrap',
       adapterInputs: {
         value: serializedEquals,
         prefix: { ...stringStatic, value: '$' },
@@ -380,7 +382,7 @@ describe('sourceToSteps', () => {
     expect(steps).toHaveLength(2);
     // Innermost step first.
     expect(steps?.[0].adapter.id).toBe('equals');
-    expect(steps?.[1].adapter.id).toBe('prefix_suffix');
+    expect(steps?.[1].adapter.id).toBe('wrap');
     expect(steps?.[1].bindings.prefix.value).toBe('$');
     expect(stepsToSource(steps!)).toEqual(chained);
   });
@@ -491,7 +493,7 @@ describe('sourceToSteps', () => {
       adapterInputs: {},
     };
     const source = {
-      sourceType: 'adapter:prefix_suffix',
+      sourceType: 'adapter:wrap',
       adapterInputs: {
         value: unknownInner,
         prefix: { ...stringStatic, value: '$' },
@@ -816,7 +818,22 @@ describe('combine pill editor helpers', () => {
       expect(inputs.text_11).toBeUndefined();
     });
 
-    it('places a leading source first when combine is a chained step', () => {
+    it('places the previous source at its part position when chained', () => {
+      const previous = { sourceType: 'adapter:equals', adapterInputs: {} };
+      const parts: CombinePart[] = [
+        { kind: 'text', text: 'on ' },
+        { kind: 'previous' },
+        { kind: 'text', text: '!' },
+      ];
+      expect(combinePartsToInputs(parts, combineSlots, previous)).toEqual({
+        text_1: textStatic('on '),
+        text_2: previous,
+        text_3: textStatic('!'),
+        separator: textStatic(''),
+      });
+    });
+
+    it('falls back to a leading previous source when no part places it', () => {
       const previous = { sourceType: 'adapter:equals', adapterInputs: {} };
       const parts: CombinePart[] = [{ kind: 'text', text: '!' }];
       expect(combinePartsToInputs(parts, combineSlots, previous)).toEqual({
@@ -824,6 +841,47 @@ describe('combine pill editor helpers', () => {
         text_2: textStatic('!'),
         separator: textStatic(''),
       });
+    });
+  });
+
+  describe('combineChainInputName', () => {
+    it('finds the first text input holding a nested adapter source', () => {
+      const source = {
+        sourceType: 'adapter:combine',
+        adapterInputs: {
+          text_1: textStatic('on '),
+          text_2: { sourceType: 'adapter:equals', adapterInputs: {} },
+        },
+      };
+      expect(combineChainInputName(source)).toBe('text_2');
+    });
+
+    it('returns null when no text input holds an adapter source', () => {
+      const source = {
+        sourceType: 'adapter:combine',
+        adapterInputs: { text_1: textStatic('!') },
+      };
+      expect(combineChainInputName(source)).toBeNull();
+    });
+  });
+
+  describe('normalizeChainSteps', () => {
+    it('strips the previous pill from a combine step that became first', () => {
+      const step = createStep(combineSuggestion);
+      step.parts = [{ kind: 'previous' }, { kind: 'text', text: '!' }];
+      expect(normalizeChainSteps([step])[0].parts).toEqual([
+        { kind: 'text', text: '!' },
+      ]);
+    });
+
+    it('prepends a previous pill to a combine step that became later', () => {
+      const first = createStep(equalsSuggestion);
+      const combine = createStep(combineSuggestion);
+      combine.parts = [{ kind: 'text', text: '!' }];
+      expect(normalizeChainSteps([first, combine])[1].parts).toEqual([
+        { kind: 'previous' },
+        { kind: 'text', text: '!' },
+      ]);
     });
   });
 
@@ -882,15 +940,18 @@ describe('combine pill editor helpers', () => {
       ]);
     });
 
-    it('skips text_1 when combine is a chained step', () => {
+    it('turns the chain input into a previous part when chained', () => {
       const source = {
         sourceType: 'adapter:combine',
         adapterInputs: {
-          text_1: { sourceType: 'adapter:equals', adapterInputs: {} },
-          text_2: textStatic('!'),
+          text_1: textStatic('on '),
+          text_2: { sourceType: 'adapter:equals', adapterInputs: {} },
+          text_3: textStatic('!'),
         },
       };
-      expect(combineSourceToParts(source, combineSlots, true)).toEqual([
+      expect(combineSourceToParts(source, combineSlots, 'text_2')).toEqual([
+        { kind: 'text', text: 'on ' },
+        { kind: 'previous' },
         { kind: 'text', text: '!' },
       ]);
     });
@@ -927,6 +988,14 @@ describe('combine pill editor helpers', () => {
       expect(isChainComplete([step])).toBe(true);
     });
 
+    it('requires the previous pill in a later chain step', () => {
+      const step = createStep(combineSuggestion);
+      step.parts = [{ kind: 'text', text: 'on ' }];
+      expect(isStepComplete(step, 1)).toBe(false);
+      step.parts = [{ kind: 'text', text: 'on ' }, { kind: 'previous' }];
+      expect(isStepComplete(step, 1)).toBe(true);
+    });
+
     it('serializes a configured combine step through stepsToSource', () => {
       const step = createStep(combineSuggestion);
       step.parts = [{ kind: 'text', text: 'Hello ' }, titlePill];
@@ -938,6 +1007,25 @@ describe('combine pill editor helpers', () => {
           separator: textStatic(''),
         },
       });
+    });
+
+    it('round-trips a chain with a positioned previous pill', () => {
+      const combine = createStep(combineSuggestion);
+      combine.parts = [
+        { kind: 'text', text: 'on ' },
+        { kind: 'previous' },
+        { kind: 'text', text: '!' },
+      ];
+      const source = stepsToSource([buildEqualsStep(), combine]);
+      expect(source?.adapterInputs).toEqual({
+        text_1: textStatic('on '),
+        text_2: serializedEquals,
+        text_3: textStatic('!'),
+        separator: textStatic(''),
+      });
+      const steps = sourceToSteps(source, allSuggestions);
+      expect(steps).toHaveLength(2);
+      expect(steps?.[1].parts).toEqual(combine.parts);
     });
   });
 });

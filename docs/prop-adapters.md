@@ -23,12 +23,11 @@ shapes in general.
 |---|---|---|---|
 | Is set / not set | `is_set` | `value` (any), `negate` (boolean) | boolean: whether the value is non-empty |
 | Date conversion | `format_date` | `date` (datetime string), `format` (string) | text: the formatted date |
-| Prefix and suffix | `prefix_suffix` | `value` (any scalar), `prefix`, `suffix` (strings) | text |
 | Fallback | `fallback` | `value`, `default` (mirror the prop shape) | the value, or the default when the value is empty |
 | Equals | `equals` | `value`, `comparison` (any), `then`, `else` (mirror the prop shape), `negate` (boolean) | `then` when the value equals the comparison, `else` otherwise |
 | Contains | `contains` | `text`, `needle` (strings), `position` (`contains`/`starts_with`/`ends_with`), `negate` (boolean), `then`, `else` (mirror the prop shape) | `then` when the text matches, `else` otherwise |
 | Mapping | `mapping` | `value` (any), `cases` (JSON object as string), `default` (mirrors the prop shape) | the configured output for the matched case, or the default |
-| Combine | `combine` | `text_1` … `text_10` (strings), `separator` (string, defaults to a space) | text: the non-empty inputs joined by the separator |
+| Compose text | `combine` | `text_1` … `text_10` (strings), `separator` (string, defaults to a space) | text: the non-empty inputs joined by the separator |
 
 Notes:
 
@@ -46,6 +45,8 @@ Notes:
   (`"0"`).
 - `combine` skips empty inputs together with their separator, so combining a
   first name with an empty last name does not leave a dangling separator.
+  Literal text runs mixed with the inputs cover prefix/suffix wrapping, so
+  there is no separate prefix/suffix adapter.
 - `mapping`'s case/output table is stored as a JSON object inside a single
   static string input; the editor UI presents it as case/output rows.
 
@@ -100,6 +101,11 @@ configuration panel:
   free-form graph.
 - Each input slot binds to a field (shape-matched candidates), a literal
   value, or the previous step.
+- In a Compose text step that follows another step, the previous step's
+  output is a movable pill among the text runs and field pills — remove and
+  re-insert it to decide where the value lands (e.g. `Authored by: [Name] on
+  [previous]`). Stored trees keep the position: the chain link is whichever
+  text input holds the nested adapter source.
 - A live preview shows the evaluated output for the currently selected
   preview entity while configuring, debounced, via
   `POST /canvas/api/v0/ui/content_template/prop-source-preview/{entity_type_id}/{entity}`

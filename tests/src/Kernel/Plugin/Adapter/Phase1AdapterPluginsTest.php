@@ -13,7 +13,6 @@ use Drupal\canvas\Plugin\Adapter\FallbackAdapter;
 use Drupal\canvas\Plugin\Adapter\FormatDateAdapter;
 use Drupal\canvas\Plugin\Adapter\IsSetAdapter;
 use Drupal\canvas\Plugin\Adapter\MappingAdapter;
-use Drupal\canvas\Plugin\Adapter\PrefixSuffixAdapter;
 use Drupal\canvas\Plugin\AdapterManager;
 use Drupal\canvas\PropSource\AdaptedPropSource;
 use Drupal\canvas\PropSource\PropSource;
@@ -37,7 +36,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  */
 #[CoversClass(IsSetAdapter::class)]
 #[CoversClass(FormatDateAdapter::class)]
-#[CoversClass(PrefixSuffixAdapter::class)]
 #[CoversClass(FallbackAdapter::class)]
 #[CoversClass(EqualsAdapter::class)]
 #[CoversClass(ContainsAdapter::class)]
@@ -103,9 +101,6 @@ final class Phase1AdapterPluginsTest extends CanvasKernelTestBase {
     yield 'is_set: negated' => ['is_set', ['value' => self::staticString(''), 'negate' => self::staticBoolean(TRUE)], TRUE];
 
     // Prefix / suffix.
-    yield 'prefix_suffix: both' => ['prefix_suffix', ['value' => self::staticString('42'), 'prefix' => self::staticString('€'), 'suffix' => self::staticString(',-')], '€42,-'];
-    yield 'prefix_suffix: integer input' => ['prefix_suffix', ['value' => self::staticInteger(7), 'prefix' => self::staticString('#')], '#7'];
-    yield 'prefix_suffix: empty value adapts to nothing' => ['prefix_suffix', ['value' => self::staticString(''), 'prefix' => self::staticString('#')], NULL];
 
     // Fallback.
     yield 'fallback: value present' => ['fallback', ['value' => self::staticString('actual'), 'default' => self::staticString('default')], 'actual'];
@@ -224,7 +219,7 @@ final class Phase1AdapterPluginsTest extends CanvasKernelTestBase {
     $cases = [
       // A shape no adapter declares as its static output.
       [['type' => 'string', 'format' => 'uri'], []],
-      [['type' => 'string'], ['combine', 'format_date', 'prefix_suffix']],
+      [['type' => 'string'], ['combine', 'format_date']],
       [['type' => 'boolean'], ['is_set']],
       [['type' => 'integer'], ['day_count']],
     ];
