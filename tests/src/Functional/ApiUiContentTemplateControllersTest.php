@@ -13,6 +13,7 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\user\UserInterface;
+use GuzzleHttp\RequestOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -115,6 +116,23 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'required' => FALSE,
     ])->save();
 
+    // Required, single-cardinality datetime field: makes the Date conversion
+    // adapter offerable for the article bundle's required text props.
+    // @see ::testAdapterSuggestions()
+    FieldStorageConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_event_date',
+      'type' => 'datetime',
+      'cardinality' => 1,
+    ])->save();
+    FieldConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_event_date',
+      'label' => 'Event date',
+      'bundle' => 'article',
+      'required' => TRUE,
+    ])->save();
+
     // Set explicitly the form display components to ensure the suggestions
     // sorting is as expected.
     $form_display = \Drupal::service('entity_display.repository')
@@ -158,7 +176,258 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       expected_page_cache: 'UNCACHEABLE (request policy)',
       expected_dynamic_page_cache: 'UNCACHEABLE (no cacheability)',
     );
+    // Adapter suggestions are appended after all direct matches for every
+    // prop. Assert that invariant, then strip them: the direct-match
+    // expectations below stay readable, and the adapter representations
+    // themselves are covered by ::testAdapterSuggestions().
+    self::assertIsArray($json);
+    foreach ($json as $prop_name => $prop_suggestions) {
+      $is_adapter = \array_map(
+        fn (array $suggestion): bool => \array_key_exists('adapter', $suggestion),
+        $prop_suggestions,
+      );
+      $first_adapter = \array_search(TRUE, $is_adapter, TRUE);
+      if ($first_adapter !== FALSE) {
+        self::assertNotContains(FALSE, \array_slice($is_adapter, (int) $first_adapter), "Direct suggestions must precede adapter suggestions for prop `$prop_name`.");
+      }
+      $json[$prop_name] = \array_values(\array_filter(
+        $prop_suggestions,
+        fn (array $suggestion): bool => !\array_key_exists('adapter', $suggestion),
+      ));
+    }
     $this->assertSame($expected, $json);
+  }
+
+  /**
+   * Tests the adapter suggestions in the prop sources response.
+   *
+   * @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester::buildAdapterSuggestions()
+   */
+  public function testAdapterSuggestions(): void {
+    $json = $this->assertExpectedResponse(
+      method: 'GET',
+      url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/prop-sources/node/article/sdc.canvas_test_sdc.heading"),
+      request_options: [],
+      expected_status: Response::HTTP_OK,
+      expected_cache_contexts: NULL,
+      expected_cache_tags: NULL,
+      expected_page_cache: 'UNCACHEABLE (request policy)',
+      expected_dynamic_page_cache: 'UNCACHEABLE (no cacheability)',
+    );
+    self::assertIsArray($json);
+
+    $adapters_for_prop = fn (string $prop_name): array => \array_values(\array_filter(
+      $json[$prop_name],
+      fn (array $suggestion): bool => \array_key_exists('adapter', $suggestion),
+    ));
+
+    // The `text` prop is a required plain string: all text-producing adapters
+    // whose primary input has field candidates match (Date conversion both
+    // via the bundle's required datetime field and via the always-populated
+    // created/changed timestamps), plus the parametric ones (whose output
+    // mirrors designated inputs), in alphabetical label order.
+    $text_adapters = $adapters_for_prop('text');
+    self::assertSame(
+      ['Compose text', 'Contains', 'Date conversion', 'Equals', 'Fallback', 'Mapping'],
+      \array_column($text_adapters, 'label'),
+    );
+
+    // The `style` prop is an optional enum-constrained string: only
+    // parametric adapters whose primary input has candidates are offered — no
+    // direct field suggestions exist, yet the prop is still adaptable (e.g.
+    // via Mapping, an option field driving a variant). Fallback is absent:
+    // its primary `value` input mirrors the enum shape, which no field
+    // matches, so there is nothing to fall back from.
+    $style_adapters = $adapters_for_prop('style');
+    self::assertSame(
+      ['Contains', 'Equals', 'Mapping'],
+      \array_column($style_adapters, 'label'),
+    );
+
+    // Inspect the full representation of the Equals adapter for `text`.
+    $equals = \array_values(\array_filter($text_adapters, fn (array $s): bool => $s['adapter']['id'] === 'equals'))[0];
+    self::assertSame(['id', 'label', 'adapter'], \array_keys($equals));
+    $inputs = \array_combine(
+      \array_column($equals['adapter']['inputs'], 'name'),
+      $equals['adapter']['inputs'],
+    );
+    self::assertSame(['value', 'comparison', 'then', 'else', 'negate'], \array_keys($inputs));
+    // Required flags. TRICKY: `text` is a REQUIRED prop, so the conditional's
+    // `else` becomes required too — otherwise a non-matching value would
+    // produce an empty value for a prop that must not be empty.
+    self::assertTrue($inputs['value']['required']);
+    self::assertTrue($inputs['comparison']['required']);
+    self::assertTrue($inputs['then']['required']);
+    self::assertTrue($inputs['else']['required']);
+    self::assertFalse($inputs['negate']['required']);
+    // For the OPTIONAL `style` prop, `else` remains optional.
+    $style_equals = \array_values(\array_filter($style_adapters, fn (array $s): bool => $s['adapter']['id'] === 'equals'))[0];
+    $style_else = \array_values(\array_filter($style_equals['adapter']['inputs'], fn (array $i): bool => $i['name'] === 'else'))[0];
+    self::assertFalse($style_else['required']);
+    // Parametric: `then`/`else` mirror the targeted prop's shape.
+    self::assertTrue($inputs['then']['mirrorsOutput']);
+    self::assertTrue($inputs['else']['mirrorsOutput']);
+    self::assertFalse($inputs['value']['mirrorsOutput']);
+    self::assertSame(['type' => 'string'], $inputs['then']['schema']);
+    // "Any"-shaped inputs have no schema…
+    self::assertNull($inputs['value']['schema']);
+    self::assertSame(['type' => 'boolean'], $inputs['negate']['schema']);
+    // …but they do get candidates (the union of primitive-shaped fields) and
+    // a (string) static template.
+    self::assertSame('static:field_item:string', $inputs['value']['static']['sourceType']);
+    self::assertSame('static:field_item:boolean', $inputs['negate']['static']['sourceType']);
+    $value_candidate_labels = \array_column($inputs['value']['candidates'], 'label');
+    self::assertContains('Title', $value_candidate_labels);
+    $title_candidate = \array_values(\array_filter($inputs['value']['candidates'], fn (array $c): bool => $c['label'] === 'Title'))[0];
+    self::assertSame([
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+    ], $title_candidate['source']);
+    foreach ($inputs['value']['candidates'] as $candidate) {
+      self::assertSame(['id', 'label', 'source'], \array_keys($candidate));
+    }
+
+    // The Date conversion adapter's `date` input offers both `format: date`
+    // and `format: date-time` fields — but never plain strings. Integer
+    // timestamp fields are offered too, converted via `unix_to_date`.
+    $format_date = \array_values(\array_filter($text_adapters, fn (array $s): bool => $s['adapter']['id'] === 'format_date'))[0];
+    $date_input = \array_values(\array_filter($format_date['adapter']['inputs'], fn (array $i): bool => $i['name'] === 'date'))[0];
+    self::assertContains('Event date', \array_column($date_input['candidates'], 'label'));
+    self::assertNotContains('Title', \array_column($date_input['candidates'], 'label'));
+    $authored_on = \array_values(\array_filter($date_input['candidates'], fn (array $c): bool => $c['label'] === 'Authored on'))[0];
+    self::assertSame('unix_to_date', $authored_on['source']['adapter']);
+
+    // Even where no datetime fields exist — the `user` bundle — Date
+    // conversion is offered: the always-populated created/changed timestamps
+    // are datetime data too. The optional `access`/`login` timestamps are
+    // not offered for this REQUIRED prop.
+    $user_json = $this->assertExpectedResponse(
+      method: 'GET',
+      url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/prop-sources/user/user/sdc.canvas_test_sdc.heading"),
+      request_options: [],
+      expected_status: Response::HTTP_OK,
+      expected_cache_contexts: NULL,
+      expected_cache_tags: NULL,
+      expected_page_cache: 'UNCACHEABLE (request policy)',
+      expected_dynamic_page_cache: 'UNCACHEABLE (no cacheability)',
+    );
+    self::assertIsArray($user_json);
+    $user_text_adapters = \array_values(\array_filter($user_json['text'], fn (array $s): bool => \array_key_exists('adapter', $s)));
+    $user_text_adapter_labels = \array_column($user_text_adapters, 'label');
+    self::assertContains('Date conversion', $user_text_adapter_labels);
+    self::assertContains('Equals', $user_text_adapter_labels);
+    $user_format_date = \array_values(\array_filter($user_text_adapters, fn (array $s): bool => $s['adapter']['id'] === 'format_date'))[0];
+    $user_date_input = \array_values(\array_filter($user_format_date['adapter']['inputs'], fn (array $i): bool => $i['name'] === 'date'))[0];
+    $user_date_candidate_labels = \array_column($user_date_input['candidates'], 'label');
+    self::assertContains('Created', $user_date_candidate_labels);
+    self::assertContains('Changed', $user_date_candidate_labels);
+    self::assertNotContains('Last access', $user_date_candidate_labels);
+    self::assertNotContains('Last login', $user_date_candidate_labels);
+    foreach ($user_date_input['candidates'] as $candidate) {
+      self::assertSame('unix_to_date', $candidate['source']['adapter']);
+    }
+  }
+
+  /**
+   * Tests the prop source preview endpoint.
+   *
+   * @see \Drupal\canvas\Controller\ApiUiContentTemplateControllers::previewPropSource()
+   */
+  public function testPreviewPropSource(): void {
+    $two_days_ago = \time() - 2 * 86400 - 60;
+    $node = $this->container->get('entity_type.manager')->getStorage('node')->create([
+      'type' => 'article',
+      'title' => 'Hello world',
+      'created' => $two_days_ago,
+    ]);
+    $node->save();
+    $url = Url::fromUri("base:/canvas/api/v0/ui/content_template/prop-source-preview/node/" . $node->id());
+
+    // An adapted prop source combining an entity field input and a static
+    // literal input.
+    $json = $this->assertExpectedResponse('POST', $url, [
+      RequestOptions::JSON => [
+        'source' => [
+          'sourceType' => 'adapter:combine',
+          'adapterInputs' => [
+            'text_1' => [
+              'sourceType' => 'static:field_item:string',
+              'expression' => 'ℹ︎string␟value',
+              'value' => 'Published: ',
+            ],
+            'text_2' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+            'separator' => [
+              'sourceType' => 'static:field_item:string',
+              'expression' => 'ℹ︎string␟value',
+              'value' => '',
+            ],
+          ],
+        ],
+      ],
+    ], 200, NULL, NULL, NULL, NULL);
+    $this->assertSame(['value' => 'Published: Hello world'], $json);
+
+    // A chained adapter: created (UNIX timestamp) → date string → relative.
+    $json = $this->assertExpectedResponse('POST', $url, [
+      RequestOptions::JSON => [
+        'source' => [
+          'sourceType' => 'adapter:format_date',
+          'adapterInputs' => [
+            'date' => [
+              'sourceType' => 'adapter:unix_to_date',
+              'adapterInputs' => [
+                'unix' => [
+                  'sourceType' => PropSource::EntityField->value,
+                  'expression' => 'ℹ︎␜entity:node:article␝created␞␟value',
+                ],
+              ],
+            ],
+            'format' => [
+              'sourceType' => 'static:field_item:string',
+              'expression' => 'ℹ︎string␟value',
+              'value' => 'relative',
+            ],
+          ],
+        ],
+      ],
+    ], 200, NULL, NULL, NULL, NULL);
+    $this->assertSame(['value' => '2 days ago'], $json);
+
+    // An invalid configuration: a structured error, not a 500.
+    $json = $this->assertExpectedResponse('POST', $url, [
+      RequestOptions::JSON => [
+        'source' => [
+          'sourceType' => 'adapter:nonexistent',
+          'adapterInputs' => [],
+        ],
+      ],
+    ], 422, NULL, NULL, NULL, NULL);
+    self::assertIsArray($json);
+    self::assertStringContainsString('does not exist', $json['errors'][0]);
+
+    // A missing `source` key. (Bypass the OpenAPI request validator, which
+    // would reject this test-only invalid request in dev environments before
+    // the controller sees it.)
+    $json = $this->assertExpectedResponse('POST', $url, [
+      RequestOptions::JSON => ['no_source' => TRUE],
+      RequestOptions::HEADERS => ['X-NO-OPENAPI-VALIDATION' => '1'],
+    ], 400, NULL, NULL, NULL, NULL);
+    $this->assertSame(['errors' => ['The request body must contain a `source` key with a prop source array representation.']], $json);
+
+    // Without the necessary permission: 403. (Assert only status and body:
+    // cacheability debug headers on POST error responses vary by core
+    // version.)
+    $this->drupalLogin($this->limitedPermissionsUser);
+    $response = $this->makeApiRequest('POST', $url, [
+      RequestOptions::JSON => ['source' => ['sourceType' => 'adapter:is_set', 'adapterInputs' => []]],
+      RequestOptions::HEADERS => ['X-CSRF-Token' => $this->drupalGet('session/token')],
+    ]);
+    $this->assertSame(403, $response->getStatusCode());
+    $json = \json_decode((string) $response->getBody(), TRUE);
+    $this->assertSame(['errors' => [\sprintf("The '%s' permission is required.", ContentTemplate::ADMIN_PERMISSION)]], $json);
   }
 
   public static function providerSuggestPropSources(): \Generator {

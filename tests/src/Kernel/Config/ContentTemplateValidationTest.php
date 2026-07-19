@@ -323,7 +323,12 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       ],
     ];
 
-    yield "INVALID: using AdaptedPropSource" => [
+    // Content templates are the one Canvas component tree that allows
+    // adapted prop sources: adapters transform (entity field) data into prop
+    // shapes, so they are allowed exactly where entity field data is
+    // available.
+    // @see \Drupal\canvas\PropSource\AdaptedPropSource
+    yield "VALID: using AdaptedPropSource" => [
       'component_tree' => [
         [
           'uuid' => '90804335-d16d-4799-9e80-ddb11692530a',
@@ -358,9 +363,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           ],
         ],
       ],
-      'expected_messages' => [
-        'component_tree' => "The 'adapter' prop source type must be absent.",
-      ],
+      'expected_messages' => [],
     ];
 
     yield "INVALID: not a uuid" => [

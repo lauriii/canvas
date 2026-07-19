@@ -55,7 +55,11 @@ final class ImageAndStyleAdapter extends AdapterBase implements ContainerFactory
    * @var array{src:string, alt: string, width:integer, height:integer}
    */
   protected array $image;
-  protected string $imageStyle;
+
+  /**
+   * The `imageStyle` input is optional; adapt() falls back to the plain URL.
+   */
+  protected string $imageStyle = '';
 
   public function adapt(): EvaluationResult {
     $adaptation_cacheability = new CacheableMetadata();

@@ -3284,6 +3284,83 @@ paths:
         '404':
           description: Non-existent entity type or bundle, or invalid parent expression.
           $ref: '#/components/responses/ClientErrorResponse'
+  /canvas/api/v0/ui/content_template/prop-source-preview/{entityTypeId}/{entityId}:
+    description: Evaluates a candidate prop source against a host entity, for live preview while configuring adapters.
+    post:
+      summary: Evaluates a candidate prop source (typically an adapted one being configured in the editor) against a host entity and returns the resulting value.
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/entityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - source
+              properties:
+                source:
+                  type: object
+                  description: The array representation of the prop source to evaluate.
+              additionalProperties: false
+            examples:
+              An adapted prop source:
+                value:
+                  source:
+                    sourceType: "adapter:format_date"
+                    adapterInputs:
+                      date:
+                        sourceType: "entity-field"
+                        expression: "ℹ︎␜entity:node:article␝field_event_date␞␟value"
+                      format:
+                        sourceType: "static:field_item:string"
+                        expression: "ℹ︎string␟value"
+                        value: "medium"
+      responses:
+        '200':
+          description: The evaluated prop source value for the given host entity.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - value
+                properties:
+                  value:
+                    description: The evaluated value. Its type depends on the prop source and the targeted prop shape.
+                additionalProperties: false
+              examples:
+                A formatted date:
+                  value:
+                    value: "May 6, 2024"
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '400':
+          description: Invalid request from the UI.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '404':
+          description: Non-existent content entity type or entity.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: The prop source could not be parsed or evaluated.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                additionalProperties: false
+                properties:
+                  errors:
+                    type: array
+                    description: Error messages.
+                    items:
+                      type: string
   /canvas/api/v0/ui/content_template/suggestions/preview/{entityTypeId}/{bundle}:
     description: Provides content that can be used for previewing content template targeting the specified entity type and bundle.
     get:
@@ -4349,6 +4426,7 @@ components:
         oneOf:
           - $ref: '#/components/schemas/HierarchicalPathToSuggestedPropSourcesItem'
           - $ref: '#/components/schemas/SuggestedPropSourceItem'
+          - $ref: '#/components/schemas/SuggestedPropSourceAdapterItem'
       minItems: 0
     HierarchicalPathToSuggestedPropSourcesItem:
       title: A path to a child level (so, a labeled parent) of suggested prop sources (path only, no choice; points towards a deeper actual choice)
@@ -4381,6 +4459,84 @@ components:
           description: The object representation of an EntityFieldPropSource or HostEntityUrlPropSource that, if selected by the human, the client should use verbatim as the source to populate this component instance's prop.
         items:
           $ref: '#/components/schemas/SuggestedPropSources'
+      additionalProperties: false
+    SuggestedPropSourceAdapterItem:
+      title: Suggested adapter, describing how the client can let a human configure an AdaptedPropSource to populate this prop
+      type: object
+      required:
+        - label
+        - id
+        - adapter
+      properties:
+        label:
+          type: string
+          description: Human-readable label
+        id:
+          type: string
+          description: Opaque identifier
+        adapter:
+          type: object
+          required:
+            - id
+            - inputs
+          properties:
+            id:
+              type: string
+              description: The Adapter plugin ID; the configured source's sourceType is `adapter:<id>`.
+            inputs:
+              type: array
+              description: The adapter's input slots, in declaration order.
+              items:
+                type: object
+                required:
+                  - name
+                  - required
+                  - mirrorsOutput
+                  - schema
+                  - candidates
+                  - static
+                properties:
+                  name:
+                    type: string
+                    description: The input slot name, used as the key in the configured source's adapterInputs.
+                  required:
+                    type: boolean
+                    description: Whether the adapter requires this input to be configured.
+                  mirrorsOutput:
+                    type: boolean
+                    description: Whether this input's shape mirrors the adapter's output shape (parametric adapters).
+                  schema:
+                    type:
+                      - object
+                      - 'null'
+                    description: The JSON schema values for this input must conform to; null means any shape is accepted.
+                  candidates:
+                    type: array
+                    description: Entity field prop sources whose shape matches this input slot.
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - label
+                        - source
+                      properties:
+                        id:
+                          type: string
+                          description: Opaque identifier
+                        label:
+                          type: string
+                          description: Human-readable label
+                        source:
+                          type: object
+                          description: The array representation of the prop source to use verbatim as this input's value.
+                      additionalProperties: false
+                  static:
+                    type:
+                      - object
+                      - 'null'
+                    description: A StaticPropSource template for populating this input with a literal value (the client fills in `value`); null if the shape is not storable.
+                additionalProperties: false
+          additionalProperties: false
       additionalProperties: false
     Error:
       type: object

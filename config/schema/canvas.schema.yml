@@ -377,7 +377,9 @@ canvas.component_tree:
           - entity-field
           - dynamic
           - host-entity-url
-          # Not yet supported by the Canvas UI.
+          # Adapted prop sources may nest entity field prop sources in their
+          # inputs, which this component tree does not allow (see above), so
+          # they are not allowed either. Content templates override this.
           - adapter
         presence: ~
       tree:
@@ -1054,11 +1056,14 @@ canvas.content_template.*.*.*:
       constraints:
         ComponentTreeMeetRequirements:
           inputs:
-            absence:
-              - adapter
-            # The only Canvas component tree that allows `entity-field` and `host-entity-url`!
+            # The only Canvas component tree that allows `entity-field`,
+            # `host-entity-url` and `adapter`!
+            # Adapters transform (entity field) data into prop shapes, so they
+            # are allowed exactly where entity field data is available.
             # @see \Drupal\canvas\PropSource\EntityFieldPropSource
             # @see \Drupal\canvas\PropSource\HostEntityUrlPropSource
+            # @see \Drupal\canvas\PropSource\AdaptedPropSource
+            absence: ~
             presence: ~
           tree:
             absence:

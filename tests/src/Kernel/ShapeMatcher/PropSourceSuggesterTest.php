@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\ShapeMatcher;
 
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
-use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropSource\HostEntityPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
@@ -224,12 +223,22 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
 
     // All expectations that are present must be correct.
     foreach (\array_keys($expected) as $prop_name) {
+      // Adapter suggestions are client-ready representations; their structure
+      // is asserted once below, and the expectations here compare plugin IDs.
+      // @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester::buildAdapterSuggestions()
+      foreach ($suggestions[$prop_name][PropSource::Adapter->value] as $adapter_suggestion) {
+        $this->assertSame(['id', 'label', 'adapter'], \array_keys($adapter_suggestion));
+        $this->assertSame(['id', 'inputs'], \array_keys($adapter_suggestion['adapter']));
+        foreach ($adapter_suggestion['adapter']['inputs'] as $input) {
+          $this->assertSame(['name', 'required', 'mirrorsOutput', 'schema', 'candidates', 'static'], \array_keys($input));
+        }
+      }
       $this->assertSame(
         $expected[$prop_name],
         [
           'required' => $suggestions[$prop_name]['required'],
           PropSource::EntityField->value => \array_map(fn (EntityFieldPropSource $s): array => $s->toArray(), $suggestions[$prop_name][PropSource::EntityField->value]),
-          PropSource::Adapter->value => \array_map(fn (AdapterInterface $a): string => $a->getPluginId(), $suggestions[$prop_name][PropSource::Adapter->value]),
+          PropSource::Adapter->value => \array_map(fn (array $a): string => $a['adapter']['id'], $suggestions[$prop_name][PropSource::Adapter->value]),
           PropSource::HostEntityUrl->value => \array_map(fn (HostEntityUrlPropSource $s): array => $s->toArray(), $suggestions[$prop_name][PropSource::HostEntityUrl->value]),
           PropSource::HostEntity->value => \array_map(fn (HostEntityPropSource $s): array => $s->toArray(), $suggestions[$prop_name][PropSource::HostEntity->value]),
         ],
@@ -239,6 +248,55 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
 
     // Finally, the set of expectations must be complete.
     $this->assertSame(\array_keys($expected), \array_keys($suggestions));
+  }
+
+  /**
+   * Integer timestamp fields are offered for date-string adapter inputs.
+   *
+   * Datetime string fields match a date-shaped input slot directly; integer
+   * timestamp fields (e.g. created/changed) are offered too, with the
+   * `unix_to_date` conversion attached via the single-input `adapter`
+   * shortcut on EntityFieldPropSource.
+   *
+   * @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester::getTimestampSlotCandidates()
+   */
+  public function testTimestampFieldCandidatesForDateSlots(): void {
+    $component = \Drupal::service(ComponentPluginManager::class)->find('canvas_test_sdc:date');
+    \assert($component instanceof Component);
+    $suggestions = $this->container->get(PropSourceSuggester::class)
+      ->suggest(
+        'canvas_test_sdc:date',
+        $component->metadata,
+        EntityDataDefinition::createFromDataType('entity:node:foo'),
+      );
+    $format_date = \array_values(\array_filter(
+      $suggestions['⿲canvas_test_sdc:date␟caption'][PropSource::Adapter->value],
+      fn (array $suggestion): bool => $suggestion['adapter']['id'] === 'format_date',
+    ))[0];
+    $date_input = \array_values(\array_filter(
+      $format_date['adapter']['inputs'],
+      fn (array $input): bool => $input['name'] === 'date',
+    ))[0];
+    $sources_by_label = \array_combine(
+      \array_column($date_input['candidates'], 'label'),
+      \array_column($date_input['candidates'], 'source'),
+    );
+    // A datetime string field matches directly — no conversion attached.
+    self::assertArrayHasKey('field_event_duration', $sources_by_label);
+    self::assertArrayNotHasKey('adapter', $sources_by_label['field_event_duration']);
+    // Timestamp fields carry the built-in `unix_to_date` conversion.
+    self::assertSame([
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => 'ℹ︎␜entity:node:foo␝created␞␟value',
+      PropSource::Adapter->value => 'unix_to_date',
+    ], $sources_by_label['Authored on']);
+    self::assertSame([
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => 'ℹ︎␜entity:node:foo␝changed␞␟value',
+      PropSource::Adapter->value => 'unix_to_date',
+    ], $sources_by_label['Changed']);
+    // Plain strings are never date candidates.
+    self::assertArrayNotHasKey('Title', $sources_by_label);
   }
 
   /**
@@ -303,8 +361,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
             ],
           ],
           PropSource::Adapter->value => [
-            'Apply image style' => 'image_apply_style',
-            'Make relative image URL absolute' => 'image_url_rel_to_abs',
+            'image_apply_style',
+            'contains',
+            'equals',
+            'fallback',
+            'image_url_rel_to_abs',
+            'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
@@ -337,8 +399,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
             ],
           ],
           PropSource::Adapter->value => [
-            'Apply image style' => 'image_apply_style',
-            'Make relative image URL absolute' => 'image_url_rel_to_abs',
+            'image_apply_style',
+            'contains',
+            'equals',
+            'fallback',
+            'image_url_rel_to_abs',
+            'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
@@ -363,8 +429,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
             ],
           ],
           PropSource::Adapter->value => [
-            'Apply image style' => 'image_apply_style',
-            'Make relative image URL absolute' => 'image_url_rel_to_abs',
+            'image_apply_style',
+            'contains',
+            'equals',
+            'fallback',
+            'image_url_rel_to_abs',
+            'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
@@ -385,7 +455,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟srcset_candidate_uri_template',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -412,7 +487,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝name␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -446,7 +526,11 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
             ],
           ],
           PropSource::Adapter->value => [
-            'UNIX timestamp to date' => 'unix_to_date',
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+            'unix_to_date',
           ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
@@ -499,7 +583,14 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟title',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'combine',
+            'contains',
+            'format_date',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -534,7 +625,13 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'is_set',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -562,7 +659,13 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'is_set',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -614,14 +717,25 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟title',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'combine',
+            'contains',
+            'format_date',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_multiline' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -633,21 +747,36 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝title␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'combine',
+            'contains',
+            'format_date',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_enum' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_integer_enum' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -663,7 +792,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -690,7 +824,11 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
             ],
           ],
           PropSource::Adapter->value => [
-            'UNIX timestamp to date' => 'unix_to_date',
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+            'unix_to_date',
           ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
@@ -698,14 +836,18 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_time' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_duration' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -729,7 +871,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -753,35 +900,48 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_hostname' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_idn_hostname' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_ipv4' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_ipv6' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -825,7 +985,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝uuid␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -837,7 +1002,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [
             'Absolute URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
@@ -862,7 +1032,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [
             'Relative URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
@@ -887,7 +1062,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [
             'Absolute URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
@@ -929,7 +1109,11 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
             ],
           ],
           PropSource::Adapter->value => [
-            'Extract image URL' => 'image_extract_url',
+            'contains',
+            'equals',
+            'image_extract_url',
+            'fallback',
+            'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
@@ -967,7 +1151,11 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
             ],
           ],
           PropSource::Adapter->value => [
-            'Extract image URL' => 'image_extract_url',
+            'contains',
+            'equals',
+            'image_extract_url',
+            'fallback',
+            'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
@@ -988,7 +1176,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1008,7 +1201,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1080,7 +1278,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟url',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [
             'Relative URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
@@ -1105,7 +1308,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [
             'Absolute URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
@@ -1182,7 +1390,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟url',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [
             'Relative URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
@@ -1194,28 +1407,36 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_template' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_json_pointer' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_relative_json_pointer' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_regex' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1256,7 +1477,11 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
             ],
           ],
           PropSource::Adapter->value => [
-            'Count days' => 'day_count',
+            'contains',
+            'day_count',
+            'equals',
+            'fallback',
+            'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
@@ -1264,7 +1489,11 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_integer_range_minimum' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1332,14 +1561,21 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_integer_by_the_dozen' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1379,7 +1615,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟width',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1404,8 +1645,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
             ],
           ],
           PropSource::Adapter->value => [
-            'Apply image style' => 'image_apply_style',
-            'Make relative image URL absolute' => 'image_url_rel_to_abs',
+            'image_apply_style',
+            'contains',
+            'equals',
+            'fallback',
+            'image_url_rel_to_abs',
+            'mapping',
           ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
@@ -1418,14 +1663,23 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_object_drupal_video' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1437,14 +1691,23 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value,to↠end_value}',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_html_inline' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1464,7 +1727,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1484,14 +1752,23 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html_inline' => [
           'required' => TRUE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1503,7 +1780,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1515,7 +1797,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1539,7 +1826,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1563,7 +1855,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1583,14 +1880,21 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟width',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_array_integer_minItemsMultiple' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1610,7 +1914,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟width',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
@@ -1630,7 +1939,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'expression' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝name␞␟value',
             ],
           ],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'fallback',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],
