@@ -2,12 +2,10 @@ import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { selectDevMode } from '@/features/configuration/configurationSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import {
   areConsecutiveSiblings,
-  findComponentByUuid,
-  isParentOf,
+  filterParentChildRelationships,
 } from '@/features/layout/layoutUtils';
 import {
   selectSelectedComponentUuid,
@@ -25,55 +23,6 @@ import type { RegionNode } from '@/features/layout/layoutModelSlice';
 const canvasSettings = getCanvasSettings();
 
 /**
- * Filters out any components that are parents or children of components in the selection
- * @param layout - The entire layout tree
- * @param currentSelection - Current selection array
- * @param newComponentUuid - UUID of the component (potentially) being added to selection
- * @returns An array of component UUIDs with no parent-child relationships
- */
-function filterParentChildRelationships(
-  layout: RegionNode[],
-  currentSelection: string[],
-  newComponentUuid: string,
-): string[] {
-  // If we're adding to an empty selection, no filtering needed
-  if (currentSelection.length === 0) {
-    return [newComponentUuid];
-  }
-
-  // First check if the new component is a parent of any currently selected components
-  const newComponent = findComponentByUuid(layout, newComponentUuid);
-  if (!newComponent) {
-    return currentSelection; // Component not found, return current selection
-  }
-
-  // Check if the new component is a parent of any selected components
-  // If so, we need to remove those child components from the selection
-  const childrenToRemove = currentSelection.filter((selectedUuid) =>
-    isParentOf(newComponent, selectedUuid),
-  );
-
-  // Check if the new component is a child of any selected components
-  // If so, we need to remove those parent components from the selection
-  const parentsToRemove = currentSelection.filter((selectedUuid) => {
-    const possibleParent = findComponentByUuid(layout, selectedUuid);
-    return possibleParent && isParentOf(possibleParent, newComponentUuid);
-  });
-
-  // Create a new selection with:
-  // 1. All items from current selection
-  // 2. Minus any children of the new component
-  // 3. Minus any parents of the new component
-  // 4. Plus the new component
-  const itemsToRemove = new Set([...childrenToRemove, ...parentsToRemove]);
-  const filteredSelection = currentSelection.filter(
-    (uuid) => !itemsToRemove.has(uuid),
-  );
-
-  return [...filteredSelection, newComponentUuid];
-}
-
-/**
  * Hook for component selection functionality.
  * Handles selecting and deselecting components, managing multi-selection and ensuring the page URL is updated to
  * show the selectedComponent (when there is exactly one selected)
@@ -86,8 +35,6 @@ export function useComponentSelection() {
   const dispatch = useAppDispatch();
   const selection = useAppSelector(selectSelection);
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
-  // Temp. while multi-selection is still in development
-  const isDevMode = useAppSelector(selectDevMode);
 
   // Remove the /component/:componentId from the URL, keeping other parts intact
   const updateUrlToNoSelection = useCallback(() => {
@@ -190,12 +137,6 @@ export function useComponentSelection() {
   // and preventing parent-child selection
   const handleComponentSelection = useCallback(
     (componentUuid: string, metaKey: boolean) => {
-      // Temp. while multi-selection is still in development
-      if (!isDevMode) {
-        updateSelectionInRedux(componentUuid);
-        return;
-      }
-
       // 'normal' click just set the selected component
       if (!metaKey) {
         updateSelectionInRedux(componentUuid);
@@ -248,13 +189,7 @@ export function useComponentSelection() {
         return;
       }
     },
-    [
-      isDevMode,
-      updateSelectionInRedux,
-      selection.items,
-      selectedComponent,
-      layout,
-    ],
+    [updateSelectionInRedux, selection.items, selectedComponent, layout],
   );
 
   const componentSelectionUtils = {

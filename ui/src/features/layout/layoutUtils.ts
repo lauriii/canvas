@@ -245,6 +245,87 @@ export function areConsecutiveSiblings(
 }
 
 /**
+ * Sorts component UUIDs into document order: the order the components appear
+ * in the layout tree when read region by region, depth first. Batch
+ * operations (copy, duplicate, paste) rely on this so their result reflects
+ * what the user sees on the page rather than the order they clicked.
+ * @param roots - The root region nodes to search in
+ * @param uuids - Component UUIDs to sort
+ * @returns A new array with the found UUIDs in document order. UUIDs not
+ *   present in the layout are omitted.
+ */
+export function sortUuidsByDocumentOrder(
+  roots: Array<RegionNode>,
+  uuids: string[],
+): string[] {
+  return uuids
+    .map((uuid) => ({ uuid, path: findNodePathByUuid(roots, uuid) }))
+    .filter(
+      (entry): entry is { uuid: string; path: number[] } => entry.path !== null,
+    )
+    .sort((a, b) => {
+      // Lexicographic comparison of tree paths equals document order.
+      const length = Math.min(a.path.length, b.path.length);
+      for (let i = 0; i < length; i++) {
+        if (a.path[i] !== b.path[i]) {
+          return a.path[i] - b.path[i];
+        }
+      }
+      return a.path.length - b.path.length;
+    })
+    .map((entry) => entry.uuid);
+}
+
+/**
+ * Filters out any components that are parents or children of components in the selection
+ * @param layout - The entire layout tree
+ * @param currentSelection - Current selection array
+ * @param newComponentUuid - UUID of the component (potentially) being added to selection
+ * @returns An array of component UUIDs with no parent-child relationships
+ */
+export function filterParentChildRelationships(
+  layout: RegionNode[],
+  currentSelection: string[],
+  newComponentUuid: string,
+): string[] {
+  // If we're adding to an empty selection, no filtering needed
+  if (currentSelection.length === 0) {
+    return [newComponentUuid];
+  }
+
+  // First check if the new component is a parent of any currently selected components
+  const newComponent = findComponentByUuid(layout, newComponentUuid);
+  if (!newComponent) {
+    return currentSelection; // Component not found, return current selection
+  }
+
+  // Check if the new component is a parent of any selected components
+  // If so, we need to remove those child components from the selection
+  const childrenToRemove = currentSelection.filter((selectedUuid) =>
+    isParentOf(newComponent, selectedUuid),
+  );
+
+  // Check if the new component is a child of any selected components
+  // If so, we need to remove those parent components from the selection
+  const parentsToRemove = currentSelection.filter((selectedUuid) => {
+    const possibleParent = findComponentByUuid(layout, selectedUuid);
+    return possibleParent && isParentOf(possibleParent, newComponentUuid);
+  });
+
+  // Create a new selection with:
+  // 1. All items from current selection
+  // 2. Minus any children of the new component
+  // 3. Minus any parents of the new component
+  // 4. Plus the new component
+  const itemsToRemove = new Set([...childrenToRemove, ...parentsToRemove]);
+  const filteredSelection = currentSelection.filter(
+    (uuid) => !itemsToRemove.has(uuid),
+  );
+
+  return [...filteredSelection, newComponentUuid];
+}
+
+/**
  * Find a Component by its UUID.
  * @param roots - The starting node to search from.
  * @param uuid - The uuid of the component to find.
@@ -789,6 +870,8 @@ const layoutUtils = {
   isParentOf,
   findParentInfo,
   areConsecutiveSiblings,
+  sortUuidsByDocumentOrder,
+  filterParentChildRelationships,
   findParent,
   findSiblings,
 };

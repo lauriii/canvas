@@ -17,12 +17,14 @@ import {
   DEFAULT_REGION,
   selectEditorViewPortScale,
   selectSelectedComponentUuid,
+  selectSelection,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import useMultiSelectionOperations from '@/hooks/useMultiSelectionOperations';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 
 import type React from 'react';
@@ -53,6 +55,17 @@ export const ComponentContextMenuContent: React.FC<
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
   const { navigateToCodeEditor } = useEditorNavigation();
+  const selection = useAppSelector(selectSelection);
+  const {
+    deleteSelection,
+    copySelection,
+    duplicateSelection,
+    saveSelectionAsPattern,
+  } = useMultiSelectionOperations();
+  // When the clicked component is part of the current multi-selection, the
+  // menu offers batch actions applied to the whole selection.
+  const isSelectionMember =
+    selection.items.length > 1 && selection.items.includes(componentUuid);
 
   // Check if this is a code component
   const [componentType] = (component.type || '').split('@');
@@ -169,6 +182,67 @@ export const ComponentContextMenuContent: React.FC<
     closeContextMenu();
   }, [editorViewPortScale]);
 
+  const handleBatchAction = useCallback(
+    (ev: React.MouseEvent<HTMLElement>, action: () => void) => {
+      ev.stopPropagation();
+      dispatch(unsetHoveredComponent());
+      action();
+    },
+    [dispatch],
+  );
+
+  if (isSelectionMember) {
+    const count = selection.items.length;
+    // Single-only actions (move, paste after, edit code) are hidden here:
+    // they have no defined meaning for a group.
+    return (
+      <UnifiedMenu.Content
+        aria-label={`Context menu for ${count} selected items`}
+        menuType={menuType}
+        align="start"
+        side="right"
+      >
+        <UnifiedMenu.Label>{count} items selected</UnifiedMenu.Label>
+        <UnifiedMenu.Separator />
+        <UnifiedMenu.Item
+          disabled={!selection.consecutive}
+          onClick={(ev) => handleBatchAction(ev, duplicateSelection)}
+        >
+          Duplicate {count} items
+        </UnifiedMenu.Item>
+        <UnifiedMenu.Item
+          disabled={!selection.consecutive}
+          onClick={(ev) => handleBatchAction(ev, copySelection)}
+          shortcut="⌘ C"
+        >
+          Copy {count} items
+        </UnifiedMenu.Item>
+        <PermissionCheck hasPermission="patterns">
+          <UnifiedMenu.Separator />
+          <UnifiedMenu.Item
+            disabled={!selection.consecutive}
+            onClick={(ev) => handleBatchAction(ev, saveSelectionAsPattern)}
+          >
+            Create pattern from {count} items
+          </UnifiedMenu.Item>
+        </PermissionCheck>
+        {!selection.consecutive && (
+          <UnifiedMenu.Label>
+            Actions are only available when selecting adjacent items
+          </UnifiedMenu.Label>
+        )}
+        <UnifiedMenu.Separator />
+        <UnifiedMenu.Item
+          shortcut="⌫"
+          color="red"
+          onClick={(ev) => handleBatchAction(ev, deleteSelection)}
+        >
+          Delete {count} items
+        </UnifiedMenu.Item>
+      </UnifiedMenu.Content>
+    );
+  }
+
   return (
     <UnifiedMenu.Content
       aria-label={`Context menu for ${componentName}`}
@@ -239,8 +313,23 @@ const ComponentContextMenu: React.FC<ComponentContextMenuProps> = ({
   children,
   component,
 }) => {
+  const selection = useAppSelector(selectSelection);
+  const { setSelectedComponent } = useComponentSelection();
+
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      // Opening the context menu on a component outside the current selection
+      // replaces the selection with that component; opening it on a selection
+      // member keeps the selection so batch actions apply to it.
+      if (open && !selection.items.includes(component.uuid)) {
+        setSelectedComponent(component.uuid);
+      }
+    },
+    [component.uuid, selection.items, setSelectedComponent],
+  );
+
   return (
-    <ContextMenu.Root>
+    <ContextMenu.Root onOpenChange={handleOpenChange}>
       <ContextMenu.Trigger>{children}</ContextMenu.Trigger>
       <ComponentContextMenuContent component={component} />
     </ContextMenu.Root>

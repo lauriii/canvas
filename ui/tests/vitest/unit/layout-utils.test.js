@@ -2,12 +2,14 @@
 import {
   areConsecutiveSiblings,
   componentExistsInLayout,
+  filterParentChildRelationships,
   findParent,
   findParentInfo,
   findParentRegion,
   findSiblings,
   isChildNode,
   replaceUUIDsAndUpdateModel,
+  sortUuidsByDocumentOrder,
 } from '@/features/layout/layoutUtils';
 
 import layoutFixture from '../../fixtures/layout-default.json';
@@ -436,6 +438,118 @@ describe('replaceUUIDsAndUpdateModel', () => {
     it('should return an empty array for a non-existent component', () => {
       const siblings = findSiblings(layout.layout, 'idontexist');
       expect(siblings).to.have.length(0);
+    });
+  });
+
+  describe('sortUuidsByDocumentOrder', () => {
+    it('should sort shuffled siblings into document order', () => {
+      expect(
+        sortUuidsByDocumentOrder(layout.layout, [
+          'static-static-card3rr',
+          'static-static-card2df',
+        ]),
+      ).to.deep.equal(['static-static-card2df', 'static-static-card3rr']);
+    });
+
+    it('should sort components across depths and parents into document order', () => {
+      expect(
+        sortUuidsByDocumentOrder(layout.layout, [
+          '3b709ed2-99d3-4db2-869d-ca426f69fbb9',
+          '6f3224e2-cb61-46e4-a9e4-35b4d18f0a82',
+          'static-static-card1ab',
+        ]),
+      ).to.deep.equal([
+        'static-static-card1ab',
+        '6f3224e2-cb61-46e4-a9e4-35b4d18f0a82',
+        '3b709ed2-99d3-4db2-869d-ca426f69fbb9',
+      ]);
+    });
+
+    it('should place an ancestor before components inside a later sibling', () => {
+      expect(
+        sortUuidsByDocumentOrder(layout.layout, [
+          'eaa37ee1-7d50-4041-b04c-c80bdbac3412',
+          'static-image-udf7d',
+          'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+          'a7470350-deb2-4d9f-982c-464d356403d4',
+        ]),
+      ).to.deep.equal([
+        'a7470350-deb2-4d9f-982c-464d356403d4',
+        'static-image-udf7d',
+        'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+        'eaa37ee1-7d50-4041-b04c-c80bdbac3412',
+      ]);
+    });
+
+    it('should omit UUIDs that are not present in the layout', () => {
+      expect(
+        sortUuidsByDocumentOrder(layout.layout, [
+          'idontexist',
+          'static-static-card2df',
+        ]),
+      ).to.deep.equal(['static-static-card2df']);
+    });
+  });
+
+  describe('filterParentChildRelationships', () => {
+    it('should return only the new component for an empty selection', () => {
+      expect(
+        filterParentChildRelationships(
+          layout.layout,
+          [],
+          'static-static-card2df',
+        ),
+      ).to.deep.equal(['static-static-card2df']);
+    });
+
+    it('should keep unrelated components in the selection', () => {
+      expect(
+        filterParentChildRelationships(
+          layout.layout,
+          ['static-static-card2df'],
+          'static-static-card3rr',
+        ),
+      ).to.deep.equal(['static-static-card2df', 'static-static-card3rr']);
+    });
+
+    it('should drop a selected ancestor when adding its descendant', () => {
+      expect(
+        filterParentChildRelationships(
+          layout.layout,
+          ['ee07d472-a754-4427-b6d4-acfc6f92bbdc', 'static-static-card2df'],
+          '3b709ed2-99d3-4db2-869d-ca426f69fbb9',
+        ),
+      ).to.deep.equal([
+        'static-static-card2df',
+        '3b709ed2-99d3-4db2-869d-ca426f69fbb9',
+      ]);
+    });
+
+    it('should drop selected descendants when adding their ancestor', () => {
+      expect(
+        filterParentChildRelationships(
+          layout.layout,
+          [
+            '3b709ed2-99d3-4db2-869d-ca426f69fbb9',
+            'eaa37ee1-7d50-4041-b04c-c80bdbac3412',
+            'static-static-card2df',
+          ],
+          'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+        ),
+      ).to.deep.equal([
+        'static-static-card2df',
+        'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+      ]);
+    });
+
+    it('should return the current selection when the new component is not found', () => {
+      expect(
+        filterParentChildRelationships(
+          layout.layout,
+          ['static-static-card2df'],
+          'idontexist',
+        ),
+      ).to.deep.equal(['static-static-card2df']);
     });
   });
 });

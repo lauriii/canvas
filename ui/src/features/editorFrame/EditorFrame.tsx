@@ -7,7 +7,6 @@ import {
 } from 'react';
 import clsx from 'clsx';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { useParams } from 'react-router';
 import { useDebouncedCallback } from 'use-debounce';
 import { useGesture } from '@use-gesture/react';
 
@@ -31,15 +30,12 @@ import {
   setIsPanning,
   setIsZooming,
 } from '@/features/ui/uiSlice';
-import useComponentSelection from '@/hooks/useComponentSelection';
-import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import useLayoutWatcher from '@/hooks/useLayoutWatcher';
+import useMultiSelectionOperations from '@/hooks/useMultiSelectionOperations';
 import useResizeObserver from '@/hooks/useResizeObserver';
 import useSyncParamsToState from '@/hooks/useSyncParamsToState';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { getHalfwayScrollPosition } from '@/utils/function-utils';
-
-import { deleteNode } from '../layout/layoutModelSlice';
 
 import type React from 'react';
 
@@ -74,11 +70,9 @@ const EditorFrame: React.FC = () => {
   const zoomModifierKeyPressedRef = useRef(false);
   const [spaceKeyPressed, setSpaceKeyPressed] = useState(false);
   const spaceKeyPressedRef = useRef(false);
-  const { componentId: selectedComponent } = useParams();
-  const { unsetSelectedComponent } = useComponentSelection();
   const panningModeRef = useRef(panningMode);
-  const { copySelectedComponent, pasteAfterSelectedComponent } =
-    useCopyPasteComponents();
+  const { deleteSelection, copySelection, pasteAfterSelection } =
+    useMultiSelectionOperations();
   const { isUndoable, dispatchUndo } = useUndoRedo();
   const { isDragging } = useAppSelector(selectDragging);
 
@@ -131,17 +125,16 @@ const EditorFrame: React.FC = () => {
     keydown: false,
     keyup: true,
   });
+  // These shortcuts act on the current selection state, single or multi,
+  // independent of whether a component is present in the URL.
   useHotkeys(['Backspace', 'Delete'], () => {
-    if (selectedComponent) {
-      dispatch(deleteNode(selectedComponent));
-      unsetSelectedComponent();
-    }
+    deleteSelection();
   });
   useHotkeys('mod+c', () => {
-    copySelectedComponent();
+    copySelection();
   });
   useHotkeys('mod+v', () => {
-    pasteAfterSelectedComponent();
+    pasteAfterSelection();
   });
 
   // Update the width/height of the editorFrame to accommodate the scaled viewport.
