@@ -487,6 +487,15 @@ final class ApiLayoutController {
     $region_layouts = self::getRegionLayoutNodesKeyedByClientSideId($layout);
     \assert(\array_key_exists(CanvasPageVariant::MAIN_CONTENT_REGION, $region_layouts));
     $main_content_layout = $region_layouts[CanvasPageVariant::MAIN_CONTENT_REGION];
+    // Since the migration to page variants, no editable global regions remain,
+    // so a valid save carries only the single content region. A layout with any
+    // other region node comes from a client built against the old contract
+    // (e.g. a stale editor tab open from before the deploy). Reject it loudly
+    // rather than silently dropping those regions' edits.
+    $unexpected_regions = \array_diff_key($region_layouts, [CanvasPageVariant::MAIN_CONTENT_REGION => TRUE]);
+    if ($unexpected_regions) {
+      throw new ConflictHttpException('The submitted layout contains regions that are no longer editable; please refresh your browser.');
+    }
 
     // We want to work with the auto-save entity from this point so that any
     // previously saved values from e.g. another user are respected.

@@ -471,6 +471,58 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     }
   }
 
+  /**
+   * A submitted layout carrying a region other than "content" is rejected.
+   *
+   * Since the migration to page variants, no editable global regions remain, so
+   * the layout endpoint serves and accepts only the single "content" region;
+   * the surrounding chrome is a page variant edited separately. A client built
+   * against the old contract (e.g. a stale editor tab open from before the
+   * deploy) still posts additional region nodes. The server must reject that
+   * loudly rather than silently writing only the content region and dropping
+   * the other regions' edits.
+   *
+   * @see \Drupal\canvas\Controller\ApiLayoutController::post()
+   */
+  #[DataProvider('providerEntityTypes')]
+  public function testExtraRegionRejected(string $entity_type): void {
+    $entity = $this->getTestEntity($entity_type);
+    $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
+    $url = $this->getLayoutUrl($entity)->toString();
+
+    // A valid content region plus a stale "header" region node from the old
+    // (global regions) contract.
+    $body = [
+      'layout' => [
+        [
+          'nodeType' => 'region',
+          'name' => 'Content',
+          'components' => [],
+          'id' => 'content',
+        ],
+        [
+          'nodeType' => 'region',
+          'name' => 'Header',
+          'components' => [],
+          'id' => 'header',
+        ],
+      ],
+    ] + $this->getPostContentsDefaults($entity);
+
+    try {
+      $this->request(Request::create($url, method: 'POST', content: \json_encode($body, JSON_THROW_ON_ERROR)));
+      $this->fail('Expected the layout carrying an extra region to be rejected.');
+    }
+    catch (ConflictHttpException $exception) {
+      self::assertStringContainsString('no longer editable', $exception->getMessage());
+    }
+
+    // The rejected save wrote nothing: no auto-save entry for the entity.
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
+  }
+
   #[DataProvider('providerCanvasTestSetupTreeEntityTypes')]
   public function testWithCodeComponent(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);

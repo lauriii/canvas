@@ -4143,7 +4143,11 @@ components:
       properties:
         layout:
           type: array
-          description: Layout regions
+          description: >
+            Layout regions. Since the migration to page variants, this must
+            contain only the single "content" region; the surrounding chrome is
+            a page variant edited separately. A layout carrying any other region
+            node is rejected with a 409.
           items:
             type: object
             schema:
