@@ -35,20 +35,6 @@ import type {
 
 import styles from './PropLinker.module.css';
 
-// User-facing labels for the inline bridging field groups, phrased to
-// communicate the transform that is applied automatically when a field is
-// picked from the group.
-const BRIDGING_GROUP_LABELS: Record<string, string> = {
-  format_date: 'As a formatted date',
-};
-
-// Bridging adapters whose candidates are listed inline with the direct field
-// matches instead of behind a labeled submenu. Fallback's candidates are
-// fields of the prop's own shape (merely optional), so a labeled group would
-// suggest a value transformation that does not exist; format_date keeps its
-// group because picking a date field visibly changes the value's type.
-const INLINE_BRIDGING_ADAPTER_IDS = ['fallback'];
-
 export interface LinkSuggestion {
   id?: string;
   label: string;
@@ -132,29 +118,17 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
       }, []),
     [adapterSuggestions],
   );
-  const inlineBridgingGroups = useMemo(
-    () =>
-      bridgingGroups.filter(({ suggestion }) =>
-        INLINE_BRIDGING_ADAPTER_IDS.includes(suggestion.adapter.id),
-      ),
-    [bridgingGroups],
-  );
-  const groupedBridgingGroups = useMemo(
-    () =>
-      bridgingGroups.filter(
-        ({ suggestion }) =>
-          !INLINE_BRIDGING_ADAPTER_IDS.includes(suggestion.adapter.id),
-      ),
-    [bridgingGroups],
-  );
-  // Sources already offered as direct field matches; inline bridging
-  // candidates matching one are dropped so a field is not listed twice.
-  const directFieldSources = useMemo(() => {
-    const acc = new Set<string>();
+  // Bridging candidates are listed inline with the direct field matches:
+  // they are ordinary fields the user recognizes, and picking one opens the
+  // panel to collect only the adapter's remaining inputs (a fallback
+  // default, a date format). Deduplicated against the direct matches and
+  // across the bridging adapters so a field is never listed twice.
+  const inlineBridgingGroups = useMemo(() => {
+    const seen = new Set<string>();
     const walk = (items: LinkSuggestion[]) => {
       items.forEach((item) => {
         if (item.source) {
-          acc.add(JSON.stringify(item.source));
+          seen.add(JSON.stringify(item.source));
         }
         if (item.items) {
           walk(item.items);
@@ -162,8 +136,18 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
       });
     };
     walk(fieldSuggestions);
-    return acc;
-  }, [fieldSuggestions]);
+    return bridgingGroups.map(({ suggestion, candidates }) => ({
+      suggestion,
+      candidates: candidates.filter((candidate) => {
+        const key = JSON.stringify(candidate.source);
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      }),
+    }));
+  }, [bridgingGroups, fieldSuggestions]);
   // When the prop is already linked to an adapter source, unwrap it so the
   // panel can be re-opened pre-filled via the "Edit transform" item.
   const currentAdapterSteps = useMemo(() => {
@@ -385,10 +369,7 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
           {inlineBridgingGroups.map(({ suggestion, candidates }) => (
             <CandidateTreeMenuItems
               key={suggestion.adapter.id}
-              candidates={candidates.filter(
-                (candidate) =>
-                  !directFieldSources.has(JSON.stringify(candidate.source)),
-              )}
+              candidates={candidates}
               onSelect={(candidate) =>
                 openAdapterPanel([
                   createStepWithPrimaryField(suggestion, candidate),
@@ -396,31 +377,6 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
               }
             />
           ))}
-          {groupedBridgingGroups.length > 0 && (
-            <>
-              <DropdownMenu.Separator />
-              {groupedBridgingGroups.map(({ suggestion, candidates }) => (
-                <DropdownMenu.Sub key={suggestion.adapter.id}>
-                  <DropdownMenu.SubTrigger
-                    data-transform-field-group={suggestion.adapter.id}
-                  >
-                    {BRIDGING_GROUP_LABELS[suggestion.adapter.id] ??
-                      suggestion.label}
-                  </DropdownMenu.SubTrigger>
-                  <DropdownMenu.SubContent>
-                    <CandidateTreeMenuItems
-                      candidates={candidates}
-                      onSelect={(candidate) =>
-                        openAdapterPanel([
-                          createStepWithPrimaryField(suggestion, candidate),
-                        ])
-                      }
-                    />
-                  </DropdownMenu.SubContent>
-                </DropdownMenu.Sub>
-              ))}
-            </>
-          )}
           {adapterSuggestions.length > 0 && (
             <>
               <DropdownMenu.Separator />
