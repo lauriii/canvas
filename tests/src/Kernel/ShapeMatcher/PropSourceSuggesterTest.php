@@ -251,6 +251,55 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Integer timestamp fields are offered for date-string adapter inputs.
+   *
+   * Datetime string fields match a date-shaped input slot directly; integer
+   * timestamp fields (e.g. created/changed) are offered too, with the
+   * `unix_to_date` conversion attached via the single-input `adapter`
+   * shortcut on EntityFieldPropSource.
+   *
+   * @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester::getTimestampSlotCandidates()
+   */
+  public function testTimestampFieldCandidatesForDateSlots(): void {
+    $component = \Drupal::service(ComponentPluginManager::class)->find('canvas_test_sdc:date');
+    \assert($component instanceof Component);
+    $suggestions = $this->container->get(PropSourceSuggester::class)
+      ->suggest(
+        'canvas_test_sdc:date',
+        $component->metadata,
+        EntityDataDefinition::createFromDataType('entity:node:foo'),
+      );
+    $format_date = \array_values(\array_filter(
+      $suggestions['⿲canvas_test_sdc:date␟caption'][PropSource::Adapter->value],
+      fn (array $suggestion): bool => $suggestion['adapter']['id'] === 'format_date',
+    ))[0];
+    $date_input = \array_values(\array_filter(
+      $format_date['adapter']['inputs'],
+      fn (array $input): bool => $input['name'] === 'date',
+    ))[0];
+    $sources_by_label = \array_combine(
+      \array_column($date_input['candidates'], 'label'),
+      \array_column($date_input['candidates'], 'source'),
+    );
+    // A datetime string field matches directly — no conversion attached.
+    self::assertArrayHasKey('field_event_duration', $sources_by_label);
+    self::assertArrayNotHasKey('adapter', $sources_by_label['field_event_duration']);
+    // Timestamp fields carry the built-in `unix_to_date` conversion.
+    self::assertSame([
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => 'ℹ︎␜entity:node:foo␝created␞␟value',
+      PropSource::Adapter->value => 'unix_to_date',
+    ], $sources_by_label['Authored on']);
+    self::assertSame([
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => 'ℹ︎␜entity:node:foo␝changed␞␟value',
+      PropSource::Adapter->value => 'unix_to_date',
+    ], $sources_by_label['Changed']);
+    // Plain strings are never date candidates.
+    self::assertArrayNotHasKey('Title', $sources_by_label);
+  }
+
+  /**
    * Never suggests content_translation's bookkeeping base fields.
    *
    * When a bundle is translatable, content_translation adds the fixed-name

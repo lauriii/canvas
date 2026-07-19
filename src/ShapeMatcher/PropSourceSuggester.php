@@ -24,6 +24,7 @@ use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 
 /**
@@ -452,8 +453,75 @@ final readonly class PropSourceSuggester {
         $slot_memo[$memo_key] = $entries;
       }
       $candidates += $slot_memo[$memo_key];
+      // Integer timestamp fields hold datetime data too: offer them for
+      // date-string slots, converted via the `unix_to_date` adapter.
+      if (\in_array(PropShape::normalizePropSchema($shape->resolvedSchema), self::DATE_STRING_SCHEMAS, TRUE)) {
+        $candidates += $this->getTimestampSlotCandidates($is_required, $host_entity_type_id, $host_entity_bundle, $slot_memo);
+      }
     }
     return \array_values($candidates);
+  }
+
+  /**
+   * The (canonicalized) slot schemas that accept a datetime string.
+   */
+  private const DATE_STRING_SCHEMAS = [
+    ['type' => 'string', 'format' => 'date'],
+    ['type' => 'string', 'format' => 'date-time'],
+  ];
+
+  /**
+   * Field types whose (integer) main property is a UNIX timestamp.
+   */
+  private const TIMESTAMP_FIELD_TYPES = ['changed', 'created', 'timestamp'];
+
+  /**
+   * Computes timestamp-field candidates for date-string adapter input slots.
+   *
+   * Datetime data reaches a date-shaped adapter input in two field forms:
+   * datetime string fields match the slot's shape directly, while integer
+   * timestamp fields (e.g. an entity's created/changed) need a conversion
+   * first. These candidates carry it built in, via the single-input `adapter`
+   * shortcut on EntityFieldPropSource — the same mechanism the hard-coded
+   * created/changed suggestions for `format: date` props use.
+   *
+   * @param bool $is_required
+   *   Whether only never-empty fields may populate this slot. The `created`
+   *   and `changed` field types are computed on save and always carry a
+   *   value; a plain `timestamp` field only qualifies when it is required.
+   * @param array<string, mixed> $slot_memo
+   *
+   * @return array<string, array{id: string, label: string, source: array<string, mixed>}>
+   *   Candidate entries keyed by expression, ready to merge into a slot's
+   *   candidate list.
+   */
+  private function getTimestampSlotCandidates(bool $is_required, string $host_entity_type_id, string $host_entity_bundle, array &$slot_memo): array {
+    $memo_key = 'candidates-timestamp:' . (int) $is_required;
+    if (!\array_key_exists($memo_key, $slot_memo)) {
+      $host_entity_type = BetterEntityDataDefinition::create($host_entity_type_id, $host_entity_bundle);
+      $entries = [];
+      foreach ($host_entity_type->getPropertyDefinitions() as $field_name => $field_definition) {
+        if (!$field_definition instanceof FieldDefinitionInterface || !\in_array($field_definition->getType(), self::TIMESTAMP_FIELD_TYPES, TRUE)) {
+          continue;
+        }
+        if ($is_required && $field_definition->getType() === 'timestamp' && !$field_definition->isRequired()) {
+          continue;
+        }
+        $source = (new EntityFieldPropSource(
+          new FieldPropExpression($host_entity_type, $field_name, NULL, 'value'),
+        ))->withAdapter('unix_to_date');
+        if ($this->isConsideredIrrelevant($source->expression)) {
+          continue;
+        }
+        $entries[$source->asChoice()] = [
+          'id' => \hash('xxh64', $source->asChoice() . ':unix_to_date'),
+          'label' => (string) Labeler::flatten($this->labeler->label($source->expression, $host_entity_type)),
+          'source' => $source->toArray(),
+        ];
+      }
+      $slot_memo[$memo_key] = $entries;
+    }
+    return $slot_memo[$memo_key];
   }
 
   /**

@@ -222,10 +222,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     ));
 
     // The `text` prop is a required plain string: all text-producing adapters
-    // whose primary input has field candidates match (Date conversion is only
-    // here because the bundle has a required datetime field), plus the
-    // parametric ones (whose output mirrors designated inputs), in
-    // alphabetical label order.
+    // whose primary input has field candidates match (Date conversion both
+    // via the bundle's required datetime field and via the always-populated
+    // created/changed timestamps), plus the parametric ones (whose output
+    // mirrors designated inputs), in alphabetical label order.
     $text_adapters = $adapters_for_prop('text');
     self::assertSame(
       ['Combine', 'Contains', 'Date conversion', 'Equals', 'Fallback', 'Mapping', 'Prefix and suffix'],
@@ -288,14 +288,19 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     }
 
     // The Date conversion adapter's `date` input offers both `format: date`
-    // and `format: date-time` fields — but never plain strings.
+    // and `format: date-time` fields — but never plain strings. Integer
+    // timestamp fields are offered too, converted via `unix_to_date`.
     $format_date = \array_values(\array_filter($text_adapters, fn (array $s): bool => $s['adapter']['id'] === 'format_date'))[0];
     $date_input = \array_values(\array_filter($format_date['adapter']['inputs'], fn (array $i): bool => $i['name'] === 'date'))[0];
     self::assertContains('Event date', \array_column($date_input['candidates'], 'label'));
     self::assertNotContains('Title', \array_column($date_input['candidates'], 'label'));
+    $authored_on = \array_values(\array_filter($date_input['candidates'], fn (array $c): bool => $c['label'] === 'Authored on'))[0];
+    self::assertSame('unix_to_date', $authored_on['source']['adapter']);
 
-    // Where no datetime fields exist — the `user` bundle — Date conversion is
-    // not offered at all: there is nothing for it to transform.
+    // Even where no datetime fields exist — the `user` bundle — Date
+    // conversion is offered: the always-populated created/changed timestamps
+    // are datetime data too. The optional `access`/`login` timestamps are
+    // not offered for this REQUIRED prop.
     $user_json = $this->assertExpectedResponse(
       method: 'GET',
       url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/prop-sources/user/user/sdc.canvas_test_sdc.heading"),
@@ -307,12 +312,20 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       expected_dynamic_page_cache: 'UNCACHEABLE (no cacheability)',
     );
     self::assertIsArray($user_json);
-    $user_text_adapter_labels = \array_column(
-      \array_values(\array_filter($user_json['text'], fn (array $s): bool => \array_key_exists('adapter', $s))),
-      'label',
-    );
-    self::assertNotContains('Date conversion', $user_text_adapter_labels);
+    $user_text_adapters = \array_values(\array_filter($user_json['text'], fn (array $s): bool => \array_key_exists('adapter', $s)));
+    $user_text_adapter_labels = \array_column($user_text_adapters, 'label');
+    self::assertContains('Date conversion', $user_text_adapter_labels);
     self::assertContains('Equals', $user_text_adapter_labels);
+    $user_format_date = \array_values(\array_filter($user_text_adapters, fn (array $s): bool => $s['adapter']['id'] === 'format_date'))[0];
+    $user_date_input = \array_values(\array_filter($user_format_date['adapter']['inputs'], fn (array $i): bool => $i['name'] === 'date'))[0];
+    $user_date_candidate_labels = \array_column($user_date_input['candidates'], 'label');
+    self::assertContains('Created', $user_date_candidate_labels);
+    self::assertContains('Changed', $user_date_candidate_labels);
+    self::assertNotContains('Last access', $user_date_candidate_labels);
+    self::assertNotContains('Last login', $user_date_candidate_labels);
+    foreach ($user_date_input['candidates'] as $candidate) {
+      self::assertSame('unix_to_date', $candidate['source']['adapter']);
+    }
   }
 
   /**

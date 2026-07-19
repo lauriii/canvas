@@ -37,10 +37,10 @@ Notes:
   configuration) or the special value `relative`, which renders phrases such
   as "2 days ago" or "in 3 hours" with time-bounded cacheability. Integer
   timestamps (e.g. a node's created/changed fields) are converted first via
-  the pre-existing `unix_to_date` adapter — nested as the `date` input in
-  stored trees. (The editor UI's chain steps are drawn from the adapters
-  matching the targeted prop, so this particular chain is authored via the
-  data model rather than the panel for now.)
+  the pre-existing `unix_to_date` adapter: the suggester offers them as
+  `date`-input candidates with the conversion built in (the single-input
+  `adapter` shortcut on the entity-field source), so the editor treats them
+  like any other date field.
 - `equals` compares loosely on purpose: the compared value typically comes
   from a typed field (integer `0`) while the comparison is entered as text
   (`"0"`).
