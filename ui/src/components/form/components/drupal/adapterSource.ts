@@ -406,20 +406,39 @@ export const combinePartsToInputs = (
   return inputs;
 };
 
+// The union of field candidates across all text slots, deduplicated by id.
+// text_1 is restricted to required fields when the targeted prop is required,
+// while the later slots offer the full set (including followed entity
+// references), so the pill editor must offer, and resolve labels against,
+// all of them.
+export const combineTextCandidates = (
+  slots: AdapterInputSlot[],
+): SlotCandidate[] => {
+  const byId = new Map<string, SlotCandidate>();
+  slots
+    .filter((slot) => COMBINE_TEXT_SLOT_PATTERN.test(slot.name))
+    .flatMap((slot) => slot.candidates)
+    .forEach((candidate) => {
+      if (!byId.has(candidate.id)) {
+        byId.set(candidate.id, candidate);
+      }
+    });
+  return [...byId.values()];
+};
+
 // Reconstructs the ordered pill-editor parts from a stored combine source:
 // text_1…text_10 read in order, a static input becomes a literal text run and
 // any other source becomes a field pill (its label resolved from the text
-// slot's candidates, falling back to a generic label while preserving the
-// source). When `skipPrimary` is true (combine used as a later chain step),
-// text_1 holds the previous step's output and is not part of the editor.
+// slots' combined candidates, falling back to a generic label while
+// preserving the source). When `skipPrimary` is true (combine used as a later
+// chain step), text_1 holds the previous step's output and is not part of the
+// editor.
 export const combineSourceToParts = (
   source: AdaptedPropSource,
   slots: AdapterInputSlot[],
   skipPrimary = false,
 ): CombinePart[] => {
-  const candidates =
-    slots.find((slot) => COMBINE_TEXT_SLOT_PATTERN.test(slot.name))
-      ?.candidates ?? [];
+  const candidates = combineTextCandidates(slots);
   const parts: CombinePart[] = [];
   for (let index = 1; index <= COMBINE_MAX_PARTS; index++) {
     if (index === 1 && skipPrimary) {

@@ -47,8 +47,9 @@ test.describe('Prop adapters', () => {
     await canvas.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
 
     // Open the heading prop linker and pick the "Equals" transform from the
-    // Transform section of the dropdown.
+    // Transform submenu of the dropdown.
     await page.getByLabel('Link heading to an other field').click();
+    await page.locator('[data-transform-menu="heading"]').click();
     await page.locator('[data-transform-option="equals"]').click();
 
     const panel = page.getByTestId('adapter-config-panel');
@@ -128,6 +129,7 @@ test.describe('Prop adapters', () => {
 
     // Open the heading prop linker and pick the "Combine" transform.
     await page.getByLabel('Link heading to an other field').click();
+    await page.locator('[data-transform-menu="heading"]').click();
     await page.locator('[data-transform-option="combine"]').click();
 
     const panel = page.getByTestId('adapter-config-panel');

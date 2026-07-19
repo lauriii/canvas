@@ -39,9 +39,15 @@ import styles from './PropLinker.module.css';
 // communicate the transform that is applied automatically when a field is
 // picked from the group.
 const BRIDGING_GROUP_LABELS: Record<string, string> = {
-  fallback: 'With a fallback',
   format_date: 'As a formatted date',
 };
+
+// Bridging adapters whose candidates are listed inline with the direct field
+// matches instead of behind a labeled submenu. Fallback's candidates are
+// fields of the prop's own shape (merely optional), so a labeled group would
+// suggest a value transformation that does not exist; format_date keeps its
+// group because picking a date field visibly changes the value's type.
+const INLINE_BRIDGING_ADAPTER_IDS = ['fallback'];
 
 export interface LinkSuggestion {
   id?: string;
@@ -126,6 +132,38 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
       }, []),
     [adapterSuggestions],
   );
+  const inlineBridgingGroups = useMemo(
+    () =>
+      bridgingGroups.filter(({ suggestion }) =>
+        INLINE_BRIDGING_ADAPTER_IDS.includes(suggestion.adapter.id),
+      ),
+    [bridgingGroups],
+  );
+  const groupedBridgingGroups = useMemo(
+    () =>
+      bridgingGroups.filter(
+        ({ suggestion }) =>
+          !INLINE_BRIDGING_ADAPTER_IDS.includes(suggestion.adapter.id),
+      ),
+    [bridgingGroups],
+  );
+  // Sources already offered as direct field matches; inline bridging
+  // candidates matching one are dropped so a field is not listed twice.
+  const directFieldSources = useMemo(() => {
+    const acc = new Set<string>();
+    const walk = (items: LinkSuggestion[]) => {
+      items.forEach((item) => {
+        if (item.source) {
+          acc.add(JSON.stringify(item.source));
+        }
+        if (item.items) {
+          walk(item.items);
+        }
+      });
+    };
+    walk(fieldSuggestions);
+    return acc;
+  }, [fieldSuggestions]);
   // When the prop is already linked to an adapter source, unwrap it so the
   // panel can be re-opened pre-filled via the "Edit transform" item.
   const currentAdapterSteps = useMemo(() => {
@@ -344,10 +382,24 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
               />
             );
           })}
-          {bridgingGroups.length > 0 && (
+          {inlineBridgingGroups.map(({ suggestion, candidates }) => (
+            <CandidateTreeMenuItems
+              key={suggestion.adapter.id}
+              candidates={candidates.filter(
+                (candidate) =>
+                  !directFieldSources.has(JSON.stringify(candidate.source)),
+              )}
+              onSelect={(candidate) =>
+                openAdapterPanel([
+                  createStepWithPrimaryField(suggestion, candidate),
+                ])
+              }
+            />
+          ))}
+          {groupedBridgingGroups.length > 0 && (
             <>
               <DropdownMenu.Separator />
-              {bridgingGroups.map(({ suggestion, candidates }) => (
+              {groupedBridgingGroups.map(({ suggestion, candidates }) => (
                 <DropdownMenu.Sub key={suggestion.adapter.id}>
                   <DropdownMenu.SubTrigger
                     data-transform-field-group={suggestion.adapter.id}
@@ -372,7 +424,6 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
           {adapterSuggestions.length > 0 && (
             <>
               <DropdownMenu.Separator />
-              <DropdownMenu.Label>Transform</DropdownMenu.Label>
               {currentAdapterSteps && (
                 <DropdownMenu.Item
                   data-testid={`edit-transform-${propName}`}
@@ -381,15 +432,22 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
                   Edit transform
                 </DropdownMenu.Item>
               )}
-              {adapterSuggestions.map((suggestion, index) => (
-                <DropdownMenu.Item
-                  key={suggestion.id || index}
-                  data-transform-option={suggestion.adapter.id}
-                  onClick={() => handleTransformClick(suggestion)}
-                >
-                  {suggestion.label}
-                </DropdownMenu.Item>
-              ))}
+              <DropdownMenu.Sub>
+                <DropdownMenu.SubTrigger data-transform-menu={propName}>
+                  Transform
+                </DropdownMenu.SubTrigger>
+                <DropdownMenu.SubContent>
+                  {adapterSuggestions.map((suggestion, index) => (
+                    <DropdownMenu.Item
+                      key={suggestion.id || index}
+                      data-transform-option={suggestion.adapter.id}
+                      onClick={() => handleTransformClick(suggestion)}
+                    >
+                      {suggestion.label}
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.SubContent>
+              </DropdownMenu.Sub>
             </>
           )}
         </DropdownMenu.Content>
