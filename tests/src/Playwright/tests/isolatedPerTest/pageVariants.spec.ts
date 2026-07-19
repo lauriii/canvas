@@ -275,24 +275,32 @@ test.describe('Page variants', () => {
     drupal,
     canvas,
   }) => {
-    // As an editor (who has "administer page variants"), create a variant and
-    // set it as the site default so every page resolves to it.
-    await drupal.login({ username: 'editor', password: 'editor' });
+    // As an administrator, create a page, give it a Marketing template, and
+    // publish that per-page selection so the page resolves to the template for
+    // any viewer. A per-page selection (rather than the site default) keeps the
+    // login and logout pages rendering normally for the user switch below.
+    await drupal.loginAsAdmin();
     const canvasPage = await canvas.createCanvas({ title: 'No perms host' });
     await canvas.openCanvas(canvasPage);
     await createMarketingVariant(page);
-    const row = page.getByTestId('canvas-page-variant-marketing');
-    await row.hover();
-    await row.getByLabel('Open contextual menu').click();
-    const setDefault = page.waitForResponse(
+    // Reopen the page so the Page data form's options include the new template.
+    await canvas.openCanvas(canvasPage);
+    const pageDataForm = page.getByTestId('canvas-page-data-form');
+    await pageDataForm
+      .locator('button')
+      .filter({ hasText: 'Page template' })
+      .click();
+    const variantSelect = pageDataForm.getByLabel('Page template');
+    await expect(variantSelect).toBeVisible();
+    const autoSave = page.waitForResponse(
       (response) =>
-        response
-          .url()
-          .includes('/canvas/api/v0/settings/default-page-variant') &&
-        response.request().method() === 'PATCH',
+        response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+        response.request().method() === 'POST' &&
+        (response.request().postData() ?? '').includes('marketing'),
     );
-    await page.getByRole('menuitem', { name: 'Set as default' }).click();
-    await setDefault;
+    await variantSelect.selectOption({ label: 'Marketing' });
+    await autoSave;
+    await canvas.publishAllChanges();
 
     // A user with only "edit canvas_page" lacks "administer page variants".
     await drupal.createRole({ name: 'canvas_no_variant_perms' });
@@ -311,9 +319,9 @@ test.describe('Page variants', () => {
     await drupal.logout();
     await drupal.login(user);
 
-    // The page resolves to the default variant, so the layer row renders, but
+    // The page resolves to the selected template, so the layer row renders, but
     // without the permission it must be a plain label (not a link into the
-    // 403-guarded variant editor) and must not expose the machine name.
+    // 403-guarded template editor) and must not expose the machine name.
     await canvas.openCanvas(canvasPage);
     await canvas.waitForEditorUi();
     await canvas.openLayersPanel();
