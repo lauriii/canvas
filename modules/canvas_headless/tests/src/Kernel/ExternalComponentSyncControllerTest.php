@@ -33,6 +33,7 @@ final class ExternalComponentSyncControllerTest extends CanvasKernelTestBase {
     'user',
     'path_alias',
     'serialization',
+    'custom_elements',
     'consumers',
     'simple_oauth',
     'canvas_headless',

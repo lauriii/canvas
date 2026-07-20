@@ -22,6 +22,7 @@
         "drupal/coder": "^8",
         "drupal/custom_elements": "^3.4",
         "drupal/jsonapi_menu_items": "^1.2.8",
+        "drupal/lupus_decoupled": "^1.5",
         "drupal/metatag": "^2.1",
         "drupal/pathauto": "^1.13",
         "drupal/search_api": "^1",

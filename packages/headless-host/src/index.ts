@@ -13,6 +13,7 @@
  *   app  → host  {type: 'canvas-headless:status', status, path, tokenExpiresAt}
  *   app  → host  {type: 'canvas-headless:renew-request', path}
  *   host → app   {type: 'canvas-headless:assertion', assertion}
+ *   host → app   {type: 'canvas-headless:refresh'}
  *
  * On a renew request the host fetches a fresh assertion (via the
  * `fetchAssertion` callback, which owns transport specifics such as CSRF)
@@ -25,6 +26,10 @@
  * iframe src — a full reload, coarse but dependable. One recovery attempt
  * per expiry; the flag re-arms only when the app reports an active session
  * again, so a session that cannot recover does not reload in a loop.
+ * Separately, refresh() tells the app that its Canvas auto-save data changed,
+ * allowing the app's framework adapter to refresh without replaying the
+ * single-use activation URL. Refreshes requested while the app is loading are
+ * coalesced and delivered once it reports an active session.
  *
  * Every message is origin-checked in both directions: incoming events must
  * come from the configured frontend origin and from the host's own iframe;
@@ -33,6 +38,7 @@
 
 import {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
   HEADLESS_STATUS_MESSAGE,
 } from '@drupal-canvas/headless';
@@ -42,6 +48,7 @@ import {
 // implementers need only this package.
 export {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
   HEADLESS_STATUS_MESSAGE,
 };
@@ -91,18 +98,22 @@ export interface HeadlessPreviewHost {
    * 'activation-failed' instead of rejecting.
    */
   activate: (params: Record<string, string>) => Promise<void>;
+  /** Asks the embedded app to refresh now, or once its session is active. */
+  refresh: () => void;
   /** Removes the message listener. The iframe itself is left as is. */
   destroy: () => void;
 }
 
 /**
- * Creates the host side of the renewal/recovery protocol for one iframe.
+ * Creates the host side of the draft-preview protocol for one iframe.
  */
 export function createHeadlessPreviewHost(
   options: HeadlessPreviewHostOptions,
 ): HeadlessPreviewHost {
   const { iframe, frontendOrigin, draftUrl, fetchAssertion, onEvent } = options;
   let recoveryAttempted = false;
+  let active = false;
+  let refreshPending = false;
   let destroyed = false;
 
   const emit = (event: HeadlessPreviewHostEvent) => {
@@ -123,7 +134,15 @@ export function createHeadlessPreviewHost(
     if (destroyed) {
       return;
     }
+    active = false;
     iframe.src = `${draftUrl}?assertion=${encodeURIComponent(assertion)}`;
+  };
+
+  const postRefresh = () => {
+    iframe.contentWindow?.postMessage(
+      { type: HEADLESS_REFRESH_MESSAGE },
+      frontendOrigin,
+    );
   };
 
   const activate = async (params: Record<string, string>) => {
@@ -198,12 +217,18 @@ export function createHeadlessPreviewHost(
           // every recovery cycle passes through 'active', so a session
           // that never comes back cannot reload in a loop.
           recoveryAttempted = false;
+          active = true;
           emit({
             type: 'active',
             tokenExpiresAt: Number(event.data.tokenExpiresAt),
           });
+          if (refreshPending) {
+            refreshPending = false;
+            postRefresh();
+          }
         }
         if (event.data.status === 'expired') {
+          active = false;
           void recover(path);
         }
         break;
@@ -215,6 +240,16 @@ export function createHeadlessPreviewHost(
 
   return {
     activate,
+    refresh: () => {
+      if (destroyed) {
+        return;
+      }
+      if (!active) {
+        refreshPending = true;
+        return;
+      }
+      postRefresh();
+    },
     destroy: () => {
       destroyed = true;
       window.removeEventListener('message', onMessage);

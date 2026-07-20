@@ -1,12 +1,16 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { HEADLESS_ASSERTION_MESSAGE } from '../constants';
+import {
+  HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_REFRESH_MESSAGE,
+} from '../constants';
 import { EXPIRY_SLACK_MS } from '../draft-data';
 import {
   defineDraftSessionElement,
   DRAFT_SESSION_CHANGE_EVENT,
   DRAFT_SESSION_ELEMENT_TAG,
+  DRAFT_SESSION_REFRESH_EVENT,
 } from './draft-session-element';
 
 import type { DraftSessionElementSnapshot } from './draft-session-element';
@@ -185,6 +189,40 @@ describe('DraftSessionElement', () => {
 
     expect(snapshots).toHaveLength(count);
     expect(element.hasAttribute('expired')).toBe(false);
+  });
+
+  it('lets an adapter handle a refresh instead of reloading', () => {
+    const originalTop = Object.getOwnPropertyDescriptor(window, 'top');
+    Object.defineProperty(window, 'top', { value: {}, configurable: true });
+
+    try {
+      const { element } = mount();
+      let refreshEvent: Event | null = null;
+      element.addEventListener(DRAFT_SESSION_REFRESH_EVENT, (event) => {
+        refreshEvent = event;
+        event.preventDefault();
+      });
+
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: { type: HEADLESS_REFRESH_MESSAGE },
+          origin: ORIGIN,
+          source: window.parent,
+        }),
+      );
+
+      expect(refreshEvent).not.toBeNull();
+      expect(refreshEvent).toMatchObject({
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        defaultPrevented: true,
+      });
+    } finally {
+      if (originalTop) {
+        Object.defineProperty(window, 'top', originalTop);
+      }
+    }
   });
 
   it('re-arms in place when a renewal delivers a new expiry', async () => {

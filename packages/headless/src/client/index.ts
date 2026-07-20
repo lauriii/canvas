@@ -13,5 +13,6 @@ export {
   DraftSessionElement,
   DRAFT_SESSION_CHANGE_EVENT,
   DRAFT_SESSION_ELEMENT_TAG,
+  DRAFT_SESSION_REFRESH_EVENT,
   type DraftSessionElementSnapshot,
 } from './draft-session-element';

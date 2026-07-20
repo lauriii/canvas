@@ -10,6 +10,10 @@
  * - The element owns the machine lifecycle: one machine per session epoch,
  *   re-created in place when a renewal delivers a new tokenExpiresAt (the
  *   'renewed' event carries it, so no server re-render is needed).
+ * - A host refresh request reloads the current document so server-rendered
+ *   adapters fetch the latest Canvas auto-save data. Before reloading, the
+ *   element emits a cancelable refresh event so framework adapters can use
+ *   their own data-refresh or navigation primitive instead.
  * - Session state is reflected as host attributes (`expired`, `embedded`,
  *   `renew-state`) and announced via a bubbling
  *   `canvas-draft-session:change` CustomEvent, for consumers that want to
@@ -58,6 +62,14 @@ export interface DraftSessionElementSnapshot {
  * The event name state changes are announced under (bubbling, composed).
  */
 export const DRAFT_SESSION_CHANGE_EVENT = 'canvas-draft-session:change';
+
+/**
+ * Cancelable event emitted when the host reports new Canvas auto-save data.
+ * Preventing its default behavior tells the element that an adapter owns the
+ * refresh; otherwise the current document reloads.
+ */
+export const DRAFT_SESSION_REFRESH_EVENT =
+  'canvas-draft-session:refresh-requested';
 
 // The element must be importable in server-side module graphs (an Astro or
 // Nuxt component imports it next to server code), where HTMLElement does
@@ -137,6 +149,17 @@ export class DraftSessionElement extends BaseElement {
       editorOrigin: this.getAttribute('editor-origin'),
       renewEndpoint: this.getAttribute('renew-endpoint') ?? undefined,
       onEvent: (event) => {
+        if (event.type === 'refresh-requested') {
+          const refreshEvent = new Event(DRAFT_SESSION_REFRESH_EVENT, {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+          });
+          if (this.dispatchEvent(refreshEvent)) {
+            window.location.reload();
+          }
+          return;
+        }
         if (event.type === 'renewed') {
           if (event.tokenExpiresAt === null) {
             // The renewal succeeded (the cookie holds the new token) but

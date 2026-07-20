@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
   HEADLESS_STATUS_MESSAGE,
 } from '../constants';
@@ -206,6 +207,31 @@ describe('createDraftSession', () => {
       tokenExpiresAt: renewedExpiry,
     });
     expect(refreshData).toHaveBeenCalledOnce();
+  });
+
+  it('refreshes data when the host reports a new auto-save', () => {
+    const { events, fetchImpl, refreshData, dispatchMessage } = makeHarness();
+
+    dispatchMessage({ data: { type: HEADLESS_REFRESH_MESSAGE } });
+
+    expect(events).toContainEqual({ type: 'refresh-requested' });
+    expect(refreshData).toHaveBeenCalledOnce();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['a non-host source', { source: { postMessage: vi.fn() } }],
+    ['a different origin', { origin: OTHER_ORIGIN }],
+  ])('ignores refresh messages from %s', (_label, event) => {
+    const { events, refreshData, dispatchMessage } = makeHarness();
+
+    dispatchMessage({
+      data: { type: HEADLESS_REFRESH_MESSAGE },
+      ...event,
+    });
+
+    expect(events).not.toContainEqual({ type: 'refresh-requested' });
+    expect(refreshData).not.toHaveBeenCalled();
   });
 
   it('renews without refreshData and without a usable response body', async () => {

@@ -1,12 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createHeadlessPreviewHost } from '@drupal-canvas/headless-host';
 
 import { fetchCsrfToken } from '@/utils/csrf';
 import { getBaseUrl } from '@/utils/drupal-globals';
 
 import type { RefObject } from 'react';
-import type { HeadlessPreviewHostEvent } from '@drupal-canvas/headless-host';
+import type {
+  HeadlessPreviewHost,
+  HeadlessPreviewHostEvent,
+} from '@drupal-canvas/headless-host';
 import type { HeadlessSettings } from '@drupal-canvas/types';
+import type { AutoSavesHashRecord } from '@/types/AutoSaves';
 
 export interface HeadlessDraftSession {
   statusText: string;
@@ -42,16 +46,20 @@ function statusTextFor(event: HeadlessPreviewHostEvent): string {
  * assertions are fetched from the canvas_headless module's endpoint with
  * the same CSRF token the editor's API mutations use (fetchCsrfToken, sent
  * as the X-CSRF-Token header), and a new session activates whenever the
- * edited entity changes, including in-SPA navigation between entities.
+ * edited entity changes, including in-SPA navigation between entities. A
+ * successful auto-save asks the app to refresh through the same protocol.
  */
 export function useHeadlessDraftSession(
   iframeRef: RefObject<HTMLIFrameElement>,
   settings: HeadlessSettings,
   entityType: string | undefined,
   entityId: string | undefined,
+  autoSavesHash?: AutoSavesHashRecord,
 ): HeadlessDraftSession {
   const { frontendOrigin, draftUrl, assertionUrl } = settings;
   const [statusText, setStatusText] = useState(WAITING_TEXT);
+  const hostRef = useRef<HeadlessPreviewHost | null>(null);
+  const lastAutoSavesHashRef = useRef(autoSavesHash);
 
   const fetchAssertion = useCallback(
     async (params: Record<string, string>): Promise<string> => {
@@ -96,8 +104,12 @@ export function useHeadlessDraftSession(
       fetchAssertion,
       onEvent: (event) => setStatusText(statusTextFor(event)),
     });
+    hostRef.current = host;
     void host.activate({ entity_type: entityType, entity: entityId });
     return () => {
+      if (hostRef.current === host) {
+        hostRef.current = null;
+      }
       host.destroy();
     };
   }, [
@@ -108,6 +120,17 @@ export function useHeadlessDraftSession(
     entityType,
     entityId,
   ]);
+
+  useEffect(() => {
+    if (
+      autoSavesHash === undefined ||
+      autoSavesHash === lastAutoSavesHashRef.current
+    ) {
+      return;
+    }
+    lastAutoSavesHashRef.current = autoSavesHash;
+    hostRef.current?.refresh();
+  }, [autoSavesHash]);
 
   return { statusText };
 }

@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_headless\Access;
 
-use Drupal\canvas_headless\Grant\PreviewAssertionGrant;
+use Drupal\canvas_headless\PreviewTokenInspector;
 use Drupal\Core\Session\AccessPolicyBase;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\CalculatedPermissionsItem;
 use Drupal\Core\Session\RefinableCalculatedPermissionsInterface;
-use Drupal\simple_oauth\Authentication\TokenAuthUserInterface;
 use Drupal\simple_oauth\Oauth2ScopeProviderInterface;
-use Drupal\simple_oauth\Plugin\Field\FieldType\Oauth2ScopeReferenceItemListInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Clamps administrative roles down to the preview scope's view-only ceiling.
@@ -38,6 +37,7 @@ use Drupal\simple_oauth\Plugin\Field\FieldType\Oauth2ScopeReferenceItemListInter
 final class PreviewCeilingAccessPolicy extends AccessPolicyBase {
 
   public function __construct(
+    #[Autowire(service: 'simple_oauth.oauth2_scope.provider')]
     protected Oauth2ScopeProviderInterface $scopeProvider,
   ) {}
 
@@ -52,21 +52,9 @@ final class PreviewCeilingAccessPolicy extends AccessPolicyBase {
    * {@inheritdoc}
    */
   public function alterPermissions(AccountInterface $account, string $scope, RefinableCalculatedPermissionsInterface $calculated_permissions): void {
-    if (!$account instanceof TokenAuthUserInterface) {
-      return;
-    }
-
     // Act only on tokens carrying the preview scope; every other token is
     // Simple OAuth's to govern.
-    $scopes = $account->getToken()->get('scopes');
-    \assert($scopes instanceof Oauth2ScopeReferenceItemListInterface);
-    $preview_scope = NULL;
-    foreach ($scopes->getScopes() as $oauth2_scope) {
-      if ($oauth2_scope->getName() === PreviewAssertionGrant::SCOPE) {
-        $preview_scope = $oauth2_scope;
-        break;
-      }
-    }
+    $preview_scope = PreviewTokenInspector::getPreviewScope($account);
     if ($preview_scope === NULL) {
       return;
     }

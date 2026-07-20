@@ -23,7 +23,7 @@ export const JWT_BEARER_GRANT_TYPE =
 export const CANVAS_HEADLESS_CLIENT_ID = 'canvas_headless';
 
 /**
- * The host ↔ app renewal protocol message types.
+ * The host ↔ app draft-preview protocol message types.
  *
  * The embedded app cannot renew its own session — its requests to Drupal are
  * cross-site in the ancestor chain, so the editor's SameSite=Lax session
@@ -43,3 +43,6 @@ export const HEADLESS_RENEW_REQUEST_MESSAGE = 'canvas-headless:renew-request';
 
 /** Host → app: a freshly minted assertion, to redeem in place. */
 export const HEADLESS_ASSERTION_MESSAGE = 'canvas-headless:assertion';
+
+/** Host → app: refresh content after Canvas persisted a new auto-save. */
+export const HEADLESS_REFRESH_MESSAGE = 'canvas-headless:refresh';

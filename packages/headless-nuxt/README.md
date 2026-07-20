@@ -77,6 +77,15 @@ instead re-arms in place from the renew endpoint's `{tokenExpiresAt}` answer —
 no document reload, no navigation loss. The renewed token already lives in the
 session cookie, so the next request carries it regardless.
 
+## Refreshing after Canvas auto-saves
+
+When Canvas reports new auto-save data, `<DraftSession>` handles the SDK's
+cancelable refresh event with Nuxt's `refreshNuxtData()`. This refreshes active
+`useFetch()` and `useAsyncData()` sources, including rendered page content,
+without reloading the document. Consumers of the framework-neutral custom
+element retain its full-document reload fallback when no adapter handles the
+event.
+
 ## Draft mode without a framework draft mode
 
 Nuxt has no built-in preview flag scoped to this protocol, so the SDK's adapter

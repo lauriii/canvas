@@ -15,7 +15,9 @@ The package owns the protocol state machine:
   held by the app's server, so a script inside the iframe cannot exchange an
   intercepted assertion for a token,
 - the recovery lane: reset the iframe to a new activation URL when the app
-  reports an expired session, one attempt per expiry.
+  reports an expired session, one attempt per expiry,
+- content refresh: tell the app to fetch the latest draft content after the host
+  persists a new Canvas auto-save.
 
 Transport specifics stay with the consumer: `fetchAssertion` is a callback, so
 each host decides how it reaches its assertion-minting endpoint (for the Canvas
@@ -46,6 +48,8 @@ const host = createHeadlessPreviewHost({
 });
 
 await host.activate({ entity_type: 'canvas_page', entity: '5' });
+// After Canvas reports that an auto-save request succeeded:
+host.refresh();
 // Later: host.destroy();
 ```
 
