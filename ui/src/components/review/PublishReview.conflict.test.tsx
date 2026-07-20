@@ -6,6 +6,7 @@ import AppWrapper from '@tests/vitest/components/AppWrapper';
 import { makeStore } from '@/app/store';
 import PublishReview from '@/components/review/PublishReview';
 
+import type React from 'react';
 import type { UnpublishedChange } from '@/types/Review';
 
 let conflictUxEnabled = true;
@@ -34,7 +35,10 @@ const baseChange: UnpublishedChange = {
   },
 };
 
-const renderReview = (changes: UnpublishedChange[]) => {
+const renderReview = (
+  changes: UnpublishedChange[],
+  overrides: Partial<React.ComponentProps<typeof PublishReview>> = {},
+) => {
   const store = makeStore();
   const props = {
     changes,
@@ -44,9 +48,13 @@ const renderReview = (changes: UnpublishedChange[]) => {
     onPublishClick: vi.fn(),
     onDiscardClick: vi.fn(),
     onResolveConflict: vi.fn(),
+    onReviewSelectedChanges: vi.fn(),
+    isViewChangeAvailable: (change: UnpublishedChange) =>
+      change.entity_type === 'canvas_page' && !change.hasConflict,
     isPublishing: false,
     isDiscarding: false,
     isUpdating: false,
+    ...overrides,
   };
 
   const result = render(
@@ -161,5 +169,53 @@ describe('PublishReview conflict UI', () => {
 
     await user.click(screen.getByTestId('canvas-publish-review-select-all'));
     expect(screen.getByText('1 of 1 changes selected')).toBeInTheDocument();
+  });
+
+  it('reviews the currently selected reviewable changes', async () => {
+    const user = userEvent.setup();
+    const { props } = renderReview([
+      baseChange,
+      {
+        ...baseChange,
+        pointer: 'js_component:hero:en',
+        label: 'Hero',
+        entity_id: 'hero',
+        entity_type: 'js_component',
+      },
+    ]);
+
+    await user.click(screen.getByTestId('canvas-publish-review'));
+
+    const reviewSelected = screen.getByRole('button', {
+      name: 'Review selected changes',
+    });
+    expect(reviewSelected).toBeDisabled();
+
+    await user.click(screen.getByLabelText('Select change Page 1'));
+    await user.click(screen.getByLabelText('Select change Hero'));
+
+    expect(reviewSelected).toBeEnabled();
+
+    await user.click(reviewSelected);
+
+    expect(props.onReviewSelectedChanges).toHaveBeenCalledWith([
+      baseChange,
+      expect.objectContaining({
+        pointer: 'js_component:hero:en',
+      }),
+    ]);
+    expect(props.onOpenChangeCallback).toHaveBeenLastCalledWith(false);
+  });
+
+  it('hides the side-by-side review action when conflict UX is disabled', async () => {
+    const user = userEvent.setup();
+    conflictUxEnabled = false;
+    renderReview([baseChange]);
+
+    await user.click(screen.getByTestId('canvas-publish-review'));
+
+    expect(
+      screen.queryByRole('button', { name: 'Review selected changes' }),
+    ).not.toBeInTheDocument();
   });
 });

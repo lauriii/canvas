@@ -21,6 +21,7 @@ import { useGetPreviewContentEntitiesQuery } from '@/services/componentAndLayout
 import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import PageInfo from '../pageInfo/PageInfo';
+import { isPreviewPath } from './topbarPreviewMode';
 
 import styles from './Topbar.module.css';
 
@@ -30,9 +31,7 @@ const Topbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { entityType, bundle, previewEntityId } = useParams();
-  const isPreview =
-    location.pathname.includes('/preview') ||
-    location.pathname.includes('/conflict-preview');
+  const isPreview = isPreviewPath(location.pathname);
   const isEditor = location.pathname.includes('/editor');
   const isSegments = location.pathname.includes('/segments');
   const isHeadlessFrontends = location.pathname.startsWith('/headless');

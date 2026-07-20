@@ -19,7 +19,6 @@ import SideMenu from '@/components/sideMenu/SideMenu';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
 import CodeEditorContainer from '@/features/code-editor/CodeEditorContainer';
 import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
-import ConflictPreview from '@/features/conflict/ConflictPreview';
 import ConflictResolutionPage from '@/features/conflict/ConflictResolutionPage';
 import EditorLayout from '@/features/editor/EditorLayout';
 import TemplateRoot from '@/features/editor/TemplateRoot';
@@ -28,7 +27,9 @@ import PagePreview from '@/features/pagePreview/PagePreview';
 import PatternDialogs from '@/features/pattern/PatternDialogs';
 import SegmentDashboard from '@/features/personalization/SegmentDashboard';
 import SegmentPanel from '@/features/personalization/SegmentPanel';
+import ReviewChangesPage from '@/features/review/ReviewChangesPage';
 import { EditorFrameContext } from '@/features/ui/uiSlice';
+import VersionPreview from '@/features/versionComparison/VersionPreview';
 import Welcome from '@/features/welcome/Welcome';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 
@@ -194,12 +195,12 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             element: <PagePreview />,
           },
           {
-            path: '/conflict-preview/:entityType/:entityId',
-            element: <ConflictPreview />,
+            path: '/version-preview/:entityType/:entityId',
+            element: <VersionPreview />,
           },
           {
-            path: '/conflict-preview/:entityType/:entityId/:width',
-            element: <ConflictPreview />,
+            path: '/version-preview/:entityType/:entityId/:width',
+            element: <VersionPreview />,
           },
           {
             path: '/conflict',
@@ -214,6 +215,22 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             element: (
               <UiShell>
                 <ConflictResolutionPage />
+              </UiShell>
+            ),
+          },
+          {
+            path: '/review',
+            element: (
+              <UiShell>
+                <ReviewChangesPage />
+              </UiShell>
+            ),
+          },
+          {
+            path: '/review/:entityType/:entityId',
+            element: (
+              <UiShell>
+                <ReviewChangesPage />
               </UiShell>
             ),
           },

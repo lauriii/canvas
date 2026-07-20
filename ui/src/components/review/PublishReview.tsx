@@ -40,8 +40,10 @@ interface PublishReviewProps {
   onPublishClick: (selectedChanges: UnpublishedChange[]) => void;
   onDiscardClick: (selectedChange: UnpublishedChange) => void;
   onViewClick?: (change: UnpublishedChange) => void;
+  onReviewSelectedChanges?: (selectedChanges: UnpublishedChange[]) => void;
   onResolveConflict?: (change?: UnpublishedChange) => void;
   onOpenChangeCallback: (open: boolean) => void;
+  isViewChangeAvailable?: (change: UnpublishedChange) => boolean;
   isPublishing: boolean;
   isDiscarding: boolean;
   isUpdating: boolean; // indicates if the preview is being updated
@@ -61,8 +63,10 @@ const PublishReview: React.FC<PublishReviewProps> = ({
   onPublishClick,
   onDiscardClick,
   onViewClick,
+  onReviewSelectedChanges,
   onResolveConflict,
   onOpenChangeCallback,
+  isViewChangeAvailable,
   isPublishing = false,
   isDiscarding = false,
   isUpdating = false,
@@ -96,6 +100,14 @@ const PublishReview: React.FC<PublishReviewProps> = ({
     () => changes.find((change) => change.hasConflict),
     [changes],
   );
+  const selectedReviewableChanges = useMemo(() => {
+    if (!conflictUxEnabled) {
+      return [];
+    }
+    return selectedChanges.filter((change) =>
+      isViewChangeAvailable ? isViewChangeAvailable(change) : true,
+    );
+  }, [conflictUxEnabled, isViewChangeAvailable, selectedChanges]);
 
   const allSelected = useMemo(() => {
     if (!selectableChanges?.length) return false;
@@ -209,6 +221,15 @@ const PublishReview: React.FC<PublishReviewProps> = ({
     onResolveConflict?.(change ?? firstConflictedChange);
   };
 
+  const handleReviewSelectedChanges = () => {
+    if (!selectedReviewableChanges.length) {
+      return;
+    }
+    setHasPublished(false);
+    onOpenChangeHandler(false);
+    onReviewSelectedChanges?.(selectedChanges);
+  };
+
   return (
     <Popover.Root open={isOpen} onOpenChange={onOpenChangeHandler}>
       <Popover.Trigger>
@@ -296,6 +317,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                       setSelectedChanges={setSelectedChanges}
                       onDiscardClick={handleDiscardClick}
                       onViewClick={onViewClick}
+                      isViewChangeAvailable={isViewChangeAvailable}
                       onResolveConflict={handleResolveConflict}
                       pageStatusMap={pageStatusMap}
                     />
@@ -306,7 +328,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
           </Box>
           <Divider />
           <PermissionCheck hasPermission="publishChanges">
-            <Flex p="4" justify="end" align="center" gap="2" width="100%">
+            <Flex p="4" direction="column" align="stretch" gap="2" width="100%">
               <Button
                 className={
                   isPublishing || hasPublished ? styles.buttonBlue : ''
@@ -321,6 +343,17 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                   {(isPublishing || hasPublished) && <CheckIcon />}
                 </Spinner>
               </Button>
+              {conflictUxEnabled && onReviewSelectedChanges && (
+                <Button
+                  size="1"
+                  variant="ghost"
+                  disabled={isBusy || !selectedReviewableChanges.length}
+                  onClick={handleReviewSelectedChanges}
+                  className={styles.reviewSelectedButton}
+                >
+                  Review selected changes
+                </Button>
+              )}
             </Flex>
           </PermissionCheck>
         </Box>

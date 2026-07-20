@@ -32,6 +32,7 @@ interface ChangeRowProps {
   setSelectedChanges: (changes: UnpublishedChange[]) => void;
   onDiscardClick: (change: UnpublishedChange) => void;
   onViewClick?: (change: UnpublishedChange) => void;
+  isViewChangeAvailable?: (change: UnpublishedChange) => boolean;
   onResolveConflict?: (change: UnpublishedChange) => void;
   pageStatusMap?: Record<
     string,
@@ -46,6 +47,7 @@ const ChangeRow = ({
   setSelectedChanges,
   onDiscardClick,
   onViewClick,
+  isViewChangeAvailable,
   onResolveConflict,
   pageStatusMap,
 }: ChangeRowProps) => {
@@ -55,6 +57,11 @@ const ChangeRow = ({
   const date = new Date(change.updated * 1000);
   const conflictUxEnabled = isConflictUxEnabled();
   const hasConflict = conflictUxEnabled && !!change.hasConflict;
+  const canViewChange =
+    conflictUxEnabled &&
+    !!onViewClick &&
+    !hasConflict &&
+    (isViewChangeAvailable ? isViewChangeAvailable(change) : true);
   const color = hasConflict ? 'red' : undefined;
   const weight = 'regular';
 
@@ -206,9 +213,9 @@ const ChangeRow = ({
                     Resolve conflict
                   </DropdownMenu.Item>
                 )}
-                {onViewClick && !hasConflict && (
-                  <DropdownMenu.Item onSelect={() => onViewClick(change)}>
-                    View changes
+                {canViewChange && (
+                  <DropdownMenu.Item onSelect={() => onViewClick?.(change)}>
+                    Review changes
                   </DropdownMenu.Item>
                 )}
                 <DropdownMenu.Item onSelect={() => onDiscardClick(change)}>
