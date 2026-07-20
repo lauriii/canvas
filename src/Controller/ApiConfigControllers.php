@@ -48,9 +48,10 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
  * same route still reports the pre-PATCH ones. Reproduce by enabling
  * `workspace_config` and running CanvasConfigEntityHttpApiTest (testPattern,
  * testJavaScriptComponent, testFolder, testContentTemplate). Not visible on
- * this branch, which does not enable the module yet.
- *
- * @todo Make Live config writes on canvas.api.* routes visible to reads taken with the auto-save workspace active — likely by invalidating or bypassing the workspace-partitioned config cache — in https://drupal.org/i/3588540
+ * this branch, which does not enable the module yet. Before the module can be
+ * enabled, Live config writes on canvas.api.* routes must become visible to
+ * reads taken with the auto-save workspace active — likely by invalidating or
+ * bypassing the workspace-partitioned config cache.
  *
  * @internal This HTTP API is intended only for the Canvas UI. These controllers
  *   and associated routes may change at any time.
