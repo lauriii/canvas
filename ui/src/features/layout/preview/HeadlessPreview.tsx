@@ -10,9 +10,11 @@ import {
 } from '@/features/ui/uiSlice';
 
 import type { HeadlessSettings } from '@drupal-canvas/types';
+import type { AutoSavesHashRecord } from '@/types/AutoSaves';
 
 interface HeadlessPreviewProps {
   settings: HeadlessSettings;
+  autoSavesHash: AutoSavesHashRecord;
 }
 
 /**
@@ -24,7 +26,10 @@ interface HeadlessPreviewProps {
  * the draft session is driven over postMessage instead — see
  * useHeadlessDraftSession for the protocol.
  */
-const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({ settings }) => {
+const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({
+  settings,
+  autoSavesHash,
+}) => {
   const dispatch = useAppDispatch();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const viewportWidth = useAppSelector(selectViewportWidth);
@@ -35,6 +40,7 @@ const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({ settings }) => {
     settings,
     entityType,
     entityId,
+    autoSavesHash,
   );
 
   return (

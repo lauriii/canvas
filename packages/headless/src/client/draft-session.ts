@@ -18,6 +18,9 @@
  * place, invisible); *recovery* is reactive (after expiry, the host resets
  * the iframe src — coarse but dependable). The app triggers recovery simply
  * by reporting status "expired"; it never asks for renewal after expiry.
+ * The same origin-checked channel carries host refresh requests after Canvas
+ * persists new auto-save data; consumers refresh through their framework or
+ * reload the current document without replaying an activation assertion.
  *
  * A session epoch is immutable: a successful renewal produces a new
  * tokenExpiresAt (via the refreshed server data), and the consumer destroys
@@ -34,6 +37,7 @@
 
 import {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
   HEADLESS_STATUS_MESSAGE,
 } from '../constants';
@@ -74,6 +78,7 @@ export interface DraftSessionState {
  */
 export type DraftSessionEvent =
   | { type: 'expired' }
+  | { type: 'refresh-requested' }
   | { type: 'renew-requested' }
   | { type: 'renew-failed' }
   | {
@@ -105,17 +110,16 @@ export interface DraftSessionOptions {
   /** The app endpoint that redeems a fresh assertion into the session. */
   renewEndpoint?: string;
   /**
-   * Refreshes the consumer's server-derived data after a successful
-   * renewal (Next.js: router.refresh()). The refreshed data carries the new
+   * Refreshes the consumer's server-derived data after a successful renewal
+   * or when the host reports a new Canvas auto-save (Next.js:
+   * router.refresh()). The refreshed renewal data carries the new
    * tokenExpiresAt, on which the consumer replaces this machine. Optional:
-   * a consumer without such a primitive re-creates the machine from the
-   * 'renewed' event's tokenExpiresAt instead — the renewed token already
-   * lives in the session cookie, so no server re-render is required.
+   * a consumer without such a primitive handles the corresponding event.
    */
   refreshData?: () => void;
   /** Receives session lifecycle events. */
   onEvent?: (event: DraftSessionEvent) => void;
-  /** The window renewal messages are exchanged with. Default: the parent. */
+  /** The window host commands are exchanged with. Default: the parent. */
   hostWindow?: Pick<Window, 'postMessage'>;
   /** Where the assertion message listener is installed. Default: window. */
   listenerTarget?: Pick<Window, 'addEventListener' | 'removeEventListener'>;
@@ -228,10 +232,10 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
     }, remaining - margin);
   }
 
-  // Redeem assertions the host sends down.
+  // Handle origin-checked commands from the embedding host.
   const onMessage = embedded
     ? (event: MessageEvent) => {
-        // Only the embedding host may hand us assertions: the source must be
+        // Only the embedding host may hand us commands: the source must be
         // the parent window, not merely any window on the editor origin
         // (a popup opener, a nested frame). Mirrors the host checking
         // event.source === iframe.contentWindow in the other direction.
@@ -239,6 +243,18 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
           event.source !== hostWindow ||
           event.origin !== editorOrigin ||
           !event.data ||
+          typeof event.data.type !== 'string'
+        ) {
+          return;
+        }
+
+        if (event.data.type === HEADLESS_REFRESH_MESSAGE) {
+          emit({ type: 'refresh-requested' });
+          refreshData?.();
+          return;
+        }
+
+        if (
           event.data.type !== HEADLESS_ASSERTION_MESSAGE ||
           typeof event.data.assertion !== 'string'
         ) {

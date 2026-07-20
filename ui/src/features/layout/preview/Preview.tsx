@@ -3,6 +3,7 @@ import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { selectAutoSavesHash } from '@/components/review/PublishReview.slice';
 import {
   selectLayout,
   selectModel,
@@ -49,6 +50,7 @@ const Preview: React.FC = () => {
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
   const headlessSettings = useHeadlessPreviewSettings();
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
+  const autoSavesHash = useAppSelector(selectAutoSavesHash);
   const { showBoundary } = useErrorBoundary();
   useSyncTitle();
 
@@ -173,7 +175,12 @@ const Preview: React.FC = () => {
   // the rendering: the srcdoc preview pipeline is bypassed, while the
   // mutation flow above keeps running so edits still persist to auto-save.
   if (headlessSettings) {
-    return <HeadlessPreview settings={headlessSettings} />;
+    return (
+      <HeadlessPreview
+        settings={headlessSettings}
+        autoSavesHash={autoSavesHash}
+      />
+    );
   }
 
   return (

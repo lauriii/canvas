@@ -59,12 +59,11 @@ export interface DraftSessionProps {
    */
   path?: string;
   /**
-   * Refreshes the consumer's server-derived data after a successful
-   * renewal (Next.js: router.refresh()); the refreshed data carries the
-   * new tokenExpiresAt as new props, which re-arm the machine. Omit it and
-   * the component re-arms in place from the renew response's own
-   * tokenExpiresAt instead — the renewed token already lives in the
-   * session cookie, so no server round trip is required.
+   * Refreshes the consumer's server-derived data after a successful renewal
+   * or a Canvas auto-save change (Next.js: router.refresh()). Refreshed
+   * renewal data carries the new tokenExpiresAt as new props, which re-arm
+   * the machine. Without it, renewal re-arms in place from the response's
+   * tokenExpiresAt, while an auto-save change reloads the current document.
    */
   refreshData?: () => void;
   /**
@@ -155,6 +154,15 @@ export function DraftSession({
       editorOrigin,
       renewEndpoint,
       onEvent: (event) => {
+        if (event.type === 'refresh-requested') {
+          const refresh = refreshDataRef.current;
+          if (refresh) {
+            refresh();
+          } else {
+            window.location.reload();
+          }
+          return;
+        }
         if (event.type === 'renewed') {
           const refresh = refreshDataRef.current;
           if (refresh) {

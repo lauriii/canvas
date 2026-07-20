@@ -7,7 +7,8 @@
  * the renewal protocol with the embedding host, re-arming after a
  * renewal). Renders nothing when draft mode is off. The element's `path`
  * attribute is bound to the route, so client-side navigations keep the
- * host's status reports and the renew link on the current page.
+ * host's status reports and the renew link on the current page. Auto-save
+ * refresh events use Nuxt's refreshNuxtData() instead of reloading the page.
  *
  * The slot owns presentation: children marked
  * `data-draft-session-view="active"` show while the session is live and
@@ -19,8 +20,11 @@
  * empty.
  */
 import { onMounted } from 'vue';
-import { useFetch, useRoute } from 'nuxt/app';
-import { defineDraftSessionElement } from '@drupal-canvas/headless/client';
+import { refreshNuxtData, useFetch, useRoute } from 'nuxt/app';
+import {
+  defineDraftSessionElement,
+  DRAFT_SESSION_REFRESH_EVENT,
+} from '@drupal-canvas/headless/client';
 
 import type { DraftSessionState } from '../server/routes/session-state';
 
@@ -45,6 +49,12 @@ const { data: session } = await useFetch<DraftSessionState>(
   props.sessionEndpoint,
 );
 
+/** Refreshes every active useFetch/useAsyncData source after an auto-save. */
+function refreshDraftData(event: Event): void {
+  event.preventDefault();
+  void refreshNuxtData();
+}
+
 onMounted(() => {
   defineDraftSessionElement();
 });
@@ -59,6 +69,7 @@ onMounted(() => {
     :editor-origin="session.editorOrigin ?? undefined"
     :renew-endpoint="renewEndpoint"
     :path="route.path"
+    @[DRAFT_SESSION_REFRESH_EVENT]="refreshDraftData"
   >
     <slot />
   </canvas-draft-session>

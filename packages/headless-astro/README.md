@@ -93,6 +93,15 @@ re-arms in place from the renew endpoint's `{tokenExpiresAt}` answer — no
 document reload, no navigation loss. The renewed token already lives in the
 session cookie, so the next request carries it regardless.
 
+## Refreshing after Canvas auto-saves
+
+When Canvas reports new auto-save data, `DraftSession.astro` handles the SDK's
+cancelable refresh event with Astro's `navigate()` API. Applications using
+`<ClientRouter />` fetch and swap the current server-rendered page in place;
+without client routing, Astro falls back to a document navigation. Both paths
+preserve the current URL and retrieve the latest draft content without replaying
+the single-use activation assertion.
+
 ## Draft mode without a framework draft mode
 
 Astro has no built-in preview flag, so the SDK's Astro adapter keeps its own

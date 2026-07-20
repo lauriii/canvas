@@ -7,8 +7,6 @@ services:
   Drupal\canvas_headless\PreviewUrlGeneratorInterface:
     class: Drupal\canvas_headless\PreviewUrlGenerator
   Drupal\canvas_headless\Access\PreviewCeilingAccessPolicy:
-    arguments:
-      - '@simple_oauth.oauth2_scope.provider'
     tags:
       - { name: access_policy }
   Drupal\canvas_headless\ExternalComponentSync: {}
@@ -16,3 +14,5 @@ services:
   Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter:
     decorates: custom_elements.canvas_render_converter
     decoration_on_invalid: ignore
+  Drupal\canvas_headless\Controller\AutoSavePreviewController: {}
+  Drupal\canvas_headless\EventSubscriber\AutoSavePreviewControllerSubscriber: {}
