@@ -5,10 +5,10 @@ import { Spinner } from '@radix-ui/themes';
 import { useGetConflictPageLayoutQuery } from '@/services/componentAndLayout';
 import { getViewportSizes } from '@/utils/viewports';
 
-import styles from './ConflictPreview.module.css';
+import styles from './VersionPreview.module.css';
 
 /**
- * A standalone conflict version preview component.
+ * A standalone entity version preview component.
  *
  * Unlike the main PagePreview, this component is fully isolated from the
  * editor's Redux preview-update cycle. It fetches the layout HTML directly
@@ -16,7 +16,7 @@ import styles from './ConflictPreview.module.css';
  * it in an iframe. The `?version=published` search param controls whether the
  * published version or the auto-save (new) version is displayed.
  */
-const ConflictPreview = () => {
+const VersionPreview = () => {
   const { entityId, entityType, width } = useParams<{
     entityId: string;
     entityType: string;
@@ -67,7 +67,7 @@ const ConflictPreview = () => {
   return (
     <div className={styles.container}>
       <iframe
-        title={`Conflict ${isPublished ? 'published' : 'new'} version preview`}
+        title={`${isPublished ? 'Published' : 'New'} version preview`}
         style={{ width: widthVal }}
         srcDoc={data.html}
         className={styles.iframe}
@@ -76,4 +76,4 @@ const ConflictPreview = () => {
   );
 };
 
-export default ConflictPreview;
+export default VersionPreview;

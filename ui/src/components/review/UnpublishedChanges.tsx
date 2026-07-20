@@ -10,6 +10,7 @@ import {
   selectPreviousPendingChanges,
   setConflicts,
 } from '@/components/review/PublishReview.slice';
+import { usePublishPendingChanges } from '@/components/review/usePublishPendingChanges';
 import {
   resetCodeEditor,
   setForceRefresh,
@@ -20,14 +21,12 @@ import {
 } from '@/features/conflict/conflictUtils';
 import { FORM_TYPES } from '@/features/form/constants';
 import { clearFieldValues } from '@/features/form/formStateSlice';
+import { setInitialized } from '@/features/layout/layoutModelSlice';
+import { selectPageData } from '@/features/pageData/pageDataSlice';
 import {
-  setInitialized,
-  setUpdatePreview,
-} from '@/features/layout/layoutModelSlice';
-import {
-  selectPageData,
-  setInitialPageData,
-} from '@/features/pageData/pageDataSlice';
+  getReviewRouteForChange,
+  isReviewableChange,
+} from '@/features/review/reviewChanges';
 import {
   clearSelection,
   selectSelectedComponentUuid,
@@ -38,15 +37,12 @@ import { contentApi, useGetContentListQuery } from '@/services/content';
 import {
   useDiscardPendingChangeMutation,
   useGetAllPendingChangesQuery,
-  usePublishAllPendingChangesMutation,
 } from '@/services/pendingChangesApi';
 import {
   useQueuedPostPreviewMutation,
   useUpdateComponentMutation,
 } from '@/services/preview';
-import { findInChanges } from '@/utils/function-utils';
 
-import type { PendingChanges } from '@/services/pendingChangesApi';
 import type { UnpublishedChange } from '@/types/Review';
 
 const REFETCH_INTERVAL_MS = 10000;
@@ -57,8 +53,6 @@ const UnpublishedChanges = () => {
   const conflicts = useAppSelector(selectConflicts);
   const errorResponse = useAppSelector(selectErrors);
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
-  const [publishAllChanges, { isLoading: isPublishing }] =
-    usePublishAllPendingChangesMutation();
   const [discardChange, { isLoading: isDiscarding }] =
     useDiscardPendingChangeMutation();
   const [, { isLoading: isUpdatingComponent }] = useUpdateComponentMutation({
@@ -85,6 +79,12 @@ const UnpublishedChanges = () => {
   const dispatch = useAppDispatch();
   const { showBoundary } = useErrorBoundary();
   const entity_form_fields = useAppSelector(selectPageData);
+  const [publishPendingChanges, { isLoading: isPublishing }] =
+    usePublishPendingChanges({
+      currentEntityId: entityId,
+      currentEntityType: entityType,
+      entityFormFields: entity_form_fields,
+    });
   // Fetch content list to get status information for all pages
   const { data: contentListData } = useGetContentListQuery({
     entityType: 'canvas_page',
@@ -154,111 +154,24 @@ const UnpublishedChanges = () => {
   ]);
 
   const onPublishClick = async (selectedChanges: UnpublishedChange[]) => {
-    if (selectedChanges?.length) {
-      const changesToPublish = selectedChanges.reduce((acc, change) => {
-        acc[change.pointer] = {
-          entity_type: change.entity_type,
-          entity_id: change.entity_id,
-          data_hash: change.data_hash,
-          langcode: change.langcode,
-          owner: change.owner,
-          label: change.label,
-          updated: change.updated,
-        };
-        return acc;
-      }, {} as PendingChanges);
-      const isCurrentChanged = findInChanges(
-        changesToPublish,
-        entityId,
-        entityType,
-      );
-      const changedCodeComponentIds = Object.values(changesToPublish)
-        .filter((change) => change.entity_type === 'js_component')
-        .map((change) => change.entity_id);
-      const changedBrandKitIds = Object.values(changesToPublish)
-        .filter((change) => change.entity_type === 'brand_kit')
-        .map((change) => String(change.entity_id));
+    await publishPendingChanges(selectedChanges);
+  };
 
-      try {
-        await publishAllChanges(changesToPublish).unwrap();
-      } catch {
-        // Error state is handled in pendingChangesApi.publishAllPendingChanges.
-        return;
-      }
-
-      if (isCurrentChanged && entityId && entityType) {
-        // Update the isPublished and isNew status.
-        dispatch(
-          componentAndLayoutApi.util.updateQueryData(
-            'getPageLayout',
-            { entityId, entityType },
-            (draft) => {
-              draft.isPublished = true;
-              draft.isNew = false;
-            },
-          ),
-        );
-
-        // Pause updating the preview/POSTing to Drupal for this action.
-        dispatch(setUpdatePreview(false));
-
-        // Avoid the "The content has either been modified by another user, or
-        // you have already submitted modifications. As a result, your changes
-        // cannot be saved" error.
-        if ('changed' in entity_form_fields) {
-          // Pause updating the preview/POSTing to Drupal for this action.
-          dispatch(setUpdatePreview(false));
-          dispatch(
-            setInitialPageData({
-              ...entity_form_fields,
-              changed: Math.floor(new Date().getTime() / 1000),
-            }),
-          );
-        }
-      }
-
-      // After publishing, the list of other pages might be out of date where the pages' title/alias has been updated.
-      dispatch(
-        contentApi.util.invalidateTags([{ type: 'Content', id: 'LIST' }]),
-      );
-
-      if (changedCodeComponentIds.length) {
-        // Invalidate cache of all changed code component entities. This is
-        // critical to prevent data loss, which would otherwise occur in the
-        // following scenario:
-        // 1. A code component change is auto-saved, then published.
-        // 2. As a result, the auto-save entry gets deleted on the backend.
-        // 3. The auto-save that occurred previously invalidated the auto-save
-        //    query cache, so fetching data for the code component will correctly
-        //    see the 204 response that is now returned.
-        // 4. That will cause a fallback to the canonical source of the config
-        //    entity. This is why we need to invalidate the cache for those.
-        //    In the absence of this, a stale version would be returned, which
-        //    would get auto-saved if anything changes, resulting to the loss of
-        //    changes in step 1. E.g. with newly created and first-time published
-        //    code components, this would wipe out all data.
-        dispatch(
-          componentAndLayoutApi.util.invalidateTags(
-            changedCodeComponentIds.map((id) => ({
-              type: 'CodeComponents',
-              id,
-            })),
-          ),
-        );
-      }
-
-      if (changedBrandKitIds.length) {
-        dispatch(
-          brandKitApi.util.invalidateTags([
-            ...changedBrandKitIds.flatMap((id) => [
-              { type: 'BrandKits' as const, id },
-              { type: 'BrandKitsAutoSave' as const, id },
-            ]),
-            { type: 'BrandKits' as const, id: 'LIST' },
-          ]),
-        );
-      }
+  const navigateToReview = (selectedChanges: UnpublishedChange[]) => {
+    if (!conflictUxEnabled) {
+      return;
     }
+    const reviewableChanges = selectedChanges.filter(isReviewableChange);
+    const firstReviewableChange = reviewableChanges[0];
+    if (!firstReviewableChange) {
+      return;
+    }
+    navigate(getReviewRouteForChange(firstReviewableChange), {
+      state: {
+        selectedPointers: selectedChanges.map((change) => change.pointer),
+        reviewPointers: reviewableChanges.map((change) => change.pointer),
+      },
+    });
   };
 
   const onDiscardClick = async (selectedChange: UnpublishedChange) => {
@@ -362,6 +275,11 @@ const UnpublishedChanges = () => {
       onOpenChangeCallback={onOpenChangeHandler}
       onPublishClick={onPublishClick}
       onDiscardClick={onDiscardClick}
+      onReviewSelectedChanges={conflictUxEnabled ? navigateToReview : undefined}
+      onViewClick={
+        conflictUxEnabled ? (change) => navigateToReview([change]) : undefined
+      }
+      isViewChangeAvailable={conflictUxEnabled ? isReviewableChange : undefined}
       onResolveConflict={(change) => {
         if (change && conflictUxEnabled) {
           navigate(getConflictRouteForChange(change));

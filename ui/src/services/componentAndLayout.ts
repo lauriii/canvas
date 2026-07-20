@@ -214,6 +214,7 @@ export const componentAndLayoutApi = createApi({
         entityId: string;
         entityType: 'canvas_page';
         publishedVersion?: boolean;
+        versionKey?: string;
       }
     >({
       query: ({ entityId, entityType, publishedVersion = false }) => ({
