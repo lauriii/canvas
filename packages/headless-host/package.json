@@ -1,23 +1,39 @@
 {
   "name": "@drupal-canvas/headless-host",
-  "version": "0.1.0",
-  "description": "Host-side implementation of the Drupal Canvas headless draft-preview protocol, for applications that embed a Canvas headless frontend app.",
-  "private": true,
+  "version": "0.0.1",
+  "description": "Host-side implementation of the Drupal Canvas Headless draft-preview protocol, for applications that embed a Canvas headless frontend app.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://git.drupalcode.org/project/canvas.git",
+    "directory": "packages/headless-host"
+  },
+  "bugs": "https://git.drupalcode.org/project/canvas/-/work_items",
+  "files": [
+    "src",
+    "!src/**/*.test.*",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "sideEffects": false,
   "main": "./src/index.ts",
   "exports": {
     ".": {
       "import": "./src/index.ts",
-      "types": "./src/index.ts"
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     }
   },
   "scripts": {
     "type-check": "tsc --noEmit --pretty"
   },
-  "license": "GPL-2.0-or-later",
+  "dependencies": {
+    "@drupal-canvas/headless": "^0.0.1"
+  },
   "devDependencies": {
     "typescript": "^5.8.3"
-  },
-  "dependencies": {
-    "@drupal-canvas/headless": "*"
   }
 }

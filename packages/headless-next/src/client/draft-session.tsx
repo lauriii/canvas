@@ -1,3 +1,6 @@
+// The directive below must survive any future compiled build of this
+// package: without it, React Server Component bundlers treat this module
+// as server code and every consumer build breaks.
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';

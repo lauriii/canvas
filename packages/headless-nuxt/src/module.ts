@@ -18,14 +18,14 @@ import {
 import type {} from '@nuxt/nitro-server';
 
 /**
- * The raw-TypeScript SDK packages the app's builds must compile — the
- * Nuxt counterpart of Next.js's transpilePackages. The Vue build gets them
- * through build.transpile, the Nitro build through externals.inline.
+ * The SDK packages the app's builds must compile rather than
+ * externalize; the adapter package ships TypeScript source. The Vue
+ * build gets them through build.transpile, the Nitro build through
+ * externals.inline.
  */
 const SDK_PACKAGES = [
   '@drupal-canvas/headless',
   '@drupal-canvas/headless-nuxt',
-  '@drupal-canvas/discovery',
 ];
 
 /** The tag of the framework-free session element from the SDK core. */
@@ -46,8 +46,7 @@ export interface CanvasModuleOptions {
 }
 
 /**
- * The Drupal Canvas headless module for Nuxt — the counterpart of
- * @drupal-canvas/headless-next's withCanvas():
+ * The Drupal Canvas headless module for Nuxt:
  *
  * - Mounts the draft session routes (/api/draft, /api/draft/renew,
  *   /api/disable-draft, /api/draft/session) and the component metadata
@@ -58,7 +57,7 @@ export interface CanvasModuleOptions {
  *   preserving the app's own policy.
  * - Registers the <DraftSession> component and teaches the Vue compiler
  *   about the SDK's <canvas-draft-session> custom element.
- * - Adds the raw-TypeScript SDK packages to the Vue and Nitro builds.
+ * - Adds the SDK packages to the Vue and Nitro builds.
  * - Generates the component manifest (`.canvas/components.manifest.json`)
  *   at build time — in production the metadata endpoint serves this
  *   manifest, so the registry always describes the deployed build. A

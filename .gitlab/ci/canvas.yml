@@ -1,3 +1,6 @@
 .canvas-ui: &canvas-ui
   - npm ci
+  # The UI depends on headless-host, which imports the headless core's
+  # compiled dist.
+  - npm run build -w @drupal-canvas/headless
   - npm run build -w ui

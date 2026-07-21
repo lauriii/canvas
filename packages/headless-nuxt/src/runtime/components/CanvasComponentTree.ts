@@ -1,3 +1,8 @@
+// Carry the ambient declaration of the virtual components module into any
+// TypeScript program that includes this file — consumer apps type-check this
+// runtime source directly, without the package's tsconfig.
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
+/// <reference path="./virtual.d.ts" />
 import canvasComponents from 'virtual:@drupal-canvas/headless/components';
 import { defineComponent, Fragment, h } from 'vue';
 import {

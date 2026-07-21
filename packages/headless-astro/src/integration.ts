@@ -72,8 +72,7 @@ export interface CanvasIntegrationOptions {
 }
 
 /**
- * The Drupal Canvas headless integration for Astro — the counterpart of
- * @drupal-canvas/headless-next's withCanvas():
+ * The Drupal Canvas headless integration for Astro:
  *
  * - Injects the draft session routes (/api/draft, /api/draft/renew,
  *   /api/disable-draft) and the component metadata endpoint
@@ -82,9 +81,8 @@ export interface CanvasIntegrationOptions {
  * - Registers the CSP `frame-ancestors` middleware. Responses are
  *   'self'-only by default; draft sessions also admit the exact editor
  *   origin from the signed renewal URL.
- * - Bundles the raw-TypeScript SDK packages into the SSR build
- *   (`vite.ssr.noExternal` — the Astro counterpart of Next.js's
- *   `transpilePackages`).
+ * - Bundles the SDK packages into the SSR build (`vite.ssr.noExternal`;
+ *   the adapter package ships TypeScript source).
  * - Bridges the SDK's environment variables from Astro's .env files into
  *   process.env, where the framework-agnostic core reads them.
  * - Generates the component manifest (`.canvas/components.manifest.json`)
@@ -174,7 +172,6 @@ export function canvas(
               noExternal: [
                 '@drupal-canvas/headless',
                 '@drupal-canvas/headless-astro',
-                '@drupal-canvas/discovery',
               ],
             },
           },

@@ -102,8 +102,8 @@ export const MANIFEST_ENV_VARIABLE = 'CANVAS_COMPONENT_MANIFEST_JSON';
  *   silently.
  * - Watches local component definitions in development and updates the
  *   generated implementation registry when components are added or removed.
- * - Adds the SDK packages to `transpilePackages` (they ship raw
- *   TypeScript).
+ * - Adds the SDK packages to `transpilePackages` (the adapter packages
+ *   ship TypeScript source).
  * - Sends a `Content-Security-Policy: frame-ancestors` header. Responses
  *   are 'self'-only by default; a draft session also admits the exact
  *   editor origin carried by its signed renewal URL. An application-owned
@@ -165,7 +165,6 @@ export function withCanvas(
         '@drupal-canvas/headless',
         '@drupal-canvas/headless-next',
         '@drupal-canvas/headless-react',
-        '@drupal-canvas/discovery',
       ]),
     ];
 

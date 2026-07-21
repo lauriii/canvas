@@ -363,6 +363,8 @@ lint (node):
   script:
     - npm ci
     - npm run build --workspace=drupal-canvas
+    # The headless SDK dependents type-check against the core's compiled dist.
+    - npm run build --workspace=@drupal-canvas/headless
     - npm run lint
     - |
       if [ "$E2E_TESTS_ENABLED" != "true" ]; then
