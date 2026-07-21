@@ -27,22 +27,19 @@ const MANIFEST_VIRTUAL_ID =
 const RESOLVED_MANIFEST_VIRTUAL_ID = `\0${MANIFEST_VIRTUAL_ID}`;
 
 /**
- * The raw-TypeScript SDK packages the app's server build must compile
- * rather than externalize.
+ * The SDK packages the app's server build must compile rather than
+ * externalize; the adapter packages ship TypeScript source.
  */
 const SDK_PACKAGES = [
   '@drupal-canvas/headless',
   '@drupal-canvas/headless-react',
   '@drupal-canvas/headless-tanstack-start',
-  '@drupal-canvas/discovery',
 ];
 
 /**
- * The Drupal Canvas headless Vite plugin for TanStack Start — the
- * counterpart of @drupal-canvas/headless-next's withCanvas():
+ * The Drupal Canvas headless Vite plugin for TanStack Start:
  *
- * - Compiles the raw-TypeScript SDK packages into the SSR build
- *   (`ssr.noExternal`).
+ * - Compiles the SDK packages into the SSR build (`ssr.noExternal`).
  * - Bridges the SDK's environment variables from the project's .env files
  *   into process.env, where the framework-agnostic core reads them.
  * - Generates the component manifest (`.canvas/components.manifest.json`)

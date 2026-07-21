@@ -1,16 +1,23 @@
 # @drupal-canvas/headless-next
 
-Next.js adapter for the Drupal Canvas Headless SDK (`@drupal-canvas/headless`):
-draft-mode preview bound to the editing user, in-place session renewal inside
-the Canvas editor frame, and the component metadata endpoint Drupal Canvas
-registers the app's components from.
+Next.js adapter for the Drupal Canvas Headless SDK.
 
-## Setup
+It gives a Next.js app draft preview bound to the editing user, in-place session
+renewal inside the Canvas editor frame, and the component metadata endpoint
+Drupal Canvas registers the app's components from.
 
-Four pieces, all wiring:
+## Installation
+
+```bash
+npm install @drupal-canvas/headless-next
+```
+
+Set the `CANVAS_SITE_URL` environment variable to your Drupal site URL.
+
+## Usage
 
 **1. next.config.ts** — the config wrapper generates the component manifest at
-build time, transpiles the raw-TypeScript SDK packages, and sends a
+build time, adds the SDK packages to `transpilePackages`, and sends a
 session-aware CSP `frame-ancestors` header:
 
 ```ts
@@ -18,10 +25,6 @@ import { withCanvas } from '@drupal-canvas/headless-next/config';
 
 export default withCanvas();
 ```
-
-(`./config` is a separate entry on purpose: next.config runs outside any request
-scope, so it must not load this package's server entry, which reaches
-`next/headers`.)
 
 **2. Route files** — mount the handlers, one file per route:
 
@@ -55,14 +58,13 @@ export const dynamic = 'force-dynamic';
 export const { GET, OPTIONS } = createComponentMetadataHandler();
 ```
 
-**3. The session banner** — a server component gathers the session state
+**3. Session banner** — a server component gathers the session state
 (`getDraftData()`, `getDraftEditorOrigin()`, `isDraftSessionExpired()`) and
 renders `<DraftSession>` from `@drupal-canvas/headless-next/client` with a
-render prop that owns the banner markup. The component runs the renewal protocol
-either way; the render prop is optional.
+render prop that owns the banner markup.
 
-**4. The component tree renderer** — pass the structured content returned by
-`fetchPage()` to `<CanvasComponentTree>`:
+**4. Component tree** — pass the structured content returned by `fetchPage()` to
+`<CanvasComponentTree>`:
 
 ```tsx
 import { CanvasComponentTree } from '@drupal-canvas/headless-next/CanvasComponentTree';
@@ -70,36 +72,12 @@ import { CanvasComponentTree } from '@drupal-canvas/headless-next/CanvasComponen
 <CanvasComponentTree tree={page.content} />;
 ```
 
-`withCanvas()` generates a registry containing every discovered component
-implementation, and the renderer consumes it automatically. During development,
-the registry updates when components are added, removed, or renamed, so the
-application does not maintain a registry manually.
+`withCanvas()` generates a registry of every discovered component
+implementation, and the renderer consumes it automatically. During development
+the registry updates when components are added, removed, or renamed.
 
-Environment: `CANVAS_SITE_URL` (required). The development server fails at
-startup when it is missing.
+## Data access
 
-The CSP is `'self'`-only without a draft session. During a draft session, it
-also admits the exact editor origin derived from the signed renewal URL. The
-same origin is the only `postMessage` peer. An application-defined
-`frame-ancestors` directive remains authoritative.
-
-Data access from app code: `getClient()` (draft-aware JSON:API client),
-`fetchPage()` (rendered content, resolved through Drupal's routing), both
+`getClient()` returns the draft-aware JSON:API client; `fetchPage()` fetches
+rendered content, resolved through Drupal's routing. Both are
 draft-session-aware.
-
-## The component metadata endpoint
-
-`GET` answers the codebase's component registry (every `component.yml` under the
-`canvas.config.json` `componentDir`) in a versioned envelope; see
-`@drupal-canvas/headless/components-endpoint` for the payload shape. Callers
-authenticate by presenting a fresh, single-use Drupal preview assertion as a
-Bearer token, verified by redeeming it at Drupal's own token endpoint
-(proof-by-redemption — the app holds no key material). Drupal coordinates the
-request in the editor's browser so it can reach local frontends. `OPTIONS`
-allows the authorization preflight, and the authenticated response is exposed
-only to the editor origin carried in the assertion's signed renewal URL.
-
-In production the endpoint serves the manifest `withCanvas()` wrote at
-`next build` (component sources are typically absent at runtime, and the
-registry should describe the deployed build); in development it scans live, so a
-new component is visible on the next fetch.

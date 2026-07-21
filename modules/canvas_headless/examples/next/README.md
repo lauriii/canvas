@@ -36,10 +36,12 @@ them and keeps only the wiring: route mounting (`app/api/`), the banner UI
 
 ## Setup
 
-The packages arrive as `file:` links into this repository, as raw
-TypeScript compiled by the app's build (`transpilePackages`). Their own
-dependencies resolve through the Canvas repository's workspace install, so
-**run `npm install` at the Canvas repository root first**, then:
+The packages arrive as `file:` links into this repository: the SDK core
+from its compiled `dist`, the adapter packages as TypeScript source
+compiled by the app's build (`transpilePackages`). Their own dependencies
+resolve through the Canvas repository's workspace install, so from the
+Canvas repository root **run `npm install`, then
+`npm run build -w packages/headless`**, then:
 
 ```bash
 cp .env.example .env.local  # defaults match the canvas-env DDEV setup
