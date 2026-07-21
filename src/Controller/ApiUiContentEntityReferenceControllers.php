@@ -11,6 +11,7 @@ use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
@@ -262,7 +263,9 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
     foreach ($data['entityFields'] as $prop_name => $expression_strings) {
       try {
         $expressions = JavaScriptComponent::parseAndCoalesceEntityFieldExpressions($expression_strings);
-        $resolved[$prop_name] = JsComponent::buildReferencePayload(new EvaluationResult($entity), $expressions);
+        // The route loaded $entity in the active content language already, so
+        // resolve its fields in that same language.
+        $resolved[$prop_name] = JsComponent::buildReferencePayload(new EvaluationResult($entity), $expressions, NegotiatedLanguage::matchEntity($entity));
       }
       catch (\DomainException | \InvalidArgumentException | \UnhandledMatchError $e) {
         throw new BadRequestHttpException($e->getMessage(), $e);
