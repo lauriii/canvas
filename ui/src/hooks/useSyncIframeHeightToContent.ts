@@ -81,19 +81,33 @@ function cssMatchesViewportHeuristic(
   return false;
 }
 
-function usesViewportHeightProperty(
+/**
+ * Returns true when the element's rendered size is being driven by its
+ * `height` property (e.g. `height: 45vh`, `height: 100%`) rather than solely
+ * by `min-height` or content flow.
+ */
+function isHeightExplicitlyConstrained(
   element: HTMLElement,
   innerHeight: number,
 ): boolean {
-  const win = element.ownerDocument.defaultView;
-  if (!win) {
+  if (!isVhMeasurementCandidate(element, innerHeight)) {
     return false;
   }
-  const heightVal = parseFloat(win.getComputedStyle(element).height);
-  return [innerHeight, innerHeight / 2].some(
-    (target) =>
-      Number.isFinite(heightVal) && approximatelyEquals(heightVal, target),
-  );
+  const baseline = element.clientHeight;
+  const originalStyle = element.getAttribute('style');
+  // Temporarily remove any explicit height rule while leaving min-height and
+  // max-height intact. If the rendered height changes, the original size was
+  // being driven by the height property itself (e.g. height: 100vh/50%/etc.).
+  element.style.setProperty('height', 'auto', 'important');
+  void element.offsetHeight;
+  const withAutoHeight = element.clientHeight;
+  if (originalStyle === null) {
+    element.removeAttribute('style');
+  } else {
+    element.setAttribute('style', originalStyle);
+  }
+  void element.offsetHeight;
+  return Math.abs(withAutoHeight - baseline) > 2;
 }
 
 function isVhMeasurementCandidate(
@@ -307,7 +321,7 @@ function useSyncIframeHeightToContent(
               const maxHeight = ratios[MULTIPLIERS.length - 1];
               if (maxHeight) {
                 const pixelHeight = `${maxHeight}px`;
-                const shouldCapMaxHeight = usesViewportHeightProperty(
+                const shouldCapMaxHeight = isHeightExplicitlyConstrained(
                   element,
                   innerHeightAtRest,
                 );
