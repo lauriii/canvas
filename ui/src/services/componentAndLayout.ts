@@ -1,7 +1,10 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
-import { setLayoutModel } from '@/features/layout/layoutModelSlice';
+import {
+  setLayoutModel,
+  setTranslations,
+} from '@/features/layout/layoutModelSlice';
 import {
   setInitialPageData,
   setPageData,
@@ -194,7 +197,7 @@ export const componentAndLayoutApi = createApi({
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const {
-            data: { entity_form_fields, html, autoSaves },
+            data: { entity_form_fields, html, autoSaves, translations },
             meta,
           } = await queryFulfilled;
           dispatch(setInitialPageData(entity_form_fields));
@@ -203,6 +206,7 @@ export const componentAndLayoutApi = createApi({
           dispatch(setSnapshotHTML(''));
           dispatch(setHtml(html));
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+          dispatch(setTranslations(translations || {}));
         } catch (err) {
           dispatch(setPageData({}));
         }
