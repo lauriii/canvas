@@ -41,6 +41,10 @@ jobs:
         run: npm ci
       - name: Build UI
         run: npm run build --workspace=drupal-canvas
+      - name: Build the headless SDK core
+        # The headless SDK dependents type-check against the core's compiled
+        # dist (GitLab's `lint (node)` job does the same).
+        run: npm run build --workspace=@drupal-canvas/headless
       - name: Lint (eslint/prettier/stylelint/tsc/cspell/yaml/openapi)
         run: npm run lint
       - name: Vitest (UI unit)
@@ -170,6 +174,9 @@ jobs:
         run: |
           cd "$MODULE_DIR"
           npm ci
+          # The UI depends on headless-host, which imports the headless core's
+          # compiled dist.
+          npm run build -w @drupal-canvas/headless
           npm run build -w ui
       - name: Playwright (one spec, headless chromium)
         if: matrix.tool == 'playwright'
