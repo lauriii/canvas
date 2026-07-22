@@ -56,9 +56,9 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
   protected static $modules = [
     'node',
     'field',
-    // `comment` has an access handler that dereferences a field
-    // (`commented_entity`) the stub can't populate; including it here keeps
-    // the defensive catch in getBundleViewAccess() honest.
+    // `comment` has an access handler that dereferences the commented (parent)
+    // entity a bundle stub can't populate; including it exercises the
+    // commented-entity stub injection in createBundleStub().
     'comment',
     // Provides `internal_string_field` (a base field marked internal), to assert
     // the picker omits internal fields.
@@ -286,21 +286,20 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Pins the defensive catch in getBundleViewAccess().
+   * Comment is referenceable and can be browsed when permissions allow.
    *
-   * CommentAccessControlHandler dereferences `entity_id` (commented entity)
-   * which an unsaved stub cannot populate, so the stub-based view-access check
-   * throws. The controller catches that and treats the bundle as forbidden so
-   * one misbehaving entity type does not 500 the entire response. The endpoint
-   * must therefore (a) still return 200 and (b) omit the comment bundle even
-   * for a user who holds 'access comments'.
+   * CommentAccessControlHandler ANDs the commented (parent) entity's view
+   * access into the comment's: `$entity->getCommentedEntity()->access('view')`.
+   * A bundle stub has no commented entity, so the controller injects a
+   * normalized stub of the comment type's target entity type. Eligibility is
+   * therefore the conjunction of 'access comments' and coarse view access to
+   * the parent type ('access content' for comment-on-node). With both, comment
+   * appears in the listing and its fields endpoint can be browsed.
+   *
+   * @see \Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers::createBundleStub()
    */
-  public function testContentEntityTypesCatchesStubAccessThrow(): void {
-    CommentType::create([
-      'id' => 'comment',
-      'label' => 'Default comments',
-      'target_entity_type_id' => 'node',
-    ])->save();
+  public function testCommentIsReferenceableWithPermissions(): void {
+    self::createNodeCommentType();
 
     $this->setUpCurrentUser([], [
       JavaScriptComponent::ADMIN_PERMISSION,
@@ -311,7 +310,87 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
     $response = $this->request(Request::create(self::URL_TYPES));
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
     $data = self::decodeResponse($response)['data'];
+
+    self::assertArrayHasKey('comment', $data);
+    self::assertArrayHasKey('comment', $data['comment']['bundles']);
+    self::assertSame('Default comments', $data['comment']['bundles']['comment']['label']);
+    self::assertSame(
+      '/canvas/api/v0/ui/content-entity-reference/comment/comment',
+      $data['comment']['bundles']['comment']['links'][CanvasUriDefinitions::LINK_REL_TYPED_DATA_BROWSER]['href'],
+    );
+
+    // The shared bundle-view-access gate now admits comment, so the fields
+    // endpoint can be browsed (200), not access-denied.
+    $fields_response = $this->request(Request::create(\sprintf(self::URL_FIELDS, 'comment', 'comment')));
+    self::assertSame(Response::HTTP_OK, $fields_response->getStatusCode());
+    $field_names = \array_column(self::decodeResponse($fields_response)['data'], 'name');
+    self::assertSame([
+      'cid',
+      'uuid',
+      'langcode',
+      'comment_type',
+      'status',
+      'uid',
+      'pid',
+      'entity_id',
+      'subject',
+      'name',
+      'created',
+      'changed',
+      'thread',
+      'entity_type',
+      'field_name',
+    ], $field_names);
+  }
+
+  /**
+   * Comment is omitted for a user lacking 'access comments'.
+   */
+  public function testCommentOmittedWithoutAccessCommentsPermission(): void {
+    self::createNodeCommentType();
+
+    $this->setUpCurrentUser([], [
+      JavaScriptComponent::ADMIN_PERMISSION,
+      'access content',
+    ]);
+
+    $response = $this->request(Request::create(self::URL_TYPES));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $data = self::decodeResponse($response)['data'];
     self::assertArrayNotHasKey('comment', $data);
+  }
+
+  /**
+   * Comment is omitted when the parent type is not coarsely viewable.
+   *
+   * Pins the coarse-gate conjunction: holding 'access comments' is not enough
+   * if the commented entity type (node) cannot be viewed at all ('access
+   * content' missing), because the injected parent stub's view access is ANDed
+   * in by CommentAccessControlHandler.
+   */
+  public function testCommentOmittedWithoutParentTypeViewAccess(): void {
+    self::createNodeCommentType();
+
+    $this->setUpCurrentUser([], [
+      JavaScriptComponent::ADMIN_PERMISSION,
+      'access comments',
+    ]);
+
+    $response = $this->request(Request::create(self::URL_TYPES));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $data = self::decodeResponse($response)['data'];
+    self::assertArrayNotHasKey('comment', $data);
+  }
+
+  /**
+   * Creates a default comment type targeting node.
+   */
+  private static function createNodeCommentType(): void {
+    CommentType::create([
+      'id' => 'comment',
+      'label' => 'Default comments',
+      'target_entity_type_id' => 'node',
+    ])->save();
   }
 
   /**
