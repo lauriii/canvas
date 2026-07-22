@@ -136,6 +136,7 @@ services:
     class: Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber
     tags:
       - { name: 'event_subscriber' }
+  Drupal\canvas\EventSubscriber\ComponentConfigImportValidator: ~
   Drupal\canvas\EventSubscriber\ComponentTreeConfigEntityTransformer: ~
   Drupal\canvas\EventSubscriber\DefaultContentSubscriber: ~
   # @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3571130
