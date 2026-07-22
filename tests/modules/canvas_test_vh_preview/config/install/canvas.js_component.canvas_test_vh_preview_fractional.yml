@@ -1,0 +1,36 @@
+uuid: 4b2e6f8a-3c5d-4e9f-b6c7-2d3e4f5a6b7c
+langcode: en
+status: true
+dependencies:
+  enforced: {  }
+machineName: canvas_test_vh_preview_fractional
+name: 'VH Fractional'
+required: {  }
+props: {  }
+slots: {  }
+js:
+  original: |-
+    export default function VhFractional() {
+      return (
+        <section
+          data-testid="vh-fractional"
+          style={{ height: '45vh', backgroundColor: 'green' }}
+        />
+      );
+    }
+  compiled: |
+    import { jsx as _jsx } from "react/jsx-runtime";
+    const VhFractional = ()=>{
+        return /*#__PURE__*/ _jsx("section", {
+            "data-testid": "vh-fractional",
+            style: {
+                height: "45vh",
+                backgroundColor: "green"
+            }
+        });
+    };
+    export default VhFractional;
+css:
+  original: ''
+  compiled: ''
+dataDependencies: []

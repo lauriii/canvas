@@ -33,6 +33,23 @@ describe('Vh units should not cause issues', () => {
       const tol = Math.max(10, Math.round(tagged * 0.08));
       expect(h).to.be.closeTo(tagged, tol);
     });
+    cy.testInIframe('[data-testid="vh-fractional"]', (vhDiv) => {
+      expect(vhDiv.getAttribute('data-canvas-preview-max-height')).to.match(
+        /^\d+$/,
+      );
+      const tagged = parseInt(
+        vhDiv.getAttribute('data-canvas-preview-max-height'),
+        10,
+      );
+      const h = vhDiv.getBoundingClientRect().height;
+      expect(h, 'vh-fractional box height').to.be.lessThan(5000);
+      const tol = Math.max(10, Math.round(tagged * 0.08));
+      expect(h).to.be.closeTo(tagged, tol);
+      expect(
+        vhDiv.style.height,
+        'height is capped inline for fractional vh element',
+      ).to.not.equal('');
+    });
   };
 
   before(() => {
@@ -53,8 +70,10 @@ describe('Vh units should not cause issues', () => {
     cy.insertComponent({ name: 'Hero' });
     cy.insertComponent({ name: 'VH Half' });
     cy.insertComponent({ name: 'VH Full' });
+    cy.insertComponent({ name: 'VH Fractional' });
     cy.waitForElementInIframe('[data-div="vh-half"]');
     cy.waitForElementInIframe('#vh-full');
+    cy.waitForElementInIframe('[data-testid="vh-fractional"]');
     assertTaggedVhBoxHeights();
 
     // Intentionally wait two seconds to ensure the heights of the VH styled
