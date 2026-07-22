@@ -187,6 +187,19 @@ final class ComponentMultiBundleReferencePropExpressionsUpdateTest extends Canva
       ->save();
     self::assertActiveVersionIsValid($sdc_with_image_object_prop_shape);
 
+    // The seeded content still pins the image instance to the single-bundle
+    // version just deleted. Re-stamp it to the multi-bundle version so the
+    // fixture is coherent — as if the site had always been multi-bundle,
+    // matching the component-config rewrite. Without this the post-update data
+    // health check flags a dangling component version on the node content.
+    $connection = \Drupal::database();
+    foreach (['node__field_canvas_demo', 'node_revision__field_canvas_demo'] as $table) {
+      $connection->update($table)
+        ->fields(['field_canvas_demo_component_version' => self::EXPECTED_ORIGINAL_MULTI_BUNDLE_IMAGE_OBJECT_VERSION])
+        ->condition('field_canvas_demo_component_version', self::EXPECTED_ORIGINAL_SINGLE_BUNDLE_IMAGE_OBJECT_VERSION)
+        ->execute();
+    }
+
     // Generate new version of the image URI component that is multi-bundle.
     $settings = $sdc_with_image_uri_shape->getSettings();
     $settings['prop_field_definitions']['src']['field_instance_settings']['handler_settings']['target_bundles'] = $target_bundles_setting;

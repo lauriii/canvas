@@ -12,6 +12,7 @@ use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\Plugin\DataType\ComponentInputs;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -196,7 +197,130 @@ class CanvasConfigUpdater {
         ||
         !empty($inputs->getPropSourcesUsingExpressionClass(ReferenceFieldTypePropExpression::class));
     };
-    return !empty($component_tree->componentTreeItemsIterator($has_reference_expression));
+    // Fast pre-filter: only trees with a reference-typed expression can carry
+    // intermediate component dependencies.
+    if (empty($component_tree->componentTreeItemsIterator($has_reference_expression))) {
+      return FALSE;
+    }
+    // Recompute the dependencies on a clone and compare to the stored set.
+    // calculateDependencies() rewrites the dependency list in place, and this
+    // detector must not mutate the entity it is passed — the data-health audit
+    // runs every detector against one shared, loaded entity, so a mutation
+    // here would leak into the detectors that run after it. The stored and
+    // recomputed sets differ exactly while the intermediate dependencies are
+    // still missing, i.e. while the migration is pending; the migration leaves
+    // the reference expression in place, so a bare presence check could not
+    // tell an already-migrated entity from one that still needs it.
+    // @see \Drupal\canvas\Health\Doctor::runUpdatesEscapedConfigCheck()
+    $probe = clone $entity;
+    $probe->calculateDependencies();
+    return $probe->getDependencies() != $entity->getDependencies();
+  }
+
+  /**
+   * Coerces a block instance's boolean `label_display` input to a string.
+   *
+   * Core 11.3 (#3547808) made `block.settings` `label_display` a string enum
+   * ('0' | 'visible'); data written under 11.2 could hold a boolean, which now
+   * fails validation. Boolean `false` (hidden) => '0', `true` (shown) =>
+   * 'visible'. Returns TRUE when it changed the item.
+   */
+  public static function coerceBlockLabelDisplay(ComponentTreeItem $item): bool {
+    if (self::blockComponentInstanceId($item) === NULL) {
+      return FALSE;
+    }
+    $inputs = $item->getInputs();
+    if (!\is_array($inputs) || !\array_key_exists('label_display', $inputs) || !\is_bool($inputs['label_display'])) {
+      return FALSE;
+    }
+    $inputs['label_display'] = $inputs['label_display'] ? 'visible' : '0';
+    $item->setInput($inputs);
+    return TRUE;
+  }
+
+  /**
+   * Whether a config tree has a block instance with a boolean `label_display`.
+   *
+   * Read-only predicate: the coercion runs in preSave via
+   * ::updateConfigEntityBlockLabelDisplay(), so the escaped-config health check
+   * can reflect this safely, and it reads FALSE once the value is a string.
+   *
+   * @see ::updateConfigEntityBlockLabelDisplay()
+   * @see \Drupal\canvas\Health\Doctor::runUpdatesEscapedConfigCheck()
+   */
+  public static function needsBlockLabelDisplayCast((ComponentTreeEntityInterface&ConfigEntityInterface)|FieldConfig $entity): bool {
+    if ($entity instanceof FieldConfig && $entity->getType() !== ComponentTreeItem::PLUGIN_ID) {
+      return FALSE;
+    }
+    foreach (self::getComponentTreeForEntity($entity) as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      if (self::blockComponentInstanceId($item) === NULL) {
+        continue;
+      }
+      $inputs = $item->getInputs();
+      if (\is_array($inputs) && \array_key_exists('label_display', $inputs) && \is_bool($inputs['label_display'])) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
+   * Returns an item's block component ID, or NULL if it is not a block one.
+   *
+   * The block-label-display methods run in preSave, before schema validation,
+   * so they must tolerate a malformed tree item that has no `component_id` yet
+   * (::getComponentId() would throw): such an item is not a block instance to
+   * coerce, and letting it through lets schema validation report the real
+   * error.
+   *
+   * @see ::coerceBlockLabelDisplay()
+   * @see ::needsBlockLabelDisplayCast()
+   */
+  private static function blockComponentInstanceId(ComponentTreeItem $item): ?string {
+    $component_id = $item->get('component_id')->getValue();
+    if (!\is_string($component_id) || !\str_starts_with($component_id, BlockComponent::SOURCE_PLUGIN_ID . '.')) {
+      return NULL;
+    }
+    return $component_id;
+  }
+
+  /**
+   * Casts boolean block `label_display` inputs to strings in a config tree.
+   *
+   * The mutator, run from every config entity's preSave (paired with the
+   * read-only ::needsBlockLabelDisplayCast() predicate that the 0024 update
+   * paths use to select entities to re-save). Config-defined sibling of
+   * canvas_post_update_0023_block_label_display_boolean_to_string(), which
+   * fixes content-entity component trees. Walks the entity's component tree
+   * (or a FieldConfig's `default_value`), coerces every block instance's
+   * boolean `label_display`, and returns TRUE when anything changed.
+   *
+   * @todo Add #[ComponentPreSaveUpdate] once #3591619 generalizes the preSave-wiring PHPStan enforcement to component-tree config entities and FieldConfig.
+   *
+   * @see ::needsBlockLabelDisplayCast()
+   * @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::preSave()
+   * @see ::coerceBlockLabelDisplay()
+   */
+  public static function updateConfigEntityBlockLabelDisplay((ComponentTreeEntityInterface&ConfigEntityInterface)|FieldConfig $entity): bool {
+    if (!self::needsBlockLabelDisplayCast($entity)) {
+      return FALSE;
+    }
+    $tree = self::getComponentTreeForEntity($entity);
+    foreach ($tree as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      self::coerceBlockLabelDisplay($item);
+    }
+    // Write the mutated tree back. setComponentTree() re-normalizes inputs to
+    // arrays; FieldConfig needs the explicit conversion, mirroring
+    // ::updateConfigEntityWithComponentTreeInputsAsArrays().
+    if ($entity instanceof ComponentTreeEntityInterface) {
+      $entity->setComponentTree($tree->getValue());
+    }
+    else {
+      $entity->set('default_value', ComponentTreeConfigEntityBase::componentTreeInstancesInputsMustBeArrays($tree->getValue()));
+    }
+    return TRUE;
   }
 
   public static function needsTrackingPropsRequiredFlag(Component $component): bool {

@@ -92,6 +92,20 @@ services:
   Drupal\canvas\GlobalImports: {}
   Drupal\canvas\Tmgmt\ComponentInputsTranslatablesExtractor: ~
 
+  # Health.
+  # Note: the `canvas:doctor` command is discovered and registered automatically by core's ConsoleCompilerPass.
+  Drupal\canvas\Health\Environment:
+    public: true
+  # Alias so consumers can type-hint the interface (Environment is
+  # final and cannot be mocked/subclassed; tests substitute a stub instead).
+  Drupal\canvas\Health\EnvironmentInterface: '@Drupal\canvas\Health\Environment'
+  Drupal\canvas\Health\HealthRecords:
+    public: true
+  Drupal\canvas\Health\Inventory:
+    public: true
+  Drupal\canvas\Health\Doctor:
+    public: true
+
   # Cache contexts.
   cache_context.route.name.is_canvas_editor_ui:
     class: Drupal\canvas\Cache\CanvasEditorUiCacheContext

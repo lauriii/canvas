@@ -627,7 +627,9 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
   public function getDefaultExplicitInput(bool $only_required = FALSE): array {
     $inputs = [];
     foreach ($this->configuration['prop_field_definitions'] as $prop_name => $def) {
-      if ($def['required'] === FALSE && $only_required) {
+      // A not-yet-upgraded instance's definition may lack `required`; treat a
+      // missing flag as not-required, matching ::getExplicitInputDefinitions().
+      if (($def['required'] ?? FALSE) === FALSE && $only_required) {
         continue;
       }
       \assert(\is_string($prop_name));
