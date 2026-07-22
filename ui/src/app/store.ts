@@ -13,6 +13,7 @@ import {
   layoutModelReducer,
   setInitialized,
   setInitialLayoutModel,
+  setTranslations,
   setUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
 import { notificationsSlice } from '@/features/notifications/notificationsSlice';
@@ -117,6 +118,7 @@ const rootReducer = combineSlices(
           return (
             Object.keys(present.model).length > 0 &&
             action.type !== setInitialLayoutModel.type &&
+            action.type !== setTranslations.type &&
             action.type !== setUpdatePreview.type
           );
         },
@@ -203,6 +205,7 @@ const undoRedoActionIdMiddleware: Middleware<{}, RootState> =
     if (
       type === setUpdatePreview.type ||
       type === setInitialLayoutModel.type ||
+      type === setTranslations.type ||
       type === setInitialPageData.type ||
       type === setInitialized.type
     ) {
