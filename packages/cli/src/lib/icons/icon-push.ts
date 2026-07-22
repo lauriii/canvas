@@ -62,11 +62,10 @@ function formatErrorMessage(error: unknown): string {
 }
 
 /**
- * Discovers local icon libraries, mirroring the fonts workflow: entries
- * declared in canvas.brand-kit.json (`icons.libraries`) plus plain
- * `icons/<id>/` directories of SVG files not already declared (id from the
- * directory name, label derived). Directories holding a `pack.json`
- * (module-provided packs written by pull) are never pushed.
+ * Discovers local icon libraries, mirroring the fonts workflow: every library
+ * is explicitly declared in canvas.brand-kit.json (`icons.libraries`) with at
+ * least a human-readable `label`. Nothing is inferred from bare `icons/<id>/`
+ * directories.
  *
  * When the `icons` key is present in canvas.brand-kit.json, the resulting
  * set is authoritative: push removes remote canvas-managed libraries that
@@ -81,55 +80,6 @@ export async function discoverIconLibraries(projectRoot: string): Promise<{
   const libraries: DiscoveredIconLibrary[] = (iconsConfig?.libraries ?? []).map(
     (entry) => ({ id: entry.id, entry }),
   );
-  const declaredIds = new Set(libraries.map((library) => library.id));
-
-  const iconsDir = path.resolve(projectRoot, ICONS_DIR);
-  let directoryEntries;
-  try {
-    directoryEntries = await fs.readdir(iconsDir, { withFileTypes: true });
-  } catch (err) {
-    // The icons directory is optional.
-    if (
-      err &&
-      typeof err === 'object' &&
-      'code' in err &&
-      err.code === 'ENOENT'
-    ) {
-      return { libraries, authoritative: iconsConfig !== undefined };
-    }
-    throw err;
-  }
-
-  const directories = directoryEntries
-    .filter((dirent) => dirent.isDirectory())
-    .map((dirent) => dirent.name)
-    .sort((a, b) => a.localeCompare(b));
-  for (const name of directories) {
-    if (declaredIds.has(name)) {
-      continue;
-    }
-    const dir = path.join(iconsDir, name);
-    // Directories holding a pack.json mirror module-provided packs (written
-    // by pull for information only) and are never pushed.
-    const isModulePack = await fs
-      .access(path.join(dir, 'pack.json'))
-      .then(() => true)
-      .catch(() => false);
-    if (isModulePack) {
-      continue;
-    }
-    const hasSvgFiles = await fs
-      .readdir(dir)
-      .then((files) => files.some((file) => /\.svg$/i.test(file)))
-      .catch(() => false);
-    if (!hasSvgFiles) {
-      continue;
-    }
-    libraries.push({ id: name, entry: { id: name } });
-  }
-
-  // Keep a stable order for reporting.
-  libraries.sort((a, b) => a.id.localeCompare(b.id));
   return { libraries, authoritative: iconsConfig !== undefined };
 }
 

@@ -88,7 +88,7 @@ shown above. For existing projects, if `globalCssPath` is not set and
 
 #### canvas.brand-kit.json (Optional)
 
-Brand Kit configuration — fonts and colors — lives in `canvas.brand-kit.json` in
+Brand Kit configuration — fonts, colors, and icon libraries — lives in `canvas.brand-kit.json` in
 the project root. When Brand Kit sync is enabled, `canvas push` and
 `canvas pull` use it to sync both with the global Brand Kit. Example:
 
@@ -229,8 +229,9 @@ labels as for fonts uploaded via the UI.
 
 #### Icon libraries
 
-Icon libraries are part of the brand kit workflow: icon sync is enabled with
-`--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT=true`. Like fonts, icon
+Icon libraries are part of the brand kit workflow: icon sync follows brand kit
+sync, which is on by default (disable it with `--no-include-brand-kit` or
+`CANVAS_INCLUDE_BRAND_KIT=false`). Like fonts, icon
 libraries are declared in `canvas.brand-kit.json` — under a top-level `icons`
 key with a `libraries` array mirroring `fonts.families`:
 
@@ -239,7 +240,11 @@ key with a `libraries` array mirroring `fonts.families`:
   "fonts": { "families": [] },
   "icons": {
     "libraries": [
-      { "id": "lucide", "source": "node_modules/lucide-static/icons" },
+      {
+        "id": "lucide",
+        "label": "Lucide",
+        "source": "node_modules/lucide-static/icons"
+      },
       { "id": "my_icons", "label": "My icons" }
     ]
   }
@@ -249,8 +254,8 @@ key with a `libraries` array mirroring `fonts.families`:
 Each entry declares one canvas-managed icon library:
 
 - `id` (required): the library id; lowercase letters, digits, and underscores.
-- `label`: human-readable label; derived from the id when omitted
-  (`lucide_icons` becomes "Lucide icons").
+- `label` (required): human-readable label. Every library must be declared with
+  at least a label, just as every font family requires a `name`.
 - `description`: optional description.
 - `template`: optional Twig rendering template override; omit to use the server
   default.
@@ -260,9 +265,9 @@ Each entry declares one canvas-managed icon library:
   repository.
 
 The SVG files themselves live in the `source` directory; the filename (minus
-`.svg`) becomes the icon id. As a zero-config shortcut, any `icons/<id>/`
-directory containing SVG files is also pushed without a declaration, using the
-directory name as the id and a derived label.
+`.svg`) becomes the icon id. A bare `icons/<id>/` directory is never pushed on
+its own — every library must be declared in `canvas.brand-kit.json` with a
+label.
 
 ```
 icons/
@@ -273,14 +278,14 @@ icons/
 ```
 
 **Replace semantics (like fonts):** when the `icons` key is present in
-`canvas.brand-kit.json`, the declared set (plus any zero-config directories) is
-authoritative — pushing deletes canvas-managed libraries on the site that are no
-longer in it, and an empty `libraries` array deletes them all. Without an
-`icons` key, push only adds and updates. `pull` writes each canvas-managed
-library's entry into `canvas.brand-kit.json` (preserving existing entries) and
-downloads its SVG files into `icons/<id>/`, so a pulled project pushes back
-unchanged. Module-provided packs are pulled as informational
-`icons/<id>/pack.json` files that push skips.
+`canvas.brand-kit.json`, the declared set is authoritative — pushing deletes
+canvas-managed libraries on the site that are no longer in it, and an empty
+`libraries` array deletes them all. Without an `icons` key, push only adds and
+updates. `pull` writes each canvas-managed library's entry into
+`canvas.brand-kit.json` (preserving existing entries) and downloads its SVG
+files into `icons/<id>/`, so a pulled project pushes back unchanged.
+Module-provided packs are pulled as informational `icons/<id>/pack.json` files
+that push skips.
 
 **Importing an existing icon set from npm:** declare the package directory as
 the library's `source` — no copying required:
@@ -295,7 +300,15 @@ the library's `source` — no copying required:
 }
 ```
 
-Or copy the SVG files into `icons/<id>/` and push without any configuration:
+Or copy the SVG files into `icons/<id>/` and declare the library with a label:
+
+```json
+{
+  "icons": {
+    "libraries": [{ "id": "lucide_icons", "label": "Lucide icons" }]
+  }
+}
+```
 
 ```bash
 mkdir -p icons/lucide_icons
@@ -349,7 +362,7 @@ to get started.
 | _(none)_                 | _(none)_                           | User tokens from `canvas auth login` are stored in `~/.config/drupal-canvas/oauth.json` (keyed by site URL) and used automatically. No environment variable is needed.                                |
 | `--no-pages`             | `CANVAS_INCLUDE_PAGES`             | (Optional) Exclude pages from `pull`, `push`, and `reconcile-media`. `CANVAS_INCLUDE_PAGES` is deprecated; use `sync.pages` in `canvas.config.json` instead.                                          |
 | `--no-content-templates` | `CANVAS_INCLUDE_CONTENT_TEMPLATES` | (Optional) Exclude content templates from `pull`, `push`, and `reconcile-media`. `CANVAS_INCLUDE_CONTENT_TEMPLATES` is deprecated; use `sync.contentTemplates` in `canvas.config.json` instead.       |
-| `--include-brand-kit`    | `CANVAS_INCLUDE_BRAND_KIT`         | (Optional) Include brand kit (fonts and colors) in `pull` and `push`. Defaults to `true`. Use `--no-include-brand-kit` to disable. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                    |
+| `--include-brand-kit`    | `CANVAS_INCLUDE_BRAND_KIT`         | (Optional) Include brand kit (fonts, colors, and icon libraries) in `pull` and `push`. Defaults to `true`. Use `--no-include-brand-kit` to disable. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                    |
 | `--no-page-templates`    | _(none)_                           | (Optional) Exclude page templates from `pull`, `push`, and `reconcile-media`. Use `sync.pageTemplates` in `canvas.config.json` for a project default.                                                 |
 
 **Note:** When `CANVAS_SCOPE` is unset, the CLI uses the `canvas_oauth`
@@ -510,7 +523,7 @@ npx canvas pull [options]
   `canvas.config.json` or `src/components`)
 - `--no-pages`: Exclude pages from the pull operation
 - `--no-content-templates`: Exclude content templates from the pull operation
-- `--include-brand-kit [enabled]`: Include brand kit (fonts and colors) in the
+- `--include-brand-kit [enabled]`: Include brand kit (fonts, colors, and icon libraries) in the
   pull operation. Defaults to `true`; use `--no-include-brand-kit` to disable.
 - `--no-page-templates`: Exclude page templates from the pull operation
 - `-y, --yes`: Skip all confirmation prompts (non-interactive mode)
@@ -584,7 +597,7 @@ are kept byte-for-byte. Local-only entries (not on the site) are preserved at
 the end of the map and reported. `--skip-overwrite` only appends new colors and
 leaves existing entries untouched.
 
-**Icons:** With `--include-brand-kit`, the pull command declares every
+**Icons:** When brand kit sync is on, the pull command declares every
 canvas-managed icon library in `canvas.brand-kit.json`, downloads its SVG files
 to `icons/<id>/`, and writes an informational `icons/<id>/pack.json` for every
 module-provided icon pack. See [Icon libraries](#icon-libraries).
@@ -754,7 +767,7 @@ npx canvas push [options]
   `componentDir` from `canvas.config.json` or `src/components`)
 - `--no-pages`: Exclude pages from the push operation
 - `--no-content-templates`: Exclude content templates from the push operation
-- `--include-brand-kit [enabled]`: Include brand kit (fonts and colors) in the
+- `--include-brand-kit [enabled]`: Include brand kit (fonts, colors, and icon libraries) in the
   push operation. Defaults to `true`.
 - `--no-include-brand-kit`: Exclude brand kit from the push operation.
 - `--no-page-templates`: Exclude page templates from the push operation
@@ -817,11 +830,10 @@ component assets. Push can include:
    name. Colors on the site but not in the file are reported and left untouched
    unless `--prune-colors` is passed.
 4. **Icon libraries** - When brand kit sync is on, each icon library declared in
-   `canvas.brand-kit.json` (plus zero-config `icons/<id>/` directories of SVG
-   files) is validated, its SVG files are uploaded, and the icon library is
-   created, updated, reported unchanged, or deleted per the replace semantics.
-   Files rejected by the server's SVG sanitizer fail that library with the file
-   path and server error; other libraries continue. See
+   `canvas.brand-kit.json` is validated, its SVG files are uploaded, and the
+   icon library is created, updated, reported unchanged, or deleted per the
+   replace semantics. Files rejected by the server's SVG sanitizer fail that
+   library with the file path and server error; other libraries continue. See
    [Icon libraries](#icon-libraries).
 5. **Vendor artifacts** - Bundled third-party dependencies
 6. **Local artifacts** - Bundled local imports (e.g., `@/utils`)
@@ -835,9 +847,9 @@ component assets. Push can include:
     content, unless excluded with `--no-page-templates` or
     `sync.pageTemplates: false`. A page template file can set `"default": true`
     to become the site default page variant (written through
-    `/canvas/api/v0/settings/default-page-variant` with the `canvas:page_variant`
-    scope); at most one file may claim it. The current site default is never
-    deleted by a push.
+    `/canvas/api/v0/settings/default-page-variant` with the
+    `canvas:page_variant` scope); at most one file may claim it. The current
+    site default is never deleted by a push.
 
 ---
 

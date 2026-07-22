@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { validateIconLibraryEntry, validateSvgSafety } from './icon-validate';
 
+import type { IconLibraryEntry } from '../../config';
+
 const BENIGN_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>';
 
@@ -103,11 +105,22 @@ describe('validateIconLibraryEntry', () => {
     expect(result.svgFiles).toEqual(['a.svg', 'b.svg']);
   });
 
-  it('derives the label from the id when omitted', async () => {
+  it('rejects an entry without a label', async () => {
+    await writeSvgDir('icons/lucide_icons', { 'arrow.svg': BENIGN_SVG });
+
+    await expect(
+      validateIconLibraryEntry(
+        { id: 'lucide_icons' } as IconLibraryEntry,
+        tmpDir,
+      ),
+    ).rejects.toThrow(/missing or empty "label"/);
+  });
+
+  it('validates an entry with an explicit label', async () => {
     await writeSvgDir('icons/lucide_icons', { 'arrow.svg': BENIGN_SVG });
 
     const result = await validateIconLibraryEntry(
-      { id: 'lucide_icons' },
+      { id: 'lucide_icons', label: 'Lucide icons' },
       tmpDir,
     );
 
@@ -118,7 +131,11 @@ describe('validateIconLibraryEntry', () => {
     await writeSvgDir('node_modules/some-icons', { 'star.svg': BENIGN_SVG });
 
     const result = await validateIconLibraryEntry(
-      { id: 'some_icons', source: 'node_modules/some-icons' },
+      {
+        id: 'some_icons',
+        label: 'Some icons',
+        source: 'node_modules/some-icons',
+      },
       tmpDir,
     );
 
@@ -130,7 +147,7 @@ describe('validateIconLibraryEntry', () => {
 
   it('rejects a missing library directory', async () => {
     await expect(
-      validateIconLibraryEntry({ id: 'missing' }, tmpDir),
+      validateIconLibraryEntry({ id: 'missing', label: 'Missing' }, tmpDir),
     ).rejects.toThrow(/The library directory does not exist: icons\/missing/);
   });
 
@@ -139,7 +156,7 @@ describe('validateIconLibraryEntry', () => {
 
     await expect(
       validateIconLibraryEntry(
-        { id: 'My-Icons', source: 'icons/My-Icons' },
+        { id: 'My-Icons', label: 'My icons', source: 'icons/My-Icons' },
         tmpDir,
       ),
     ).rejects.toThrow(/Invalid library id "My-Icons"/);
@@ -149,7 +166,7 @@ describe('validateIconLibraryEntry', () => {
     await writeSvgDir('icons/my_icons', { 'README.txt': 'no icons here' });
 
     await expect(
-      validateIconLibraryEntry({ id: 'my_icons' }, tmpDir),
+      validateIconLibraryEntry({ id: 'my_icons', label: 'My icons' }, tmpDir),
     ).rejects.toThrow(/contains no SVG icons/);
   });
 
@@ -160,7 +177,7 @@ describe('validateIconLibraryEntry', () => {
     });
 
     await expect(
-      validateIconLibraryEntry({ id: 'my_icons' }, tmpDir),
+      validateIconLibraryEntry({ id: 'my_icons', label: 'My icons' }, tmpDir),
     ).rejects.toThrow(/bad name\.svg: invalid icon filename/);
   });
 
@@ -171,7 +188,7 @@ describe('validateIconLibraryEntry', () => {
     });
 
     const error = await validateIconLibraryEntry(
-      { id: 'my_icons' },
+      { id: 'my_icons', label: 'My icons' },
       tmpDir,
     ).catch((e: unknown) => e as Error);
 

@@ -12,15 +12,6 @@ export const ICON_LIBRARY_ID_PATTERN = /^[a-z0-9_]+$/;
 /** Icon filenames become icon ids (minus .svg), so keep them restricted. */
 export const ICON_FILENAME_PATTERN = /^[a-zA-Z0-9._-]+\.svg$/;
 
-/**
- * Derives a human-readable library label from its id, for entries without an
- * explicit label: `lucide_icons` becomes "Lucide icons".
- */
-export function deriveLibraryLabel(id: string): string {
-  const words = id.replace(/_/g, ' ').trim();
-  return words.charAt(0).toUpperCase() + words.slice(1);
-}
-
 /** A validated local icon library, ready to push. */
 export interface ValidatedIconLibrary {
   id: string;
@@ -76,8 +67,7 @@ export function validateSvgSafety(content: string): string[] {
  * errors listed so the user can fix the library in one go.
  *
  * Entries come from `canvas.brand-kit.json` (`icons.libraries`, mirroring
- * `fonts.families`) or are auto-derived from plain `icons/<id>/` directories
- * of SVG files.
+ * `fonts.families`) and must declare at least a human-readable `label`.
  */
 export async function validateIconLibraryEntry(
   entry: IconLibraryEntry,
@@ -91,8 +81,10 @@ export async function validateIconLibraryEntry(
       `Invalid library id "${id}". Ids may only contain lowercase letters, digits, and underscores.`,
     );
   }
-  if (entry.label !== undefined && typeof entry.label !== 'string') {
-    errors.push('"label" must be a string.');
+  // A human-readable label is required, mirroring a font family's "name".
+  const label = typeof entry.label === 'string' ? entry.label.trim() : '';
+  if (label === '') {
+    errors.push('missing or empty "label".');
   }
   if (
     entry.description !== undefined &&
@@ -158,7 +150,7 @@ export async function validateIconLibraryEntry(
 
   return {
     id,
-    label: entry.label?.trim() || deriveLibraryLabel(id),
+    label,
     ...(entry.description !== undefined && { description: entry.description }),
     ...(entry.template !== undefined && { template: entry.template }),
     filesDir,
