@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasNotificationHandler;
+use Drupal\canvas\Health\HealthCheck;
+use Drupal\canvas\Health\HealthRecords;
+use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 
@@ -40,7 +43,12 @@ function canvas_module_preuninstall(string $module, bool $is_syncing): void {
  */
 function canvas_uninstall(bool $is_syncing): void {
   $schema = \Drupal::database()->schema();
-  foreach ([CanvasNotificationHandler::NOTIFICATION_TABLE, CanvasNotificationHandler::NOTIFICATION_READ_TABLE] as $table) {
+  $tables = [
+    CanvasNotificationHandler::NOTIFICATION_TABLE,
+    CanvasNotificationHandler::NOTIFICATION_READ_TABLE,
+    HealthRecords::TABLE,
+  ];
+  foreach ($tables as $table) {
     if ($schema->tableExists($table)) {
       $schema->dropTable($table);
     }
@@ -60,14 +68,14 @@ function canvas_requirements(string $phase): array {
       $requirements['canvas_stark'] = [
         'title' => t('Drupal Canvas Theme'),
         'description' => t('The required theme <code>canvas_stark</code> is no longer installed due to manually modified changes to <code>core.extension</code>. The Drupal Canvas user interface will be broken without this theme. You can install it by running <code>drush theme:install canvas_stark</code>.'),
-        'severity' => REQUIREMENT_WARNING,
+        'severity' => RequirementSeverity::Warning,
       ];
     }
 
     // Check if JSON:API module is enabled.
     $json_api_enabled = \Drupal::moduleHandler()->moduleExists('jsonapi');
     if ($json_api_enabled) {
-      $severity = REQUIREMENT_WARNING;
+      $severity = RequirementSeverity::Warning;
       // Check if PHP assertions are enabled and update the severity.
       // @see \Drupal\canvas\EventSubscriber\ApiMessageValidator::isProd()
       $assertions_disabled = TRUE;
@@ -75,7 +83,7 @@ function canvas_requirements(string $phase): array {
       assert(!($assertions_disabled = FALSE));
       // @phpstan-ignore-next-line booleanNot.alwaysTrue function.alreadyNarrowedType
       if (!$assertions_disabled) {
-        $severity = REQUIREMENT_ERROR;
+        $severity = RequirementSeverity::Error;
       }
       $requirements['canvas'] = [
         'title' => t('Drupal Canvas'),
@@ -84,7 +92,51 @@ function canvas_requirements(string $phase): array {
       ];
     }
   }
+  if ($phase === 'runtime') {
+    $requirements['canvas_data_health'] = _canvas_data_health_requirement();
+  }
   return $requirements;
+}
+
+/**
+ * Builds the 'canvas_data_health' entry for hook_requirements().
+ *
+ * @return array
+ *   A single hook_requirements() entry.
+ */
+function _canvas_data_health_requirement(): array {
+  // Risk-kind checks (auto-save) are excluded: drafts are allowed to be
+  // invalid, so they must not surface as invalid site data here.
+  $health_checks = \array_filter(HealthCheck::dataChecks(), static fn (HealthCheck $check): bool => !$check->findingsAreRisks());
+  $summary = \Drupal::service(HealthRecords::class)->getSummary(\array_values($health_checks));
+
+  $requirement = ['title' => t('Drupal Canvas data health')];
+
+  if ($summary['total_items'] === 0) {
+    $requirement['value'] = t('Not yet checked');
+    $requirement['description'] = t('Canvas has not checked any data yet. It is checked incrementally on cron, or run <code>vendor/bin/dr canvas:doctor --all-checks</code> to check everything immediately.');
+    $requirement['severity'] = RequirementSeverity::Info;
+    return $requirement;
+  }
+
+  if ($summary['problem_items'] > 0) {
+    $requirement['value'] = t('@n of @t checked data item(s) invalid', [
+      '@n' => $summary['problem_items'],
+      '@t' => $summary['total_items'],
+    ]);
+    $requirement['description'] = $summary['last_checked_at'] !== NULL
+      ? t('As of @date. Run <code>vendor/bin/dr canvas:doctor --all-checks --details</code> for more information.', ['@date' => \Drupal::service('date.formatter')->format($summary['last_checked_at'])])
+      : t('Run <code>vendor/bin/dr canvas:doctor --all-checks --details</code> for more information.');
+    $requirement['severity'] = RequirementSeverity::Warning;
+    return $requirement;
+  }
+
+  $requirement['value'] = t('All @t checked data items valid', ['@t' => $summary['total_items']]);
+  $requirement['description'] = $summary['last_checked_at'] !== NULL
+    ? t('As of @date.', ['@date' => \Drupal::service('date.formatter')->format($summary['last_checked_at'])])
+    : '';
+  $requirement['severity'] = RequirementSeverity::OK;
+  return $requirement;
 }
 
 /**

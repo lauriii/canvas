@@ -174,6 +174,7 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
     parent::preSave($storage);
     self::getConfigUpdater()->updateConfigEntityWithComponentTreeInputs($this);
     self::getConfigUpdater()->updateConfigEntityWithComponentTreeInputsAsArrays($this);
+    self::getConfigUpdater()->updateConfigEntityBlockLabelDisplay($this);
     // TRICKY: do not use ::setComponentTree() here because it expects integer
     // keys ("deltas") for component instances. Config-defined component trees
     // do not have deltas but sequence keys. Manipulate the config entity
