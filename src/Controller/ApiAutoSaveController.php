@@ -18,6 +18,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Validation\Constraint\AutoSaveEntityConflictConstraint;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
+use Drupal\content_translation\FieldTranslationSynchronizerInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -74,6 +75,8 @@ final class ApiAutoSaveController extends ApiControllerBase {
     private readonly ComponentSourceManager $componentSourceManager,
     private readonly ComponentTreeLoader $componentTreeLoader,
     private readonly ModuleHandlerInterface $moduleHandler,
+    // Only present when the content_translation module is installed.
+    private readonly ?FieldTranslationSynchronizerInterface $fieldTranslationSynchronizer = NULL,
   ) {}
 
   private static function validateExpectedAutoSaves(array $expected_auto_saves, array $available_auto_saves, int $status): ?JsonResponse {
@@ -860,6 +863,23 @@ final class ApiAutoSaveController extends ApiControllerBase {
       \assert(\is_string($revision_user));
       $entity->set($revision_user, $this->currentUser->id());
     }
+
+    // content_translation synchronizes the shared component tree and the
+    // non-translatable component inputs from the default translation onto every
+    // other translation, but it only runs at entity presave — i.e. during
+    // save(). This publish flow validates the assembled entity *before* saving
+    // it (to surface violations early and avoid un-rollback-able side effects),
+    // so without help the symmetry constraint would see a still-stale
+    // translation and reject a legitimate non-translatable input change made on
+    // the default translation. Run the same synchronizer here so validation
+    // sees the state that will actually be persisted.
+    // @see \Drupal\content_translation\Hook\ContentTranslationHooks::entityPresave()
+    // @see \Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeSymmetricalTranslationConstraintValidator
+    if ($this->fieldTranslationSynchronizer !== NULL && $entity->isTranslatable() && \count($entity->getTranslationLanguages()) > 1) {
+      $this->fieldTranslationSynchronizer->synchronizeFields($entity, $entity->getUntranslated()->language()->getId());
+    }
+
     return $entity;
   }
 

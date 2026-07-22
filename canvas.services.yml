@@ -209,7 +209,10 @@ services:
   Drupal\canvas\Controller\ComponentStatusController: {}
   Drupal\canvas\Controller\ComponentAuditController: {}
   Drupal\canvas\Controller\CanvasController: {}
-  Drupal\canvas\Controller\ApiAutoSaveController: {}
+  Drupal\canvas\Controller\ApiAutoSaveController:
+    arguments:
+      # Optional: only present when content_translation is installed.
+      $fieldTranslationSynchronizer: '@?content_translation.synchronizer'
   Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers: {}
   Drupal\canvas\Controller\ApiUiContentTemplateControllers: {}
   Drupal\canvas\Controller\ApiUsageControllers: {}

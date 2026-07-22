@@ -288,6 +288,110 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests publishing a non-translatable input edit on the default translation.
+   *
+   * Reproduces the reported failure where changing a *non-translatable*
+   * component input (e.g. an enum like `element`/`alignment`) on the default
+   * translation of a page that already has a translation is rejected with:
+   *
+   *   Non-translatable component input key 'element' in component '<uuid>'
+   *   differs from the default translation in the 'es' translation.
+   *
+   * The content_translation field synchronizer propagates non-translatable
+   * inputs from the default translation to every other translation, but it only
+   * runs at entity presave — i.e. during save(). Canvas's publish flow validates
+   * the assembled entity *before* saving it, so without help the symmetry
+   * constraint sees the still-stale translation (element = h1) against the newly
+   * edited default (element = h2) and rejects a legitimate change.
+   *
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeSymmetricalTranslationConstraintValidator
+   * @see \Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer
+   *
+   * @legacy-covers ::post
+   */
+  public function testPublishingNonTranslatableInputEditSyncsToTranslations(): void {
+    // Symmetric model: `tree` is shared, `inputs` are translatable. Only in this
+    // model does the symmetry constraint apply.
+    $this->setComponentsColumnSync(['inputs' => 'inputs', 'tree' => '0']);
+
+    $this->setUpCurrentUser(permissions: [
+      Page::EDIT_PERMISSION,
+      AutoSaveManager::PUBLISH_PERMISSION,
+    ]);
+
+    /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    $page_storage = $this->container->get('entity_type.manager')->getStorage(Page::ENTITY_TYPE_ID);
+    $version = $this->getHeadingComponentVersion();
+
+    // 1. Create the English (default) page with component A, element = h1.
+    $page = Page::create([
+      'title' => 'English title',
+      'status' => TRUE,
+      'path' => ['alias' => '/english-page'],
+      'components' => [
+        [
+          'uuid' => self::UUID_A,
+          'component_id' => 'sdc.canvas_test_sdc.heading',
+          'component_version' => $version,
+          'inputs' => ['text' => 'Hello A (en)', 'element' => 'h1'],
+          'label' => 'English A',
+        ],
+      ],
+    ]);
+    self::assertEntityIsValid($page);
+    self::assertSame(SAVED_NEW, $page->save());
+    $page_id = $page->id();
+    self::assertNotNull($page_id);
+
+    // 2. Add a Spanish translation: same tree, same (non-translatable) element,
+    // translated text. Symmetric and valid at creation time.
+    $es = $page->addTranslation('es', [
+      'title' => 'Spanish title',
+      'status' => TRUE,
+      'path' => ['alias' => '/spanish-page'],
+      'components' => $page->get('components')->getValue(),
+    ]);
+    \assert($es instanceof Page);
+    self::setItemInput($es, self::UUID_A, ['text' => 'Hola A (es)', 'element' => 'h1'], 'Spanish A');
+    $this->container->get('content_translation.manager')
+      ->getTranslationMetadata($es)
+      ->setSource('en');
+    self::assertEntityIsValid($es);
+    $es->save();
+
+    // 3. Change *only* the non-translatable `element` (h1 → h2) on the default
+    // translation, leaving the tree structure identical. Auto-save it.
+    // (No assertEntityIsValid() here: the in-memory entity is deliberately
+    // asymmetric until the publish flow synchronizes it — that is the seam under
+    // test.)
+    $page = $page_storage->loadUnchanged($page_id);
+    \assert($page instanceof Page);
+    self::setItemInput($page, self::UUID_A, ['text' => 'Hello A (en)', 'element' => 'h2'], 'English A');
+    $autoSave->saveEntity($page);
+
+    // 4. Publish the auto-saved default-language draft via the auto-save API.
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+    $page_key = AutoSaveManager::getAutoSaveKey($page);
+    self::assertArrayHasKey($page_key, $auto_save_data);
+    $response = $this->makePublishAllRequest([
+      $page_key => $auto_save_data[$page_key],
+    ]);
+    self::assertEquals(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+
+    // 5. The non-translatable input change is applied to the default translation
+    // and synchronized onto the Spanish translation, while its translatable
+    // `text`/`label` remain untouched.
+    $published = $page_storage->loadUnchanged($page_id);
+    \assert($published instanceof Page);
+    self::assertSame('h2', self::getItem($published, self::UUID_A)->getInputs()['element'] ?? NULL);
+    self::assertTrue($published->hasTranslation('es'));
+    $es_published = $published->getTranslation('es');
+    self::assertSame('h2', self::getItem($es_published, self::UUID_A)->getInputs()['element'] ?? NULL, 'The non-translatable input must be synchronized onto the Spanish translation.');
+    self::assertSame('Hola A (es)', self::getItemInputText($es_published, self::UUID_A), 'The translatable input on the Spanish translation must be preserved.');
+  }
+
+  /**
    * Tests publishing an auto-saved *non-default* translation.
    *
    * The auto-save snapshot belongs to whichever translation was edited. When a
