@@ -2,11 +2,12 @@
 
 /**
  * @file
- * Adds disabled page regions the page-variant migration must not resurrect.
+ * Adds page regions the page-variant migration must not convert.
  *
- * Disabled regions never rendered on the site (the old render path only
- * consulted PageRegion::loadForActiveTheme(), which filters status = TRUE), so
- * the migration must not turn them into a page variant.
+ * The migration only converts the default theme's enabled regions, because
+ * those are the only ones the live site rendered. This fixture covers the two
+ * things it must skip: a disabled region in the default theme, and an enabled
+ * region in a non-default theme.
  *
  * @see canvas_post_update_0024_migrate_page_regions_to_variants()
  */
@@ -44,13 +45,14 @@ $disabled_stark_region = [
   ],
 ];
 
-// A theme (claro, installed but not the default) whose only region is disabled.
-// The migration must create no `theme_claro` variant and must not promote it to
-// the site default.
-$disabled_claro_region = [
+// An ENABLED region in a theme (claro) that is installed but not the default.
+// It rendered nowhere on the live site (only the active/default theme's regions
+// did), so the migration must create no `theme_claro` variant and must not
+// promote it to the site default.
+$enabled_claro_region = [
   'uuid' => 'd3e4f5a6-b7c8-49d0-a1e2-f3a4b5c6d7e8',
   'langcode' => 'en',
-  'status' => FALSE,
+  'status' => TRUE,
   'dependencies' => [
     'config' => ['canvas.component.block.system_messages_block'],
     'theme' => ['claro'],
@@ -73,7 +75,7 @@ $disabled_claro_region = [
 
 $insert = $connection->insert('config')
   ->fields(['collection', 'name', 'data']);
-foreach ([$disabled_stark_region, $disabled_claro_region] as $region_data) {
+foreach ([$disabled_stark_region, $enabled_claro_region] as $region_data) {
   $insert->values([
     'collection' => '',
     'name' => 'canvas.page_region.' . $region_data['id'],

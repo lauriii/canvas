@@ -522,6 +522,15 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
       'content_entity_type_view_mode' => $view_mode,
       'component_tree' => $data['component_tree'] ?? [],
       'status' => $data['status'] ?? FALSE,
+      // Optional, so that a template can be created with its page template
+      // already selected; omitting it falls back to the site default variant.
+      // Anything that is not a non-empty string means "no selection": the
+      // property is typed, so passing a non-string through would be a fatal
+      // error rather than the validation error a client deserves.
+      // @see ::updateFromClientSide()
+      'page_variant' => \is_string($data['pageVariant'] ?? NULL) && $data['pageVariant'] !== ''
+        ? $data['pageVariant']
+        : NULL,
     ]);
   }
 

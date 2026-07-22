@@ -238,7 +238,14 @@ export const componentAndLayoutApi = createApi({
       query: ({ bundle, viewMode, entityType, previewEntityId }) => {
         return `canvas/api/v0/layout-content-template/${entityType}.${bundle}.${viewMode}/${previewEntityId}`;
       },
-      providesTags: () => [{ type: 'Layout' }],
+      // The extra template-scoped tag lets a mutation on one content template
+      // refetch only that template's frame. Invalidating the untagged `Layout`
+      // still reaches this query, because an invalidation without an id
+      // matches every provider of the type.
+      providesTags: (result, error, { entityType, bundle, viewMode }) => [
+        { type: 'Layout' },
+        { type: 'Layout', id: `${entityType}.${bundle}.${viewMode}` },
+      ],
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const {
@@ -628,7 +635,15 @@ export const componentAndLayoutApi = createApi({
         method: 'PATCH',
         body,
       }),
-      invalidatesTags: [{ type: 'ContentTemplates', id: 'LIST' }],
+      // The page template selection changes what the editor frame renders
+      // around the template, so that template's layout has to be refetched
+      // too. Scoped to the mutated template on purpose: this mutation is also
+      // reachable while a page is open, and invalidating `Layout` outright
+      // would refetch that page's layout and discard its unsaved page data.
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'ContentTemplates', id: 'LIST' },
+        { type: 'Layout', id },
+      ],
     }),
     getContentTemplates: builder.query<TemplateList, void>({
       query: () => `canvas/api/v0/config/content_template`,

@@ -458,6 +458,71 @@ final class PageVariantTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that changing a template's variant keeps its auto-saved draft.
+   *
+   * The selection is edited on its own through the config API rather than
+   * through the layout auto-save flow, so saving it must not look like an
+   * out-of-band change that invalidates the editor's unpublished work.
+   *
+   * @see \Drupal\canvas\AutoSave\AutoSaveManager::onCanvasConfigEntitySave()
+   */
+  public function testChangingTemplateVariantKeepsAutoSavedDraft(): void {
+    PageVariant::create(['id' => 'promo', 'label' => 'Promo', 'component_tree' => [self::markerInstance()]])->save();
+
+    $template = ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'helpful',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [],
+      'status' => TRUE,
+    ]);
+    $template->save();
+
+    $auto_save_manager = $this->container->get(AutoSaveManager::class);
+    self::assertInstanceOf(AutoSaveManager::class, $auto_save_manager);
+
+    // A component the editor can place in a content template. The content
+    // marker cannot be used here: it is valid only in page variant trees.
+    JavaScriptComponent::create([
+      'machineName' => 'template_logo',
+      'name' => 'Template logo',
+      'status' => TRUE,
+      'props' => [],
+      'slots' => [],
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
+    ])->save();
+    $placed = Component::load(JsComponent::componentIdFromJavascriptComponentId('template_logo'));
+    self::assertInstanceOf(Component::class, $placed);
+
+    // The editor's pending component change, auto-saved but not published.
+    $draft = ContentTemplate::create($template->toArray());
+    $draft->enforceIsNew(FALSE);
+    $draft->set('component_tree', [[
+      'uuid' => $this->container->get('uuid')->generate(),
+      'component_id' => $placed->id(),
+      'component_version' => $placed->getActiveVersion(),
+      'inputs' => [],
+    ],
+    ]);
+    $auto_save_manager->saveEntity($draft);
+    self::assertFalse($auto_save_manager->getAutoSaveEntity($template)->isEmpty());
+
+    // Selecting a page variant is a separate, deliberate change to the stored
+    // template. It also changes the derived `dependencies`.
+    $template->set('page_variant', 'promo');
+    $template->save();
+
+    // The pending component change survives, and the draft picked up the new
+    // selection so publishing it does not revert the selection.
+    $surviving = $auto_save_manager->getAutoSaveEntity($template)->entity;
+    self::assertInstanceOf(ContentTemplate::class, $surviving);
+    self::assertCount(1, $surviving->getComponentTree());
+    self::assertSame('promo', $surviving->getPageVariant());
+  }
+
+  /**
    * Tests the resolution chain: entity selection, then default, then none.
    *
    * @see \Drupal\canvas\PageVariantResolver

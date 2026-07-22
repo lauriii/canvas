@@ -62,7 +62,10 @@ final class PageVariant extends ComponentTreeConfigEntityBase implements CanvasH
 
   public const string ENTITY_TYPE_ID = 'page_variant';
 
-  public const string ADMIN_PERMISSION = 'administer page variants';
+  /**
+   * Page variants are administered with the page template permission.
+   */
+  public const string ADMIN_PERMISSION = 'administer page template';
 
   /**
    * The `canvas.settings` key naming the site default page variant.

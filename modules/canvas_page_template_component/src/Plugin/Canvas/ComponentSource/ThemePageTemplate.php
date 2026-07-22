@@ -9,7 +9,9 @@ use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
 use Drupal\canvas\ComponentSource\ComponentSourceBase;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
@@ -17,6 +19,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\Markup;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -60,6 +63,7 @@ final class ThemePageTemplate extends ComponentSourceBase implements
     string $plugin_id,
     array $plugin_definition,
     private readonly ThemeHandlerInterface $themeHandler,
+    private readonly RouteMatchInterface $routeMatch,
   ) {
     \assert(\array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -74,7 +78,28 @@ final class ThemePageTemplate extends ComponentSourceBase implements
       $plugin_id,
       $plugin_definition,
       $container->get('theme_handler'),
+      $container->get('current_route_match'),
     );
+  }
+
+  /**
+   * Whether the page variant this component sits in is the thing being edited.
+   *
+   * A Canvas preview renders this component in three situations: editing the
+   * page variant that contains it, and editing a page or a content template
+   * that the variant renders as locked chrome. Only the first is an editing
+   * context for the template's own regions. The edited entity is a route
+   * parameter, under a name that differs per route, so match on its class.
+   *
+   * @see \Drupal\canvas\EventSubscriber\PageVariantSelectorSubscriber::onSelectPageDisplayVariant()
+   */
+  private function isEditingPageVariant(): bool {
+    foreach ($this->routeMatch->getParameters() as $parameter) {
+      if ($parameter instanceof PageVariant) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
   /**
@@ -166,6 +191,19 @@ final class ThemePageTemplate extends ComponentSourceBase implements
   public function setSlots(array &$build, array $slots): void {
     $uuid = $build['#canvas_component_uuid'] ?? NULL;
     $is_preview = $build['#canvas_is_preview'] ?? FALSE;
+    if ($is_preview) {
+      // Only inside a preview does the output depend on the route, and preview
+      // responses are not cached today. Declare it anyway, so adding render
+      // caching to component builds later cannot serve one editing context's
+      // drop targets to another.
+      $build['#cache']['contexts'][] = 'route';
+    }
+    // The editing helpers below — slot annotations and the empty-region drop
+    // targets they mark — belong to the page variant editor only. The preview
+    // flag alone is not enough: a page or content template preview also renders
+    // this component, as the locked chrome around what is being edited.
+    // @see ::isEditingPageVariant()
+    $is_editing = $is_preview && $this->isEditingPageVariant();
     // Wrap each region's content in the theme's `region` theme hook, matching
     // how core renders regions placed by block layout. This resolves
     // region.html.twig and its per-region suggestions (region__<name>).
@@ -175,24 +213,30 @@ final class ThemePageTemplate extends ComponentSourceBase implements
       if (empty($region_build)) {
         continue;
       }
-      // Outside previews, a region whose only content is the empty slot
-      // default renders nothing at all, matching how core block layout skips
-      // empty regions. In previews the empty-slot placeholder becomes the
-      // region's drop target, so the region wrapper must render.
+      // Outside the variant editor, a region holding no components renders
+      // nothing at all, matching how core block layout skips empty regions.
+      // While editing the variant the empty-slot placeholder becomes the
+      // region's drop target, so the region wrapper must render. Such a region
+      // arrives here as the slot's empty default outside previews, and as the
+      // placeholder markup in any preview, including the page and content
+      // template editors, where it must not become a drop target.
       // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::renderify()
-      if (!$is_preview
-        && ($region_build['#plain_text'] ?? $region_build['#markup'] ?? NULL) === ''
-        && Element::children($region_build) === []) {
+      $region_markup = $region_build['#plain_text'] ?? $region_build['#markup'] ?? NULL;
+      $region_is_empty = $region_markup !== NULL
+        && \in_array((string) $region_markup, ['', ComponentTreeItemList::EMPTY_SLOT_PLACEHOLDER], TRUE)
+        && Element::children($region_build) === [];
+      if (!$is_editing && $region_is_empty) {
         continue;
       }
-      // In previews, annotate each slot with the HTML comments the editor uses
-      // to locate slots for overlays and drop targets. TRICKY: the comments
-      // must render INSIDE the region wrapper (the editor associates a slot
-      // with the comment's parent element; outside the wrapper, every slot
-      // would resolve to the shared page container), so the slot content nests
-      // one level below the element carrying the `region` theme wrapper.
+      // While editing the variant, annotate each slot with the HTML comments
+      // the editor uses to locate slots for overlays and drop targets. TRICKY:
+      // the comments must render INSIDE the region wrapper (the editor
+      // associates a slot with the comment's parent element; outside the
+      // wrapper, every slot would resolve to the shared page container), so the
+      // slot content nests one level below the element carrying the `region`
+      // theme wrapper.
       // @see ui/src/utils/function-utils.ts
-      if ($is_preview && \is_string($uuid)) {
+      if ($is_editing && \is_string($uuid)) {
         $region_build['#prefix'] = Markup::create(\sprintf('<!-- canvas-slot-start-%s/%s -->', $uuid, $region_name));
         $region_build['#suffix'] = Markup::create(\sprintf('<!-- canvas-slot-end-%s/%s -->', $uuid, $region_name));
       }

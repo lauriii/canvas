@@ -4951,6 +4951,9 @@ components:
         status:
           type: boolean
           description: ContentTemplate entity status. Defaults to false (disabled) when omitted.
+        pageVariant:
+          type: [string, "null"]
+          description: The page variant that renders this template's pages; null (or an empty string) uses the site default.
         component_tree:
           $ref: '#/components/schemas/ComponentTree'
           description: Initial component tree. Defaults to an empty tree when omitted.

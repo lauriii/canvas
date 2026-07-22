@@ -302,7 +302,7 @@ test.describe('Page variants', () => {
     await autoSave;
     await canvas.publishAllChanges();
 
-    // A user with only "edit canvas_page" lacks "administer page variants".
+    // A user with only "edit canvas_page" lacks "administer page template".
     await drupal.createRole({ name: 'canvas_no_variant_perms' });
     await drupal.addPermissions({
       role: 'canvas_no_variant_perms',
@@ -335,6 +335,8 @@ test.describe('Page variants', () => {
     // replace the editor with the error boundary).
     await variantLayer.getByText('Page template').click();
     await expect(page).not.toHaveURL(/\/canvas\/editor\/page_variant\//);
+    // The page settings form offers the same jump; it is gated the same way.
+    await expect(page.getByTestId('canvas-page-template-edit')).toHaveCount(0);
   });
 
   test('the Edit template link opens the currently selected template', async ({

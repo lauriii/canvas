@@ -337,7 +337,7 @@ function canvas_oauth_post_update_0007_page_variant_scope(array &$sandbox): void
       'umbrella' => FALSE,
       'granularity_id' => 'permission',
       'granularity_configuration' => [
-        'permission' => 'administer page variants',
+        'permission' => 'administer page template',
       ],
       'dependencies' => [
         'enforced' => [

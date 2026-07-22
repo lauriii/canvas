@@ -21,7 +21,7 @@ import type React from 'react';
  * marker), so the content region nests under this layer. The variant itself
  * is edited separately; clicking the layer jumps to editing it.
  *
- * Editing a variant needs "administer page variants". Without that permission
+ * Editing a variant needs "administer page template". Without that permission
  * both the variant editor route and the variants list (which supplies the
  * label) return 403, so the row is rendered as a non-navigating, generically
  * labeled node rather than dropping the user into the editor's error boundary.

@@ -524,43 +524,51 @@ function canvas_post_update_0023_install_page_variants(): void {
 }
 
 /**
- * Convert each theme's page regions into one page variant.
+ * Convert the default theme's page regions into one page variant.
+ *
+ * Only the default theme is migrated, and only when it has enabled regions.
+ * On the live site the front end always rendered through the active (default)
+ * theme's regions, and only the enabled ones, so:
+ * - a non-default theme's regions were dormant and become no variant, and
+ * - a site whose default theme has no enabled regions was not using Canvas
+ *   global regions at all, so nothing is migrated and rendering stays on core
+ *   block layout.
+ * A site can restructure a leftover theme's regions into a variant by hand, or
+ * re-enable Canvas for that theme through the theme settings form. Role
+ * permissions need no migration: page variants deliberately reuse the
+ * permission page regions used, so a role that could administer the page
+ * template keeps that ability over the variant it is converted into.
+ *
+ * @see \Drupal\canvas\Entity\PageRegion::loadForActiveTheme()
+ * @see \Drupal\canvas\Hook\PageRegionHooks::formSystemThemeSettingsSubmit()
+ * @see \Drupal\canvas\Entity\PageVariant::ADMIN_PERMISSION
  */
 function canvas_post_update_0024_migrate_page_regions_to_variants(): void {
-  $all_regions = PageRegion::loadMultiple();
-  if (!$all_regions) {
-    // Sites that never used page regions need no migration.
+  $default_theme = (string) \Drupal::config('system.theme')->get('default');
+
+  // Collect the default theme's enabled regions, keyed by region machine name.
+  // Load everything and filter in PHP rather than query by `theme`: an update
+  // path must not depend on the config-entity lookup-key index, which lags
+  // config written directly to storage (as earlier update steps do).
+  $regions = [];
+  foreach (PageRegion::loadMultiple() as $region) {
+    \assert($region instanceof PageRegion);
+    if ($region->get('theme') === $default_theme && $region->status()) {
+      $regions[$region->get('region')] = $region;
+    }
+  }
+  if (!$regions) {
+    // The default theme has no enabled regions: nothing to migrate.
     return;
   }
 
-  $default_theme = \Drupal::config('system.theme')->get('default');
-
-  // Group the enabled regions by theme. The old render path only ever
-  // consulted PageRegion::loadForActiveTheme(), which filters status = TRUE, so
-  // disabled regions never rendered; do not resurrect them as a variant. A
-  // theme left with no enabled regions is skipped entirely below, so its
-  // variant is neither created nor promoted to the site default.
-  $by_theme = [];
-  foreach ($all_regions as $region) {
-    \assert($region instanceof PageRegion);
-    if (!$region->status()) {
-      continue;
-    }
-    $by_theme[$region->get('theme')][$region->get('region')] = $region;
-  }
-
-  foreach ($by_theme as $theme => $regions) {
-    $variant = canvas_page_variant_from_page_regions((string) $theme, $regions);
-    if (!$variant instanceof PageVariant) {
-      // The theme is no longer installed; a manual variant is needed.
-      continue;
-    }
-
-    if ($theme === $default_theme) {
-      \Drupal::configFactory()->getEditable('canvas.settings')
-        ->set(PageVariant::DEFAULT_SETTING, $variant->id())
-        ->save();
-    }
+  $variant = canvas_page_variant_from_page_regions($default_theme, $regions);
+  // The default theme is installed by definition, so this is never NULL; guard
+  // anyway rather than assume, and promote the variant to the site default.
+  if ($variant instanceof PageVariant) {
+    \Drupal::configFactory()->getEditable('canvas.settings')
+      ->set(PageVariant::DEFAULT_SETTING, $variant->id())
+      ->save();
   }
 }
 

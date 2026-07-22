@@ -254,7 +254,9 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
         ],
         [
           'globalRegions' => TRUE,
-          'pageVariants' => FALSE,
+          // Page variants reuse the page region permission granted above.
+          // @see \Drupal\canvas\Entity\PageVariant::ADMIN_PERMISSION
+          'pageVariants' => TRUE,
           'patterns' => TRUE,
           'brandKit' => FALSE,
           'codeComponents' => FALSE,
@@ -273,7 +275,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
         ],
         [
           'globalRegions' => TRUE,
-          'pageVariants' => FALSE,
+          'pageVariants' => TRUE,
           'patterns' => TRUE,
           'brandKit' => FALSE,
           'codeComponents' => TRUE,

@@ -661,7 +661,7 @@ canvas.api.settings.default_page_variant.get:
     _controller: 'Drupal\canvas\Controller\ApiSettingsController::getDefaultPageVariant'
   requirements:
     _canvas_authentication_required: TRUE
-    _permission: 'administer page variants'
+    _permission: 'administer page template'
     _canvas_ui_access: 'TRUE'
   options:
     _format: 'json'
@@ -672,7 +672,7 @@ canvas.api.settings.default_page_variant.set:
     _controller: 'Drupal\canvas\Controller\ApiSettingsController::setDefaultPageVariant'
   requirements:
     _canvas_authentication_required: TRUE
-    _permission: 'administer page variants'
+    _permission: 'administer page template'
     _canvas_ui_access: 'TRUE'
   options:
     _format: 'json'

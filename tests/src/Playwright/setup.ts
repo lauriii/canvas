@@ -73,7 +73,6 @@ export async function setupSite({
         'administer folders',
         'administer patterns',
         'administer page template',
-        'administer page variants',
         'create canvas_page',
         'create media',
         'edit canvas_page',

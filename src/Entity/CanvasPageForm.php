@@ -129,12 +129,16 @@ final class CanvasPageForm extends ContentEntityForm {
     // into the group instead of using #group.
     unset($form['page_variant']);
 
-    // A shortcut to edit the template that currently renders this page.
+    // A shortcut to edit the template that currently renders this page, for the
+    // users who are allowed to edit it. The template editor route is guarded by
+    // the same permission, so without it the shortcut only leads to a 403.
     $entity = $this->getEntity();
     \assert($entity instanceof Page);
     $selected = $entity->get('page_variant')->value
       ?? $this->config('canvas.settings')->get(PageVariant::DEFAULT_SETTING);
-    if (\is_string($selected) && PageVariant::load($selected) !== NULL) {
+    if (\is_string($selected)
+      && $this->currentUser()->hasPermission(PageVariant::ADMIN_PERMISSION)
+      && PageVariant::load($selected) !== NULL) {
       $form[$group]['edit_template'] = [
         '#type' => 'link',
         '#title' => $this->t('Edit template'),

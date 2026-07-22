@@ -21,4 +21,4 @@ umbrella: false
 parent: null
 granularity_id: permission
 granularity_configuration:
-  permission: 'administer page variants'
+  permission: 'administer page template'
