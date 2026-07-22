@@ -15,6 +15,8 @@ use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\canvas\Utility\TypedDataHelper;
+use Drupal\comment\CommentInterface;
+use Drupal\comment\CommentTypeInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
@@ -633,8 +635,10 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
    * key.
    *
    * @see \Drupal\file\FileAccessControlHandler::checkAccess()
+   * @see \Drupal\comment\CommentAccessControlHandler::checkAccess()
+   * @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::validateAccess()
    */
-  private function createBundleStub(string $entity_type_id, string $bundle): ?ContentEntityInterface {
+  private function createBundleStub(string $entity_type_id, string $bundle, bool $inject_commented_entity = TRUE): ?ContentEntityInterface {
     $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
     $storage = $this->entityTypeManager->getStorage($entity_type_id);
     $values = [];
@@ -648,23 +652,72 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
       return NULL;
     }
     \assert($stub instanceof ContentEntityInterface);
+    self::normalizeStub($stub);
+
+    // Give a comment stub a commented (parent) entity so its access handler can
+    // check the access to the parent entity.
+    if ($inject_commented_entity && $stub instanceof CommentInterface) {
+      $comment_type = $this->entityTypeManager->getStorage('comment_type')->load($bundle);
+      \assert($comment_type instanceof CommentTypeInterface);
+      $parent_type_id = $comment_type->getTargetEntityTypeId();
+      // A comment type stores its target entity type id but declares no
+      // config dependency on that type's provider module (CommentType does
+      // not override calculateDependencies()), so uninstalling that module
+      // can leave a comment type with a dangling target. Skip it rather than
+      // dereferencing a missing definition; core does not guard this either
+      // (CommentTypeForm would fatal).
+      // @see https://www.drupal.org/project/drupal/issues/2717673
+      $parent_type = $this->entityTypeManager->getDefinition($parent_type_id, FALSE);
+      if ($parent_type === NULL) {
+        return NULL;
+      }
+      // A bundle-keyed parent (e.g. node) needs a bundle to be access-checked
+      // at all; coarse 'view' access is bundle-independent, so the first bundle
+      // represents the type.
+      $parent_bundle = $parent_type_id;
+      if ($parent_type->getKey('bundle')) {
+        $parent_bundles = \array_keys($this->entityTypeBundleInfo->getBundleInfo($parent_type_id));
+        // It is possible the entity type to be commented upon supports bundles
+        // but none have been created yet.
+        if ($parent_bundles === []) {
+          return NULL;
+        }
+        $parent_bundle = \reset($parent_bundles);
+      }
+      // Pass FALSE to avoid recursion on comment-on-comment: the parent stub
+      // then lacks a commented entity, so getBundleViewAccess() omits it.
+      $commented_entity_stub = $this->createBundleStub($parent_type_id, $parent_bundle, FALSE);
+      if ($commented_entity_stub === NULL) {
+        return NULL;
+      }
+      $stub->set('entity_id', $commented_entity_stub);
+    }
+    return $stub;
+  }
+
+  /**
+   * Normalizes a stub so a permitted user gets coarse 'view' access.
+   *
+   * Activates users and publishes content entities (for handlers that require
+   * the entity to be "active"/"published"), and gives files a public-scheme URI
+   * (FileAccessControlHandler grants view to a public file via 'access
+   * content', but a URI-less stub would be denied).
+   */
+  private static function normalizeStub(ContentEntityInterface $stub): void {
     match (TRUE) {
       $stub instanceof UserInterface => $stub->activate(),
       $stub instanceof FileInterface => $stub->setFileUri('public://'),
       $stub instanceof EntityPublishedInterface => $stub->setPublished(),
       default => NULL,
     };
-    return $stub;
   }
 
   /**
    * Checks 'view' access for a stub entity, swallowing handler errors.
    *
-   * Some core access handlers dereference fields the stub can't realistically
-   * populate (CommentAccessControlHandler calls
-   * `$entity->getCommentedEntity()->access(...)`, which errors on a stub with
-   * no commented entity). Treat those as forbidden so one such entity type
-   * doesn't sink the entire response.
+   * Last-resort guard for access handlers that dereference fields a bundle stub
+   * cannot populate. Comments are handled upstream (see ::createBundleStub()),
+   * so this now only guards unexpected failures, treated as forbidden.
    */
   private static function getBundleViewAccess(ContentEntityInterface $stub): AccessResultInterface {
     try {
