@@ -88,44 +88,37 @@ describe('icon-push', () => {
       });
     });
 
-    it('merges declared entries with plain SVG dirs and skips pack dirs', async () => {
+    it('returns only declared entries and ignores bare directories', async () => {
       await writeBrandKitIcons({
         libraries: [
-          { id: 'lucide', source: 'node_modules/lucide-static/icons' },
+          {
+            id: 'lucide',
+            label: 'Lucide',
+            source: 'node_modules/lucide-static/icons',
+          },
+          { id: 'my_icons', label: 'My icons' },
         ],
       });
-      // A plain directory of SVGs without a declaration is a library to push.
+      // A bare directory of SVGs without a declaration is never discovered.
       await writeSvgDir('icons/plain_icons', { 'star.svg': STAR_SVG });
-      // A pack.json marks a module-provided pack (informational, never pushed).
-      await writeSvgDir('icons/module_pack', {});
-      await fs.writeFile(
-        path.join(tmpDir, 'icons', 'module_pack', 'pack.json'),
-        JSON.stringify({ id: 'module_pack', managed: false }),
-        'utf-8',
-      );
-      // A directory with no SVGs is not a library.
-      await fs.mkdir(path.join(tmpDir, 'icons', 'empty_dir'), {
-        recursive: true,
-      });
 
       const result = await discoverIconLibraries(tmpDir);
 
       expect(result.authoritative).toBe(true);
       expect(result.libraries.map((library) => library.id)).toEqual([
         'lucide',
-        'plain_icons',
+        'my_icons',
       ]);
     });
 
-    it('is not authoritative without an icons key in the config file', async () => {
+    it('is not authoritative and discovers nothing without an icons key', async () => {
+      // A bare directory alone is not a declared library.
       await writeSvgDir('icons/plain_icons', { 'star.svg': STAR_SVG });
 
       const result = await discoverIconLibraries(tmpDir);
 
       expect(result.authoritative).toBe(false);
-      expect(result.libraries.map((library) => library.id)).toEqual([
-        'plain_icons',
-      ]);
+      expect(result.libraries).toEqual([]);
     });
   });
 
@@ -210,12 +203,20 @@ describe('icon-push', () => {
       });
     });
 
-    it('pushes a plain SVG directory with a derived label', async () => {
-      await writeSvgDir('icons/plain_icons', { 'star.svg': STAR_SVG });
+    it('pushes only declared libraries and ignores bare directories', async () => {
+      await writeBrandKitIcons({
+        libraries: [
+          { id: 'plain_icons', label: 'Plain icons', source: 'vendor/icons' },
+        ],
+      });
+      await writeSvgDir('vendor/icons', { 'star.svg': STAR_SVG });
+      // An undeclared bare directory is never pushed.
+      await writeSvgDir('icons/undeclared', { 'heart.svg': HEART_SVG });
 
       const result = await pushIcons(api, tmpDir);
 
       expect(result.created).toBe(1);
+      expect(api.createIconLibrary).toHaveBeenCalledTimes(1);
       expect(api.createIconLibrary).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'plain_icons', label: 'Plain icons' }),
       );
@@ -377,6 +378,12 @@ describe('icon-push', () => {
     });
 
     it('surfaces server sanitization errors with the file path and continues with other libraries', async () => {
+      await writeBrandKitIcons({
+        libraries: [
+          { id: 'bad_icons', label: 'Bad icons' },
+          { id: 'good_icons', label: 'Good icons' },
+        ],
+      });
       await writeSvgDir('icons/bad_icons', { 'sneaky.svg': STAR_SVG });
       await writeSvgDir('icons/good_icons', { 'star.svg': STAR_SVG });
       vi.mocked(api.uploadIconAsset).mockImplementation(
@@ -415,7 +422,10 @@ describe('icon-push', () => {
       );
     });
 
-    it('fails validation for an unsafe local SVG before any network call', async () => {
+    it('fails validation for an unsafe local SVG without pushing it', async () => {
+      await writeBrandKitIcons({
+        libraries: [{ id: 'my_icons', label: 'My icons' }],
+      });
       await writeSvgDir('icons/my_icons', {
         'evil.svg': '<svg><script>alert(1)</script></svg>',
       });
@@ -427,13 +437,16 @@ describe('icon-push', () => {
       expect(result.outcomes[0].errors[0]).toContain(
         'evil.svg: contains a <script> element',
       );
-      expect(api.getIconLibraries).not.toHaveBeenCalled();
+      // The unsafe content never reaches the server.
       expect(api.uploadIconAsset).not.toHaveBeenCalled();
       expect(api.createIconLibrary).not.toHaveBeenCalled();
       expect(api.updateIconLibrary).not.toHaveBeenCalled();
     });
 
     it('fails only the library whose create request fails', async () => {
+      await writeBrandKitIcons({
+        libraries: [{ id: 'my_icons', label: 'My icons' }],
+      });
       await writeSvgDir('icons/my_icons', { 'star.svg': STAR_SVG });
       vi.mocked(api.createIconLibrary).mockRejectedValue(
         new Error('Validation failed on the server.'),

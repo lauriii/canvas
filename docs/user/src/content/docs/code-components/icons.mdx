@@ -52,32 +52,33 @@ Two options are specific to icon props:
 ## Use the icon in component code
 
 Canvas resolves the chosen icon and passes your component a ready-to-render
-value — you never handle SVG files yourself. The value is an object with the
-icon's `id` and either inline `svg` markup or a `url`:
+value — you never handle SVG files yourself. Render it with the `Icon`
+component from `drupal-canvas`, the same way you render rich text with
+`FormattedText`:
 
 ```tsx
+import { Icon } from 'drupal-canvas';
+
 function FeatureCard({ icon, title }) {
   return (
     <div>
-      {icon?.svg && (
-        <span dangerouslySetInnerHTML={{ __html: icon.svg }} />
-      )}
+      <Icon icon={icon} />
       <h3>{title}</h3>
     </div>
   );
 }
 ```
 
-Inline SVG icons inherit `currentColor`, so an icon follows the surrounding text
-color — set `color` on the icon (or a parent) to recolor it. For icons served
-as files, use `icon.url` instead:
+`Icon` renders the icon as inline SVG or an `<img>` as appropriate, and renders
+nothing when the icon is unset or its library or icon was later removed. It
+forwards `className`, `style`, and other props to the rendered element, and
+takes an optional `as` (`'span'` by default, or `'div'`). Inline SVG icons
+inherit `currentColor`, so an icon follows the surrounding text color — set
+`color` on the icon (or a parent) to recolor it:
 
 ```tsx
-{icon?.url && <img src={icon.url} alt="" />}
+<Icon icon={icon} className="size-6 text-blue-600" />
 ```
-
-If a stored icon's library or icon is later removed, the value is empty and the
-component renders nothing for it.
 
 ## Pick an icon on a page
 
@@ -95,34 +96,31 @@ Icon libraries are part of the Brand Kit workflow, so icon sync uses the same
 npx canvas push --include-brand-kit
 ```
 
-Declare libraries in `canvas.brand-kit.json` under an `icons.libraries` array,
-mirroring `fonts.families`:
+Every library you push must be declared in `canvas.brand-kit.json` under an
+`icons.libraries` array:
 
 ```json
 {
   "icons": {
     "libraries": [
-      { "id": "lucide", "source": "node_modules/lucide-static/icons" },
+      { "id": "lucide", "label": "Lucide", "source": "node_modules/lucide-static/icons" },
       { "id": "my_icons", "label": "My icons" }
     ]
   }
 }
 ```
 
-Each entry needs an `id` (lowercase letters, digits, and underscores). The
-optional `source` points at the directory of `.svg` files, relative to the
-project root; it defaults to `icons/<id>`. Point it at an npm package such as
-`node_modules/lucide-static/icons` to keep vendored icon sets out of your
-repository. Each file's name (minus `.svg`) becomes the icon id.
+Each entry needs an `id` (lowercase letters, digits, and underscores) and a
+human-readable `label`. The optional `source` points at the directory of `.svg`
+files, relative to the project root; it defaults to `icons/<id>`. Point it at an
+npm package such as `node_modules/lucide-static/icons` to keep vendored icon
+sets out of your repository. Each file's name (minus `.svg`) becomes the icon
+id.
 
-As a shortcut, any `icons/<id>/` directory of `.svg` files is pushed even
-without a declaration, using the directory name as the library id.
-
-When the `icons` key is present, the declared set is authoritative: pushing
-removes any Canvas-managed library no longer listed, exactly like fonts. Pushes
-are incremental — unchanged icons are not re-uploaded. Uploaded SVG files are
-sanitized on the server, and pushing icon libraries requires the **administer
-icon libraries** permission.
+The declared set is authoritative: pushing removes any Canvas-managed library no
+longer listed. Pushes are incremental — unchanged icons are not re-uploaded.
+Uploaded SVG files are sanitized on the server, and pushing icon libraries
+requires the **administer brand kit** permission.
 
 For the full CLI options, see the
 [`@drupal-canvas/cli` README](https://www.npmjs.com/package/@drupal-canvas/cli).

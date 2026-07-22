@@ -13,7 +13,7 @@ use Drupal\Core\Session\AccountInterface;
  * Checks access to the icon pack listing.
  *
  * Editors reach it through the Canvas UI (icon picker, Brand Kit); the Canvas
- * CLI reaches it with the icon library management permission when pulling
+ * CLI reaches it with the brand kit administration permission when pulling
  * icon libraries.
  *
  * @internal

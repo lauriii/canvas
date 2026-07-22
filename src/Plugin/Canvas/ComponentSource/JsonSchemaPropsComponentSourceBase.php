@@ -48,7 +48,6 @@ use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\Render\Element;
-use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Theme\Component\ComponentValidator;
@@ -571,9 +570,8 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
    * They are recognized here by their field type — the dedicated `canvas_icon`
    * field type every icon-shaped prop maps to — so any component source (SDC
    * or code component) resolves them the same way, without the source plugin
-   * having to special-case icons. Resolution turns each stored id into either
-   * inline SVG markup or an asset URL; an unresolvable id becomes NULL (and a
-   * warning is logged by the resolver).
+   * having to special-case icons. How each stored id is turned into something
+   * renderable depends on the render technology (see $wrap_for_twig).
    *
    * This runs after prop validation: what is stored and validated is the plain
    * `pack_id:icon_id` string, and only the render-time value is resolved.
@@ -584,15 +582,16 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
    *   Cacheability to which the icon cache tags are added when the component
    *   declares any icon prop.
    * @param bool $wrap_for_twig
-   *   Whether to wrap each resolved icon in a render array. SDC props render
-   *   through Twig, where a render array both renders the icon and satisfies
-   *   core's prop validation (type errors are dismissed for render arrays).
-   *   Code components receive the resolved value as a plain `{id, svg|url}`
-   *   array for their client-side runtime, so they pass FALSE.
+   *   How to render each icon. SDC props render through Twig, so pass TRUE to
+   *   hand each icon to core's Icon API render element (`#type => icon`). Code
+   *   components serialize props to JSON and render them with the `<Icon>`
+   *   component from the `drupal-canvas` package, so pass FALSE to resolve to
+   *   that component's `{id, svg|url}` value.
    *
    * @return array<string, mixed>
    *   The props with every icon prop's value resolved.
    *
+   * @see \Drupal\Core\Render\Element\Icon
    * @see \Drupal\canvas\Icon\IconResolver::resolve()
    * @see \Drupal\canvas\Plugin\Field\FieldType\IconItem
    */
@@ -623,9 +622,9 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       if ($is_multiple && \is_array($props[$prop_name])) {
         // ponytail: multi-value icon props are not creatable through the code
         // editor UI (only hand-authored), so the Twig path resolves each item
-        // to its own render array — which renders on live pages but does not
-        // satisfy core's per-item SDC prop validation (dev/test only). If a UI
-        // for multi-value icon props lands, revisit the Twig representation.
+        // to its own `#type => icon` element — which renders on live pages but
+        // does not satisfy core's per-item SDC prop validation (dev/test only).
+        // If a UI for multi-value icon props lands, revisit the Twig form.
         $props[$prop_name] = \array_map(
           fn (mixed $id): mixed => $this->resolveIconValue($id, $wrap_for_twig),
           $props[$prop_name],
@@ -643,39 +642,41 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
    * @param mixed $value
    *   A stored icon id (`pack_id:icon_id`), or any non-string/empty value.
    * @param bool $wrap_for_twig
-   *   Whether to wrap the resolved icon in a render array.
+   *   Whether to return a render array (SDC/Twig) or a plain value (code
+   *   component client runtime).
    *
    * @return array<string, mixed>|null
-   *   The resolved icon: a render array for Twig, otherwise the resolver's
-   *   `{id, svg|url}` array. NULL when the value is empty or unresolvable.
+   *   For Twig, a core `icon` render element; otherwise the resolver's
+   *   `{id, svg|url}` array. NULL when the value is empty or unusable.
    */
   private function resolveIconValue(mixed $value, bool $wrap_for_twig): ?array {
     if (!\is_string($value) || $value === '') {
       return NULL;
     }
-    $resolved = $this->iconResolver->resolve($value);
-    if ($resolved === NULL || !$wrap_for_twig) {
-      return $resolved;
-    }
-    // A render array renders the icon in the SDC template and, because core's
-    // prop validation dismisses type errors for render-array prop values, does
-    // not trip the prop's `type: string` schema.
-    // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
-    if (isset($resolved['svg'])) {
-      // The SVG markup is built server-side from the icon pack extractor
-      // (module-provided packs, or CLI-pushed libraries sanitized on upload),
-      // so it is trusted and rendered verbatim.
-      // @see \Drupal\canvas\Icon\SvgSanitizer
-      return ['#markup' => Markup::create($resolved['svg'])];
-    }
-    if (isset($resolved['url'])) {
+    if ($wrap_for_twig) {
+      // SDC props render through Twig, so hand the icon to core's Icon API
+      // render element: it resolves the id through the pack and renders it via
+      // the pack's own template — the same rendering downstream Drupal uses.
+      // A render array both renders the icon and, because core's prop
+      // validation dismisses type errors for render-array prop values, does
+      // not trip the prop's `type: string` schema.
+      // @see \Drupal\Core\Render\Element\Icon
+      // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
+      [$pack_id, $icon_id] = \array_pad(\explode(':', $value, 2), 2, '');
+      if ($icon_id === '') {
+        return NULL;
+      }
       return [
-        '#theme' => 'image',
-        '#uri' => $resolved['url'],
-        '#alt' => '',
+        '#type' => 'icon',
+        '#pack_id' => $pack_id,
+        '#icon_id' => $icon_id,
       ];
     }
-    return NULL;
+    // Code components serialize props to JSON for their client runtime, which
+    // renders the icon with the `<Icon>` component from the `drupal-canvas`
+    // package, so resolve to that component's `{id, svg|url}` value.
+    // @see \Drupal\canvas\Icon\IconResolver::resolve()
+    return $this->iconResolver->resolve($value);
   }
 
   /**

@@ -50,11 +50,14 @@ field type (extending core's `string`) paired with the icon picker widget, regis
 that every JSON-Schema-prop component source uses. Render-time resolution of the stored id lives in the shared
 component-source base and is keyed off that field type, so Single-Directory Components and code components alike get
 both the picker widget when binding the prop and id-to-SVG resolution when rendering — nothing about icons is specific
-to code components. The two sources differ only in the shape the resolved value takes for their render technology:
-code components receive the plain `{id, svg|url}` array their client runtime consumes, while SDCs receive a render
-array (inline SVG or an image) that Twig renders and that satisfies core's prop validation (which dismisses type
-errors for render-array prop values). Validation and storage are unaffected: the evaluated prop value stays the
-`pack_id:icon_id` string, so save-time schema validation still sees a string; only the render-time value is resolved.
+to code components. Each source renders the icon the idiomatic way for its technology: SDCs hand the id to core's Icon
+API render element (`#type => icon`), which resolves and renders it through the pack's own Twig template — a render
+array, which also satisfies core's SDC prop validation (it dismisses type errors for render-array prop values). Code
+components run on published pages without Canvas's editor infrastructure, so they cannot resolve the icon client-side;
+the id is resolved server-side into the plain `{id, svg|url}` value their runtime `<Icon>` component renders (modeled
+on core's icon rendering, and analogous to how `FormattedText` renders server-processed HTML). Validation and storage
+are unaffected: the evaluated prop value stays the `pack_id:icon_id` string, so save-time schema validation still sees
+a string; only the render-time value is resolved.
 Rejected: keeping resolution inside the code-component source (limits icons to code components, and would duplicate
 the logic the moment an SDC needed an icon prop); a computed field property that resolves at evaluation time (would
 feed the resolved object to schema validation, which expects the stored string).

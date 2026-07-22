@@ -495,14 +495,19 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
       $cacheability->addCacheableDependency($headless_settings);
     }
 
-    // Resolve stored icon ids into renderable values (inline SVG markup or an
-    // asset URL) via the shared, source-agnostic icon resolution, so code
-    // components never embed or manage SVG sources by hand. This happens after
-    // validation: what is stored and validated is the plain `pack_id:icon_id`
-    // string. An unresolvable icon becomes NULL (empty render plus a logged
-    // warning). Icon cache tags are added by the shared method when the
-    // component declares any icon prop.
+    // Resolve stored icon ids into the `{id, svg|url}` value the `<Icon>`
+    // component from the `drupal-canvas` package renders, so code components
+    // never embed or manage SVG sources by hand. Unlike an SDC (which renders
+    // through core's Icon API Twig element), a code component runs on published
+    // pages without Canvas's editor infrastructure, so the icon must be
+    // resolved server-side and serialized into the island's props here rather
+    // than resolved by the client component. This happens after validation:
+    // what is stored and validated is the plain `pack_id:icon_id` string. An
+    // unresolvable icon becomes NULL (empty render plus a logged warning).
+    // Icon cache tags are added by the shared method when the component
+    // declares any icon prop.
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::resolveIconProps()
+    // @see packages/drupal-canvas/src/Icon.tsx
     $props = $this->resolveIconProps($props, $cacheability);
     // When this component reads `canvasData.v0.mainEntity`, its data embeds the
     // per-language translation list, derived from the enabled-language list and

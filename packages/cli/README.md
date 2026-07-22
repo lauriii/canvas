@@ -174,7 +174,11 @@ key with a `libraries` array mirroring `fonts.families`:
   "fonts": { "families": [] },
   "icons": {
     "libraries": [
-      { "id": "lucide", "source": "node_modules/lucide-static/icons" },
+      {
+        "id": "lucide",
+        "label": "Lucide",
+        "source": "node_modules/lucide-static/icons"
+      },
       { "id": "my_icons", "label": "My icons" }
     ]
   }
@@ -184,8 +188,8 @@ key with a `libraries` array mirroring `fonts.families`:
 Each entry declares one canvas-managed icon library:
 
 - `id` (required): the library id; lowercase letters, digits, and underscores.
-- `label`: human-readable label; derived from the id when omitted
-  (`lucide_icons` becomes "Lucide icons").
+- `label` (required): human-readable label. Every library must be declared with
+  at least a label, just as every font family requires a `name`.
 - `description`: optional description.
 - `template`: optional Twig rendering template override; omit to use the server
   default.
@@ -195,9 +199,9 @@ Each entry declares one canvas-managed icon library:
   repository.
 
 The SVG files themselves live in the `source` directory; the filename (minus
-`.svg`) becomes the icon id. As a zero-config shortcut, any `icons/<id>/`
-directory containing SVG files is also pushed without a declaration, using the
-directory name as the id and a derived label.
+`.svg`) becomes the icon id. A bare `icons/<id>/` directory is never pushed on
+its own — every library must be declared in `canvas.brand-kit.json` with a
+label.
 
 ```
 icons/
@@ -208,14 +212,14 @@ icons/
 ```
 
 **Replace semantics (like fonts):** when the `icons` key is present in
-`canvas.brand-kit.json`, the declared set (plus any zero-config directories) is
-authoritative — pushing deletes canvas-managed libraries on the site that are no
-longer in it, and an empty `libraries` array deletes them all. Without an
-`icons` key, push only adds and updates. `pull` writes each canvas-managed
-library's entry into `canvas.brand-kit.json` (preserving existing entries) and
-downloads its SVG files into `icons/<id>/`, so a pulled project pushes back
-unchanged. Module-provided packs are pulled as informational
-`icons/<id>/pack.json` files that push skips.
+`canvas.brand-kit.json`, the declared set is authoritative — pushing deletes
+canvas-managed libraries on the site that are no longer in it, and an empty
+`libraries` array deletes them all. Without an `icons` key, push only adds and
+updates. `pull` writes each canvas-managed library's entry into
+`canvas.brand-kit.json` (preserving existing entries) and downloads its SVG
+files into `icons/<id>/`, so a pulled project pushes back unchanged.
+Module-provided packs are pulled as informational `icons/<id>/pack.json` files
+that push skips.
 
 **Importing an existing icon set from npm:** declare the package directory as
 the library's `source` — no copying required:
@@ -230,7 +234,15 @@ the library's `source` — no copying required:
 }
 ```
 
-Or copy the SVG files into `icons/<id>/` and push without any configuration:
+Or copy the SVG files into `icons/<id>/` and declare the library with a label:
+
+```json
+{
+  "icons": {
+    "libraries": [{ "id": "lucide_icons", "label": "Lucide icons" }]
+  }
+}
+```
 
 ```bash
 mkdir -p icons/lucide_icons
@@ -655,11 +667,10 @@ component assets. Push can include:
    [Font push (Brand Kit)](#font-push-brand-kit).
 4. **Icon libraries** - With `--include-brand-kit` or
    `CANVAS_INCLUDE_BRAND_KIT`, each icon library declared in
-   `canvas.brand-kit.json` (plus zero-config `icons/<id>/` directories of SVG
-   files) is validated, its SVG files are uploaded, and the icon library is
-   created, updated, reported unchanged, or deleted per the replace semantics.
-   Files rejected by the server's SVG sanitizer fail that library with the file
-   path and server error; other libraries continue. See
+   `canvas.brand-kit.json` is validated, its SVG files are uploaded, and the
+   icon library is created, updated, reported unchanged, or deleted per the
+   replace semantics. Files rejected by the server's SVG sanitizer fail that
+   library with the file path and server error; other libraries continue. See
    [Icon libraries](#icon-libraries).
 5. **Vendor artifacts** - Bundled third-party dependencies
 6. **Local artifacts** - Bundled local imports (e.g., `@/utils`)

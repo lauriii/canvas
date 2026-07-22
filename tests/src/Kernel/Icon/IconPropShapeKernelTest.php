@@ -158,7 +158,11 @@ final class IconPropShapeKernelTest extends CanvasKernelTestBase {
       ],
     ], [], 'test-uuid');
     $this->assertIsArray($build['#props']['icon']);
-    $this->assertStringStartsWith('<svg', (string) $build['#props']['icon']['#markup']);
+    // The icon is handed to core's Icon API render element, which renders it
+    // through the pack's own template.
+    $this->assertSame('icon', $build['#props']['icon']['#type']);
+    $this->assertSame('canvas_test', $build['#props']['icon']['#pack_id']);
+    $this->assertSame('star', $build['#props']['icon']['#icon_id']);
     // Resolved icon values depend on the installed icon packs.
     $this->assertContains('icon_pack_plugin', $build['#cache']['tags']);
     $this->assertContains('config:icon_library_list', $build['#cache']['tags']);
@@ -169,14 +173,19 @@ final class IconPropShapeKernelTest extends CanvasKernelTestBase {
     $this->assertStringContainsString('<svg', $html);
     $this->assertStringContainsString('Star', $html);
 
-    // An unresolvable id resolves to NULL: the template renders no icon.
+    // An unresolvable id is still handed to core's icon render element, which
+    // renders nothing for a missing icon — the same failure mode core accepts
+    // for its own icon element.
     $build = $source->renderComponent([
       'props' => [
         'icon' => new EvaluationResult('canvas_test:does_not_exist'),
         'label' => new EvaluationResult('Missing'),
       ],
     ], [], 'test-uuid');
-    $this->assertNull($build['#props']['icon']);
+    $this->assertSame('icon', $build['#props']['icon']['#type']);
+    $html = (string) $this->container->get(RendererInterface::class)->renderInIsolation($build);
+    $this->assertStringNotContainsString('<svg', $html);
+    $this->assertStringContainsString('Missing', $html);
   }
 
   /**

@@ -56,7 +56,8 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 final class IconLibrary extends ConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface {
 
   public const string ENTITY_TYPE_ID = 'icon_library';
-  public const string ADMIN_PERMISSION = 'administer icon libraries';
+  // Icon libraries are part of the brand kit, so they reuse its permission.
+  public const string ADMIN_PERMISSION = 'administer brand kit';
   public const string FILE_USAGE_TYPE = 'icon_library';
   public const string ASSETS_DIRECTORY = 'public://canvas/icons/';
 

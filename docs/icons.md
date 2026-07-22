@@ -71,8 +71,8 @@ label, optional description and Twig template, and references to SVG assets uplo
 module-provided packs.
 
 Uploaded SVGs pass through `\Drupal\canvas\Icon\SvgSanitizer`, which rejects scripts, event handler attributes, and
-external references — this is a trust boundary. Managing icon libraries requires the `administer icon libraries`
-permission (OAuth scope `canvas:icon_library`).
+external references — this is a trust boundary. Managing icon libraries requires the `administer brand kit`
+permission (OAuth scope `canvas:brand_kit`).
 
 Icon libraries are part of the CLI's brand kit workflow and mirror the fonts DX: the same `--include-brand-kit` flag
 governs both, and libraries are declared in `canvas.brand-kit.json` under `icons.libraries` (mirroring

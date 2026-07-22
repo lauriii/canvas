@@ -108,8 +108,8 @@ export const BRAND_KIT_GLOBAL_ID = 'global';
 /** A single icon library entry in canvas.brand-kit.json libraries. */
 export interface IconLibraryEntry {
   id: string;
-  /** Human-readable label; derived from the id when omitted. */
-  label?: string;
+  /** Human-readable label; required, mirroring a font family's name. */
+  label: string;
   description?: string;
   /** Twig template override; omit to use the server default. */
   template?: string;
@@ -179,7 +179,6 @@ const PAGE_SCOPES = 'canvas:page:create canvas:page:read canvas:page:edit';
 const CONTENT_TEMPLATE_SCOPES = 'canvas:content_template';
 const REGION_SCOPES = 'canvas:page_region';
 const BRAND_KIT_SCOPES = 'canvas:brand_kit';
-const ICON_LIBRARY_SCOPES = 'canvas:icon_library';
 
 export function getDefaultScope(
   includePages: boolean,
@@ -191,8 +190,9 @@ export function getDefaultScope(
   if (includePages) parts.push(PAGE_SCOPES);
   if (includeContentTemplates) parts.push(CONTENT_TEMPLATE_SCOPES);
   if (includeRegions) parts.push(REGION_SCOPES);
-  // Icon libraries are part of the brand kit workflow.
-  if (includeBrandKit) parts.push(BRAND_KIT_SCOPES, ICON_LIBRARY_SCOPES);
+  // Icon libraries are part of the brand kit workflow and are covered by the
+  // brand kit scope.
+  if (includeBrandKit) parts.push(BRAND_KIT_SCOPES);
   return parts.join(' ');
 }
 
@@ -206,7 +206,6 @@ export function usesManagedDefaultScope(scope: string): boolean {
       REGION_SCOPES,
       BRAND_KIT_SCOPES,
       CONTENT_TEMPLATE_SCOPES,
-      ICON_LIBRARY_SCOPES,
     ].flatMap((s) => s.split(/\s+/)),
   );
   for (const token of baseTokens) {
