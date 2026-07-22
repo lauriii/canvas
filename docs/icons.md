@@ -36,25 +36,36 @@ The shape maps to a plain string field with the `canvas_icon` widget
 searchable grid scoped to the packs allowed for the prop. Outside the Canvas editor the widget degrades to a text
 input holding the icon id.
 
-## Rendering contract for code components
+## Rendering contract
 
-At preview and render time, Canvas resolves the stored icon id through the pack's extractor
-(`\Drupal\canvas\Icon\IconResolver`) and delivers the component a renderable value instead of the raw id:
+Each component source renders an icon the idiomatic way for its technology; the shared
+`\Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::resolveIconProps()` routes to the
+right form at preview and render time (detecting icon props by the `canvas_icon` field type).
+
+**Single-Directory Components** render through Twig, so each stored id is handed to core's Icon API render element
+(`#type => icon`), which resolves and renders it via the pack's own template. A stored id whose pack or icon no longer
+exists renders nothing — the failure mode core accepts for its own icon element.
+
+**Code components** run on published pages without Canvas's editor infrastructure, so the id is resolved server-side
+(`\Drupal\canvas\Icon\IconResolver`) into a value serialized into the component's props:
 
 - `{ id, svg }` — inline SVG markup, for packs using the `svg` and `svg_sprite` extractors. Inline markup inherits
   `currentColor`, so icons follow the surrounding text color.
 - `{ id, url }` — an asset URL, for packs using the `path` extractor.
 
-A component renders it directly, without managing SVG sources:
+Component authors render it with the `Icon` component from the `drupal-canvas` runtime package (like `FormattedText`
+for rich text), without managing SVG sources:
 
 ```jsx
+import { Icon } from 'drupal-canvas';
+
 const MyComponent = ({ icon }) => (
-  <div>{icon?.svg && <span dangerouslySetInnerHTML={{ __html: icon.svg }} />}</div>
+  <div><Icon icon={icon} /></div>
 );
 ```
 
-A stored id whose pack or icon no longer exists resolves to `null` and logs a warning; the component renders nothing
-for it.
+`Icon` renders inline SVG or an `<img>` as appropriate, and nothing when the icon is unset or its pack/icon no longer
+exists (an unresolvable id logs a warning).
 
 ## Listing endpoint
 
