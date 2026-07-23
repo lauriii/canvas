@@ -350,7 +350,15 @@ export const componentAndLayoutApi = createApi({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'CodeComponents', id: 'LIST' }],
+      // Also invalidate the per-id cache entry: reusing a machine name that was
+      // previously deleted would otherwise serve the stale, emptied cache entry
+      // left behind by deleteCodeComponent's onQueryStarted.
+      invalidatesTags: (result) => [
+        { type: 'CodeComponents', id: 'LIST' },
+        ...(result?.machineName
+          ? [{ type: 'CodeComponents' as const, id: result.machineName }]
+          : []),
+      ],
     }),
     updateCodeComponent: builder.mutation<
       CodeComponentSerialized,
