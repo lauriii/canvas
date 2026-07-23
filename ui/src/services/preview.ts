@@ -6,7 +6,11 @@ import {
   setLayoutModel,
   setTranslations,
 } from '@/features/layout/layoutModelSlice';
-import { setHtml, setSnapshotHTML } from '@/features/pagePreview/previewSlice';
+import {
+  setHtml,
+  setSnapshotHTML,
+  setSnapshotTitle,
+} from '@/features/pagePreview/previewSlice';
 import {
   baseQueryWithAutoSaves,
   popCanvasLayoutRequest,
@@ -14,6 +18,7 @@ import {
 } from '@/services/baseQuery';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
+import { getEntityTitle } from '@/utils/entityTitle';
 
 import type { RootState } from '@/app/store';
 import type {
@@ -94,7 +99,11 @@ export const previewApi = createApi({
     // Snapshot preview updates the preview frame without changing the active
     // model in the UI.
     getSnapshotPreview: builder.query<
-      { html: string; translations?: Record<string, any> },
+      {
+        html: string;
+        entity_form_fields?: Record<string, unknown>;
+        translations?: Record<string, any>;
+      },
       {
         entityType: string;
         entityId: string;
@@ -119,9 +128,16 @@ export const previewApi = createApi({
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          const { html, translations } = data;
+          const { html, entity_form_fields, translations } = data;
           // Update the snapshot HTML for preview-only display.
           dispatch(setSnapshotHTML(html));
+          // Update the snapshot title for the translated page title display.
+          const title = getEntityTitle(
+            arg.entityType,
+            (entity_form_fields as Record<string, string>) || {},
+          );
+          dispatch(setSnapshotTitle(title || ''));
+          // Update translations for template component overrides.
           if (translations) {
             dispatch(setTranslations(translations));
           }
@@ -175,6 +191,7 @@ export const previewApi = createApi({
         // so selectPreviewHtml returns this fresh editor html instead of the
         // preview snapshot, which selectPreviewHtml prefers while set.
         dispatch(setSnapshotHTML(''));
+        dispatch(setSnapshotTitle(''));
         dispatch(setHtml(html));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,

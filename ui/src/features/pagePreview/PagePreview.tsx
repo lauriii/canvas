@@ -16,6 +16,7 @@ import { selectPageData } from '@/features/pageData/pageDataSlice';
 import {
   selectPreviewHtml,
   setSnapshotHTML,
+  setSnapshotTitle,
 } from '@/features/pagePreview/previewSlice';
 import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
@@ -137,7 +138,7 @@ const PagePreview = () => {
     },
   );
 
-  // Clear snapshot HTML when leaving language preview and handle errors.
+  // Clear snapshot HTML and title when leaving language preview and handle errors.
   useEffect(() => {
     if (languagePreviewError) {
       showBoundary(languagePreviewError);
@@ -145,6 +146,7 @@ const PagePreview = () => {
     if (!language) return;
     return () => {
       dispatch(setSnapshotHTML(''));
+      dispatch(setSnapshotTitle(''));
     };
   }, [language, languagePreviewError, showBoundary, dispatch]);
 

@@ -574,4 +574,89 @@ test.describe('Language Select', () => {
       page.locator('[aria-label="More options for Spanish"]'),
     ).toHaveCount(0);
   });
+
+  test('Unpublishing a page and previewing a translation does not corrupt the default language title', async ({
+    page,
+    canvas,
+    drupal,
+  }) => {
+    await login({ username: 'editor', password: 'editor', drupal });
+    await page.goto('/canvas');
+
+    // Navigate to the pre-created translation test page via the content navigation.
+    await canvas.openContentNavigation();
+    const translationPageLink = page
+      .locator('[data-testid="canvas-navigation-results"]')
+      .locator('text=Canvas Translation Test Page');
+    await expect(translationPageLink).toBeVisible();
+    await translationPageLink.click();
+    await canvas.waitForEditorUi();
+
+    // Verify the navigation button shows the English title.
+    await expect(
+      page.locator('[data-testid="canvas-navigation-button"]'),
+    ).toContainText('Canvas Translation Test Page');
+
+    // Unpublish the page from the page listing dropdown.
+    await page.getByTestId('canvas-navigation-button').click();
+    const pageItem = page
+      .getByTestId('canvas-navigation-content')
+      .getByRole('listitem')
+      .filter({ hasText: 'Canvas Translation Test Page' });
+    pageItem.hover();
+
+    const optionsButton = page.getByLabel(
+      'Page options for Canvas Translation Test Page',
+    );
+    await optionsButton.click();
+    const unpublishMenuItem = page.getByRole('menuitem', {
+      name: 'Unpublish page',
+    });
+    await expect(unpublishMenuItem).toBeVisible();
+    await unpublishMenuItem.click();
+
+    await canvas.closeContentNavigation();
+
+    // Publish the unpublish change so the page is actually unpublished.
+    await canvas.publishAllChanges(['Canvas Translation Test Page']);
+
+    // Switch to French preview via language select.
+    const languageButton = page.locator(
+      '[data-testid="canvas-topbar"] [data-testid="language-select-trigger"]',
+    );
+    await expect(languageButton).toBeVisible();
+    await languageButton.click();
+
+    const frenchOption = page.locator('[data-testid="language-option-fr"]');
+    await expect(frenchOption).toBeVisible();
+    await frenchOption.click();
+
+    await page.waitForURL(/\/preview\/canvas_page\/\d+\/full\?language=fr/, {
+      timeout: 10000,
+    });
+
+    // Verify French content is visible in the preview.
+    const previewFrame = page.frameLocator('iframe[title="Page preview"]');
+    await expect(previewFrame.locator('text=Bonjour, Canvas!')).toBeVisible({
+      timeout: 5000,
+    });
+
+    // Exit preview by switching back to English (default language).
+    await page
+      .locator(
+        '[data-testid="canvas-topbar"] [data-testid="language-select-trigger"]',
+      )
+      .click();
+    const englishOption = page.locator('[data-testid="language-option-en"]');
+    await expect(englishOption).toBeVisible();
+    await englishOption.click();
+
+    // Wait for navigation back to editor.
+    await page.waitForURL(/\/editor\/canvas_page\/\d+/, { timeout: 10000 });
+    await canvas.waitForEditorUi();
+
+    await expect(
+      page.locator('[data-testid="canvas-navigation-button"]'),
+    ).toContainText('Canvas Translation Test Page');
+  });
 });

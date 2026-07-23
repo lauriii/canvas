@@ -24,6 +24,7 @@ import { useAppSelector } from '@/app/hooks';
 import Dialog from '@/components/Dialog';
 import { selectTranslations } from '@/features/layout/layoutModelSlice';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
+import { selectSnapshotTitle } from '@/features/pagePreview/previewSlice';
 import { useTemplateCaption } from '@/hooks/useTemplateCaption';
 import { useTemplateRef } from '@/hooks/useTemplateRef';
 import { useDeletePageTranslationMutation } from '@/services/componentAndLayout';
@@ -144,8 +145,10 @@ const LanguageSelect = () => {
   const isTemplateRoute = isTemplateContext || isTemplatePreviewRoute;
   const templateCaption = useTemplateCaption();
   const pageData = useAppSelector(selectPageData);
+  const snapshotTitle = useAppSelector(selectSnapshotTitle);
   const pageTitle =
     templateCaption ||
+    snapshotTitle ||
     getEntityTitle(entityType, pageData) ||
     pageData?.['title[0][value]'];
 
