@@ -100,21 +100,48 @@ const PublishReview: React.FC<PublishReviewProps> = ({
     () => changes.find((change) => change.hasConflict),
     [changes],
   );
+
+  const selectableChangesByPointer = useMemo(
+    () =>
+      new Map(
+        selectableChanges.map((change) => [change.pointer, change] as const),
+      ),
+    [selectableChanges],
+  );
+
+  const selectedAvailableChanges = useMemo(
+    () =>
+      selectedChanges.reduce<UnpublishedChange[]>((currentChanges, change) => {
+        const currentChange = selectableChangesByPointer.get(change.pointer);
+        if (currentChange) {
+          currentChanges.push(currentChange);
+        }
+        return currentChanges;
+      }, []),
+    [selectableChangesByPointer, selectedChanges],
+  );
+
+  const selectionIsCurrent =
+    selectedChanges.length === selectedAvailableChanges.length &&
+    selectedChanges.every(
+      (change, index) => change === selectedAvailableChanges[index],
+    );
+
   const selectedReviewableChanges = useMemo(() => {
     if (!conflictUxEnabled) {
       return [];
     }
-    return selectedChanges.filter((change) =>
+    return selectedAvailableChanges.filter((change) =>
       isViewChangeAvailable ? isViewChangeAvailable(change) : true,
     );
-  }, [conflictUxEnabled, isViewChangeAvailable, selectedChanges]);
+  }, [conflictUxEnabled, isViewChangeAvailable, selectedAvailableChanges]);
 
   const allSelected = useMemo(() => {
     if (!selectableChanges?.length) return false;
-    return selectedChanges?.length === selectableChanges?.length
+    return selectedAvailableChanges?.length === selectableChanges?.length
       ? true
       : 'indeterminate';
-  }, [selectableChanges, selectedChanges]);
+  }, [selectableChanges, selectedAvailableChanges]);
 
   // Used to display the `Published` state, which resets on new selections
   const [hasPublished, setHasPublished] = useState<boolean>(false);
@@ -124,19 +151,29 @@ const PublishReview: React.FC<PublishReviewProps> = ({
       return;
     }
 
-    const pendingPointers = new Set(changes.map((change) => change.pointer));
-    if (
-      selectedChanges.every((change) => !pendingPointers.has(change.pointer))
-    ) {
+    if (selectionIsCurrent) {
+      return;
+    }
+
+    if (!selectedAvailableChanges.length) {
       setHasPublished(true);
       setSelectedChanges([]);
+      return;
     }
-  }, [changes, errors?.errors?.length, isPublishing, selectedChanges]);
+
+    setSelectedChanges(selectedAvailableChanges);
+  }, [
+    errors?.errors?.length,
+    isPublishing,
+    selectedAvailableChanges,
+    selectedChanges.length,
+    selectionIsCurrent,
+  ]);
   useEffect(() => {
-    if (selectedChanges.length > 0) {
+    if (selectedAvailableChanges.length > 0) {
       setHasPublished(false);
     }
-  }, [selectedChanges.length]);
+  }, [selectedAvailableChanges.length]);
 
   useEffect(() => {
     if (!conflictUxEnabled) {
@@ -168,9 +205,9 @@ const PublishReview: React.FC<PublishReviewProps> = ({
     if (isBusy) return 'Please wait';
     if (hasPublished) return 'Published';
     if (!changes?.length) return 'No changes available';
-    if (!selectedChanges?.length) return 'No items selected';
-    return `Publish ${selectedChanges.length} selected`;
-  }, [isPublishing, isBusy, hasPublished, changes, selectedChanges]);
+    if (!selectedAvailableChanges?.length) return 'No items selected';
+    return `Publish ${selectedAvailableChanges.length} selected`;
+  }, [isPublishing, isBusy, hasPublished, changes, selectedAvailableChanges]);
 
   const groups: UnpublishedChangeGroups = useMemo(() => {
     if (!changes?.length) return {};
@@ -196,20 +233,23 @@ const PublishReview: React.FC<PublishReviewProps> = ({
 
   // Publish the selected changes
   const handlePublishClick = () => {
-    if (onPublishClick && selectedChanges?.length) {
-      onPublishClick(selectedChanges);
+    if (onPublishClick && selectedAvailableChanges?.length) {
+      onPublishClick(selectedAvailableChanges);
     }
   };
 
   const handleDiscardClick = (change: UnpublishedChange) => {
-    setSelectedChanges(
-      selectedChanges.filter((c) => c.pointer !== change.pointer),
+    setSelectedChanges((existingChanges) =>
+      existingChanges.filter((c) => c.pointer !== change.pointer),
     );
     onDiscardClick(change);
   };
 
   const onOpenChangeHandler = (open: boolean): void => {
     setHasPublished(false);
+    if (!open) {
+      setSelectedChanges([]);
+    }
     if (controlledOpen === undefined) {
       setInternalOpen(open);
     }
@@ -227,7 +267,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
     }
     setHasPublished(false);
     onOpenChangeHandler(false);
-    onReviewSelectedChanges?.(selectedChanges);
+    onReviewSelectedChanges?.(selectedAvailableChanges);
   };
 
   return (
@@ -294,7 +334,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
               <Box px="4" pt="4">
                 <Text size="1">
                   {changes.length
-                    ? `${selectedChanges.length} of ${changes?.length ?? 0} changes selected`
+                    ? `${selectedAvailableChanges.length} of ${changes?.length ?? 0} changes selected`
                     : 'All changes published!'}
                 </Text>
               </Box>
@@ -313,7 +353,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                     <ChangeList
                       groups={groups}
                       isBusy={isBusy}
-                      selectedChanges={selectedChanges}
+                      selectedChanges={selectedAvailableChanges}
                       setSelectedChanges={setSelectedChanges}
                       onDiscardClick={handleDiscardClick}
                       onViewClick={onViewClick}
@@ -333,7 +373,9 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                 className={
                   isPublishing || hasPublished ? styles.buttonBlue : ''
                 }
-                disabled={!onPublishClick || isBusy || !selectedChanges?.length}
+                disabled={
+                  !onPublishClick || isBusy || !selectedAvailableChanges.length
+                }
                 size="1"
                 variant="solid"
                 onClick={handlePublishClick}
