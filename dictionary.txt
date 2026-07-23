@@ -83,6 +83,7 @@ hyperscriptifying
 ianvs
 importmap
 inlines
+instantiator
 interactable
 interruptibility
 invariantly
