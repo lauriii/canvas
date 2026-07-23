@@ -196,20 +196,44 @@ final class Coalescer {
       $coalesced_refs[] = $group_expressions[0]->withFinalTargetReplaced($coalesced_target);
     }
 
-    // Fold coalesced references into the loose bucket on their referencer
-    // field, when one exists. A loose expression and a reference descending
-    // through the same field share a starting point, so any consumer keying
-    // by starting point would silently lose one of them. The reference becomes
-    // a follow-reference (`↝`) object entry, named by its final target's
-    // developer-facing key.
-    $standalone_refs = [];
+    // Now the references. Group them by the field they start from, and combine
+    // each group into a single entry — even when that field also has direct
+    // picks of its own (like `target_id`). Grouping first is what matters:
+    // it lets picks that come from different bundles but end up under the same
+    // name merge into one bundle-specific branch, instead of clobbering each
+    // other. (Handle each field's references in one place, and no two of them
+    // can fight over the same name behind each other's back.)
+    //
+    // Example — `field_related` points at two node bundles, and the developer
+    // picked the referenced entity's title (on both bundles) plus the raw
+    // `target_id` of the reference itself:
+    // @code
+    // IN:
+    //   ℹ︎␜entity:node:news_item␝field_related␞␟target_id
+    //   ℹ︎␜entity:node:news_item␝field_related␞␟entity␜␜entity:node:blog_post␝title␞␟value
+    //   ℹ︎␜entity:node:news_item␝field_related␞␟entity␜␜entity:node:news_item␝title␞␟value
+    // OUT:
+    //   ℹ︎␜entity:node:news_item␝field_related␞␟{label↝entity␜[␜entity:node:blog_post␝title␞␟value][␜entity:node:news_item␝title␞␟value],target_id↠target_id}
+    // @endcode
+    // Both titles are known by the same name (`label`, node's label key), so
+    // they fold into one branch; `target_id` stays a plain pick; the field
+    // becomes one object.
+    $refs_by_referencer = [];
     foreach ($coalesced_refs as $ref) {
-      $referencer_key = $ref->getStartingPointKey();
+      $refs_by_referencer[$ref->getStartingPointKey()][] = $ref;
+    }
+    foreach ($refs_by_referencer as $referencer_key => $referencer_refs) {
+      $combined = self::coalesceReferencerFieldGroup($referencer_refs);
+      // If that same field also collected direct picks earlier, drop the
+      // combined reference in with them so the field ends up as one object.
+      // (They start from the same field item, so leaving them as separate
+      // entries would make a later consumer keep just one and silently lose the
+      // rest.) Otherwise the reference stands on its own.
       if (\array_key_exists($referencer_key, $host_groups)) {
-        $host_groups[$referencer_key][] = $ref;
+        \array_push($host_groups[$referencer_key], ...$combined);
         continue;
       }
-      $standalone_refs[] = $ref;
+      \array_push($coalesced, ...$combined);
     }
 
     // Coalesce loose host-entity field groups (including folded references).
@@ -224,17 +248,6 @@ final class Coalescer {
         continue;
       }
       $coalesced[] = $coalesced_one;
-    }
-
-    // Coalesce standalone references by referencer field item: all references
-    // descending through the same field are combined into one entry, whatever
-    // bundle(s) and field(s) they read.
-    $refs_by_referencer = [];
-    foreach ($standalone_refs as $ref) {
-      $refs_by_referencer[$ref->getStartingPointKey()][] = $ref;
-    }
-    foreach ($refs_by_referencer as $referencer_refs) {
-      \array_push($coalesced, ...self::coalesceReferencerFieldGroup($referencer_refs));
     }
 
     return $coalesced;
@@ -274,7 +287,7 @@ final class Coalescer {
    * @param non-empty-list<ReferenceFieldPropExpression> $refs
    *   References that all share the same referencer field item.
    *
-   * @return list<EntityFieldBasedPropExpressionInterface>
+   * @return list<FieldObjectPropsExpression|ReferenceFieldPropExpression>
    */
   private static function coalesceReferencerFieldGroup(array $refs): array {
     $referencer = $refs[0]->referencer;
@@ -360,6 +373,28 @@ final class Coalescer {
   }
 
   /**
+   * Returns the name a multi-bundle branch reference is known by.
+   *
+   * A branch reference can read a different field in each bundle (say `title`
+   * in one and `name` in another), but `ReferencedBundleSpecificBranches`
+   * guarantees every branch resolves to the same shape and the same
+   * developer-facing key — so reading it off any one branch answers for all.
+   *
+   * @param \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression $reference
+   *   A reference whose `referenced` is a `ReferencedBundleSpecificBranches`.
+   *
+   * @return string
+   *   The developer-facing key shared by every branch.
+   */
+  private static function branchDeveloperFacingKey(ReferenceFieldPropExpression $reference): string {
+    \assert($reference->referenced instanceof ReferencedBundleSpecificBranches);
+    $branches = $reference->referenced->bundleSpecificReferencedExpressions;
+    $first_branch = \reset($branches);
+    \assert($first_branch instanceof EntityFieldBasedPropExpressionInterface);
+    return $first_branch->getDeveloperFacingKey();
+  }
+
+  /**
    * Expands a list of coalesced expression strings back to atomic leaves.
    *
    * The atomic form is always per-property entries: one `FieldPropExpression`
@@ -433,10 +468,14 @@ final class Coalescer {
         continue;
       }
       if ($expression instanceof ReferenceFieldPropExpression) {
-        // Name the follow-reference entry by its final target's developer-
-        // facing key. That allows the coalesced result to losslessly be
-        // expanded and re-coalesced.
-        $leaf_name = $expression->getFinalTargetExpression()->getDeveloperFacingKey();
+        // Name this follow-reference entry after the field it reads, so the
+        // object can later be expanded back into its individual picks and
+        // re-coalesced without losing anything. A branch reference reads a
+        // (possibly) different field per bundle, but they all resolve to the
+        // same name by construction, so any one branch answers for the lot.
+        $leaf_name = $expression->targetsMultipleBundles()
+          ? self::branchDeveloperFacingKey($expression)
+          : $expression->getFinalTargetExpression()->getDeveloperFacingKey();
         if (\array_key_exists($leaf_name, $flat)) {
           return NULL;
         }
