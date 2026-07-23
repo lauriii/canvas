@@ -186,18 +186,15 @@ test.describe('Language Select', () => {
       ),
     ).toHaveCount(0);
 
-    // The editor does NOT have 'delete content translations', so the backend
-    // omits the delete-form link entirely. Without any links for French, the
-    // dots (⋮) options trigger is not rendered at all.
-    await expect(
-      page.locator('[data-testid="language-options-popover-trigger"]'),
-    ).toHaveCount(0);
+    // The editor role has edit (update) access, so the delete-translation
+    // options trigger is rendered for the existing French translation - and
+    // only for it (the default English and untranslated Spanish have none).
     await expect(
       page.locator('[aria-label="More options for French"]'),
-    ).not.toBeAttached();
+    ).toBeVisible();
     await expect(
-      page.locator('[data-testid="language-options-delete"]'),
-    ).not.toBeAttached();
+      page.locator('[data-testid="language-options-popover-trigger"]'),
+    ).toHaveCount(1);
     // The current permissions include 'administer languages' so the configure
     // button should be present.
     await expect(
@@ -255,7 +252,8 @@ test.describe('Language Select', () => {
     await expect(languageButton).toBeVisible();
     await languageButton.click();
 
-    // French has a translation: checkmark must still be present after reload.
+    // French has a translation: checkmark and options trigger must still be
+    // present after reload.
     await expect(
       page.locator(
         '[data-testid="language-option-fr"] [data-canvas-has-translation="true"]',
@@ -263,7 +261,7 @@ test.describe('Language Select', () => {
     ).toHaveAttribute('data-canvas-has-translation', 'true');
     await expect(
       page.locator('[data-testid="language-options-popover-trigger"]'),
-    ).toHaveCount(0);
+    ).toHaveCount(1);
 
     // Switch to Spanish language (which has no translation).
     const spanishOption = page.locator('[data-testid="language-option-es"]');

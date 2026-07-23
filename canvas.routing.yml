@@ -368,7 +368,6 @@ canvas.api.content.translation.delete:
     # opposite of Canvas's permission model.
     # @see \Drupal\content_translation\Access\ContentTranslationManageAccessCheck
     _entity_access: 'canvas_page.update'
-    _permission: 'delete content translations'
   options:
     parameters:
       canvas_page:

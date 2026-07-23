@@ -164,11 +164,10 @@ final class ApiLayoutController {
       if ($this->moduleHandler->moduleExists('content_translation')) {
         foreach ($available_translations as $langcode) {
           $translation = $entity->getTranslation($langcode);
-          // The delete route requires both update access and the
-          // 'delete content translations' permission, so emit the link only
-          // when the current user satisfies both conditions.
+          // The delete route gates on update access, so emit the link to the
+          // same users to avoid offering a link that would return 403.
           // @see canvas.api.content.translation.delete in canvas.routing.yml
-          if ($translation->access('update') && $this->currentUser->hasPermission('delete content translations')) {
+          if ($translation->access('update')) {
             $links[$langcode] = [
               CanvasUriDefinitions::LINK_REL_DELETE => Url::fromRoute(
                 'canvas.api.content.translation.delete',
