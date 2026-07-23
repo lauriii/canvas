@@ -174,6 +174,33 @@ final class CoalescerTest extends UnitTestCase {
       ['ℹ︎␜entity:node:news_item␝field_related␞␟{body↝entity␜␜entity:node:news_item␝body␞␟value,label↝entity␜[␜entity:node:blog_post␝title␞␟value][␜entity:node:news_item␝title␞␟value]}'],
     ];
 
+    // Same as above, but the multi-target-bundle reference field ALSO has a
+    // loose leaf pick (`target_id`) on the field itself. The leaf pick and the
+    // per-bundle branch picks all coalesce into one object on the field: the
+    // cross-bundle `title` picks (keyed `label`) still merge into a
+    // bundle-specific branch, and the loose `target_id` becomes a `↠` entry.
+    yield 'reference chain across bundles alongside a loose pick on the same field → one object with a branch prop' => [
+      [
+        'ℹ︎␜entity:node:news_item␝field_related␞␟target_id',
+        'ℹ︎␜entity:node:news_item␝field_related␞␟entity␜␜entity:node:news_item␝body␞␟value',
+        'ℹ︎␜entity:node:news_item␝field_related␞␟entity␜␜entity:node:news_item␝title␞␟value',
+        'ℹ︎␜entity:node:news_item␝field_related␞␟entity␜␜entity:node:blog_post␝title␞␟value',
+      ],
+      ['ℹ︎␜entity:node:news_item␝field_related␞␟{body↝entity␜␜entity:node:news_item␝body␞␟value,label↝entity␜[␜entity:node:blog_post␝title␞␟value][␜entity:node:news_item␝title␞␟value],target_id↠target_id}'],
+    ];
+
+    // Same, but every bundle reads a single (same-key) field, so the reference
+    // collapses to a bare bundle-specific branch — which still folds next to the
+    // loose `target_id` pick as one `↝` object entry keyed `label`.
+    yield 'single-field bundle-specific branch alongside a loose pick on the same field → one object' => [
+      [
+        'ℹ︎␜entity:node:news_item␝field_related␞␟target_id',
+        'ℹ︎␜entity:node:news_item␝field_related␞␟entity␜␜entity:node:news_item␝title␞␟value',
+        'ℹ︎␜entity:node:news_item␝field_related␞␟entity␜␜entity:node:blog_post␝title␞␟value',
+      ],
+      ['ℹ︎␜entity:node:news_item␝field_related␞␟{label↝entity␜[␜entity:node:blog_post␝title␞␟value][␜entity:node:news_item␝title␞␟value],target_id↠target_id}'],
+    ];
+
     $empty = [];
     yield 'empty list → empty list' => [$empty, $empty];
 
