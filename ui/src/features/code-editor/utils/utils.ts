@@ -534,7 +534,8 @@ export function deserializeCodeComponent(
   const props = deserializeProps(codeComponent.props);
   // Lift the persisted `entityFields` onto the props editing state.
   // @see serializeDataDependencies
-  const { entityFields, ...dataDependencies } = codeComponent.dataDependencies;
+  const { entityFields, ...dataDependencies } =
+    codeComponent.dataDependencies ?? {};
   if (entityFields) {
     for (const prop of props) {
       const expressions = prop.name
