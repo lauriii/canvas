@@ -62,7 +62,14 @@ final class FieldObjectPropsExpression implements EntityFieldBasedPropExpression
           (ScalarPropExpressionInterface&EntityFieldBasedPropExpressionInterface)|(ReferencePropExpressionInterface&EntityFieldBasedPropExpressionInterface) $expr,
         ) {
           $tail = match ($expr::class) {
-            ReferenceFieldPropExpression::class => $expr->referencer->getFieldPropertyName() . static::PREFIX_ENTITY_LEVEL . self::withoutExpressionTypePrefix((string) $expr->referenced),
+            ReferenceFieldPropExpression::class => $expr->referencer->getFieldPropertyName() . static::PREFIX_ENTITY_LEVEL . (
+              // A bundle-specific branch set already serializes without an
+              // expression-type prefix (`[branch][branch]`); a plain referenced
+              // expression carries one that must be stripped.
+              $expr->referenced instanceof ReferencedBundleSpecificBranches
+                ? (string) $expr->referenced
+                : self::withoutExpressionTypePrefix((string) $expr->referenced)
+            ),
             default => $expr->getFieldPropertyName(),
           };
           return \sprintf(
@@ -121,12 +128,30 @@ final class FieldObjectPropsExpression implements EntityFieldBasedPropExpression
       else {
         [$sdc_obj_prop_name, $obj_prop_mapping_remainder] = explode(self::SYMBOL_OBJECT_MAPPED_FOLLOW_REFERENCE, $obj_prop_mapping, 2);
         [$field_instance_prop_name, $field_prop_ref_expr] = explode(self::PREFIX_ENTITY_LEVEL, $obj_prop_mapping_remainder, 2);
-        $referenced = StructuredDataPropExpression::fromString(self::PREFIX_EXPRESSION_TYPE . $field_prop_ref_expr);
-        \assert($referenced instanceof ReferenceFieldPropExpression || $referenced instanceof FieldPropExpression || $referenced instanceof FieldObjectPropsExpression);
-        $objectPropsToFieldTypeProps[$sdc_obj_prop_name] = new ReferenceFieldPropExpression(
-          new FieldPropExpression($entity_data_definition, $field_name, NULL, $field_instance_prop_name),
-          $referenced,
-        );
+        $referencer = new FieldPropExpression($entity_data_definition, $field_name, NULL, $field_instance_prop_name);
+        if (\str_starts_with($field_prop_ref_expr, self::PREFIX_BRANCH)) {
+          // A bundle-specific branch set: `↝entity␜[branch][branch]`. Each
+          // branch is a stand-alone entity-field expression rooted at a bundle.
+          // parseBranches() rejects nested branching.
+          $branch_expressions = \array_map(
+            fn (string $branch): StructuredDataPropExpressionInterface => StructuredDataPropExpression::fromString(self::PREFIX_EXPRESSION_TYPE . $branch),
+            self::parseBranches($field_prop_ref_expr),
+          );
+          // @phpstan-ignore argument.type
+          $referenced = new ReferencedBundleSpecificBranches(\array_combine(
+            \array_map(
+              // @phpstan-ignore argument.type
+              fn (EntityFieldBasedPropExpressionInterface $expr): string => $expr->getHostEntityDataDefinition()->getDataType(),
+              $branch_expressions,
+            ),
+            $branch_expressions,
+          ));
+        }
+        else {
+          $referenced = StructuredDataPropExpression::fromString(self::PREFIX_EXPRESSION_TYPE . $field_prop_ref_expr);
+          \assert($referenced instanceof ReferenceFieldPropExpression || $referenced instanceof FieldPropExpression || $referenced instanceof FieldObjectPropsExpression);
+        }
+        $objectPropsToFieldTypeProps[$sdc_obj_prop_name] = new ReferenceFieldPropExpression($referencer, $referenced);
       }
     }
 
