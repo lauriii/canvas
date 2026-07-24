@@ -96,6 +96,25 @@ describe('Prop types editing', () => {
         '#test-bool-default-false code',
         'true',
       );
+
+      // Updating another field must not flip boolean defaults.
+      cy.findByLabelText('Bool (default true)').assertToggleState(true);
+      cy.findByLabelText('String — single line').type(' keep value', {
+        force: true,
+      });
+      cy.findByLabelText('Bool (default false)').assertToggleState(false);
+      cy.findByLabelText('Bool (default true)').assertToggleState(true);
+
+      cy.waitForElementContentInIframe(
+        '#test-string code',
+        'Hello, world! keep value',
+      );
+      cy.waitForElementContentInIframe(
+        '#test-bool-default-false code',
+        'false',
+      );
+      cy.waitForElementContentInIframe('#test-bool-default-true code', 'true');
+
       cy.findByLabelText('Bool (default false)')
         .assertToggleState(false)
         .toggleToggle()
