@@ -46,3 +46,20 @@ export const HEADLESS_ASSERTION_MESSAGE = 'canvas-headless:assertion';
 
 /** Host → app: refresh content after Canvas persisted a new auto-save. */
 export const HEADLESS_REFRESH_MESSAGE = 'canvas-headless:refresh';
+
+/**
+ * App → host: current rendered content height, in CSS pixels. Sent on load
+ * and on every ResizeObserver-detected change.
+ */
+export const HEADLESS_HEIGHT_MESSAGE = 'canvas-headless:height';
+
+/** App → host: temporarily resize the iframe for viewport-height probing. */
+export const HEADLESS_HEIGHT_PROBE_MESSAGE = 'canvas-headless:height-probe';
+
+/** Host → app: the requested probe height has been applied. */
+export const HEADLESS_HEIGHT_PROBE_READY_MESSAGE =
+  'canvas-headless:height-probe-ready';
+
+/** Host → app: the base height of the selected preview viewport. */
+export const HEADLESS_VIEWPORT_HEIGHT_MESSAGE =
+  'canvas-headless:viewport-height';

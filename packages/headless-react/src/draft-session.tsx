@@ -4,7 +4,10 @@
 'use client';
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { createDraftSession } from '@drupal-canvas/headless/client';
+import {
+  createDraftSession,
+  createHeightReporter,
+} from '@drupal-canvas/headless/client';
 
 import type { ReactNode } from 'react';
 import type {
@@ -91,6 +94,9 @@ export interface DraftSessionProps {
  * destroy, recreate, re-arm. Without it, in place: the 'renewed' event
  * carries the new expiry, which becomes the internal epoch until the next
  * server-provided props arrive.
+ *
+ * Alongside the session machine, this component also runs a content-height
+ * reporter (see @drupal-canvas/headless/client's createHeightReporter).
  */
 export function DraftSession({
   tokenExpiresAt,
@@ -196,6 +202,18 @@ export function DraftSession({
     editorOrigin,
     renewEndpoint,
   ]);
+
+  // An independent, one-way signal alongside the session machine above: the
+  // host sizes the preview iframe to fit this app's rendered content.
+  useEffect(() => {
+    if (embedded === null) {
+      return;
+    }
+    const reporter = createHeightReporter({ editorOrigin, embedded });
+    return () => {
+      reporter.destroy();
+    };
+  }, [embedded, editorOrigin]);
 
   if (embedded === null || !children) {
     return null;

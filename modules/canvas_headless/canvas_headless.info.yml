@@ -7,7 +7,7 @@ lifecycle: experimental
 hidden: true
 dependencies:
   - canvas:canvas
-  - simple_oauth:simple_oauth (>=6.0.0)
+  - simple_oauth:simple_oauth (>=6.1.0)
   - consumers:consumers
   # Custom-element rendering and the /ce-api/{path} rendered-routes endpoint.
   # custom_elements and lupus_ce_renderer are the rendering foundation this

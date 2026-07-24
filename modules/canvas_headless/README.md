@@ -8,7 +8,7 @@ hooks, and configuration may change without a deprecation path.
 
 ## Requirements
 
-- [Simple OAuth module](https://www.drupal.org/project/simple_oauth) (>=6.0.0), with its RSA keypair configured (see
+- [Simple OAuth module](https://www.drupal.org/project/simple_oauth) (>=6.1.0), with its RSA keypair configured (see
   `/admin/config/people/simple_oauth`). The same keypair signs preview assertions; no additional keys are needed.
 - The [Lupus Decoupled](https://lupus-decoupled.org/) CE API stack (`custom_elements`, `lupus_ce_renderer`,
   `lupus_decoupled_ce_api`), declared as module dependencies; it provides the rendered-routes endpoint

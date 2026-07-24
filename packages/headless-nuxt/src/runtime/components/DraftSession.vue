@@ -9,6 +9,7 @@
  * attribute is bound to the route, so client-side navigations keep the
  * host's status reports and the renew link on the current page. Auto-save
  * refresh events use Nuxt's refreshNuxtData() instead of reloading the page.
+ * The element also reports content height to the embedding host.
  *
  * The slot owns presentation: children marked
  * `data-draft-session-view="active"` show while the session is live and

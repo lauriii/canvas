@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -17,43 +17,89 @@ interface HeadlessPreviewProps {
   autoSavesHash: AutoSavesHashRecord;
 }
 
-/**
- * Embeds the configured frontend app in the editor frame.
- *
- * Replaces the Drupal-rendered srcdoc preview when the canvas_headless
- * module is enabled. The iframe is cross-origin, so none of the same-origin
- * preview behavior (overlays, height sync, in-place prop updates) applies;
- * the draft session is driven over postMessage instead — see
- * useHeadlessDraftSession for the protocol.
- */
-const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({
+interface PreviewFrameDescriptor {
+  frameKey: string;
+  entityType: string;
+  entityId: string;
+  autoSavesHash: AutoSavesHashRecord;
+}
+
+interface PreviewFrameState {
+  active: PreviewFrameDescriptor | null;
+  pending: PreviewFrameDescriptor | null;
+}
+
+interface HeadlessPreviewFrameProps extends PreviewFrameDescriptor {
+  settings: HeadlessSettings;
+  viewportWidth: number;
+  viewportMinHeight: number;
+  active: boolean;
+  onReady: (key: string) => void;
+}
+
+const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
   settings,
   autoSavesHash,
+  entityType,
+  entityId,
+  viewportWidth,
+  viewportMinHeight,
+  active,
+  onReady,
+  frameKey,
 }) => {
   const dispatch = useAppDispatch();
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const viewportWidth = useAppSelector(selectViewportWidth);
-  const viewportMinHeight = useAppSelector(selectViewportMinHeight);
-  const { entityId, entityType } = useParams();
-  const { statusText } = useHeadlessDraftSession(
-    iframeRef,
-    settings,
-    entityType,
-    entityId,
-    autoSavesHash,
-  );
+  const { statusText, contentHeight, contentHeightReady } =
+    useHeadlessDraftSession(
+      iframeRef,
+      settings,
+      entityType,
+      entityId,
+      autoSavesHash,
+      viewportMinHeight,
+    );
+
+  // Floors at viewportMinHeight (selected device-viewport preset) so a
+  // shorter piece of content never shrinks the frame below the simulated
+  // device height — the same floor useSyncIframeHeightToContent keeps for
+  // the same-origin preview.
+  const effectiveHeight = Math.max(contentHeight ?? 0, viewportMinHeight);
+  const iframeHeight = contentHeightReady ? effectiveHeight : viewportMinHeight;
+
+  useEffect(() => {
+    if (contentHeightReady) {
+      onReady(frameKey);
+    }
+  }, [contentHeightReady, frameKey, onReady]);
 
   return (
     <div
+      data-testid={
+        active
+          ? 'canvas-headless-active-frame'
+          : 'canvas-headless-pending-frame'
+      }
+      aria-hidden={!active}
       style={{
         width: `${viewportWidth}px`,
-        minHeight: `${viewportMinHeight}px`,
+        minHeight: `${effectiveHeight}px`,
         background: '#fff',
+        ...(active
+          ? {}
+          : {
+              position: 'absolute',
+              inset: 0,
+              visibility: 'hidden',
+              pointerEvents: 'none',
+            }),
       }}
     >
       <p
-        data-testid="canvas-headless-status"
-        aria-live="polite"
+        data-testid={
+          active ? 'canvas-headless-status' : 'canvas-headless-pending-status'
+        }
+        aria-live={active ? 'polite' : 'off'}
         style={{
           margin: 0,
           padding: '4px 8px',
@@ -64,20 +110,135 @@ const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({
       >
         {statusText}
       </p>
-      <iframe
-        ref={iframeRef}
-        title="Headless preview"
-        data-testid="canvas-headless-iframe"
-        // The editor frame centers its scroll position once the first load
-        // completes; the srcdoc pipeline normally reports that.
-        onLoad={() => dispatch(setFirstLoadComplete(true))}
+      <div
+        data-testid={
+          active
+            ? 'canvas-headless-viewport'
+            : 'canvas-headless-pending-viewport'
+        }
         style={{
-          display: 'block',
-          width: '100%',
-          height: `${viewportMinHeight}px`,
-          border: 'none',
+          height: `${effectiveHeight}px`,
+          overflow: 'hidden',
+          background: '#fff',
         }}
-      ></iframe>
+      >
+        <iframe
+          ref={iframeRef}
+          title={active ? 'Headless preview' : 'Pending headless preview'}
+          data-testid={
+            active ? 'canvas-headless-iframe' : 'canvas-headless-pending-iframe'
+          }
+          // The editor frame centers its scroll position once the first load
+          // completes; the srcdoc pipeline normally reports that.
+          onLoad={() => dispatch(setFirstLoadComplete(true))}
+          style={
+            {
+              '--canvas-headless-preview-height': `${iframeHeight}px`,
+              display: 'block',
+              width: '100%',
+              // The host temporarily replaces height during viewport probes. A
+              // stable declaration lets it restore this property without
+              // overwriting a newer height committed by React during the probe.
+              height: 'var(--canvas-headless-preview-height)',
+              border: 'none',
+            } as React.CSSProperties
+          }
+        ></iframe>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Embeds the configured frontend app in the editor frame.
+ *
+ * Replaces the Drupal-rendered srcdoc preview when the canvas_headless
+ * module is enabled. The iframe is cross-origin, so none of the same-origin
+ * preview's DOM-based behavior (overlays, in-place prop updates) applies;
+ * the draft session, including height sync, is driven over postMessage
+ * instead — see useHeadlessDraftSession for the protocol.
+ *
+ * Page changes are double-buffered: the current iframe remains visible while
+ * the next page activates and reports its height, then the new iframe replaces
+ * it in one render. This avoids exposing navigation and height-probe states.
+ */
+const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({
+  settings,
+  autoSavesHash,
+}) => {
+  const viewportWidth = useAppSelector(selectViewportWidth);
+  const viewportMinHeight = useAppSelector(selectViewportMinHeight);
+  const { entityId, entityType } = useParams();
+  const autoSavesHashRef = useRef(autoSavesHash);
+  autoSavesHashRef.current = autoSavesHash;
+  const currentFrame = useMemo<PreviewFrameDescriptor | null>(() => {
+    if (!entityType || !entityId) {
+      return null;
+    }
+    return {
+      frameKey: `${entityType}:${entityId}`,
+      entityType,
+      entityId,
+      autoSavesHash: autoSavesHashRef.current,
+    };
+  }, [entityId, entityType]);
+  const [frames, setFrames] = useState<PreviewFrameState>(() => ({
+    active: currentFrame,
+    pending: null,
+  }));
+
+  useEffect(() => {
+    if (!currentFrame) {
+      return;
+    }
+    setFrames((current) => {
+      if (!current.active) {
+        return { active: currentFrame, pending: null };
+      }
+      if (current.active.frameKey === currentFrame.frameKey) {
+        return current.pending ? { ...current, pending: null } : current;
+      }
+      if (current.pending?.frameKey === currentFrame.frameKey) {
+        return current;
+      }
+      return { ...current, pending: currentFrame };
+    });
+  }, [currentFrame]);
+
+  const activateFrame = useCallback((frameKey: string) => {
+    setFrames((current) => {
+      if (current.pending?.frameKey !== frameKey) {
+        return current;
+      }
+      return { active: current.pending, pending: null };
+    });
+  }, []);
+
+  const visibleFrames = [frames.active, frames.pending].filter(
+    (frame): frame is PreviewFrameDescriptor => frame !== null,
+  );
+
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden' }}>
+      {visibleFrames.map((frame) => {
+        const isActive = frame.frameKey === frames.active?.frameKey;
+        return (
+          <HeadlessPreviewFrame
+            {...frame}
+            key={frame.frameKey}
+            autoSavesHash={
+              frame.frameKey === currentFrame?.frameKey
+                ? autoSavesHash
+                : frame.autoSavesHash
+            }
+            settings={settings}
+            viewportWidth={viewportWidth}
+            viewportMinHeight={viewportMinHeight}
+            active={isActive}
+            onReady={activateFrame}
+          />
+        );
+      })}
     </div>
   );
 };

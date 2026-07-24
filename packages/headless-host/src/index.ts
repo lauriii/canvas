@@ -14,6 +14,10 @@
  *   app  → host  {type: 'canvas-headless:renew-request', path}
  *   host → app   {type: 'canvas-headless:assertion', assertion}
  *   host → app   {type: 'canvas-headless:refresh'}
+ *   app  → host  {type: 'canvas-headless:height', height}
+ *   app  → host  {type: 'canvas-headless:height-probe', id, height}
+ *   host → app   {type: 'canvas-headless:height-probe-ready', id, height}
+ *   host → app   {type: 'canvas-headless:viewport-height', height}
  *
  * On a renew request the host fetches a fresh assertion (via the
  * `fetchAssertion` callback, which owns transport specifics such as CSRF)
@@ -34,13 +38,22 @@
  * Every message is origin-checked in both directions: incoming events must
  * come from the configured frontend origin and from the host's own iframe;
  * outgoing messages are addressed to that origin, never '*'.
+ *
+ * Height reporting is independent of the session lifecycle above. The app
+ * reports its final height on load and after layout changes. It may also ask
+ * the host to apply temporary iframe heights while it checks whether content
+ * is viewport-relative.
  */
 
 import {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_HEIGHT_MESSAGE,
+  HEADLESS_HEIGHT_PROBE_MESSAGE,
+  HEADLESS_HEIGHT_PROBE_READY_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
   HEADLESS_STATUS_MESSAGE,
+  HEADLESS_VIEWPORT_HEIGHT_MESSAGE,
 } from '@drupal-canvas/headless';
 
 // The protocol message types are declared once, in @drupal-canvas/headless
@@ -48,7 +61,11 @@ import {
 // implementers need only this package.
 export {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_HEIGHT_MESSAGE,
+  HEADLESS_HEIGHT_PROBE_MESSAGE,
+  HEADLESS_HEIGHT_PROBE_READY_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
+  HEADLESS_VIEWPORT_HEIGHT_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
   HEADLESS_STATUS_MESSAGE,
 };
@@ -89,6 +106,8 @@ export interface HeadlessPreviewHostOptions {
   fetchAssertion: (params: Record<string, string>) => Promise<string>;
   /** Receives session lifecycle events. */
   onEvent?: (event: HeadlessPreviewHostEvent) => void;
+  /** Receives rendered content-height reports from the embedded app. */
+  onHeight?: (height: number) => void;
 }
 
 export interface HeadlessPreviewHost {
@@ -100,6 +119,8 @@ export interface HeadlessPreviewHost {
   activate: (params: Record<string, string>) => Promise<void>;
   /** Asks the embedded app to refresh now, or once its session is active. */
   refresh: () => void;
+  /** Updates the base height of the preview's selected device viewport. */
+  setViewportHeight: (height: number) => void;
   /** Removes the message listener. The iframe itself is left as is. */
   destroy: () => void;
 }
@@ -110,11 +131,22 @@ export interface HeadlessPreviewHost {
 export function createHeadlessPreviewHost(
   options: HeadlessPreviewHostOptions,
 ): HeadlessPreviewHost {
-  const { iframe, frontendOrigin, draftUrl, fetchAssertion, onEvent } = options;
+  const {
+    iframe,
+    frontendOrigin,
+    draftUrl,
+    fetchAssertion,
+    onEvent,
+    onHeight,
+  } = options;
   let recoveryAttempted = false;
   let active = false;
   let refreshPending = false;
+  let viewportHeight: number | null = null;
   let destroyed = false;
+  let probeFrame: number | null = null;
+  let probeStyleSnapshot: { height: string; visibility: string } | null = null;
+  let probeAppliedStyles: { height: string; visibility: string } | null = null;
 
   const emit = (event: HeadlessPreviewHostEvent) => {
     if (!destroyed) {
@@ -143,6 +175,53 @@ export function createHeadlessPreviewHost(
       { type: HEADLESS_REFRESH_MESSAGE },
       frontendOrigin,
     );
+  };
+
+  const postViewportHeight = () => {
+    if (viewportHeight === null) {
+      return;
+    }
+    iframe.contentWindow?.postMessage(
+      { type: HEADLESS_VIEWPORT_HEIGHT_MESSAGE, height: viewportHeight },
+      frontendOrigin,
+    );
+  };
+
+  const postProbeReady = (id: string, height: number | null) => {
+    probeFrame = window.requestAnimationFrame(() => {
+      probeFrame = null;
+      iframe.contentWindow?.postMessage(
+        { type: HEADLESS_HEIGHT_PROBE_READY_MESSAGE, id, height },
+        frontendOrigin,
+      );
+    });
+  };
+
+  const preserveExternalProbeStyleChanges = () => {
+    if (!probeStyleSnapshot || !probeAppliedStyles) {
+      return;
+    }
+
+    // The embedding app may commit a final height while a probe is active.
+    // Preserve that newer value instead of later restoring the stale height
+    // captured at the start of the probe sequence.
+    if (iframe.style.height !== probeAppliedStyles.height) {
+      probeStyleSnapshot.height = iframe.style.height;
+    }
+    if (iframe.style.visibility !== probeAppliedStyles.visibility) {
+      probeStyleSnapshot.visibility = iframe.style.visibility;
+    }
+  };
+
+  const restoreProbeStyles = () => {
+    if (!probeStyleSnapshot) {
+      return;
+    }
+    preserveExternalProbeStyleChanges();
+    iframe.style.height = probeStyleSnapshot.height;
+    iframe.style.visibility = probeStyleSnapshot.visibility;
+    probeStyleSnapshot = null;
+    probeAppliedStyles = null;
   };
 
   const activate = async (params: Record<string, string>) => {
@@ -222,6 +301,7 @@ export function createHeadlessPreviewHost(
             type: 'active',
             tokenExpiresAt: Number(event.data.tokenExpiresAt),
           });
+          postViewportHeight();
           if (refreshPending) {
             refreshPending = false;
             postRefresh();
@@ -231,6 +311,65 @@ export function createHeadlessPreviewHost(
           active = false;
           void recover(path);
         }
+        break;
+      }
+
+      case HEADLESS_HEIGHT_MESSAGE: {
+        if (!active || probeStyleSnapshot) {
+          break;
+        }
+        const { height } = event.data;
+        if (
+          typeof height === 'number' &&
+          Number.isFinite(height) &&
+          height >= 0
+        ) {
+          onHeight?.(height);
+        }
+        break;
+      }
+
+      case HEADLESS_HEIGHT_PROBE_MESSAGE: {
+        if (!active) {
+          break;
+        }
+        const { height, id } = event.data;
+        if (
+          typeof id !== 'string' ||
+          id.length === 0 ||
+          (height !== null &&
+            (typeof height !== 'number' ||
+              !Number.isFinite(height) ||
+              height <= 0))
+        ) {
+          break;
+        }
+
+        if (probeFrame !== null) {
+          window.cancelAnimationFrame(probeFrame);
+          probeFrame = null;
+        }
+
+        if (height === null) {
+          restoreProbeStyles();
+        } else {
+          if (probeStyleSnapshot) {
+            preserveExternalProbeStyleChanges();
+          } else {
+            probeStyleSnapshot = {
+              height: iframe.style.height,
+              visibility: iframe.style.visibility,
+            };
+          }
+          iframe.style.height = `${height}px`;
+          iframe.style.visibility = 'hidden';
+          probeAppliedStyles = {
+            height: iframe.style.height,
+            visibility: iframe.style.visibility,
+          };
+        }
+
+        postProbeReady(id, height);
         break;
       }
     }
@@ -250,8 +389,21 @@ export function createHeadlessPreviewHost(
       }
       postRefresh();
     },
+    setViewportHeight: (height) => {
+      if (destroyed || !Number.isFinite(height) || height <= 0) {
+        return;
+      }
+      viewportHeight = height;
+      if (active) {
+        postViewportHeight();
+      }
+    },
     destroy: () => {
       destroyed = true;
+      if (probeFrame !== null) {
+        window.cancelAnimationFrame(probeFrame);
+      }
+      restoreProbeStyles();
       window.removeEventListener('message', onMessage);
     },
   };

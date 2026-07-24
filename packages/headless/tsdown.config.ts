@@ -17,16 +17,22 @@ export default defineConfig({
   fixedExtension: false,
   platform: 'node',
   deps: {
-    // Bundle the workspace discovery package into the published build so
-    // consumers do not need the Canvas monorepo source layout at runtime.
-    alwaysBundle: ['@drupal-canvas/discovery'],
+    // Bundle the workspace discovery and height-reader packages into the
+    // published build so consumers do not need the Canvas monorepo source
+    // layout at runtime.
+    alwaysBundle: ['@drupal-canvas/discovery', '@drupal-canvas/height-reader'],
     // Discovery's own runtime dependencies, pulled in transitively.
     onlyBundle: ['glob', 'ignore', 'js-yaml'],
   },
   dts: {
-    // Inline declarations for the bundled discovery package and the type-only
-    // references it holds into the unpublished UI workspace.
-    resolve: ['@drupal-canvas/discovery', /^@drupal-canvas\/ui\//],
+    // Inline declarations for the bundled discovery and height-reader
+    // packages and the type-only references they hold into the unpublished
+    // UI workspace.
+    resolve: [
+      '@drupal-canvas/discovery',
+      '@drupal-canvas/height-reader',
+      /^@drupal-canvas\/ui\//,
+    ],
   },
   outDir: 'dist',
 });

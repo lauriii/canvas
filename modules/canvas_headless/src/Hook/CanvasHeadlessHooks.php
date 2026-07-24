@@ -212,7 +212,7 @@ class CanvasHeadlessHooks {
       return;
     }
     $consumer = $form_object->getEntity();
-    if (!$consumer instanceof ConsumerInterface || $consumer->getClientId() !== PreviewAssertionFactory::CLIENT_ID) {
+    if (!$consumer instanceof ConsumerInterface || $consumer->isNew() || $consumer->getClientId() !== PreviewAssertionFactory::CLIENT_ID) {
       return;
     }
 

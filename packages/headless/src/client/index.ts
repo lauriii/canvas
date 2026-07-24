@@ -16,3 +16,8 @@ export {
   DRAFT_SESSION_REFRESH_EVENT,
   type DraftSessionElementSnapshot,
 } from './draft-session-element';
+export {
+  createHeightReporter,
+  type HeightReporter,
+  type HeightReporterOptions,
+} from './height-report';

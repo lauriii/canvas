@@ -28,12 +28,15 @@
     }
   },
   "scripts": {
+    "test": "vitest run",
     "type-check": "tsc --noEmit --pretty"
   },
   "dependencies": {
     "@drupal-canvas/headless": "^0.0.1"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "jsdom": "^26.1.0",
+    "typescript": "^5.8.3",
+    "vitest": "^4.0.18"
   }
 }
