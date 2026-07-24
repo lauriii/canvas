@@ -22,7 +22,6 @@ import type React from 'react';
 import styles from './PreviewOverlay.module.css';
 
 interface ViewportOverlayProps {
-  iframeRef: React.RefObject<HTMLIFrameElement>;
   previewContainerRef: React.RefObject<HTMLDivElement>;
 }
 interface Rect {
@@ -32,9 +31,9 @@ interface Rect {
   height: number;
 }
 const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
-  const { iframeRef, previewContainerRef } = props;
+  const { previewContainerRef } = props;
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
-  const positionDivRef = useRef(null);
+  const positionDivRef = useRef<HTMLDivElement | null>(null);
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
   const layout = useAppSelector(selectLayout);
   const [rect, setRect] = useState<Rect | null>(null);
@@ -128,13 +127,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
       }}
     >
       {displayedRegions.map((region) => (
-        <RegionOverlay
-          iframeRef={iframeRef}
-          region={region}
-          regionId={region.id}
-          key={region.id}
-          regionName={region.name}
-        />
+        <RegionOverlay region={region} key={region.id} />
       ))}
     </div>,
     portalRoot,

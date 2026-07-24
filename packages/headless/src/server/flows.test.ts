@@ -460,3 +460,31 @@ describe('getDraftData', () => {
     expect(await server.getDraftData()).toEqual(draftData);
   });
 });
+
+describe('fetchPage', () => {
+  const page = {
+    title: 'Example page',
+    content_format: 'json' as const,
+    content: { element: 'canvas-page' },
+  };
+
+  it('keeps a public component tree marker-free', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+    const { server } = makeServer(fetchImpl as unknown as typeof fetch);
+
+    await expect(server.fetchPage('/example')).resolves.toEqual(page);
+  });
+
+  it('marks a draft component tree as editor-renderable', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+    const { server, seedSession } = makeServer(
+      fetchImpl as unknown as typeof fetch,
+    );
+    seedSession(liveDraftData());
+
+    await expect(server.fetchPage('/example')).resolves.toEqual({
+      ...page,
+      content: { element: 'canvas-page', canvasDraftMode: true },
+    });
+  });
+});

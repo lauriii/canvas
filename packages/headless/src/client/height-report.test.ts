@@ -5,6 +5,7 @@ import {
   HEADLESS_HEIGHT_MESSAGE,
   HEADLESS_HEIGHT_PROBE_MESSAGE,
   HEADLESS_HEIGHT_PROBE_READY_MESSAGE,
+  HEADLESS_STATUS_REQUEST_MESSAGE,
   HEADLESS_VIEWPORT_HEIGHT_MESSAGE,
 } from '../constants';
 import { createHeightReporter } from './height-report';
@@ -12,6 +13,7 @@ import { createHeightReporter } from './height-report';
 import type { HeightReporter, HeightReporterOptions } from './height-report';
 
 const ORIGIN = 'https://drupal.example';
+const HOST_SESSION_ID = 'host-session';
 const reporters: HeightReporter[] = [];
 
 /**
@@ -95,6 +97,16 @@ function makeHarness(
 
   const reporter = createHeightReporter(options);
   reporters.push(reporter);
+  window.dispatchEvent(
+    new MessageEvent('message', {
+      origin: ORIGIN,
+      source: hostWindow as unknown as Window,
+      data: {
+        type: HEADLESS_STATUS_REQUEST_MESSAGE,
+        hostSessionId: HOST_SESSION_ID,
+      },
+    }),
+  );
 
   const triggerMutation = (height: number) => {
     documentHeight = height;
@@ -136,7 +148,11 @@ describe('createHeightReporter', () => {
     const { postMessage } = makeHarness();
     await vi.waitFor(() => {
       expect(postMessage).toHaveBeenCalledWith(
-        { type: HEADLESS_HEIGHT_MESSAGE, height: 100 },
+        {
+          type: HEADLESS_HEIGHT_MESSAGE,
+          hostSessionId: HOST_SESSION_ID,
+          height: 100,
+        },
         ORIGIN,
       );
     });
@@ -151,7 +167,11 @@ describe('createHeightReporter', () => {
 
     await vi.waitFor(() => {
       expect(postMessage).toHaveBeenCalledWith(
-        { type: HEADLESS_HEIGHT_MESSAGE, height: 250 },
+        {
+          type: HEADLESS_HEIGHT_MESSAGE,
+          hostSessionId: HOST_SESSION_ID,
+          height: 250,
+        },
         ORIGIN,
       );
     });
@@ -166,7 +186,11 @@ describe('createHeightReporter', () => {
 
     await vi.waitFor(() => {
       expect(postMessage).toHaveBeenCalledWith(
-        { type: HEADLESS_HEIGHT_MESSAGE, height: 300 },
+        {
+          type: HEADLESS_HEIGHT_MESSAGE,
+          hostSessionId: HOST_SESSION_ID,
+          height: 300,
+        },
         ORIGIN,
       );
     });
@@ -222,6 +246,7 @@ describe('createHeightReporter', () => {
                 source: hostWindow as unknown as Window,
                 data: {
                   type: HEADLESS_HEIGHT_PROBE_READY_MESSAGE,
+                  hostSessionId: HOST_SESSION_ID,
                   id: message.id,
                   height: message.height,
                 },
@@ -234,7 +259,11 @@ describe('createHeightReporter', () => {
 
     await vi.waitFor(() => {
       expect(postMessage).toHaveBeenCalledWith(
-        { type: HEADLESS_HEIGHT_MESSAGE, height: 750 },
+        {
+          type: HEADLESS_HEIGHT_MESSAGE,
+          hostSessionId: HOST_SESSION_ID,
+          height: 750,
+        },
         ORIGIN,
       );
     });
@@ -264,6 +293,7 @@ describe('createHeightReporter', () => {
         source: hostWindow as unknown as Window,
         data: {
           type: HEADLESS_VIEWPORT_HEIGHT_MESSAGE,
+          hostSessionId: HOST_SESSION_ID,
           height: 600,
         },
       }),
@@ -271,7 +301,11 @@ describe('createHeightReporter', () => {
 
     await vi.waitFor(() => {
       expect(postMessage).toHaveBeenCalledWith(
-        { type: HEADLESS_HEIGHT_MESSAGE, height: 900 },
+        {
+          type: HEADLESS_HEIGHT_MESSAGE,
+          hostSessionId: HOST_SESSION_ID,
+          height: 900,
+        },
         ORIGIN,
       );
     });

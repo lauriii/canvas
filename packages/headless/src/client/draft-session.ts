@@ -37,9 +37,11 @@
 
 import {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_REFRESH_ACK_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
   HEADLESS_STATUS_MESSAGE,
+  HEADLESS_STATUS_REQUEST_MESSAGE,
 } from '../constants';
 import { EXPIRY_SLACK_MS } from '../draft-data';
 
@@ -158,6 +160,7 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
   let expired = initialExpired;
   let renewState: DraftSessionRenewState = 'idle';
   let destroyed = false;
+  let hostSessionId: string | null = null;
   const timers = new Set<ReturnType<typeof setTimeout>>();
 
   const emit = (event: DraftSessionEvent) => {
@@ -181,7 +184,10 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
 
   const postToHost = (message: Record<string, unknown>) => {
     if (editorOrigin) {
-      hostWindow?.postMessage(message, editorOrigin);
+      hostWindow?.postMessage(
+        hostSessionId ? { ...message, hostSessionId } : message,
+        editorOrigin,
+      );
     }
   };
 
@@ -248,7 +254,31 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
           return;
         }
 
+        if (event.data.type === HEADLESS_STATUS_REQUEST_MESSAGE) {
+          if (
+            typeof event.data.hostSessionId === 'string' &&
+            event.data.hostSessionId !== ''
+          ) {
+            hostSessionId = event.data.hostSessionId;
+            reportStatus();
+          }
+          return;
+        }
+
+        if (
+          hostSessionId === null ||
+          event.data.hostSessionId !== hostSessionId
+        ) {
+          return;
+        }
+
         if (event.data.type === HEADLESS_REFRESH_MESSAGE) {
+          if (typeof event.data.refreshId === 'number') {
+            postToHost({
+              type: HEADLESS_REFRESH_ACK_MESSAGE,
+              refreshId: event.data.refreshId,
+            });
+          }
           emit({ type: 'refresh-requested' });
           refreshData?.();
           return;

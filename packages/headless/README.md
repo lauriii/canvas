@@ -6,9 +6,12 @@ decoupled frontend apps.
 
 The Canvas Headless module lets the Drupal Canvas editor embed your frontend
 app, so editors preview their work — draft content included — rendered by the
-app itself, with the app's components registered in Canvas. This package is the
-framework-neutral app side of that integration. Most apps use a framework
-adapter instead of this package directly:
+app itself, with the app's components registered in Canvas. Draft previews
+include the markers and geometry Canvas needs for selection and drag-and-drop,
+while published pages keep normal application markup.
+
+This package is the framework-neutral app side of that integration. Most apps
+use a framework adapter instead of this package directly:
 
 - `@drupal-canvas/headless-next` (Next.js)
 - `@drupal-canvas/headless-astro` (Astro)
@@ -32,7 +35,7 @@ The subpaths keep browser bundles free of Node-only code and vice versa:
 - `@drupal-canvas/headless` — isomorphic: the protocol constants and the
   `DraftData` session contract.
 - `@drupal-canvas/headless/client` — browser-only: the draft session state
-  machine and the `<canvas-draft-session>` element.
+  machine, the `<canvas-draft-session>` element, and preview geometry helpers.
 - `@drupal-canvas/headless/server` — server-side, edge-safe: the draft server
   with its activation, renewal, and exit flows, the draft-aware content clients,
   and CSP helpers.
@@ -42,6 +45,8 @@ The subpaths keep browser bundles free of Node-only code and vice versa:
   implementation registry source.
 - `@drupal-canvas/headless/vite` — Node-only: the shared component registry
   plugin for adapters built on Vite.
+- `@drupal-canvas/headless/preview.css` — styles empty slot and region drop
+  targets in draft previews.
 
 ## Writing a framework adapter
 
@@ -71,8 +76,17 @@ every step:
    from `@drupal-canvas/headless/vite` for Vite-based frameworks, or generated
    source from `@drupal-canvas/headless/component-registry` — and expose a
    `CanvasComponentTree` renderer that consumes it.
+
+   In draft mode, the renderer must emit Canvas boundaries and use
+   `@drupal-canvas/headless/preview.css` for empty drop targets.
+
 5. Wire the client side: render the `<canvas-draft-session>` element, or the
    React `<DraftSession>` from `@drupal-canvas/headless-react`, with the session
    state your server gathered.
+
+   To refresh after Canvas auto-saves without reloading the document, pass
+   `refreshData` to React's `DraftSession`, or handle
+   `DRAFT_SESSION_REFRESH_EVENT` when using `<canvas-draft-session>`.
+
 6. Expose data access: `server.getClient()` and `server.fetchPage()`, surfaced
    however your framework reaches per-request state.

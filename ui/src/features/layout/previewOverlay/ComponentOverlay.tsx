@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import clsx from 'clsx';
 import { useDraggable } from '@dnd-kit/core';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
-import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import { ComponentNameTag } from '@/features/layout/preview/NameTag';
+import { usePreviewDom } from '@/features/layout/preview/PreviewDomContext';
+import { usePreviewGeometry } from '@/features/layout/preview/PreviewGeometryContext';
 import ComponentDropZone from '@/features/layout/previewOverlay/ComponentDropZone';
 import SlotOverlay from '@/features/layout/previewOverlay/SlotOverlay';
 import {
@@ -19,27 +20,23 @@ import {
 } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import useGetComponentName from '@/hooks/useGetComponentName';
-import useSyncPreviewElementOffset from '@/hooks/useSyncPreviewElementOffset';
-import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
 
 import type React from 'react';
+import type { CanvasStackDirection } from '@drupal-canvas/preview-geometry';
 import type {
   ComponentNode,
   RegionNode,
   SlotNode,
 } from '@/features/layout/layoutModelSlice';
-import type { StackDirection } from '@/types/Annotations';
 
 import styles from './PreviewOverlay.module.css';
 
 export interface ComponentOverlayProps {
   component: ComponentNode;
-  iframeRef: React.RefObject<HTMLIFrameElement>;
   parentSlot?: SlotNode;
   parentRegion?: RegionNode;
   index: number;
   disableDrop?: boolean;
-  forceRecalculate?: number; // Increment this prop to trigger a re-calculation of the component overlay's border rect
 }
 
 const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
@@ -47,29 +44,26 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
     component,
     parentSlot,
     parentRegion,
-    iframeRef,
     index,
     disableDrop = false,
-    forceRecalculate = 0,
   } = props;
 
-  const { componentsMap, slotsMap, regionsMap } = useDataToHtmlMapValue();
-  const { elementRect, recalculateBorder } = useSyncPreviewElementSize(
-    componentsMap[component.uuid]?.elements,
-  );
-
-  let parentElementInsideIframe = null;
-  if (parentRegion?.id) {
-    parentElementInsideIframe = regionsMap[parentRegion.id]?.elements;
-  }
-  if (parentSlot?.id) {
-    parentElementInsideIframe = slotsMap[parentSlot.id]?.element;
-  }
-  const { offset, recalculateOffset } = useSyncPreviewElementOffset(
-    componentsMap[component.uuid]?.elements,
-    parentElementInsideIframe ? parentElementInsideIframe : null,
-  );
-  const [initialized, setInitialized] = useState(false);
+  const componentsMap = usePreviewDom()?.componentsMap;
+  const { geometryMap } = usePreviewGeometry();
+  const componentGeometry = geometryMap.component[component.uuid];
+  const parentGeometry = parentRegion?.id
+    ? geometryMap.region[parentRegion.id]
+    : parentSlot?.id
+      ? geometryMap.slot[parentSlot.id]
+      : undefined;
+  const offsetLeft =
+    componentGeometry && parentGeometry
+      ? componentGeometry.rect.left - parentGeometry.rect.left
+      : 0;
+  const offsetTop =
+    componentGeometry && parentGeometry
+      ? componentGeometry.rect.top - parentGeometry.rect.top
+      : 0;
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, component.uuid);
   });
@@ -81,7 +75,6 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const { setSelectedComponent, handleComponentSelection } =
     useComponentSelection();
   const { isDragging } = useAppSelector(selectDragging);
-  const elementsInsideIframe = useRef<HTMLElement[] | []>([]);
   const name = useGetComponentName(component);
   const {
     attributes,
@@ -94,40 +87,13 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
       origin: 'overlay',
       component: component,
       name: name,
-      elementsInsideIframe: elementsInsideIframe.current,
+      elementsInsideIframe: componentsMap?.[component.uuid]?.elements ?? [],
     },
   });
-  const [forceRecalculateChildren, setForceRecalculateChildren] = useState(0);
 
   const isSelected = useAppSelector((state) =>
     selectComponentIsSelected(state, component.uuid),
   );
-
-  useEffect(() => {
-    const iframeDocument = iframeRef.current?.contentDocument;
-    if (!iframeDocument || !componentsMap[component.uuid]) {
-      return;
-    }
-
-    elementsInsideIframe.current = componentsMap[component.uuid]?.elements;
-  }, [slotsMap, componentsMap, elementRect, component.uuid, iframeRef]);
-
-  useEffect(() => {
-    if (offset.offsetLeft !== undefined || offset.offsetTop !== undefined) {
-      setInitialized(true);
-    }
-  }, [offset.offsetLeft, offset.offsetTop]);
-
-  // Recalculate the children's borders when the elementRect changes
-  useEffect(() => {
-    setForceRecalculateChildren((prev) => prev + 1);
-  }, [elementRect]);
-
-  // Recalculate the border when the parent increments the forceRecalculate prop
-  useEffect(() => {
-    recalculateBorder();
-    recalculateOffset();
-  }, [forceRecalculate, recalculateBorder, recalculateOffset]);
 
   function handleComponentClick(event: React.MouseEvent<HTMLElement>) {
     event.stopPropagation();
@@ -156,27 +122,31 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
 
   const style: React.CSSProperties = useMemo(
     () => ({
-      opacity: initialized ? '1' : '0',
-      height: elementRect.height * editorViewPortScale,
-      width: elementRect.width * editorViewPortScale,
-      top: (offset.offsetTop || 0) * editorViewPortScale,
-      left: (offset.offsetLeft || 0) * editorViewPortScale,
+      height: (componentGeometry?.rect.height ?? 0) * editorViewPortScale,
+      width: (componentGeometry?.rect.width ?? 0) * editorViewPortScale,
+      top: offsetTop * editorViewPortScale,
+      left: offsetLeft * editorViewPortScale,
     }),
     [
-      initialized,
-      elementRect.height,
-      elementRect.width,
+      componentGeometry?.rect.height,
+      componentGeometry?.rect.width,
       editorViewPortScale,
-      offset,
+      offsetLeft,
+      offsetTop,
     ],
   );
 
-  let stackDirection: StackDirection = 'vertical';
-  if (parentSlot && slotsMap) {
-    stackDirection = slotsMap[parentSlot.id]?.stackDirection || 'vertical';
+  let stackDirection: CanvasStackDirection = 'vertical';
+  if (parentSlot) {
+    stackDirection =
+      geometryMap.slot[parentSlot.id]?.stackDirection || 'vertical';
   }
 
   const [componentType] = component.type.split('@');
+
+  if (!componentGeometry || !parentGeometry) {
+    return null;
+  }
 
   return (
     <div
@@ -224,11 +194,9 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
       {component.slots.map((slot: SlotNode) => (
         <SlotOverlay
           key={slot.name}
-          iframeRef={iframeRef}
           parentComponent={component}
           slot={slot}
           disableDrop={disableDrop || isComponentDragged}
-          forceRecalculate={forceRecalculateChildren}
         />
       ))}
 

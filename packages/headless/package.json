@@ -17,7 +17,9 @@
     "access": "public"
   },
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/preview.css"
+  ],
   "main": "./dist/index.js",
   "exports": {
     ".": {
@@ -54,7 +56,8 @@
       "types": "./dist/vite.d.ts",
       "import": "./dist/vite.js",
       "default": "./dist/vite.js"
-    }
+    },
+    "./preview.css": "./dist/preview.css"
   },
   "scripts": {
     "dev": "NODE_ENV=development tsdown --watch",
@@ -68,6 +71,7 @@
   "devDependencies": {
     "@drupal-canvas/discovery": "*",
     "@drupal-canvas/height-reader": "*",
+    "@drupal-canvas/preview-geometry": "*",
     "@types/node": "^24.10.1",
     "jsdom": "^26.1.0",
     "tsdown": "^0.22.12",

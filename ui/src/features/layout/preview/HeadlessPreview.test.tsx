@@ -16,6 +16,17 @@ let navigateTo: ReturnType<typeof useNavigate> | undefined;
 const setViewportHeight = vi.fn();
 const PREVIEW_HEIGHT_PROPERTY = '--canvas-headless-preview-height';
 
+vi.mock('@/features/layout/preview/PreviewGeometryContext', () => ({
+  usePreviewGeometryUpdater: () => ({
+    updateGeometry: vi.fn(),
+    clearGeometry: vi.fn(),
+  }),
+}));
+
+vi.mock('@/features/layout/previewOverlay/ViewportOverlay', () => ({
+  default: () => null,
+}));
+
 vi.mock('@drupal-canvas/headless-host', () => ({
   createHeadlessPreviewHost: vi.fn(
     ({

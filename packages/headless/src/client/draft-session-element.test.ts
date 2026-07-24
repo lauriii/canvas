@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   HEADLESS_ASSERTION_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
+  HEADLESS_STATUS_REQUEST_MESSAGE,
 } from '../constants';
 import { EXPIRY_SLACK_MS } from '../draft-data';
 import {
@@ -27,8 +28,22 @@ vi.mock('./height-report', () => ({
 }));
 
 const ORIGIN = 'https://drupal.example';
+const HOST_SESSION_ID = 'host-session';
 
 defineDraftSessionElement();
+
+function establishHostSession(): void {
+  window.dispatchEvent(
+    new MessageEvent('message', {
+      data: {
+        type: HEADLESS_STATUS_REQUEST_MESSAGE,
+        hostSessionId: HOST_SESSION_ID,
+      },
+      origin: ORIGIN,
+      source: window.parent,
+    }),
+  );
+}
 
 interface MountOptions {
   tokenExpiresAt?: number | null;
@@ -212,6 +227,7 @@ describe('DraftSessionElement', () => {
 
     try {
       const { element } = mount();
+      establishHostSession();
       let refreshEvent: Event | null = null;
       element.addEventListener(DRAFT_SESSION_REFRESH_EVENT, (event) => {
         refreshEvent = event;
@@ -220,7 +236,10 @@ describe('DraftSessionElement', () => {
 
       window.dispatchEvent(
         new MessageEvent('message', {
-          data: { type: HEADLESS_REFRESH_MESSAGE },
+          data: {
+            type: HEADLESS_REFRESH_MESSAGE,
+            hostSessionId: HOST_SESSION_ID,
+          },
           origin: ORIGIN,
           source: window.parent,
         }),
@@ -260,10 +279,15 @@ describe('DraftSessionElement', () => {
         tokenExpiresAt: Date.now() + 300_000,
       });
       expect(element.hasAttribute('embedded')).toBe(true);
+      establishHostSession();
 
       window.dispatchEvent(
         new MessageEvent('message', {
-          data: { type: HEADLESS_ASSERTION_MESSAGE, assertion: 'jwt-string' },
+          data: {
+            type: HEADLESS_ASSERTION_MESSAGE,
+            assertion: 'jwt-string',
+            hostSessionId: HOST_SESSION_ID,
+          },
           origin: ORIGIN,
           source: window.parent,
         }),

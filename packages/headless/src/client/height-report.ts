@@ -19,6 +19,7 @@ import {
   HEADLESS_HEIGHT_MESSAGE,
   HEADLESS_HEIGHT_PROBE_MESSAGE,
   HEADLESS_HEIGHT_PROBE_READY_MESSAGE,
+  HEADLESS_STATUS_REQUEST_MESSAGE,
   HEADLESS_VIEWPORT_HEIGHT_MESSAGE,
 } from '../constants';
 
@@ -63,6 +64,7 @@ export function createHeightReporter(
   const stableHeightReader = new StableHeightReader();
   let baseViewportHeight =
     resolvedWindow?.innerHeight ?? resolvedTarget.clientHeight;
+  let hostSessionId: string | null = null;
   let destroyed = false;
   let measuring = false;
   let measureAgain = false;
@@ -115,11 +117,12 @@ export function createHeightReporter(
 
   function requestProbeHeight(height: number | null): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (!editorOrigin || !hostWindow || destroyed) {
+      if (!editorOrigin || !hostWindow || !hostSessionId || destroyed) {
         reject(new Error('The height probe host is unavailable.'));
         return;
       }
 
+      const probeSessionId = hostSessionId;
       const id = `height-probe-${++nextProbeId}`;
       const timeout = resolvedWindow?.setTimeout(() => {
         pendingProbes.delete(id);
@@ -148,7 +151,12 @@ export function createHeightReporter(
         timeout,
       });
       hostWindow.postMessage(
-        { type: HEADLESS_HEIGHT_PROBE_MESSAGE, id, height },
+        {
+          type: HEADLESS_HEIGHT_PROBE_MESSAGE,
+          hostSessionId: probeSessionId,
+          id,
+          height,
+        },
         editorOrigin,
       );
     });
@@ -162,7 +170,21 @@ export function createHeightReporter(
       return;
     }
 
-    if (event.data?.type === HEADLESS_VIEWPORT_HEIGHT_MESSAGE) {
+    if (
+      event.data?.type === HEADLESS_STATUS_REQUEST_MESSAGE &&
+      typeof event.data.hostSessionId === 'string'
+    ) {
+      hostSessionId = event.data.hostSessionId;
+      stableHeightReader.clear();
+      scheduleHeight();
+      return;
+    }
+
+    if (hostSessionId === null || event.data?.hostSessionId !== hostSessionId) {
+      return;
+    }
+
+    if (event.data.type === HEADLESS_VIEWPORT_HEIGHT_MESSAGE) {
       const { height } = event.data;
       if (
         typeof height === 'number' &&
@@ -200,9 +222,10 @@ export function createHeightReporter(
   }
 
   async function measureAndPostHeight() {
-    if (!editorOrigin || destroyed) {
+    if (!editorOrigin || !hostSessionId || destroyed) {
       return;
     }
+    const measurementSessionId = hostSessionId;
     if (measuring) {
       measureAgain = true;
       return;
@@ -226,9 +249,13 @@ export function createHeightReporter(
               },
             },
           );
-          if (!destroyed) {
+          if (!destroyed && measurementSessionId === hostSessionId) {
             hostWindow?.postMessage(
-              { type: HEADLESS_HEIGHT_MESSAGE, height },
+              {
+                type: HEADLESS_HEIGHT_MESSAGE,
+                hostSessionId: measurementSessionId,
+                height,
+              },
               editorOrigin,
             );
           }
@@ -237,9 +264,13 @@ export function createHeightReporter(
           // report the unpinned document height rather than stopping sync.
           const height =
             await stableHeightReader.measureDocumentHeight(resolvedDocument);
-          if (!destroyed) {
+          if (!destroyed && measurementSessionId === hostSessionId) {
             hostWindow?.postMessage(
-              { type: HEADLESS_HEIGHT_MESSAGE, height },
+              {
+                type: HEADLESS_HEIGHT_MESSAGE,
+                hostSessionId: measurementSessionId,
+                height,
+              },
               editorOrigin,
             );
           }
@@ -269,10 +300,11 @@ export function createHeightReporter(
       if (destroyed) {
         return;
       }
-      if (probeActive && editorOrigin) {
+      if (probeActive && editorOrigin && hostSessionId) {
         hostWindow?.postMessage(
           {
             type: HEADLESS_HEIGHT_PROBE_MESSAGE,
+            hostSessionId,
             id: `height-probe-${++nextProbeId}`,
             height: null,
           },

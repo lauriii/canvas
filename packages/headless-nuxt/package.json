@@ -63,6 +63,7 @@
     }
   },
   "scripts": {
+    "test": "vitest run",
     "type-check": "vue-tsc --noEmit --pretty"
   },
   "dependencies": {
@@ -76,9 +77,11 @@
   },
   "devDependencies": {
     "@nuxt/nitro-server": "^4.4.8",
+    "jsdom": "^26.1.0",
     "nuxt": "^4.4.8",
     "typescript": "^5.9.3",
     "vue": "^3.5.39",
-    "vue-tsc": "^3.2.2"
+    "vue-tsc": "^3.2.2",
+    "vitest": "^4.0.18"
   }
 }

@@ -22,7 +22,7 @@ import styles from './Preview.module.css';
 /**
  * For non-full view modes (e.g. teaser, card), use no min height so the
  * viewport is exactly the content size. When the canvas is empty, the preview
- * iframe's empty-region placeholder (see preview.css) provides the height.
+ * iframe's shared empty-region placeholder stylesheet provides the height.
  */
 const NON_FULL_VIEW_MODE_MIN_HEIGHT = 0;
 
@@ -113,10 +113,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
       />
       {editorFrameMode === EditorFrameMode.EDIT && (
         <>
-          <ViewportOverlay
-            iframeRef={iframeRef}
-            previewContainerRef={previewContainerRef}
-          />
+          <ViewportOverlay previewContainerRef={previewContainerRef} />
           <RegionSpotlight />
         </>
       )}

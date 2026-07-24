@@ -2,9 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_REFRESH_ACK_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
   HEADLESS_STATUS_MESSAGE,
+  HEADLESS_STATUS_REQUEST_MESSAGE,
 } from '../constants';
 import { EXPIRY_SLACK_MS } from '../draft-data';
 import {
@@ -17,6 +19,7 @@ import type { DraftSessionEvent, DraftSessionOptions } from './draft-session';
 
 const ORIGIN = 'https://drupal.example';
 const OTHER_ORIGIN = 'https://other.example';
+const HOST_SESSION_ID = 'host-session';
 
 function makeHarness(overrides: Partial<DraftSessionOptions> = {}) {
   const postMessage = vi.fn();
@@ -51,14 +54,18 @@ function makeHarness(overrides: Partial<DraftSessionOptions> = {}) {
   const session = createDraftSession(options);
 
   const dispatchMessage = (event: Record<string, unknown>) => {
+    const data = event.data as Record<string, unknown> | undefined;
     for (const listener of [...listeners]) {
       listener({
         source: hostWindow,
         origin: ORIGIN,
         ...event,
+        ...(data ? { data: { hostSessionId: HOST_SESSION_ID, ...data } } : {}),
       } as unknown as Event);
     }
   };
+
+  dispatchMessage({ data: { type: HEADLESS_STATUS_REQUEST_MESSAGE } });
 
   return {
     session,
@@ -90,9 +97,13 @@ describe('createDraftSession', () => {
   it('reports the initial status to the signed editor origin', () => {
     const { postMessage } = makeHarness();
     const initial = statusMessages(postMessage);
-    expect(initial).toHaveLength(1);
-    expect(initial[0][0]).toMatchObject({ status: 'active', path: '/node/1' });
-    expect(initial[0][1]).toBe(ORIGIN);
+    expect(initial).toHaveLength(2);
+    expect(initial[1][0]).toMatchObject({
+      status: 'active',
+      path: '/node/1',
+      hostSessionId: HOST_SESSION_ID,
+    });
+    expect(initial[1][1]).toBe(ORIGIN);
   });
 
   it('posts nothing without a signed editor origin', () => {
@@ -145,7 +156,11 @@ describe('createDraftSession', () => {
     expect(session.getState().renewState).toBe('requested');
     expect(events).toContainEqual({ type: 'renew-requested' });
     expect(postMessage).toHaveBeenCalledWith(
-      { type: HEADLESS_RENEW_REQUEST_MESSAGE, path: '/node/1' },
+      {
+        type: HEADLESS_RENEW_REQUEST_MESSAGE,
+        path: '/node/1',
+        hostSessionId: HOST_SESSION_ID,
+      },
       ORIGIN,
     );
   });
@@ -209,14 +224,25 @@ describe('createDraftSession', () => {
     expect(refreshData).toHaveBeenCalledOnce();
   });
 
-  it('refreshes data when the host reports a new auto-save', () => {
-    const { events, fetchImpl, refreshData, dispatchMessage } = makeHarness();
+  it('acknowledges and refreshes data when the host reports a new auto-save', () => {
+    const { events, fetchImpl, postMessage, refreshData, dispatchMessage } =
+      makeHarness();
 
-    dispatchMessage({ data: { type: HEADLESS_REFRESH_MESSAGE } });
+    dispatchMessage({
+      data: { type: HEADLESS_REFRESH_MESSAGE, refreshId: 7 },
+    });
 
     expect(events).toContainEqual({ type: 'refresh-requested' });
     expect(refreshData).toHaveBeenCalledOnce();
     expect(fetchImpl).not.toHaveBeenCalled();
+    expect(postMessage).toHaveBeenCalledWith(
+      {
+        type: HEADLESS_REFRESH_ACK_MESSAGE,
+        refreshId: 7,
+        hostSessionId: HOST_SESSION_ID,
+      },
+      ORIGIN,
+    );
   });
 
   it.each([
@@ -228,6 +254,21 @@ describe('createDraftSession', () => {
     dispatchMessage({
       data: { type: HEADLESS_REFRESH_MESSAGE },
       ...event,
+    });
+
+    expect(events).not.toContainEqual({ type: 'refresh-requested' });
+    expect(refreshData).not.toHaveBeenCalled();
+  });
+
+  it('ignores commands from a previous host protocol session', () => {
+    const { events, refreshData, dispatchMessage } = makeHarness();
+
+    dispatchMessage({
+      data: {
+        type: HEADLESS_REFRESH_MESSAGE,
+        refreshId: 7,
+        hostSessionId: 'previous-session',
+      },
     });
 
     expect(events).not.toContainEqual({ type: 'refresh-requested' });

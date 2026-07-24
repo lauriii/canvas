@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
+  createCanvasGeometryBridge,
   createDraftSession,
   createHeightReporter,
 } from '@drupal-canvas/headless/client';
@@ -214,6 +215,14 @@ export function DraftSession({
       reporter.destroy();
     };
   }, [embedded, editorOrigin]);
+
+  useEffect(() => {
+    if (embedded !== true || !editorOrigin) {
+      return;
+    }
+    const bridge = createCanvasGeometryBridge({ editorOrigin });
+    return () => bridge.destroy();
+  }, [editorOrigin, embedded]);
 
   if (embedded === null || !children) {
     return null;

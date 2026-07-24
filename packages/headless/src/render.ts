@@ -41,6 +41,50 @@ export function normalizeCanvasComponentTreeSlot(
 }
 
 /**
+ * Whether a slot has no Canvas child components and needs an editor placeholder.
+ * String-only values are component defaults/examples, which editor rendering
+ * replaces with the empty-slot placeholder.
+ */
+export function isCanvasComponentTreeSlotEmpty(
+  slot: CanvasComponentTreeSlot | undefined,
+): boolean {
+  const children = normalizeCanvasComponentTreeSlot(slot);
+  return children.length === 0 || children.every(isCanvasSlotDefaultChild);
+}
+
+/** Whether a top-level Canvas region has no rendered page content. */
+export function isCanvasComponentTreeEmpty(
+  tree: CanvasComponentTreeElement | string,
+): boolean {
+  if (typeof tree === 'string') {
+    return tree.trim() === '';
+  }
+  if (getCanvasComponentRenderData(tree)) {
+    return false;
+  }
+  return Object.values(tree.slots ?? {}).every((slot) =>
+    normalizeCanvasComponentTreeSlot(slot).every((child) =>
+      isCanvasComponentTreeEmpty(child),
+    ),
+  );
+}
+
+/** Whether one slot child is default markup rather than a Canvas component. */
+function isCanvasSlotDefaultChild(
+  child: string | CanvasComponentTreeElement,
+): boolean {
+  if (typeof child === 'string') {
+    return true;
+  }
+  if (child.element !== 'drupal-markup') {
+    return false;
+  }
+  return Object.values(child.slots ?? {}).every((slot) =>
+    normalizeCanvasComponentTreeSlot(slot).every(isCanvasSlotDefaultChild),
+  );
+}
+
+/**
  * Gets the app registry key from a Drupal component custom-element name.
  *
  * Canvas external Code Components use the `js.` component source ID. The
@@ -99,6 +143,16 @@ export function getCanvasComponentRenderData(
       : {}),
     props,
   };
+}
+
+/** Reports that editor markers cannot identify a component instance. */
+export function reportMissingCanvasComponentUuid(
+  data: Pick<CanvasComponentRenderData, 'componentName'>,
+  path: string,
+): void {
+  console.error(
+    `[canvas] Canvas component "${data.componentName}" has no instance UUID; editor markers were omitted at "${path}".`,
+  );
 }
 
 /** Reports that a component and its subtree were omitted during rendering. */

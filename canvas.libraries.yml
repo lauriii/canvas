@@ -122,7 +122,7 @@ astro.hydration:
 preview:
   css:
     theme:
-      ui/assets/css/preview.css: {}
+      packages/preview-geometry/src/preview.css: {}
   js:
     ui/assets/js/canvasDisableLinksBehavior.js: { }
   dependencies:
@@ -254,4 +254,3 @@ multivalue-form:
   dependencies:
     - core/drupal
     - core/drupal.tabledrag
-
