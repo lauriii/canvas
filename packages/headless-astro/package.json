@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/headless-astro",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Astro adapter for the Drupal Canvas Headless SDK.",
   "license": "MIT",
   "repository": {
@@ -63,7 +63,7 @@
     "type-check": "astro check --tsconfig ./tsconfig.json && tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-canvas/headless": "^0.0.1"
+    "@drupal-canvas/headless": "^0.1.0"
   },
   "peerDependencies": {
     "astro": ">=5.17.0",
