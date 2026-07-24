@@ -130,3 +130,55 @@ Resulting tags:
 
 This keeps source branches clean while ensuring release archives include built
 assets for installation and Drupal.org packaging.
+
+## Releasing the npm packages
+
+The npm workspace packages in `packages/*` are released through
+[changesets](https://github.com/changesets/changesets), independently of the
+Drupal module release process above.
+
+### 1. Declaring changes
+
+Every merge request that changes a package declares its release intent with a
+changeset file (see `.changeset/README.md`):
+
+```bash
+npx changeset
+```
+
+The `changesets` CI job fails if a merge request changes package files without
+adding one. For changes that must not be released, add an empty changeset with
+`npx changeset --empty`.
+
+### 2. The version merge request
+
+On every push to `1.x`, the `version packages` CI job collects the pending
+changesets and maintains an automated "chore: version packages" merge request.
+That merge request bumps the affected package versions (including dependent
+packages whose internal dependency ranges change), updates each package's
+`CHANGELOG.md` from the changeset summaries, and syncs `package-lock.json`.
+
+The merge request is force-pushed on every push to `1.x`, so never commit to
+its branch (`changeset-release/1.x`) manually. Merge it whenever the
+accumulated changes should be released; nothing is published until then.
+
+The version merge request's pipeline runs `npm audit` as a warning-level
+pre-release check (the `audit (packages)` job). Review any reported
+vulnerabilities before merging; the job does not block the release, because
+an unfixable upstream advisory must not make releasing impossible.
+
+### 3. Publishing
+
+Merging the version merge request triggers the `publish packages` CI job, which
+publishes every public package whose version is ahead of the npm registry and
+pushes a `<name>@<version>` git tag for each published package. The job is
+idempotent: already published versions are skipped, so it can be retried
+safely after a partial failure.
+
+Required CI/CD variables:
+
+- `NPM_TOKEN`: npm automation token with publish rights for the
+  `@drupal-canvas` scope and the `drupal-canvas` package.
+- `GITLAB_CI_RELEASE_TOKEN`: GitLab token with `api` and `write_repository`
+  scopes, used to push the version branch and tags and to open the version
+  merge request.

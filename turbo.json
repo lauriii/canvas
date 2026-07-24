@@ -1,0 +1,47 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "ui": "tui",
+  // Every workspace tsconfig extends the root one, so its changes must bust
+  // task caches; Turborepo's global hash does not include it by default.
+  "globalDependencies": ["tsconfig.json"],
+  "tasks": {
+    // Package task inputs start from Turborepo's default (all files in the
+    // package) and subtract files that cannot affect the task's result, so
+    // for example the CHANGELOG.md updates from a release do not invalidate
+    // build caches. The package-root README.md and CHANGELOG.md are excluded
+    // everywhere; test files stay inputs for type-check and test.
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!README.md", "!CHANGELOG.md", "!**/*.test.*"],
+      "outputs": ["dist/**"]
+    },
+    "build:app": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!README.md", "!CHANGELOG.md", "!**/*.test.*"],
+      "outputs": ["dist/**"]
+    },
+    "type-check": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!README.md", "!CHANGELOG.md"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!README.md", "!CHANGELOG.md"]
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    },
+    // Root lint tasks are declared so `turbo run` can execute them.
+    "//#lint:cspell": {},
+    "//#lint:eslint": {},
+    "//#lint:openapi": {},
+    "//#lint:prettier": {},
+    "//#lint:stylelint": {},
+    "//#lint:yaml": {},
+    // End-to-end tests run against a live Drupal site; their result is not a
+    // pure function of repository files, so they are never cached.
+    "//#test:playwright": { "cache": false }
+  }
+}

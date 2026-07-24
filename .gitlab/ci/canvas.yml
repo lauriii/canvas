@@ -1,6 +1,5 @@
 .canvas-ui: &canvas-ui
   - npm ci
-  # The UI depends on headless-host, which imports the headless core's
-  # compiled dist.
-  - npm run build -w @drupal-canvas/headless
+  # The UI's build script runs through Turborepo, which builds its workspace
+  # dependencies (headless, astro-hydration, and their dependencies) first.
   - npm run build -w ui
