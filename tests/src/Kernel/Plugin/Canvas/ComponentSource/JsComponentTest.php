@@ -19,9 +19,12 @@ use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\canvas_test_code_components\Hook\IslandCastaway;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
@@ -45,6 +48,7 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\link\LinkItemInterface;
 use Drupal\link\LinkTitleVisibility;
 use Drupal\media\Entity\MediaType;
@@ -3097,6 +3101,208 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
   }
 
   /**
+   * A content-entity-reference payload resolves in the host entity's language.
+   *
+   * The referenced entity's fields must be read in the same language as the
+   * rest of the component instance's props — the host entity's language — not
+   * the referenced entity's own default language.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::buildReferencePayload()
+   */
+  public function testContentEntityReferencePropResolvesInHostLanguage(): void {
+    $fixtures = $this->setUpContentEntityReferenceFixtures(translatable: TRUE);
+
+    $en = $this->resolvePickedNewsReference($fixtures, 'en');
+    $es = $this->resolvePickedNewsReference($fixtures, 'es');
+    self::assertSame('The referenced news item', self::resolvedLabel($en));
+    self::assertSame('The referenced news item in Spanish', self::resolvedLabel($es));
+
+    // The payload's cacheability reflects that the reading language is the
+    // host's: besides the referenced entity's cache tag (whose fields are
+    // read), it carries the host entity's cache tag, so changing the host's
+    // language/translation invalidates the payload. `user.permissions` is
+    // present because the referenced entity is resolved access-aware.
+    //
+    // There is deliberately NO `languages:language_content` cache context: the
+    // reading language is pinned to a concrete host entity (via
+    // NegotiatedLanguage::matchEntity()) and tracked by that entity's cache
+    // tag, not negotiated from request context — matching how
+    // EntityFieldPropSource and StaticPropSource resolve references. The
+    // language context only applies to the host-less fallback, where the
+    // language IS negotiated from context (NegotiatedLanguage::
+    // negotiateFromConfigAndContext()).
+    $es_cacheability = CacheableMetadata::createFromObject($es);
+    self::assertEqualsCanonicalizing([
+      'node:' . $fixtures['referenced_news']->id(),
+      'node:' . $fixtures['host_news']->id(),
+    ], $es_cacheability->getCacheTags());
+    self::assertSame(['user.permissions'], $es_cacheability->getCacheContexts());
+    self::assertSame(Cache::PERMANENT, $es_cacheability->getCacheMaxAge());
+  }
+
+  /**
+   * A draft (unpublished) referenced translation is gated on view permission.
+   *
+   * The referenced entity has a published English translation and an
+   * unpublished Spanish one. In the Spanish host language, a user who cannot
+   * view the draft receives the published English fallback (core's access-aware
+   * getTranslationFromContext()); a user who can view unpublished content
+   * receives the Spanish draft.
+   */
+  public function testContentEntityReferencePropDraftTranslationRespectsViewPermission(): void {
+    $fixtures = $this->setUpContentEntityReferenceFixtures(translatable: TRUE);
+    // Make the referenced entity's Spanish translation an unpublished draft.
+    $fixtures['referenced_news']->getTranslation('es')->setUnpublished()->save();
+
+    // A user who cannot view unpublished content gets the published fallback.
+    $this->setUpCurrentUser([], ['access content']);
+    $fallback = $this->resolvePickedNewsReference($fixtures, 'es');
+    self::assertSame('The referenced news item', self::resolvedLabel($fallback));
+    // The served translation depends on view access, so the payload must carry
+    // `user.permissions`: without it, revoking view-unpublished access would not
+    // invalidate a cached payload and one user's fallback could be served to
+    // another.
+    self::assertSame(['user.permissions'], CacheableMetadata::createFromObject($fallback)->getCacheContexts());
+
+    // A user who can view unpublished content gets the Spanish draft.
+    $this->setUpCurrentUser([], ['access content', 'bypass node access']);
+    self::assertSame('The referenced news item in Spanish', self::resolvedLabel($this->resolvePickedNewsReference($fixtures, 'es')));
+  }
+
+  /**
+   * Returns the `label` of a resolved content-entity-reference payload.
+   */
+  private static function resolvedLabel(EvaluationResult $result): mixed {
+    self::assertIsArray($result->value);
+    return $result->value['label'] ?? NULL;
+  }
+
+  /**
+   * A reference nested inside a reference also resolves in the host's language.
+   *
+   * The fix threads the negotiated language through the recursion, so not only
+   * the picked entity's fields but also those of any entity it references in
+   * turn are read in the host's language.
+   */
+  public function testContentEntityReferencePropResolvesNestedReferenceInHostLanguage(): void {
+    $fixtures = $this->setUpContentEntityReferenceFixtures(translatable: TRUE);
+
+    // A second-level referenced entity: referenced_news → field_related_news →
+    // deeper_news. The deeper entity must resolve in the host's language too.
+    $deeper_news = Node::create(['type' => 'news_item', 'title' => 'The deeper news item']);
+    self::assertEntityIsValid($deeper_news);
+    $deeper_news->save();
+    $deeper_news->addTranslation('es', ['title' => 'The deeper news item in Spanish'])->save();
+    $referenced_news = $fixtures['referenced_news'];
+    $referenced_news->set('field_related_news', $deeper_news->id())->save();
+    $referenced_news->getTranslation('es')->set('field_related_news', $deeper_news->id())->save();
+
+    // A component whose news_item_reference prop reads the referenced entity's
+    // own title and descends its field_related_news to read the deeper entity's.
+    $news_def = BetterEntityDataDefinition::create('node', 'news_item');
+    $machine_name = 'nested_content_entity_reference_test_component';
+    $component_id = JsComponent::componentIdFromJavascriptComponentId($machine_name);
+    JavaScriptComponent::create([
+      'machineName' => $machine_name,
+      'name' => 'Nested entity reference test component',
+      'status' => TRUE,
+      'props' => [
+        'news_item_reference' => [
+          'title' => 'Featured news item',
+          ...JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+        ],
+      ],
+      'required' => [],
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [
+        'entityFields' => [
+          'news_item_reference' => [
+            (string) new FieldPropExpression($news_def, 'title', NULL, 'value'),
+            (string) new ReferenceFieldPropExpression(
+              new FieldPropExpression($news_def, 'field_related_news', NULL, 'entity'),
+              new FieldPropExpression($news_def, 'title', NULL, 'value'),
+            ),
+          ],
+        ],
+      ],
+    ])->save();
+
+    $payload = $this->resolvePickedNewsReference($fixtures, 'es', $component_id)->value;
+    self::assertIsArray($payload);
+    // The picked entity resolves in the host's (Spanish) language …
+    self::assertSame('The referenced news item in Spanish', $payload['label'] ?? NULL);
+    // … and so does the entity it references in turn.
+    $nested = $payload['field_related_news'] ?? NULL;
+    self::assertIsArray($nested);
+    self::assertSame('The deeper news item in Spanish', $nested['label'] ?? NULL);
+  }
+
+  /**
+   * Without a host, the reference resolves in the negotiated content language.
+   *
+   * When no host entity (nor a fieldable tree root) pins the reading language,
+   * NegotiatedLanguage::forReferenceHost() falls back to
+   * negotiateFromConfigAndContext(), which on a multilingual site attaches the
+   * `languages:language_content` cache context — the one place the reference
+   * payload's cacheability differs from the host-pinned case.
+   */
+  public function testContentEntityReferencePropResolvesInNegotiatedLanguageWithoutHost(): void {
+    $fixtures = $this->setUpContentEntityReferenceFixtures(translatable: TRUE);
+
+    $result = $this->resolvePickedNewsReference($fixtures, NULL);
+    // Resolves in the negotiated content language (the site default here).
+    self::assertSame('The referenced news item', self::resolvedLabel($result));
+    $cacheability = CacheableMetadata::createFromObject($result);
+    // No host entity, so no host cache tag — the reading language is carried by
+    // the content-language cache context instead. (The host-pinned case does
+    // the opposite: host cache tag, no language context.)
+    self::assertSame(['node:' . $fixtures['referenced_news']->id()], $cacheability->getCacheTags());
+    self::assertEqualsCanonicalizing(['languages:language_content', 'user.permissions'], $cacheability->getCacheContexts());
+  }
+
+  /**
+   * Resolves the picked `news_item_reference` with the host read in $host_langcode.
+   *
+   * A picked (StaticPropSource) content-entity-reference: the author selected
+   * the fixture's referenced news item. The host is read in $host_langcode,
+   * which is the language `JsComponent::getExplicitInput()` resolves the
+   * reference payload in; pass NULL for no host, so the language falls back to
+   * the negotiated content language. $component_id defaults to the fixture
+   * component, but can name another news_item_reference component (e.g. the
+   * nested case).
+   *
+   * @return \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult
+   *   The developer-facing payload (and its cacheability) for the reference.
+   */
+  private function resolvePickedNewsReference(array $fixtures, ?string $host_langcode, ?string $component_id = NULL): EvaluationResult {
+    $component_id ??= $fixtures['component_id'];
+    $inputs = [
+      'news_item_reference' => [
+        'sourceType' => 'static:field_item:entity_reference',
+        'expression' => 'ℹ︎entity_reference␟entity',
+        'value' => $fixtures['referenced_news']->id(),
+        'sourceTypeSettings' => [
+          'storage' => ['target_type' => 'node'],
+          'instance' => [
+            'handler' => 'default:node',
+            'handler_settings' => ['target_bundles' => ['news_item' => 'news_item']],
+          ],
+        ],
+      ],
+    ];
+    $component = Component::load($component_id);
+    self::assertInstanceOf(Component::class, $component);
+    $source = $component->getComponentSource();
+    self::assertInstanceOf(JsComponent::class, $source);
+    $host = $host_langcode === NULL ? NULL : $fixtures['host_news']->getTranslation($host_langcode);
+    $item = $this->buildComponentTreeItem($component_id, $inputs);
+    $resolved = $source->getExplicitInput($this->container->get('uuid')->generate(), $item, $host);
+    self::assertInstanceOf(EvaluationResult::class, $resolved['resolved']['news_item_reference']);
+    return $resolved['resolved']['news_item_reference'];
+  }
+
+  /**
    * An empty content-entity-reference does not produce a developer-facing payload.
    */
   public function testContentEntityReferencePropSilentSkipPaths(): void {
@@ -3496,10 +3702,19 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
    *   source: \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent,
    *   }
    */
-  private function setUpContentEntityReferenceFixtures(): array {
+  private function setUpContentEntityReferenceFixtures(bool $translatable = FALSE): array {
+    if ($translatable) {
+      // Enable translation before installing the node schema so
+      // content_translation's base fields are part of it.
+      $this->enableModules(['language', 'content_translation']);
+    }
     $this->installEntitySchema('node');
     $this->installSchema('node', 'node_access');
     $this->installConfig(['node']);
+    if ($translatable) {
+      $this->installConfig(['language']);
+      ConfigurableLanguage::createFromLangcode('es')->save();
+    }
 
     // Field-level access checks during expression evaluation require an
     // authenticated user with `access content` (and view-permission for the
@@ -3507,6 +3722,10 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     $this->setUpCurrentUser([], ['access content', 'access user profiles']);
 
     NodeType::create(['type' => 'news_item', 'name' => 'News item'])->save();
+    if ($translatable) {
+      \Drupal::service('content_translation.manager')->setEnabled('node', 'news_item', TRUE);
+      $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
+    }
 
     // Self-referencing field on news_item — keeps the fixture small while
     // exercising the host→target lookup path end-to-end.
@@ -3533,6 +3752,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     ]);
     self::assertEntityIsValid($referenced_news);
     $referenced_news->save();
+    if ($translatable) {
+      $referenced_news->addTranslation('es', ['title' => 'The referenced news item in Spanish'])->save();
+    }
 
     // The host's owner backs the bundleless `user_reference` EntityFieldPropSource
     // case (which evaluates against `host_news.uid`). Setting it
@@ -3548,6 +3770,12 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     ]);
     self::assertEntityIsValid($host_news);
     $host_news->save();
+    if ($translatable) {
+      $host_news->addTranslation('es', [
+        'title' => 'The host news item in Spanish',
+        'field_related_news' => $referenced_news->id(),
+      ])->save();
+    }
 
     $referenced_user = $this->createUser([], 'Some Fan');
     self::assertNotFalse($referenced_user);

@@ -420,6 +420,38 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
   /**
    * {@inheritdoc}
    */
+
+  /**
+   * Resolves the fieldable host entity a component instance evaluates against.
+   *
+   * Prop sources can only evaluate structured data from fieldable entities, but
+   * a component tree may be contained by a config entity. Prioritize the given
+   * host entity; otherwise use the component instance's tree root entity if it
+   * is fieldable; otherwise none (no DynamicPropSource can be evaluated). It is
+   * up to the code using/rendering a config entity to provide a fieldable host
+   * entity if EntityFieldPropSources are used, which currently is only the case
+   * for ContentTemplate component trees.
+   *
+   * @param \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem $item
+   *   The component instance.
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $host_entity
+   *   The host entity provided by the caller, if any.
+   *
+   * @return \Drupal\Core\Entity\FieldableEntityInterface|null
+   *   The fieldable host entity, or NULL when neither the given host nor the
+   *   tree root is a fieldable entity.
+   *
+   * @see \Drupal\canvas\PropSource\PropSourceBase::evaluate()
+   */
+  protected function getFieldableHostEntity(ComponentTreeItem $item, ?FieldableEntityInterface $host_entity): ?FieldableEntityInterface {
+    $root = $item->getRoot();
+    return match (TRUE) {
+      $host_entity instanceof FieldableEntityInterface => $host_entity,
+      $root instanceof EntityAdapter && $root->getEntity() instanceof FieldableEntityInterface => $root->getEntity(),
+      default => NULL,
+    };
+  }
+
   public function getExplicitInput(string $uuid, ComponentTreeItem $item, ?FieldableEntityInterface $host_entity = NULL): array {
     if (!$this->requiresExplicitInput()) {
       return [
@@ -428,22 +460,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       ];
     }
 
-    // Prop sources can only evaluate structured data from fieldable entities,
-    // but the component tree may be contained by a config entity.
-    // It is up to the code using/rendering that config entity to provide a
-    // fieldable host entity if EntityFieldPropSources are used, which currently
-    // is only the case for ContentTemplate component trees.
-    // @see \Drupal\canvas\PropSource\PropSourceBase::evaluate()
-    $root = $item->getRoot();
-    $fieldable_host_entity = match (TRUE) {
-      // Prioritize using the given host entity, if any.
-      $host_entity instanceof FieldableEntityInterface => $host_entity,
-      // Next, use the component instance's tree's host entity, if fieldable.
-      $root instanceof EntityAdapter && $root->getEntity() instanceof FieldableEntityInterface => $root->getEntity(),
-      // Otherwise, fall back to no host entity. This implies no
-      // DynamicPropSource can be evaluated.
-      default => NULL,
-    };
+    $fieldable_host_entity = $this->getFieldableHostEntity($item, $host_entity);
 
     $values = $item->getInputs() ?? [];
 

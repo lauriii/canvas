@@ -216,6 +216,11 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
       return $explicit_input;
     }
 
+    // The referenced entities must be read in the same language as the rest of
+    // this component instance's props: the resolved host entity's language (or
+    // the negotiated content language when there is no fieldable host).
+    $language = NegotiatedLanguage::forReferenceHost($this->getFieldableHostEntity($item, $host_entity));
+
     // Resolve all content-entity-reference props, by evaluating their entity
     // field expressions on the referenced entities. The parent already parsed
     // each prop's PropSource and evaluated it against the host entity (with the
@@ -249,7 +254,7 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
       // Add the prop source's cacheability: the host entity and reference field
       // that resolved $referenced_entity.
       \assert(isset($explicit_input['resolved']) && \is_array($explicit_input['resolved']));
-      $explicit_input['resolved'][$prop_name] = self::buildReferencePayload($referenced_entity, $expressions);
+      $explicit_input['resolved'][$prop_name] = self::buildReferencePayload($referenced_entity, $expressions, $language);
     }
 
     return $explicit_input;
@@ -278,6 +283,9 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
    *   loaded.
    * @param array<\Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface> $expressions
    *   The expressions, relative to $entity.
+   * @param \Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage $language
+   *   The language to resolve the referenced entity (and any entities it
+   *   references in turn) and read its field values in.
    *
    * @return \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult
    *   The payload object (always containing a `__type` key), wrapped in an
@@ -287,7 +295,7 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
    * @see \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult
    * @internal
    */
-  public static function buildReferencePayload(EvaluationResult $resolved_entity, array $expressions): EvaluationResult {
+  public static function buildReferencePayload(EvaluationResult $resolved_entity, array $expressions, NegotiatedLanguage $language): EvaluationResult {
     if (!$resolved_entity->value instanceof FieldableEntityInterface) {
       if ($resolved_entity->value === NULL) {
         // Either:
@@ -300,10 +308,17 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     }
     $entity = $resolved_entity->value;
 
+    // Resolve the referenced entity to $language before reading its field
+    // values, so its fields (and those of any entities it references in turn)
+    // are read in the negotiated language rather than the entity's own default.
+    $entity = Evaluator::resolveTranslationForReference($entity, $language);
+
     $payload = ['__type' => $entity->bundle()];
     // The resulting payload must still describe the cacheability of how
-    // $resolved_entity was loaded.
-    $payload_cacheability = CacheableMetadata::createFromObject($resolved_entity);
+    // $resolved_entity was loaded, plus the negotiated language it was resolved
+    // to.
+    $payload_cacheability = CacheableMetadata::createFromObject($resolved_entity)
+      ->addCacheableDependency($language);
 
     // References sharing a referencer field are descended into once, with
     // their target sub-expressions merged into a single nested object.
@@ -337,7 +352,7 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
       // hoisted by the EvaluationResult returned below.
       $payload[$expression->getDeveloperFacingKey()] = Evaluator::evaluate($entity, $expression,
         is_required: FALSE,
-        language: NegotiatedLanguage::matchEntity($entity),
+        language: $language,
       );
     }
 
@@ -345,9 +360,9 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     foreach ($reference_groups as $key => $group) {
       $referenced = Evaluator::evaluate($entity, $group['referencer'],
         is_required: FALSE,
-        language: NegotiatedLanguage::matchEntity($entity),
+        language: $language,
       );
-      $payload[$key] = self::buildReferencePayload($referenced, $group['targets']);
+      $payload[$key] = self::buildReferencePayload($referenced, $group['targets'], $language);
     }
 
     return new EvaluationResult($payload, $payload_cacheability);
