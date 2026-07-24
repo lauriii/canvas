@@ -131,6 +131,29 @@ variables:
 .mr-e2e-rule: &mr-e2e-rule
   if: ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "merge_train") && $E2E_TESTS_ENABLED == "true"
 
+# Skip a job on the automated version merge request (`changeset-release/*`).
+# That merge request only adds version bumps, changelogs, and lockfile range
+# updates on top of a 1.x commit whose full test suite already ran on the
+# push pipeline. Publishing is gated after the merge anyway: the `publish
+# packages` job needs `lint (node)` and `test (packages)` from the 1.x push
+# pipeline of the merged result, so a broken bump cannot publish. Skipping
+# the test and cache jobs here avoids re-running the whole suite every time
+# a push to 1.x force-updates the version merge request.
+.changeset-release-skip-rule: &changeset-release-skip-rule
+  if: '$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^changeset-release\//'
+  when: never
+
+# Skip a job on the 1.x push created by merging the automated version merge
+# request. The squashed merge commit keeps the git identity that the
+# `version packages` job configures; that identity is used by no other job or
+# workflow, so no other push to 1.x can carry it. The commit only adds
+# version bumps, changelogs, and lockfile updates on top of an already fully
+# tested commit, and publishing still gates on `lint (node)` and
+# `test (packages)`, which keep running in this pipeline.
+.version-merge-skip-rule: &version-merge-skip-rule
+  if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_AUTHOR == "Canvas version bot <canvas-version-bot@drupal.org>"'
+  when: never
+
 .manual-rule: &manual-rule
   - when: manual
     allow_failure: true
@@ -180,6 +203,7 @@ cache dependencies:
   allow_failure: true
   needs: []
   rules:
+    - *changeset-release-skip-rule
     - *push-rule
     - <<: *mr-rule
       changes:
@@ -316,6 +340,8 @@ lint (php):
   stage: validate
   needs: []
   rules:
+    - *version-merge-skip-rule
+    - *changeset-release-skip-rule
     - *push-rule
     - *mr-rule
   variables:
@@ -404,8 +430,7 @@ changesets:
     GIT_DEPTH: "0"
   rules:
     # The version MR consumes changesets and bumps versions; it is exempt.
-    - if: '$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^changeset-release\//'
-      when: never
+    - *changeset-release-skip-rule
     - <<: *mr-rule
       changes:
         paths:
@@ -426,6 +451,7 @@ changesets:
 
 phpunit (11.3 sqlite):
   rules:
+    - *version-merge-skip-rule
     - *push-rule
     - <<: *mr-rule
       changes:
@@ -563,6 +589,8 @@ vitest:
   stage: test
   image: *image-node
   rules:
+    - *version-merge-skip-rule
+    - *changeset-release-skip-rule
     - *push-rule
     - <<: *mr-rule
       changes:
@@ -637,6 +665,8 @@ vitest:
 cypress E2E:
   extends: .cypress-base
   rules:
+    - *version-merge-skip-rule
+    - *changeset-release-skip-rule
     - *push-rule
     - <<: *mr-e2e-rule
       changes:
@@ -666,6 +696,8 @@ cypress unit:
   script:
     - npx cypress run --component --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml"
   rules:
+    - *version-merge-skip-rule
+    - *changeset-release-skip-rule
     - *push-rule
     - <<: *mr-rule
       changes:
@@ -681,6 +713,8 @@ playwright:
       - SHARD: [ "1/6", "2/6", "3/6", "4/6", "5/6", "6/6" ]
         #PROJECT: [ "chromium", "firefox", "webkit" ]
   rules:
+    - *version-merge-skip-rule
+    - *changeset-release-skip-rule
     - *push-rule
     - <<: *mr-e2e-rule
       changes:
@@ -801,6 +835,7 @@ playwright-reports:
 test (packages):
   stage: test
   rules:
+    - *changeset-release-skip-rule
     - *push-rule
     - <<: *mr-rule
       changes:
@@ -874,8 +909,11 @@ version packages:
         exit 0
       fi
     - npm ci
-    - git config --local user.email "no-reply@drupal.org"
-    - git config --local user.name "drupal.org GitLab CI"
+    # This identity is used exclusively by this job: the squashed merge of the
+    # version merge request keeps it as the commit author, which is what the
+    # `.version-merge-skip-rule` matches. Keep the two in sync.
+    - git config --local user.email "canvas-version-bot@drupal.org"
+    - git config --local user.name "Canvas version bot"
     - git remote set-url origin https://gitlab-ci-token:${GITLAB_CI_RELEASE_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
     - git checkout -B changeset-release/$CI_DEFAULT_BRANCH
     - npx changeset version
