@@ -46,4 +46,6 @@ import HelloCard from './components/canvas/hello-card';
 
 Named Canvas slots become React props with rendered `ReactNode` values; a
 `default` slot becomes `children`. Drupal markup strings are inserted as trusted
-HTML.
+HTML. Because React does not natively support rendering comment nodes, draft
+trees use layout-neutral `<template>` markers for Canvas boundaries, which may
+affect structural CSS selectors. Published trees remain marker-free.

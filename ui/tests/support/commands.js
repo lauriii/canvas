@@ -1478,9 +1478,16 @@ Cypress.Commands.add('openMultivaluePopover', (fieldAlias, rowIndex) => {
     .click();
 });
 
+/**
+ * Inserts a component from the open Library panel.
+ *
+ * Set waitForVisible to false when the component does not produce preview
+ * geometry. The command still waits for the refreshed preview and component
+ * input form.
+ */
 Cypress.Commands.add('insertComponent', (identifier, options = {}) => {
   const { id, name } = identifier;
-  const { hasInputs = true } = options;
+  const { hasInputs = true, waitForVisible = true } = options;
 
   cy.findByText('Library', { selector: 'h4' }).should(($el) => {
     expect(
@@ -1503,6 +1510,9 @@ Cypress.Commands.add('insertComponent', (identifier, options = {}) => {
   // Count existing instances robustly (even if zero)
   cy.document().then((doc) => {
     const initialCount = doc.querySelectorAll(previewSelector).length;
+    const initialActiveIframe = doc.querySelector(
+      initializedReadyPreviewIframeSelector,
+    );
 
     // Open contextual menu and click Insert
     cy.get('[data-testid="canvas-primary-panel"]')
@@ -1510,23 +1520,23 @@ Cypress.Commands.add('insertComponent', (identifier, options = {}) => {
       .trigger('contextmenu');
 
     cy.findByText('Insert').click();
-    // Assert new instance appears
-    cy.get(previewSelector).should('have.length', initialCount + 1);
+    // Wait for the preview refresh to replace the active iframe.
+    if (initialActiveIframe) {
+      cy.get(initializedReadyPreviewIframeSelector, { timeout: 10000 }).should(
+        ($iframe) => {
+          expect($iframe).to.have.length(1);
+          expect($iframe[0]).not.to.equal(initialActiveIframe);
+        },
+      );
+    }
 
-    // Ensure the new instance is rendered
-    cy.get(previewSelector)
-      .eq(initialCount) // Get the newly added instance
-      .should('exist');
+    if (waitForVisible) {
+      // Assert new instance appears.
+      cy.get(previewSelector).should('have.length', initialCount + 1);
 
-    // @todo I'm not sure but it seems like some components DON'T have size (e.g. "Canvas test SDC with optional image, without example")
-    // Wait for all instances to have size
-    // cy.get(previewSelector).each(($el) => {
-    //   cy.wrap($el).should(($el) => {
-    //     const rect = $el[0].getBoundingClientRect();
-    //     expect(rect.width).to.be.greaterThan(0);
-    //     expect(rect.height).to.be.greaterThan(0);
-    //   });
-    // });
+      // Ensure the new instance is rendered.
+      cy.get(previewSelector).eq(initialCount).should('exist');
+    }
 
     // Optionally wait for the component input form to have any html
     if (hasInputs) {

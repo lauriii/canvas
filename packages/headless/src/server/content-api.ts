@@ -51,6 +51,8 @@ export interface CanvasComponentTreeElement {
   element: string;
   props?: Record<string, JsonValue>;
   slots?: Record<string, CanvasComponentTreeSlot>;
+  /** SDK render context: present while the draft/editor session is enabled. */
+  canvasDraftMode?: true;
 }
 
 /**
@@ -102,5 +104,12 @@ export async function fetchPage(
   if (!response.ok) {
     return null;
   }
-  return (await response.json()) as Page;
+  const page = (await response.json()) as Page;
+  if (draftData && typeof page.content !== 'string') {
+    return {
+      ...page,
+      content: { ...page.content, canvasDraftMode: true },
+    };
+  }
+  return page;
 }

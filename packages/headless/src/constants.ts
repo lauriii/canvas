@@ -35,6 +35,9 @@ export const CANVAS_HEADLESS_CLIENT_ID = 'canvas_headless';
  * (which re-exports these constants).
  */
 
+/** Host → app: establish the current iframe document's protocol session. */
+export const HEADLESS_STATUS_REQUEST_MESSAGE = 'canvas-headless:status-request';
+
 /** App → host: draft session state, sent on load and on every change. */
 export const HEADLESS_STATUS_MESSAGE = 'canvas-headless:status';
 
@@ -46,6 +49,16 @@ export const HEADLESS_ASSERTION_MESSAGE = 'canvas-headless:assertion';
 
 /** Host → app: refresh content after Canvas persisted a new auto-save. */
 export const HEADLESS_REFRESH_MESSAGE = 'canvas-headless:refresh';
+
+/** App → host: confirms that a numbered refresh command was received. */
+export const HEADLESS_REFRESH_ACK_MESSAGE = 'canvas-headless:refresh-ack';
+
+/** Host → app: complete the trusted geometry-channel handshake. */
+export const HEADLESS_GEOMETRY_REQUEST_MESSAGE =
+  'canvas-headless:geometry-request';
+
+/** App → host: one unchanged shared-library geometry snapshot. */
+export const HEADLESS_GEOMETRY_MESSAGE = 'canvas-headless:geometry';
 
 /**
  * App → host: current rendered content height, in CSS pixels. Sent on load

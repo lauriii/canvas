@@ -9,6 +9,7 @@ import type {
   HeadlessPreviewHost,
   HeadlessPreviewHostEvent,
 } from '@drupal-canvas/headless-host';
+import type { CanvasGeometry } from '@drupal-canvas/preview-geometry';
 import type { HeadlessSettings } from '@drupal-canvas/types';
 import type { AutoSavesHashRecord } from '@/types/AutoSaves';
 
@@ -18,6 +19,7 @@ export interface HeadlessDraftSession {
   contentHeight: number | null;
   /** Whether the active document has reported its first content height. */
   contentHeightReady: boolean;
+  geometry: CanvasGeometry[];
 }
 
 const WAITING_TEXT = 'Waiting for the preview to report its draft session…';
@@ -25,7 +27,9 @@ const WAITING_TEXT = 'Waiting for the preview to report its draft session…';
 /**
  * Maps host protocol events to the editor's status line text.
  */
-function statusTextFor(event: HeadlessPreviewHostEvent): string {
+function statusTextFor(
+  event: Exclude<HeadlessPreviewHostEvent, { type: 'geometry' }>,
+): string {
   switch (event.type) {
     case 'active':
       return `Draft session active — renews automatically around ${new Date(event.tokenExpiresAt).toLocaleTimeString()}.`;
@@ -63,6 +67,7 @@ export function useHeadlessDraftSession(
 ): HeadlessDraftSession {
   const { frontendOrigin, draftUrl, assertionUrl } = settings;
   const [statusText, setStatusText] = useState(WAITING_TEXT);
+  const [geometry, setGeometry] = useState<CanvasGeometry[]>([]);
   const hostRef = useRef<HeadlessPreviewHost | null>(null);
   const lastAutoSavesHashRef = useRef(autoSavesHash);
   const viewportHeightRef = useRef(viewportHeight);
@@ -107,12 +112,19 @@ export function useHeadlessDraftSession(
     }
     setStatusText(WAITING_TEXT);
     setContentHeightReady(false);
+    setGeometry([]);
     const host = createHeadlessPreviewHost({
       iframe,
       frontendOrigin,
       draftUrl,
       fetchAssertion,
-      onEvent: (event) => setStatusText(statusTextFor(event)),
+      onEvent: (event) => {
+        if (event.type === 'geometry') {
+          setGeometry(event.geometry);
+        } else {
+          setStatusText(statusTextFor(event));
+        }
+      },
       onHeight: (height) => {
         setContentHeight(height);
         setContentHeightReady(true);
@@ -158,5 +170,5 @@ export function useHeadlessDraftSession(
     hostRef.current?.setViewportHeight(viewportHeight);
   }, [viewportHeight]);
 
-  return { statusText, contentHeight, contentHeightReady };
+  return { statusText, contentHeight, contentHeightReady, geometry };
 }

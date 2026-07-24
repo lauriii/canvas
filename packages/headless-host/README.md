@@ -8,9 +8,8 @@ and can mint Drupal preview assertions for the editing user — typically one
 running inside an authenticated Drupal session. The Drupal Canvas UI uses it for
 the editor's preview frame. The package owns the protocol state machine:
 activation, in-place session renewal over origin-checked postMessage, recovery
-after an expired session, content refresh after Canvas auto-saves, and height
-reporting of the rendered content from the app to the host to size the Canvas
-preview iframe.
+after an expired session, content refresh after Canvas auto-saves, rendered
+content-height reporting, and preview geometry synchronization.
 
 ## Installation
 

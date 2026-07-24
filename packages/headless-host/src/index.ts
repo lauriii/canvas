@@ -10,14 +10,18 @@
  * session cookie never accompanies them. This module relays for the app
  * over postMessage:
  *
- *   app  → host  {type: 'canvas-headless:status', status, path, tokenExpiresAt}
- *   app  → host  {type: 'canvas-headless:renew-request', path}
- *   host → app   {type: 'canvas-headless:assertion', assertion}
- *   host → app   {type: 'canvas-headless:refresh'}
- *   app  → host  {type: 'canvas-headless:height', height}
- *   app  → host  {type: 'canvas-headless:height-probe', id, height}
- *   host → app   {type: 'canvas-headless:height-probe-ready', id, height}
- *   host → app   {type: 'canvas-headless:viewport-height', height}
+ *   host → app   {type: 'canvas-headless:status-request', hostSessionId}
+ *   app  → host  {type: 'canvas-headless:status', hostSessionId, status, path, tokenExpiresAt}
+ *   app  → host  {type: 'canvas-headless:renew-request', hostSessionId, path}
+ *   host → app   {type: 'canvas-headless:assertion', hostSessionId, assertion}
+ *   host → app   {type: 'canvas-headless:refresh', hostSessionId, refreshId}
+ *   app  → host  {type: 'canvas-headless:refresh-ack', hostSessionId, refreshId}
+ *   app  → host  {type: 'canvas-headless:height', hostSessionId, height}
+ *   app  → host  {type: 'canvas-headless:height-probe', hostSessionId, id, height}
+ *   host → app   {type: 'canvas-headless:height-probe-ready', hostSessionId, id, height}
+ *   host → app   {type: 'canvas-headless:viewport-height', hostSessionId, height}
+ *   host → app   {type: 'canvas-headless:geometry-request', hostSessionId}
+ *   app  → host  {type: 'canvas-headless:geometry', hostSessionId, geometry}
  *
  * On a renew request the host fetches a fresh assertion (via the
  * `fetchAssertion` callback, which owns transport specifics such as CSRF)
@@ -32,12 +36,16 @@
  * again, so a session that cannot recover does not reload in a loop.
  * Separately, refresh() tells the app that its Canvas auto-save data changed,
  * allowing the app's framework adapter to refresh without replaying the
- * single-use activation URL. Refreshes requested while the app is loading are
- * coalesced and delivered once it reports an active session.
+ * single-use activation URL. Numbered commands are queued until the app
+ * acknowledges receipt. Refreshes requested while the app is loading are
+ * delivered once it reports an active session, and an unacknowledged command
+ * is re-sent if the app-side session machine is recreated.
  *
  * Every message is origin-checked in both directions: incoming events must
  * come from the configured frontend origin and from the host's own iframe;
- * outgoing messages are addressed to that origin, never '*'.
+ * outgoing messages are addressed to that origin, never '*'. Each loaded
+ * iframe document also gets a new host session ID, so messages queued by the
+ * previous document cannot affect its replacement.
  *
  * Height reporting is independent of the session lifecycle above. The app
  * reports its final height on load and after layout changes. It may also ask
@@ -47,27 +55,38 @@
 
 import {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_GEOMETRY_MESSAGE,
+  HEADLESS_GEOMETRY_REQUEST_MESSAGE,
   HEADLESS_HEIGHT_MESSAGE,
   HEADLESS_HEIGHT_PROBE_MESSAGE,
   HEADLESS_HEIGHT_PROBE_READY_MESSAGE,
+  HEADLESS_REFRESH_ACK_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
   HEADLESS_STATUS_MESSAGE,
+  HEADLESS_STATUS_REQUEST_MESSAGE,
   HEADLESS_VIEWPORT_HEIGHT_MESSAGE,
+  isCanvasGeometrySnapshot,
 } from '@drupal-canvas/headless';
+
+import type { CanvasGeometry } from '@drupal-canvas/headless';
 
 // The protocol message types are declared once, in @drupal-canvas/headless
 // (whose client entry implements the app side); re-exported here so host
 // implementers need only this package.
 export {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_GEOMETRY_MESSAGE,
+  HEADLESS_GEOMETRY_REQUEST_MESSAGE,
   HEADLESS_HEIGHT_MESSAGE,
   HEADLESS_HEIGHT_PROBE_MESSAGE,
   HEADLESS_HEIGHT_PROBE_READY_MESSAGE,
+  HEADLESS_REFRESH_ACK_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
   HEADLESS_VIEWPORT_HEIGHT_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
   HEADLESS_STATUS_MESSAGE,
+  HEADLESS_STATUS_REQUEST_MESSAGE,
 };
 
 /**
@@ -82,7 +101,8 @@ export type HeadlessPreviewHostEvent =
   | { type: 'renewing' }
   | { type: 'renew-failed' }
   | { type: 'recovering' }
-  | { type: 'recovery-failed' };
+  | { type: 'recovery-failed' }
+  | { type: 'geometry'; geometry: CanvasGeometry[] };
 
 export interface HeadlessPreviewHostOptions {
   /** The iframe the frontend app is embedded in. */
@@ -142,7 +162,12 @@ export function createHeadlessPreviewHost(
   let recoveryAttempted = false;
   let active = false;
   let refreshPending = false;
+  let refreshInFlight: number | null = null;
+  let nextRefreshId = 1;
   let viewportHeight: number | null = null;
+  let loadGeneration = 0;
+  let canHandshakeOnLoad = false;
+  let hostSessionId: string | null = null;
   let destroyed = false;
   let probeFrame: number | null = null;
   let probeStyleSnapshot: { height: string; visibility: string } | null = null;
@@ -159,39 +184,61 @@ export function createHeadlessPreviewHost(
   // the app the same way; they differ only in their guard and which failure
   // event they emit.
   const loadApp = async (params: Record<string, string>) => {
+    const generation = ++loadGeneration;
+    active = false;
+    canHandshakeOnLoad = false;
+    hostSessionId = null;
+    emit({ type: 'geometry', geometry: [] });
     const assertion = await fetchAssertion(params);
-    // The fetch may resolve after destroy() — e.g. a slow activation
-    // outlived by a switch to another entity, whose new host owns the
-    // iframe by now. A destroyed host must not touch it.
-    if (destroyed) {
+    // A slower activation or recovery must not overwrite a newer navigation.
+    if (destroyed || generation !== loadGeneration) {
       return;
     }
-    active = false;
+    canHandshakeOnLoad = true;
     iframe.src = `${draftUrl}?assertion=${encodeURIComponent(assertion)}`;
   };
 
-  const postRefresh = () => {
+  const postRefresh = (refreshId: number) => {
+    if (!hostSessionId) {
+      return;
+    }
     iframe.contentWindow?.postMessage(
-      { type: HEADLESS_REFRESH_MESSAGE },
+      { type: HEADLESS_REFRESH_MESSAGE, refreshId, hostSessionId },
       frontendOrigin,
     );
   };
 
   const postViewportHeight = () => {
-    if (viewportHeight === null) {
+    if (viewportHeight === null || hostSessionId === null) {
       return;
     }
     iframe.contentWindow?.postMessage(
-      { type: HEADLESS_VIEWPORT_HEIGHT_MESSAGE, height: viewportHeight },
+      {
+        type: HEADLESS_VIEWPORT_HEIGHT_MESSAGE,
+        hostSessionId,
+        height: viewportHeight,
+      },
       frontendOrigin,
     );
   };
 
   const postProbeReady = (id: string, height: number | null) => {
+    const probeSessionId = hostSessionId;
+    if (probeSessionId === null) {
+      return;
+    }
     probeFrame = window.requestAnimationFrame(() => {
       probeFrame = null;
+      if (probeSessionId !== hostSessionId) {
+        return;
+      }
       iframe.contentWindow?.postMessage(
-        { type: HEADLESS_HEIGHT_PROBE_READY_MESSAGE, id, height },
+        {
+          type: HEADLESS_HEIGHT_PROBE_READY_MESSAGE,
+          hostSessionId: probeSessionId,
+          id,
+          height,
+        },
         frontendOrigin,
       );
     });
@@ -224,6 +271,40 @@ export function createHeadlessPreviewHost(
     probeAppliedStyles = null;
   };
 
+  const flushRefresh = () => {
+    if (!active || !refreshPending || refreshInFlight !== null) {
+      return;
+    }
+    refreshPending = false;
+    refreshInFlight = nextRefreshId++;
+    postRefresh(refreshInFlight);
+  };
+
+  const requestGeometry = () => {
+    if (!hostSessionId) {
+      return;
+    }
+    iframe.contentWindow?.postMessage(
+      { type: HEADLESS_GEOMETRY_REQUEST_MESSAGE, hostSessionId },
+      frontendOrigin,
+    );
+  };
+
+  const onIframeLoad = () => {
+    // A reload replaces the app document while preserving the iframe and host.
+    // Start a new protocol session before accepting messages from that document.
+    emit({ type: 'geometry', geometry: [] });
+    active = false;
+    if (!canHandshakeOnLoad) {
+      return;
+    }
+    hostSessionId = window.crypto.randomUUID();
+    iframe.contentWindow?.postMessage(
+      { type: HEADLESS_STATUS_REQUEST_MESSAGE, hostSessionId },
+      frontendOrigin,
+    );
+  };
+
   const activate = async (params: Record<string, string>) => {
     try {
       await loadApp(params);
@@ -233,6 +314,7 @@ export function createHeadlessPreviewHost(
   };
 
   const renew = async (path: string) => {
+    const renewingSessionId = hostSessionId;
     emit({ type: 'renewing' });
     try {
       // The renewal flag marks this assertion as one that will transit the
@@ -243,11 +325,19 @@ export function createHeadlessPreviewHost(
       const assertion = await fetchAssertion({ path, renewal: '1' });
       // Same post-destroy race as in loadApp: never message an iframe a
       // newer host owns.
-      if (destroyed) {
+      if (
+        destroyed ||
+        renewingSessionId === null ||
+        renewingSessionId !== hostSessionId
+      ) {
         return;
       }
       iframe.contentWindow?.postMessage(
-        { type: HEADLESS_ASSERTION_MESSAGE, assertion },
+        {
+          type: HEADLESS_ASSERTION_MESSAGE,
+          assertion,
+          hostSessionId,
+        },
         frontendOrigin,
       );
     } catch {
@@ -280,14 +370,39 @@ export function createHeadlessPreviewHost(
       return;
     }
 
+    if (hostSessionId === null || event.data.hostSessionId !== hostSessionId) {
+      return;
+    }
+
     const path =
       typeof event.data.path === 'string' && event.data.path.startsWith('/')
         ? event.data.path
         : '/';
 
     switch (event.data.type) {
+      case HEADLESS_GEOMETRY_MESSAGE:
+        if (active) {
+          emit({
+            type: 'geometry',
+            geometry: isCanvasGeometrySnapshot(event.data.geometry)
+              ? event.data.geometry
+              : [],
+          });
+        }
+        break;
+
       case HEADLESS_RENEW_REQUEST_MESSAGE:
         void renew(path);
+        break;
+
+      case HEADLESS_REFRESH_ACK_MESSAGE:
+        if (
+          typeof event.data.refreshId === 'number' &&
+          event.data.refreshId === refreshInFlight
+        ) {
+          refreshInFlight = null;
+          flushRefresh();
+        }
         break;
 
       case HEADLESS_STATUS_MESSAGE: {
@@ -302,9 +417,14 @@ export function createHeadlessPreviewHost(
             tokenExpiresAt: Number(event.data.tokenExpiresAt),
           });
           postViewportHeight();
-          if (refreshPending) {
-            refreshPending = false;
-            postRefresh();
+          requestGeometry();
+          // A status report can come from a newly created app-side session
+          // machine. Re-send an unacknowledged refresh that may have landed
+          // while the old machine was being replaced.
+          if (refreshInFlight !== null) {
+            postRefresh(refreshInFlight);
+          } else {
+            flushRefresh();
           }
         }
         if (event.data.status === 'expired') {
@@ -375,6 +495,7 @@ export function createHeadlessPreviewHost(
     }
   };
 
+  iframe.addEventListener('load', onIframeLoad);
   window.addEventListener('message', onMessage);
 
   return {
@@ -383,11 +504,8 @@ export function createHeadlessPreviewHost(
       if (destroyed) {
         return;
       }
-      if (!active) {
-        refreshPending = true;
-        return;
-      }
-      postRefresh();
+      refreshPending = true;
+      flushRefresh();
     },
     setViewportHeight: (height) => {
       if (destroyed || !Number.isFinite(height) || height <= 0) {
@@ -400,10 +518,12 @@ export function createHeadlessPreviewHost(
     },
     destroy: () => {
       destroyed = true;
+      loadGeneration += 1;
       if (probeFrame !== null) {
         window.cancelAnimationFrame(probeFrame);
       }
       restoreProbeStyles();
+      iframe.removeEventListener('load', onIframeLoad);
       window.removeEventListener('message', onMessage);
     },
   };

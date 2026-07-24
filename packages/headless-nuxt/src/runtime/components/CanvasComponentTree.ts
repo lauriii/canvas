@@ -3,15 +3,26 @@
 // runtime source directly, without the package's tsconfig.
 // eslint-disable-next-line @typescript-eslint/triple-slash-reference
 /// <reference path="./virtual.d.ts" />
+
 import canvasComponents from 'virtual:@drupal-canvas/headless/components';
-import { defineComponent, Fragment, h } from 'vue';
+
+import '@drupal-canvas/headless/preview.css';
+
+import { createCommentVNode, defineComponent, Fragment, h } from 'vue';
 import {
+  CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS,
+  CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS,
   findCanvasComponent,
+  formatCanvasCommentMarker,
   getCanvasComponentRenderData,
+  isCanvasComponentTreeEmpty,
+  isCanvasComponentTreeSlotEmpty,
   normalizeCanvasComponentTreeSlot,
   reportMissingCanvasComponent,
+  reportMissingCanvasComponentUuid,
 } from '@drupal-canvas/headless';
 
+import type { CanvasMarker } from '@drupal-canvas/headless';
 import type { CanvasComponentTreeElement } from '@drupal-canvas/headless/server';
 import type { Component, PropType, VNodeChild } from 'vue';
 
@@ -31,33 +42,66 @@ export default defineComponent({
     },
   },
   setup(props) {
-    return () =>
-      typeof props.tree === 'string'
-        ? renderMarkup(props.tree)
-        : renderElement(props.tree, props.components, 'tree');
+    return () => {
+      const editor =
+        typeof props.tree !== 'string' && props.tree.canvasDraftMode === true;
+      const emptyRegion = editor && isCanvasComponentTreeEmpty(props.tree);
+      const content =
+        typeof props.tree === 'string'
+          ? renderMarkup(props.tree)
+          : renderElement(
+              props.tree,
+              props.components ?? canvasComponents,
+              'tree',
+              editor,
+            );
+      return editor
+        ? h(Fragment, { key: 'region:content' }, [
+            marker({ type: 'region', position: 'start', id: 'content' }),
+            ...(emptyRegion ? [emptyRegionPlaceholder()] : []),
+            content,
+            marker({ type: 'region', position: 'end', id: 'content' }),
+          ])
+        : content;
+    };
   },
 });
+
+/** Renders an empty-region drop area while editing. */
+function emptyRegionPlaceholder() {
+  return h('div', {
+    'aria-hidden': 'true',
+    class: CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS,
+  });
+}
 
 function renderElement(
   node: CanvasComponentTreeElement,
   components: CanvasComponentRegistry,
   path: string,
+  editor: boolean,
 ): VNodeChild {
   const slots = Object.entries(node.slots ?? {}).map(([name, value]) => ({
     name,
     children: normalizeCanvasComponentTreeSlot(value),
+    empty: isCanvasComponentTreeSlotEmpty(value),
   }));
   const componentData = getCanvasComponentRenderData(node);
 
   if (node.element === 'drupal-markup' || !componentData) {
     return h(
       Fragment,
-      null,
+      { key: path },
       slots.flatMap(({ name, children }) =>
         children.map((child, index) =>
           typeof child === 'string'
             ? renderMarkup(child, `${path}:${name}:${index}`)
-            : renderElement(child, components, `${path}:${name}:${index}`),
+            : renderElement(
+                child,
+                components,
+                `${path}:${name}:${index}`,
+                editor,
+              ),
         ),
       ),
     );
@@ -69,19 +113,71 @@ function renderElement(
     return null;
   }
 
+  if (editor && !componentData.componentUuid) {
+    reportMissingCanvasComponentUuid(componentData, path);
+  }
+
   const renderedSlots = Object.fromEntries(
-    slots.map(({ name, children }) => [
+    slots.map(({ name, children, empty }) => [
       name,
-      () =>
-        children.map((child, index) =>
+      () => {
+        const visibleChildren = editor && empty ? [] : children;
+        const content = visibleChildren.map((child, index) =>
           typeof child === 'string'
             ? renderMarkup(child, `${path}:${name}:${index}`)
-            : renderElement(child, components, `${path}:${name}:${index}`),
-        ),
+            : renderElement(
+                child,
+                components,
+                `${path}:${name}:${index}`,
+                editor,
+              ),
+        );
+        if (!editor || !componentData.componentUuid) {
+          return content;
+        }
+        const slotId = `${componentData.componentUuid}/${name}`;
+        return h(Fragment, { key: `slot:${slotId}` }, [
+          marker({ type: 'slot', position: 'start', id: slotId }),
+          ...(empty ? [emptySlotPlaceholder()] : []),
+          ...content,
+          marker({ type: 'slot', position: 'end', id: slotId }),
+        ]);
+      },
     ]),
   );
 
-  return h(component, componentData.props, renderedSlots);
+  const rendered = h(
+    component,
+    { ...componentData.props, key: componentData.componentUuid ?? path },
+    renderedSlots,
+  );
+  return editor && componentData.componentUuid
+    ? h(Fragment, { key: `component:${componentData.componentUuid}` }, [
+        marker({
+          type: 'component',
+          position: 'start',
+          id: componentData.componentUuid,
+        }),
+        rendered,
+        marker({
+          type: 'component',
+          position: 'end',
+          id: componentData.componentUuid,
+        }),
+      ])
+    : rendered;
+}
+
+function marker(value: CanvasMarker) {
+  return createCommentVNode(` ${formatCanvasCommentMarker(value)} `);
+}
+
+/** Renders a minimum empty-slot drop area while editing. */
+function emptySlotPlaceholder() {
+  return h('div', {
+    'aria-hidden': 'true',
+    class: CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS,
+  });
 }
 
 function renderMarkup(html: string, key?: string) {

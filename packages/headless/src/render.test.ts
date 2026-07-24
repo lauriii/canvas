@@ -5,6 +5,8 @@ import {
   componentNameFromElement,
   findCanvasComponent,
   getCanvasComponentRenderData,
+  isCanvasComponentTreeEmpty,
+  isCanvasComponentTreeSlotEmpty,
   normalizeCanvasComponentTreeSlot,
   reportMissingCanvasComponent,
 } from './render';
@@ -26,6 +28,52 @@ describe('headless component rendering helpers', () => {
       child,
       'Tail',
     ]);
+  });
+
+  it('identifies slots without rendered children', () => {
+    expect(isCanvasComponentTreeSlotEmpty(undefined)).toBe(true);
+    expect(isCanvasComponentTreeSlotEmpty([])).toBe(true);
+    expect(isCanvasComponentTreeSlotEmpty(['', '  '])).toBe(true);
+    expect(isCanvasComponentTreeSlotEmpty('<p>Default body</p>')).toBe(true);
+    expect(
+      isCanvasComponentTreeSlotEmpty({
+        element: 'drupal-markup',
+        slots: { default: '<p>Default body</p>' },
+      }),
+    ).toBe(true);
+    expect(
+      isCanvasComponentTreeSlotEmpty([
+        {
+          element: 'drupal-markup',
+          slots: { default: '<p>Leading markup</p>' },
+        },
+        { element: 'js-card' },
+      ]),
+    ).toBe(false);
+    expect(isCanvasComponentTreeSlotEmpty({ element: 'js-card' })).toBe(false);
+  });
+
+  it('identifies top-level regions without rendered page content', () => {
+    expect(isCanvasComponentTreeEmpty('')).toBe(true);
+    expect(isCanvasComponentTreeEmpty({ element: 'canvas-page' })).toBe(true);
+    expect(
+      isCanvasComponentTreeEmpty({
+        element: 'canvas-page',
+        slots: {
+          content: {
+            element: 'drupal-markup',
+            slots: { default: '  ' },
+          },
+        },
+      }),
+    ).toBe(true);
+    expect(isCanvasComponentTreeEmpty('<p>Rendered markup</p>')).toBe(false);
+    expect(
+      isCanvasComponentTreeEmpty({
+        element: 'canvas-page',
+        slots: { content: { element: 'js-card' } },
+      }),
+    ).toBe(false);
   });
 
   it('maps external component element names to registry keys', () => {

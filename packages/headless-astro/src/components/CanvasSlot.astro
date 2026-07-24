@@ -1,5 +1,10 @@
 ---
 import CanvasElement from './CanvasElement.astro';
+import {
+  CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS,
+  formatCanvasCommentMarker,
+  isCanvasComponentTreeSlotEmpty,
+} from '@drupal-canvas/headless';
 
 import type { CanvasComponentTreeElement } from '@drupal-canvas/headless/server';
 
@@ -8,21 +13,49 @@ interface Props {
   children: Array<string | CanvasComponentTreeElement>;
   components: Record<string, unknown>;
   path: string;
+  editor: boolean;
+  componentUuid?: string;
 }
 
-const { name, children, components, path } = Astro.props;
+const { name, children, components, path, editor, componentUuid } = Astro.props;
+const slotId = componentUuid ? `${componentUuid}/${name}` : null;
+const empty = isCanvasComponentTreeSlotEmpty(children);
 ---
 
 {
-  children.map((child, index) =>
-    typeof child === 'string' ? (
-      <Fragment set:html={child} />
-    ) : (
-      <CanvasElement
-        node={child}
-        components={components}
-        path={`${path}:${name}:${index}`}
-      />
-    ),
+  editor && slotId && (
+    <Fragment
+      set:html={`<!-- ${formatCanvasCommentMarker({ type: 'slot', position: 'start', id: slotId })} -->`}
+    />
+  )
+}
+{
+  editor && slotId && empty && (
+    <div
+      aria-hidden="true"
+      class={CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS}
+    />
+  )
+}
+{
+  (!editor || !empty) &&
+    children.map((child, index) =>
+      typeof child === 'string' ? (
+        <Fragment set:html={child} />
+      ) : (
+        <CanvasElement
+          node={child}
+          components={components}
+          path={`${path}:${name}:${index}`}
+          editor={editor}
+        />
+      ),
+    )
+}
+{
+  editor && slotId && (
+    <Fragment
+      set:html={`<!-- ${formatCanvasCommentMarker({ type: 'slot', position: 'end', id: slotId })} -->`}
+    />
   )
 }

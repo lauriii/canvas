@@ -23,9 +23,12 @@ test.describe('Optional Image Default Management', () => {
     const canvasPage = await canvas.createCanvas();
     await canvas.openCanvas(canvasPage);
     await canvas.openLibraryPanel();
-    await canvas.addComponent({
-      id: 'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop',
-    });
+    await canvas.addComponent(
+      {
+        id: 'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop',
+      },
+      { waitForVisible: false },
+    );
 
     let frame = await canvas.getActivePreviewFrame();
     await expect(frame.locator('img[alt="A good dog"]')).toBeVisible();
@@ -72,8 +75,9 @@ test.describe('Optional Image Default Management', () => {
     await page.getByRole('link', { name: 'Edit' }).click();
     await canvas.waitForEditorUi();
 
-    await canvas.clickPreviewComponent(
-      'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop',
+    await canvas.openLayersPanel();
+    await canvas.openComponent(
+      'Canvas test SDC with optional image and heading',
     );
 
     const imageFieldsetAfterPublish = page.locator(
@@ -104,9 +108,12 @@ test.describe('Optional Image Default Management', () => {
     const canvasPage = await canvas.createCanvas();
     await canvas.openCanvas(canvasPage);
     await canvas.openLibraryPanel();
-    await canvas.addComponent({
-      id: 'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop',
-    });
+    await canvas.addComponent(
+      {
+        id: 'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop',
+      },
+      { waitForVisible: false },
+    );
 
     let frame = await canvas.getActivePreviewFrame();
     await expect(frame.locator('img[alt="A good dog"]')).toBeVisible();

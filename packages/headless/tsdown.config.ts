@@ -2,6 +2,13 @@ import { defineConfig } from 'tsdown';
 
 export default defineConfig({
   clean: ['dist'],
+  copy: [
+    {
+      from: '../preview-geometry/src/preview.css',
+      to: 'dist',
+      flatten: true,
+    },
+  ],
   entry: {
     index: 'src/index.ts',
     'client/index': 'src/client/index.ts',
@@ -17,20 +24,24 @@ export default defineConfig({
   fixedExtension: false,
   platform: 'node',
   deps: {
-    // Bundle the workspace discovery and height-reader packages into the
-    // published build so consumers do not need the Canvas monorepo source
-    // layout at runtime.
-    alwaysBundle: ['@drupal-canvas/discovery', '@drupal-canvas/height-reader'],
+    // Bundle the workspace packages into the published build so consumers do
+    // not need the Canvas monorepo source layout at runtime.
+    alwaysBundle: [
+      '@drupal-canvas/discovery',
+      '@drupal-canvas/height-reader',
+      '@drupal-canvas/preview-geometry',
+    ],
     // Discovery's own runtime dependencies, pulled in transitively.
     onlyBundle: ['glob', 'ignore', 'js-yaml'],
   },
   dts: {
-    // Inline declarations for the bundled discovery and height-reader
-    // packages and the type-only references they hold into the unpublished
-    // UI workspace.
+    eager: true,
+    // Inline declarations for the bundled workspace packages and the type-only
+    // references they hold into the unpublished UI workspace.
     resolve: [
       '@drupal-canvas/discovery',
       '@drupal-canvas/height-reader',
+      '@drupal-canvas/preview-geometry',
       /^@drupal-canvas\/ui\//,
     ],
   },

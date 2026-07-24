@@ -1,6 +1,12 @@
 ---
 import CanvasElement from './CanvasElement.astro';
 import canvasComponents from 'virtual:@drupal-canvas/headless/components';
+import '@drupal-canvas/headless/preview.css';
+import {
+  CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS,
+  formatCanvasCommentMarker,
+  isCanvasComponentTreeEmpty,
+} from '@drupal-canvas/headless';
 
 import type { CanvasComponentTreeElement } from '@drupal-canvas/headless/server';
 
@@ -10,12 +16,41 @@ interface Props {
 }
 
 const { tree, components = canvasComponents } = Astro.props;
+const editor = typeof tree !== 'string' && tree.canvasDraftMode === true;
+const emptyRegion = editor && isCanvasComponentTreeEmpty(tree);
 ---
 
+{
+  editor && (
+    <Fragment
+      set:html={`<!-- ${formatCanvasCommentMarker({ type: 'region', position: 'start', id: 'content' })} -->`}
+    />
+  )
+}
+{
+  emptyRegion && (
+    <div
+      aria-hidden="true"
+      class={CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS}
+    />
+  )
+}
 {
   typeof tree === 'string' ? (
     <Fragment set:html={tree} />
   ) : (
-    <CanvasElement node={tree} components={components} path="tree" />
+    <CanvasElement
+      node={tree}
+      components={components}
+      path="tree"
+      editor={editor}
+    />
+  )
+}
+{
+  editor && (
+    <Fragment
+      set:html={`<!-- ${formatCanvasCommentMarker({ type: 'region', position: 'end', id: 'content' })} -->`}
+    />
   )
 }

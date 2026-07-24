@@ -1,0 +1,24 @@
+{
+  "name": "@drupal-canvas/preview-geometry",
+  "version": "0.0.0",
+  "description": "Framework-neutral browser utilities for discovering and measuring Drupal Canvas preview boundaries.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./preview.css": "./src/preview.css"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "type-check": "tsc --noEmit --pretty"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

@@ -44,9 +44,11 @@
  */
 
 import { createDraftSession } from './draft-session';
+import { createCanvasGeometryBridge } from './geometry-bridge';
 import { createHeightReporter } from './height-report';
 
 import type { DraftSession, DraftSessionRenewState } from './draft-session';
+import type { CanvasGeometryBridge } from './geometry-bridge';
 import type { HeightReporter } from './height-report';
 
 export const DRAFT_SESSION_ELEMENT_TAG = 'canvas-draft-session';
@@ -90,6 +92,7 @@ export class DraftSessionElement extends BaseElement {
   static observedAttributes = ['path'];
 
   #machine: DraftSession | null = null;
+  #geometryBridge: CanvasGeometryBridge | null = null;
   #heightReporter: HeightReporter | null = null;
   #connected = false;
   #tokenExpiresAt: number | null = null;
@@ -115,10 +118,14 @@ export class DraftSessionElement extends BaseElement {
     this.#connected = true;
 
     this.#startEpoch();
+    const editorOrigin = this.getAttribute('editor-origin');
     this.#heightReporter = createHeightReporter({
-      editorOrigin: this.getAttribute('editor-origin'),
+      editorOrigin,
       embedded: this.#embedded,
     });
+    if (this.#embedded && editorOrigin) {
+      this.#geometryBridge = createCanvasGeometryBridge({ editorOrigin });
+    }
     this.#render();
   }
 
@@ -128,6 +135,8 @@ export class DraftSessionElement extends BaseElement {
     this.#machine = null;
     this.#heightReporter?.destroy();
     this.#heightReporter = null;
+    this.#geometryBridge?.destroy();
+    this.#geometryBridge = null;
   }
 
   attributeChangedCallback(

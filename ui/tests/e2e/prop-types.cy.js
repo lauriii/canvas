@@ -68,7 +68,7 @@ describe('Prop types editing', () => {
     cy.drupalLogin('canvasUser', 'canvasUser');
     cy.loadURLandWaitForCanvasLoaded();
     cy.openLibraryPanel();
-    cy.insertComponent({ name: 'Two Column' });
+    cy.insertComponent({ name: 'Two Column' }, { waitForVisible: false });
     cy.findByLabelText('Column Width').should('exist');
     cy.insertComponent({ name: 'All props' });
     cy.openLayersPanel();

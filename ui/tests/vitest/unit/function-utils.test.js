@@ -1,11 +1,5 @@
-import {
-  getElementsByIdInHTMLComment,
-  getSlotParentElementByIdInHTMLComment,
-  getSlotParentsByHTMLComments,
-  isConsecutive,
-  mapComponents,
-  mapSlots,
-} from '@/utils/function-utils';
+import { indexCanvasGeometry } from '@/features/layout/preview/PreviewGeometryContext';
+import { isConsecutive, mapCanvasDocument } from '@/utils/function-utils';
 
 const pageHTML = `<!DOCTYPE html>
 <html lang="">
@@ -66,16 +60,16 @@ const pageHTML = `<!DOCTYPE html>
                             </div>
                             <!-- canvas-end-3c88f148-94e2-47c1-b734-24b5017e9e60 -->
                             <!-- canvas-start-ad3eff8e-2180-4be1-a60f-df3f2c5ac393 --><div data-component-id="canvas_test_sdc:two_column" data-canvas-uuid="ad3eff8e-2180-4be1-a60f-df3f2c5ac393">
-          <div class="column-one width-25" data-canvas-slot-id="ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one">
+          <div class="column-one width-25">
             <!-- canvas-slot-start-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one --><!-- canvas-start-9bee944d-a92d-42b9-a0ae-abae0080cdfa --><h1 data-component-id="canvas_test_sdc:heading" class="primary" data-canvas-uuid="9bee944d-a92d-42b9-a0ae-abae0080cdfa">A heading element</h1>
 <!-- canvas-end-9bee944d-a92d-42b9-a0ae-abae0080cdfa --><!-- canvas-slot-end-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one -->
         </div>
 
-          <div class="column-two width-75" data-canvas-slot-id="ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two">
+          <div class="column-two width-75">
             <!-- canvas-slot-start-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two --><p>This is column 2 content</p><!-- canvas-slot-end-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two -->
         </div>
     </div>
-<!-- canvas-end-ad3eff8e-2180-4be1-a60f-df3f2c5ac393 --><!-- canvas-start-49132256-b0c2-4753-9800-fdc147fafae8 --><div data-component-id="canvas_test_sdc:one_column" class="width-full" data-canvas-slot-id="49132256-b0c2-4753-9800-fdc147fafae8/content" data-canvas-uuid="49132256-b0c2-4753-9800-fdc147fafae8">
+<!-- canvas-end-ad3eff8e-2180-4be1-a60f-df3f2c5ac393 --><!-- canvas-start-49132256-b0c2-4753-9800-fdc147fafae8 --><div data-component-id="canvas_test_sdc:one_column" class="width-full" data-canvas-uuid="49132256-b0c2-4753-9800-fdc147fafae8">
       <!-- canvas-slot-start-49132256-b0c2-4753-9800-fdc147fafae8/content --><div class="canvas--slot-empty-placeholder"></div><!-- canvas-slot-end-49132256-b0c2-4753-9800-fdc147fafae8/content -->
   </div>
 <!-- canvas-end-49132256-b0c2-4753-9800-fdc147fafae8 --></div>
@@ -86,165 +80,135 @@ const pageHTML = `<!DOCTYPE html>
     </body>
 </html>`;
 
-describe('mapComponents', () => {
-  it('should create a map of components based on HTML comments in the markup', () => {
+describe('mapCanvasDocument', () => {
+  it('maps component DOM references in one marker scan', () => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(pageHTML, 'text/html');
+    const { componentsMap } = mapCanvasDocument(doc);
 
-    const expectedComponentMap = {
+    expect(componentsMap).to.deep.equal({
       'fce5e0e3-175f-48b5-a62c-176dbc5f3e91': {
-        componentUuid: 'fce5e0e3-175f-48b5-a62c-176dbc5f3e91',
         elements: [doc.querySelector('.my-hero__container')],
       },
       '3c88f148-94e2-47c1-b734-24b5017e9e60': {
-        componentUuid: '3c88f148-94e2-47c1-b734-24b5017e9e60',
         elements: [
           doc.querySelector('.my-section__h2'),
           doc.querySelector('.my-section__wrapper'),
         ],
       },
       'ad3eff8e-2180-4be1-a60f-df3f2c5ac393': {
-        componentUuid: 'ad3eff8e-2180-4be1-a60f-df3f2c5ac393',
         elements: [
           doc.querySelector('[data-component-id="canvas_test_sdc:two_column"]'),
         ],
       },
       '9bee944d-a92d-42b9-a0ae-abae0080cdfa': {
-        componentUuid: '9bee944d-a92d-42b9-a0ae-abae0080cdfa',
         elements: [
           doc.querySelector('[data-component-id="canvas_test_sdc:heading"]'),
         ],
       },
       '49132256-b0c2-4753-9800-fdc147fafae8': {
-        componentUuid: '49132256-b0c2-4753-9800-fdc147fafae8',
         elements: [
           doc.querySelector('[data-component-id="canvas_test_sdc:one_column"]'),
         ],
       },
-    };
+    });
+    expect(
+      doc.querySelector('.my-hero__container').dataset.canvasUuid,
+    ).to.equal('fce5e0e3-175f-48b5-a62c-176dbc5f3e91');
+  });
 
-    const componentMap = mapComponents(doc);
+  it('leaves content-region geometry to its boundary markers', () => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(
+      `
+        <main>
+          <!-- canvas-region-start-content -->
+          <article>Content</article>
+          <!-- canvas-region-end-content -->
+        </main>
+      `,
+      'text/html',
+    );
 
-    expect(componentMap).to.deep.equal(expectedComponentMap);
+    mapCanvasDocument(doc);
+
+    expect(doc.querySelector('main').dataset.canvasRegionId).to.be.undefined;
+  });
+
+  it('leaves slot geometry to its boundary markers', () => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(
+      `
+        <main>
+          <!-- canvas-slot-start-card/first -->
+          <p>First slot</p>
+          <!-- canvas-slot-end-card/first -->
+        </main>
+      `,
+      'text/html',
+    );
+
+    mapCanvasDocument(doc);
+    const container = doc.querySelector('main');
+
+    expect(container.dataset.canvasSlotId).to.be.undefined;
+  });
+
+  it('supports template markers and ignores incomplete boundaries', () => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(
+      `
+        <main>
+          <template data-canvas-marker="start" data-canvas-type="component" data-canvas-uuid="card"></template>
+          <article>Card</article>
+          <template data-canvas-marker="end" data-canvas-type="component" data-canvas-uuid="card"></template>
+          <template data-canvas-marker="start" data-canvas-type="slot" data-canvas-uuid="card/default"></template>
+          <div>Slot</div>
+          <template data-canvas-marker="end" data-canvas-type="slot" data-canvas-uuid="card/default"></template>
+          <template data-canvas-marker="start" data-canvas-type="component" data-canvas-uuid="incomplete"></template>
+        </main>
+      `,
+      'text/html',
+    );
+
+    const { componentsMap } = mapCanvasDocument(doc);
+
+    expect(componentsMap.card.elements).to.deep.equal([
+      doc.querySelector('article'),
+    ]);
+    expect(componentsMap.incomplete).to.be.undefined;
   });
 });
 
-describe('getElementsByIdInHTMLComment', () => {
-  it('should return elements between canvas-start and canvas-end comments for a given ID', () => {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(pageHTML, 'text/html');
-
-    const elementsForFce5e0e3 = getElementsByIdInHTMLComment(
-      'fce5e0e3-175f-48b5-a62c-176dbc5f3e91',
-      doc,
-    );
-    expect(elementsForFce5e0e3).to.deep.equal([
-      doc.querySelector('.my-hero__container'),
+describe('indexCanvasGeometry', () => {
+  it('keeps equal IDs from different boundary types separate', () => {
+    const rect = {
+      top: 0,
+      right: 10,
+      bottom: 10,
+      left: 0,
+      width: 10,
+      height: 10,
+    };
+    const geometryMap = indexCanvasGeometry([
+      {
+        type: 'component',
+        id: 'content',
+        markerFormat: 'comment',
+        rect,
+      },
+      {
+        type: 'region',
+        id: 'content',
+        markerFormat: 'comment',
+        rect,
+      },
     ]);
 
-    const elementsFor3c88f148 = getElementsByIdInHTMLComment(
-      '3c88f148-94e2-47c1-b734-24b5017e9e60',
-      doc,
-    );
-    expect(elementsFor3c88f148).to.deep.equal([
-      doc.querySelector('.my-section__h2'),
-      doc.querySelector('.my-section__wrapper'),
-    ]);
-
-    // Test for a non-existent ID
-    const elementsForNonExistentId = getElementsByIdInHTMLComment(
-      'non-existent-id',
-      doc,
-    );
-    expect(elementsForNonExistentId).to.deep.equal([]);
+    expect(geometryMap.component.content.type).to.equal('component');
+    expect(geometryMap.region.content.type).to.equal('region');
   });
 });
-
-describe('mapSlots', () => {
-  it('should create a map of slots based on HTML comments in the markup', () => {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(pageHTML, 'text/html');
-
-    const expectedSlotsMap = {
-      'ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one': {
-        element: doc.querySelector(
-          '[data-canvas-slot-id="ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one"]',
-        ),
-        componentUuid: 'ad3eff8e-2180-4be1-a60f-df3f2c5ac393',
-        slotName: 'column_one',
-        stackDirection: 'vertical',
-      },
-      'ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two': {
-        element: doc.querySelector(
-          '[data-canvas-slot-id="ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two"]',
-        ),
-        componentUuid: 'ad3eff8e-2180-4be1-a60f-df3f2c5ac393',
-        slotName: 'column_two',
-        stackDirection: 'vertical',
-      },
-      '49132256-b0c2-4753-9800-fdc147fafae8/content': {
-        element: doc.querySelector(
-          '[data-canvas-slot-id="49132256-b0c2-4753-9800-fdc147fafae8/content"]',
-        ),
-        componentUuid: '49132256-b0c2-4753-9800-fdc147fafae8',
-        slotName: 'content',
-        stackDirection: 'vertical',
-      },
-    };
-
-    const slotsMap = mapSlots(doc);
-
-    expect(slotsMap).to.deep.equal(expectedSlotsMap);
-  });
-});
-
-describe('getSlotParentsByHTMLComments', () => {
-  it('should return an array of parent elements for each canvas-slot-start comment', () => {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(pageHTML, 'text/html');
-
-    const expectedSlotParents = [
-      doc.querySelector('.column-one.width-25'),
-      doc.querySelector('.column-two.width-75'),
-      doc.querySelector('.width-full'),
-    ];
-
-    const slotParents = getSlotParentsByHTMLComments(doc);
-
-    expect(slotParents).to.have.members(expectedSlotParents);
-  });
-});
-
-describe('getSlotParentElementByIdInHTMLComment', () => {
-  it('should return the immediate parent element for a given slotId', () => {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(pageHTML, 'text/html');
-
-    // Test for an existing slot
-    const slotParentForColumnOne = getSlotParentElementByIdInHTMLComment(
-      'ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one',
-      doc,
-    );
-    expect(slotParentForColumnOne).to.equal(
-      doc.querySelector('.column-one.width-25'),
-    );
-
-    // Test for another existing slot
-    const slotParentForContent = getSlotParentElementByIdInHTMLComment(
-      '49132256-b0c2-4753-9800-fdc147fafae8/content',
-      doc,
-    );
-    expect(slotParentForContent).to.equal(doc.querySelector('.width-full'));
-
-    // Test for a non-existent slot
-    const slotParentForNonExistent = getSlotParentElementByIdInHTMLComment(
-      'non-existent-slot-id',
-      doc,
-    );
-    expect(slotParentForNonExistent).to.be.null;
-  });
-});
-
 describe('isConsecutive', () => {
   it('should return true for empty array', () => {
     expect(isConsecutive([])).to.be.true;

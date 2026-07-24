@@ -2,11 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { usePreviewGeometryUpdater } from '@/features/layout/preview/PreviewGeometryContext';
 import { useHeadlessDraftSession } from '@/features/layout/preview/useHeadlessDraftSession';
+import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
 import {
+  EditorFrameMode,
+  selectEditorFrameMode,
   selectViewportMinHeight,
   selectViewportWidth,
   setFirstLoadComplete,
+  unsetUpdatingComponent,
 } from '@/features/ui/uiSlice';
 
 import type { HeadlessSettings } from '@drupal-canvas/types';
@@ -50,7 +55,10 @@ const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const { statusText, contentHeight, contentHeightReady } =
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const { updateGeometry, clearGeometry } = usePreviewGeometryUpdater();
+  const editorFrameMode = useAppSelector(selectEditorFrameMode);
+  const { statusText, contentHeight, contentHeightReady, geometry } =
     useHeadlessDraftSession(
       iframeRef,
       settings,
@@ -72,6 +80,23 @@ const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
       onReady(frameKey);
     }
   }, [contentHeightReady, frameKey, onReady]);
+
+  useEffect(() => {
+    if (active) {
+      updateGeometry(geometry);
+      // Standard preview clears this state when its iframe finishes updating.
+      // A new app-side snapshot is the equivalent completion signal here.
+      dispatch(unsetUpdatingComponent());
+    }
+  }, [active, dispatch, geometry, updateGeometry]);
+
+  useEffect(() => {
+    return () => {
+      if (active) {
+        clearGeometry();
+      }
+    };
+  }, [active, clearGeometry]);
 
   return (
     <div
@@ -111,6 +136,7 @@ const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
         {statusText}
       </p>
       <div
+        ref={previewContainerRef}
         data-testid={
           active
             ? 'canvas-headless-viewport'
@@ -128,6 +154,9 @@ const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
           data-testid={
             active ? 'canvas-headless-iframe' : 'canvas-headless-pending-iframe'
           }
+          tabIndex={
+            active && editorFrameMode === EditorFrameMode.INTERACTIVE ? 0 : -1
+          }
           // The editor frame centers its scroll position once the first load
           // completes; the srcdoc pipeline normally reports that.
           onLoad={() => dispatch(setFirstLoadComplete(true))}
@@ -140,10 +169,17 @@ const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
               // stable declaration lets it restore this property without
               // overwriting a newer height committed by React during the probe.
               height: 'var(--canvas-headless-preview-height)',
+              pointerEvents:
+                active && editorFrameMode === EditorFrameMode.INTERACTIVE
+                  ? 'auto'
+                  : 'none',
               border: 'none',
             } as React.CSSProperties
           }
         ></iframe>
+        {active && editorFrameMode === EditorFrameMode.EDIT && (
+          <ViewportOverlay previewContainerRef={previewContainerRef} />
+        )}
       </div>
     </div>
   );
@@ -153,10 +189,10 @@ const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
  * Embeds the configured frontend app in the editor frame.
  *
  * Replaces the Drupal-rendered srcdoc preview when the canvas_headless
- * module is enabled. The iframe is cross-origin, so none of the same-origin
- * preview's DOM-based behavior (overlays, in-place prop updates) applies;
- * the draft session, including height sync, is driven over postMessage
- * instead — see useHeadlessDraftSession for the protocol.
+ * module is enabled. The iframe is cross-origin, so draft state, height, and
+ * shared preview geometry travel over the origin-checked postMessage protocol.
+ * The app measures its own document; Canvas converts those rectangles and
+ * renders its standard interactive overlays here.
  *
  * Page changes are double-buffered: the current iframe remains visible while
  * the next page activates and reports its height, then the new iframe replaces

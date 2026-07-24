@@ -6,6 +6,7 @@ import { resolveDraftConfig } from '@drupal-canvas/headless/server';
 import { canvasComponentRegistry } from '@drupal-canvas/headless/vite';
 import {
   addComponent,
+  addPlugin,
   addServerHandler,
   addServerPlugin,
   addVitePlugin,
@@ -57,6 +58,7 @@ export interface CanvasModuleOptions {
  *   preserving the app's own policy.
  * - Registers the <DraftSession> component and teaches the Vue compiler
  *   about the SDK's <canvas-draft-session> custom element.
+ * - Refreshes the consuming application's async data after Canvas auto-saves.
  * - Adds the SDK packages to the Vue and Nitro builds.
  * - Generates the component manifest (`.canvas/components.manifest.json`)
  *   at build time — in production the metadata endpoint serves this
@@ -133,6 +135,7 @@ export default defineNuxtModule<CanvasModuleOptions>({
       name: 'CanvasComponentTree',
       filePath: resolver.resolve('./runtime/components/CanvasComponentTree.ts'),
     });
+    addPlugin(resolver.resolve('./runtime/plugins/draft-refresh.client'));
     addVitePlugin(
       canvasComponentRegistry({ projectRoot: nuxt.options.rootDir }),
     );
