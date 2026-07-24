@@ -1,5 +1,5 @@
 // cspell:ignore uuidv
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 import { createSelector, createSlice } from '@reduxjs/toolkit';
 
 import { selectEditorFrameContext } from '@/features/ui/uiSlice';
@@ -127,6 +127,11 @@ type AddNewNodePayload = {
   to: number[];
   component: CanvasComponent;
   withValues?: Record<string, any>;
+  /**
+   * Pass an optional UUID that will be assigned to the new component. Allows you to define the UUID
+   * so that you can then do something with the newly inserted node using that UUID.
+   */
+  predefinedUUID?: string;
 };
 
 type AddNewPatternPayload = {
@@ -551,7 +556,14 @@ export const layoutModelSlice = createSlice({
 export const _addNewComponentToLayout =
   (payload: AddNewNodePayload, setSelectedComponent: Function): AppThunk =>
   (dispatch, getState) => {
-    const { to, component, withValues } = payload;
+    const { to, component, withValues, predefinedUUID } = payload;
+
+    if (predefinedUUID !== undefined && !uuidValidate(predefinedUUID)) {
+      console.error(
+        `Cannot add component. "${predefinedUUID}" is not a valid UUID.`,
+      );
+      return;
+    }
     // Populate the model data with the default values
     const buildInitialData = (component: CanvasComponent): ComponentModel => {
       if (isPropSourceComponent(component)) {
@@ -606,7 +618,7 @@ export const _addNewComponentToLayout =
     };
 
     const slots: SlotNode[] = [];
-    const uuid = uuidv4();
+    const uuid = predefinedUUID ?? uuidv4();
 
     // Create empty slots in the layout data for each child slot the component
     // has. Slot definitions can exist on any component that implements
