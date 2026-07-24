@@ -14,6 +14,9 @@
 
 node_modules
 
+# Turborepo
+.turbo
+
 # Playwright
 /test-results/
 /playwright-report/

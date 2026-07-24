@@ -59,7 +59,6 @@
   "scripts": {
     "dev": "NODE_ENV=development tsdown --watch",
     "build": "npm run type-check && NODE_ENV=production tsdown",
-    "prepack": "npm run build",
     "test": "vitest run",
     "type-check": "tsc --noEmit --pretty"
   },
