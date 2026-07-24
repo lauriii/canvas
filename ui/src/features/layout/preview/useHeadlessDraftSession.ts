@@ -14,6 +14,10 @@ import type { AutoSavesHashRecord } from '@/types/AutoSaves';
 
 export interface HeadlessDraftSession {
   statusText: string;
+  /** The app's last-reported rendered content height, in CSS pixels; null until a report arrives. */
+  contentHeight: number | null;
+  /** Whether the active document has reported its first content height. */
+  contentHeightReady: boolean;
 }
 
 const WAITING_TEXT = 'Waiting for the preview to report its draft session…';
@@ -55,11 +59,16 @@ export function useHeadlessDraftSession(
   entityType: string | undefined,
   entityId: string | undefined,
   autoSavesHash?: AutoSavesHashRecord,
+  viewportHeight?: number,
 ): HeadlessDraftSession {
   const { frontendOrigin, draftUrl, assertionUrl } = settings;
   const [statusText, setStatusText] = useState(WAITING_TEXT);
   const hostRef = useRef<HeadlessPreviewHost | null>(null);
   const lastAutoSavesHashRef = useRef(autoSavesHash);
+  const viewportHeightRef = useRef(viewportHeight);
+  viewportHeightRef.current = viewportHeight;
+  const [contentHeight, setContentHeight] = useState<number | null>(null);
+  const [contentHeightReady, setContentHeightReady] = useState(false);
 
   const fetchAssertion = useCallback(
     async (params: Record<string, string>): Promise<string> => {
@@ -88,23 +97,31 @@ export function useHeadlessDraftSession(
     [assertionUrl],
   );
 
-  // One host per (iframe, app, entity) combination: switching to another
-  // entity — including via in-SPA navigation — tears the host down and
-  // activates a fresh session entering at the new entity's path.
+  // One host per (iframe, app, entity) combination. HeadlessPreview keeps the
+  // current combination alive while a second iframe activates the next entity,
+  // then unmounts this hook after the replacement is ready.
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe || !entityType || !entityId) {
       return;
     }
     setStatusText(WAITING_TEXT);
+    setContentHeightReady(false);
     const host = createHeadlessPreviewHost({
       iframe,
       frontendOrigin,
       draftUrl,
       fetchAssertion,
       onEvent: (event) => setStatusText(statusTextFor(event)),
+      onHeight: (height) => {
+        setContentHeight(height);
+        setContentHeightReady(true);
+      },
     });
     hostRef.current = host;
+    if (viewportHeightRef.current !== undefined) {
+      host.setViewportHeight(viewportHeightRef.current);
+    }
     void host.activate({ entity_type: entityType, entity: entityId });
     return () => {
       if (hostRef.current === host) {
@@ -132,5 +149,14 @@ export function useHeadlessDraftSession(
     hostRef.current?.refresh();
   }, [autoSavesHash]);
 
-  return { statusText };
+  useEffect(() => {
+    if (viewportHeight === undefined) {
+      return;
+    }
+    setContentHeight(null);
+    setContentHeightReady(false);
+    hostRef.current?.setViewportHeight(viewportHeight);
+  }, [viewportHeight]);
+
+  return { statusText, contentHeight, contentHeightReady };
 }

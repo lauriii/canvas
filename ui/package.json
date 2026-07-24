@@ -41,6 +41,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@drupal-canvas/astro-hydration": "*",
     "@drupal-canvas/headless-host": "*",
+    "@drupal-canvas/height-reader": "*",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
     "@microlink/react-json-view": "^1.26.1",
     "@radix-ui/react-accordion": "^1.2.10",
