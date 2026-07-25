@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom';
 import { useParams } from 'react-router-dom';
 
 import { useAppSelector } from '@/app/hooks';
+import CommentPinLayer from '@/features/comments/CommentPinLayer';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
 import {
@@ -129,6 +130,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
       {displayedRegions.map((region) => (
         <RegionOverlay region={region} key={region.id} />
       ))}
+      <CommentPinLayer />
     </div>,
     portalRoot,
   );

@@ -6,6 +6,7 @@ import BrandKitIcon from '@assets/icons/brand-kit.svg?react';
 import ExtensionIcon from '@assets/icons/extension-sm.svg?react';
 import TemplateIcon from '@assets/icons/template.svg?react';
 import {
+  ChatBubbleIcon,
   CodeIcon,
   FileTextIcon,
   GlobeIcon,
@@ -125,6 +126,14 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       label: 'Layers',
       enabled: hasActiveEditorFrame,
       hidden: false,
+    },
+    {
+      type: 'button',
+      id: 'comments',
+      icon: <ChatBubbleIcon />,
+      label: 'Comments',
+      enabled: hasActiveEditorFrame,
+      hidden: !hasPermission('viewComments'),
     },
     { type: 'separator', hidden: false },
 
