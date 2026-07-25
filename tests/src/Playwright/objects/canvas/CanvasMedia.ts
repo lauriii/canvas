@@ -49,10 +49,25 @@ export function CanvasMediaMixin<TBase extends Constructor<CanvasBase>>(
       ).toBeVisible();
     }
 
-    async addMediaImage(path: string, alt: string) {
-      const addButton = this.page.locator(
-        '[data-canvas-media-library-open-button="true"][data-form-id="component_instance_form"][data-once="drupal-ajax"]',
-      );
+    /**
+     * Uploads and inserts a new media image into a media library widget.
+     *
+     * When a component has multiple media props, pass options.fieldset (the
+     * widget's `[data-canvas-media-library-fieldset]` fieldset) to target one
+     * specific widget.
+     */
+    async addMediaImage(
+      path: string,
+      alt: string,
+      options: { fieldset?: Locator } = {},
+    ) {
+      const addButton = options.fieldset
+        ? options.fieldset.locator(
+            '[data-canvas-media-library-open-button="true"]',
+          )
+        : this.page.locator(
+            '[data-canvas-media-library-open-button="true"][data-form-id="component_instance_form"][data-once="drupal-ajax"]',
+          );
       await expect(addButton).toBeVisible();
       await addButton.click();
 
@@ -86,10 +101,11 @@ export function CanvasMediaMixin<TBase extends Constructor<CanvasBase>>(
         .getByRole('button', { name: 'Insert selected', exact: true })
         .click();
       await expect(
-        this.page
-          .locator(
-            '[data-testid="canvas-contextual-panel"] .js-media-library-item-preview img',
-          )
+        (
+          options.fieldset ??
+          this.page.locator('[data-testid="canvas-contextual-panel"]')
+        )
+          .locator('.js-media-library-item-preview img')
           .last(),
       ).toHaveAttribute('alt', alt);
     }

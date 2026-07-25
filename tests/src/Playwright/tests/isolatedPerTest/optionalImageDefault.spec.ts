@@ -7,6 +7,11 @@ test.use({
   enableTestExtensions: true,
 });
 
+const CAT_IMAGE =
+  '../../../../../fixtures/recipes/test_site/content/file/cats-1.jpg';
+const PUB_IMAGE =
+  '../../../../../fixtures/recipes/test_site/content/file/PrincesHead.jpg';
+
 test.describe('Optional Image Default Management', () => {
   test.beforeEach(async ({ drupal }) => {
     await drupal.loginAsAdmin();
@@ -258,13 +263,13 @@ test.describe('Optional Image Default Management', () => {
     await expect(optionalImageComponent.locator('img')).toHaveCount(0);
   });
 
-  test('SDC: Multiple media widgets — each DefaultImagePreview is scoped to its own prop, and required images cannot be deleted', async ({
+  test("SDC: Multiple media widgets — each DefaultImagePreview is scoped to its own prop, required images cannot be deleted, and removing one prop's media leaves the others intact", async ({
     page,
     drupal,
     canvas,
   }) => {
     await drupal.login({ username: 'editor', password: 'editor' });
-    await canvas.createCanvas();
+    const canvasPage = await canvas.createCanvas();
     await canvas.openLibraryPanel();
     await canvas.addComponent({
       id: 'sdc.canvas_test_sdc.mixed-images-with-example',
@@ -345,5 +350,68 @@ test.describe('Optional Image Default Management', () => {
     await expect(
       pageDataTab.locator('[class*="defaultImagePreview"]'),
     ).toHaveCount(0);
+
+    // Removing the image from one media prop must not clear the others.
+    // The component is still selected, so its form lives under the Settings
+    // tab; switch back to it.
+    await page.getByTestId('canvas-contextual-panel--settings').click();
+    await canvas.addMediaImage(CAT_IMAGE, 'Primary cat', {
+      fieldset: primaryFieldset,
+    });
+    await canvas.addMediaImage(PUB_IMAGE, 'Secondary pub', {
+      fieldset: secondaryFieldset,
+    });
+
+    await canvas.testInPreviewFrame('img.primary[alt="Primary cat"]', (img) =>
+      expect(img).toBeVisible(),
+    );
+    await canvas.testInPreviewFrame(
+      'img.secondary[alt="Secondary pub"]',
+      (img) => expect(img).toBeVisible(),
+    );
+
+    // Remove the image from the PRIMARY prop only, in the same editing
+    // session, without re-selecting the component first.
+    await primaryFieldset.locator('[data-canvas-media-remove-button]').click();
+
+    // The secondary image must survive the removal of the primary image.
+    await canvas.testInPreviewFrame('img.primary', (img) =>
+      expect(img).toBeHidden(),
+    );
+    await canvas.testInPreviewFrame(
+      'img.secondary[alt="Secondary pub"]',
+      (img) => expect(img).toBeVisible(),
+    );
+
+    // And it must still be in the secondary prop's widget.
+    await expect(
+      secondaryFieldset.locator('.js-media-library-item'),
+    ).toHaveCount(1);
+
+    // The value must also persist: reload the editor (the model is rebuilt
+    // from the auto-saved state) and check both the preview and the widgets.
+    await canvas.openCanvas(canvasPage);
+    await canvas.clickPreviewComponent(
+      'sdc.canvas_test_sdc.mixed-images-with-example',
+    );
+
+    await canvas.testInPreviewFrame('img.primary', (img) =>
+      expect(img).toBeHidden(),
+    );
+    await canvas.testInPreviewFrame(
+      'img.secondary[alt="Secondary pub"]',
+      (img) => expect(img).toBeVisible(),
+    );
+
+    const fieldsetsAfterReload = contextualPanel.locator(
+      'fieldset[data-form-id="component_instance_form"][data-canvas-media-library-fieldset="true"]',
+    );
+    await expect(fieldsetsAfterReload).toHaveCount(3);
+    await expect(
+      fieldsetsAfterReload.first().locator('.js-media-library-item'),
+    ).toHaveCount(0);
+    await expect(
+      fieldsetsAfterReload.nth(1).locator('.js-media-library-item'),
+    ).toHaveCount(1);
   });
 });
