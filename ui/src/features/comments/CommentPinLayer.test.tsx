@@ -134,8 +134,9 @@ const setUpStore = () => {
     setConfiguration({
       // Node's `Request` rejects relative URLs, so tests need an absolute base.
       baseUrl: 'http://localhost/',
-      entityType: 'canvas_page',
-      entity: '1',
+      // Left unset on purpose: the surface comes from the route.
+      entityType: 'none',
+      entity: 'none',
       isNew: false,
       isPublished: false,
       devMode: false,
@@ -151,7 +152,11 @@ describe('CommentPinLayer', () => {
     stubFetch();
     const store = setUpStore();
     render(
-      <AppWrapper store={store} location="/" path="/">
+      <AppWrapper
+        store={store}
+        location="/editor/canvas_page/1"
+        path="/editor/:entityType/:entityId"
+      >
         <CommentPinLayer />
       </AppWrapper>,
     );
@@ -168,7 +173,11 @@ describe('CommentPinLayer', () => {
     const store = setUpStore();
     store.dispatch(setEditorFrameViewPort({ scale: 0.5 }));
     render(
-      <AppWrapper store={store} location="/" path="/">
+      <AppWrapper
+        store={store}
+        location="/editor/canvas_page/1"
+        path="/editor/:entityType/:entityId"
+      >
         <CommentPinLayer />
       </AppWrapper>,
     );
@@ -182,7 +191,11 @@ describe('CommentPinLayer', () => {
     const user = userEvent.setup();
     const store = setUpStore();
     render(
-      <AppWrapper store={store} location="/" path="/">
+      <AppWrapper
+        store={store}
+        location="/editor/canvas_page/1"
+        path="/editor/:entityType/:entityId"
+      >
         <CommentPinLayer />
       </AppWrapper>,
     );
@@ -199,15 +212,20 @@ describe('CommentPinLayer', () => {
     store.dispatch(
       setConfiguration({
         baseUrl: 'http://localhost/',
-        entityType: 'canvas_page',
-        entity: '1',
+        // Left unset on purpose: the surface comes from the route.
+        entityType: 'none',
+        entity: 'none',
         isNew: false,
         isPublished: false,
         devMode: false,
       }),
     );
     render(
-      <AppWrapper store={store} location="/" path="/">
+      <AppWrapper
+        store={store}
+        location="/editor/canvas_page/1"
+        path="/editor/:entityType/:entityId"
+      >
         <CommentPinLayer />
       </AppWrapper>,
     );

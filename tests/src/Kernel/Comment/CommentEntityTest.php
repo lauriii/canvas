@@ -296,10 +296,9 @@ final class CommentEntityTest extends CanvasKernelTestBase {
    * Asserts that a violation list is non-empty and only about the body.
    */
   private static function assertViolatesBodyOnly(ConstraintViolationListInterface $violations): void {
-    $property_paths = \array_keys(self::violationsToArray($violations));
-    self::assertNotSame([], $property_paths);
-    foreach ($property_paths as $property_path) {
-      self::assertStringStartsWith('body', (string) $property_path);
+    self::assertGreaterThan(0, $violations->count());
+    foreach ($violations as $violation) {
+      self::assertStringStartsWith('body', $violation->getPropertyPath());
     }
   }
 

@@ -100,8 +100,9 @@ const setUpStore = () => {
     setConfiguration({
       // Node's `Request` rejects relative URLs, so tests need an absolute base.
       baseUrl: 'http://localhost/',
-      entityType: 'canvas_page',
-      entity: '1',
+      // Left unset on purpose: the surface comes from the route.
+      entityType: 'none',
+      entity: 'none',
       isNew: false,
       isPublished: false,
       devMode: false,
@@ -111,10 +112,16 @@ const setUpStore = () => {
 };
 
 const renderPanel = (store = setUpStore()) => {
-  // A catch-all path: expanding a component thread selects that component,
-  // which pushes `/component/{uuid}` onto the router.
+  // The surface comes from the route, not from the store, so the panel has to
+  // be rendered under a real editor path. The trailing splat is there because
+  // expanding a component thread selects that component, which pushes
+  // `/component/{uuid}` onto the router.
   render(
-    <AppWrapper store={store} location="/" path="*">
+    <AppWrapper
+      store={store}
+      location="/editor/canvas_page/1"
+      path="/editor/:entityType/:entityId/*"
+    >
       <CommentsPanel />
     </AppWrapper>,
   );
