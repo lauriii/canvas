@@ -265,9 +265,9 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
    * @see https://www.drupal.org/i/3514072
    */
   public function getTags(): array {
-    $tags = $this->getComponentPlugin()->getPluginDefinition()['tags'] ?? [];
-    \assert(\is_array($tags));
-    return \array_values(\array_filter($tags, \is_string(...)));
+    $definition = $this->getComponentPlugin()->getPluginDefinition();
+    $tags = \is_array($definition) ? $definition['tags'] ?? [] : [];
+    return \is_array($tags) ? \array_values(\array_filter($tags, \is_string(...))) : [];
   }
 
   /**

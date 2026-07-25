@@ -64,14 +64,14 @@ final class SlotRestrictions {
    */
   public static function violations(array $tree, ConfigEntityStorageInterface $component_storage): array {
     $violations = [];
-    foreach (self::groupBySlot($tree) as [$parent, $slot_name, $children]) {
-      $parent_component = $component_storage->load($parent['component_id']);
+    foreach (self::groupBySlot($tree) as $group) {
+      $parent_component = $component_storage->load($group['parent_component_id']);
       if (!$parent_component instanceof Component) {
         // A non-existent parent component is reported by the surrounding
         // structural validation; do not pile on.
         continue;
       }
-      $slot_definition = self::slotDefinitions($parent_component)[$slot_name] ?? NULL;
+      $slot_definition = self::slotDefinitions($parent_component)[$group['slot']] ?? NULL;
       if ($slot_definition === NULL) {
         // An unknown slot name is reported by the surrounding structural
         // validation.
@@ -80,29 +80,31 @@ final class SlotRestrictions {
 
       $expected = self::expectedEntries($slot_definition);
       $max_items = $slot_definition['maxItems'] ?? NULL;
-      foreach (\array_values($children) as $position => $child) {
+      $slot_title = \is_string($slot_definition['title'] ?? NULL) ? $slot_definition['title'] : $group['slot'];
+      $parent_label = self::label($group['parent_component_id'], $component_storage);
+      foreach ($group['children'] as $position => $child) {
         if ($expected !== [] && !self::accepts($expected, $child['component_id'], $component_storage)) {
-          $violations[self::key(self::RULE_EXPECTED, $child, $parent, $slot_name)] = [
+          $violations[self::key(self::RULE_EXPECTED, $child['uuid'], $group)] = [
             'message' => 'Component %component is not expected in the %slot slot of %parent. Expected: %expected.',
             'params' => [
               '%component' => self::label($child['component_id'], $component_storage),
-              '%slot' => (string) ($slot_definition['title'] ?? $slot_name),
-              '%parent' => self::label($parent['component_id'], $component_storage),
+              '%slot' => $slot_title,
+              '%parent' => $parent_label,
               '%expected' => self::describeExpected($expected, $component_storage),
             ],
-            'delta' => $child['#delta'],
+            'delta' => $child['delta'],
           ];
         }
         if (\is_int($max_items) && $position >= $max_items) {
-          $violations[self::key(self::RULE_MAX_ITEMS, $child, $parent, $slot_name)] = [
+          $violations[self::key(self::RULE_MAX_ITEMS, $child['uuid'], $group)] = [
             'message' => 'The %slot slot of %parent accepts at most @max components, but @count were provided.',
             'params' => [
-              '%slot' => (string) ($slot_definition['title'] ?? $slot_name),
-              '%parent' => self::label($parent['component_id'], $component_storage),
+              '%slot' => $slot_title,
+              '%parent' => $parent_label,
               '@max' => (string) $max_items,
-              '@count' => (string) \count($children),
+              '@count' => (string) \count($group['children']),
             ],
-            'delta' => $child['#delta'],
+            'delta' => $child['delta'],
           ];
         }
       }
@@ -215,7 +217,13 @@ final class SlotRestrictions {
     if (!\is_array($expected)) {
       return [];
     }
-    return \array_values(\array_filter($expected, static fn (mixed $entry): bool => \is_string($entry) && $entry !== ''));
+    $entries = [];
+    foreach ($expected as $entry) {
+      if (\is_string($entry) && $entry !== '') {
+        $entries[] = $entry;
+      }
+    }
+    return $entries;
   }
 
   /**
@@ -280,31 +288,47 @@ final class SlotRestrictions {
    * @param array<int, array<string, mixed>> $tree
    *   A component tree.
    *
-   * @return list<array{0: array<string, mixed>, 1: string, 2: list<array<string, mixed>>}>
-   *   Tuples of parent instance, slot name and the slot's child instances in
-   *   tree order, each child carrying its `#delta` in the tree.
+   * @return list<array{parent_uuid: string, parent_component_id: string, slot: string, children: list<array{delta: int, uuid: string, component_id: string}>}>
+   *   One entry per occupied slot, listing that slot's child instances in tree
+   *   order together with each child's delta in the tree.
    */
   private static function groupBySlot(array $tree): array {
-    $by_uuid = [];
+    // A tree malformed enough to be missing any of these is reported by the
+    // surrounding structural validation; skip it rather than adding noise.
+    $component_id_by_uuid = [];
     foreach ($tree as $item) {
-      if (\is_array($item) && isset($item['uuid'])) {
-        $by_uuid[$item['uuid']] = $item;
+      if (\is_array($item) && self::isNonEmptyString($item['uuid'] ?? NULL) && self::isNonEmptyString($item['component_id'] ?? NULL)) {
+        $component_id_by_uuid[$item['uuid']] = $item['component_id'];
       }
     }
     $grouped = [];
     foreach ($tree as $delta => $item) {
-      if (!\is_array($item) || empty($item['parent_uuid']) || empty($item['slot']) || empty($item['component_id'])) {
+      if (!\is_array($item)
+        || !self::isNonEmptyString($item['uuid'] ?? NULL)
+        || !self::isNonEmptyString($item['component_id'] ?? NULL)
+        || !self::isNonEmptyString($item['parent_uuid'] ?? NULL)
+        || !self::isNonEmptyString($item['slot'] ?? NULL)
+      ) {
         continue;
       }
       // The parent can live outside this tree, for instance when an entity's
       // subtree hangs off a content template's component. Such a placement is
       // not the responsibility of this tree's validation.
-      if (!isset($by_uuid[$item['parent_uuid']])) {
+      if (!\array_key_exists($item['parent_uuid'], $component_id_by_uuid)) {
         continue;
       }
       $key = $item['parent_uuid'] . "\0" . $item['slot'];
-      $grouped[$key] ??= [$by_uuid[$item['parent_uuid']], (string) $item['slot'], []];
-      $grouped[$key][2][] = ['#delta' => (int) $delta] + $item;
+      $grouped[$key] ??= [
+        'parent_uuid' => $item['parent_uuid'],
+        'parent_component_id' => $component_id_by_uuid[$item['parent_uuid']],
+        'slot' => $item['slot'],
+        'children' => [],
+      ];
+      $grouped[$key]['children'][] = [
+        'delta' => (int) $delta,
+        'uuid' => $item['uuid'],
+        'component_id' => $item['component_id'],
+      ];
     }
     return \array_values($grouped);
   }
@@ -314,18 +338,25 @@ final class SlotRestrictions {
    *
    * @param string $rule
    *   The rule that was violated.
-   * @param array<string, mixed> $child
-   *   The child instance in violation.
-   * @param array<string, mixed> $parent
-   *   The parent instance.
-   * @param string $slot_name
-   *   The slot name.
+   * @param string $child_uuid
+   *   The UUID of the child instance in violation.
+   * @param array{parent_uuid: string, parent_component_id: string, slot: string, children: list<array{delta: int, uuid: string, component_id: string}>} $group
+   *   The slot the child sits in.
    */
-  private static function key(string $rule, array $child, array $parent, string $slot_name): string {
+  private static function key(string $rule, string $child_uuid, array $group): string {
     // Moving an instance changes its parent or slot, and therefore its key: a
     // placement that was tolerated where it stood is re-evaluated when the
     // author moves it.
-    return \implode("\0", [$rule, $child['uuid'], $parent['uuid'], $slot_name]);
+    return \implode("\0", [$rule, $child_uuid, $group['parent_uuid'], $group['slot']]);
+  }
+
+  /**
+   * Whether a value is a non-empty string.
+   *
+   * @phpstan-assert-if-true non-empty-string $value
+   */
+  private static function isNonEmptyString(mixed $value): bool {
+    return \is_string($value) && $value !== '';
   }
 
   /**
