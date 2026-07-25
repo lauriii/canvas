@@ -135,8 +135,9 @@ describe('commentsApi', () => {
         // Node's `Request` rejects relative URLs, so the test surface needs an
         // absolute base URL.
         baseUrl: 'http://localhost/',
-        entityType: 'canvas_page',
-        entity: '1',
+        // Left unset on purpose: the surface comes from the route.
+        entityType: 'none',
+        entity: 'none',
         isNew: false,
         isPublished: false,
         devMode: false,
