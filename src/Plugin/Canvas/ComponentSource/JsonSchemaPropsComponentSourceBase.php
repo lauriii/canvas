@@ -1205,9 +1205,10 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       // Additional data only needed for SDCs.
       // @todo UI does not use any other metadata - should `slots` move to top level?
       'metadata' => ['slots' => $this->getSlotDefinitions()],
-      // Consumed client-side to resolve slots' `expected` tag entries.
+      // Consumed client-side to resolve slots' `expected` tag entries. Omitted
+      // when the component declares none, which is the common case.
       // @see \Drupal\canvas\SlotRestrictions
-      'tags' => $this->getTags(),
+      ...($this->getTags() === [] ? [] : ['tags' => $this->getTags()]),
       'propSources' => $field_data,
       'transforms' => $transforms,
     ];

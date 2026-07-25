@@ -195,7 +195,7 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
   }
 
   /**
-   * Validates the slot restrictions declared by the parents' component metadata.
+   * Validates the slot restrictions declared by the parents' metadata.
    *
    * Only violations this write *introduces* are reported: a violation the
    * stored tree already contains is left alone, so that adding or narrowing a
@@ -225,6 +225,10 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     );
     foreach (\array_diff_key($violations, $pre_existing) as $violation) {
       $this->context->getViolations()->add(new ConstraintViolation(
+        // The message templates are string literals; they are only variable at
+        // this point, where the violations are turned into Drupal's shape.
+        // @see \Drupal\canvas\SlotRestrictions::violations()
+        // phpcs:ignore Drupal.Semantics.FunctionT.NotLiteralString
         new TranslatableMarkup($violation['message'], $violation['params']),
         $violation['message'],
         $violation['params'],

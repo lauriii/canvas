@@ -472,7 +472,9 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
       'items',
       [self::OTHER_CHILD],
       [
-        'layout.1.slot' => 'Component <em class="placeholder">Canvas test SDC with props and slots</em> is not expected in the <em class="placeholder">Items</em> slot of <em class="placeholder">Canvas test SDC with a restricted slot</em>. Expected: <em class="placeholder">Canvas test SDC with props, no slots, Canvas test SDC matched by tag</em>.',
+        // A reference renders as the component's label; a tag renders as
+        // itself, because a tag names a group rather than a component.
+        'layout.1.slot' => 'Component <em class="placeholder">Canvas test SDC with props and slots</em> is not expected in the <em class="placeholder">Items</em> slot of <em class="placeholder">Canvas test SDC with a restricted slot</em>. Expected: <em class="placeholder">Canvas test SDC with props but no slots, canvas-test-tag</em>.',
       ],
     ];
     yield 'INVALID: more children than `maxItems`, reported on the surplus only' => [
