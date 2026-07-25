@@ -43,6 +43,10 @@ final class CommentEntityTest extends CanvasKernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');
+    // The `path` and `path_alias` modules are enabled by the base class, so
+    // saving any entity resolves an alias and needs this table to exist.
+    // @see \Drupal\Tests\canvas\Kernel\CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES
+    $this->installEntitySchema('path_alias');
     $this->installEntitySchema(CommentThread::ENTITY_TYPE_ID);
     $this->installEntitySchema(Comment::ENTITY_TYPE_ID);
     // Claim uid 1, so that no test user below is the all-powerful super user.

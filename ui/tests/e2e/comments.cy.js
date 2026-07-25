@@ -1,3 +1,7 @@
+// The "Homepage" page the Canvas test setup creates.
+// @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup
+const PAGE_URL = 'canvas/editor/canvas_page/1';
+
 describe('Comments', () => {
   before(() => {
     // `canvasUser` holds the `canvas` role, which does not carry the comment
@@ -27,7 +31,9 @@ describe('Comments', () => {
     cy.intercept('POST', '**/canvas/api/v0/comments/*/replies').as('reply');
     cy.intercept('PATCH', '**/canvas/api/v0/comments/*').as('setResolved');
 
-    cy.loadURLandWaitForCanvasLoaded();
+    // A `canvas_page` specifically: it is the only surface the comment API
+    // accepts, and `loadURLandWaitForCanvasLoaded` otherwise defaults to a node.
+    cy.loadURLandWaitForCanvasLoaded({ url: PAGE_URL });
 
     // Open the comments panel from the side menu.
     cy.get('[data-testid="canvas-side-menu"]')
@@ -61,7 +67,7 @@ describe('Comments', () => {
     );
 
     // Reload and assert both the thread and its reply were persisted.
-    cy.loadURLandWaitForCanvasLoaded({ clearAutoSave: false });
+    cy.loadURLandWaitForCanvasLoaded({ url: PAGE_URL, clearAutoSave: false });
     cy.get('[data-testid="canvas-side-menu"]')
       .find('[aria-label="Comments"]')
       .click();
