@@ -1,0 +1,39 @@
+.pinLayer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.pin {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-5);
+  height: var(--space-5);
+  padding: 0 var(--space-1);
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  pointer-events: all;
+  color: var(--accent-contrast);
+  border: 1px solid var(--accent-a11);
+  border-radius: var(--radius-6) var(--radius-6) var(--radius-6) 0;
+  background: var(--accent-9);
+  box-shadow: var(--shadow-4);
+  font-size: var(--font-size-1);
+  line-height: 1;
+}
+
+.pin.active {
+  outline: 2px solid var(--accent-a11);
+  outline-offset: 1px;
+}
+
+.pin.resolved {
+  color: var(--gray-12);
+  border-color: var(--gray-a7);
+  background: var(--gray-4);
+}
