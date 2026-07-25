@@ -404,6 +404,156 @@ paths:
                       - No auto-save data found for this entity.
         '413':
           $ref: '#/components/responses/ClientErrorResponse'
+  /canvas/api/v0/comments:
+    description: Endpoint for listing and creating comment threads on a Canvas surface.
+    get:
+      summary: Lists the comment threads anchored to one surface.
+      parameters:
+        - name: surfaceType
+          in: query
+          required: true
+          description: The entity type ID of the commented surface.
+          schema:
+            type: string
+          example: canvas_page
+        - name: surfaceId
+          in: query
+          required: true
+          description: The entity ID of the commented surface.
+          schema:
+            type: string
+          example: '1'
+        - name: includeResolved
+          in: query
+          required: false
+          description: >-
+            Include resolved threads. Resolved threads are excluded by default,
+            because most threads end up resolved and never render a pin.
+          schema:
+            type: string
+          example: '1'
+      responses:
+        '200':
+          $ref: '#/components/responses/CommentThreadListResponse'
+        '403':
+          # Deliberately no `content`: a request rejected by the route's
+          # `_permission` requirement never reaches the controller, so the body
+          # is Drupal's own `{"errors": ["<string>"]}`, which is an array of
+          # strings and cannot satisfy the object-shaped `Error` schema.
+          description: Access denied.
+        '404':
+          description: The surface does not exist.
+        '422':
+          $ref: '#/components/responses/ClientErrorResponse'
+    post:
+      summary: Creates a comment thread anchored to a surface or a component instance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - surfaceType
+                - surfaceId
+                - body
+              properties:
+                surfaceType:
+                  type: string
+                  description: The entity type ID of the commented surface.
+                surfaceId:
+                  type: string
+                  description: The entity ID of the commented surface.
+                componentUuid:
+                  type: ['null', string]
+                  format: uuid
+                  description: >-
+                    The commented component instance. Null anchors the thread to
+                    the surface itself.
+                body:
+                  type: string
+                  description: The text of the opening comment.
+      responses:
+        '201':
+          $ref: '#/components/responses/CommentThreadResponse'
+        '400':
+          $ref: '#/components/responses/ClientErrorResponse'
+        '403':
+          # Deliberately no `content`: a request rejected by the route's
+          # `_permission` requirement never reaches the controller, so the body
+          # is Drupal's own `{"errors": ["<string>"]}`, which is an array of
+          # strings and cannot satisfy the object-shaped `Error` schema.
+          description: Access denied.
+        '404':
+          description: The surface does not exist.
+        '422':
+          $ref: '#/components/responses/ClientErrorResponse'
+  /canvas/api/v0/comments/{commentThreadId}:
+    description: Endpoint for changing the state of a single comment thread.
+    patch:
+      summary: Resolves or reopens a comment thread.
+      parameters:
+        - $ref: '#/components/parameters/commentThreadId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - resolved
+              properties:
+                resolved:
+                  type: boolean
+                  description: Whether the thread is resolved.
+      responses:
+        '200':
+          $ref: '#/components/responses/CommentThreadResponse'
+        '400':
+          $ref: '#/components/responses/ClientErrorResponse'
+        '403':
+          # Deliberately no `content`: a request rejected by the route's
+          # `_permission` requirement never reaches the controller, so the body
+          # is Drupal's own `{"errors": ["<string>"]}`, which is an array of
+          # strings and cannot satisfy the object-shaped `Error` schema.
+          description: Access denied.
+        '404':
+          description: The comment thread does not exist.
+        '422':
+          $ref: '#/components/responses/ClientErrorResponse'
+  /canvas/api/v0/comments/{commentThreadId}/replies:
+    description: Endpoint for replying to a comment thread.
+    post:
+      summary: Appends a reply to a comment thread.
+      parameters:
+        - $ref: '#/components/parameters/commentThreadId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - body
+              properties:
+                body:
+                  type: string
+                  description: The text of the reply.
+      responses:
+        '201':
+          $ref: '#/components/responses/CommentThreadResponse'
+        '400':
+          $ref: '#/components/responses/ClientErrorResponse'
+        '403':
+          # Deliberately no `content`: a request rejected by the route's
+          # `_permission` requirement never reaches the controller, so the body
+          # is Drupal's own `{"errors": ["<string>"]}`, which is an array of
+          # strings and cannot satisfy the object-shaped `Error` schema.
+          description: Access denied.
+        '404':
+          description: The comment thread does not exist.
+        '422':
+          $ref: '#/components/responses/ClientErrorResponse'
   /canvas/api/v0/config/asset_library:
     description: Endpoint for managing asset libraries.
     get:
@@ -5064,6 +5214,106 @@ components:
           label:
             type: [ 'null', string ]
             description: Optional label for the component instance.
+    CommentAuthor:
+      title: Comment author
+      type: object
+      description: The user who wrote a comment or opened a thread.
+      required:
+        - uid
+        - displayName
+        - avatar
+      properties:
+        uid:
+          type: integer
+          description: The user ID.
+        displayName:
+          type: string
+          description: The account's display name at read time.
+        avatar:
+          type: [ 'null', string ]
+          format: uri-reference
+          description: URL of the author's avatar, or null when there is none.
+    Comment:
+      title: Comment
+      type: object
+      description: One message in a comment thread.
+      required:
+        - id
+        - body
+        - created
+        - changed
+        - author
+      properties:
+        id:
+          type: string
+          description: The comment entity ID.
+        body:
+          type: string
+          description: The comment text.
+        created:
+          type: integer
+          description: Creation time, in seconds since the Unix epoch.
+        changed:
+          type: integer
+          description: Last change time, in seconds since the Unix epoch.
+        author:
+          $ref: '#/components/schemas/CommentAuthor'
+    CommentThread:
+      title: Comment thread
+      type: object
+      description: >-
+        A conversation anchored to a Canvas surface or to one component instance
+        on it. The anchor is a portable address rather than an entity reference,
+        because most Canvas surfaces are config entities and cannot carry fields.
+      required:
+        - id
+        - uuid
+        - surfaceType
+        - surfaceId
+        - componentUuid
+        - resolved
+        - created
+        - changed
+        - author
+        - comments
+      properties:
+        id:
+          type: string
+          description: The comment thread entity ID.
+        uuid:
+          type: string
+          format: uuid
+          description: The comment thread UUID, used for deep links.
+        surfaceType:
+          type: string
+          description: The entity type ID of the commented surface.
+        surfaceId:
+          type: string
+          description: The entity ID of the commented surface.
+        componentUuid:
+          type: [ 'null', string ]
+          format: uuid
+          description: >-
+            The anchored component instance. Null means the thread is anchored
+            to the surface as a whole and renders no pin.
+        resolved:
+          type: boolean
+          description: Whether the thread is resolved.
+        created:
+          type: integer
+          description: Creation time, in seconds since the Unix epoch.
+        changed:
+          type: integer
+          description: Last change time, in seconds since the Unix epoch.
+        author:
+          $ref: '#/components/schemas/CommentAuthor'
+        comments:
+          type: array
+          description: >-
+            The thread's messages, oldest first. The first entry is the opening
+            comment; every later entry is a reply at the same level.
+          items:
+            $ref: '#/components/schemas/Comment'
   # @see https://spec.openapis.org/oas/v3.1.0.html#response-object
   responses:
     ContentEntityResponse:
@@ -5146,6 +5396,30 @@ components:
                 additionalProperties: true
               transforms:
                 $ref: '#/components/schemas/ClientSideTransforms'
+    CommentThreadResponse:
+      description: A single comment thread.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - thread
+            properties:
+              thread:
+                $ref: '#/components/schemas/CommentThread'
+    CommentThreadListResponse:
+      description: The comment threads anchored to one surface.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - threads
+            properties:
+              threads:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CommentThread'
     ClientErrorResponse:
       description: Errors in response to the client's request.
       content:
@@ -5199,6 +5473,14 @@ components:
                   $ref: '#/components/schemas/Error'
   # @see https://spec.openapis.org/oas/v3.1.0.html#parameter-object
   parameters:
+    commentThreadId:
+      name: commentThreadId
+      in: path
+      required: true
+      description: The comment thread entity ID
+      schema:
+        type: string
+      example: '1'
     entityTypeId:
       name: entityTypeId
       in: path

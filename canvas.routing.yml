@@ -46,6 +46,56 @@ canvas.api.auto-save.post:
   options:
     _format: 'json'
 
+canvas.api.comments.list:
+  path: '/canvas/api/v0/comments'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiCommentController::list'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'view canvas comments'
+  methods: [GET]
+  options:
+    _format: 'json'
+
+canvas.api.comments.patch:
+  path: '/canvas/api/v0/comments/{canvas_comment_thread}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiCommentController::patch'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'create canvas comments'
+  methods: [PATCH]
+  options:
+    parameters:
+      canvas_comment_thread:
+        type: 'entity:canvas_comment_thread'
+    _format: 'json'
+
+canvas.api.comments.post:
+  path: '/canvas/api/v0/comments'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiCommentController::post'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'create canvas comments'
+  methods: [POST]
+  options:
+    _format: 'json'
+
+canvas.api.comments.reply:
+  path: '/canvas/api/v0/comments/{canvas_comment_thread}/replies'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiCommentController::reply'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'create canvas comments'
+  methods: [POST]
+  options:
+    parameters:
+      canvas_comment_thread:
+        type: 'entity:canvas_comment_thread'
+    _format: 'json'
+
 canvas.api.config.auto-save.get:
   path: '/canvas/api/v0/config/auto-save/{canvas_config_entity_type_id}/{canvas_config_entity}'
   defaults:
