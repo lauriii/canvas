@@ -7,7 +7,10 @@ import { BoxModelIcon } from '@radix-ui/react-icons';
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { describeAllowed } from '@/features/layout/slot-utils';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import { useDropRejection, useSlotRule } from '@/hooks/useSlotRestrictions';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
 
 import type React from 'react';
 import type {
@@ -37,6 +40,12 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
   slotPath.push(0);
 
   const accepts = ['overlay', 'library'];
+  // The slot's own metadata decides what it accepts, on top of where the drag
+  // came from.
+  // @see \Drupal\canvas\SlotRestrictions
+  const rejection = useDropRejection(slot);
+  const rule = useSlotRule(slot);
+  const { data: components } = useGetComponentsQuery();
 
   const {
     setNodeRef: setDropRef,
@@ -44,7 +53,7 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
     active,
   } = useDroppable({
     id: `${slot.id}`,
-    disabled: !accepts.includes(activeOrigin),
+    disabled: !accepts.includes(activeOrigin) || rejection !== null,
     data: {
       component: parentComponent,
       parentSlot: slot,
@@ -84,6 +93,19 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
           <>
             <BoxModelIcon />
             <div>{slotName}</div>
+            {/* An empty restricted slot says what belongs in it, so that an
+                author learns the rule before it is enforced. */}
+            {rule.allowed !== null && (
+              <div className={styles.emptySlotAccepts}>
+                Accepts {describeAllowed(rule, components)}
+              </div>
+            )}
+            {rule.maxItems !== null && (
+              <div className={styles.emptySlotCount}>
+                0 of {rule.maxItems}
+                {rule.minItems ? `, at least ${rule.minItems}` : ''}
+              </div>
+            )}
           </>
         )}
       </div>

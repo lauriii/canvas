@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { CollapsibleContent } from '@radix-ui/react-collapsible';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
-import { Box, Flex } from '@radix-ui/themes';
+import { Box, Flex, Text } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
@@ -15,6 +15,7 @@ import {
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import { useSlotRule } from '@/hooks/useSlotRestrictions';
 
 import type React from 'react';
 import type { CollapsibleTriggerProps } from '@radix-ui/react-collapsible';
@@ -42,6 +43,18 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
   const collapsedLayers = useAppSelector(selectCollapsedLayers);
   const slotId = slot.id;
   const isCollapsed = collapsedLayers.includes(slotId);
+  // A governed slot shows its occupancy, so the limit is legible before it is
+  // reached. Slots without restrictions show nothing: the presence of a counter
+  // is itself the signal that this slot has rules.
+  // @see \Drupal\canvas\SlotRestrictions
+  const rule = useSlotRule(slot);
+  const occupancy = slot.components.length;
+  const counter =
+    rule.maxItems !== null
+      ? `${occupancy} of ${rule.maxItems}`
+      : rule.minItems && occupancy < rule.minItems
+        ? `${occupancy}, needs ${rule.minItems}`
+        : null;
 
   const handleItemMouseEnter = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -89,6 +102,13 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
           open={!isCollapsed}
           disabled={disableDrop}
           indent={indent}
+          trailingContent={
+            counter ? (
+              <Text size="1" color="gray">
+                {counter}
+              </Text>
+            ) : undefined
+          }
           leadingContent={
             <Flex>
               <Box width="var(--space-4)" mr="1">

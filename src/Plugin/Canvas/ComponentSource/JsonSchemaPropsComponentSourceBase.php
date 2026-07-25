@@ -258,6 +258,21 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
   /**
    * {@inheritdoc}
    *
+   * TRICKY: `tags` is read from the plugin definition rather than from
+   * \Drupal\Core\Theme\Component\ComponentMetadata, because core exposes no
+   * `tags` property there.
+   *
+   * @see https://www.drupal.org/i/3514072
+   */
+  public function getTags(): array {
+    $tags = $this->getComponentPlugin()->getPluginDefinition()['tags'] ?? [];
+    \assert(\is_array($tags));
+    return \array_values(\array_filter($tags, \is_string(...)));
+  }
+
+  /**
+   * {@inheritdoc}
+   *
    * @return array{'required': string[], 'shapes': array<string, array>}
    */
   public function getExplicitInputDefinitions(): array {
@@ -1190,6 +1205,9 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       // Additional data only needed for SDCs.
       // @todo UI does not use any other metadata - should `slots` move to top level?
       'metadata' => ['slots' => $this->getSlotDefinitions()],
+      // Consumed client-side to resolve slots' `expected` tag entries.
+      // @see \Drupal\canvas\SlotRestrictions
+      'tags' => $this->getTags(),
       'propSources' => $field_data,
       'transforms' => $transforms,
     ];

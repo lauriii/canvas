@@ -197,6 +197,15 @@
   }
 }
 
+/* An empty restricted slot advertises what it accepts and how many it holds. */
+.emptySlotAccepts,
+.emptySlotCount {
+  flex-basis: 100%;
+  text-align: center;
+  opacity: 0.75;
+  font-size: 11px;
+}
+
 .emptyRegionDropZone {
   flex-direction: column;
   gap: 0;

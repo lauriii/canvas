@@ -357,4 +357,18 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    */
   public function optimizeExplicitInput(array $values): array;
 
+  /**
+   * Gets the tags this component is labeled with.
+   *
+   * Tags are matched against the `expected` entries of a slot to decide which
+   * components that slot accepts.
+   *
+   * @return string[]
+   *   The tags, or an empty array for sources that have no concept of tags.
+   *
+   * @see https://www.drupal.org/i/3514072
+   * @see \Drupal\canvas\SlotRestrictions
+   */
+  public function getTags(): array;
+
 }

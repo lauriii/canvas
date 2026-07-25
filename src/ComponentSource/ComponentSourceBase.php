@@ -40,6 +40,13 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
     return $this->getConfiguration()['local_source_id'];
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getTags(): array {
+    return [];
+  }
+
   public function generateVersionHash(): string {
     // @phpstan-ignore-next-line
     $typed_source_specific_settings = \Drupal::service(TypedConfigManagerInterface::class)->createFromNameAndData(

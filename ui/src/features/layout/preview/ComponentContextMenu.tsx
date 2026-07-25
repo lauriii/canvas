@@ -7,11 +7,14 @@ import { UnifiedMenu } from '@/components/UnifiedMenu';
 import {
   deleteNode,
   duplicateNode,
+  NodeType,
   selectLayout,
   shiftNode,
 } from '@/features/layout/layoutModelSlice';
+import { findParent } from '@/features/layout/layoutUtils';
 import ComponentContextMenuMoveInto from '@/features/layout/preview/ComponentContextMenuMoveInto';
 import ComponentContextMenuRegions from '@/features/layout/preview/ComponentContextMenuRegions';
+import { componentIdFromNodeType } from '@/features/layout/slot-utils';
 import { setDialogOpen } from '@/features/ui/dialogSlice';
 import {
   DEFAULT_REGION,
@@ -23,12 +26,16 @@ import useComponentSelection from '@/hooks/useComponentSelection';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import { useCanPlaceInSlot } from '@/hooks/useSlotRestrictions';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 
 import type React from 'react';
 import type { ReactNode } from 'react';
 import type { UnifiedMenuType } from '@/components/UnifiedMenu';
-import type { ComponentNode } from '@/features/layout/layoutModelSlice';
+import type {
+  ComponentNode,
+  SlotNode,
+} from '@/features/layout/layoutModelSlice';
 
 interface ComponentContextMenuProps {
   children: ReactNode;
@@ -79,16 +86,28 @@ export const ComponentContextMenuContent: React.FC<
     [componentUuid, dispatch, unsetSelectedComponent],
   );
 
+  // A duplicate adds one more component to the slot the original sits in, so a
+  // slot that is already full cannot take it.
+  // @see \Drupal\canvas\SlotRestrictions
+  const canPlaceInSlot = useCanPlaceInSlot();
+  const parentNode = componentUuid ? findParent(layout, componentUuid) : null;
+  const canDuplicate = canPlaceInSlot(
+    parentNode?.nodeType === NodeType.Slot
+      ? (parentNode as SlotNode)
+      : undefined,
+    [componentIdFromNodeType(component.type)],
+  );
+
   const handleDuplicateClick = useCallback(
     (ev: React.MouseEvent<HTMLElement>) => {
       ev.stopPropagation();
       dispatch(unsetHoveredComponent());
 
-      if (componentUuid) {
+      if (componentUuid && canDuplicate) {
         dispatch(duplicateNode({ uuid: componentUuid }));
       }
     },
-    [dispatch, componentUuid],
+    [dispatch, componentUuid, canDuplicate],
   );
 
   const handleCopyClick = useCallback(
@@ -192,7 +211,11 @@ export const ComponentContextMenuContent: React.FC<
       )}
       <UnifiedMenu.Separator />
 
-      <UnifiedMenu.Item onClick={handleDuplicateClick} shortcut="⌘ D">
+      <UnifiedMenu.Item
+        onClick={handleDuplicateClick}
+        shortcut="⌘ D"
+        disabled={!canDuplicate}
+      >
         Duplicate
       </UnifiedMenu.Item>
       <UnifiedMenu.Item onClick={handleCopyClick} shortcut="⌘ C">

@@ -475,6 +475,32 @@ canvas.slot_definition:
       sequence:
         type: text
         label: 'Example for slot'
+    # The slot restrictions defined by https://www.drupal.org/i/3514072. Drupal core deliberately does not enforce
+    # these at the SDC render layer; Canvas enforces them while authoring and when publishing.
+    # @see \Drupal\canvas\SlotRestrictions
+    expected:
+      type: sequence
+      label: 'Expected components'
+      requiredKey: false
+      sequence:
+        type: string
+        label: 'A component ID or tag'
+        constraints:
+          NotBlank: []
+    minItems:
+      type: integer
+      label: 'Minimum number of items'
+      requiredKey: false
+      constraints:
+        Range:
+          min: 0
+    maxItems:
+      type: integer
+      label: 'Maximum number of items'
+      requiredKey: false
+      constraints:
+        Range:
+          min: 1
 
 canvas.component_source_local_id.sdc:
   type: canvas.component_source_local_id.*

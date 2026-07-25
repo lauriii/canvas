@@ -5,6 +5,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { useDropRejection } from '@/hooks/useSlotRestrictions';
 
 import type React from 'react';
 import type {
@@ -34,13 +35,16 @@ const SlotDropZone: React.FC<SlotDropZoneProps> = (props) => {
   // We want to drop into the first (0th) space in the empty slot.
   slotPath.push(0);
 
+  // @see \Drupal\canvas\SlotRestrictions
+  const rejection = useDropRejection(slot);
+
   const {
     setNodeRef: setDropRef,
     isOver,
     active,
   } = useDroppable({
     id: `${slot.id}_${position}`,
-    disabled: !accepts.includes(activeOrigin),
+    disabled: !accepts.includes(activeOrigin) || rejection !== null,
     data: {
       slot: slot,
       component: parentComponent,

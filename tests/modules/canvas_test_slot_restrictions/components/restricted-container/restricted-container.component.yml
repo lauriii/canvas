@@ -1,0 +1,29 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Canvas test SDC with a restricted slot
+props:
+  type: object
+  properties: {}
+slots:
+  items:
+    title: Items
+    description: Accepts one named component and anything tagged.
+    examples: []
+    # @see https://www.drupal.org/i/3514072
+    expected:
+      # A reference by SDC plugin ID.
+      - canvas_test_sdc:props-no-slots
+      # A tag, matched against components' `tags`.
+      - canvas-test-tag
+    minItems: 1
+    maxItems: 2
+  anything:
+    title: Anything
+    description: Declares no restrictions, so it accepts any component.
+    examples: []
+  typo:
+    title: Typo
+    description: Every entry is a mistake, so the slot falls back to accepting anything.
+    examples: []
+    expected:
+      - canvas_test_sdc:no-such-component
+      - no-such-tag

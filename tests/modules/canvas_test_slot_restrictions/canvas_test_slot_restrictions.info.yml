@@ -1,0 +1,5 @@
+name: 'Test SDC Components with slot restrictions'
+type: module
+dependencies:
+  - canvas:canvas
+package: Testing
