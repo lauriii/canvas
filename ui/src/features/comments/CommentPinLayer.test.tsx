@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AppWrapper from '@tests/vitest/components/AppWrapper';
 
 import { makeStore } from '@/app/store';
-import CommentPinLayer from '@/features/comments/CommentPinLayer';
+import CommentPinLayer, {
+  findComponentAtPoint,
+} from '@/features/comments/CommentPinLayer';
 import { setCommentMode } from '@/features/comments/commentsSlice';
 import { setConfiguration } from '@/features/configuration/configurationSlice';
-import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
 import { setEditorFrameViewPort } from '@/features/ui/uiSlice';
 
 import type { CanvasGeometryMap } from '@/features/layout/preview/PreviewGeometryContext';
@@ -116,10 +117,25 @@ const threads: CommentThread[] = [
   },
 ];
 
+let postedBodies: unknown[] = [];
+
 const stubFetch = () => {
+  postedBodies = [];
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () => {
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const request =
+        input instanceof Request ? input : new Request(input, init);
+      if (request.url.endsWith('session/token')) {
+        return new Response('csrf-token', { status: 200 });
+      }
+      if (request.method !== 'GET') {
+        postedBodies.push(await request.clone().json());
+        return new Response(JSON.stringify({ thread: threads[0] }), {
+          status: 201,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
       return new Response(JSON.stringify({ threads }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -203,7 +219,110 @@ describe('CommentPinLayer', () => {
     await user.click(await screen.findByTestId('canvas-comment-pin'));
 
     expect(store.getState().comments.activeThreadId).toBe('1');
-    expect(selectActivePanel(store.getState())).toBe('comments');
+    // The panel is the comments tab of the contextual panel on the right, so
+    // opening it is a comments-slice concern, not a primary-panel one.
+    expect(store.getState().comments.panelOpen).toBe(true);
+  });
+
+  it('picks the smallest component containing the point', () => {
+    // Component rectangles nest, so clicking a heading inside a section has to
+    // anchor to the heading, not to the section around it.
+    const nested: CanvasGeometryMap = {
+      component: {
+        'uuid-section': {
+          type: 'component',
+          id: 'uuid-section',
+          markerFormat: 'comment',
+          rect: {
+            top: 0,
+            right: 400,
+            bottom: 400,
+            left: 0,
+            width: 400,
+            height: 400,
+          },
+        },
+        'uuid-heading': {
+          type: 'component',
+          id: 'uuid-heading',
+          markerFormat: 'comment',
+          rect: {
+            top: 100,
+            right: 300,
+            bottom: 200,
+            left: 40,
+            width: 260,
+            height: 100,
+          },
+        },
+      },
+      slot: {},
+      region: {},
+    };
+
+    expect(findComponentAtPoint(nested, 100, 150)).toBe('uuid-heading');
+    // Inside the section but outside the heading.
+    expect(findComponentAtPoint(nested, 350, 350)).toBe('uuid-section');
+    // Outside everything.
+    expect(findComponentAtPoint(nested, 900, 900)).toBeNull();
+  });
+
+  it('places a thread where comment mode is clicked', async () => {
+    stubFetch();
+    const user = userEvent.setup();
+    const store = setUpStore();
+    render(
+      <AppWrapper
+        store={store}
+        location="/editor/canvas_page/1"
+        path="/editor/:entityType/:entityId"
+      >
+        <CommentPinLayer />
+      </AppWrapper>,
+    );
+
+    const layer = await screen.findByTestId('canvas-comment-pin-layer');
+    expect(layer).toHaveAttribute('data-comment-mode', 'true');
+    // jsdom gives every element a zero-sized rect, so a click at the origin
+    // lands inside the anchored component's rectangle, which starts at 40/100
+    // only in preview pixels. Point at its middle instead.
+    vi.spyOn(layer, 'getBoundingClientRect').mockReturnValue({
+      top: 0,
+      left: 0,
+      right: 400,
+      bottom: 400,
+      width: 400,
+      height: 400,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    await user.pointer({
+      target: layer,
+      coords: { clientX: 100, clientY: 150 },
+    });
+    await user.click(layer);
+
+    const composer = await screen.findByTestId('canvas-comment-draft-composer');
+    expect(composer).toBeInTheDocument();
+
+    await user.type(
+      screen.getByTestId('canvas-comment-draft-input'),
+      'Placed by clicking',
+    );
+    await user.click(screen.getByTestId('canvas-comment-draft-submit'));
+
+    await waitFor(() => {
+      expect(postedBodies).toContainEqual({
+        surfaceType: 'canvas_page',
+        surfaceId: '1',
+        componentUuid: 'uuid-anchored',
+        body: 'Placed by clicking',
+      });
+    });
+    // Posting leaves comment mode and shows the thread in the panel.
+    expect(store.getState().comments.commentModeActive).toBe(false);
+    expect(store.getState().comments.panelOpen).toBe(true);
   });
 
   it('renders nothing while comments are not relevant', () => {

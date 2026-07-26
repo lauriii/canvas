@@ -1,9 +1,15 @@
 import clsx from 'clsx';
+import { useHotkeys } from 'react-hotkeys-hook';
 import ScaleToFitIcon from '@assets/icons/justify-stretch.svg?react';
+import { ChatBubbleIcon } from '@radix-ui/react-icons';
 import { Button, Flex, Tooltip } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ZoomControl from '@/components/zoom/ZoomControl';
+import {
+  selectCommentModeActive,
+  toggleCommentMode,
+} from '@/features/comments/commentsSlice';
 import ViewportSelector from '@/features/layout/preview/ViewportSelector';
 import {
   scaleValues,
@@ -11,6 +17,7 @@ import {
   setEditorFrameViewPort,
 } from '@/features/ui/uiSlice';
 import { getHalfwayScrollPosition } from '@/utils/function-utils';
+import { hasPermission } from '@/utils/permissions';
 
 import type React from 'react';
 import type { RefObject } from 'react';
@@ -45,6 +52,21 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
   const { editorPaneRef, scalingContainerRef } = props;
   const dispatch = useAppDispatch();
   const currentWidth = useAppSelector(selectViewportWidth);
+  const commentModeActive = useAppSelector(selectCommentModeActive);
+  const canComment = hasPermission('createComments');
+
+  // `c` is the same shortcut Figma uses for this, and `useHotkeys` already
+  // ignores key presses that land in a form field.
+  useHotkeys(
+    'c',
+    () => {
+      if (canComment) {
+        dispatch(toggleCommentMode());
+      }
+    },
+    { enabled: canComment },
+    [canComment, dispatch],
+  );
 
   const handleScaleToFit = () => {
     if (editorPaneRef.current) {
@@ -103,6 +125,29 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
         </Button>
       </Tooltip>
       <ZoomControl buttonClass={styles.toolbarButton} />
+      {canComment && (
+        <Tooltip
+          side="bottom"
+          content={
+            commentModeActive
+              ? 'Leave comment mode (C)'
+              : 'Comment on a component (C)'
+          }
+        >
+          <Button
+            size="1"
+            onClick={() => dispatch(toggleCommentMode())}
+            color={commentModeActive ? undefined : 'gray'}
+            variant={commentModeActive ? 'solid' : 'surface'}
+            highContrast
+            className={styles.toolbarButton}
+            aria-pressed={commentModeActive}
+            data-testid="canvas-comment-mode-toggle"
+          >
+            <ChatBubbleIcon />
+          </Button>
+        </Tooltip>
+      )}
     </Flex>
   );
 };

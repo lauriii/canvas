@@ -7,6 +7,14 @@ export type CommentFilter = 'open' | 'resolved';
 export interface CommentsState {
   /** True while the editor is in "click the canvas to comment" mode. */
   commentModeActive: boolean;
+  /**
+   * True while the comments tab of the contextual panel is the active one.
+   *
+   * The contextual panel keeps its own tab in local state, but the on-canvas
+   * pin layer has to know whether comments are on screen, so this one tab is
+   * lifted into the store rather than drilled through the layout.
+   */
+  panelOpen: boolean;
   /** The thread whose replies are expanded, or `null` when none is. */
   activeThreadId: string | null;
   filter: CommentFilter;
@@ -14,6 +22,7 @@ export interface CommentsState {
 
 export const initialState: CommentsState = {
   commentModeActive: false,
+  panelOpen: false,
   activeThreadId: null,
   filter: 'open',
 };
@@ -34,7 +43,21 @@ export const commentsSlice = createAppSlice({
     }),
     toggleCommentMode: create.reducer((state) => {
       state.commentModeActive = !state.commentModeActive;
+      // Turning comment mode on opens the panel, so the thread the next click
+      // creates is visible in the list it lands in.
+      if (state.commentModeActive) {
+        state.panelOpen = true;
+      }
     }),
+    setCommentsPanelOpen: create.reducer(
+      (state, action: PayloadAction<boolean>) => {
+        state.panelOpen = action.payload;
+        // Comment mode only makes sense alongside the panel it feeds.
+        if (!action.payload) {
+          state.commentModeActive = false;
+        }
+      },
+    ),
     setActiveThread: create.reducer((state, action: PayloadAction<string>) => {
       state.activeThreadId = action.payload;
     }),
@@ -49,6 +72,7 @@ export const commentsSlice = createAppSlice({
   }),
   selectors: {
     selectCommentModeActive: (comments): boolean => comments.commentModeActive,
+    selectCommentsPanelOpen: (comments): boolean => comments.panelOpen,
     selectActiveThreadId: (comments): string | null => comments.activeThreadId,
     selectCommentFilter: (comments): CommentFilter => comments.filter,
   },
@@ -58,6 +82,7 @@ export const commentsSlice = createAppSlice({
 export const {
   setCommentMode,
   toggleCommentMode,
+  setCommentsPanelOpen,
   setActiveThread,
   clearActiveThread,
   setCommentFilter,
@@ -66,6 +91,7 @@ export const {
 // Selectors returned by `slice.selectors` take the root state as their first argument.
 export const {
   selectCommentModeActive,
+  selectCommentsPanelOpen,
   selectActiveThreadId,
   selectCommentFilter,
 } = commentsSlice.selectors;
