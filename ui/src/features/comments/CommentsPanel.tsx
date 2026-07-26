@@ -1,16 +1,10 @@
 import { useState } from 'react';
 import clsx from 'clsx';
-import {
-  Box,
-  Button,
-  Flex,
-  SegmentedControl,
-  Text,
-  TextArea,
-} from '@radix-ui/themes';
+import { Box, Button, Flex, SegmentedControl, Text } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import Avatar from '@/components/Avatar';
+import CommentBody from '@/features/comments/CommentBody';
 import {
   clearActiveThread,
   selectActiveThreadId,
@@ -23,6 +17,8 @@ import {
   getReplyCount,
   getThreadLabel,
 } from '@/features/comments/commentThreadUtils';
+import MentionTextArea from '@/features/comments/MentionTextArea';
+import { toStoredBody } from '@/features/comments/mentionUtils';
 import useCommentSurface from '@/features/comments/useCommentSurface';
 import { formatTimestamp } from '@/features/notifications/formatTimestamp';
 import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
@@ -53,6 +49,9 @@ interface ThreadProps {
 
 const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
   const [replyBody, setReplyBody] = useState('');
+  const [replyMentions, setReplyMentions] = useState<Record<string, number>>(
+    {},
+  );
   const [replyError, setReplyError] = useState(false);
   const [replyToThread, { isLoading: isReplying }] = useReplyToThreadMutation();
   const [setThreadResolved, { isLoading: isResolving }] =
@@ -67,9 +66,13 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
       return;
     }
     try {
-      await replyToThread({ threadId: thread.id, body }).unwrap();
+      await replyToThread({
+        threadId: thread.id,
+        body: toStoredBody(body, replyMentions),
+      }).unwrap();
       setReplyError(false);
       setReplyBody('');
+      setReplyMentions({});
     } catch {
       // The composed text is deliberately kept so it is not lost.
       setReplyError(true);
@@ -107,18 +110,15 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
                   {relativeTime(thread.created)}
                 </Text>
               </Flex>
-              <Text
-                size="1"
+              <CommentBody
+                body={openingComment?.body ?? ''}
+                mentions={openingComment?.mentions ?? []}
                 // Collapsed, the opening comment is a preview: a very long
                 // body would otherwise push every following thread thousands
                 // of pixels down the panel. Expanding shows all of it.
-                className={clsx(styles.body, {
-                  [styles.bodyClamped]: !isActive,
-                })}
-                data-testid="canvas-comment-opening-body"
-              >
-                {openingComment?.body ?? ''}
-              </Text>
+                clamped={!isActive}
+                testId="canvas-comment-opening-body"
+              />
               <Text size="1" color="gray" data-testid="canvas-comment-replies">
                 {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
                 {thread.componentUuid ? ' • on a component' : ' • on this page'}
@@ -150,9 +150,10 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
                       {relativeTime(comment.created)}
                     </Text>
                   </Flex>
-                  <Text size="1" className={styles.body}>
-                    {comment.body}
-                  </Text>
+                  <CommentBody
+                    body={comment.body}
+                    mentions={comment.mentions}
+                  />
                 </Flex>
               </Flex>
             ))}
@@ -162,13 +163,19 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
                 being offered buttons that can only fail. */}
             {canWrite && (
               <>
-                <TextArea
-                  size="1"
-                  placeholder="Reply…"
-                  aria-label="Reply to this comment thread"
-                  data-testid="canvas-comment-reply-input"
+                <MentionTextArea
                   value={replyBody}
-                  onChange={(event) => setReplyBody(event.target.value)}
+                  onChange={setReplyBody}
+                  onMentionPicked={(displayName, uid) =>
+                    setReplyMentions((current) => ({
+                      ...current,
+                      [displayName]: uid,
+                    }))
+                  }
+                  placeholder="Reply…"
+                  ariaLabel="Reply to this comment thread"
+                  testId="canvas-comment-reply-input"
+                  onSubmit={submitReply}
                 />
                 {replyError && (
                   <Text
@@ -229,6 +236,9 @@ export const CommentsPanel = () => {
   const { setSelectedComponent } = useComponentSelection();
   const { surfaceType, surfaceId, hasSurface } = useCommentSurface();
   const [newThreadBody, setNewThreadBody] = useState('');
+  const [newThreadMentions, setNewThreadMentions] = useState<
+    Record<string, number>
+  >({});
   const [createError, setCreateError] = useState(false);
   const [createThread, { isLoading: isCreating }] = useCreateThreadMutation();
   const canWrite = hasPermission('createComments');
@@ -265,10 +275,11 @@ export const CommentsPanel = () => {
         surfaceType,
         surfaceId,
         componentUuid: selectedComponentUuid ?? null,
-        body,
+        body: toStoredBody(body, newThreadMentions),
       }).unwrap();
       setCreateError(false);
       setNewThreadBody('');
+      setNewThreadMentions({});
     } catch {
       // The composed text is deliberately kept so it is not lost.
       setCreateError(true);
@@ -304,13 +315,19 @@ export const CommentsPanel = () => {
           submit can only ever be rejected by the API. */}
       {canWrite && (
         <Box className={styles.composer}>
-          <TextArea
-            size="1"
-            placeholder="Add a comment…"
-            aria-label="Add a comment"
-            data-testid="canvas-comment-composer"
+          <MentionTextArea
             value={newThreadBody}
-            onChange={(event) => setNewThreadBody(event.target.value)}
+            onChange={setNewThreadBody}
+            onMentionPicked={(displayName, uid) =>
+              setNewThreadMentions((current) => ({
+                ...current,
+                [displayName]: uid,
+              }))
+            }
+            placeholder="Add a comment…"
+            ariaLabel="Add a comment"
+            testId="canvas-comment-composer"
+            onSubmit={submitNewThread}
           />
           {createError && (
             <Text size="1" color="red" data-testid="canvas-comment-error">

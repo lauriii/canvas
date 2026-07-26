@@ -10,14 +10,34 @@ export interface CommentAuthor {
   avatar: string | null;
 }
 
+export interface CommentMention {
+  uid: number;
+  /** `null` once the mentioned user no longer exists. */
+  displayName: string | null;
+}
+
 export interface Comment {
   id: string;
+  /** Mentions are stored as `@[user:123]`; see `mentions` for their names. */
   body: string;
   /** Integer UNIX seconds. */
   created: number;
   /** Integer UNIX seconds. */
   changed: number;
   author: CommentAuthor;
+  /** The users named in `body`, resolved at read time. */
+  mentions: CommentMention[];
+}
+
+export interface MentionableUsersResponse {
+  users: CommentAuthor[];
+}
+
+export interface MentionableUsersArgs {
+  surfaceType: string;
+  surfaceId: string;
+  /** What the user has typed after the `@`. */
+  query: string;
 }
 
 export interface CommentThread {
@@ -113,6 +133,21 @@ export const buildRepliesUrl = (threadId: string): string =>
   `${buildThreadUrl(threadId)}/replies`;
 
 /**
+ * Builds the URL of the mention autocomplete.
+ *
+ * @param query - What the user has typed after the `@`.
+ * @returns The URL, including the query string.
+ */
+export const buildMentionableUsersUrl = ({
+  surfaceType,
+  surfaceId,
+  query,
+}: MentionableUsersArgs): string => {
+  const params = new URLSearchParams({ surfaceType, surfaceId, q: query });
+  return `${COMMENTS_ENDPOINT}/mentionable-users?${params.toString()}`;
+};
+
+/**
  * The request each endpoint sends, extracted so it can be asserted directly.
  *
  * RTK Query does not expose an endpoint's `query` function once the API is
@@ -120,6 +155,8 @@ export const buildRepliesUrl = (threadId: string): string =>
  */
 export const commentRequests = {
   getComments: (args: GetCommentsArgs): string => buildListUrl(args),
+  getMentionableUsers: (args: MentionableUsersArgs): string =>
+    buildMentionableUsersUrl(args),
   createThread: (args: CreateThreadArgs): FetchArgs => ({
     url: COMMENTS_ENDPOINT,
     method: 'POST',
@@ -156,6 +193,15 @@ export const commentsApi = createApi({
     getComments: builder.query<CommentThreadsResponse, GetCommentsArgs>({
       query: commentRequests.getComments,
       providesTags: [{ type: 'Comments', id: 'LIST' }],
+    }),
+    // Deliberately untagged: the mentionable set is not invalidated by posting
+    // a comment, and re-fetching it on every keystroke of a reply would be
+    // wasteful. RTK Query's own per-argument cache is the whole mechanism.
+    getMentionableUsers: builder.query<
+      MentionableUsersResponse,
+      MentionableUsersArgs
+    >({
+      query: commentRequests.getMentionableUsers,
     }),
     createThread: builder.mutation<CommentThreadResponse, CreateThreadArgs>({
       query: commentRequests.createThread,
@@ -198,6 +244,7 @@ export const commentsApi = createApi({
 
 export const {
   useGetCommentsQuery,
+  useGetMentionableUsersQuery,
   useCreateThreadMutation,
   useReplyToThreadMutation,
   useSetThreadResolvedMutation,

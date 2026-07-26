@@ -494,6 +494,51 @@ paths:
           description: The surface does not exist.
         '422':
           $ref: '#/components/responses/ClientErrorResponse'
+  /canvas/api/v0/comments/mentionable-users:
+    description: Endpoint for the comment composer's mention autocomplete.
+    get:
+      summary: Lists the users the current user may mention in a comment.
+      parameters:
+        - name: surfaceType
+          in: query
+          required: true
+          description: >-
+            The entity type ID of the surface being commented on. Eligibility
+            is per surface, so it is part of the request.
+          schema:
+            type: string
+        - name: surfaceId
+          in: query
+          required: true
+          description: The entity ID of the surface being commented on.
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: false
+          description: Filters the list to users whose name contains this text.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The users that can be mentioned.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - users
+                properties:
+                  users:
+                    type: array
+                    description: >-
+                      Users who hold `view canvas comments`, so every offered
+                      mention can actually read the thread it lands in.
+                    items:
+                      $ref: '#/components/schemas/CommentAuthor'
+        '403':
+          # Deliberately no `content`: see the create endpoint above.
+          description: Access denied.
   /canvas/api/v0/comments/{commentThreadId}:
     description: Endpoint for changing the state of a single comment thread.
     patch:
@@ -5249,13 +5294,16 @@ components:
         - created
         - changed
         - author
+        - mentions
       properties:
         id:
           type: string
           description: The comment entity ID.
         body:
           type: string
-          description: The comment text.
+          description: >-
+            The comment text. Mentions are stored as `@[user:123]` tokens; the
+            names to render them with are in `mentions`.
         created:
           type: integer
           description: Creation time, in seconds since the Unix epoch.
@@ -5264,6 +5312,25 @@ components:
           description: Last change time, in seconds since the Unix epoch.
         author:
           $ref: '#/components/schemas/CommentAuthor'
+        mentions:
+          type: array
+          description: >-
+            The users named in `body`, in order of first appearance, resolved
+            at read time so a mention survives a rename.
+          items:
+            type: object
+            required:
+              - uid
+              - displayName
+            properties:
+              uid:
+                type: integer
+                description: The mentioned user's ID.
+              displayName:
+                type: ['null', string]
+                description: >-
+                  The mentioned user's current display name, or null when that
+                  user no longer exists.
     CommentThread:
       title: Comment thread
       type: object

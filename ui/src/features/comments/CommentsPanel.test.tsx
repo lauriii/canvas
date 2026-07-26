@@ -39,6 +39,7 @@ const openThread: CommentThread = {
       created: 1_777_000_000,
       changed: 1_777_000_000,
       author: alice,
+      mentions: [],
     },
     {
       id: 'c2',
@@ -46,6 +47,7 @@ const openThread: CommentThread = {
       created: 1_777_000_100,
       changed: 1_777_000_100,
       author: bob,
+      mentions: [],
     },
   ],
 };
@@ -67,6 +69,7 @@ const resolvedThread: CommentThread = {
       created: 1_777_000_200,
       changed: 1_777_000_200,
       author: bob,
+      mentions: [],
     },
   ],
 };
@@ -89,6 +92,17 @@ const stubFetch = (threads: CommentThread[] = [openThread, resolvedThread]) => {
           status: 201,
           headers: { 'Content-Type': 'application/json' },
         });
+      }
+      if (request.url.includes('mentionable-users')) {
+        return new Response(
+          JSON.stringify({
+            users: [
+              { uid: 2, displayName: 'alice', avatar: null },
+              { uid: 3, displayName: 'bob', avatar: null },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
       }
       const includeResolved = request.url.includes('includeResolved=1');
       return new Response(
@@ -368,5 +382,61 @@ describe('CommentsPanel', () => {
     expect(screen.getByTestId('canvas-comment-composer')).toHaveValue(
       'Rejected',
     );
+  });
+  it('offers people after an @ and posts the mention as a token', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    await screen.findByTestId('canvas-comment-thread');
+
+    await user.type(screen.getByTestId('canvas-comment-composer'), 'Ask @al');
+
+    const options = await screen.findAllByTestId(
+      'canvas-comment-mention-option',
+    );
+    expect(options.map((option) => option.textContent)).toEqual([
+      'alice',
+      'bob',
+    ]);
+
+    await user.click(options[0]);
+    // The user types and reads names; only the stored body carries the token.
+    expect(screen.getByTestId('canvas-comment-composer')).toHaveValue(
+      'Ask @alice ',
+    );
+
+    await user.click(screen.getByTestId('canvas-comment-submit'));
+    await waitFor(() => {
+      expect(postedBodies).toContainEqual({
+        surfaceType: 'canvas_page',
+        surfaceId: '1',
+        componentUuid: null,
+        body: 'Ask @[user:2]',
+      });
+    });
+  });
+
+  it('renders a mention token as the mentioned name', async () => {
+    stubFetch([
+      {
+        ...openThread,
+        comments: [
+          {
+            id: 'c1',
+            body: 'Ask @[user:3] to check this.',
+            created: 1_777_000_000,
+            changed: 1_777_000_000,
+            author: alice,
+            mentions: [{ uid: 3, displayName: 'bob' }],
+          },
+        ],
+      },
+    ]);
+    renderPanel();
+
+    const mention = await screen.findByTestId('canvas-comment-mention');
+    expect(mention).toHaveTextContent('@bob');
+    expect(mention).toHaveAttribute('data-mention-uid', '3');
+    // The raw token is never shown.
+    expect(screen.queryByText(/user:3/)).not.toBeInTheDocument();
   });
 });
