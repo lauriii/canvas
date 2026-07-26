@@ -187,7 +187,9 @@ describe('pasteAfterSelectedComponent', () => {
       clear: () => stored.clear(),
     });
     store = makeStore();
-    store.dispatch(setLayoutModel({ layout: layout(), model: {} }));
+    store.dispatch(
+      setLayoutModel({ layout: layout(), model: {}, updatePreview: false }),
+    );
     mockToastError.mockClear();
   });
 
@@ -195,7 +197,9 @@ describe('pasteAfterSelectedComponent', () => {
     // Room to spare in the slot, so only `expected` can refuse this.
     const roomy = layout();
     roomy[0].components[0].type = 'sdc.my_theme.roomy-container@1';
-    store.dispatch(setLayoutModel({ layout: roomy, model: {} }));
+    store.dispatch(
+      setLayoutModel({ layout: roomy, model: {}, updatePreview: false }),
+    );
     copyToClipboard('sdc.my_theme.hero');
     const { result } = renderHook(() => useCopyPasteComponents(), { wrapper });
 
