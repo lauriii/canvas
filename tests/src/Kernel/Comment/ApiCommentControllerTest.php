@@ -329,6 +329,118 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that the mention autocomplete offers only comment readers.
+   */
+  public function testMentionableUsersAreScopedToCommentReaders(): void {
+    // Every candidate needs `access content` too: eligibility is the comment
+    // permission *and* view access to the surface, and without the former a
+    // published page is not viewable either.
+    $reader = $this->createUser(['access content', CommentThread::VIEW_PERMISSION], 'mentionable-reader');
+    $editor_without_comments = $this->createUser(['access content', Page::EDIT_PERMISSION], 'mentionable-editor');
+    $blocked = $this->createUser(['access content', CommentThread::VIEW_PERMISSION], 'mentionable-blocked');
+    self::assertInstanceOf(UserInterface::class, $blocked);
+    $blocked->block()->save();
+
+    $response = $this->request(Request::create($this->mentionableUsersUrl(), 'GET'));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $names = \array_column(self::decodeResponse($response)['users'], 'displayName');
+
+    // Someone who can read comments can be named in one.
+    self::assertContains($reader->getAccountName(), $names);
+    // Someone who can edit the page but not read comments cannot: they would
+    // be named in a conversation they have no way to open.
+    self::assertNotContains($editor_without_comments->getAccountName(), $names);
+    // A blocked account can never be reached, so offering it is misleading.
+    self::assertNotContains($blocked->getAccountName(), $names);
+    // The anonymous user is never mentionable.
+    self::assertNotContains('', $names);
+    self::assertSame([], \array_filter($names, static fn (string $name): bool => $name === ''));
+  }
+
+  /**
+   * Tests that the mention autocomplete filters by what has been typed.
+   */
+  public function testMentionableUsersAreFilteredByQuery(): void {
+    $this->createUser(['access content', CommentThread::VIEW_PERMISSION], 'zoe-reviewer');
+    $this->createUser(['access content', CommentThread::VIEW_PERMISSION], 'quentin-reviewer');
+
+    $response = $this->request(Request::create($this->mentionableUsersUrl('zoe'), 'GET'));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $names = \array_column(self::decodeResponse($response)['users'], 'displayName');
+    self::assertSame(['zoe-reviewer'], $names);
+  }
+
+  /**
+   * Tests that a mention is stored by ID and resolved to a name at read time.
+   */
+  public function testMentionsResolveAtReadTime(): void {
+    $mentioned = $this->createUser(['access content', CommentThread::VIEW_PERMISSION], 'original-name');
+    self::assertInstanceOf(UserInterface::class, $mentioned);
+
+    $response = $this->post(self::URL, [
+      'surfaceType' => Page::ENTITY_TYPE_ID,
+      'surfaceId' => (string) $this->page->id(),
+      'componentUuid' => NULL,
+      'body' => \sprintf('Can @[user:%d] look, and @[user:9999] who is gone?', $mentioned->id()),
+    ]);
+    self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+    $mentions = self::decodeResponse($response)['thread']['comments'][0]['mentions'];
+    self::assertSame([
+      ['uid' => (int) $mentioned->id(), 'displayName' => 'original-name'],
+      ['uid' => 9999, 'displayName' => NULL],
+    ], $mentions);
+
+    // Renaming the user changes what the same stored comment renders as: the
+    // body records who was named, never what they were called at the time.
+    $mentioned->setUsername('renamed')->save();
+    $response = $this->request(Request::create(\sprintf(
+      '%s?surfaceType=%s&surfaceId=%s',
+      self::URL,
+      Page::ENTITY_TYPE_ID,
+      $this->page->id(),
+    ), 'GET'));
+    $threads = self::decodeResponse($response)['threads'];
+    self::assertSame('renamed', $threads[0]['comments'][0]['mentions'][0]['displayName']);
+  }
+
+  /**
+   * Tests that the autocomplete honours view access to the surface itself.
+   */
+  public function testMentionableUsersRespectSurfaceAccess(): void {
+    // Both hold the comment permission. Only one of them can view content, so
+    // only one of them can open the page the thread would live on.
+    $can_view_page = $this->createUser(['access content', CommentThread::VIEW_PERMISSION], 'reader-with-page-access');
+    $cannot_view_page = $this->createUser([CommentThread::VIEW_PERMISSION], 'reader-without-page-access');
+    self::assertInstanceOf(UserInterface::class, $can_view_page);
+    self::assertInstanceOf(UserInterface::class, $cannot_view_page);
+    self::assertTrue($this->page->access('view', $can_view_page));
+    self::assertFalse($this->page->access('view', $cannot_view_page));
+
+    $names = \array_column(
+      self::decodeResponse($this->request(Request::create($this->mentionableUsersUrl(), 'GET')))['users'],
+      'displayName',
+    );
+
+    self::assertContains($can_view_page->getAccountName(), $names);
+    // Naming somebody in a conversation on a page they cannot open would be an
+    // empty gesture, so the comment permission alone is not enough.
+    self::assertNotContains($cannot_view_page->getAccountName(), $names);
+  }
+
+  /**
+   * Builds the mention autocomplete URL for the test page.
+   */
+  private function mentionableUsersUrl(string $query = ''): string {
+    return \sprintf(
+      '%s/mentionable-users?surfaceType=%s&surfaceId=%s&q=%s',
+      self::URL,
+      Page::ENTITY_TYPE_ID,
+      $this->page->id(),
+      \urlencode($query),
+    );
+  }
+
+  /**
    * Lists the thread IDs on the test page.
    */
   private function listThreadIds(string $include_resolved = '0'): array {

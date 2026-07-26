@@ -44,6 +44,11 @@ final class ApiCommentController extends ApiControllerBase {
    */
   private const array SUPPORTED_SURFACE_TYPES = [Page::ENTITY_TYPE_ID];
 
+  /**
+   * How many users the mention autocomplete offers at once.
+   */
+  private const int MENTION_RESULT_LIMIT = 20;
+
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly AccountProxyInterface $currentUser,
@@ -198,6 +203,67 @@ final class ApiCommentController extends ApiControllerBase {
   }
 
   /**
+   * Lists the users the current user may mention in a comment.
+   *
+   * The result is deliberately narrow. Only users who could read the thread
+   * are offered, so the autocomplete cannot be used to enumerate accounts that
+   * the searcher would otherwise never see, and blocked users are excluded
+   * because mentioning them can never reach anybody.
+   */
+  public function mentionableUsers(Request $request): JsonResponse {
+    $query = $request->query->get('q');
+    $query = \is_string($query) ? \trim($query) : '';
+    $surface_type = $request->query->get('surfaceType');
+    $surface_id = $request->query->get('surfaceId');
+    $surface = $this->loadSurface(
+      \is_string($surface_type) ? $surface_type : '',
+      \is_string($surface_id) ? $surface_id : '',
+    );
+    if ($surface instanceof JsonResponse) {
+      return $surface;
+    }
+
+    $storage = $this->entityTypeManager->getStorage('user');
+    // Access checking is deliberately off: `access user profiles` is not a
+    // permission ordinary editors hold, so honouring it would make the
+    // autocomplete permanently empty for exactly the people meant to use it.
+    // The scoping is the comment permission instead, checked per user below,
+    // and the route already requires the caller to hold `create canvas
+    // comments`. What is exposed is therefore the set of people who can read
+    // the thread being written, which is the set worth naming in it.
+    $user_query = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('status', 1)
+      // The anonymous account can neither hold a permission nor be notified.
+      ->condition('uid', 0, '>')
+      ->sort('name')
+      ->range(0, self::MENTION_RESULT_LIMIT);
+    if ($query !== '') {
+      $user_query->condition('name', $query, 'CONTAINS');
+    }
+
+    $users = $storage->loadMultiple($user_query->execute());
+    $mentionable = [];
+    foreach ($users as $user) {
+      \assert($user instanceof UserInterface);
+      // Both halves are needed for a mention to be meaningful: the permission
+      // to read comments at all, and view access to this particular surface.
+      // Without the second, an editor would be offered somebody who cannot
+      // open the unpublished page the thread is on.
+      if (!$user->hasPermission(CommentThread::VIEW_PERMISSION) || !$surface->access('view', $user)) {
+        continue;
+      }
+      $mentionable[] = [
+        'uid' => (int) $user->id(),
+        'displayName' => (string) $user->getDisplayName(),
+        'avatar' => NULL,
+      ];
+    }
+
+    return new JsonResponse(['users' => $mentionable]);
+  }
+
+  /**
    * Loads the commented surface, requiring view access to it.
    *
    * @return \Drupal\Core\Entity\EntityInterface|\Symfony\Component\HttpFoundation\JsonResponse
@@ -243,6 +309,18 @@ final class ApiCommentController extends ApiControllerBase {
       ->execute();
     $comments = $storage->loadMultiple($ids);
 
+    // Mentions are stored as `@[user:123]`, so the display name is resolved at
+    // read time. That is what makes a mention survive a rename: the comment
+    // records who was named, never what they were called at the time.
+    $mentioned_uids = [];
+    foreach ($comments as $comment) {
+      \assert($comment instanceof Comment);
+      $mentioned_uids += \array_flip(self::extractMentionedUids($comment->getBody()));
+    }
+    $mentioned_users = $mentioned_uids === []
+      ? []
+      : $this->entityTypeManager->getStorage('user')->loadMultiple(\array_keys($mentioned_uids));
+
     $normalized_comments = [];
     foreach ($ids as $id) {
       $comment = $comments[$id] ?? NULL;
@@ -253,6 +331,7 @@ final class ApiCommentController extends ApiControllerBase {
           'created' => $comment->getCreatedTime(),
           'changed' => $comment->getChangedTime(),
           'author' => self::normalizeAuthor($comment),
+          'mentions' => self::normalizeMentions($comment->getBody(), $mentioned_users),
         ];
       }
     }
@@ -269,6 +348,44 @@ final class ApiCommentController extends ApiControllerBase {
       'author' => self::normalizeAuthor($thread),
       'comments' => $normalized_comments,
     ];
+  }
+
+  /**
+   * The stored form of a mention: the user's ID, never their name.
+   */
+  private const string MENTION_PATTERN = '/@\[user:(\d+)\]/';
+
+  /**
+   * Extracts the user IDs mentioned in a comment body.
+   *
+   * @return int[]
+   *   The mentioned user IDs, in order of first appearance.
+   */
+  private static function extractMentionedUids(string $body): array {
+    \preg_match_all(self::MENTION_PATTERN, $body, $matches);
+    return \array_map(\intval(...), \array_unique($matches[1]));
+  }
+
+  /**
+   * Resolves a body's mention tokens to the names to render them with.
+   *
+   * A mention of a deleted user keeps its token in the body and is reported
+   * with a NULL name, so the client can render it as an unavailable user
+   * rather than silently dropping the fact that somebody was named.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface[] $mentioned_users
+   *   Users already loaded for this thread, keyed by user ID.
+   */
+  private static function normalizeMentions(string $body, array $mentioned_users): array {
+    $mentions = [];
+    foreach (self::extractMentionedUids($body) as $uid) {
+      $user = $mentioned_users[$uid] ?? NULL;
+      $mentions[] = [
+        'uid' => $uid,
+        'displayName' => $user instanceof UserInterface ? (string) $user->getDisplayName() : NULL,
+      ];
+    }
+    return $mentions;
   }
 
   /**

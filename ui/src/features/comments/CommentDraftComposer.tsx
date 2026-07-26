@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { Button, Flex, Text, TextArea } from '@radix-ui/themes';
+import { useState } from 'react';
+import { Button, Flex, Text } from '@radix-ui/themes';
 
+import MentionTextArea from '@/features/comments/MentionTextArea';
+import { toStoredBody } from '@/features/comments/mentionUtils';
 import { useCreateThreadMutation } from '@/services/comments';
 
 import styles from './CommentPinLayer.module.css';
@@ -35,15 +37,9 @@ const CommentDraftComposer = ({
   onPosted,
 }: CommentDraftComposerProps) => {
   const [body, setBody] = useState('');
+  const [mentions, setMentions] = useState<Record<string, number>>({});
   const [failed, setFailed] = useState(false);
   const [createThread, { isLoading }] = useCreateThreadMutation();
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
-
-  // The click that opened this composer is the user asking to type, so take
-  // the caret rather than making them click a second time.
-  useEffect(() => {
-    textAreaRef.current?.focus();
-  }, []);
 
   const submit = async () => {
     const trimmed = body.trim();
@@ -55,7 +51,7 @@ const CommentDraftComposer = ({
         surfaceType,
         surfaceId,
         componentUuid: draft.componentUuid,
-        body: trimmed,
+        body: toStoredBody(trimmed, mentions),
       }).unwrap();
       onPosted();
     } catch {
@@ -79,21 +75,19 @@ const CommentDraftComposer = ({
         }
       }}
     >
-      <TextArea
-        ref={textAreaRef}
-        size="1"
-        placeholder="Add a comment…"
-        aria-label="Add a comment"
-        data-testid="canvas-comment-draft-input"
+      <MentionTextArea
         value={body}
-        onChange={(event) => setBody(event.target.value)}
-        onKeyDown={(event) => {
-          // Enter posts, Shift+Enter is a newline.
-          if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-            void submit();
-          }
-        }}
+        onChange={setBody}
+        onMentionPicked={(displayName, uid) =>
+          setMentions((current) => ({ ...current, [displayName]: uid }))
+        }
+        placeholder="Add a comment…"
+        ariaLabel="Add a comment"
+        testId="canvas-comment-draft-input"
+        // The click that opened this composer is the user asking to type, so
+        // take the caret rather than making them click a second time.
+        autoFocus
+        onSubmit={submit}
       />
       {failed && (
         <Text size="1" color="red" data-testid="canvas-comment-draft-error">
