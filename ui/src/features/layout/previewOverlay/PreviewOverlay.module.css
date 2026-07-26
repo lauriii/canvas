@@ -197,11 +197,35 @@
   }
 }
 
-/* An empty restricted slot advertises what it accepts and how many it holds. */
+/* An empty restricted slot advertises what it accepts and how many it holds.
+   An empty slot is commonly only a couple of dozen pixels tall, which would
+   clip that advertisement away entirely, so this zone is laid out in flow and
+   allowed to grow past the slot's own height instead of being cropped to it.
+   Growing the zone rather than letting the text spill keeps the backdrop behind
+   the text, which is what makes it legible over the page being edited. */
+.emptySlotContainer {
+  align-items: stretch;
+  height: auto;
+  min-height: 100%;
+  padding: 4px;
+}
+
+.emptySlotDropZone {
+  position: relative;
+  overflow: visible;
+  flex: 1;
+  align-content: center;
+  width: auto;
+  height: auto;
+  inset: auto;
+}
+
 .emptySlotAccepts,
 .emptySlotCount {
   flex-basis: 100%;
   text-align: center;
+  /* Long enough to need wrapping, unlike the slot name above them. */
+  white-space: normal;
   opacity: 0.75;
   font-size: 11px;
 }

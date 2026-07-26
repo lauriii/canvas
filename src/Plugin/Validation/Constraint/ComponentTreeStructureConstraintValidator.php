@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\SlotRestrictions;
@@ -219,11 +220,11 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     if ($violations === []) {
       return;
     }
-    $pre_existing = SlotRestrictions::violations(
-      $this->getPreviouslyStoredTree($item_list),
-      $component_storage
+    $introduced = SlotRestrictions::introducedViolations(
+      $violations,
+      SlotRestrictions::violations($this->getPreviouslyStoredTree($item_list), $component_storage),
     );
-    foreach (\array_diff_key($violations, $pre_existing) as $violation) {
+    foreach ($introduced as $violation) {
       $this->context->getViolations()->add(new ConstraintViolation(
         // The message templates are string literals; they are only variable at
         // this point, where the violations are turned into Drupal's shape.
@@ -248,12 +249,13 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
    * @return array<int, array<string, mixed>>
    *   The stored component tree, or an empty tree when there is nothing stored
    *   to compare against.
-   *
-   * @todo Compare against the stored value for component trees in config entities too, in https://www.drupal.org/i/3563163: those are validated as typed config rather than as a field item list, so a site builder editing a content template sees pre-existing violations immediately.
    */
   private function getPreviouslyStoredTree(?ComponentTreeItemList $item_list): array {
     if ($item_list === NULL || $item_list->getParent() === NULL) {
-      return [];
+      // A component tree in a config entity is validated as typed config rather
+      // than as a field item list, so there is no item list to reach the stored
+      // value through.
+      return $this->getPreviouslyStoredConfigTree();
     }
     $entity = $item_list->getEntity();
     $field_name = $item_list->getName();
@@ -273,6 +275,40 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       return [];
     }
     return $stored->get($field_name)->getValue();
+  }
+
+  /**
+   * Reads the stored component tree of the config entity being validated.
+   *
+   * A `Pattern`, `PageRegion` or `ContentTemplate` validates as typed config,
+   * whose root is the config entity's adapter.
+   *
+   * @return array<int, array<string, mixed>>
+   *   The stored component tree, or an empty tree when there is nothing stored
+   *   to compare against.
+   *
+   * @see \Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter
+   */
+  private function getPreviouslyStoredConfigTree(): array {
+    $root = $this->context->getRoot();
+    if (!$root instanceof EntityAdapter) {
+      return [];
+    }
+    $entity = $root->getValue();
+    if (!$entity instanceof ComponentTreeConfigEntityBase || $entity->isNew()) {
+      return [];
+    }
+    $stored = $this->entityTypeManager
+      ->getStorage($entity->getEntityTypeId())
+      ->loadUnchanged((string) $entity->id());
+    if (!$stored instanceof ComponentTreeConfigEntityBase) {
+      return [];
+    }
+    // The stored tree is keyed by UUID rather than by delta; only its shape
+    // matters here, because the deltas of a stored violation are never
+    // reported.
+    // @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::preSave()
+    return \array_values($stored->get('component_tree') ?? []);
   }
 
   private static function translatePropertyPath(string $base_path, string $property_path, string $context_path = ''): string {
@@ -388,6 +424,14 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidConfigEntityVersionConstraint
       return;
     }
+    // TRICKY: this reads the slot definitions recorded on the Component config
+    // entity, whereas \Drupal\canvas\SlotRestrictions deliberately reads them
+    // from the live component source. Both are correct for what they check:
+    // slot *names* change the component version hash and therefore keep the
+    // config entity current, while slot *restrictions* are excluded from that
+    // hash and so are only current at the source. Do not "fix" one to match the
+    // other.
+    // @see \Drupal\canvas\SlotRestrictions::slotDefinitions()
     $slots = $parent_config_entity->getSlotDefinitions();
     if (\count($slots) === 0) {
       $context->buildViolation('Invalid component subtree. A component subtree must only exist for components with >=1 slot, but the component %component has no slots, yet a subtree exists for the instance with UUID %uuid.', [

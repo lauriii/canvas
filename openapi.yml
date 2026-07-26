@@ -3653,6 +3653,16 @@ components:
             - dynamic_components
             # SDCs from the Active Theme + JavaScript Code Components
             - primary_components
+        # Matched against the `expected` entries of other components' slots.
+        # Omitted for components that declare no tags, and for sources that have
+        # no concept of tags.
+        # @see \Drupal\canvas\ComponentSource\ComponentSourceInterface::getTags()
+        # @see https://www.drupal.org/i/3514072
+        tags:
+          type: array
+          description: The tags this component is labeled with
+          items:
+            type: string
         # @see \Drupal\Core\Theme\Component\ComponentMetadata
         metadata:
           type: object

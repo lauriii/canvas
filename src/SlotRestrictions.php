@@ -57,10 +57,10 @@ final class SlotRestrictions {
    * @param \Drupal\Core\Config\Entity\ConfigEntityStorageInterface $component_storage
    *   The Component config entity storage.
    *
-   * @return array<string, array{message: string, params: array<string, string>, delta: int}>
-   *   The violations, keyed so that two evaluations can be compared: a
-   *   violation present in both a tree and the tree it replaces was not
-   *   introduced by the write being validated.
+   * @return array<string, array{message: string, params: array<string, string>, delta: int, count?: int}>
+   *   The violations, keyed so that two evaluations can be compared.
+   *
+   * @see self::introducedViolations()
    */
   public static function violations(array $tree, ConfigEntityStorageInterface $component_storage): array {
     $violations = [];
@@ -82,7 +82,7 @@ final class SlotRestrictions {
       $max_items = $slot_definition['maxItems'] ?? NULL;
       $slot_title = \is_string($slot_definition['title'] ?? NULL) ? $slot_definition['title'] : $group['slot'];
       $parent_label = self::label($group['parent_component_id'], $component_storage);
-      foreach ($group['children'] as $position => $child) {
+      foreach ($group['children'] as $child) {
         if ($expected !== [] && !self::accepts($expected, $child['component_id'], $component_storage)) {
           $violations[self::key(self::RULE_EXPECTED, $child['uuid'], $group)] = [
             'message' => 'Component %component is not expected in the %slot slot of %parent. Expected: %expected.',
@@ -95,21 +95,62 @@ final class SlotRestrictions {
             'delta' => $child['delta'],
           ];
         }
-        if (\is_int($max_items) && $position >= $max_items) {
-          $violations[self::key(self::RULE_MAX_ITEMS, $child['uuid'], $group)] = [
-            'message' => 'The %slot slot of %parent accepts at most @max components, but @count were provided.',
-            'params' => [
-              '%slot' => $slot_title,
-              '%parent' => $parent_label,
-              '@max' => (string) $max_items,
-              '@count' => (string) \count($group['children']),
-            ],
-            'delta' => $child['delta'],
-          ];
-        }
+      }
+      // TRICKY: `maxItems` is a property of the slot, not of any one child in
+      // it. Attributing it to whichever child happens to sit past the limit
+      // would key the violation on that child's UUID, and reordering the slot's
+      // existing children would then look like a brand new violation — making a
+      // page that merely got its cards swapped around unpublishable.
+      if (\is_int($max_items) && \count($group['children']) > $max_items) {
+        $violations[self::key(self::RULE_MAX_ITEMS, NULL, $group)] = [
+          // The count is reported without a noun after it, so that the message
+          // needs no plural formula.
+          'message' => 'Too many components in the %slot slot of %parent: @count provided, at most @max allowed.',
+          'params' => [
+            '%slot' => $slot_title,
+            '%parent' => $parent_label,
+            '@max' => (string) $max_items,
+            '@count' => (string) \count($group['children']),
+          ],
+          // Report against the first child that does not fit.
+          'delta' => $group['children'][$max_items]['delta'],
+          // How far over the limit the slot is, so that a write which makes an
+          // already over-full slot worse can still be told apart from one that
+          // leaves it alone or improves it.
+          // @see self::introducedViolations()
+          'count' => \count($group['children']),
+        ];
       }
     }
     return $violations;
+  }
+
+  /**
+   * The violations a write introduces, ignoring those the stored tree has.
+   *
+   * Adding or narrowing a restriction on a component that is already in use
+   * across a site may not make existing content unpublishable, so a violation
+   * the stored tree already contains is left alone. What counts as "already
+   * contained" is deliberately narrow: an instance that moves to another slot
+   * or parent is re-evaluated where it lands, and a slot that is already over
+   * `maxItems` may keep the children it has, and may lose some, but may not
+   * gain more.
+   *
+   * @param array<string, array{message: string, params: array<string, string>, delta: int, count?: int}> $violations
+   *   The violations of the tree being written.
+   * @param array<string, array{message: string, params: array<string, string>, delta: int, count?: int}> $stored_violations
+   *   The violations of the tree this write replaces.
+   *
+   * @return array<string, array{message: string, params: array<string, string>, delta: int, count?: int}>
+   *   The violations to report.
+   */
+  public static function introducedViolations(array $violations, array $stored_violations): array {
+    return \array_filter(
+      $violations,
+      static fn (array $violation, string $key): bool => !\array_key_exists($key, $stored_violations)
+        || ($violation['count'] ?? 0) > ($stored_violations[$key]['count'] ?? 0),
+      \ARRAY_FILTER_USE_BOTH,
+    );
   }
 
   /**
@@ -156,12 +197,20 @@ final class SlotRestrictions {
    * a new version and therefore does not re-save the Component config entity,
    * leaving its `fallback_metadata.slot_definitions` stale. The source is
    * always current, and is also what the Canvas UI is served, so both halves of
-   * the enforcement agree. A component whose source has degraded to `fallback`
-   * has no live metadata to read, and falls back to the restrictions recorded
-   * for its last active version.
+   * the enforcement agree.
+   *
+   * A component whose source has degraded still answers here: `Fallback`
+   * implements ComponentSourceWithSlotsInterface and serves the
+   * `fallback_metadata.slot_definitions` recorded on the Component config
+   * entity. Because restrictions are deliberately excluded from the version
+   * hash, those recorded definitions are only refreshed when something else
+   * changes the hash, so a degraded component enforces whatever restrictions
+   * were current at its last hash-changing save. The `catch` below is reached
+   * only when the source plugin ID itself is unknown.
    *
    * @see \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
    * @see \Drupal\canvas\Entity\Component::cleanSlotDefinition()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback::getSlotDefinitions()
    *
    * @return array<string, array<string, mixed>>
    *   The slot definitions, keyed by slot name.
@@ -242,12 +291,29 @@ final class SlotRestrictions {
       $reference = self::normalizeReference($entry);
       $resolved = $reference === NULL
         ? self::componentIdsWithTag($entry, $component_storage) !== []
-        : $component_storage->load($reference) !== NULL;
+        : self::loadAvailable($reference, $component_storage) !== NULL;
       if ($resolved) {
         return TRUE;
       }
     }
     return FALSE;
+  }
+
+  /**
+   * Loads a Component only if an author could actually place it.
+   *
+   * TRICKY: a disabled Component is not served to the Canvas UI, so the client
+   * cannot resolve an `expected` entry naming one. Resolving it here anyway
+   * would invert the rule between the two halves of the enforcement: the client
+   * would see a slot none of whose entries resolves and treat it as
+   * unrestricted, while the server would refuse everything but the component
+   * the author cannot reach.
+   *
+   * @see \Drupal\canvas\Controller\ApiConfigControllers::list()
+   */
+  private static function loadAvailable(string $component_id, ConfigEntityStorageInterface $component_storage): ?Component {
+    $component = $component_storage->load($component_id);
+    return $component instanceof Component && $component->status() ? $component : NULL;
   }
 
   /**
@@ -266,6 +332,12 @@ final class SlotRestrictions {
       $matches = [];
       foreach ($component_storage->loadMultiple() as $id => $component) {
         \assert($component instanceof Component);
+        if (!$component->status()) {
+          // A disabled component is not served to the Canvas UI, so it may not
+          // count towards a tag here either.
+          // @see self::loadAvailable()
+          continue;
+        }
         try {
           $tags = $component->getComponentSource()->getTags();
         }
@@ -338,16 +410,17 @@ final class SlotRestrictions {
    *
    * @param string $rule
    *   The rule that was violated.
-   * @param string $child_uuid
-   *   The UUID of the child instance in violation.
+   * @param string|null $child_uuid
+   *   The UUID of the child instance in violation, or NULL for a rule that
+   *   applies to the slot as a whole rather than to any one child.
    * @param array{parent_uuid: string, parent_component_id: string, slot: string, children: list<array{delta: int, uuid: string, component_id: string}>} $group
    *   The slot the child sits in.
    */
-  private static function key(string $rule, string $child_uuid, array $group): string {
+  private static function key(string $rule, ?string $child_uuid, array $group): string {
     // Moving an instance changes its parent or slot, and therefore its key: a
     // placement that was tolerated where it stood is re-evaluated when the
     // author moves it.
-    return \implode("\0", [$rule, $child_uuid, $group['parent_uuid'], $group['slot']]);
+    return \implode("\0", [$rule, $child_uuid ?? '', $group['parent_uuid'], $group['slot']]);
   }
 
   /**
