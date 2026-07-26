@@ -205,7 +205,13 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
    * reported as invalid input.
    */
   public function testMalformedComponentUuidIsUnprocessable(): void {
-    foreach (['not-a-real-uuid', '12345', 'ffffffff-ffff-ffff-ffff-fffffffffffg'] as $malformed) {
+    $malformed_values = [
+      'not-a-real-uuid',
+      '12345',
+      // A truncated UUID: the right alphabet, the wrong shape.
+      \substr(self::COMPONENT_UUID, 0, 23),
+    ];
+    foreach ($malformed_values as $malformed) {
       $response = $this->post(self::URL, [
         'surfaceType' => Page::ENTITY_TYPE_ID,
         'surfaceId' => (string) $this->page->id(),
