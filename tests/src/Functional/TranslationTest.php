@@ -1180,7 +1180,21 @@ class TranslationTest extends FunctionalTestBase {
     self::assertInstanceOf(Page::class, $reloaded);
     self::assertTrue($reloaded->hasTranslation('fr'));
 
+    // A user with entity update access but without the `delete content
+    // translations` permission must also be denied.
     $user = $this->drupalCreateUser([Page::EDIT_PERMISSION]);
+    \assert($user instanceof UserInterface);
+    $this->drupalLogin($user);
+    $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
+    $response = $this->makeApiRequest('DELETE', $fr_delete_url, $request_options);
+    self::assertSame(Response::HTTP_FORBIDDEN, $response->getStatusCode());
+    $reloaded = $page_storage->loadUnchanged($page_id);
+    self::assertInstanceOf(Page::class, $reloaded);
+    self::assertTrue($reloaded->hasTranslation('fr'));
+
+    // Only a user with both update access and `delete content translations`
+    // can successfully delete a translation.
+    $user = $this->drupalCreateUser([Page::EDIT_PERMISSION, 'delete content translations']);
     \assert($user instanceof UserInterface);
     $this->drupalLogin($user);
     $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');

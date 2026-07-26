@@ -466,10 +466,16 @@ paths:
                   description: The entity ID of the commented surface.
                 componentUuid:
                   type: ['null', string]
-                  format: uuid
+                  # Deliberately not `format: uuid`. The request validator only
+                  # runs outside production and rethrows, which would turn a
+                  # malformed UUID into a 500 in development and leave it
+                  # entirely unvalidated in production. The controller checks
+                  # the format instead, so every environment answers 422.
+                  # @see \Drupal\canvas\Controller\ApiCommentController::post()
                   description: >-
-                    The commented component instance. Null anchors the thread to
-                    the surface itself.
+                    The commented component instance, as a UUID. Null anchors
+                    the thread to the surface itself. A value that is not a
+                    UUID is rejected with a 422.
                 body:
                   type: string
                   description: The text of the opening comment.

@@ -198,6 +198,32 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that a malformed component UUID is a 422, never a 500.
+   *
+   * `componentUuid` is declared `format: uuid` in openapi.yml, so a malformed
+   * value that reaches the OpenAPI request validator throws instead of being
+   * reported as invalid input.
+   */
+  public function testMalformedComponentUuidIsUnprocessable(): void {
+    foreach (['not-a-real-uuid', '12345', 'ffffffff-ffff-ffff-ffff-fffffffffffg'] as $malformed) {
+      $response = $this->post(self::URL, [
+        'surfaceType' => Page::ENTITY_TYPE_ID,
+        'surfaceId' => (string) $this->page->id(),
+        'componentUuid' => $malformed,
+        'body' => 'Anchored to a malformed UUID.',
+      ]);
+      self::assertNotSame(Response::HTTP_INTERNAL_SERVER_ERROR, $response->getStatusCode());
+      self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+      self::assertSame(
+        'componentUuid',
+        self::decodeResponse($response)['errors'][0]['source']['pointer'],
+      );
+    }
+    // None of the rejected requests created a thread.
+    self::assertSame([], $this->listThreadIds('1'));
+  }
+
+  /**
    * Tests that an unsupported surface type is a 422, never a 500.
    */
   public function testUnsupportedSurfaceTypeIsUnprocessable(): void {
