@@ -181,9 +181,12 @@ All routes require authentication and a comment permission.
 | `POST` | `/canvas/api/v0/comments/{commentThreadId}/replies` | Reply |
 | `PATCH` | `/canvas/api/v0/comments/{commentThreadId}` | Resolve or reopen |
 
-Resolved threads are excluded from the listing by default and never render
-pins. Most threads end up resolved, so this is the single largest saving on a
-busy surface.
+Resolved threads are excluded from the listing by default. Most threads end up
+resolved, so this is the single largest saving on a busy surface. They are
+therefore absent from the canvas too while the sidebar's "Open" filter is
+active; switching to "Resolved" fetches them and draws their pins in a
+distinct resolved style. Whether a resolved thread should draw a pin at all is
+an open question in the `canvas-commenting` OpenSpec change.
 
 Semantically invalid input returns 422, never 500. Schemas for every path
 live in `openapi.yml`, and Canvas validates every request and response on a
