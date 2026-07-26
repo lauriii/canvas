@@ -8,6 +8,7 @@ use Drupal\canvas\Entity\Comment;
 use Drupal\canvas\Entity\CommentThread;
 use Drupal\canvas\Entity\Page;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Component\Uuid\Uuid;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -106,6 +107,15 @@ final class ApiCommentController extends ApiControllerBase {
     $component_uuid = $data['componentUuid'] ?? NULL;
     if ($component_uuid !== NULL && !\is_string($component_uuid)) {
       return self::createInputViolationResponse('componentUuid', 'This value must be a string or null.');
+    }
+    // The anchor is validated here rather than by `format: uuid` in
+    // openapi.yml, because the OpenAPI request validator runs only outside
+    // production and rethrows: it would turn a malformed UUID into a 500 in
+    // development while leaving it entirely unchecked in production. An empty
+    // string is rejected too; a thread anchored to the surface itself is
+    // addressed with NULL.
+    if (\is_string($component_uuid) && !Uuid::isValid($component_uuid)) {
+      return self::createInputViolationResponse('componentUuid', 'This value must be a UUID.');
     }
 
     // @todo Verify that `componentUuid` matches a component instance in the surface's component tree.

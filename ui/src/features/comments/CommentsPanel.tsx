@@ -33,6 +33,7 @@ import {
   useReplyToThreadMutation,
   useSetThreadResolvedMutation,
 } from '@/services/comments';
+import { hasPermission } from '@/utils/permissions';
 
 import type { CommentFilter } from '@/features/comments/commentsSlice';
 import type { CommentThread, GetCommentsArgs } from '@/services/comments';
@@ -52,19 +53,27 @@ interface ThreadProps {
 
 const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
   const [replyBody, setReplyBody] = useState('');
+  const [replyError, setReplyError] = useState(false);
   const [replyToThread, { isLoading: isReplying }] = useReplyToThreadMutation();
   const [setThreadResolved, { isLoading: isResolving }] =
     useSetThreadResolvedMutation();
   const [openingComment, ...replies] = thread.comments;
   const replyCount = getReplyCount(thread);
+  const canWrite = hasPermission('createComments');
 
   const submitReply = async () => {
     const body = replyBody.trim();
     if (!body) {
       return;
     }
-    await replyToThread({ threadId: thread.id, body }).unwrap();
-    setReplyBody('');
+    try {
+      await replyToThread({ threadId: thread.id, body }).unwrap();
+      setReplyError(false);
+      setReplyBody('');
+    } catch {
+      // The composed text is deliberately kept so it is not lost.
+      setReplyError(true);
+    }
   };
 
   return (
@@ -98,7 +107,16 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
                   {relativeTime(thread.created)}
                 </Text>
               </Flex>
-              <Text size="1" className={styles.body}>
+              <Text
+                size="1"
+                // Collapsed, the opening comment is a preview: a very long
+                // body would otherwise push every following thread thousands
+                // of pixels down the panel. Expanding shows all of it.
+                className={clsx(styles.body, {
+                  [styles.bodyClamped]: !isActive,
+                })}
+                data-testid="canvas-comment-opening-body"
+              >
                 {openingComment?.body ?? ''}
               </Text>
               <Text size="1" color="gray" data-testid="canvas-comment-replies">
@@ -139,40 +157,56 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
               </Flex>
             ))}
 
-            <TextArea
-              size="1"
-              placeholder="Reply…"
-              aria-label="Reply to this comment thread"
-              data-testid="canvas-comment-reply-input"
-              value={replyBody}
-              onChange={(event) => setReplyBody(event.target.value)}
-            />
-            <Flex gap="2" mt="2">
-              <Button
-                size="1"
-                disabled={isReplying || !replyBody.trim()}
-                data-testid="canvas-comment-reply-submit"
-                onClick={submitReply}
-              >
-                Reply
-              </Button>
-              <Button
-                size="1"
-                variant="soft"
-                color="gray"
-                disabled={isResolving}
-                data-testid="canvas-comment-resolve"
-                onClick={() =>
-                  setThreadResolved({
-                    threadId: thread.id,
-                    resolved: !thread.resolved,
-                    listArgs,
-                  })
-                }
-              >
-                {thread.resolved ? 'Reopen' : 'Resolve'}
-              </Button>
-            </Flex>
+            {/* Replying and resolving both write, so both need the create
+                permission. A viewer without it reads the thread instead of
+                being offered buttons that can only fail. */}
+            {canWrite && (
+              <>
+                <TextArea
+                  size="1"
+                  placeholder="Reply…"
+                  aria-label="Reply to this comment thread"
+                  data-testid="canvas-comment-reply-input"
+                  value={replyBody}
+                  onChange={(event) => setReplyBody(event.target.value)}
+                />
+                {replyError && (
+                  <Text
+                    size="1"
+                    color="red"
+                    data-testid="canvas-comment-reply-error"
+                  >
+                    Your reply could not be posted.
+                  </Text>
+                )}
+                <Flex gap="2" mt="2">
+                  <Button
+                    size="1"
+                    disabled={isReplying || !replyBody.trim()}
+                    data-testid="canvas-comment-reply-submit"
+                    onClick={submitReply}
+                  >
+                    Reply
+                  </Button>
+                  <Button
+                    size="1"
+                    variant="soft"
+                    color="gray"
+                    disabled={isResolving}
+                    data-testid="canvas-comment-resolve"
+                    onClick={() =>
+                      setThreadResolved({
+                        threadId: thread.id,
+                        resolved: !thread.resolved,
+                        listArgs,
+                      })
+                    }
+                  >
+                    {thread.resolved ? 'Reopen' : 'Resolve'}
+                  </Button>
+                </Flex>
+              </>
+            )}
           </Box>
         )}
       </li>
@@ -195,7 +229,9 @@ export const CommentsPanel = () => {
   const { setSelectedComponent } = useComponentSelection();
   const { surfaceType, surfaceId, hasSurface } = useCommentSurface();
   const [newThreadBody, setNewThreadBody] = useState('');
+  const [createError, setCreateError] = useState(false);
   const [createThread, { isLoading: isCreating }] = useCreateThreadMutation();
+  const canWrite = hasPermission('createComments');
 
   const listArgs = {
     surfaceType,
@@ -224,13 +260,19 @@ export const CommentsPanel = () => {
     if (!body) {
       return;
     }
-    await createThread({
-      surfaceType,
-      surfaceId,
-      componentUuid: selectedComponentUuid ?? null,
-      body,
-    }).unwrap();
-    setNewThreadBody('');
+    try {
+      await createThread({
+        surfaceType,
+        surfaceId,
+        componentUuid: selectedComponentUuid ?? null,
+        body,
+      }).unwrap();
+      setCreateError(false);
+      setNewThreadBody('');
+    } catch {
+      // The composed text is deliberately kept so it is not lost.
+      setCreateError(true);
+    }
   };
 
   return (
@@ -257,31 +299,41 @@ export const CommentsPanel = () => {
         </SegmentedControl.Item>
       </SegmentedControl.Root>
 
-      <Box className={styles.composer}>
-        <TextArea
-          size="1"
-          placeholder="Add a comment…"
-          aria-label="Add a comment"
-          data-testid="canvas-comment-composer"
-          value={newThreadBody}
-          onChange={(event) => setNewThreadBody(event.target.value)}
-        />
-        <Flex align="center" justify="between" gap="2" mt="2">
-          <Text size="1" color="gray" data-testid="canvas-comment-target">
-            {selectedComponentUuid
-              ? 'Will be attached to the selected component.'
-              : 'Will be attached to this page.'}
-          </Text>
-          <Button
+      {/* Starting a thread writes, so it needs the create permission. Without
+          it the panel is read-only rather than offering a composer whose
+          submit can only ever be rejected by the API. */}
+      {canWrite && (
+        <Box className={styles.composer}>
+          <TextArea
             size="1"
-            disabled={!hasSurface || isCreating || !newThreadBody.trim()}
-            data-testid="canvas-comment-submit"
-            onClick={submitNewThread}
-          >
-            Comment
-          </Button>
-        </Flex>
-      </Box>
+            placeholder="Add a comment…"
+            aria-label="Add a comment"
+            data-testid="canvas-comment-composer"
+            value={newThreadBody}
+            onChange={(event) => setNewThreadBody(event.target.value)}
+          />
+          {createError && (
+            <Text size="1" color="red" data-testid="canvas-comment-error">
+              Your comment could not be posted.
+            </Text>
+          )}
+          <Flex align="center" justify="between" gap="2" mt="2">
+            <Text size="1" color="gray" data-testid="canvas-comment-target">
+              {selectedComponentUuid
+                ? 'Will be attached to the selected component.'
+                : 'Will be attached to this page.'}
+            </Text>
+            <Button
+              size="1"
+              disabled={!hasSurface || isCreating || !newThreadBody.trim()}
+              data-testid="canvas-comment-submit"
+              onClick={submitNewThread}
+            >
+              Comment
+            </Button>
+          </Flex>
+        </Box>
+      )}
 
       {isLoading && (
         <Text size="1" color="gray" data-testid="canvas-comments-loading">

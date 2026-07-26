@@ -10,6 +10,15 @@ import { setSelection } from '@/features/ui/uiSlice';
 
 import type { CommentAuthor, CommentThread } from '@/services/comments';
 
+// `@/utils/permissions` reads `drupalSettings` at import time, which the
+// vitest setup does not provide, so it is mocked here. Every permission is
+// granted by default; the read-only cases override this.
+const hasPermissionMock = vi.fn((_permission: string) => true);
+vi.mock('@/utils/permissions', () => ({
+  hasPermission: (...args: Parameters<typeof hasPermissionMock>) =>
+    hasPermissionMock(...args),
+}));
+
 const alice: CommentAuthor = { uid: 2, displayName: 'Alice', avatar: null };
 const bob: CommentAuthor = { uid: 3, displayName: 'Bob', avatar: null };
 
@@ -131,6 +140,8 @@ const renderPanel = (store = setUpStore()) => {
 describe('CommentsPanel', () => {
   beforeEach(() => {
     stubFetch();
+    hasPermissionMock.mockReset();
+    hasPermissionMock.mockImplementation(() => true);
   });
 
   it('lists open threads with their author, body and reply count', async () => {
@@ -271,5 +282,91 @@ describe('CommentsPanel', () => {
     await waitFor(() => {
       expect(postedBodies).toContainEqual({ resolved: true });
     });
+  });
+
+  it('is read-only without the create permission', async () => {
+    hasPermissionMock.mockImplementation(
+      (permission) => permission !== 'createComments',
+    );
+    const user = userEvent.setup();
+    renderPanel();
+
+    // Threads stay readable: only writing is withheld.
+    const thread = await screen.findByTestId('canvas-comment-thread');
+    expect(
+      within(thread).getByText('The heading is too long.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('canvas-comment-composer'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('canvas-comment-submit'),
+    ).not.toBeInTheDocument();
+
+    // Replying and resolving are writes too, so neither is offered.
+    await user.click(screen.getByTestId('canvas-comment-thread-toggle'));
+    expect(
+      screen.queryByTestId('canvas-comment-reply-input'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('canvas-comment-reply-submit'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('canvas-comment-resolve'),
+    ).not.toBeInTheDocument();
+    expect(postedBodies).toEqual([]);
+  });
+
+  it('clamps a collapsed body and unclamps it when expanded', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    // A body may be up to 65536 characters, so the collapsed preview must be
+    // clamped or one thread buries every thread under it.
+    const body = await screen.findByTestId('canvas-comment-opening-body');
+    expect(body.className).toMatch(/bodyClamped/);
+
+    await user.click(screen.getByTestId('canvas-comment-thread-toggle'));
+    expect(
+      screen.getByTestId('canvas-comment-opening-body').className,
+    ).not.toMatch(/bodyClamped/);
+  });
+
+  it('keeps the composed text and reports a failed comment', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const request =
+          input instanceof Request ? input : new Request(input, init);
+        if (request.url.endsWith('session/token')) {
+          return new Response('csrf-token', { status: 200 });
+        }
+        if (request.method !== 'GET') {
+          return new Response(JSON.stringify({ errors: ['Denied.'] }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return new Response(JSON.stringify({ threads: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }),
+    );
+    const user = userEvent.setup();
+    renderPanel();
+
+    await user.type(
+      await screen.findByTestId('canvas-comment-composer'),
+      'Rejected',
+    );
+    await user.click(screen.getByTestId('canvas-comment-submit'));
+
+    expect(await screen.findByTestId('canvas-comment-error')).toHaveTextContent(
+      'Your comment could not be posted.',
+    );
+    expect(screen.getByTestId('canvas-comment-composer')).toHaveValue(
+      'Rejected',
+    );
   });
 });
