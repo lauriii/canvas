@@ -18,6 +18,11 @@ import PageDataForm from '@/components/PageDataForm';
 import InheritedSlotPanel from '@/components/panel/InheritedSlotPanel';
 import SlotExposePanel from '@/components/panel/SlotExposePanel';
 import SlotUsagePanel from '@/components/panel/SlotUsagePanel';
+import CommentsPanel from '@/features/comments/CommentsPanel';
+import {
+  selectCommentsPanelOpen,
+  setCommentsPanelOpen,
+} from '@/features/comments/commentsSlice';
 import { setCurrentComponent } from '@/features/form/formStateSlice';
 import {
   findExposedSlotEntry,
@@ -46,6 +51,7 @@ import {
 import useGetComponentName from '@/hooks/useGetComponentName';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
 import { PAGE_VARIANT_ENTITY_TYPE } from '@/services/pageVariants';
+import { hasPermission } from '@/utils/permissions';
 
 import type React from 'react';
 
@@ -146,6 +152,14 @@ const ContextualPanel: React.FC = () => {
   const [activePanel, setActivePanel] = useState('pageData');
   const offRightClasses = useHidePanelClasses('right');
   const [hidePanel, setHidePanel] = useState(false);
+  const canViewComments = hasPermission('viewComments');
+  const commentsOpen =
+    useAppSelector(selectCommentsPanelOpen) && canViewComments;
+  // Comments is a place you stay, not a reaction to the selection, so while it
+  // is open it wins over the selection-driven tab below. Selecting a component
+  // is the normal first step of commenting on one, and it used to throw you
+  // straight back to Settings.
+  const currentTab = commentsOpen ? 'comments' : activePanel;
 
   useEffect(() => {
     if (selectedComponent) {
@@ -162,6 +176,14 @@ const ContextualPanel: React.FC = () => {
       setActivePanel('pageData');
     }
   }, [dispatch, selectedComponent, isMultiSelect]);
+
+  // Losing the permission mid-session must not strand the panel on a tab that
+  // no longer renders.
+  useEffect(() => {
+    if (!canViewComments) {
+      dispatch(setCommentsPanelOpen(false));
+    }
+  }, [canViewComments, dispatch]);
 
   useEffect(() => {
     if (!hasPageDataTab && !isMultiSelect && !selectedComponent) {
@@ -200,8 +222,13 @@ const ContextualPanel: React.FC = () => {
         <ErrorBoundary>
           <Tabs.Root
             defaultValue={'pageData'}
-            onValueChange={setActivePanel}
-            value={activePanel}
+            onValueChange={(value) => {
+              dispatch(setCommentsPanelOpen(value === 'comments'));
+              if (value !== 'comments') {
+                setActivePanel(value);
+              }
+            }}
+            value={currentTab}
             className={clsx(styles.tabRoot)}
           >
             <Tabs.List justify="start" mx="4" size="1">
@@ -227,6 +254,14 @@ const ContextualPanel: React.FC = () => {
                   data-testid="canvas-contextual-panel--settings"
                 >
                   Settings
+                </Tabs.Trigger>
+              )}
+              {canViewComments && (
+                <Tabs.Trigger
+                  value="comments"
+                  data-testid="canvas-contextual-panel--comments"
+                >
+                  Comments
                 </Tabs.Trigger>
               )}
             </Tabs.List>
@@ -343,11 +378,21 @@ const ContextualPanel: React.FC = () => {
                   <Tabs.Content
                     value={'pageData'}
                     forceMount={true}
-                    hidden={activePanel !== 'pageData'}
+                    // This tab is force-mounted, so it has to be hidden
+                    // against the tab actually on screen, not against the
+                    // selection-driven one underneath it.
+                    hidden={currentTab !== 'pageData'}
                   >
                     {editorFrameContext === 'entity' && (
                       <PageDataForm key={`${entityType}:${entityId}`} />
                     )}
+                  </Tabs.Content>
+                )}
+                {canViewComments && (
+                  <Tabs.Content value={'comments'}>
+                    <ErrorBoundary>
+                      <CommentsPanel />
+                    </ErrorBoundary>
                   </Tabs.Content>
                 )}
               </Box>

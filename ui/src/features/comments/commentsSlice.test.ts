@@ -19,6 +19,7 @@ describe('commentsSlice', () => {
   it('starts with comment mode off, no active thread and the open filter', () => {
     expect(commentsSlice.getInitialState()).toEqual({
       commentModeActive: false,
+      panelOpen: false,
       activeThreadId: null,
       filter: 'open',
     });

@@ -12,7 +12,6 @@ import Library from '@/components/sidePanel/Library';
 import Pages from '@/components/sidePanel/Pages';
 import Templates from '@/components/sidePanel/Templates';
 import BrandKitPanel from '@/features/brandKit/BrandKitPanel';
-import CommentsPanel from '@/features/comments/CommentsPanel';
 import Layers from '@/features/layout/layers/Layers';
 import {
   selectActivePanel,
@@ -43,9 +42,6 @@ export const PrimaryPanel = () => {
     if (activePanel === 'brandKit' && !hasPermission('brandKit')) {
       dispatch(unsetActivePanel());
     }
-    if (activePanel === 'comments' && !hasPermission('viewComments')) {
-      dispatch(unsetActivePanel());
-    }
   }, [activePanel, dispatch]);
 
   const panelMap: Record<string, string> = {
@@ -58,7 +54,6 @@ export const PrimaryPanel = () => {
     templates: 'Templates',
     pages: 'Pages',
     content: 'Content',
-    comments: 'Comments',
   };
 
   return (
@@ -133,12 +128,6 @@ export const PrimaryPanel = () => {
                     )}
                   </ErrorBoundary>
                 )}
-                {activePanel === 'comments' &&
-                  hasPermission('viewComments') && (
-                    <ErrorBoundary>
-                      <CommentsPanel />
-                    </ErrorBoundary>
-                  )}
                 {activePanel === 'templates' &&
                   (hasPermission('contentTemplates') ||
                     hasPermission('pageVariants')) && (
