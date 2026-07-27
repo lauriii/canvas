@@ -3,6 +3,7 @@ import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { usePreviewGeometryUpdater } from '@/features/layout/preview/PreviewGeometryContext';
+import PreviewProgress from '@/features/layout/preview/PreviewProgress';
 import { useHeadlessDraftSession } from '@/features/layout/preview/useHeadlessDraftSession';
 import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
 import {
@@ -16,6 +17,8 @@ import {
 
 import type { HeadlessSettings } from '@drupal-canvas/types';
 import type { AutoSavesHashRecord } from '@/types/AutoSaves';
+
+import styles from './Preview.module.css';
 
 interface HeadlessPreviewProps {
   settings: HeadlessSettings;
@@ -263,7 +266,11 @@ const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({
   );
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden' }}>
+    <div
+      className={styles.previewContainer}
+      style={{ width: `${viewportWidth}px` }}
+    >
+      <PreviewProgress loading={frames.pending !== null} />
       {visibleFrames.map((frame) => {
         const isActive = frame.frameKey === frames.active?.frameKey;
         return (
