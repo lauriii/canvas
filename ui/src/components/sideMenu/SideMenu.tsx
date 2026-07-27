@@ -6,7 +6,6 @@ import BrandKitIcon from '@assets/icons/brand-kit.svg?react';
 import ExtensionIcon from '@assets/icons/extension-sm.svg?react';
 import TemplateIcon from '@assets/icons/template.svg?react';
 import {
-  ChatBubbleIcon,
   CodeIcon,
   FileTextIcon,
   GlobeIcon,
@@ -16,11 +15,6 @@ import {
 import { Button, Flex, Tooltip } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { COMMENTS_PANEL_ID } from '@/features/comments/CommentPinLayer';
-import {
-  selectCommentsPanelOpen,
-  setCommentsPanelOpen,
-} from '@/features/comments/commentsSlice';
 import { unsetActiveExtension } from '@/features/extensions/extensionsSlice';
 import { selectDialogOpen, setDialogClosed } from '@/features/ui/dialogSlice';
 import {
@@ -63,7 +57,6 @@ interface SideMenuProps {}
 
 export const SideMenu: React.FC<SideMenuProps> = () => {
   const activePanel = useAppSelector(selectActivePanel);
-  const commentsPanelOpen = useAppSelector(selectCommentsPanelOpen);
   const { extension: extensionDialogOpen } = useAppSelector(selectDialogOpen);
   let hasLegacyExtensions = false;
   if (drupalSettings && drupalSettings.canvasExtension) {
@@ -102,15 +95,6 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
   const handleMenuClick = useCallback(
     (panelId: string) => {
       closeExtension();
-      // Comments live in the contextual panel on the right, not in this left
-      // one, so this button toggles that tab instead of a panel here.
-      if (panelId === COMMENTS_PANEL_ID) {
-        if (isOnExtensionPage) {
-          navigate('/');
-        }
-        dispatch(setCommentsPanelOpen(!commentsPanelOpen));
-        return;
-      }
       if (isOnExtensionPage) {
         dispatch(setActivePanel(panelId));
         navigate('/');
@@ -122,14 +106,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       }
       dispatch(setActivePanel(panelId));
     },
-    [
-      dispatch,
-      activePanel,
-      commentsPanelOpen,
-      closeExtension,
-      isOnExtensionPage,
-      navigate,
-    ],
+    [dispatch, activePanel, closeExtension, isOnExtensionPage, navigate],
   );
 
   const menuItems: SideMenuItem[] = [
@@ -148,14 +125,6 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       label: 'Layers',
       enabled: hasActiveEditorFrame,
       hidden: false,
-    },
-    {
-      type: 'button',
-      id: 'comments',
-      icon: <ChatBubbleIcon />,
-      label: 'Comments',
-      enabled: hasActiveEditorFrame,
-      hidden: !hasPermission('viewComments'),
     },
     { type: 'separator', hidden: false },
 
@@ -275,12 +244,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
                 className={clsx(
                   styles.menuItem,
                   !item.enabled && styles.disabled,
-                  // Comments is the one item whose panel lives on the right,
-                  // so its active state tracks that tab rather than this
-                  // menu's own panel.
-                  (item.id === COMMENTS_PANEL_ID
-                    ? commentsPanelOpen
-                    : activePanel === item.id) && styles.active,
+                  activePanel === item.id && styles.active,
                 )}
                 onClick={
                   item.enabled ? () => handleMenuClick(item.id) : undefined

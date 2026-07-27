@@ -20,6 +20,7 @@ import {
   selectCommentsPanelOpen,
   setCommentsPanelOpen,
 } from '@/features/comments/commentsSlice';
+import CommentsTabLabel from '@/features/comments/CommentsTabLabel';
 import { setCurrentComponent } from '@/features/form/formStateSlice';
 import {
   EditorFrameContext,
@@ -138,7 +139,7 @@ const ContextualPanel: React.FC = () => {
                   value="comments"
                   data-testid="canvas-contextual-panel--comments"
                 >
-                  Comments
+                  <CommentsTabLabel />
                 </Tabs.Trigger>
               )}
             </Tabs.List>
