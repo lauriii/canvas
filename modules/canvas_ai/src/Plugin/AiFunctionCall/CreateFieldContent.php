@@ -11,6 +11,10 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * Plugin implementation of create field content function.
+ *
+ * This tool will soon be replaced by set_page_value once it is wired.
+ *
+ * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\SetPageValue
  */
 #[FunctionCall(
   id: 'ai_agent:create_field_content',
