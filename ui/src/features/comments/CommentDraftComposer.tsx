@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Button, Flex, Text } from '@radix-ui/themes';
 
+import { clampIntoBounds } from '@/features/comments/clampIntoBounds';
 import MentionTextArea from '@/features/comments/MentionTextArea';
 import { toStoredBody } from '@/features/comments/mentionUtils';
 import { useCreateThreadMutation } from '@/services/comments';
@@ -36,8 +37,21 @@ const CommentDraftComposer = ({
   onCancel,
   onPosted,
 }: CommentDraftComposerProps) => {
+  const composerRef = useRef<HTMLDivElement>(null);
+  const [nudge, setNudge] = useState({ x: 0, y: 0 });
   const [body, setBody] = useState('');
   const [mentions, setMentions] = useState<Record<string, number>>({});
+
+  // Being a few pixels off the exact point is worth far less than being
+  // usable, so a composer that would hang outside the preview is pulled back.
+  useLayoutEffect(() => {
+    const element = composerRef.current;
+    const bounds = element?.offsetParent?.getBoundingClientRect();
+    if (!element || !bounds) {
+      return;
+    }
+    setNudge(clampIntoBounds(element.getBoundingClientRect(), bounds));
+  }, [draft]);
   const [failed, setFailed] = useState(false);
   const [createThread, { isLoading }] = useCreateThreadMutation();
 
@@ -62,8 +76,12 @@ const CommentDraftComposer = ({
 
   return (
     <div
+      ref={composerRef}
       className={styles.draftComposer}
-      style={{ top: `${draft.top}px`, left: `${draft.left}px` }}
+      style={{
+        top: `${draft.top + nudge.y}px`,
+        left: `${draft.left + nudge.x}px`,
+      }}
       data-testid="canvas-comment-draft-composer"
       // The layer above treats a click on the canvas as "place a pin here",
       // and this composer sits on that layer.
