@@ -63,6 +63,15 @@
   line-clamp: 4;
 }
 
+.tabCount {
+  min-width: 1.25em;
+  margin-left: var(--space-1);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-4);
+  background: var(--gray-a4);
+  font-variant-numeric: tabular-nums;
+}
+
 .mentionWrapper {
   position: relative;
 }

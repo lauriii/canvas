@@ -24,6 +24,31 @@ vi.mock('@/features/comments/CommentsPanel', () => ({
   default: () => <div data-testid="canvas-comments-panel">Comments panel</div>,
 }));
 
+const stubCommentsFetch = (threadCount: number) => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          threads: Array.from({ length: threadCount }, (_unused, index) => ({
+            id: String(index + 1),
+            uuid: `thread-${index + 1}`,
+            surfaceType: 'canvas_page',
+            surfaceId: '1',
+            componentUuid: null,
+            resolved: false,
+            created: 1_777_000_000,
+            changed: 1_777_000_000,
+            author: { uid: 2, displayName: 'Alice', avatar: null },
+            comments: [],
+          })),
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    }),
+  );
+};
+
 vi.mock('@/components/PageDataForm', () => ({
   default: () => <div>Page data form</div>,
 }));
@@ -111,6 +136,28 @@ describe('ContextualPanel', () => {
     expect(store.getState().comments.panelOpen).toBe(false);
     expect(
       screen.queryByTestId('canvas-comments-panel'),
+    ).not.toBeInTheDocument();
+  });
+  it('counts the open threads on the tab that opens them', async () => {
+    // With no button in the left rail any more, this count is the only thing
+    // that says a page carries a conversation before you go looking.
+    stubCommentsFetch(3);
+    renderPanel();
+
+    // Radix's tab trigger renders its label twice, the second copy purely to
+    // reserve the width the bold active state needs.
+    const counts = await screen.findAllByTestId('canvas-comments-count');
+    expect(counts[0]).toHaveTextContent('3');
+    expect(counts[0]).toHaveAttribute('aria-label', '3 open');
+  });
+
+  it('shows no count when nothing is open', async () => {
+    stubCommentsFetch(0);
+    renderPanel();
+
+    await screen.findByTestId('canvas-contextual-panel--comments');
+    expect(
+      screen.queryByTestId('canvas-comments-count'),
     ).not.toBeInTheDocument();
   });
 });
