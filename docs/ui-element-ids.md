@@ -219,6 +219,11 @@ _Do people open it, edit, and get working code out the other end?_
 There is no save identifier because the code editor has no save control: it
 auto-saves, and the saved work reaches the site through the publish flow below.
 
+`code-editor-error` marks the one container that holds every preview-blocking
+error, and its key names the first active error rather than one key per card.
+In practice a compile failure prevents the other two from being detected, so
+they are effectively exclusive.
+
 ### Preview controls
 
 _Is preview used, at which viewport, and at what zoom?_
@@ -289,7 +294,10 @@ is `library-item` on the Patterns tab, so neither needs its own name.
 _Is the AI panel opened, and is it kept open?_ `ai-panel-toggle` in
 `components/aiExtension/AiToggleButton.tsx` and `ai-panel` on the panel root in
 `components/aiExtension/AiWizard.tsx`. The chat transcript is user content and
-is not instrumented.
+is not instrumented. The chat input and its submit button live inside the
+third-party Deep Chat custom element, which Canvas configures rather than
+renders, so they cannot carry an identifier without reaching into that
+element's internals.
 
 ### Extensions
 
@@ -304,7 +312,7 @@ _How often does an editor face an empty or broken screen?_
 
 | Identifier     | Element                                       | Source                                    |
 | -------------- | --------------------------------------------- | ----------------------------------------- |
-| `empty-state`  | The shared empty state callout                 | `components/EmptyStateCallout.tsx`        |
+| `empty-state`  | The shared empty state callout, which is what a library search with no results renders | `components/EmptyStateCallout.tsx` |
 | `error-card`   | The error card used by every error boundary   | `components/error/ErrorCard.tsx`          |
 | `error-retry`  | Its retry button                              | `components/error/ErrorCard.tsx`          |
 | `error-page`   | Full page error                               | `components/error/ErrorPage.tsx`          |
