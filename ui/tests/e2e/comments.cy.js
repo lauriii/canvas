@@ -35,10 +35,13 @@ describe('Comments', () => {
     // accepts, and `loadURLandWaitForCanvasLoaded` otherwise defaults to a node.
     cy.loadURLandWaitForCanvasLoaded({ url: PAGE_URL });
 
-    // Open the comments panel from the side menu.
+    // Open the comments panel from its tab in the contextual panel. It is
+    // deliberately not reachable from the left side menu: that rail opens the
+    // panel beside it, and this one is on the other side.
     cy.get('[data-testid="canvas-side-menu"]')
       .find('[aria-label="Comments"]')
-      .click();
+      .should('not.exist');
+    cy.get('[data-testid="canvas-contextual-panel--comments"]').click();
     cy.get('[data-testid="canvas-comments-panel"]').should('exist');
     cy.wait('@getComments');
     cy.get('[data-testid="canvas-comments-empty"]').should('exist');
@@ -66,11 +69,14 @@ describe('Comments', () => {
       '1 reply',
     );
 
-    // Reload and assert both the thread and its reply were persisted.
+    // Reload and assert both the thread and its reply were persisted. The tab
+    // carries the open-thread count, which is what says the page still has a
+    // conversation on it before anything is opened.
     cy.loadURLandWaitForCanvasLoaded({ url: PAGE_URL, clearAutoSave: false });
-    cy.get('[data-testid="canvas-side-menu"]')
-      .find('[aria-label="Comments"]')
-      .click();
+    cy.get('[data-testid="canvas-comments-count"]')
+      .first()
+      .should('contain.text', '1');
+    cy.get('[data-testid="canvas-contextual-panel--comments"]').click();
     cy.wait('@getComments');
     cy.get('[data-testid="canvas-comment-thread"]')
       .should('have.length', 1)
