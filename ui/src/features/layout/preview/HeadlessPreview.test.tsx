@@ -1,6 +1,6 @@
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
 
 import { makeStore } from '@/app/store';
@@ -90,6 +90,10 @@ function getPreviewHeight(element: HTMLElement) {
 }
 
 describe('HeadlessPreview', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('falls back to viewportMinHeight before any height report arrives', () => {
     renderPreview(500);
     const iframe = screen.getByTestId('canvas-headless-iframe');
@@ -150,6 +154,46 @@ describe('HeadlessPreview', () => {
     });
     expect(
       screen.queryByTestId('canvas-headless-pending-iframe'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not activate a page that became ready after navigating back', () => {
+    renderPreview(500);
+    act(() => latestOnHeight?.(1200));
+    const firstPageIframe = screen.getByTestId('canvas-headless-iframe');
+
+    act(() => navigateTo?.('/node/2'));
+    const secondPageOnHeight = latestOnHeight;
+    expect(secondPageOnHeight).toBeDefined();
+
+    act(() => {
+      navigateTo?.('/node/1');
+      secondPageOnHeight?.(700);
+    });
+
+    expect(screen.getByTestId('canvas-headless-iframe')).toBe(firstPageIframe);
+    expect(
+      screen.queryByTestId('canvas-headless-pending-iframe'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows progress while waiting for the next page to become ready', () => {
+    vi.useFakeTimers();
+    renderPreview(500);
+
+    act(() => navigateTo?.('/node/2'));
+    expect(
+      screen.queryByRole('progressbar', { name: 'Loading Preview' }),
+    ).not.toBeInTheDocument();
+
+    act(() => vi.advanceTimersByTime(500));
+    expect(
+      screen.getByRole('progressbar', { name: 'Loading Preview' }),
+    ).toBeInTheDocument();
+
+    act(() => latestOnHeight?.(700));
+    expect(
+      screen.queryByRole('progressbar', { name: 'Loading Preview' }),
     ).not.toBeInTheDocument();
   });
 

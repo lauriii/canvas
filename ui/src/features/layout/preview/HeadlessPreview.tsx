@@ -3,6 +3,7 @@ import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { usePreviewGeometryUpdater } from '@/features/layout/preview/PreviewGeometryContext';
+import PreviewProgress from '@/features/layout/preview/PreviewProgress';
 import { useHeadlessDraftSession } from '@/features/layout/preview/useHeadlessDraftSession';
 import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
 import {
@@ -16,6 +17,8 @@ import {
 
 import type { HeadlessSettings } from '@drupal-canvas/types';
 import type { AutoSavesHashRecord } from '@/types/AutoSaves';
+
+import styles from './Preview.module.css';
 
 interface HeadlessPreviewProps {
   settings: HeadlessSettings;
@@ -218,6 +221,8 @@ const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({
       autoSavesHash: autoSavesHashRef.current,
     };
   }, [entityId, entityType]);
+  const currentFrameKeyRef = useRef(currentFrame?.frameKey);
+  currentFrameKeyRef.current = currentFrame?.frameKey;
   const [frames, setFrames] = useState<PreviewFrameState>(() => ({
     active: currentFrame,
     pending: null,
@@ -243,7 +248,13 @@ const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({
 
   const activateFrame = useCallback((frameKey: string) => {
     setFrames((current) => {
-      if (current.pending?.frameKey !== frameKey) {
+      // A pending frame can report readiness in the same render cycle as a
+      // newer navigation. Never promote it after its route stopped being
+      // current, or the already-ready target can be demoted indefinitely.
+      if (
+        frameKey !== currentFrameKeyRef.current ||
+        current.pending?.frameKey !== frameKey
+      ) {
         return current;
       }
       return { active: current.pending, pending: null };
@@ -255,7 +266,11 @@ const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({
   );
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden' }}>
+    <div
+      className={styles.previewContainer}
+      style={{ width: `${viewportWidth}px` }}
+    >
+      <PreviewProgress loading={frames.pending !== null} />
       {visibleFrames.map((frame) => {
         const isActive = frame.frameKey === frames.active?.frameKey;
         return (
