@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AppWrapper from '@tests/vitest/components/AppWrapper';
@@ -36,6 +36,12 @@ const geometryMap: CanvasGeometryMap = {
 
 vi.mock('@/features/layout/preview/PreviewGeometryContext', () => ({
   usePreviewGeometry: () => ({ geometryMap }),
+}));
+
+const hasPermissionMock = vi.fn((_permission: string) => true);
+vi.mock('@/utils/permissions', () => ({
+  hasPermission: (...args: Parameters<typeof hasPermissionMock>) =>
+    hasPermissionMock(...args),
 }));
 
 const threads: CommentThread[] = [
@@ -163,12 +169,15 @@ const setUpStore = () => {
       devMode: false,
     }),
   );
-  // Pins are only fetched and rendered while comments are relevant.
-  store.dispatch(setCommentMode(true));
   return store;
 };
 
 describe('CommentPinLayer', () => {
+  beforeEach(() => {
+    hasPermissionMock.mockReset();
+    hasPermissionMock.mockImplementation(() => true);
+  });
+
   it('renders one pin per measured, component-anchored thread', async () => {
     stubFetch();
     const store = setUpStore();
@@ -276,6 +285,7 @@ describe('CommentPinLayer', () => {
     stubFetch();
     const user = userEvent.setup();
     const store = setUpStore();
+    store.dispatch(setCommentMode(true));
     render(
       <AppWrapper
         store={store}
@@ -330,20 +340,13 @@ describe('CommentPinLayer', () => {
     expect(store.getState().comments.panelOpen).toBe(true);
   });
 
-  it('renders nothing while comments are not relevant', () => {
+  it('draws pins with the panel closed', async () => {
+    // The pin is how a page says it carries a conversation, which it cannot do
+    // from behind a closed panel.
     stubFetch();
-    const store = makeStore();
-    store.dispatch(
-      setConfiguration({
-        baseUrl: 'http://localhost/',
-        // Left unset on purpose: the surface comes from the route.
-        entityType: 'none',
-        entity: 'none',
-        isNew: false,
-        isPublished: false,
-        devMode: false,
-      }),
-    );
+    const store = setUpStore();
+    expect(store.getState().comments.panelOpen).toBe(false);
+    expect(store.getState().comments.commentModeActive).toBe(false);
     render(
       <AppWrapper
         store={store}
@@ -354,8 +357,28 @@ describe('CommentPinLayer', () => {
       </AppWrapper>,
     );
 
+    expect(await screen.findByTestId('canvas-comment-pin')).toBeInTheDocument();
+  });
+
+  it('draws nothing without the view permission', () => {
+    hasPermissionMock.mockImplementation(
+      (permission) => permission !== 'viewComments',
+    );
+    stubFetch();
+    render(
+      <AppWrapper
+        store={setUpStore()}
+        location="/editor/canvas_page/1"
+        path="/editor/:entityType/:entityId"
+      >
+        <CommentPinLayer />
+      </AppWrapper>,
+    );
+
     expect(
       screen.queryByTestId('canvas-comment-pin-layer'),
     ).not.toBeInTheDocument();
+    // Nor is the request made, so it cannot be refused.
+    expect(fetch).not.toHaveBeenCalled();
   });
 });
