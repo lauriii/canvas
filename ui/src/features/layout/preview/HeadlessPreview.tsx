@@ -218,6 +218,8 @@ const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({
       autoSavesHash: autoSavesHashRef.current,
     };
   }, [entityId, entityType]);
+  const currentFrameKeyRef = useRef(currentFrame?.frameKey);
+  currentFrameKeyRef.current = currentFrame?.frameKey;
   const [frames, setFrames] = useState<PreviewFrameState>(() => ({
     active: currentFrame,
     pending: null,
@@ -243,7 +245,13 @@ const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({
 
   const activateFrame = useCallback((frameKey: string) => {
     setFrames((current) => {
-      if (current.pending?.frameKey !== frameKey) {
+      // A pending frame can report readiness in the same render cycle as a
+      // newer navigation. Never promote it after its route stopped being
+      // current, or the already-ready target can be demoted indefinitely.
+      if (
+        frameKey !== currentFrameKeyRef.current ||
+        current.pending?.frameKey !== frameKey
+      ) {
         return current;
       }
       return { active: current.pending, pending: null };

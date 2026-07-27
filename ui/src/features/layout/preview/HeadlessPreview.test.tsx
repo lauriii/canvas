@@ -153,6 +153,26 @@ describe('HeadlessPreview', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('does not activate a page that became ready after navigating back', () => {
+    renderPreview(500);
+    act(() => latestOnHeight?.(1200));
+    const firstPageIframe = screen.getByTestId('canvas-headless-iframe');
+
+    act(() => navigateTo?.('/node/2'));
+    const secondPageOnHeight = latestOnHeight;
+    expect(secondPageOnHeight).toBeDefined();
+
+    act(() => {
+      navigateTo?.('/node/1');
+      secondPageOnHeight?.(700);
+    });
+
+    expect(screen.getByTestId('canvas-headless-iframe')).toBe(firstPageIframe);
+    expect(
+      screen.queryByTestId('canvas-headless-pending-iframe'),
+    ).not.toBeInTheDocument();
+  });
+
   it('keeps a height committed while the host temporarily probes the iframe', () => {
     renderPreview(500);
     const iframe = screen.getByTestId('canvas-headless-iframe');
