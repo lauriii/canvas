@@ -40,6 +40,7 @@ const ZoomControl = (props: { buttonClass: string }) => {
         color="gray"
         aria-label="Select zoom level"
         className={buttonClass}
+        data-canvas-element="zoom-level"
       >
         <Flex
           as="span"
@@ -59,6 +60,8 @@ const ZoomControl = (props: { buttonClass: string }) => {
             className={clsx({
               [styles.oneHundred]: sv.scale === 1,
             })}
+            data-canvas-element="zoom-level-option"
+            data-canvas-element-key={sv.percent}
           >
             {sv.percent}
           </Select.Item>

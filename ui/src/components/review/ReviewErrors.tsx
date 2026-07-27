@@ -131,7 +131,11 @@ const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
               <Text size="1" data-testid="publish-error-detail">
                 {error.detail}{' '}
                 {errorPath && (
-                  <Link data-testid="publish-error-link" to={errorPath}>
+                  <Link
+                    data-testid="publish-error-link"
+                    data-canvas-element="publish-error-link"
+                    to={errorPath}
+                  >
                     {
                       <OpenInNewWindowIcon
                         color="blue"
@@ -175,6 +179,7 @@ const ReviewErrors: React.FC<ReviewErrorsProps> = ({ errorState }) => {
     return (
       <Box
         data-testid="canvas-review-publish-errors"
+        data-canvas-element="publish-errors"
         maxWidth="360px"
         className={style.reviewErrors}
       >

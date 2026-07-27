@@ -300,4 +300,43 @@ describe('PublishReview conflict UI', () => {
       screen.queryByRole('button', { name: 'Review selected changes' }),
     ).not.toBeInTheDocument();
   });
+
+  // @see docs/ui-element-ids.md
+  it('identifies each step of the publish flow', async () => {
+    const user = userEvent.setup();
+    renderReview([
+      baseChange,
+      {
+        ...baseChange,
+        pointer: 'canvas_page:2:en',
+        label: 'Page 2',
+        entity_id: 2,
+        hasConflict: true,
+      },
+    ]);
+
+    expect(
+      document.querySelector('[data-canvas-element="publish-review-open"]'),
+    ).not.toBeNull();
+
+    await user.click(screen.getByTestId('canvas-publish-review'));
+
+    const identified = Array.from(
+      document.querySelectorAll('[data-canvas-element]'),
+    ).map((element) => element.getAttribute('data-canvas-element'));
+
+    expect(identified).toEqual(
+      expect.arrayContaining([
+        'publish-review-panel',
+        'publish-review-select-all',
+        'publish-conflict-banner',
+        'publish-conflict-resolve',
+        'change-row',
+        'change-row-select',
+        'change-row-menu',
+        'publish-confirm',
+        'publish-review-selected',
+      ]),
+    );
+  });
 });

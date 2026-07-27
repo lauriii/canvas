@@ -75,6 +75,7 @@ const RegionLayer: React.FC<{ region: RegionNode; isPage?: boolean }> = ({
     open: region.id === focusedRegion,
     hovered: isHovered,
     'data-hovered': isHovered,
+    'data-canvas-element': 'layers-region',
     ...(region.id !== focusedRegion && {
       dropdownMenuContent: (
         <RegionContextMenuContent region={region} menuType="dropdown" />

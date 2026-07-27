@@ -21,7 +21,12 @@ const ErrorCard: React.FC<{
   asChild = false,
   children,
 }) => (
-  <Box data-testid="canvas-error-card" maxWidth="520px" mt="4">
+  <Box
+    data-testid="canvas-error-card"
+    data-canvas-element="error-card"
+    maxWidth="520px"
+    mt="4"
+  >
     <Callout.Root color="red" role="alert">
       <Callout.Icon>
         <ExclamationTriangleIcon />
@@ -34,7 +39,11 @@ const ErrorCard: React.FC<{
       </Box>
       {resetErrorBoundary && (
         <Box mt="1">
-          <Button data-testid="canvas-error-reset" onClick={resetErrorBoundary}>
+          <Button
+            data-testid="canvas-error-reset"
+            data-canvas-element="error-retry"
+            onClick={resetErrorBoundary}
+          >
             <ReloadIcon />
             {resetButtonText}
           </Button>

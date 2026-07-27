@@ -162,6 +162,7 @@ const ComponentInstanceFormRenderer: React.FC<
       <div
         key={`${componentId}-${latestUndoRedoActionId}`}
         data-testid={`canvas-component-form-${componentId}`}
+        data-canvas-element="component-props-form"
       >
         {hyperscriptify(
           template,

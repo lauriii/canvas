@@ -83,6 +83,7 @@ const LayersDropZone: React.FC<LayersDropZoneProps> = (props) => {
       // @ts-ignore
       style={{ '--indent-depth': `${indent}` }}
       ref={setDropRef}
+      data-canvas-element="layers-drop-zone"
     ></div>
   );
 };

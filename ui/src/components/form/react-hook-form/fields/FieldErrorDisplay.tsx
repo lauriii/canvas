@@ -25,6 +25,7 @@ export const FieldErrorDisplay: React.FC<FieldErrorDisplayProps> = ({
   return (
     <span
       data-prop-message
+      data-canvas-element="form-field-error"
       className={blockingError ? 'error-blocking' : 'error-display'}
     >
       {blockingError

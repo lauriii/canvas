@@ -7,7 +7,7 @@ const Welcome: React.FC<{ children?: React.ReactNode }> = () => {
   return (
     <Flex align="center" justify="center" width="100%">
       <Flex maxWidth="400px" width="">
-        <Callout.Root color="blue">
+        <Callout.Root color="blue" data-canvas-element="welcome">
           <Callout.Icon>
             <InfoCircledIcon />
           </Callout.Icon>

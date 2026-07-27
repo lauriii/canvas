@@ -120,7 +120,12 @@ const ListItem: React.FC<{
   };
 
   const insertMenuItem = () => (
-    <UnifiedMenu.Item onClick={handleInsertClick}>Insert</UnifiedMenu.Item>
+    <UnifiedMenu.Item
+      onClick={handleInsertClick}
+      data-canvas-element="library-item-insert"
+    >
+      Insert
+    </UnifiedMenu.Item>
   );
 
   const menuTitleItems = () => (
@@ -190,6 +195,7 @@ const ListItem: React.FC<{
     React.RefAttributes<HTMLDivElement> & {
       'data-canvas-component-id': string;
       'data-canvas-name': string;
+      'data-canvas-element': string;
       'data-canvas-type':
         | LayoutItemType.PATTERN
         | LayoutItemType.COMPONENT
@@ -199,6 +205,10 @@ const ListItem: React.FC<{
     role: 'listitem',
     'data-canvas-component-id': itemId,
     'data-canvas-name': item.name,
+    // The kind of item and which item it is are already carried by
+    // `data-canvas-type` and `data-canvas-component-id` above.
+    // @see docs/ui-element-ids.md
+    'data-canvas-element': 'library-item',
     'data-canvas-type': type,
     className: clsx(styles.listItem),
   };

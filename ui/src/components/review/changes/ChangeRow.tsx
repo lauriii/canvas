@@ -109,7 +109,11 @@ const ChangeRow = ({
   );
 
   return (
-    <li className={styles.changeRow} data-testid="pending-change-row">
+    <li
+      className={styles.changeRow}
+      data-testid="pending-change-row"
+      data-canvas-element="change-row"
+    >
       <Flex as="div" direction="row" align="start" justify="between" gap="4">
         <Text as="label" color={color} weight={weight} size="1">
           <Flex as="div" direction="row" align="start" gap="2" pt="1">
@@ -119,6 +123,7 @@ const ChangeRow = ({
               aria-label={`Select change ${changeLabel}`}
               onCheckedChange={handleChangeSelection}
               checked={isSelected}
+              data-canvas-element="change-row-select"
             />
             <Flex height="16px" align="center">
               {hasConflict ? (
@@ -201,7 +206,11 @@ const ChangeRow = ({
           <Box pt="1">
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
-                <IconButton disabled={isBusy} aria-label="More options">
+                <IconButton
+                  disabled={isBusy}
+                  aria-label="More options"
+                  data-canvas-element="change-row-menu"
+                >
                   <DotsVerticalIcon />
                 </IconButton>
               </DropdownMenu.Trigger>
@@ -209,16 +218,23 @@ const ChangeRow = ({
                 {conflictUxEnabled && hasConflict && onResolveConflict && (
                   <DropdownMenu.Item
                     onSelect={() => onResolveConflict?.(change)}
+                    data-canvas-element="change-row-resolve-conflict"
                   >
                     Resolve conflict
                   </DropdownMenu.Item>
                 )}
                 {canViewChange && (
-                  <DropdownMenu.Item onSelect={() => onViewClick?.(change)}>
+                  <DropdownMenu.Item
+                    onSelect={() => onViewClick?.(change)}
+                    data-canvas-element="change-row-view"
+                  >
                     Review changes
                   </DropdownMenu.Item>
                 )}
-                <DropdownMenu.Item onSelect={() => onDiscardClick(change)}>
+                <DropdownMenu.Item
+                  onSelect={() => onDiscardClick(change)}
+                  data-canvas-element="change-row-discard"
+                >
                   Discard changes
                 </DropdownMenu.Item>
               </DropdownMenu.Content>

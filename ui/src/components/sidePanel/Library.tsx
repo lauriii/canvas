@@ -34,6 +34,8 @@ const Library = () => {
           <Tabs.Trigger
             value="components"
             data-testid="canvas-library-components-tab-select"
+            data-canvas-element="library-tab"
+            data-canvas-element-key="components"
           >
             Components
           </Tabs.Trigger>
@@ -41,6 +43,8 @@ const Library = () => {
             <Tabs.Trigger
               value="patterns"
               data-testid="canvas-library-patterns-tab-select"
+              data-canvas-element="library-tab"
+              data-canvas-element-key="patterns"
             >
               Patterns
             </Tabs.Trigger>

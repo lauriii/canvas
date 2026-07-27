@@ -72,6 +72,7 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
         })}
         ref={setDropRef}
         data-testid={`canvas-empty-region-drop-zone-${kebabCase(region.name)}`}
+        data-canvas-element="canvas-drop-zone-empty-region"
       >
         {activeName ? (
           activeName

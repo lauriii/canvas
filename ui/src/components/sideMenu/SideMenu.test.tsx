@@ -68,6 +68,19 @@ describe('SideMenu', () => {
     expect(screen.getByRole('button', { name: 'Code' })).toBeInTheDocument();
   });
 
+  // @see docs/ui-element-ids.md
+  it('identifies each menu entry by its panel or route id', () => {
+    const { container } = renderSideMenu();
+
+    const keys = Array.from(
+      container.querySelectorAll('[data-canvas-element="side-menu-item"]'),
+    ).map((element) => element.getAttribute('data-canvas-element-key'));
+
+    expect(keys).toEqual(
+      expect.arrayContaining(['library', 'layers', 'code', 'pages']),
+    );
+  });
+
   it('hides the Code option when a headless frontend is configured', () => {
     getCanvasSettings().headless = {
       frontendUrl: 'https://frontend.example',

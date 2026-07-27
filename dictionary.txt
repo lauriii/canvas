@@ -2,6 +2,7 @@
 !Autosave # Use "auto-save", "AutoSave", or "auto_save" instead.
 acquia
 adrs
+affordances
 agentic
 aiwizard
 alternatewidths

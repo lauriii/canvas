@@ -126,6 +126,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
       data-canvas-uuid={componentId}
       data-canvas-type={component.nodeType}
       data-canvas-selected={isSelected}
+      data-canvas-element="layers-item"
       onClick={handleItemClick}
       onDragStart={handleItemDragStart}
       onContextMenu={handleContextMenu}
@@ -174,6 +175,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
                             ? `Expand component tree`
                             : `Collapse component tree`
                         }
+                        data-canvas-element="layers-item-toggle"
                       >
                         {isCollapsed ? (
                           <TriangleRightIcon />

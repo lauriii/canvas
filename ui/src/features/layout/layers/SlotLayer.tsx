@@ -67,6 +67,7 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
     <Box
       data-canvas-uuid={slotId}
       data-canvas-type={slot.nodeType}
+      data-canvas-element="layers-slot"
       aria-labelledby={`layer-${slotId}-name`}
       position="relative"
       onClick={(e) => {

@@ -24,6 +24,7 @@ const EmptyStateCallout = ({
       size="1"
       variant="soft"
       style={calloutStyle}
+      data-canvas-element="empty-state"
       {...props}
     >
       <Flex align="center">

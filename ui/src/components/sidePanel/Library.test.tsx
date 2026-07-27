@@ -51,6 +51,17 @@ describe('Library', () => {
     expect(screen.getByText('New menu available')).toBeInTheDocument();
   });
 
+  // @see docs/ui-element-ids.md
+  it('identifies both library tabs', () => {
+    const { container } = renderLibrary();
+
+    const keys = Array.from(
+      container.querySelectorAll('[data-canvas-element="library-tab"]'),
+    ).map((element) => element.getAttribute('data-canvas-element-key'));
+
+    expect(keys).toEqual(['components', 'patterns']);
+  });
+
   it('ignores configured headless settings without headless preview access', () => {
     getCanvasSettings().headless = {
       frontendUrl: 'https://frontend.example',

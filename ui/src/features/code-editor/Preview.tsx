@@ -329,6 +329,14 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     isJsImportError: renderImportError(),
   };
 
+  // Stable, neutral names for the preview-blocking error kinds.
+  // @see docs/ui-element-ids.md
+  const errorElementKeys: Record<string, string> = {
+    isCompileError: 'compile',
+    isDefaultExportMissingError: 'missing-default-export',
+    isJsImportError: 'import',
+  };
+
   const activeErrors = Object.entries({
     isCompileError: compilationError,
     isDefaultExportMissingError,
@@ -342,7 +350,11 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
       <div className={styles.iframeContainer} ref={parentRef}>
         {activeErrors.length > 0 && (
           <ScrollArea>
-            <div className={styles.errorContainer}>
+            <div
+              className={styles.errorContainer}
+              data-canvas-element="code-editor-error"
+              data-canvas-element-key={errorElementKeys[activeErrors[0]]}
+            >
               {activeErrors.map(
                 (key) => errorComponents[key as keyof typeof errorComponents],
               )}
