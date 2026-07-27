@@ -165,6 +165,36 @@ describe('createDraftSession', () => {
     );
   });
 
+  it('reports expiry instead of renewing when a background tab delays the timer', () => {
+    const expiresAt = Date.now() + 300_000;
+    const { session, events, postMessage } = makeHarness({
+      tokenExpiresAt: expiresAt,
+    });
+    postMessage.mockClear();
+
+    // Moving the wall clock without advancing timers simulates a background
+    // tab whose scheduled renewal did not run until after the token expired.
+    vi.setSystemTime(expiresAt);
+    vi.advanceTimersToNextTimer();
+    vi.runAllTimers();
+
+    expect(session.getState()).toEqual({
+      expired: true,
+      renewState: 'idle',
+    });
+    expect(events).toEqual([{ type: 'expired' }]);
+    expect(postMessage).toHaveBeenCalledExactlyOnceWith(
+      {
+        type: HEADLESS_STATUS_MESSAGE,
+        status: 'expired',
+        path: '/node/1',
+        tokenExpiresAt: expiresAt,
+        hostSessionId: HOST_SESSION_ID,
+      },
+      ORIGIN,
+    );
+  });
+
   it('clamps the renewal margin to half the remaining life', () => {
     const { session } = makeHarness({
       tokenExpiresAt: Date.now() + 80_000,

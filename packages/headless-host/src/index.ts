@@ -290,6 +290,16 @@ export function createHeadlessPreviewHost(
     );
   };
 
+  const requestStatus = () => {
+    if (hostSessionId === null) {
+      return;
+    }
+    iframe.contentWindow?.postMessage(
+      { type: HEADLESS_STATUS_REQUEST_MESSAGE, hostSessionId },
+      frontendOrigin,
+    );
+  };
+
   const onIframeLoad = () => {
     // A reload replaces the app document while preserving the iframe and host.
     // Start a new protocol session before accepting messages from that document.
@@ -299,10 +309,7 @@ export function createHeadlessPreviewHost(
       return;
     }
     hostSessionId = window.crypto.randomUUID();
-    iframe.contentWindow?.postMessage(
-      { type: HEADLESS_STATUS_REQUEST_MESSAGE, hostSessionId },
-      frontendOrigin,
-    );
+    requestStatus();
   };
 
   const activate = async (params: Record<string, string>) => {
@@ -370,7 +377,19 @@ export function createHeadlessPreviewHost(
       return;
     }
 
-    if (hostSessionId === null || event.data.hostSessionId !== hostSessionId) {
+    if (hostSessionId === null) {
+      return;
+    }
+    if (event.data.hostSessionId !== hostSessionId) {
+      // A framework data refresh can replace the app-side session machine
+      // without replacing the iframe document. The new machine does not know
+      // this document's ID yet, so repeat the origin-checked handshake.
+      if (
+        event.data.type === HEADLESS_STATUS_MESSAGE &&
+        event.data.hostSessionId === undefined
+      ) {
+        requestStatus();
+      }
       return;
     }
 

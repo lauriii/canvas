@@ -538,6 +538,65 @@ describe('createHeadlessPreviewHost', () => {
     expect(events).not.toHaveBeenCalled();
   });
 
+  it('repeats the handshake when the app session machine is recreated', async () => {
+    const iframe = document.createElement('iframe');
+    document.body.append(iframe);
+    const events = vi.fn();
+    const host = createHeadlessPreviewHost({
+      iframe,
+      frontendOrigin: FRONTEND_ORIGIN,
+      draftUrl: 'https://app.example/api/draft',
+      fetchAssertion: vi.fn().mockResolvedValue('signed assertion'),
+      onEvent: events,
+    });
+    const { hostSessionId, postMessage } = await establishActiveSession(
+      iframe,
+      host,
+    );
+    postMessage.mockClear();
+
+    // A framework data refresh can recreate the app-side machine without
+    // loading a new iframe document. Its first status has no session ID.
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: FRONTEND_ORIGIN,
+        source: iframe.contentWindow,
+        data: {
+          type: HEADLESS_STATUS_MESSAGE,
+          status: 'active',
+          path: '/page/one',
+          tokenExpiresAt: 456,
+        },
+      }),
+    );
+
+    expect(postMessage).toHaveBeenCalledExactlyOnceWith(
+      { type: HEADLESS_STATUS_REQUEST_MESSAGE, hostSessionId },
+      FRONTEND_ORIGIN,
+    );
+
+    events.mockClear();
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: FRONTEND_ORIGIN,
+        source: iframe.contentWindow,
+        data: {
+          type: HEADLESS_STATUS_MESSAGE,
+          status: 'active',
+          path: '/page/one',
+          tokenExpiresAt: 456,
+          hostSessionId,
+        },
+      }),
+    );
+    expect(events).toHaveBeenCalledWith({
+      type: 'active',
+      tokenExpiresAt: 456,
+    });
+
+    host.destroy();
+  });
+
   it('re-sends an unacknowledged refresh after the app reports active', async () => {
     const iframe = document.createElement('iframe');
     document.body.append(iframe);
