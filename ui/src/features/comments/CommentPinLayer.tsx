@@ -21,6 +21,7 @@ import useCommentSurface from '@/features/comments/useCommentSurface';
 import { usePreviewGeometry } from '@/features/layout/preview/PreviewGeometryContext';
 import { selectEditorViewPortScale } from '@/features/ui/uiSlice';
 import { useGetCommentsQuery } from '@/services/comments';
+import { hasPermission } from '@/utils/permissions';
 
 import type { CommentDraft } from '@/features/comments/CommentDraftComposer';
 
@@ -64,6 +65,10 @@ export const findComponentAtPoint = (
 /**
  * Renders one clickable pin per component-anchored comment thread.
  *
+ * Pins are drawn for as long as the surface is open, whether or not the panel
+ * is: seeing that something has been commented on is the whole point of a pin,
+ * and it cannot do that job from behind a closed panel.
+ *
  * Surface-level threads (`componentUuid === null`) and threads anchored to a
  * component that is not currently measured have no position on the canvas, so
  * they get no pin. They remain listed in the comments panel, which is the
@@ -79,6 +84,10 @@ const CommentPinLayer = () => {
   const filter = useAppSelector(selectCommentFilter);
   const { surfaceType, surfaceId, hasSurface } = useCommentSurface();
   const [draft, setDraft] = useState<CommentDraft | null>(null);
+  // Pins used to be reachable only through the panel, which the permission
+  // already gated. Drawn unconditionally they need their own check, or a user
+  // without it would fetch comments and be refused.
+  const canViewComments = hasPermission('viewComments');
 
   // In comment mode the layer swallows canvas clicks and turns the one the
   // user makes into an anchor, instead of letting it select a component.
@@ -112,21 +121,30 @@ const CommentPinLayer = () => {
     dispatch(setCommentsPanelOpen(true));
   }, [dispatch]);
 
-  // Pins are only relevant while the user is looking at comments, so the query
-  // is skipped otherwise. The arguments match the ones the comments panel uses
-  // so both share a single cache entry.
-  const isRelevant = commentModeActive || panelOpen;
+  // Pins are drawn whenever the surface is open, not only while the panel is,
+  // because the pin is how a page says it has been commented on at all. That
+  // is the job Figma and Notion give it, and with pins hidden nothing on the
+  // canvas distinguished a page carrying a conversation from one that is not.
+  //
+  // The filter only follows the panel while the panel is on screen. With it
+  // closed there is no visible control explaining why resolved pins would be
+  // showing, so the canvas falls back to the open threads.
+  const effectiveFilter = panelOpen ? filter : 'open';
   // @todo Poll adaptively (faster while the panel is open, slower otherwise) instead of relying on tag invalidation alone, reusing the intervals in ui/src/features/notifications/constants.ts.
   const { data } = useGetCommentsQuery(
-    { surfaceType, surfaceId, includeResolved: filter === 'resolved' },
-    { skip: !hasSurface || !isRelevant },
+    {
+      surfaceType,
+      surfaceId,
+      includeResolved: effectiveFilter === 'resolved',
+    },
+    { skip: !hasSurface || !canViewComments },
   );
 
-  if (!isRelevant || !data) {
+  if (!canViewComments || !data) {
     return null;
   }
 
-  const threads = filterThreads(data.threads, filter);
+  const threads = filterThreads(data.threads, effectiveFilter);
 
   return (
     <div

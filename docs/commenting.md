@@ -185,8 +185,14 @@ Resolved threads are excluded from the listing by default. Most threads end up
 resolved, so this is the single largest saving on a busy surface. They are
 therefore absent from the canvas too while the sidebar's "Open" filter is
 active; switching to "Resolved" fetches them and draws their pins in a
-distinct resolved style. Whether a resolved thread should draw a pin at all is
-an open question in the `canvas-commenting` OpenSpec change.
+distinct resolved style.
+
+Pins themselves are drawn for as long as the surface is open in the editor,
+whether or not the sidebar is. Seeing that something has been commented on is
+the entire job of a pin, and it cannot do that from behind a closed panel. The
+sidebar's filter only steers the canvas while the sidebar is on screen: with it
+closed there is no visible control to explain why resolved pins would be
+showing, so the canvas falls back to the open threads.
 
 Semantically invalid input returns 422, never 500. Schemas for every path
 live in `openapi.yml`, and Canvas validates every request and response on a
