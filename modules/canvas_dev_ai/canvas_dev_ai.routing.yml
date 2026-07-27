@@ -1,0 +1,6 @@
+canvas_dev_ai.builder:
+  path: '/admin/api/canvas/ai-dev'
+  defaults:
+    _controller: '\Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::render'
+  requirements:
+    _permission: 'use Drupal Canvas AI'

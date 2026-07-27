@@ -1,0 +1,8 @@
+name: Drupal Canvas Dev AI
+type: module
+description: 'Enables the experimental Canvas AI client-side orchestration loop - feature flag until the revamped Canvas AI is fully stable. Replaces the AI chat backend and UI while installed. Do not enable on production sites.'
+package: Drupal Canvas
+core_version_requirement: ^11.3
+dependencies:
+  - canvas:canvas
+  - canvas:canvas_ai
