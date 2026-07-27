@@ -439,4 +439,39 @@ describe('CommentsPanel', () => {
     // The raw token is never shown.
     expect(screen.queryByText(/user:3/)).not.toBeInTheDocument();
   });
+  it('opens the mention list upwards only when there is no room below', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    await screen.findByTestId('canvas-comment-thread');
+
+    const composer = screen.getByTestId('canvas-comment-composer');
+    const atViewportY = (bottom: number) =>
+      vi.spyOn(composer, 'getBoundingClientRect').mockReturnValue({
+        top: bottom - 40,
+        bottom,
+        left: 0,
+        right: 0,
+        width: 0,
+        height: 40,
+        x: 0,
+        y: bottom - 40,
+        toJSON: () => ({}),
+      } as DOMRect);
+
+    // Room below: the list hangs down, which is where the eye expects it.
+    atViewportY(100);
+    await user.type(composer, '@');
+    expect(
+      await screen.findByTestId('canvas-comment-composer-mentions'),
+    ).not.toHaveClass(/mentionListAbove/);
+
+    // Near the bottom of the window the list would be cut off by the panel's
+    // scroll container, so it flips above the field instead.
+    await user.clear(composer);
+    atViewportY(window.innerHeight - 20);
+    await user.type(composer, '@');
+    expect(
+      await screen.findByTestId('canvas-comment-composer-mentions'),
+    ).toHaveClass(/mentionListAbove/);
+  });
 });

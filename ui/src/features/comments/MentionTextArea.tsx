@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import clsx from 'clsx';
 import { Text, TextArea } from '@radix-ui/themes';
 
 import {
@@ -12,6 +13,9 @@ import type React from 'react';
 import type { CommentAuthor } from '@/services/comments';
 
 import styles from './CommentsPanel.module.css';
+
+/** Keep in step with `.mentionList`'s `max-height`. */
+const MENTION_LIST_MAX_HEIGHT = 192;
 
 interface MentionTextAreaProps {
   value: string;
@@ -49,6 +53,7 @@ const MentionTextArea = ({
     caret: number;
   } | null>(null);
   const [highlighted, setHighlighted] = useState(0);
+  const [dropUp, setDropUp] = useState(false);
 
   // The surface is part of the request because eligibility is per surface: a
   // user who cannot view this page must not be offered on it.
@@ -64,6 +69,11 @@ const MentionTextArea = ({
     const found = getMentionQuery(element.value, caret);
     setMention(found === null ? null : { ...found, caret });
     setHighlighted(0);
+    // Replying to a thread near the bottom of the panel leaves no room under
+    // the field, and the list would be cut off by the scroll container it sits
+    // in, so it opens upwards instead.
+    const { bottom } = element.getBoundingClientRect();
+    setDropUp(window.innerHeight - bottom < MENTION_LIST_MAX_HEIGHT);
   };
 
   const pick = (user: CommentAuthor) => {
@@ -141,7 +151,9 @@ const MentionTextArea = ({
       />
       {mention !== null && users.length > 0 && (
         <ul
-          className={styles.mentionList}
+          className={clsx(styles.mentionList, {
+            [styles.mentionListAbove]: dropUp,
+          })}
           data-testid={`${testId}-mentions`}
           role="listbox"
           aria-label="People you can mention"

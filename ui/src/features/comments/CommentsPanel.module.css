@@ -93,6 +93,11 @@
   box-shadow: var(--shadow-4);
 }
 
+.mentionListAbove {
+  top: auto;
+  bottom: 100%;
+}
+
 .mentionOption {
   display: block;
   width: 100%;
