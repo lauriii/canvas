@@ -2,8 +2,10 @@ import { Box } from '@radix-ui/themes';
 
 import { useAppSelector } from '@/app/hooks';
 import { selectAiPanelOpen } from '@/features/ui/primaryPanelSlice';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import AiWizard from './AiWizard';
+import AiWizardDev from './AiWizardDev';
 
 import styles from './AiPanel.module.css';
 
@@ -18,7 +20,8 @@ const AiPanel: React.FC<AiPanelProps> = () => {
       data-testid="canvas-ai-panel"
     >
       <div data-open={isOpen} className={styles.aiPanelContent}>
-        {isOpen && <AiWizard />}
+        {isOpen &&
+          (getCanvasSettings()?.aiDevMode ? <AiWizardDev /> : <AiWizard />)}
       </div>
     </Box>
   );
