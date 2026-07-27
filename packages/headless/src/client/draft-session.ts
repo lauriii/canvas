@@ -205,13 +205,25 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
     });
   };
 
+  const expireIfDue = () => {
+    if (
+      expired ||
+      tokenExpiresAt === null ||
+      Date.now() < tokenExpiresAt - EXPIRY_SLACK_MS
+    ) {
+      return false;
+    }
+    expired = true;
+    emit({ type: 'expired' });
+    reportStatus();
+    return true;
+  };
+
   // Flip to expired on the clock, in sync with the server's slack.
   if (tokenExpiresAt !== null && !expired) {
     schedule(
       () => {
-        expired = true;
-        emit({ type: 'expired' });
-        reportStatus();
+        expireIfDue();
       },
       tokenExpiresAt - EXPIRY_SLACK_MS - Date.now(),
     );
@@ -223,6 +235,12 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
     const margin = Math.min(RENEW_MARGIN_MS, remaining / 2);
     schedule(() => {
       if (expired || renewState !== 'idle') {
+        return;
+      }
+      // Background tabs may delay both timers until after expiry. The renewal
+      // timer was scheduled first, so reconcile against the wall clock before
+      // it can start a stale renewal and race the recovery lane.
+      if (expireIfDue()) {
         return;
       }
       renewState = 'requested';
