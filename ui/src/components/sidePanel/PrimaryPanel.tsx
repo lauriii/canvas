@@ -21,6 +21,7 @@ import { getCanvasSettings } from '@/utils/drupal-globals';
 import { hasPermission } from '@/utils/permissions';
 
 import AiWizard from '../aiExtension/AiWizard';
+import AiWizardDev from '../aiExtension/AiWizardDev';
 
 import styles from '@/components/sidePanel/PrimaryPanel.module.css';
 
@@ -114,7 +115,11 @@ export const PrimaryPanel = () => {
                 )}
                 {activePanel === 'aiWizard' && (
                   <ErrorBoundary>
-                    <AiWizard />
+                    {getCanvasSettings()?.aiDevMode ? (
+                      <AiWizardDev />
+                    ) : (
+                      <AiWizard />
+                    )}
                   </ErrorBoundary>
                 )}
                 {activePanel === 'templates' &&

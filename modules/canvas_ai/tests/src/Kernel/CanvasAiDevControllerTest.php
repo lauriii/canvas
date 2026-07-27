@@ -1,0 +1,120 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\canvas_ai\Kernel;
+
+use Drupal\canvas_ai\CanvasAiPermissions;
+use Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder;
+use Drupal\Core\Asset\AttachedAssets;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Session\SessionConfigurationInterface;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+
+/**
+ * Tests the canvas_dev_ai mock AI controller and its drupalSettings flag.
+ *
+ * @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3591777
+ */
+#[Group('canvas_ai')]
+#[CoversClass(CanvasDevAiBuilder::class)]
+final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
+
+  use RequestTrait;
+  use UserCreationTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = [
+    'canvas_ai',
+    'ai',
+    'ai_agents',
+  ];
+
+  /**
+   * Tests that the `aiDevMode` flag follows the module install state.
+   */
+  public function testAiDevModeFlagFollowsInstallState(): void {
+    $this->installSchema('user', ['users_data']);
+    $this->assertArrayNotHasKey('aiDevMode', $this->alterJsSettings()['canvas']);
+
+    $this->container->get('module_installer')->install(['canvas_dev_ai']);
+    $this->refreshContainer();
+    $this->assertTrue($this->alterJsSettings()['canvas']['aiDevMode']);
+
+    $this->container->get('module_installer')->uninstall(['canvas_dev_ai']);
+    $this->refreshContainer();
+    $this->assertArrayNotHasKey('aiDevMode', $this->alterJsSettings()['canvas']);
+  }
+
+  /**
+   * Tests that the controller returns the mocked response.
+   */
+  public function testControllerReturnsMockedResponse(): void {
+    $this->container->get('module_installer')->install(['canvas_dev_ai']);
+    $this->refreshContainer();
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
+    $this->setUpCurrentUser(permissions: [CanvasAiPermissions::USE_CANVAS_AI]);
+
+    $request = Request::create('/admin/api/canvas/ai-dev', 'POST');
+    $session_configuration = $this->container->get(SessionConfigurationInterface::class)->getOptions($request);
+    $request->cookies->set($session_configuration['name'], 'ABCD');
+    $this->container->get('session')->start();
+    $request->headers->set('X-CSRF-Token', $this->container->get('csrf_token')->get('canvas_ai.canvas_builder'));
+    $response = $this->request($request);
+
+    $this->assertSame(200, $response->getStatusCode());
+    $this->assertSame([
+      'status' => TRUE,
+      'should_continue' => FALSE,
+      'message' => 'This is a mocked response from the Canvas Dev AI controller.',
+      'progress' => '',
+    ], static::decodeResponse($response));
+  }
+
+  /**
+   * Tests that the controller rejects a request with an invalid CSRF token.
+   */
+  public function testControllerRejectsInvalidCsrfToken(): void {
+    $this->container->get('module_installer')->install(['canvas_dev_ai']);
+    $this->refreshContainer();
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
+    $this->setUpCurrentUser(permissions: [CanvasAiPermissions::USE_CANVAS_AI]);
+
+    $request = Request::create('/admin/api/canvas/ai-dev', 'POST');
+    $request->headers->set('X-CSRF-Token', 'invalid-token');
+
+    $this->expectException(AccessDeniedHttpException::class);
+    $this->expectExceptionMessage('Invalid CSRF token');
+    $this->request($request);
+  }
+
+  /**
+   * Re-fetches the container after a module install or uninstall rebuild.
+   */
+  private function refreshContainer(): void {
+    $container = \Drupal::getContainer();
+    \assert($container instanceof ContainerBuilder);
+    $this->container = $container;
+  }
+
+  /**
+   * Runs the js_settings alter hooks on a minimal Canvas settings array.
+   */
+  private function alterJsSettings(): array {
+    $settings = ['canvas' => ['aiExtensionAvailable' => TRUE]];
+    $assets = new AttachedAssets();
+    $this->container->get('module_handler')->alter('js_settings', $settings, $assets);
+    return $settings;
+  }
+
+}

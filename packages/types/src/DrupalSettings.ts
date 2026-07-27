@@ -72,6 +72,8 @@ export interface DrupalSettings {
     pageExtensions: PageExtension[];
     // ⚠️ This is highly experimental and *will* be refactored.
     aiExtensionAvailable: boolean;
+    // Set by the canvas_dev_ai module's hook_js_settings_alter() to route the AI chat to the mock dev endpoint; absent otherwise.
+    aiDevMode?: boolean;
     loginUrl: string;
     // ⚠️ This is highly experimental and *will* be refactored.
     personalizationExtensionAvailable: boolean;
