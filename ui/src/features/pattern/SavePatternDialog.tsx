@@ -155,6 +155,7 @@ const SavePatternDialog: React.FC = () => {
             id="patternName"
             name="patternName"
             size="1"
+            data-canvas-element="pattern-save-name"
           />
         </label>
       </Flex>

@@ -17,7 +17,11 @@ const ConflictBanner = ({
   if (conflictCount === 0) return null;
 
   return (
-    <Box className={styles.conflictBanner} data-testid="conflict-banner">
+    <Box
+      className={styles.conflictBanner}
+      data-testid="conflict-banner"
+      data-canvas-element="publish-conflict-banner"
+    >
       <Flex direction="column" gap="2">
         <Flex align="center" gap="2">
           <ExclamationTriangleIcon className={styles.warningIcon} />
@@ -34,6 +38,7 @@ const ConflictBanner = ({
           onClick={onResolveClick}
           disabled={disabled}
           data-testid="resolve-conflicts-button"
+          data-canvas-element="publish-conflict-resolve"
         >
           Resolve {conflictCount} conflict{conflictCount !== 1 ? 's' : ''}
         </Button>

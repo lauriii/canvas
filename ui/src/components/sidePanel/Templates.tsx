@@ -66,6 +66,7 @@ const AddTemplateButton = () => {
     <>
       <Button
         data-testid="big-add-template-button"
+        data-canvas-element="template-new"
         variant="soft"
         size="1"
         onClick={() => setIsOpen(true)}

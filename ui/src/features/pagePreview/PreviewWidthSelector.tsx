@@ -50,6 +50,7 @@ const PreviewWidthSelector: React.FC<PreviewWidthSelectorProps> = (props) => {
           variant="surface"
           color="gray"
           aria-label="Select preview width"
+          data-canvas-element="preview-width"
         >
           {currentViewport ? (
             <BreakpointIcon width={currentViewport.width} />
@@ -68,6 +69,8 @@ const PreviewWidthSelector: React.FC<PreviewWidthSelectorProps> = (props) => {
           <DropdownMenu.RadioItem
             value="full"
             color={currentWidth === 'full' ? 'blue' : undefined}
+            data-canvas-element="preview-width-option"
+            data-canvas-element-key="full"
           >
             <WidthIcon />
             Full Width
@@ -77,6 +80,8 @@ const PreviewWidthSelector: React.FC<PreviewWidthSelectorProps> = (props) => {
               key={vs.id}
               value={vs.id}
               color={currentWidth === vs.id ? 'blue' : undefined}
+              data-canvas-element="preview-width-option"
+              data-canvas-element-key={vs.id}
             >
               <BreakpointIcon width={vs.width} />
               {vs.name} ({vs.width}px)

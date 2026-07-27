@@ -70,6 +70,32 @@ describe('PrimaryPanel', () => {
     expect(screen.getByText('Brand kit panel content')).toBeInTheDocument();
   });
 
+  // @see docs/ui-element-ids.md
+  it('identifies the open panel by its id, and its close button', () => {
+    hasPermissionMock.mockReturnValue(true);
+    const store = makeStore({
+      primaryPanel: {
+        activePanel: 'library',
+        isHidden: false,
+        aiPanelOpen: false,
+        manageLibraryTab: null,
+      },
+    });
+
+    const { container } = render(
+      <AppWrapper store={store} location="/" path="/">
+        <PrimaryPanel />
+      </AppWrapper>,
+    );
+
+    expect(
+      container.querySelector('[data-canvas-element="primary-panel"]'),
+    ).toHaveAttribute('data-canvas-element-key', 'library');
+    expect(
+      container.querySelector('[data-canvas-element="primary-panel-close"]'),
+    ).not.toBeNull();
+  });
+
   it('does not render the Brand kit panel without permission', () => {
     hasPermissionMock.mockImplementation((permission: string) => {
       return permission !== 'brandKit';

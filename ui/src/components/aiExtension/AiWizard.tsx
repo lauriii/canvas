@@ -1176,6 +1176,7 @@ const AiWizard = () => {
         align="stretch"
         gap="4"
         className={styles.aiWizard}
+        data-canvas-element="ai-panel"
         onKeyDown={(e) => {
           e.stopPropagation();
         }}

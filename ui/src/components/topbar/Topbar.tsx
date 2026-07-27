@@ -100,6 +100,7 @@ const Topbar = () => {
                 href={backHref}
                 aria-labelledby="back-to-previous-label"
                 className={clsx(styles.topBarButton, styles.exitButton)}
+                data-canvas-element="editor-exit"
               >
                 <span className="visually-hidden" id="back-to-previous-label">
                   Exit Drupal Canvas

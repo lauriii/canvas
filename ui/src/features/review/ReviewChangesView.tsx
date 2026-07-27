@@ -58,7 +58,11 @@ export const ReviewChangesView = ({
   onNext,
   onApplyVersionSelection,
 }: ReviewChangesViewProps) => (
-  <div className={styles.page} data-testid="review-changes-page">
+  <div
+    className={styles.page}
+    data-testid="review-changes-page"
+    data-canvas-element="review-changes-page"
+  >
     <ReviewHeader
       label={label}
       onClose={onClose}
@@ -91,7 +95,11 @@ export const ReviewLoadingState = ({
   onNavigateToCanvas?: () => void;
   onNavigateToReview?: () => void;
 }) => (
-  <div className={styles.page} data-testid="review-changes-page">
+  <div
+    className={styles.page}
+    data-testid="review-changes-page"
+    data-canvas-element="review-changes-page"
+  >
     <ReviewHeader
       label="Loading"
       onClose={onClose}
@@ -152,6 +160,7 @@ const ReviewHeader = ({
       highContrast
       aria-label="Close"
       onClick={onClose}
+      data-canvas-element="review-changes-close"
     >
       <Cross2Icon />
     </IconButton>
@@ -204,6 +213,7 @@ const ReviewFooter = ({
               size="1"
               checked={isSelectedForPublishing}
               onCheckedChange={onSelectedForPublishingChange}
+              data-canvas-element="review-changes-select-for-publishing"
             />
             Selected for publishing
           </Flex>
@@ -215,6 +225,7 @@ const ReviewFooter = ({
           color="gray"
           disabled={!canPrevious || isApplyingSelection}
           onClick={onPrevious}
+          data-canvas-element="review-changes-previous"
         >
           <ArrowLeftIcon />
           Previous
@@ -224,6 +235,7 @@ const ReviewFooter = ({
           color="blue"
           disabled={isApplyingSelection}
           onClick={onNext}
+          data-canvas-element="review-changes-next"
         >
           Next
           <ArrowRightIcon />
@@ -232,6 +244,7 @@ const ReviewFooter = ({
           onClick={onApplyVersionSelection}
           disabled={isActionDisabled}
           color={selectedVersion === 'published' ? 'red' : undefined}
+          data-canvas-element="review-changes-apply-version"
         >
           {selectedVersion ? actionText : 'Action'}
           <Spinner loading={isApplyingSelection} />

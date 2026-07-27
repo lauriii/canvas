@@ -60,12 +60,18 @@ const PreviewControls = ({ isPreview }: PreviewControlsProps) => {
             variant="outline"
             color="blue"
             onClick={handleChangeModeClick}
+            data-canvas-element="preview-exit"
           >
             <EyeNoneIcon /> Exit Preview
           </Button>
         </>
       ) : (
-        <Button variant="outline" color="blue" onClick={handleChangeModeClick}>
+        <Button
+          variant="outline"
+          color="blue"
+          onClick={handleChangeModeClick}
+          data-canvas-element="preview-enter"
+        >
           <EyeOpenIcon /> Preview
         </Button>
       )}

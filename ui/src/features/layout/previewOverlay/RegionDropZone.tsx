@@ -63,6 +63,7 @@ const RegionDropZone: React.FC<RegionDropZoneProps> = (props) => {
       })}
       ref={setDropRef}
       data-testid={`canvas-region-drop-zone-${positionLabel}-${kebabCase(region.name)}`}
+      data-canvas-element="canvas-drop-zone-region"
     ></div>
   );
 };

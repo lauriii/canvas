@@ -180,6 +180,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           data-canvas-uuid={component.uuid}
           data-canvas-type={component.nodeType}
           data-canvas-overlay="true"
+          data-canvas-element="canvas-component"
         />
       </ComponentContextMenu>
       {(isHovered || isSelected) && (

@@ -66,7 +66,11 @@ const SiblingSlotsSubMenu: React.FC<{
           <UnifiedMenu.Item disabled>No sibling slots</UnifiedMenu.Item>
         )}
         {siblingSlots.map(({ slot, parentComponentName, slotDisplayName }) => (
-          <UnifiedMenu.Item key={slot.id} onClick={handleMoveIntoSlot(slot.id)}>
+          <UnifiedMenu.Item
+            key={slot.id}
+            onClick={handleMoveIntoSlot(slot.id)}
+            data-canvas-element="component-menu-move-into"
+          >
             {slotDisplayName} ({parentComponentName})
           </UnifiedMenu.Item>
         ))}

@@ -459,6 +459,7 @@ const EditorFrame: React.FC = () => {
         onMouseDown={handleMouseDown}
         onScroll={handlePaneScroll}
         ref={editorPaneRef}
+        data-canvas-element="editor-pane"
       >
         <div
           className={clsx(styles.editorFrame, {

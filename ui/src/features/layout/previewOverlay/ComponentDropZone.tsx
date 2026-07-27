@@ -85,6 +85,7 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
       })}
       ref={setDropRef}
       data-testid={`canvas-component-drop-zone-${getPositionRelation(position)}-${kebabCase(componentName)}`}
+      data-canvas-element="canvas-drop-zone-component"
       // aria-label={`Drop items ${getPositionRelation(position)} ${componentName}`}
     ></div>
   );

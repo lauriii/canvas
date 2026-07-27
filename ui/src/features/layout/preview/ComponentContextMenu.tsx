@@ -181,29 +181,48 @@ export const ComponentContextMenuContent: React.FC<
       menuType={menuType}
       align="start"
       side="right"
+      data-canvas-element="component-menu"
     >
       <UnifiedMenu.Label>{componentName}</UnifiedMenu.Label>
       {isCodeComponent && !isExternal && (
         <PermissionCheck hasPermission="codeComponents">
-          <UnifiedMenu.Item onClick={handleEditCodeClick}>
+          <UnifiedMenu.Item
+            onClick={handleEditCodeClick}
+            data-canvas-element="component-menu-edit-code"
+          >
             Edit code
           </UnifiedMenu.Item>
         </PermissionCheck>
       )}
       <UnifiedMenu.Separator />
 
-      <UnifiedMenu.Item onClick={handleDuplicateClick} shortcut="⌘ D">
+      <UnifiedMenu.Item
+        onClick={handleDuplicateClick}
+        shortcut="⌘ D"
+        data-canvas-element="component-menu-duplicate"
+      >
         Duplicate
       </UnifiedMenu.Item>
-      <UnifiedMenu.Item onClick={handleCopyClick} shortcut="⌘ C">
+      <UnifiedMenu.Item
+        onClick={handleCopyClick}
+        shortcut="⌘ C"
+        data-canvas-element="component-menu-copy"
+      >
         Copy
       </UnifiedMenu.Item>
-      <UnifiedMenu.Item onClick={handlePasteClick} shortcut="⌘ V">
+      <UnifiedMenu.Item
+        onClick={handlePasteClick}
+        shortcut="⌘ V"
+        data-canvas-element="component-menu-paste"
+      >
         Paste
       </UnifiedMenu.Item>
       <PermissionCheck hasPermission="patterns">
         <UnifiedMenu.Separator />
-        <UnifiedMenu.Item onClick={handleCreatePatternClick}>
+        <UnifiedMenu.Item
+          onClick={handleCreatePatternClick}
+          data-canvas-element="component-menu-create-pattern"
+        >
           Create pattern
         </UnifiedMenu.Item>
       </PermissionCheck>
@@ -212,10 +231,16 @@ export const ComponentContextMenuContent: React.FC<
       <UnifiedMenu.Sub>
         <UnifiedMenu.SubTrigger>Move</UnifiedMenu.SubTrigger>
         <UnifiedMenu.SubContent>
-          <UnifiedMenu.Item onClick={handleMoveUpClick}>
+          <UnifiedMenu.Item
+            onClick={handleMoveUpClick}
+            data-canvas-element="component-menu-move-up"
+          >
             Move up
           </UnifiedMenu.Item>
-          <UnifiedMenu.Item onClick={handleMoveDownClick}>
+          <UnifiedMenu.Item
+            onClick={handleMoveDownClick}
+            data-canvas-element="component-menu-move-down"
+          >
             Move down
           </UnifiedMenu.Item>
 
@@ -234,7 +259,12 @@ export const ComponentContextMenuContent: React.FC<
         </PermissionCheck>
       )}
       <UnifiedMenu.Separator />
-      <UnifiedMenu.Item shortcut="⌫" color="red" onClick={handleDeleteClick}>
+      <UnifiedMenu.Item
+        shortcut="⌫"
+        color="red"
+        onClick={handleDeleteClick}
+        data-canvas-element="component-menu-delete"
+      >
         Delete
       </UnifiedMenu.Item>
     </UnifiedMenu.Content>

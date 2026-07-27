@@ -277,6 +277,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
           variant="solid"
           disabled={!changes?.length || isBusy}
           data-testid="canvas-publish-review"
+          data-canvas-element="publish-review-open"
           className={clsx(styles.triggerButton, {
             [styles.disableClick]: isBusy,
             [styles.noChanges]: !changes?.length,
@@ -288,6 +289,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
       <Popover.Content
         asChild
         data-testid="canvas-publish-reviews-content"
+        data-canvas-element="publish-review-panel"
         width="100vw"
         maxWidth="360px"
       >
@@ -319,6 +321,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                   size="1"
                   aria-label="Select all changes"
                   data-testid="canvas-publish-review-select-all"
+                  data-canvas-element="publish-review-select-all"
                 />
                 Select All
               </Flex>
@@ -379,6 +382,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                 size="1"
                 variant="solid"
                 onClick={handlePublishClick}
+                data-canvas-element="publish-confirm"
               >
                 {buttonText}
                 <Spinner loading={isPublishing}>
@@ -392,6 +396,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                   disabled={isBusy || !selectedReviewableChanges.length}
                   onClick={handleReviewSelectedChanges}
                   className={styles.reviewSelectedButton}
+                  data-canvas-element="publish-review-selected"
                 >
                   Review selected changes
                 </Button>

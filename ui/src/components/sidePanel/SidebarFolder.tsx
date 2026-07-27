@@ -131,6 +131,7 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
       {...attributes}
       role={undefined}
       data-canvas-folder-name={name}
+      data-canvas-element="library-folder"
       className={clsx(listStyles.folderTrigger, {
         [nodeStyles.contextualAccordionVariant]: menuItems,
       })}

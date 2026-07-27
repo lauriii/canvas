@@ -76,6 +76,7 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
           [styles.isOver]: isOver,
         })}
         data-testid={`canvas-empty-slot-drop-zone-${kebabCase(parentComponentName)}:${kebabCase(slotName)}`}
+        data-canvas-element="canvas-drop-zone-empty-slot"
         ref={setDropRef}
       >
         {activeName ? (

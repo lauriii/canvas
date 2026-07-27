@@ -64,6 +64,7 @@ const UndoRedo = () => {
         onClick={() => dispatchUndo()}
         disabled={!isUndoable}
         aria-label="Undo"
+        data-canvas-element="undo"
       >
         <ResetIcon height="16" width="auto" />
       </Button>
@@ -75,6 +76,7 @@ const UndoRedo = () => {
         onClick={() => dispatchRedo()}
         disabled={!isRedoable}
         aria-label="Redo"
+        data-canvas-element="redo"
       >
         <ResetIcon
           height="16"

@@ -226,6 +226,8 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
                   className={clsx(styles.menuItem, isActive && styles.active)}
                   aria-label={item.label}
                   aria-current={isActive ? 'page' : undefined}
+                  data-canvas-element="side-menu-item"
+                  data-canvas-element-key={item.id}
                 >
                   <Link to={item.href} onClick={handlePageExtensionClick}>
                     {item.icon}
@@ -250,6 +252,8 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
                   item.enabled ? () => handleMenuClick(item.id) : undefined
                 }
                 aria-label={item.label}
+                data-canvas-element="side-menu-item"
+                data-canvas-element-key={item.id}
               >
                 {item.icon}
               </Button>

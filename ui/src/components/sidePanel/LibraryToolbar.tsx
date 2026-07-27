@@ -177,6 +177,8 @@ const LibraryToolbar = ({
             size="1"
             value={searchTerm}
             onChange={(e) => onSearch(e.target.value)}
+            data-canvas-element="library-search"
+            data-canvas-element-key={type}
           >
             <TextField.Slot>
               <MagnifyingGlassIcon height="16" width="16" />
@@ -191,6 +193,8 @@ const LibraryToolbar = ({
                   variant="soft"
                   data-testid="canvas-page-list-new-button"
                   size="1"
+                  data-canvas-element="library-new-menu"
+                  data-canvas-element-key={type}
                 >
                   <PlusIcon />
                   New
@@ -214,6 +218,7 @@ const LibraryToolbar = ({
                   <DropdownMenu.Item
                     onClick={handleAddFolderClick}
                     data-testid="canvas-library-new-folder-button"
+                    data-canvas-element="library-new-folder"
                   >
                     <FolderIcon />
                     Folder
@@ -250,6 +255,7 @@ const LibraryToolbar = ({
                   value={folderName}
                   size="1"
                   disabled={isLoading}
+                  data-canvas-element="library-folder-name"
                   style={{
                     color: 'var(--accent-9)',
                     border: 'none',
@@ -266,12 +272,22 @@ const LibraryToolbar = ({
               </Flex>
             </Flex>
             {validationError && (
-              <Text size="1" color="red" weight="medium">
+              <Text
+                size="1"
+                color="red"
+                weight="medium"
+                data-canvas-element="library-folder-error"
+              >
                 {validationError}
               </Text>
             )}
             {isError && (
-              <Text size="1" color="red" weight="medium">
+              <Text
+                size="1"
+                color="red"
+                weight="medium"
+                data-canvas-element="library-folder-error"
+              >
                 {parse(extractErrorMessageFromApiResponse(error))}
               </Text>
             )}

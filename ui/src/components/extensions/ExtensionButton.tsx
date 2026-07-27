@@ -32,7 +32,12 @@ const ExtensionButton = ({ extension }: { extension: Extension }) => {
   return (
     <Tooltip content={trimmedDescription}>
       <Flex justify="start" align="center" direction="column" asChild>
-        <button className={clsx(styles.extensionIcon)} onClick={handleClick}>
+        <button
+          className={clsx(styles.extensionIcon)}
+          onClick={handleClick}
+          data-canvas-element="extension-open"
+          data-canvas-element-key={extension.id}
+        >
           <img alt={name} src={icon} height="42" width="42" />
           <Text align="center" size="1">
             {name}

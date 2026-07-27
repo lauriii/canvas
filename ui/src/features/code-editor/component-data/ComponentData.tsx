@@ -66,9 +66,27 @@ export default function ComponentData({
         <Flex height="calc(100% - 34px)" direction="column" pt="4">
           <Box>
             <Tabs.List size="1">
-              <Tabs.Trigger value="props">Props</Tabs.Trigger>
-              <Tabs.Trigger value="slots">Slots</Tabs.Trigger>
-              <Tabs.Trigger value="data-fetch">Data Fetch</Tabs.Trigger>
+              <Tabs.Trigger
+                value="props"
+                data-canvas-element="code-editor-data-tab"
+                data-canvas-element-key="props"
+              >
+                Props
+              </Tabs.Trigger>
+              <Tabs.Trigger
+                value="slots"
+                data-canvas-element="code-editor-data-tab"
+                data-canvas-element-key="slots"
+              >
+                Slots
+              </Tabs.Trigger>
+              <Tabs.Trigger
+                value="data-fetch"
+                data-canvas-element="code-editor-data-tab"
+                data-canvas-element-key="data-fetch"
+              >
+                Data Fetch
+              </Tabs.Trigger>
             </Tabs.List>
           </Box>
           <Flex direction="column" flexGrow="1" height="calc(100% - 32px)">

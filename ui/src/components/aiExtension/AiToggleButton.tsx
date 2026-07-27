@@ -27,6 +27,7 @@ const AiToggleButton = () => {
         size="1"
         onClick={handleToggle}
         aria-label={isAiPanelOpen ? 'Close AI Panel' : 'Open AI Panel'}
+        data-canvas-element="ai-panel-toggle"
       >
         <svg
           width="25"

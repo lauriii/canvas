@@ -73,6 +73,7 @@ export const PrimaryPanel = () => {
                 size="1"
                 highContrast
                 onClick={() => dispatch(unsetActivePanel())}
+                data-canvas-element="primary-panel-close"
               >
                 <Cross2Icon />
               </Button>
@@ -80,7 +81,12 @@ export const PrimaryPanel = () => {
           </Flex>
           <Box flexGrow="1" className={styles.scrollArea}>
             <ScrollArea scrollbars="vertical">
-              <Box p="4" className="primaryPanelContent">
+              <Box
+                p="4"
+                className="primaryPanelContent"
+                data-canvas-element="primary-panel"
+                data-canvas-element-key={activePanel}
+              >
                 {activePanel === 'library' && (
                   <ErrorBoundary>
                     <Library />

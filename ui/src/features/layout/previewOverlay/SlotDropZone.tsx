@@ -67,6 +67,7 @@ const SlotDropZone: React.FC<SlotDropZoneProps> = (props) => {
         [styles.isOver]: isOver,
       })}
       ref={setDropRef}
+      data-canvas-element="canvas-drop-zone-slot"
     ></div>
   );
 };

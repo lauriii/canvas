@@ -219,6 +219,7 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
             indent={2.5}
             to={urlForTemplateEditor(viewMode)}
             data-testid={`template-list-item-${viewMode.bundle}-${viewMode.viewModeLabel}`}
+            data-canvas-element="template-item"
           />
         </ContextMenu.Trigger>
         <UnifiedMenu.Content menuType="context" align="start" side="right">

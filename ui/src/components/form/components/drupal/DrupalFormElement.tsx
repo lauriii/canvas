@@ -85,7 +85,10 @@ const DrupalFormElement = ({
         )}
         {['after'].includes(labelDisplay) && label}
         {errors && (
-          <div className="form-item--error-message form-item-errors">
+          <div
+            className="form-item--error-message form-item-errors"
+            data-canvas-element="form-field-error"
+          >
             {errors}
           </div>
         )}

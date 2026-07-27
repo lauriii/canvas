@@ -118,13 +118,28 @@ const CodeEditorUi = () => {
         value={activeTab}
       >
         <Tabs.List size="1" className={styles.tabList} ml="2">
-          <Tabs.Trigger value="js" className={styles.tabTrigger}>
+          <Tabs.Trigger
+            value="js"
+            className={styles.tabTrigger}
+            data-canvas-element="code-editor-tab"
+            data-canvas-element-key="js"
+          >
             JavaScript
           </Tabs.Trigger>
-          <Tabs.Trigger value="css" className={styles.tabTrigger}>
+          <Tabs.Trigger
+            value="css"
+            className={styles.tabTrigger}
+            data-canvas-element="code-editor-tab"
+            data-canvas-element-key="css"
+          >
             CSS
           </Tabs.Trigger>
-          <Tabs.Trigger value="global-css" className={styles.tabTrigger}>
+          <Tabs.Trigger
+            value="global-css"
+            className={styles.tabTrigger}
+            data-canvas-element="code-editor-tab"
+            data-canvas-element-key="global-css"
+          >
             Global CSS
           </Tabs.Trigger>
         </Tabs.List>
@@ -175,6 +190,8 @@ const CodeEditorUi = () => {
         width="calc(100% - var(--space-4))"
         height="calc(100% - 52px)"
         style={{ position: 'relative' }}
+        data-canvas-element="code-editor-source"
+        data-canvas-element-key={activeTab}
       >
         {activeTab === 'js' && <JavaScriptEditor isLoading={isLoading} />}
         {activeTab === 'css' && <CssEditor isLoading={isLoading} />}
@@ -190,6 +207,7 @@ const CodeEditorUi = () => {
       flexGrow="1"
       id="canvas-code-editor-container"
       data-testid="canvas-code-editor-container"
+      data-canvas-element="code-editor"
       style={{ overflow: 'hidden' }}
     >
       <Allotment
@@ -218,6 +236,7 @@ const CodeEditorUi = () => {
             <Allotment.Pane minSize={MIN_PANE_SIZE}>
               <Flex
                 data-testid="canvas-code-editor-preview-panel"
+                data-canvas-element="code-editor-preview"
                 px="4"
                 pt="4"
                 pb="4"
@@ -231,6 +250,7 @@ const CodeEditorUi = () => {
                       onClick={() => {
                         dispatch(openAddToComponentsDialog(selectedComponent));
                       }}
+                      data-canvas-element="code-editor-add-to-components"
                     >
                       Add to components
                     </Button>

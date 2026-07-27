@@ -16,6 +16,7 @@ const AddCodeComponentButton = () => {
     <DropdownMenu.Item
       onClick={handleClick}
       data-testid="canvas-library-new-code-component-button"
+      data-canvas-element="library-new-code-component"
     >
       <CodeIcon />
       Code component
