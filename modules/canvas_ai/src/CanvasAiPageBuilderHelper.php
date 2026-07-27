@@ -166,6 +166,36 @@ class CanvasAiPageBuilderHelper {
    *   Structured array with calculated nodePaths for components.
    */
   public function customYamlToArrayMapper(string $yaml_string): array {
+    return $this->computePlacement($yaml_string, FALSE)->operations;
+  }
+
+  /**
+   * Generates the placement data for a component structure request.
+   *
+   * @param string $yaml_string
+   *   The YAML string to convert.
+   *
+   * @return \Drupal\canvas_ai\CanvasAiPlacementResult
+   *   The operations (with assigned UUIDs) for the UI, plus the component
+   *   structure with those UUIDs and the predicted post-placement layout for
+   *   the model to reference in follow-up placements.
+   */
+  public function generateComponentPlacementData(string $yaml_string): CanvasAiPlacementResult {
+    return $this->computePlacement($yaml_string, TRUE);
+  }
+
+  /**
+   * Computes the operations, assigned UUIDs, and predicted layout for a request.
+   *
+   * @param string $yaml_string
+   *   The YAML string to convert.
+   * @param bool $include_uuid
+   *   Whether to include each component's assigned UUID in the operations.
+   *
+   * @return \Drupal\canvas_ai\CanvasAiPlacementResult
+   *   The mapped placement result.
+   */
+  private function computePlacement(string $yaml_string, bool $include_uuid): CanvasAiPlacementResult {
     $result = [
       'operations' => [
         [
@@ -192,10 +222,10 @@ class CanvasAiPageBuilderHelper {
     // Then append them to the result.
     foreach ($data_to_process['operations'] as $operation) {
       $target = strpos($operation['target'], '/') === FALSE ? $operation['target'] : NULL;
-      $this->appendComponentsRecursive($operation['components'], $predicted_layout, $target, $result['operations'][0]['components']);
+      $this->appendComponentsRecursive($operation['components'], $predicted_layout, $target, $result['operations'][0]['components'], $include_uuid);
     }
 
-    return $result;
+    return new CanvasAiPlacementResult($result, $data_to_process, $predicted_layout);
   }
 
   /**
@@ -209,8 +239,11 @@ class CanvasAiPageBuilderHelper {
    *   The target region, if any.
    * @param array &$result_components
    *   Reference to array where processed components are collected.
+   * @param bool $include_uuid
+   *   Whether to include the component's assigned UUID in the output, so a tool
+   *   can echo it back to the model for reference_uuid chaining.
    */
-  protected function appendComponentsRecursive(array $components, array $predicted_layout, ?string $target, array &$result_components): void {
+  protected function appendComponentsRecursive(array $components, array $predicted_layout, ?string $target, array &$result_components, bool $include_uuid = FALSE): void {
     foreach ($components as $component) {
       foreach ($component as $id => $component_data) {
         // Process the current component.
@@ -219,6 +252,9 @@ class CanvasAiPageBuilderHelper {
         // the uuid.
         $node_path = $this->getCalculatedNodepath($predicted_layout, $component_data['uuid'], $target);
         $component_data_to_append['id'] = $id;
+        if ($include_uuid) {
+          $component_data_to_append['uuid'] = $component_data['uuid'];
+        }
         $component_data_to_append['nodePath'] = $node_path;
         $component_data_to_append['fieldValues'] = $component_data['props'] ?? [];
         $result_components[] = $component_data_to_append;
@@ -227,7 +263,7 @@ class CanvasAiPageBuilderHelper {
         if (!empty($component_data['slots'])) {
           foreach ($component_data['slots'] as $slot_components) {
             if (\is_array($slot_components)) {
-              $this->appendComponentsRecursive($slot_components, $predicted_layout, $target, $result_components);
+              $this->appendComponentsRecursive($slot_components, $predicted_layout, $target, $result_components, $include_uuid);
             }
           }
         }
