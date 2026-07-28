@@ -87,6 +87,23 @@ final class ListElementFieldInfo {
   }
 
   /**
+   * Returns the fields of a bundle that the List element can iterate.
+   *
+   * A field source lists a field's values, so single-cardinality fields are
+   * not offered: one value is not a list, and mapping the field straight to a
+   * component prop already covers it.
+   *
+   * @return array<string, array{label: string, family: ListElementFieldTypeFamily, has_target: bool, definition: FieldDefinitionInterface}>
+   *   Keyed by field name.
+   */
+  public function getMultiValueFields(string $entity_type_id, string $bundle): array {
+    return \array_filter(
+      $this->getFilterableFields($entity_type_id, $bundle),
+      static fn (array $field): bool => $field['definition']->getFieldStorageDefinition()->getCardinality() !== 1,
+    );
+  }
+
+  /**
    * Returns the entity query condition column for a field.
    *
    * For example `field_tags.target_id` or `title.value`.

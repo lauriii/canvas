@@ -22,6 +22,7 @@ use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
+use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemList;
 use Drupal\Core\Form\EnforcedResponseException;
 use Drupal\Core\Form\FormAjaxException;
@@ -650,12 +651,15 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   /**
    * Resolves the data context for an item that may sit in a deferred slot.
    *
-   * @return array{is_deferred: bool, entity: \Drupal\Core\Entity\FieldableEntityInterface|null}
-   *   Whether the item is inside a deferred slot subtree, and the entity to
-   *   use as its data context: for deferred items the slot-defining source's
-   *   representative entity (possibly NULL), otherwise the given default.
+   * @return array{is_deferred: bool, entity: \Drupal\Core\Entity\FieldableEntityInterface|null, item: \Drupal\Core\Field\FieldItemInterface|null}
+   *   Whether the item is inside a deferred slot subtree, plus the two data
+   *   contexts to resolve its prop sources against: the entity that entity
+   *   field prop sources resolve against, and the field item that item prop
+   *   sources resolve against. A source that iterates entities replaces the
+   *   entity (and produces no item); a source that iterates a field of the
+   *   host entity produces an item and leaves the entity alone.
    *
-   * @see \Drupal\canvas\ComponentSource\ComponentSourceWithDeferredSlotsInterface::getDeferredSlotContextEntity()
+   * @see \Drupal\canvas\ComponentSource\ComponentSourceWithDeferredSlotsInterface::getDeferredSlotContext()
    */
   public function resolveDeferredSlotContext(ComponentTreeItem $item, ?FieldableEntityInterface $default): array {
     return self::resolveDeferredSlotContextFromValues($this->getValue(), $item->getUuid(), $default);
@@ -671,12 +675,12 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
    * @param string $uuid
    *   The UUID of the item whose context to resolve.
    *
-   * @return array{is_deferred: bool, entity: \Drupal\Core\Entity\FieldableEntityInterface|null}
+   * @return array{is_deferred: bool, entity: \Drupal\Core\Entity\FieldableEntityInterface|null, item: \Drupal\Core\Field\FieldItemInterface|null}
    */
   public static function resolveDeferredSlotContextFromValues(array $item_values, string $uuid, ?FieldableEntityInterface $default): array {
     $boundary = self::findDeferredSlotBoundary($item_values, $uuid);
     if ($boundary === NULL) {
-      return ['is_deferred' => FALSE, 'entity' => $default];
+      return ['is_deferred' => FALSE, 'entity' => $default, 'item' => NULL];
     }
     [$source, $parent_value] = $boundary;
     $inputs = $parent_value['inputs'] ?? [];
@@ -684,7 +688,13 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     if (\is_string($inputs)) {
       $inputs = \json_decode($inputs, TRUE) ?? [];
     }
-    return ['is_deferred' => TRUE, 'entity' => $source->getDeferredSlotContextEntity(\is_array($inputs) ? $inputs : [])];
+    $context = $source->getDeferredSlotContext(\is_array($inputs) ? $inputs : [], $default);
+    return [
+      'is_deferred' => TRUE,
+      // A field item never replaces the host entity: it sits beside it.
+      'entity' => $context instanceof FieldItemInterface ? $default : $context,
+      'item' => $context instanceof FieldItemInterface ? $context : NULL,
+    ];
   }
 
   /**

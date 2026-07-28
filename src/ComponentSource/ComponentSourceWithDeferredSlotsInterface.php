@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\ComponentSource;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Field\FieldItemInterface;
 
 /**
  * @internal
@@ -34,17 +35,29 @@ interface ComponentSourceWithDeferredSlotsInterface extends ComponentSourceWithS
   public function getDeferredSlotNames(): array;
 
   /**
-   * Gets a representative data context entity for the deferred slots.
+   * Gets a representative data context for the deferred slots.
    *
    * Items inside a deferred slot are validated and modeled against this
-   * entity instead of the tree's host entity — e.g. a sample entity of the
-   * List element's source bundle. NULL when no such entity exists (an empty
-   * source); validation then degrades to structural checks, exactly like
-   * component trees stored in config.
+   * context instead of the tree's host entity. It is:
+   * - a `FieldableEntityInterface` when each iteration binds a whole entity —
+   *   e.g. a sample entity of a query-sourced List element's source bundle.
+   *   That entity replaces the tree's host entity for the whole subtree.
+   * - a `FieldItemInterface` when each iteration binds one value of a field of
+   *   the tree's host entity. The host entity is *not* replaced then: entity
+   *   field prop sources inside the subtree keep resolving against it, and item
+   *   prop sources resolve against the item.
+   * - NULL when no such context exists (an empty source); validation then
+   *   degrades to structural checks, exactly like component trees stored in
+   *   config.
    *
    * @param array $explicit_input
    *   The slot-defining instance's stored explicit input.
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $host_entity
+   *   The tree's host entity, when there is one. A source iterating a field of
+   *   the host entity needs it to produce an item.
+   *
+   * @see docs/adr/0021-item-template-data-context-is-a-field-item.md
    */
-  public function getDeferredSlotContextEntity(array $explicit_input): ?FieldableEntityInterface;
+  public function getDeferredSlotContext(array $explicit_input, ?FieldableEntityInterface $host_entity = NULL): FieldableEntityInterface|FieldItemInterface|null;
 
 }

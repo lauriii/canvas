@@ -30,6 +30,16 @@ final class ListElementSettingsValidator {
 
   use StringTranslationTrait;
 
+  /**
+   * The content query source kind: `{kind, entity_type, bundle}`.
+   */
+  public const string SOURCE_QUERY = 'query';
+
+  /**
+   * The host entity field source kind: `{kind, field_name}`.
+   */
+  public const string SOURCE_FIELD = 'field';
+
   public const array DISPLAY_MODES = ['view_mode', 'title_linked', 'item_template'];
   public const array PAGINATION_MODES = ['none', 'load_more', 'infinite_scroll'];
   public const array LAYOUT_MODES = ['stack', 'row', 'grid'];
@@ -48,15 +58,41 @@ final class ListElementSettingsValidator {
   ) {}
 
   /**
+   * Returns which source kind a settings blob uses.
+   *
+   * Settings stored before the field source existed carry no `kind`; they are
+   * content queries.
+   *
+   * @return self::SOURCE_QUERY|self::SOURCE_FIELD
+   */
+  public static function sourceKind(array $settings): string {
+    return ($settings['source']['kind'] ?? self::SOURCE_QUERY) === self::SOURCE_FIELD
+      ? self::SOURCE_FIELD
+      : self::SOURCE_QUERY;
+  }
+
+  /**
    * Validates a canonical List element settings array.
    *
    * @param array $settings
    *   The settings blob, in its canonical (stored) form.
+   * @param array{entity_type: string, bundle: string}|null $host_context
+   *   The entity type and bundle of the tree's host entity, when the tree has
+   *   a bundle-specific one — which is true for a content template and false
+   *   for a page, a global region, and a pattern. A field source is only valid
+   *   with one, because it iterates a field of that host entity.
+   *
+   * @param bool $host_context_is_known
+   *   FALSE when the caller could not determine the host context either way —
+   *   a component tree stored in config is validated node by node, detached
+   *   from the config entity that owns it. A field source is then accepted as
+   *   far as its own settings go, and rejected only where the tree kind is
+   *   actually visible.
    *
    * @return \Symfony\Component\Validator\ConstraintViolationListInterface
    *   Violations with property paths relative to the settings blob root.
    */
-  public function validate(array $settings): ConstraintViolationListInterface {
+  public function validate(array $settings, ?array $host_context = NULL, bool $host_context_is_known = TRUE): ConstraintViolationListInterface {
     $violations = new ConstraintViolationList();
 
     foreach (['source', 'display', 'pagination', 'filters', 'sorts', 'layout'] as $key) {
@@ -83,6 +119,15 @@ final class ListElementSettingsValidator {
       return $violations;
     }
 
+    if (self::sourceKind($settings) === self::SOURCE_FIELD) {
+      $this->validateFieldSource($violations, $settings, $host_context, $host_context_is_known);
+      // A field source shares the display, limit, and layout rules; filters,
+      // sorts, and pagination are query-only and must be absent.
+      $this->validateDisplay($violations, $settings, FALSE);
+      $this->validateLayout($violations, $settings);
+      return $violations;
+    }
+
     $bundle_is_valid = $this->validateSource($violations, $settings);
     // Field- and view-mode-dependent rules are only meaningful for a valid
     // source; structural rules below always run.
@@ -99,10 +144,62 @@ final class ListElementSettingsValidator {
     return $violations;
   }
 
+  /**
+   * Validates a field source: the field itself, and the settings it forbids.
+   *
+   * @param array{entity_type: string, bundle: string}|null $host_context
+   */
+  private function validateFieldSource(ConstraintViolationList $violations, array $settings, ?array $host_context, bool $host_context_is_known = TRUE): void {
+    $source = $settings['source'];
+    if (!\is_array($source) || \array_diff(\array_keys($source), ['kind', 'field_name']) !== [] || !isset($source['field_name']) || !\is_string($source['field_name'])) {
+      self::addViolation($violations, $settings, 'source', $source, $this->t('A field source must specify a field name.'));
+      return;
+    }
+
+    // The other two display modes render an entity (a view mode, a link to the
+    // entity); a field item is not one. Only the item template applies.
+    if (($settings['display']['mode'] ?? NULL) !== 'item_template') {
+      self::addViolation($violations, $settings, 'display.mode', $settings['display']['mode'] ?? NULL, $this->t('A field source displays its values through an item template.'));
+    }
+
+    // Query-shaping settings have no meaning for a field: its values are host
+    // entity data, in the order the content editor arranged them.
+    if (($settings['filters']['conditions'] ?? []) !== []) {
+      self::addViolation($violations, $settings, 'filters.conditions', $settings['filters']['conditions'], $this->t('A field source cannot be filtered.'));
+    }
+    if (($settings['sorts'] ?? []) !== []) {
+      self::addViolation($violations, $settings, 'sorts', $settings['sorts'], $this->t('A field source cannot be sorted: its values are shown in the order the content editor arranged them.'));
+    }
+    if (($settings['pagination']['mode'] ?? 'none') !== 'none') {
+      self::addViolation($violations, $settings, 'pagination.mode', $settings['pagination']['mode'], $this->t('A field source cannot be paginated.'));
+    }
+    // Unlike a query, a field is already fully loaded, so "no limit" needs no
+    // infinite scroll to stay bounded.
+    $limit = $settings['limit'];
+    if ($limit !== NULL && (!\is_int($limit) || $limit < 1)) {
+      self::addViolation($violations, $settings, 'limit', $limit, $this->t('The limit must be a positive number, or empty for no limit.'));
+    }
+
+    if ($host_context === NULL) {
+      if ($host_context_is_known) {
+        self::addViolation($violations, $settings, 'source', $source, $this->t('A field source needs a host entity to read the field from, so it is only available in a content template.'));
+      }
+      return;
+    }
+    $fields = $this->fieldInfo->getMultiValueFields($host_context['entity_type'], $host_context['bundle']);
+    if (!\array_key_exists($source['field_name'], $fields)) {
+      self::addViolation($violations, $settings, 'source.field_name', $source['field_name'], $this->t('The %value field does not exist on this content type, or it holds a single value.', ['%value' => $source['field_name']]));
+    }
+  }
+
   private function validateSource(ConstraintViolationList $violations, array $settings): bool {
     $source = $settings['source'];
+    if (\is_array($source)) {
+      // `kind` is optional for stored data that predates the field source.
+      unset($source['kind']);
+    }
     if (!\is_array($source) || \array_diff(\array_keys($source), ['entity_type', 'bundle']) !== [] || !isset($source['entity_type'], $source['bundle'])) {
-      self::addViolation($violations, $settings, 'source', $source, $this->t('The source must specify an entity type and a bundle.'));
+      self::addViolation($violations, $settings, 'source', $settings['source'], $this->t('The source must specify an entity type and a bundle.'));
       return FALSE;
     }
     // Only nodes are supported initially; the stored entity type keeps other

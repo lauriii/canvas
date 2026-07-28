@@ -39,6 +39,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
@@ -883,10 +884,13 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $suggestion_entity_data_definition = EntityDataDefinition::create($entity->getEntityTypeId(), $entity->bundle());
     }
     if ($suggestion_entity_data_definition !== NULL) {
+      $iterated_field = $form_state->get('canvas_iterated_field');
+      \assert($iterated_field === NULL || $iterated_field instanceof FieldDefinitionInterface);
       $suggestions = PropSourceSuggester::structureSuggestionsForHierarchicalResponse($this->propSourceSuggester->suggest(
         $this->getSourceSpecificComponentId(),
         $this->getMetadata(),
         $suggestion_entity_data_definition,
+        $iterated_field,
       ));
     }
 

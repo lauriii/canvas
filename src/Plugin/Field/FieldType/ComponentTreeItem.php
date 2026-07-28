@@ -72,6 +72,10 @@ use Symfony\Component\Validator\ConstraintViolationList;
           PropSource::Adapter->value,
           // @todo Remove before Canvas 2.0, see https://www.drupal.org/node/3566701
           PropSource::Dynamic->value,
+          // ItemPropSources are only valid inside a deferred slot, whose items
+          // this check skips.
+          // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::getPropSourceTypes()
+          PropSource::Item->value,
         ],
         'presence' => NULL,
       ],
@@ -609,7 +613,7 @@ class ComponentTreeItem extends FieldItemBase {
     // this will catch that.
     // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
     $input_values = $this->getInputs();
-    $component_violations = $source->validateComponentInput($input_values ?? [], $component_instance_uuid, $entity);
+    $component_violations = $source->validateComponentInput($input_values ?? [], $component_instance_uuid, $entity, $this);
     if ($component_violations->count() > 0) {
       // @todo Remove the foreach and use ::addAll once
       // https://www.drupal.org/project/drupal/issues/3490588 has been resolved.

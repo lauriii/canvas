@@ -143,7 +143,7 @@ final class ComponentInstanceForm extends FormBase {
       try {
         \assert($tree_host instanceof FieldableEntityInterface || $tree_host instanceof ContentTemplate);
         $full_tree = $this->componentTreeLoader->load($tree_host);
-        ['is_deferred' => $is_deferred, 'entity' => $context_entity] = $full_tree->resolveDeferredSlotContext(
+        ['is_deferred' => $is_deferred, 'entity' => $context_entity, 'item' => $context_item] = $full_tree->resolveDeferredSlotContext(
           $full_tree->getComponentTreeItemByUuid($component_instance_uuid) ?? throw new \LogicException('Not in tree.'),
           $host_entity,
         );
@@ -153,6 +153,12 @@ final class ComponentInstanceForm extends FormBase {
           // Lets sources offer this context's fields for prop mapping.
           // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
           $form_state->set('canvas_deferred_slot_context', TRUE);
+          // A field-sourced item template additionally offers the properties of
+          // the iterated field's items, beside the host entity's own fields.
+          // @see \Drupal\canvas\ShapeMatcher\ItemPropSourceMatcher
+          if ($context_item !== NULL) {
+            $form_state->set('canvas_iterated_field', $context_item->getFieldDefinition());
+          }
         }
       }
       catch (\LogicException) {

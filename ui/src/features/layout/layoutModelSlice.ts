@@ -146,6 +146,10 @@ export interface BasePropSource {
   value?: any;
 }
 // @see \Drupal\canvas\PropSource\DynamicPropSource
+// An item prop source (`sourceType: 'item'`, resolved against the field item an
+// enclosing item template is iterating) has this same shape; only the server
+// decides which context an expression resolves against.
+// @see \Drupal\canvas\PropSource\ItemPropSource
 export interface DynamicPropSource extends BasePropSource {
   expression: string;
 }
