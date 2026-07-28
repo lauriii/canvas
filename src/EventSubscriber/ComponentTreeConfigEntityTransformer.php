@@ -87,10 +87,12 @@ final readonly class ComponentTreeConfigEntityTransformer implements EventSubscr
       // builder was resolving a merge conflict between exported config).
       // In other words: simulate `orderby: key` for this `type: sequence`, but
       // that cannot be specified in config schema, since to ensure
-      // translatability, the sequence keys must be stable.
-      // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait::generateComponentTreeKeys()
+      // translatability, the sequence keys must be stable. A natural-order sort
+      // keeps whole-number segments in numeric order (`10` after `9`, not
+      // before `2`), including the ':'-separated position deltas within a slot.
+      // @see self::computeExportSequenceKeys()
       // @see \Drupal\Core\Config\StorableConfigBase::castValue()
-      \ksort($raw['component_tree']);
+      \uksort($raw['component_tree'], \strnatcmp(...));
       // Second, strip the position encoding, because the position has been
       // recovered. This leaves just UUIDs as keys, which is how translation
       // configuration can reliably target component instances, even if they are
@@ -263,8 +265,10 @@ final readonly class ComponentTreeConfigEntityTransformer implements EventSubscr
       unset($keyed_tree[$key]);
     }
 
-    // Order the items by the key.
-    \ksort($keyed_tree);
+    // Order the items by the key using a natural-order sort so that a tree
+    // with 10 or more instances at a level keeps its order (e.g. `10` must sort
+    // after `9`, not before `2`).
+    \uksort($keyed_tree, \strnatcmp(...));
     /** @var ComponentTreeItemKeyedSequence */
     return $keyed_tree;
   }

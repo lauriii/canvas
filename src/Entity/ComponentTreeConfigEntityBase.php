@@ -180,7 +180,37 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
     // do not have deltas but sequence keys. Manipulate the config entity
     // property directly.
     // @see \Drupal\canvas\CanvasConfigUpdater::needsConfigEntityWithComponentTreeSequenceKeysUpdate()
-    $this->set('component_tree', self::asDeterministicallyAndTranslatableKeyedComponentTreeSequence(\array_values($this->get('component_tree'))));
+    $component_tree = $this->get('component_tree') ?? [];
+    // Config install and update paths bypass the sync import transformer, so
+    // recover the intended order from the position-encoded keys here, before
+    // they are re-keyed by UUID.
+    // @see \Drupal\canvas\EventSubscriber\ComponentTreeConfigEntityTransformer::import()
+    if (self::componentTreeSequenceIsPositionEncoded($component_tree)) {
+      // Natural-order sort so whole-number segments compare numerically (`10`
+      // sorts after `9`, not before `2`) and a parent's bare-delta key (`0`)
+      // precedes its children (`0:the_body:0`).
+      \uksort($component_tree, \strnatcmp(...));
+    }
+    $this->set('component_tree', self::asDeterministicallyAndTranslatableKeyedComponentTreeSequence(\array_values($component_tree)));
+  }
+
+  /**
+   * Whether a component tree sequence still uses non-UUID (position) keys.
+   *
+   * @param array<int|string, array{uuid?: string}> $component_tree_sequence
+   *   The raw component tree sequence.
+   *
+   * @return bool
+   *   TRUE if any key is not its item's UUID — i.e. the sequence is keyed by
+   *   position deltas or position-encoded sequence keys, not yet by UUID.
+   */
+  private static function componentTreeSequenceIsPositionEncoded(array $component_tree_sequence): bool {
+    foreach ($component_tree_sequence as $key => $item) {
+      if ($key !== ($item['uuid'] ?? NULL)) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
   /**
