@@ -48,7 +48,11 @@ final class CanvasExtensionPluginManager extends DefaultPluginManager implements
     $this->moduleHandler = $module_handler;
     $this->factory = new ContainerFactory($this, CanvasExtensionInterface::class);
     $this->alterInfo('canvas_extension_info');
-    $this->setCacheBackend($cache_backend, 'canvas_extension_plugins');
+    // Extensions are discovered from installed modules' *.canvas_extension.yml,
+    // so the installed module list determines the definitions. Tagging both the
+    // discovery cache and (via ::getCacheTags()) any response depending on this
+    // manager means installing or uninstalling a module invalidates them.
+    $this->setCacheBackend($cache_backend, 'canvas_extension_plugins', ['config:core.extension']);
   }
 
   protected function getDiscovery() {

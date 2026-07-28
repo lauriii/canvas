@@ -48,6 +48,8 @@ class ApiExtensionControllerTest extends CanvasKernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');
+    // Uninstalling a module triggers user_data cleanup, which needs this table.
+    $this->installSchema('user', ['users_data']);
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
 
@@ -65,7 +67,10 @@ class ApiExtensionControllerTest extends CanvasKernelTestBase {
     $this->assertSame([
       'user.permissions',
     ], $response->getCacheableMetadata()->getCacheContexts());
+    // Installing or uninstalling a module changes which extensions exist, so
+    // the response must be invalidated when the module list changes.
     $this->assertSame([
+      'config:core.extension',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
     $this->assertSame(Cache::PERMANENT, $response->getCacheableMetadata()->getCacheMaxAge());
@@ -96,6 +101,24 @@ class ApiExtensionControllerTest extends CanvasKernelTestBase {
     self::assertSame('Test Page Extension', $page_extension['name']);
     self::assertSame(CanvasExtensionTypeEnum::Page->value, $page_extension['type']);
     self::assertArrayNotHasKey('permissions', $page_extension);
+  }
+
+  /**
+   * Changing the module list updates the list of extensions.
+   *
+   * The response is tagged with config:core.extension, so it is invalidated
+   * when a module providing extensions is installed or uninstalled.
+   */
+  public function testListReactsToModuleListChange(): void {
+    $response = $this->request(Request::create('/canvas/api/v0/extensions'));
+    \assert($response instanceof CacheableJsonResponse);
+    self::assertContains('config:core.extension', $response->getCacheableMetadata()->getCacheTags());
+    self::assertArrayHasKey('canvas_test_page', static::decodeResponse($response));
+
+    $this->container->get('module_installer')->uninstall(['canvas_test_extension_page']);
+
+    $response = $this->request(Request::create('/canvas/api/v0/extensions'));
+    self::assertArrayNotHasKey('canvas_test_page', static::decodeResponse($response));
   }
 
 }
