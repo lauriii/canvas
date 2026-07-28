@@ -18,6 +18,10 @@ services:
     arguments: ['canvas_ai_memory']
   canvas_ai.page_builder_helper:
     class: Drupal\canvas_ai\CanvasAiPageBuilderHelper
+  canvas_ai.component_context_helper:
+    class: Drupal\canvas_ai\CanvasAiComponentContextHelper
+    arguments:
+      - '@canvas_ai.page_builder_helper'
   canvas_ai.tempstore:
     class: Drupal\canvas_ai\CanvasAiTempStore
   canvas_ai.response_validator:
