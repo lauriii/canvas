@@ -6,6 +6,7 @@ namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\ContentTranslation\SymmetricalTranslationSynchronizationTrait;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\AutoSavePublishAwareInterface;
 use Drupal\canvas\Entity\BrandKit;
@@ -18,6 +19,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Validation\Constraint\AutoSaveEntityConflictConstraint;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
+use Drupal\content_translation\FieldTranslationSynchronizerInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -58,6 +60,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 final class ApiAutoSaveController extends ApiControllerBase {
 
   use ConstraintPropertyPathTranslatorTrait;
+  use SymmetricalTranslationSynchronizationTrait;
 
   public const AUTO_SAVE_KEY = 'api_auto_save_key';
   public const AVATAR_IMAGE_STYLE = 'canvas_avatar';
@@ -74,6 +77,10 @@ final class ApiAutoSaveController extends ApiControllerBase {
     private readonly ComponentSourceManager $componentSourceManager,
     private readonly ComponentTreeLoader $componentTreeLoader,
     private readonly ModuleHandlerInterface $moduleHandler,
+    // The synchronizer belongs to content_translation, an optional dependency,
+    // so it is NULL when that module is not installed.
+    // @see \Drupal\canvas\CanvasServiceProvider
+    private readonly ?FieldTranslationSynchronizerInterface $translationSynchronizer = NULL,
   ) {}
 
   private static function validateExpectedAutoSaves(array $expected_auto_saves, array $available_auto_saves, int $status): ?JsonResponse {
@@ -627,13 +634,33 @@ final class ApiAutoSaveController extends ApiControllerBase {
    * an unresolved conflict is detected.
    */
   private function getConflictAwareContentEntityViolations(ContentEntityInterface $entity, bool $conflict_detection_dev_mode): ConstraintViolationListInterface {
-    $violations = $entity->validate();
+    // Validate a CLONE on which non-translatable component inputs (and other
+    // synced column groups) have been converged across translations, mirroring
+    // what content_translation's presave hook will do during ::save(). The
+    // auto-save snapshot only carries the edited translation(s), so at this
+    // point sibling translations are still stale and
+    // ComponentTreeSymmetricalTranslationConstraint would reject the publish
+    // with a 422 for an intermediate state that ::save() converges
+    // automatically. The entity that is actually saved MUST stay untouched
+    // here, so it goes through exactly one synchronization pass — the presave
+    // one.
+    // @see \Drupal\canvas\ContentTranslation\SymmetricalTranslationSynchronizationTrait
+    $validation_entity = $entity;
+    if (self::canSynchronizeTranslations($this->translationSynchronizer, $entity)) {
+      $validation_entity = clone $entity;
+      self::synchronizeTranslations($this->translationSynchronizer, $validation_entity);
+    }
+    // Bind the list to the entity that is actually saved, not to the throwaway
+    // clone the violations were produced against: the bound entity is what ends
+    // up in the `meta` of each JSON:API-style error object.
+    // @see \Drupal\canvas\Controller\ApiControllerBase::createJsonResponseFromViolationSets()
+    // @see \Drupal\canvas\EventSubscriber\ApiExceptionSubscriber::violationToJsonApiStyleErrorObject()
+    $violations = new EntityConstraintViolationList($entity, $validation_entity->validate());
     if (!$conflict_detection_dev_mode || !$entity instanceof Page) {
       return $violations;
     }
 
-    \assert($violations instanceof EntityConstraintViolationListInterface);
-    $filtered = new EntityConstraintViolationList($violations->getEntity());
+    $filtered = new EntityConstraintViolationList($entity);
     foreach ($violations as $violation) {
       if ($violation->getConstraint() instanceof EntityChangedConstraint) {
         continue;
@@ -860,6 +887,13 @@ final class ApiAutoSaveController extends ApiControllerBase {
       \assert(\is_string($revision_user));
       $entity->set($revision_user, $this->currentUser->id());
     }
+
+    // Sibling translations' non-translatable component inputs are still stale
+    // here. Deliberately NOT converged: content_translation's presave hook is
+    // the single synchronization pass during ::save(), and a second in-place
+    // pass corrupts translations after a structural edit. Publish validation
+    // uses a synchronized clone instead.
+    // @see ::getConflictAwareContentEntityViolations()
     return $entity;
   }
 
