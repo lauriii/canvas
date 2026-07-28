@@ -465,12 +465,19 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       }
     }
 
+    $shapes = $this->getExplicitInputDefinitions()['shapes'];
     $resolved_values = [];
     foreach ($values as $prop => $input) {
       $values[$prop] = $this->uncollapse($input, $prop)->toArray();
       try {
-        $resolved_values[$prop] = PropSource::parse($values[$prop])
-          ->evaluate($fieldable_host_entity, is_required: FALSE);
+        $prop_source = PropSource::parse($values[$prop]);
+        // An array prop declaring `maxItems` renders at most that many of the
+        // mapped field's values, in delta order.
+        // @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher::matchEntityPropsForScalar()
+        if ($prop_source instanceof EntityFieldPropSource && ($shapes[$prop]['type'] ?? NULL) === 'array' && isset($shapes[$prop]['maxItems'])) {
+          $prop_source = $prop_source->withMaxValues($shapes[$prop]['maxItems']);
+        }
+        $resolved_values[$prop] = $prop_source->evaluate($fieldable_host_entity, is_required: FALSE);
       }
       catch (CacheableAccessDeniedHttpException $e) {
         $this->logger->warning('Access denied when evaluating prop source for prop %prop of component instance %uuid with input `%input`. Original error: %error', [
@@ -640,7 +647,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
   /**
    * {@inheritdoc}
    */
-  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): ConstraintViolationListInterface {
+  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity, ?ComponentTreeItem $item = NULL): ConstraintViolationListInterface {
     $violations = new ConstraintViolationList();
     $prop_field_definitions = $this->configuration['prop_field_definitions'];
 
