@@ -73,7 +73,11 @@ services:
     class: \Drupal\canvas\Asset\AssetResolver
     decorates: asset.resolver
     arguments: ['@asset.resolver.canvas.inner', '@library.discovery', '@library.dependency_resolver', '@module_handler', '@theme.manager', '@language_manager', '@cache.data', '@theme_handler']
-  Drupal\canvas\ClientDataToEntityConverter: {}
+  Drupal\canvas\ClientDataToEntityConverter:
+    arguments:
+      # content_translation is an optional dependency; the '?' keeps the
+      # converter buildable when it is not installed (argument is then NULL).
+      $translationSynchronizer: '@?content_translation.synchronizer'
   Drupal\canvas\AutoSave\AutoSaveManager: {}
   # Non-serializing in-memory cache for AutoSaveManager's reconstructed entities.
   # Bounded (LRU) like core's entity.memory_cache so it cannot grow without
@@ -224,7 +228,11 @@ services:
   Drupal\canvas\Controller\ComponentStatusController: {}
   Drupal\canvas\Controller\ComponentAuditController: {}
   Drupal\canvas\Controller\CanvasController: {}
-  Drupal\canvas\Controller\ApiAutoSaveController: {}
+  Drupal\canvas\Controller\ApiAutoSaveController:
+    arguments:
+      # content_translation is an optional dependency; the '?' keeps the
+      # controller buildable when it is not installed (argument is then NULL).
+      $translationSynchronizer: '@?content_translation.synchronizer'
   Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers: {}
   Drupal\canvas\Controller\ApiUiContentTemplateControllers: {}
   Drupal\canvas\Controller\ApiUsageControllers: {}
