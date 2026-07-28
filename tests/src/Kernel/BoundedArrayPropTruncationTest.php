@@ -95,13 +95,16 @@ final class BoundedArrayPropTruncationTest extends CanvasKernelTestBase {
     $prop_source = new EntityFieldPropSource($expression);
 
     $all = $prop_source->evaluate($node, is_required: FALSE)->value;
+    \assert(\is_array($all));
     self::assertCount(10, $all);
 
     $windowed = $prop_source->withMaxValues(3)->evaluate($node, is_required: FALSE)->value;
+    \assert(\is_array($windowed));
     self::assertSame(['value-1', 'value-2', 'value-3'], \array_values($windowed));
 
     // A window wider than the stored values is not padded.
     $wide = $prop_source->withMaxValues(50)->evaluate($node, is_required: FALSE)->value;
+    \assert(\is_array($wide));
     self::assertCount(10, $wide);
   }
 
@@ -146,10 +149,10 @@ final class BoundedArrayPropTruncationTest extends CanvasKernelTestBase {
       ->view($node, 'full');
     $html = (string) $this->container->get('renderer')->renderInIsolation($build);
 
-    $limited = $this->extractListItems($html, 'text-limited-list');
+    $limited = self::extractListItems($html, 'text-limited-list');
     self::assertSame(['value-1', 'value-2', 'value-3'], $limited);
     // The unbounded prop bound to the same field is unaffected.
-    self::assertCount(10, $this->extractListItems($html, 'text-required-list'));
+    self::assertCount(10, self::extractListItems($html, 'text-required-list'));
   }
 
   /**
@@ -157,7 +160,7 @@ final class BoundedArrayPropTruncationTest extends CanvasKernelTestBase {
    *
    * @return list<string>
    */
-  private function extractListItems(string $html, string $list_id): array {
+  private static function extractListItems(string $html, string $list_id): array {
     $crawler = new \Symfony\Component\DomCrawler\Crawler($html);
     return $crawler->filter("#$list_id li")->each(static fn ($node): string => \trim($node->text()));
   }

@@ -7,7 +7,6 @@ namespace Drupal\canvas\ShapeMatcher;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
@@ -91,24 +90,32 @@ final class ItemPropSourceMatcher {
    *
    * Returns NULL for expression shapes that have no field-item-rooted form.
    */
-  private static function reRootAtFieldType(EntityFieldBasedPropExpressionInterface $expression, string $field_type): ?FieldTypeBasedPropExpressionInterface {
-    return match (TRUE) {
-      $expression instanceof FieldPropExpression => new FieldTypePropExpression($field_type, $expression->propName),
-      $expression instanceof FieldObjectPropsExpression => new FieldTypeObjectPropsExpression(
-        $field_type,
-        \array_filter(\array_map(
-          static fn (EntityFieldBasedPropExpressionInterface $sub): ?FieldTypeBasedPropExpressionInterface => self::reRootAtFieldType($sub, $field_type),
-          $expression->getObjectExpressions(),
-        )),
-      ),
-      // The referenced half is already entity-rooted and stays as it is: only
-      // the referencer moves from "this field of this entity" to "this item".
-      $expression instanceof ReferenceFieldPropExpression => new ReferenceFieldTypePropExpression(
+  private static function reRootAtFieldType(EntityFieldBasedPropExpressionInterface $expression, string $field_type): FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression|NULL {
+    if ($expression instanceof FieldPropExpression) {
+      return \is_string($expression->propName)
+        ? new FieldTypePropExpression($field_type, $expression->propName)
+        : NULL;
+    }
+    if ($expression instanceof FieldObjectPropsExpression) {
+      $object_props = [];
+      foreach ($expression->getObjectExpressions() as $name => $sub) {
+        $re_rooted = self::reRootAtFieldType($sub, $field_type);
+        // A field type object expression only nests scalars and references.
+        if ($re_rooted instanceof FieldTypePropExpression || $re_rooted instanceof ReferenceFieldTypePropExpression) {
+          $object_props[$name] = $re_rooted;
+        }
+      }
+      return $object_props === [] ? NULL : new FieldTypeObjectPropsExpression($field_type, $object_props);
+    }
+    // The referenced half is already entity-rooted and stays as it is: only the
+    // referencer moves from "this field of this entity" to "this item".
+    if ($expression instanceof ReferenceFieldPropExpression && \is_string($expression->referencer->propName)) {
+      return new ReferenceFieldTypePropExpression(
         new FieldTypePropExpression($field_type, $expression->referencer->propName),
         $expression->referenced,
-      ),
-      default => NULL,
-    };
+      );
+    }
+    return NULL;
   }
 
 }

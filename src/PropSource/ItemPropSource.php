@@ -150,7 +150,6 @@ final class ItemPropSource extends PropSourceBase implements LinkablePropSourceI
    * Resolves a field type's property label, falling back to its machine name.
    */
   private static function propertyLabel(string $field_type, string $property_name): string {
-    // @phpstan-ignore globalDrupalDependencyInjection.useDependencyInjection
     $field_type_manager = \Drupal::service(FieldTypePluginManagerInterface::class);
     \assert($field_type_manager instanceof FieldTypePluginManagerInterface);
     $definition = $field_type_manager->getDefinition($field_type, FALSE);

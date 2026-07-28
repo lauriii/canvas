@@ -302,9 +302,11 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
       ['field_before_and_after', 'field_screenshots'],
     ];
 
-    yield 'maxItems: 1 is still an array, so single-cardinality fields stay unmatched' => [
+    // A `maxItems: 1` array prop is indistinguishable from a single-value prop
+    // as far as cardinality goes: both ask for one value. Unchanged behavior.
+    yield 'maxItems: 1 asks for a single value, so it takes a single-value field' => [
       ['type' => 'array', 'items' => $string, 'maxItems' => 1],
-      [],
+      ['field_silly_image'],
     ];
 
     yield 'single-value prop is never fed by a multi-value field' => [
@@ -1622,6 +1624,19 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_array_integer' => [
           'required' => FALSE,
           PropSource::EntityField->value => [
+            // An unbounded array prop accepts every multi-value field.
+            "field_before_and_after → File size" => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟entity␜␜entity:file␝filesize␞␟value',
+            ],
+            "field_before_and_after → Height" => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟height',
+            ],
+            "field_before_and_after → Width" => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟width',
+            ],
             "field_screenshots → File size" => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟entity␜␜entity:file␝filesize␞␟value',
@@ -1646,6 +1661,19 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_array_integer_minItems' => [
           'required' => FALSE,
           PropSource::EntityField->value => [
+            // An unbounded array prop accepts every multi-value field.
+            'field_before_and_after → File size' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟entity␜␜entity:file␝filesize␞␟value',
+            ],
+            'field_before_and_after → Height' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟height',
+            ],
+            'field_before_and_after → Width' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟width',
+            ],
             'field_screenshots → File size' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟entity␜␜entity:file␝filesize␞␟value',
@@ -1682,6 +1710,24 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟width',
             ],
+            // A bounded array prop also accepts an unlimited field: its first
+            // `maxItems` values are shown.
+            "field_screenshots → File size" => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟entity␜␜entity:file␝filesize␞␟value',
+            ],
+            "field_screenshots → Height" => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟height',
+            ],
+            "field_screenshots → Width" => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟width',
+            ],
+            'Tags → Taxonomy term → Weight' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
+            ],
           ],
           PropSource::Adapter->value => [],
           PropSource::HostEntityUrl->value => [],
@@ -1709,6 +1755,24 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟width',
             ],
+            // A bounded array prop also accepts an unlimited field: its first
+            // `maxItems` values are shown.
+            'field_screenshots → File size' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟entity␜␜entity:file␝filesize␞␟value',
+            ],
+            'field_screenshots → Height' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟height',
+            ],
+            'field_screenshots → Width' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟width',
+            ],
+            'Tags → Taxonomy term → Weight' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
+            ],
           ],
           PropSource::Adapter->value => [],
           PropSource::HostEntityUrl->value => [],
@@ -1717,6 +1781,15 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_array_string' => [
           'required' => FALSE,
           PropSource::EntityField->value => [
+            // An unbounded array prop accepts every multi-value field.
+            'field_before_and_after → Alternative text' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟alt',
+            ],
+            'field_before_and_after → Title' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟title',
+            ],
             'field_screenshots → Alternative text' => [
               'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟alt',

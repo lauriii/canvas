@@ -28,7 +28,6 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
@@ -275,11 +274,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
    */
   public static function resolveHostBundleContext(?ComponentTreeItem $item): ?array {
     $root = $item?->getRoot();
-    $entity = match (TRUE) {
-      $root instanceof EntityAdapter, $root instanceof ConfigEntityAdapter => $root->getValue(),
-      default => NULL,
-    };
-    return self::hostBundleContextOf($entity);
+    return self::hostBundleContextOf($root instanceof EntityAdapter ? $root->getValue() : $root?->getValue());
   }
 
   /**
@@ -517,7 +512,6 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
     }
 
     if (!$is_field_source) {
-      \assert(isset($result));
       $this->addPagination($build, $settings, $inputs, $componentUuid, $result->consumed, $result->hasMore, $isPreview, $cacheability);
     }
 
@@ -984,7 +978,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       ];
     }
 
-    $layout = $this->formValuesToLayout($values);
+    $layout = self::formValuesToLayout($values);
 
     return [
       'source' => ['entity_type' => 'node', 'bundle' => $bundle],
@@ -1003,7 +997,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
   /**
    * Maps form values to the canonical layout settings, shared by both kinds.
    */
-  private function formValuesToLayout(array $values): array {
+  private static function formValuesToLayout(array $values): array {
     $layout_mode = (string) ($values['layout']['mode'] ?? 'stack');
     if (!\in_array($layout_mode, ListElementSettingsValidator::LAYOUT_MODES, TRUE)) {
       $layout_mode = 'stack';
@@ -1064,7 +1058,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       'pagination' => ['mode' => 'none', 'page_size' => 10],
       'filters' => ['conjunction' => 'and', 'conditions' => []],
       'sorts' => [],
-      'layout' => $this->formValuesToLayout($values),
+      'layout' => self::formValuesToLayout($values),
     ];
   }
 

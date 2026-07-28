@@ -115,7 +115,7 @@ final class ListComponentFieldSourceTest extends CanvasKernelTestBase {
    * @param int $limit
    *   The maximum number of items.
    */
-  private function createTemplate(string $field_name, string $item_expression, int $limit = 10): ContentTemplate {
+  private static function createTemplate(string $field_name, string $item_expression, int $limit = 10): ContentTemplate {
     $template = ContentTemplate::create([
       'id' => 'node.article.full',
       'content_entity_type_id' => 'node',
@@ -182,7 +182,7 @@ final class ListComponentFieldSourceTest extends CanvasKernelTestBase {
    *
    * @param list<string> $captions
    */
-  private function createArticle(array $captions = [], array $topic_ids = []): NodeInterface {
+  private static function createArticle(array $captions = [], array $topic_ids = []): NodeInterface {
     $node = Node::create([
       'type' => 'article',
       'title' => 'The host article',
@@ -211,8 +211,8 @@ final class ListComponentFieldSourceTest extends CanvasKernelTestBase {
    * A string field renders once per delta, in delta order, beside host data.
    */
   public function testDeltaOrderAndTwoContexts(): void {
-    $this->createTemplate('field_captions', (string) new FieldTypePropExpression('string', 'value'));
-    $node = $this->createArticle(['First caption', 'Second caption', 'Third caption']);
+    self::createTemplate('field_captions', (string) new FieldTypePropExpression('string', 'value'));
+    $node = self::createArticle(['First caption', 'Second caption', 'Third caption']);
 
     $html = $this->renderNode($node);
     self::assertSame(3, \substr_count($html, 'canvas-list__item'));
@@ -228,8 +228,8 @@ final class ListComponentFieldSourceTest extends CanvasKernelTestBase {
    * The limit windows the field before any item template renders.
    */
   public function testLimitWindowsBeforeRendering(): void {
-    $this->createTemplate('field_captions', (string) new FieldTypePropExpression('string', 'value'), 2);
-    $node = $this->createArticle(['One', 'Two', 'Three', 'Four', 'Five']);
+    self::createTemplate('field_captions', (string) new FieldTypePropExpression('string', 'value'), 2);
+    $node = self::createArticle(['One', 'Two', 'Three', 'Four', 'Five']);
 
     $html = $this->renderNode($node);
     self::assertSame(2, \substr_count($html, 'canvas-list__item'));
@@ -241,15 +241,14 @@ final class ListComponentFieldSourceTest extends CanvasKernelTestBase {
    * An empty field renders no items live, and the empty state in the editor.
    */
   public function testEmptyField(): void {
-    $template = $this->createTemplate('field_captions', (string) new FieldTypePropExpression('string', 'value'));
-    $node = $this->createArticle([]);
+    $template = self::createTemplate('field_captions', (string) new FieldTypePropExpression('string', 'value'));
+    $node = self::createArticle([]);
 
     $html = $this->renderNode($node);
     self::assertStringNotContainsString('canvas-list__item', $html);
 
-    $preview = (string) $this->container->get('renderer')->renderInIsolation(
-      $template->getComponentTree($node)->toRenderable($node, TRUE),
-    );
+    $preview_build = $template->getComponentTree($node)->toRenderable($node, TRUE);
+    $preview = (string) $this->container->get('renderer')->renderInIsolation($preview_build);
     self::assertStringContainsString('This field has no values.', $preview);
   }
 
@@ -257,8 +256,8 @@ final class ListComponentFieldSourceTest extends CanvasKernelTestBase {
    * A field removed from the bundle puts the List in its misconfigured state.
    */
   public function testRemovedFieldIsMisconfigured(): void {
-    $template = $this->createTemplate('field_captions', (string) new FieldTypePropExpression('string', 'value'));
-    $node = $this->createArticle(['Only caption']);
+    $template = self::createTemplate('field_captions', (string) new FieldTypePropExpression('string', 'value'));
+    $node = self::createArticle(['Only caption']);
     FieldConfig::loadByName('node', 'article', 'field_captions')?->delete();
     $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
     $node = $this->container->get('entity_type.manager')->getStorage('node')->loadUnchanged((int) $node->id());
@@ -266,9 +265,8 @@ final class ListComponentFieldSourceTest extends CanvasKernelTestBase {
 
     self::assertStringNotContainsString('Only caption', $this->renderNode($node));
 
-    $preview = (string) $this->container->get('renderer')->renderInIsolation(
-      $template->getComponentTree($node)->toRenderable($node, TRUE),
-    );
+    $preview_build = $template->getComponentTree($node)->toRenderable($node, TRUE);
+    $preview = (string) $this->container->get('renderer')->renderInIsolation($preview_build);
     self::assertStringContainsString('canvas-list-element--warning', $preview);
   }
 
@@ -291,8 +289,8 @@ final class ListComponentFieldSourceTest extends CanvasKernelTestBase {
         'value',
       ),
     );
-    $this->createTemplate('field_topics', (string) $expression);
-    $node = $this->createArticle([], $terms);
+    self::createTemplate('field_topics', (string) $expression);
+    $node = self::createArticle([], $terms);
 
     $html = $this->renderNode($node);
     self::assertSame(2, \substr_count($html, 'canvas-list__item'));

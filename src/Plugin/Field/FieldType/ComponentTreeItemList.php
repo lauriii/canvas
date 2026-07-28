@@ -14,6 +14,7 @@ use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Exception\SubtreeInjectionException;
 use Drupal\canvas\HydratedTree;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
+use Drupal\canvas\PropSource\AmbientItemContext;
 use Drupal\Component\Graph\Graph;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
@@ -119,10 +120,16 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
         // slot-defining source's representative entity. Without one (an
         // empty source), fall back to an empty model rather than evaluating
         // prop expressions against an entity of the wrong type.
-        ['is_deferred' => $is_deferred, 'entity' => $item_host_entity] = $this->resolveDeferredSlotContext($item, $host_entity);
-        $built['model'][$component_instance_uuid] = $is_deferred && $item_host_entity === NULL
+        ['is_deferred' => $is_deferred, 'entity' => $item_host_entity, 'item' => $item_context] = $this->resolveDeferredSlotContext($item, $host_entity);
+        $built['model'][$component_instance_uuid] = $is_deferred && $item_host_entity === NULL && $item_context === NULL
           ? ['resolved' => []]
-          : $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item, $item_host_entity));
+          // Item prop sources in a field-sourced template resolve against the
+          // representative item, entity field prop sources against the host
+          // entity. Both are needed to build one model.
+          : AmbientItemContext::within(
+            $item_context,
+            static fn (): array => $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item, $item_host_entity)),
+          );
       }
 
       // TRICKY: the server-side implementation (for storage efficiency) forbids

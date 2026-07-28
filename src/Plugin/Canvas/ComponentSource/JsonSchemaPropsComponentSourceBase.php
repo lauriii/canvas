@@ -39,7 +39,6 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
-use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
@@ -646,6 +645,29 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
   }
 
   /**
+   * Prefixes suggestion labels with the data context they come from.
+   *
+   * @param array<string, array<string, mixed>> $suggestions
+   *
+   * @return array<string, array<string, mixed>>
+   */
+  private static function groupSuggestionsByContext(array $suggestions, string $item_group, string $host_group): array {
+    foreach ($suggestions as $cpe => $per_source_type) {
+      foreach ([PropSource::Item->value => $item_group, PropSource::EntityField->value => $host_group] as $source_type => $group) {
+        if (!\is_array($per_source_type[$source_type] ?? NULL)) {
+          continue;
+        }
+        $grouped = [];
+        foreach ($per_source_type[$source_type] as $label => $prop_source) {
+          $grouped[$group . ' → ' . $label] = $prop_source;
+        }
+        $suggestions[$cpe][$source_type] = $grouped;
+      }
+    }
+    return $suggestions;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity, ?ComponentTreeItem $item = NULL): ConstraintViolationListInterface {
@@ -884,14 +906,29 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $suggestion_entity_data_definition = EntityDataDefinition::create($entity->getEntityTypeId(), $entity->bundle());
     }
     if ($suggestion_entity_data_definition !== NULL) {
+      // Set when this component instance sits inside a field-sourced item
+      // template; its item's properties are then offered too.
+      // @see \Drupal\canvas\Form\ComponentInstanceForm::buildForm()
       $iterated_field = $form_state->get('canvas_iterated_field');
-      \assert($iterated_field === NULL || $iterated_field instanceof FieldDefinitionInterface);
-      $suggestions = PropSourceSuggester::structureSuggestionsForHierarchicalResponse($this->propSourceSuggester->suggest(
+      $raw_suggestions = $this->propSourceSuggester->suggest(
         $this->getSourceSpecificComponentId(),
         $this->getMetadata(),
         $suggestion_entity_data_definition,
         $iterated_field,
-      ));
+      );
+      if ($iterated_field !== NULL) {
+        // Two data contexts coexist inside a field-sourced item template, so
+        // the choices say which one each comes from. A suggestion's label is a
+        // ` → `-separated path that the client turns into a hierarchy, so a
+        // prefix is all a group needs.
+        // @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester::enrichSuggestion()
+        $raw_suggestions = self::groupSuggestionsByContext(
+          $raw_suggestions,
+          (string) $this->t('From this item'),
+          (string) $this->t('From this page'),
+        );
+      }
+      $suggestions = PropSourceSuggester::structureSuggestionsForHierarchicalResponse($raw_suggestions);
     }
 
     foreach ($prop_field_definitions as $sdc_prop_name => $static_prop_source_field_definition) {
