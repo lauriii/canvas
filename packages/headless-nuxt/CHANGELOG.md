@@ -1,5 +1,12 @@
 # @drupal-canvas/headless-nuxt
 
+## 0.1.1
+
+### Patch Changes
+
+- 445ac1a: Require the Headless SDK version containing the latest draft session
+  recovery fixes.
+
 ## 0.1.0
 
 ### Minor Changes
