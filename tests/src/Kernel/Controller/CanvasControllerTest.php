@@ -85,6 +85,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'user.permissions',
       'languages:language_interface',
       'theme',
+      'url.site',
     ];
     $actual_contexts = $response->getCacheableMetadata()->getCacheContexts();
     sort($expected_contexts);
@@ -199,6 +200,23 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'config:configurable_language_list',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
+  }
+
+  /**
+   * Tests that the site name and site URL are exposed to the Canvas UI.
+   */
+  public function testControllerExposedSiteNameAndUrl(): void {
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $this->setUpCurrentUser([], ['access content', Page::CREATE_PERMISSION, Page::EDIT_PERMISSION]);
+    $this->config('system.site')->set('name', 'Canvas test site')->save();
+
+    $this->request(Request::create(Url::fromRoute('canvas.boot.empty', [
+      'entity_type' => '',
+      'entity' => '',
+    ])->toString()));
+
+    self::assertSame('Canvas test site', $this->drupalSettings['canvas']['siteName']);
+    self::assertSame('http://localhost', $this->drupalSettings['canvas']['siteUrl']);
   }
 
   public static function permissionsData(): array {

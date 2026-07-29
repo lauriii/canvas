@@ -187,8 +187,6 @@ export default defineConfig([
   {
     ignores: [
       '.cache',
-      // Standalone example app with its own lint setup.
-      'modules/canvas_headless/examples/**',
       '**/dist',
       '**/.astro',
       'js/astro-bundles/*',

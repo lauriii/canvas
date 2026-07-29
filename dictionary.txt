@@ -130,6 +130,7 @@ Postel
 preflight
 preflights
 replayable
+sindresorhus
 slugified
 slugifies
 Slugifies
