@@ -170,9 +170,9 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
         throw new NotFoundHttpException('Parent expression is not a reference expression.');
       }
       // A multi-target-bundle reference anywhere in the chain makes the leaf
-      // to compose onto ambiguous. The picker never composes such parents.
+      // to compose onto ambiguous. The picker browses per bundle, so it never
+      // composes such parents.
       // @see ::resolveReferenceTarget()
-      // @see \Drupal\canvas\Plugin\Validation\Constraint\MultiTargetBundleReferenceNotSupportedConstraint
       if ($parent_expression->findMultiTargetBundleReference() !== NULL) {
         throw new NotFoundHttpException('Multi-target-bundle parent expressions are not supported.');
       }
@@ -232,11 +232,11 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
     }
 
     $cacheability->addCacheTags($entity_type_def->getListCacheTags());
-    // The field list — and the per-field decisions to skip multi-valued or
-    // multi-target-bundle references — derive from field definitions. Both the
-    // cardinality (field storage config) and the target bundles (field config)
-    // can change, so depend on the tag invalidated whenever field definitions
-    // change.
+    // The field list — the per-field decision to skip multi-valued references,
+    // and the target bundles a reference can be browsed into — derive from
+    // field definitions. Both the cardinality (field storage config) and target
+    // bundles (field config) can change, so depend on the tag invalidated
+    // whenever field definitions change.
     // @see \Drupal\Core\Field\FieldStorageDefinitionListener::onFieldStorageDefinitionUpdate()
     // @see \Drupal\Core\Field\FieldConfigBase::postSave()
     $cacheability->addCacheTags(['entity_field_info']);
@@ -399,6 +399,20 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
       [$target_entity_type, $target_bundles, $target_label_key] = $this->resolveReferenceTarget($field_definition);
     }
     $has_walkable_target = $target_entity_type !== NULL && $target_bundles !== [] && $target_label_key !== NULL;
+    // Do not offer descending into a multi-target-bundle reference when the
+    // parent chain already descends through one: picking fields across bundles
+    // at both levels would coalesce into a branch inside a branch (nested
+    // branching), which is not yet supported. The reference's own leaf
+    // properties (target_id, …) still surface; only the descent is withheld.
+    // @todo Offer this descent once nested branching is supported, in https://git.drupalcode.org/project/canvas/-/work_items/3591865
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\EntityFieldExpressionsMustNotNestBranchesConstraint
+    if ($has_walkable_target
+      && \count($target_bundles) > 1
+      && $parent_expression !== NULL
+      && $this->parentDescendsThroughMultiTargetBundleReference($parent_expression)
+    ) {
+      $has_walkable_target = FALSE;
+    }
 
     $item_definition = $field_definition->getItemDefinition();
     \assert($item_definition instanceof ComplexDataDefinitionInterface);
@@ -537,12 +551,7 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
    *   is empty.
    *
    * For bundle-less target types (user, file, …) the entity type ID itself
-   * is used as the bundle ID. References whose `target_bundles` resolve to
-   * more than one bundle also return [NULL, [], NULL]: browsing into them is
-   * deferred, because the resulting multi-target-bundle expression is not
-   * yet supported at render time.
-   *
-   * @todo https://git.drupalcode.org/project/canvas/-/work_items/3591656
+   * is used as the bundle ID.
    *
    * @return array{0: ?string, 1: list<string>, 2: ?string}
    */
@@ -583,16 +592,6 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
     }
     $resolved_bundles = $target_bundles ? \array_values(\array_map('strval', $target_bundles)) : [$target_type];
     \sort($resolved_bundles);
-    // References targeting more than one bundle would let the picker compose a
-    // multi-target-bundle expression (coalescing into
-    // ReferencedBundleSpecificBranches), which is not yet supported at render
-    // time. Don't offer browsing into them until that lands; the field's own
-    // leaf properties still surface.
-    // @see \Drupal\canvas\Plugin\Validation\Constraint\MultiTargetBundleReferenceNotSupportedConstraint
-    // @todo https://git.drupalcode.org/project/canvas/-/work_items/3591656
-    if (\count($resolved_bundles) > 1) {
-      return [NULL, [], NULL];
-    }
     $label_key = $target_entity_type->getKey('label');
     if (!$label_key) {
       $base_fields = $this->entityFieldManager->getBaseFieldDefinitions($target_type);
@@ -603,6 +602,45 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
       return [NULL, [], NULL];
     }
     return [$target_type, $resolved_bundles, $label_key];
+  }
+
+  /**
+   * Whether the parent chain descends through a multi-target-bundle reference.
+   *
+   * Walks each referencer field in the chain followed so far and checks whether
+   * it targets more than one bundle. A further multi-bundle reference descended
+   * from here would coalesce into a branch inside a branch (nested branching),
+   * so the caller withholds that descent.
+   *
+   * @param \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface $parent_expression
+   *   The reference chain followed so far (a ReferenceFieldPropExpression).
+   *
+   * @return bool
+   *   TRUE if any referencer field in the chain targets multiple bundles.
+   */
+  private function parentDescendsThroughMultiTargetBundleReference(EntityFieldBasedPropExpressionInterface $parent_expression): bool {
+    for ($current = $parent_expression; $current instanceof ReferenceFieldPropExpression; $current = $current->referenced) {
+      $referencer = $current->referencer;
+      $host = $referencer->getHostEntityDataDefinition();
+      $entity_type = $host->getEntityTypeId();
+      \assert(\is_string($entity_type));
+      $bundles = $host->getBundles();
+      // Parents are single-bundle by construction of the picker (nested
+      // branching is not supported), so the host carries at most one bundle;
+      // assert it, lest a future multi-bundle host silently resolve field
+      // definitions for an arbitrary bundle.
+      \assert($bundles === NULL || \count($bundles) <= 1);
+      $bundle = \is_array($bundles) && $bundles !== [] ? (string) \reset($bundles) : $entity_type;
+      $field_definition = $this->entityFieldManager->getFieldDefinitions($entity_type, $bundle)[$referencer->getFieldName()] ?? NULL;
+      if ($field_definition === NULL || !\is_subclass_of($field_definition->getItemDefinition()->getClass(), EntityReferenceItemInterface::class, TRUE)) {
+        continue;
+      }
+      [, $target_bundles] = $this->resolveReferenceTarget($field_definition);
+      if (\count($target_bundles) > 1) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
   /**
