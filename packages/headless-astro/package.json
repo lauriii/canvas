@@ -63,7 +63,7 @@
     "type-check": "astro check --tsconfig ./tsconfig.json && tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-canvas/headless": "^0.1.0"
+    "@drupal-canvas/headless": "^0.1.1"
   },
   "peerDependencies": {
     "astro": ">=5.17.0",
