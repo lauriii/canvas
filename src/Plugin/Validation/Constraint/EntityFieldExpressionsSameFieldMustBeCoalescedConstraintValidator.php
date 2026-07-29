@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
+use Drupal\canvas\PropExpressions\StructuredData\Coalescer;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\NestedBranchNotSupportedException;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
@@ -56,6 +58,17 @@ final class EntityFieldExpressionsSameFieldMustBeCoalescedConstraintValidator ex
         continue;
       }
       $first = $bucket[0];
+      // These share a field but were not coalesced. When they cannot be
+      // coalesced at all — they descend through a multi-bundle reference more
+      // than once — saying they "must be coalesced" would be misleading, so
+      // skip them here; EntityFieldExpressionsMustNotNestBranches reports that.
+      // @todo Drop this skip once nested branching is supported, in https://git.drupalcode.org/project/canvas/-/work_items/3591865
+      try {
+        Coalescer::coalesce($bucket);
+      }
+      catch (NestedBranchNotSupportedException) {
+        continue;
+      }
       $this->context->addViolation($constraint->message, [
         '@field' => \sprintf(
           '%s.%s',

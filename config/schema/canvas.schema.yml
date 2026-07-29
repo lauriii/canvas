@@ -276,6 +276,15 @@ canvas.js_component.*:
               # expand → edit → coalesce round trip without losing data.
               # @see \Drupal\canvas\PropExpressions\StructuredData\Coalescer::expand()
               EntityFieldExpressionsMustBeIdempotent: ~
+              # A nested branch (a branch inside a branch) is not yet supported;
+              # reject selections that would coalesce into one.
+              # @todo Remove once nested branching is supported, in https://git.drupalcode.org/project/canvas/-/work_items/3591865
+              EntityFieldExpressionsMustNotNestBranches: ~
+              # Reading multiple/differing fields per bundle across bundles
+              # coalesces into an object that mixes bundle-specific picks, which
+              # is unrenderable; reject it until it coalesces into a branch.
+              # @todo Remove once such selections coalesce into a branch, in https://git.drupalcode.org/project/canvas/-/work_items/3591873
+              EntityFieldExpressionsMustNotMixBundlesInObject: ~
             sequence:
               type: string
               label: 'Entity field prop expression'
@@ -291,10 +300,6 @@ canvas.js_component.*:
                   message: 'The expression is valid, but not one of the allowed types: %choices.'
                 # Validate that the expression targets an existing entity type and bundle.
                 ExpressionTargetEntityBundleExists: ~
-                # Reject references targeting multiple bundles: resolving them at
-                # render time is not yet supported.
-                # @todo https://git.drupalcode.org/project/canvas/-/work_items/3591656
-                MultiTargetBundleReferenceNotSupported: ~
                 # Reject expressions on multi-valued fields: resolving them at
                 # render time is not yet supported.
                 # @todo https://git.drupalcode.org/project/canvas/-/work_items/3589536

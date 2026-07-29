@@ -86,6 +86,39 @@ function fieldCheckbox(dialog: Locator, fieldLabel: string): Locator {
   return dialog.getByRole('checkbox', { name: fieldLabel, exact: true });
 }
 
+// Scopes a locator to a single per-bundle browse section inside a multi-target
+// reference field. The root field tree and each bundle expose identically named
+// checkboxes (e.g. "Title"), so selectors must be anchored to the exact bundle
+// section. A section owns its own expand/collapse control (name flips between
+// "Expand <bundle>" and "Collapse <bundle>") and — once expanded — a checkbox,
+// while excluding the sibling bundle's control. Those three filters pin the
+// BundleFieldsSection wrapper without ever climbing into the sibling section
+// (which a shared-ancestor selector does when a section is transiently
+// collapsed). The bundle must be expanded before scoping (the checkbox filter).
+function bundleSection(
+  dialog: Locator,
+  bundleLabel: string,
+  siblingLabel: string,
+): Locator {
+  // `has`/`hasNot` inner locators are re-rooted under each candidate, so they
+  // must be page-anchored (not dialog-anchored, which would demand a nested
+  // dialog inside the candidate and match nothing).
+  const page = dialog.page();
+  return dialog
+    .locator('div')
+    .filter({
+      has: page.getByRole('button', {
+        name: new RegExp(`^(Expand|Collapse) ${bundleLabel}$`),
+      }),
+    })
+    .filter({
+      hasNot: page.getByRole('button', {
+        name: new RegExp(`^(Expand|Collapse) ${siblingLabel}$`),
+      }),
+    })
+    .filter({ has: page.getByRole('checkbox') });
+}
+
 test.describe('Content entity reference props', () => {
   // The dialog only lists entity types the user can view, so grant the editor
   // the permissions needed to see User and Content.
@@ -249,6 +282,146 @@ test.describe('Content entity reference props', () => {
       await expect(
         fieldCheckbox(reopened, 'Authored by → Picture → Width'),
       ).toHaveAttribute('data-state', 'unchecked');
+    });
+  });
+
+  test('Browses a multi-target-bundle reference field and coalesces per-bundle picks', async ({
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    const canvasPage = await canvas.createCanvas();
+    await canvas.openCanvas(canvasPage);
+    await canvas.createCodeComponent('CerMultiBundle', COMPONENT_CODE);
+
+    const propForm = await canvas.addCodeComponentProp(
+      'related',
+      'Content entity reference',
+    );
+
+    // "Related content" (field_related) targets both News Item and Blog post, so
+    // browsing it must offer an independent per-bundle section for each bundle.
+    await test.step('Expanding the reference reveals a section per target bundle', async () => {
+      const dialog = await openDialog(propForm);
+      const continueButton = dialog.getByRole('button', {
+        name: 'Continue',
+        exact: true,
+      });
+      await selectFromDropdown(dialog, 'Select entity type', 'Content');
+      await selectFromDropdown(dialog, 'Select bundle', 'News Item');
+      await expect(continueButton).toBeEnabled();
+      await continueButton.click();
+
+      const saveButton = dialog.getByRole('button', {
+        name: 'Save',
+        exact: true,
+      });
+      await expect(saveButton).toBeVisible();
+
+      // The multi-bundle reference row exposes one "Expand" affordance; expanding
+      // it must reveal one browse section per target bundle.
+      await dialog
+        .getByRole('button', { name: 'Expand Related content', exact: true })
+        .click();
+      const newsExpand = dialog.getByRole('button', {
+        name: 'Expand News Item',
+        exact: true,
+      });
+      const blogExpand = dialog.getByRole('button', {
+        name: 'Expand Blog post',
+        exact: true,
+      });
+      await expect(newsExpand).toBeVisible();
+      await expect(blogExpand).toBeVisible();
+
+      // Each bundle section expands independently: expanding News Item must not
+      // expand Blog post. The News Item control flips to "Collapse" while the
+      // Blog post control stays "Expand".
+      await newsExpand.click();
+      await expect(
+        dialog.getByRole('button', { name: 'Collapse News Item', exact: true }),
+      ).toBeVisible();
+      await expect(blogExpand).toBeVisible();
+
+      // The News Item section exposes both the base field "Title" and the
+      // news_item-only "Body" field.
+      const newsSection = bundleSection(dialog, 'News Item', 'Blog post');
+      await expect(
+        newsSection.getByRole('checkbox', { name: 'Title', exact: true }),
+      ).toBeVisible();
+      await expect(
+        newsSection.getByRole('checkbox', { name: 'Body', exact: true }),
+      ).toBeVisible();
+
+      await blogExpand.click();
+      await expect(
+        dialog.getByRole('button', { name: 'Collapse Blog post', exact: true }),
+      ).toBeVisible();
+
+      // The two bundles expose genuinely different field sets: Blog post has
+      // "Title" but not the news_item-only "Body".
+      const blogSection = bundleSection(dialog, 'Blog post', 'News Item');
+      await expect(
+        blogSection.getByRole('checkbox', { name: 'Title', exact: true }),
+      ).toBeVisible();
+      await expect(
+        blogSection.getByRole('checkbox', { name: 'Body', exact: true }),
+      ).toHaveCount(0);
+
+      // Each bundle's "Title" is an independent, bundle-specific pick: checking
+      // it under News Item leaves Blog post's "Title" unchecked, and vice versa.
+      const newsTitle = newsSection.getByRole('checkbox', {
+        name: 'Title',
+        exact: true,
+      });
+      const blogTitle = blogSection.getByRole('checkbox', {
+        name: 'Title',
+        exact: true,
+      });
+      await newsTitle.click();
+      await expect(newsTitle).toHaveAttribute('data-state', 'checked');
+      await expect(blogTitle).toHaveAttribute('data-state', 'unchecked');
+      await blogTitle.click();
+      await expect(blogTitle).toHaveAttribute('data-state', 'checked');
+      await expect(newsTitle).toHaveAttribute('data-state', 'checked');
+
+      // Two single-bundle picks are held; saving must coalesce them into one
+      // bundle-specific branch expression on the stored component.
+      await expect(saveButton).toBeEnabled();
+      await saveButton.click();
+      await expect(dialog).toBeHidden();
+    });
+
+    await test.step('Reopening restores both per-bundle picks', async () => {
+      const reopened = await openDialog(propForm);
+      await reopened
+        .getByRole('button', { name: 'Expand Related content', exact: true })
+        .click();
+      await reopened
+        .getByRole('button', { name: 'Expand News Item', exact: true })
+        .click();
+      await reopened
+        .getByRole('button', { name: 'Expand Blog post', exact: true })
+        .click();
+      // The coalesced branch is expanded back per bundle: both picks restore.
+      await expect(
+        bundleSection(reopened, 'News Item', 'Blog post').getByRole(
+          'checkbox',
+          {
+            name: 'Title',
+            exact: true,
+          },
+        ),
+      ).toHaveAttribute('data-state', 'checked');
+      await expect(
+        bundleSection(reopened, 'Blog post', 'News Item').getByRole(
+          'checkbox',
+          {
+            name: 'Title',
+            exact: true,
+          },
+        ),
+      ).toHaveAttribute('data-state', 'checked');
     });
   });
 });
