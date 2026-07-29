@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/headless-react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shared React bindings for the Drupal Canvas Headless SDK.",
   "license": "MIT",
   "repository": {
