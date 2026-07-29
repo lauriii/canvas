@@ -23,7 +23,6 @@
       "docs/diagrams/**",
       "js/assets/**",
       "js/astro-bundles/**",
-      "modules/canvas_headless/examples/**",
       "modules/canvas_vite/**",
       "node_modules",
       "node_modules/**",

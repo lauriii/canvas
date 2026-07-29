@@ -17,9 +17,7 @@ hooks, and configuration may change without a deprecation path.
   `@drupal-canvas/headless` (framework-agnostic core) plus one adapter per framework —
   `@drupal-canvas/headless-next` (Next.js), `@drupal-canvas/headless-astro` (Astro),
   `@drupal-canvas/headless-nuxt` (Nuxt), and `@drupal-canvas/headless-tanstack-start` (TanStack Start) — with
-  `@drupal-canvas/headless-react` as the shared React binding. The bundled example apps (`examples/next`, `examples/astro`, `examples/nuxt`,
-  `examples/tanstack-start`) are working references built on them; see their READMEs for setup. They additionally
-  expect JSON:API for listings.
+  `@drupal-canvas/headless-react` as the shared React binding.
 
 ## Setup
 

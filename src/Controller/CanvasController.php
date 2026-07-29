@@ -204,11 +204,18 @@ HTML;
     }
     $languages_cacheability = (new CacheableMetadata())->setCacheTags(['config:configurable_language_list']);
 
+    // The absolute base URL of this Drupal site, without a trailing slash. The
+    // UI passes it to commands that need to reach the site from elsewhere,
+    // such as the headless frontend scaffolding command.
+    $site_url = rtrim(Url::fromRoute('<front>')->setAbsolute()->toString(), '/');
+    $site_url_cacheability = (new CacheableMetadata())->setCacheContexts(['url.site']);
+
     return (new HtmlResponse($this->buildHtml()))
       ->addCacheableDependency($extensions)
       ->addCacheableDependency($system_site_config)
       ->addCacheableDependency($all_content_entity_create_links)
       ->addCacheableDependency($languages_cacheability)
+      ->addCacheableDependency($site_url_cacheability)
       ->setAttachments([
         'library' => [
           'canvas/canvas-ui',
@@ -262,6 +269,8 @@ HTML;
             ],
             'contentEntityCreateOperations' => $content_entity_create_operations,
             'homepagePath' => $system_site_config->get('page.front'),
+            'siteName' => $system_site_config->get('name'),
+            'siteUrl' => $site_url,
             'loginUrl' => $this->urlGenerator->generateFromRoute('user.login'),
             'viewports' => $theme_settings['viewports'] ?? [],
           ],

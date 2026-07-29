@@ -1,5 +1,11 @@
 # @drupal-canvas/headless
 
+## 0.1.1
+
+### Patch Changes
+
+- ea4b308: Fix draft session recovery when background tabs delay token renewal.
+
 ## 0.1.0
 
 ### Minor Changes

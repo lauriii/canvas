@@ -1,5 +1,13 @@
 # @drupal-canvas/headless-host
 
+## 0.1.1
+
+### Patch Changes
+
+- ea4b308: Restore headless preview sessions after frontend framework refreshes.
+- Updated dependencies [ea4b308]
+  - @drupal-canvas/headless@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

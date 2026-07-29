@@ -92,14 +92,6 @@
   background-color: var(--gray-3);
 }
 
-/* The class is doubled to out-rank Radix's .rt-reset, which unsets min-width
-   with equal specificity later in the cascade. */
-.frameworkSelect.frameworkSelect {
-  /* Wide enough for the longest option, so the trigger keeps a stable width
-     across selections instead of shifting its neighbors. */
-  min-width: 135px;
-}
-
 .sectionCard {
   padding: var(--space-4);
   border: 1px solid var(--gray-5);

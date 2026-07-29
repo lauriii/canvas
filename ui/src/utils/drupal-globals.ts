@@ -21,6 +21,10 @@ export const getCanvasModuleBaseUrl = () =>
   `${getBaseUrl()}${drupalSettings?.canvas?.canvasModulePath}`;
 export const getCanvasHeadlessSettings = (): HeadlessSettings | undefined =>
   drupalSettings?.canvas?.headless;
+export const getSiteName = (): string | undefined =>
+  drupalSettings?.canvas?.siteName;
+export const getSiteUrl = (): string | undefined =>
+  drupalSettings?.canvas?.siteUrl;
 
 export const CANVAS_HEADLESS_SETTINGS_CHANGE =
   'canvas:headless-settings-change';
