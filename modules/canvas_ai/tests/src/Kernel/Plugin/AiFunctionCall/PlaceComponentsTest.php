@@ -99,14 +99,14 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
    * Tests placing components with proper permissions and valid data.
    */
   #[DataProvider('placementDataProvider')]
-  public function testPlaceComponentsWithPermissionsAndValidData(string $layout_type, string $yaml_input, array $expected_output): void {
+  public function testPlaceComponentsWithPermissionsAndValidData(string $layout_type, array $operations, array $expected_output): void {
     $this->container->get('current_user')->setAccount($this->privilegedUser);
     // Set the current layout to a valid layout.
     $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout($layout_type));
 
     $tool = $this->functionCallManager->createInstance('canvas_ai:place_components');
     $this->assertInstanceOf(PlaceComponents::class, $tool);
-    $tool->setContextValue('component_structure_yaml', $yaml_input);
+    $tool->setContextValue('operations', $operations);
     $tool->execute();
 
     // Each placed component carries a backend-assigned UUID, so the frontend
@@ -146,20 +146,56 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
     $this->expectException(\Exception::class);
     $this->expectExceptionMessage('The current user does not have the right permissions to run this tool.');
 
-    $tool->setContextValue('component_structure_yaml', 'test: value');
+    $tool->setContextValue('operations', []);
     $tool->execute();
   }
 
   /**
-   * Tests placing components with invalid YAML.
+   * Tests that the rendered schema exposes the operations contract.
+   */
+  public function testOperationsSchema(): void {
+    $tool = $this->functionCallManager->createInstance('canvas_ai:place_components');
+    $this->assertInstanceOf(PlaceComponents::class, $tool);
+
+    $rendered = $tool->normalize()->renderFunctionArray();
+    $this->assertSame(['operations'], $rendered['parameters']['required']);
+
+    $operations_schema = $rendered['parameters']['properties']['operations'];
+    $this->assertSame('array', $operations_schema['type']);
+    $this->assertSame(1, $operations_schema['minItems']);
+
+    $item_schema = $operations_schema['items'];
+    $this->assertSame('object', $item_schema['type']);
+    $this->assertSame(['target', 'placement', 'components'], $item_schema['required']);
+    $this->assertSame(['above', 'below', 'inside'], $item_schema['properties']['placement']['enum']);
+    $this->assertArrayHasKey('target', $item_schema['properties']);
+    $this->assertArrayHasKey('reference_uuid', $item_schema['properties']);
+    $this->assertArrayHasKey('components', $item_schema['properties']);
+  }
+
+  /**
+   * Tests that an empty operations list is rejected by context validation.
+   *
+   * The empty/absent case is enforced by the context-definition schema
+   * (validateContexts), not the tool, so that seam is asserted directly.
+   */
+  public function testEmptyOperationsListFailsContextValidation(): void {
+    $tool = $this->functionCallManager->createInstance('canvas_ai:place_components');
+    $this->assertInstanceOf(PlaceComponents::class, $tool);
+    $tool->setContextValue('operations', []);
+    $this->assertGreaterThan(0, $tool->validateContexts()->count());
+  }
+
+  /**
+   * Tests placing components with invalid placement parameters.
    */
   #[DataProvider('invalidPlacementDataProvider')]
-  public function testPlaceComponentsWithInvalidYaml(string $layout_type, string $yaml_input, array $expected_error): void {
+  public function testPlaceComponentsWithInvalidYaml(string $layout_type, array $operations, array $expected_error): void {
     $this->container->get('current_user')->setAccount($this->privilegedUser);
     // Set the current layout to a valid layout.
     $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout($layout_type));
 
-    $result = $this->getComponentToolOutput($yaml_input);
+    $result = $this->getComponentToolOutput($operations);
     $expected_error = 'Failed to place components: ' . Yaml::dump($expected_error);
     $this->assertStringContainsString($expected_error, $result);
   }
@@ -172,40 +208,31 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
     // Set the current layout to a valid layout.
     $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
 
-    $valid_yaml = <<<YAML
-      operations:
-        - target: 'content'
-          reference_uuid: ''
-          placement: 'inside'
-          components:
-          - invalid.component.id:
-              props:
-                title: 'Invalid Component'
-      YAML;
-
-    $result = $this->getComponentToolOutput($valid_yaml);
+    $result = $this->getComponentToolOutput([
+      self::buildOperation(<<<YAML
+        - invalid.component.id:
+            props:
+              title: 'Invalid Component'
+        YAML),
+    ]);
     $this->assertSame("Failed to place components: Component validation errors: components.0.[invalid.component.id]: The 'canvas.component.invalid.component.id' config does not exist.", self::normalizeErrorString($result));
 
-    $invalid_nested_component = <<<YAML
-      operations:
-        - target: 'content'
-          reference_uuid: ''
-          placement: 'inside'
-          components:
-            - sdc.canvas_test_sdc.two_column:
-                props:
-                  width: 50
-                slots:
-                  column_one:
-                    - sdc.canvas_test_sdc.invalid_component:
-                        props:
-                          heading: 'My Hero'
-                          subheading: 'SubSnub'
-                          cta1href: 'https://example.com'
-                          cta1: 'View it!'
-                          cta2: 'Click it!'
-      YAML;
-    $result = $this->getComponentToolOutput($invalid_nested_component);
+    $result = $this->getComponentToolOutput([
+      self::buildOperation(<<<YAML
+        - sdc.canvas_test_sdc.two_column:
+            props:
+              width: 50
+            slots:
+              column_one:
+                - sdc.canvas_test_sdc.invalid_component:
+                    props:
+                      heading: 'My Hero'
+                      subheading: 'SubSnub'
+                      cta1href: 'https://example.com'
+                      cta1: 'View it!'
+                      cta2: 'Click it!'
+        YAML),
+    ]);
     $this->assertSame("Failed to place components: Component validation errors: components.0.[sdc.canvas_test_sdc.two_column].slots.column_one.0.[sdc.canvas_test_sdc.invalid_component]: The 'canvas.component.sdc.canvas_test_sdc.invalid_component' config does not exist.", self::normalizeErrorString($result));
   }
 
@@ -215,34 +242,23 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
   public function testValidateComponent(): void {
     $this->container->get('current_user')->setAccount($this->privilegedUser);
 
-    $invalid_yaml = <<<YAML
-      operations:
-        - target: 'content'
-          reference_uuid: ''
-          placement: 'inside'
-          components:
-            - sdc.canvas_test_sdc.my-hero:
-                props:
-                  subheading: 'SubSnub'
-                  cta1: 'View it!'
-                  cta1href: 'https://canvas-example.com'
-                  cta2: 'Click it!'
+    $components_yaml = <<<YAML
+      - sdc.canvas_test_sdc.my-hero:
+          props:
+            subheading: 'SubSnub'
+            cta1: 'View it!'
+            cta1href: 'https://canvas-example.com'
+            cta2: 'Click it!'
       YAML;
-
-    $result = $this->getComponentToolOutput($invalid_yaml);
+    $result = $this->getComponentToolOutput([self::buildOperation($components_yaml)]);
     $this->assertSame("Failed to place components: Component validation errors: components.0.[sdc.canvas_test_sdc.my-hero].props.heading: The property heading is required.", self::normalizeErrorString($result));
-    // Ensure we gracefully 'props' not being set.
-    $decoded = Yaml::parse($invalid_yaml);
-    unset($decoded['operations'][0]['components'][0]['sdc.canvas_test_sdc.my-hero']['props']);
-    $result = $this->getComponentToolOutput(Yaml::dump($decoded));
+    // Ensure we gracefully handle 'props' not being set.
+    $decoded_components = Yaml::parse($components_yaml);
+    unset($decoded_components[0]['sdc.canvas_test_sdc.my-hero']['props']);
+    $result = $this->getComponentToolOutput([self::buildOperation(Yaml::dump($decoded_components))]);
     $this->assertSame('Failed to place components: Component validation errors: components.0.[sdc.canvas_test_sdc.my-hero].props.heading: The property heading is required. components.0.[sdc.canvas_test_sdc.my-hero].props.cta1href: The property cta1href is required.', self::normalizeErrorString($result));
 
-    $invalid_nested_yaml = <<<YAML
-operations:
-  - target: 'content'
-    reference_uuid: ''
-    placement: 'inside'
-    components:
+    $nested_components_yaml = <<<YAML
       - sdc.canvas_test_sdc.two_column:
           props:
             width: 50
@@ -254,15 +270,14 @@ operations:
                     subheading: 'SubSnub'
                     cta1: 'View it!'
                     cta2: 'Click it!'
-YAML;
-    $result = $this->getComponentToolOutput($invalid_nested_yaml);
+      YAML;
+    $result = $this->getComponentToolOutput([self::buildOperation($nested_components_yaml)]);
     $this->assertSame('Failed to place components: Component validation errors: components.0.[sdc.canvas_test_sdc.two_column].slots.column_one.0.[sdc.canvas_test_sdc.my-hero].props.cta1href: The property cta1href is required.', self::normalizeErrorString($result));
 
     // Ensure we error on invalid slot names.
-    $decoded = Yaml::parse($invalid_nested_yaml);
-    $decoded['operations'][0]['components'][0]['sdc.canvas_test_sdc.two_column']['slots']['not_real_slot'] = $decoded['operations'][0]['components'][0]['sdc.canvas_test_sdc.two_column']['slots']['column_one'];
-    $invalid_slot_name_yaml = Yaml::dump($decoded);
-    $result = $this->getComponentToolOutput($invalid_slot_name_yaml);
+    $decoded_nested = Yaml::parse($nested_components_yaml);
+    $decoded_nested[0]['sdc.canvas_test_sdc.two_column']['slots']['not_real_slot'] = $decoded_nested[0]['sdc.canvas_test_sdc.two_column']['slots']['column_one'];
+    $result = $this->getComponentToolOutput([self::buildOperation(Yaml::dump($decoded_nested))]);
     $this->assertSame('Failed to place components: Component validation errors: components.0.[sdc.canvas_test_sdc.two_column]: Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.canvas_test_sdc.two_column</em>: <em class="placeholder">not_real_slot</em>. Valid slot names are: <em class="placeholder">column_one, column_two</em>. components.0.[sdc.canvas_test_sdc.two_column].slots.column_one.0.[sdc.canvas_test_sdc.my-hero].props.cta1href: The property cta1href is required. components.0.[sdc.canvas_test_sdc.two_column].slots.not_real_slot.0.[sdc.canvas_test_sdc.my-hero].props.cta1href: The property cta1href is required.', self::normalizeErrorString($result));
   }
 
@@ -273,98 +288,74 @@ YAML;
     $this->container->get('current_user')->setAccount($this->privilegedUser);
 
     // A valid required prop plus a prop the component does not define.
-    $bogus_prop_yaml = <<<YAML
-      operations:
-        - target: 'content'
-          reference_uuid: ''
-          placement: 'inside'
-          components:
-            - sdc.canvas_test_sdc.props-no-slots:
-                props:
-                  heading: 'A valid heading'
-                  nonexistent_prop: 'This prop does not exist'
-      YAML;
-    $result = $this->getComponentToolOutput($bogus_prop_yaml);
+    $result = $this->getComponentToolOutput([
+      self::buildOperation(<<<YAML
+        - sdc.canvas_test_sdc.props-no-slots:
+            props:
+              heading: 'A valid heading'
+              nonexistent_prop: 'This prop does not exist'
+        YAML),
+    ]);
     $this->assertSame('Failed to place components: Component validation errors: components.0.[sdc.canvas_test_sdc.props-no-slots].props.nonexistent_prop: Component `sdc.canvas_test_sdc.props-no-slots`: the `nonexistent_prop` prop is not defined. (code garbage)', self::normalizeErrorString($result));
 
     // Any prop sent to a component that defines no props must fail.
-    $zero_prop_component_yaml = <<<YAML
-      operations:
-        - target: 'content'
-          reference_uuid: ''
-          placement: 'inside'
-          components:
-            - sdc.canvas_test_sdc.druplicon:
-                props:
-                  heading: 'Druplicon has no props'
-      YAML;
-    $result = $this->getComponentToolOutput($zero_prop_component_yaml);
+    $result = $this->getComponentToolOutput([
+      self::buildOperation(<<<YAML
+        - sdc.canvas_test_sdc.druplicon:
+            props:
+              heading: 'Druplicon has no props'
+        YAML),
+    ]);
     $this->assertSame('Failed to place components: Component validation errors: components.0.[sdc.canvas_test_sdc.druplicon].props.heading: Component `sdc.canvas_test_sdc.druplicon`: the `heading` prop is not defined. (code garbage)', self::normalizeErrorString($result));
 
     // A non-existent prop on a component nested inside a slot.
-    $nested_bogus_prop_yaml = <<<YAML
-      operations:
-        - target: 'content'
-          reference_uuid: ''
-          placement: 'inside'
-          components:
-            - sdc.canvas_test_sdc.two_column:
-                props:
-                  width: 50
-                slots:
-                  column_one:
-                    - sdc.canvas_test_sdc.heading:
-                        props:
-                          text: 'A heading'
-                          element: 'h2'
-                          nonexistent_prop: 'Bogus'
-      YAML;
-    $result = $this->getComponentToolOutput($nested_bogus_prop_yaml);
+    $result = $this->getComponentToolOutput([
+      self::buildOperation(<<<YAML
+        - sdc.canvas_test_sdc.two_column:
+            props:
+              width: 50
+            slots:
+              column_one:
+                - sdc.canvas_test_sdc.heading:
+                    props:
+                      text: 'A heading'
+                      element: 'h2'
+                      nonexistent_prop: 'Bogus'
+        YAML),
+    ]);
     $this->assertSame('Failed to place components: Component validation errors: components.0.[sdc.canvas_test_sdc.two_column].slots.column_one.0.[sdc.canvas_test_sdc.heading].props.nonexistent_prop: Component `sdc.canvas_test_sdc.heading`: the `nonexistent_prop` prop is not defined. (code garbage)', self::normalizeErrorString($result));
 
     // A missing required prop and a non-existent prop are both reported.
-    $combined_yaml = <<<YAML
-      operations:
-        - target: 'content'
-          reference_uuid: ''
-          placement: 'inside'
-          components:
-            - sdc.canvas_test_sdc.props-no-slots:
-                props:
-                  nonexistent_prop: 'This prop does not exist'
-      YAML;
-    $result = $this->getComponentToolOutput($combined_yaml);
+    $result = $this->getComponentToolOutput([
+      self::buildOperation(<<<YAML
+        - sdc.canvas_test_sdc.props-no-slots:
+            props:
+              nonexistent_prop: 'This prop does not exist'
+        YAML),
+    ]);
     $this->assertSame('Failed to place components: Component validation errors: components.0.[sdc.canvas_test_sdc.props-no-slots].props.heading: The property heading is required. components.0.[sdc.canvas_test_sdc.props-no-slots].props.nonexistent_prop: Component `sdc.canvas_test_sdc.props-no-slots`: the `nonexistent_prop` prop is not defined. (code garbage)', self::normalizeErrorString($result));
 
     // Props provided as a scalar instead of a mapping must also fail instead
     // of being silently dropped.
-    $scalar_props_yaml = <<<YAML
-      operations:
-        - target: 'content'
-          reference_uuid: ''
-          placement: 'inside'
-          components:
-            - sdc.canvas_test_sdc.druplicon:
-                props: 'heading: Not a mapping'
-      YAML;
-    $result = $this->getComponentToolOutput($scalar_props_yaml);
+    $result = $this->getComponentToolOutput([
+      self::buildOperation(<<<YAML
+        - sdc.canvas_test_sdc.druplicon:
+            props: 'heading: Not a mapping'
+        YAML),
+    ]);
     $this->assertSame('Failed to place components: Component validation errors: components.0.[sdc.canvas_test_sdc.druplicon].props: Component `sdc.canvas_test_sdc.druplicon`: the props must be a mapping of prop names to values. (code garbage)', self::normalizeErrorString($result));
 
     // Code components (JS source) resolve props the same way as SDCs, so a
     // prop the component does not define must fail for them too.
     $this->createTestCodeComponent();
-    $js_bogus_prop_yaml = <<<YAML
-      operations:
-        - target: 'content'
-          reference_uuid: ''
-          placement: 'inside'
-          components:
-            - js.test-code-component:
-                props:
-                  heading: 'A valid heading'
-                  nonexistent_prop: 'This prop does not exist'
-      YAML;
-    $result = $this->getComponentToolOutput($js_bogus_prop_yaml);
+    $result = $this->getComponentToolOutput([
+      self::buildOperation(<<<YAML
+        - js.test-code-component:
+            props:
+              heading: 'A valid heading'
+              nonexistent_prop: 'This prop does not exist'
+        YAML),
+    ]);
     $this->assertSame('Failed to place components: Component validation errors: components.0.[js.test-code-component].props.nonexistent_prop: Component `js.test-code-component`: the `nonexistent_prop` prop is not defined. (code garbage)', self::normalizeErrorString($result));
   }
 
@@ -375,19 +366,14 @@ YAML;
     $this->container->get('current_user')->setAccount($this->privilegedUser);
     $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
 
-    $yaml_input = <<<YAML
-      operations:
-        - target: 'sidebar'
-          reference_uuid: ''
-          placement: 'inside'
-          components:
-            - sdc.canvas_test_sdc.heading:
-                props:
-                  text: "Some text"
-                  element: "h1"
-      YAML;
-
-    $result = $this->getComponentToolOutput($yaml_input);
+    $result = $this->getComponentToolOutput([
+      self::buildOperation(<<<YAML
+        - sdc.canvas_test_sdc.heading:
+            props:
+              text: "Some text"
+              element: "h1"
+        YAML, target: 'sidebar'),
+    ]);
     $this->assertSame('Failed to place components: Region "sidebar" not found in layout', self::normalizeErrorString($result));
   }
 
@@ -398,33 +384,52 @@ YAML;
     $this->container->get('current_user')->setAccount($this->privilegedUser);
     $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_non_empty'));
 
-    $yaml_input = <<<YAML
-      operations:
-        - target: 'content'
-          reference_uuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
-          placement: 'below'
-          components:
-            - sdc.canvas_test_sdc.heading:
-                props:
-                  text: "Some text"
-                  element: "h1"
-      YAML;
-
-    $result = $this->getComponentToolOutput($yaml_input);
+    $result = $this->getComponentToolOutput([
+      self::buildOperation(<<<YAML
+        - sdc.canvas_test_sdc.heading:
+            props:
+              text: "Some text"
+              element: "h1"
+        YAML, placement: 'below', reference_uuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'),
+    ]);
     $this->assertSame('Failed to place components: Component with UUID "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee" not found in layout', self::normalizeErrorString($result));
   }
 
   /**
    * Runs the place_components tool and returns its readable output.
    *
-   * @param string $yaml
-   *   The component structure YAML to pass as the tool argument.
+   * @param array $operations
+   *   The operations to pass as the tool's 'operations' context value.
    *
    * @return string
    *   The tool's readable output.
    */
-  private function getComponentToolOutput(string $yaml): string {
-    return $this->getToolOutput('canvas_ai:place_components', ['component_structure_yaml' => $yaml]);
+  private function getComponentToolOutput(array $operations): string {
+    return $this->getToolOutput('canvas_ai:place_components', ['operations' => $operations]);
+  }
+
+  /**
+   * Builds a single placement operation record.
+   *
+   * @param string $components_yaml
+   *   The YAML list of components to place.
+   * @param string $target
+   *   The target region or 'parent-uuid/slot_name'.
+   * @param string $placement
+   *   The placement: 'inside', 'above', or 'below'.
+   * @param string $reference_uuid
+   *   The reference UUID for 'above'/'below' placement.
+   *
+   * @return array
+   *   A single operation record, matching the place_components schema.
+   */
+  private static function buildOperation(string $components_yaml, string $target = 'content', string $placement = 'inside', string $reference_uuid = ''): array {
+    return [
+      'target' => $target,
+      'placement' => $placement,
+      'reference_uuid' => $reference_uuid,
+      'components' => $components_yaml,
+    ];
   }
 
   /**
@@ -478,17 +483,14 @@ YAML;
     return [
       'test_placement_inside_single' => [
         'layout_type' => 'multi_region_empty',
-        'yaml_input' => <<<YAML
-          operations:
-            - target: 'content'
-              reference_uuid: ''
-              placement: 'inside'
-              components:
-                - sdc.canvas_test_sdc.heading:
-                    props:
-                      text: "Some text"
-                      element: "h1"
-          YAML,
+        'operations' => [
+          self::buildOperation(<<<YAML
+            - sdc.canvas_test_sdc.heading:
+                props:
+                  text: "Some text"
+                  element: "h1"
+            YAML),
+        ],
         'expected_output' => [
           'operations' => [
             [
@@ -509,33 +511,28 @@ YAML;
       ],
       'test_placement_inside_multiple' => [
         'layout_type' => 'multi_region_empty',
-        'yaml_input' => <<<YAML
-          operations:
-            - target: 'content'
-              reference_uuid: ''
-              placement: 'inside'
-              components:
-                - sdc.canvas_test_sdc.heading:
-                    props:
-                      text: "Some text"
-                      element: "h1"
-            - target: 'footer'
-              reference_uuid: ''
-              placement: 'inside'
-              components:
-                - sdc.canvas_test_sdc.two_column:
-                    props:
-                      width: 50
-                    slots:
-                      column_one:
-                        - sdc.canvas_test_sdc.my-hero:
-                            props:
-                              heading: 'My Hero'
-                              subheading: 'SubSnub'
-                              cta1: 'View it!'
-                              cta1href: 'https://example.com'
-                              cta2: 'Click it!'
-          YAML,
+        'operations' => [
+          self::buildOperation(<<<YAML
+            - sdc.canvas_test_sdc.heading:
+                props:
+                  text: "Some text"
+                  element: "h1"
+            YAML),
+          self::buildOperation(<<<YAML
+            - sdc.canvas_test_sdc.two_column:
+                props:
+                  width: 50
+                slots:
+                  column_one:
+                    - sdc.canvas_test_sdc.my-hero:
+                        props:
+                          heading: 'My Hero'
+                          subheading: 'SubSnub'
+                          cta1: 'View it!'
+                          cta1href: 'https://example.com'
+                          cta2: 'Click it!'
+            YAML, target: 'footer'),
+        ],
         'expected_output' => [
           'operations' => [
             [
@@ -574,17 +571,14 @@ YAML;
       ],
       'test_placement_below' => [
         'layout_type' => 'multi_region_non_empty',
-        'yaml_input' => <<<YAML
-          operations:
-            - target: 'content'
-              reference_uuid: '72384115-a8ee-44bc-9a13-de1c7a4d9b96'
-              placement: 'below'
-              components:
-                - sdc.canvas_test_sdc.heading:
-                    props:
-                      text: "After existing component"
-                      element: "h2"
-          YAML,
+        'operations' => [
+          self::buildOperation(<<<YAML
+            - sdc.canvas_test_sdc.heading:
+                props:
+                  text: "After existing component"
+                  element: "h2"
+            YAML, placement: 'below', reference_uuid: '72384115-a8ee-44bc-9a13-de1c7a4d9b96'),
+        ],
         'expected_output' => [
           'operations' => [
             [
@@ -605,41 +599,34 @@ YAML;
       ],
       'test_placement_complex' => [
         'layout_type' => 'multi_region_non_empty',
-        'yaml_input' => <<<YAML
-          operations:
-            - target: 'content'
-              reference_uuid: '72384115-a8ee-44bc-9a13-de1c7a4d9b96'
-              placement: 'above'
-              components:
-                - sdc.canvas_test_sdc.heading:
-                    props:
-                      text: "Above existing component"
-                      element: "h2"
-                - sdc.canvas_test_sdc.two_column:
-                    props:
-                      width: 25
-                    slots:
-                      column_two:
-                        - sdc.canvas_test_sdc.druplicon: {}
-                        - sdc.canvas_test_sdc.druplicon: {}
-                        - sdc.canvas_test_sdc.druplicon: {}
-            - target: 'content'
-              reference_uuid: '72384115-a8ee-44bc-9a13-de1c7a4d9b96'
-              placement: 'below'
-              components:
-                - sdc.canvas_test_sdc.heading:
-                    props:
-                      text: "Below existing component"
-                      element: "h2"
-            - target: 'header'
-              reference_uuid: ''
-              placement: 'inside'
-              components:
-                - sdc.canvas_test_sdc.heading:
-                    props:
-                      text: "Some text"
-                      element: "h1"
-          YAML,
+        'operations' => [
+          self::buildOperation(<<<YAML
+            - sdc.canvas_test_sdc.heading:
+                props:
+                  text: "Above existing component"
+                  element: "h2"
+            - sdc.canvas_test_sdc.two_column:
+                props:
+                  width: 25
+                slots:
+                  column_two:
+                    - sdc.canvas_test_sdc.druplicon: {}
+                    - sdc.canvas_test_sdc.druplicon: {}
+                    - sdc.canvas_test_sdc.druplicon: {}
+            YAML, placement: 'above', reference_uuid: '72384115-a8ee-44bc-9a13-de1c7a4d9b96'),
+          self::buildOperation(<<<YAML
+            - sdc.canvas_test_sdc.heading:
+                props:
+                  text: "Below existing component"
+                  element: "h2"
+            YAML, placement: 'below', reference_uuid: '72384115-a8ee-44bc-9a13-de1c7a4d9b96'),
+          self::buildOperation(<<<YAML
+            - sdc.canvas_test_sdc.heading:
+                props:
+                  text: "Some text"
+                  element: "h1"
+            YAML, target: 'header'),
+        ],
         'expected_output' => [
           'operations' => [
             [
@@ -709,17 +696,14 @@ YAML;
     return [
       'test_invalid_below_placement' => [
         'layout_type' => 'multi_region_empty',
-        'yaml_input' => <<<YAML
-          operations:
-            - target: 'content'
-              reference_uuid: ''
-              placement: 'below'
-              components:
-                - sdc.canvas_test_sdc.heading:
-                    props:
-                      text: "Some text"
-                      element: "h1"
-          YAML,
+        'operations' => [
+          self::buildOperation(<<<YAML
+            - sdc.canvas_test_sdc.heading:
+                props:
+                  text: "Some text"
+                  element: "h1"
+            YAML, placement: 'below'),
+        ],
         'expected_error' => [
           'Operation 0' => [
             'The reference_uuid must be provided for above/below placement.',
@@ -728,36 +712,49 @@ YAML;
       ],
       'test_invalid_inside_placement' => [
         'layout_type' => 'multi_region_non_empty',
-        'yaml_input' => <<<YAML
-          operations:
-            - target: 'content'
-              reference_uuid: ''
-              placement: 'inside'
-              components:
-                - sdc.canvas_test_sdc.heading:
-                    props:
-                      text: "Some text"
-                      element: "h1"
-          YAML,
+        'operations' => [
+          self::buildOperation(<<<YAML
+            - sdc.canvas_test_sdc.heading:
+                props:
+                  text: "Some text"
+                  element: "h1"
+            YAML),
+        ],
         'expected_error' => [
           'Operation 0' => [
             'The target content has "inside" placement specified, but it contains child components. Select any child component in the target and use "above" or "below" placement instead.',
           ],
         ],
       ],
+      'test_missing_target' => [
+        'layout_type' => 'multi_region_empty',
+        'operations' => [
+          [
+            'placement' => 'inside',
+            'components' => <<<YAML
+              - sdc.canvas_test_sdc.heading:
+                  props:
+                    text: "Some text"
+                    element: "h1"
+              YAML,
+          ],
+        ],
+        'expected_error' => [
+          'Operation 0' => [
+            'The target key is missing in the operation.',
+          ],
+        ],
+      ],
       'test_invalid_placement_value' => [
         'layout_type' => 'multi_region_empty',
-        'yaml_input' => <<<YAML
-          operations:
-            - target: 'content'
-              reference_uuid: ''
-              placement: 'invalid_placement'
-              components:
-                - sdc.canvas_test_sdc.heading:
-                    props:
-                      text: "Some text"
-                      element: "h1"
-          YAML,
+        'operations' => [
+          self::buildOperation(<<<YAML
+            - sdc.canvas_test_sdc.heading:
+                props:
+                  text: "Some text"
+                  element: "h1"
+            YAML, placement: 'invalid_placement'),
+        ],
         'expected_error' => [
           'Operation 0' => [
             'The placement key is missing or invalid in the operation.',
@@ -766,17 +763,14 @@ YAML;
       ],
       'test_inside_placement_with_reference_uuid' => [
         'layout_type' => 'multi_region_empty',
-        'yaml_input' => <<<YAML
-          operations:
-            - target: 'content'
-              reference_uuid: 'some-uuid-123'
-              placement: 'inside'
-              components:
-                - sdc.canvas_test_sdc.heading:
-                    props:
-                      text: "Some text"
-                      element: "h1"
-          YAML,
+        'operations' => [
+          self::buildOperation(<<<YAML
+            - sdc.canvas_test_sdc.heading:
+                props:
+                  text: "Some text"
+                  element: "h1"
+            YAML, reference_uuid: 'some-uuid-123'),
+        ],
         'expected_error' => [
           'Operation 0' => [
             'The reference_uuid is not required for inside placement.',
@@ -785,16 +779,23 @@ YAML;
       ],
       'test_empty_components' => [
         'layout_type' => 'multi_region_empty',
-        'yaml_input' => <<<YAML
-          operations:
-            - target: 'content'
-              reference_uuid: ''
-              placement: 'inside'
-              components: []
-          YAML,
+        'operations' => [
+          self::buildOperation('[]'),
+        ],
         'expected_error' => [
           'Operation 0' => [
             'The operation must contain components.',
+          ],
+        ],
+      ],
+      'test_components_not_a_list' => [
+        'layout_type' => 'multi_region_empty',
+        'operations' => [
+          self::buildOperation('this is not a YAML list'),
+        ],
+        'expected_error' => [
+          'Operation 0' => [
+            'The components value must be a YAML list.',
           ],
         ],
       ],
