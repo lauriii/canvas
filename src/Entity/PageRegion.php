@@ -10,6 +10,7 @@ use Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler;
 use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
@@ -151,13 +152,22 @@ final class PageRegion extends ComponentTreeConfigEntityBase implements CanvasHt
    * {@inheritdoc}
    */
   public function normalizeForClientSide(): ClientSideRepresentation {
+    $component_tree = [];
+    foreach ($this->getComponentTree() as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      $values = \array_map(fn($property) => $property->getValue(), $item->getProperties(TRUE));
+      unset($values['parent_item'], $values['component']);
+      $values['inputs'] = $item->getInputs();
+      $component_tree[] = $values;
+    }
+
     return ClientSideRepresentation::create(
       values: [
         'id' => $this->id(),
         'theme' => $this->theme,
         'region' => $this->region,
         'status' => $this->status(),
-        'component_tree' => $this->getComponentTree()->getValue(),
+        'component_tree' => $component_tree,
       ],
       preview: NULL,
     )->addCacheableDependency($this);

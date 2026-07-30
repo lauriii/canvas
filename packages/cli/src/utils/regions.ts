@@ -1,7 +1,4 @@
-import { canvasTreeToSpec } from 'drupal-canvas/json-render-utils';
-
-import { jsonRenderSpecToAuthoredElementMap } from './authored-elements';
-import { isRecord } from './utils';
+import { resolvedComponentTreeToAuthoredElementMap } from './authored-elements';
 
 import type {
   AuthoredSpecElementMap,
@@ -31,22 +28,15 @@ export function regionToAuthoredSpec(region: Region): AuthoredRegionSpec {
     return { ...meta, elements: {} };
   }
 
-  // The PageRegion config schema omits `parent_uuid`, `slot`, and `label`
-  // when they have no value, so the server returns root-level components
-  // with those keys absent. canvasTreeToSpec requires explicit `null` to
-  // recognize root components, so normalize back here.
-  const components = region.component_tree.map((node) => ({
-    ...node,
-    parent_uuid: node.parent_uuid ?? null,
-    slot: node.slot ?? null,
-    label: node.label ?? null,
-    inputs: isRecord(node.inputs) ? node.inputs : {},
-  }));
-
-  const spec = canvasTreeToSpec(components);
-  const elements = jsonRenderSpecToAuthoredElementMap(spec);
-
-  return { ...meta, elements };
+  return {
+    ...meta,
+    elements: resolvedComponentTreeToAuthoredElementMap(
+      region.component_tree,
+      // The CLI can target older Canvas sites whose region response does not
+      // expose inputs_resolved yet.
+      { fallbackToRawInputs: true },
+    ),
+  };
 }
 
 /**
