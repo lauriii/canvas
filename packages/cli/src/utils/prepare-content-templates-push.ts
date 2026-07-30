@@ -182,7 +182,6 @@ export async function pushContentTemplates(
     }
 
     await apiService.createContentTemplate({
-      label: template.label,
       entityType: template.entityTypeId,
       bundle: template.bundle,
       viewMode: template.viewMode,

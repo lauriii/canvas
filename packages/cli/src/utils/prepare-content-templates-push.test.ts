@@ -33,6 +33,51 @@ function mockDiscoveredContentTemplate(
 }
 
 describe('pushContentTemplates', () => {
+  it('omits the authored label from the create request and retains it in the result', async () => {
+    const createContentTemplate = vi.fn().mockResolvedValue({});
+
+    const results = await pushContentTemplates(
+      [
+        {
+          index: 0,
+          result: {
+            id: 'node.article.full',
+            label: 'Article — Full content',
+            entityTypeId: 'node',
+            bundle: 'article',
+            viewMode: 'full',
+            components: [] satisfies CanvasComponentTree,
+            filePath: '/tmp/content-templates/node.article.full.json',
+          },
+        },
+      ],
+      new Map(),
+      {
+        createContentTemplate,
+        updateContentTemplate: vi.fn(),
+      },
+    );
+
+    expect(createContentTemplate).toHaveBeenCalledExactlyOnceWith({
+      entityType: 'node',
+      bundle: 'article',
+      viewMode: 'full',
+      status: true,
+      component_tree: [],
+    });
+    expect(results).toEqual([
+      {
+        success: true,
+        result: {
+          label: 'Article — Full content',
+          id: 'node.article.full',
+          operation: 'Created',
+        },
+        index: 0,
+      },
+    ]);
+  });
+
   it('maps push result indices back to discovered content templates', async () => {
     const createContentTemplate = vi
       .fn()
