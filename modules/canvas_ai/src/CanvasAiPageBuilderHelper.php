@@ -166,36 +166,38 @@ class CanvasAiPageBuilderHelper {
    *   Structured array with calculated nodePaths for components.
    */
   public function customYamlToArrayMapper(string $yaml_string): array {
-    return $this->computePlacement($yaml_string, FALSE)->operations;
+    $parsed_yaml = Yaml::parse($yaml_string);
+    $parsed_yaml = \is_array($parsed_yaml) ? $parsed_yaml : [];
+    return $this->computePlacement($parsed_yaml, FALSE)->operations;
   }
 
   /**
    * Generates the placement data for a component structure request.
    *
-   * @param string $yaml_string
-   *   The YAML string to convert.
+   * @param array $operations_data
+   *   The operations structure, keyed by 'operations'.
    *
    * @return \Drupal\canvas_ai\CanvasAiPlacementResult
    *   The operations (with assigned UUIDs) for the UI, plus the component
    *   structure with those UUIDs and the predicted post-placement layout for
    *   the model to reference in follow-up placements.
    */
-  public function generateComponentPlacementData(string $yaml_string): CanvasAiPlacementResult {
-    return $this->computePlacement($yaml_string, TRUE);
+  public function generateComponentPlacementData(array $operations_data): CanvasAiPlacementResult {
+    return $this->computePlacement($operations_data, TRUE);
   }
 
   /**
    * Computes the operations, assigned UUIDs, and predicted layout for a request.
    *
-   * @param string $yaml_string
-   *   The YAML string to convert.
+   * @param array $data
+   *   The operations structure, keyed by 'operations'.
    * @param bool $include_uuid
    *   Whether to include each component's assigned UUID in the operations.
    *
    * @return \Drupal\canvas_ai\CanvasAiPlacementResult
    *   The mapped placement result.
    */
-  private function computePlacement(string $yaml_string, bool $include_uuid): CanvasAiPlacementResult {
+  private function computePlacement(array $data, bool $include_uuid): CanvasAiPlacementResult {
     $result = [
       'operations' => [
         [
@@ -204,11 +206,9 @@ class CanvasAiPageBuilderHelper {
         ],
       ],
     ];
-    $parsed_yaml = Yaml::parse($yaml_string);
-    $parsed_yaml = \is_array($parsed_yaml) ? $parsed_yaml : [];
     // Add UUIDs to all components in the page builder output, so that their
     // nodePaths can be extracted later from the expected layout.
-    $data_to_process = $this->addUuidToAllComponents($parsed_yaml);
+    $data_to_process = $this->addUuidToAllComponents($data);
 
     $current_layout = $this->canvasAiTempstore->getData(CanvasAiTempStore::CURRENT_LAYOUT_KEY) ?? '';
     $current_layout = Json::decode($current_layout);
