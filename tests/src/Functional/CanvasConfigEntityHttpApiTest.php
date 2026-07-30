@@ -741,6 +741,15 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
         ],
       ],
     ];
+    $normalized_component_tree = [
+      [
+        'parent_uuid' => NULL,
+        'slot' => NULL,
+        ...$component_tree[0],
+        'label' => NULL,
+        'inputs_resolved' => $component_tree[0]['inputs'],
+      ],
+    ];
 
     // POST creates a region.
     $region_id = 'stark.sidebar_first';
@@ -761,7 +770,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'theme' => 'stark',
       'region' => 'sidebar_first',
       'status' => TRUE,
-      'component_tree' => $component_tree,
+      'component_tree' => $normalized_component_tree,
     ];
     $this->assertSame($expected_normalization, $body);
 
@@ -807,7 +816,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $body = $this->assertExpectedResponse('PATCH', Url::fromUri("base:/canvas/api/v0/config/page_region/$second_region_id"), $request_options, 200, NULL, NULL, NULL, NULL);
     self::assertIsArray($body);
     self::assertFalse($body['status']);
-    self::assertSame($component_tree, $body['component_tree']);
+    self::assertSame($normalized_component_tree, $body['component_tree']);
 
     // PATCH with empty component_tree clears the tree.
     $request_options[RequestOptions::JSON] = ['component_tree' => []];

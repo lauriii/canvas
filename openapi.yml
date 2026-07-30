@@ -4330,6 +4330,12 @@ components:
                   - object
                   - 'null'
                 description: The component input values (prop sources).
+              inputs_resolved:
+                type:
+                  - object
+                  - 'null'
+                description: Computed component input values for local rendering.
+                readOnly: true
               label:
                 type:
                   - string
