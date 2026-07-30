@@ -304,7 +304,7 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
    *   The file usage service.
    */
   private static function getFileUsage(): FileUsageInterface {
-    $file_usage = \Drupal::service('file.usage');
+    $file_usage = \Drupal::service(FileUsageInterface::class);
     \assert($file_usage instanceof FileUsageInterface);
     return $file_usage;
   }

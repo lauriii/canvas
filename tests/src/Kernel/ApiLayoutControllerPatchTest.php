@@ -14,7 +14,11 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\Storage\ComponentTreeLoader;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\file\FileInterface;
 use Drupal\media\Entity\Media;
 use Drupal\media\MediaInterface;
@@ -50,9 +54,9 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->container->get('module_installer')->install(['system', 'block']);
-    $this->container->get('theme_installer')->install(['stark']);
-    $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
+    $this->container->get(ModuleInstallerInterface::class)->install(['system', 'block']);
+    $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
+    $this->container->get(ConfigFactoryInterface::class)->getEditable('system.theme')->set('default', 'stark')->save();
 
     (new CanvasTestSetup())->setup(TRUE);
     $this->setUpCurrentUser([], [
@@ -773,7 +777,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       $response->getContent()
     ));
     self::assertNotNull($node->id());
-    $updatedNode = $this->container->get('entity_type.manager')
+    $updatedNode = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('node')
       ->loadUnchanged($node->id());
     \assert($updatedNode instanceof Node);
@@ -842,7 +846,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       $response->getContent()
     ));
     self::assertNotNull($node->id());
-    $updatedNode = $this->container->get('entity_type.manager')
+    $updatedNode = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('node')
       ->loadUnchanged($node->id());
     \assert($updatedNode instanceof Node);

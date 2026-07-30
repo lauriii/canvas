@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional\Update;
 
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\field\Entity\FieldConfig;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -35,11 +36,11 @@ final class ImageMediaSourceFieldConfigWrongDependencyUpdateTest extends CanvasU
 
     // Install the test module that overrides the image field type with the
     // buggy calculateDependencies() and re-save the field config.
-    \Drupal::service('module_installer')->install(['canvas_test_buggy_image_item_override']);
+    \Drupal::service(ModuleInstallerInterface::class)->install(['canvas_test_buggy_image_item_override']);
     $field = FieldConfig::load('media.image.field_media_image');
     self::assertNotNull($field);
     $field->save();
-    \Drupal::service('module_installer')->uninstall(['canvas_test_buggy_image_item_override']);
+    \Drupal::service(ModuleInstallerInterface::class)->uninstall(['canvas_test_buggy_image_item_override']);
 
     // Confirm the bad dependency.
     $field = FieldConfig::load('media.image.field_media_image');

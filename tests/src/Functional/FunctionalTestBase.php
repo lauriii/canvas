@@ -6,6 +6,8 @@ namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\canvas\EventSubscriber\LanguageConfigOverrideSchemaChecker;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\BrowserTestBase;
@@ -58,7 +60,7 @@ abstract class FunctionalTestBase extends BrowserTestBase {
     $config->set('js.preprocess', TRUE);
     $config->set('css.preprocess', TRUE);
     $config->save();
-    if ($this->container->get('module_handler')->moduleExists('canvas')) {
+    if ($this->container->get(ModuleHandlerInterface::class)->moduleExists('canvas')) {
       $response_validator = $this->container->get('canvas.openapi.http_response_validator.subscriber');
       $request_validator = $this->container->get('canvas.openapi.http_request_validator.subscriber');
       if (!($request_validator->isValidationEnabled() && $response_validator->isValidationEnabled())) {
@@ -68,7 +70,7 @@ abstract class FunctionalTestBase extends BrowserTestBase {
   }
 
   protected function createTestNode(): Node {
-    $nodes = $this->container->get('entity_type.manager')->getStorage('node')->loadMultiple();
+    $nodes = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node')->loadMultiple();
     $expected_nid = count($nodes) + 1;
     $this->assertNull(Node::load($expected_nid));
     $assert_session = $this->assertSession();

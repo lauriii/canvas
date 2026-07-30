@@ -56,7 +56,7 @@ final class GetComponentContext extends FunctionCallBase implements ExecutableFu
       $container->get('ai.context_definition_normalizer'),
     );
     $instance->pageBuilderHelper = $container->get('canvas_ai.page_builder_helper');
-    $instance->currentUser = $container->get('current_user');
+    $instance->currentUser = $container->get(AccountProxyInterface::class);
     return $instance;
   }
 

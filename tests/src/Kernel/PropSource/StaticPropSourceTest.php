@@ -13,6 +13,7 @@ use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\BooleanCheckboxWidget;
@@ -751,7 +752,7 @@ class StaticPropSourceTest extends PropSourceTestBase {
     $this->setupContentTranslation();
     $this->installEntitySchema('node');
     NodeType::create(['type' => 'page', 'name' => 'page'])->save();
-    \Drupal::service('content_translation.manager')
+    \Drupal::service(BundleTranslationSettingsInterface::class)
       ->setEnabled('node', 'page', TRUE);
     $this->setUpCurrentUser(permissions: ['access content']);
 

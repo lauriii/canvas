@@ -9,7 +9,10 @@ use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\canvas_ai_agents_test\EventSubscriber\LayoutFixtureSubscriber;
 use Drupal\Component\Plugin\PluginManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -74,9 +77,9 @@ final class LayoutFixtureSubscriberTest extends CanvasKernelTestBase {
     $this->installEntitySchema('ai_agents_test');
     $user = $this->createUser([CanvasAiPermissions::USE_CANVAS_AI]);
     $this->assertInstanceOf(AccountInterface::class, $user);
-    $this->container->get('current_user')->setAccount($user);
+    $this->container->get(AccountProxyInterface::class)->setAccount($user);
     $this->functionCallManager = $this->container->get('plugin.manager.ai.function_calls');
-    $this->tempStore = $this->container->get('canvas_ai.tempstore');
+    $this->tempStore = $this->container->get(CanvasAiTempStore::class);
   }
 
   /**
@@ -239,8 +242,8 @@ final class LayoutFixtureSubscriberTest extends CanvasKernelTestBase {
     $subscriber = $this->getMockBuilder(LayoutFixtureSubscriber::class)
       ->setConstructorArgs([
         $this->tempStore,
-        $this->container->get('entity_type.manager'),
-        $this->container->get('module_handler'),
+        $this->container->get(EntityTypeManagerInterface::class),
+        $this->container->get(ModuleHandlerInterface::class),
       ])
       ->onlyMethods(['readFixtureFile'])
       ->getMock();
@@ -263,7 +266,7 @@ final class LayoutFixtureSubscriberTest extends CanvasKernelTestBase {
     $request->attributes->set('_route', $route);
     $request->attributes->set('test_id', $testId);
     return new RequestEvent(
-      $this->container->get('http_kernel'),
+      $this->container->get(HttpKernelInterface::class),
       $request,
       HttpKernelInterface::MAIN_REQUEST,
     );
@@ -281,7 +284,7 @@ final class LayoutFixtureSubscriberTest extends CanvasKernelTestBase {
     $request = Request::create('/test');
     $request->attributes->set('_route', $route);
     return new ResponseEvent(
-      $this->container->get('http_kernel'),
+      $this->container->get(HttpKernelInterface::class),
       $request,
       HttpKernelInterface::MAIN_REQUEST,
       new Response(),
@@ -304,7 +307,7 @@ final class LayoutFixtureSubscriberTest extends CanvasKernelTestBase {
    *   The id of the saved AI agent test entity.
    */
   private function createAiAgentTestEntity(string $agentId, string $token_replacements): int {
-    $test = $this->container->get('entity_type.manager')
+    $test = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('ai_agents_test')
       ->create([
         'label' => 'Test',

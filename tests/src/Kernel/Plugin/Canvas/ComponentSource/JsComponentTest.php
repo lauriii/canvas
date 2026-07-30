@@ -29,13 +29,19 @@ use Drupal\canvas_test_code_components\Hook\IslandCastaway;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\ConfigInstallerInterface;
+use Drupal\Core\Config\StorageCacheInterface;
 use Drupal\Core\Config\StorageInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\File\FileSystemInterface;
@@ -129,7 +135,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
 
   protected function generateComponentConfig(): void {
     parent::generateComponentConfig();
-    $this->container->get('config.installer')->installDefaultConfig('module', 'canvas_test_code_components');
+    $this->container->get(ConfigInstallerInterface::class)->installDefaultConfig('module', 'canvas_test_code_components');
   }
 
   private static function createFontFile(string $filename = 'test-font.woff2'): string {
@@ -138,7 +144,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
 
   private function createManagedFontFile(string $filename = 'test-font.woff2'): FileInterface {
     $uri = $this->createFontFile($filename);
-    $file_system = \Drupal::service('file_system');
+    $file_system = \Drupal::service(FileSystemInterface::class);
     \assert($file_system instanceof FileSystemInterface);
     $directory = BrandKit::ARTIFACTS_DIRECTORY;
     self::assertTrue($file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS));
@@ -2668,7 +2674,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
   }
 
   protected function triggerBrokenComponent(ComponentInterface $component): ?BrokenPluginManagerInterface {
-    $config_storage = \Drupal::service('config.storage');
+    $config_storage = \Drupal::service(StorageCacheInterface::class);
     \assert($config_storage instanceof StorageInterface);
     $js_component_source = $component->getComponentSource();
     \assert($js_component_source instanceof JsComponent);
@@ -3849,9 +3855,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       'ℹ︎␜entity:node:news_item␝field_related_news␞␟entity␜␜entity:node:news_item␝title␞␟value',
       'ℹ︎␜entity:node:news_item␝field_related_news␞␟entity␜␜entity:node:blog_post␝field_blog_subtitle␞␟value',
     ];
-    $this->container->get('config.storage')->write($config_name, $data);
-    $this->container->get('config.factory')->reset($config_name);
-    $this->container->get('entity_type.manager')
+    $this->container->get(StorageCacheInterface::class)->write($config_name, $data);
+    $this->container->get(ConfigFactoryInterface::class)->reset($config_name);
+    $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage(JavaScriptComponent::ENTITY_TYPE_ID)
       ->resetCache(['content_entity_reference_test_component']);
 
@@ -3935,7 +3941,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
    *   The resolved `news_item_reference` payload.
    */
   private function resolveNewsItemReference(array $fixtures): EvaluationResult {
-    $node_storage = $this->container->get('entity_type.manager')->getStorage('node');
+    $node_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node');
     $node_storage->resetCache();
     $host_id = $fixtures['host_news']->id();
     self::assertNotNull($host_id);
@@ -3998,8 +4004,8 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
 
     NodeType::create(['type' => 'news_item', 'name' => 'News item'])->save();
     if ($translatable) {
-      \Drupal::service('content_translation.manager')->setEnabled('node', 'news_item', TRUE);
-      $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
+      \Drupal::service(BundleTranslationSettingsInterface::class)->setEnabled('node', 'news_item', TRUE);
+      $this->container->get(EntityFieldManagerInterface::class)->clearCachedFieldDefinitions();
     }
 
     // Self-referencing field on news_item — keeps the fixture small while

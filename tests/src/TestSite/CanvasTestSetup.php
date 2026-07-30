@@ -14,7 +14,12 @@ use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\Component\FileCache\FileCacheFactory;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
+use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
@@ -151,7 +156,7 @@ class CanvasTestSetup implements TestSetupInterface {
       $kernel->rebuildContainer();
     }
 
-    $module_installer = \Drupal::service('module_installer');
+    $module_installer = \Drupal::service(ModuleInstallerInterface::class);
     $module_installer->install(['system', 'user']);
     $config_factory = \Drupal::configFactory();
     $config = $config_factory->getEditable('system.logging');
@@ -159,25 +164,25 @@ class CanvasTestSetup implements TestSetupInterface {
     $config->save(TRUE);
 
     if (getenv('CANVAS_DISABLE_AGGREGATION') !== 'true') {
-      $config = \Drupal::service('config.factory')->getEditable('system.performance');
+      $config = \Drupal::service(ConfigFactoryInterface::class)->getEditable('system.performance');
       $config->set('js.preprocess', TRUE);
       $config->set('css.preprocess', TRUE);
       $config->save();
     }
 
-    $module_installer = \Drupal::service('module_installer');
+    $module_installer = \Drupal::service(ModuleInstallerInterface::class);
     \assert($module_installer instanceof ModuleInstallerInterface);
     $module_installer->install(['node', 'media', 'block', 'file']);
 
     $theme = 'stark';
     $admin_theme = "claro";
-    \Drupal::service('theme_installer')->install([$theme, $admin_theme]);
-    \Drupal::service('config.factory')
+    \Drupal::service(ThemeInstallerInterface::class)->install([$theme, $admin_theme]);
+    \Drupal::service(ConfigFactoryInterface::class)
       ->getEditable('system.theme')
       ->set('default', $theme)
       ->set('admin', $admin_theme)
       ->save();
-    \Drupal::service('theme.manager')->resetActiveTheme();
+    \Drupal::service(ThemeManagerInterface::class)->resetActiveTheme();
     // Place the page title block.
     $this->placeBlock('page_title_block', ['region' => 'highlighted']);
     $this->placeBlock('system_messages_block');
@@ -258,7 +263,7 @@ class CanvasTestSetup implements TestSetupInterface {
       'system',
     ]);
     $this->createComponentTreeField('node', 'article', 'field_canvas_demo');
-    \Drupal::service('entity_display.repository')
+    \Drupal::service(EntityDisplayRepositoryInterface::class)
       ->getViewDisplay('node', 'article')
       ->setComponent('field_canvas_demo', [
         'label' => 'hidden',
@@ -271,7 +276,7 @@ class CanvasTestSetup implements TestSetupInterface {
     $this->createMyCtaComponentFromSdc();
     $this->createTestCodeComponent();
 
-    $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions('node', 'article');
+    $field_definitions = \Drupal::service(EntityFieldManagerInterface::class)->getFieldDefinitions('node', 'article');
     $image_field_sample_value = ImageItem::generateSampleValue($field_definitions['field_hero']);
     // The field_hero field doesn't support 'title' in its field settings.
     $image_field_sample_value['title'] = '';
@@ -284,7 +289,7 @@ class CanvasTestSetup implements TestSetupInterface {
     $violations = self::violationsToArray($hero_reference->validate());
     \assert([] === $violations, print_r($violations, TRUE));
     $hero_reference->save();
-    $image_media_source_field_definition = \Drupal::service('entity_field.manager')->getFieldDefinitions('media', 'image')['field_media_image'];
+    $image_media_source_field_definition = \Drupal::service(EntityFieldManagerInterface::class)->getFieldDefinitions('media', 'image')['field_media_image'];
     $media4 = Media::create([
       'uuid' => self::UUID_MEDIA_IMAGE4,
       'bundle' => 'image',
@@ -440,7 +445,7 @@ class CanvasTestSetup implements TestSetupInterface {
         ],
       ],
     ])->save();
-    $display_repository = \Drupal::service('entity_display.repository');
+    $display_repository = \Drupal::service(EntityDisplayRepositoryInterface::class);
     $display_repository->getFormDisplay('node', 'article')
       ->setComponent('media_image_field', [
         'type' => 'media_library_widget',

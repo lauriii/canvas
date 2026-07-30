@@ -154,7 +154,7 @@ final class Segment extends ConfigEntityBase implements SegmentInterface {
    */
   protected function conditionPluginManager(): ExecutableManagerInterface&FilteredPluginManagerInterface {
     if (!isset($this->conditionPluginManager)) {
-      $this->conditionPluginManager = \Drupal::service('plugin.manager.condition');
+      $this->conditionPluginManager = \Drupal::service(ExecutableManagerInterface::class);
     }
     return $this->conditionPluginManager;
   }

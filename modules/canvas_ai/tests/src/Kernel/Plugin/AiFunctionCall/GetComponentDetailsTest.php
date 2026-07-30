@@ -8,7 +8,9 @@ use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\GetComponentDetails;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
@@ -75,7 +77,7 @@ final class GetComponentDetailsTest extends CanvasKernelTestBase {
     }
     $this->privilegedUser = $privileged_user;
     $this->unprivilegedUser = $unprivileged_user;
-    $this->container->get('config.factory')
+    $this->container->get(ConfigFactoryInterface::class)
       ->getEditable('system.theme')
       ->set('default', 'stark')
       ->save();
@@ -85,7 +87,7 @@ final class GetComponentDetailsTest extends CanvasKernelTestBase {
    * Tests getting component details for valid SDC, block, and JS ids.
    */
   public function testGetComponentDetailsWithValidIds(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     $tool = $this->functionCallManager->createInstance('canvas_ai:get_component_details');
     $this->assertInstanceOf(GetComponentDetails::class, $tool);
@@ -216,7 +218,7 @@ final class GetComponentDetailsTest extends CanvasKernelTestBase {
    * Tests that the component catalog strips props and slots.
    */
   public function testGetComponentCatalog(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     $catalog = Yaml::parse($this->container->get('canvas_ai.component_context_helper')->getComponentCatalog());
     $this->assertIsArray($catalog);
@@ -243,7 +245,7 @@ final class GetComponentDetailsTest extends CanvasKernelTestBase {
    * Tests getting component details for a made-up component id.
    */
   public function testGetComponentDetailsWithInvalidId(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     $result = $this->getComponentDetailsToolOutput(['invalid.component.id']);
     $this->assertSame('Component with id "invalid.component.id" does not exist.', $result);
@@ -254,7 +256,7 @@ final class GetComponentDetailsTest extends CanvasKernelTestBase {
    * Tests that one valid id alongside an invalid id returns no component data.
    */
   public function testGetComponentDetailsWithValidAndInvalidIds(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     $result = $this->getComponentDetailsToolOutput([
       'sdc.canvas_test_sdc.my-hero',
@@ -268,7 +270,7 @@ final class GetComponentDetailsTest extends CanvasKernelTestBase {
    * Tests getting component details without proper permissions.
    */
   public function testGetComponentDetailsWithoutPermissions(): void {
-    $this->container->get('current_user')->setAccount($this->unprivilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->unprivilegedUser);
 
     $tool = $this->functionCallManager->createInstance('canvas_ai:get_component_details');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);

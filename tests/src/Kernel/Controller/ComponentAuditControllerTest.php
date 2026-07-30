@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\Entity\EntityViewMode;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\HtmlResponse;
@@ -179,7 +180,7 @@ final class ComponentAuditControllerTest extends CanvasKernelTestBase {
     }
 
     // Create a content entity (node) with an nl translation.
-    $entity_type_manager = $this->container->get('entity_type.manager');
+    $entity_type_manager = $this->container->get(EntityTypeManagerInterface::class);
     $node_storage = $entity_type_manager->getStorage('node');
     $node = $node_storage->create([
       'title' => 'Test entity',
@@ -226,7 +227,7 @@ final class ComponentAuditControllerTest extends CanvasKernelTestBase {
 
     $entity_data = $this->entityData();
 
-    $entity_type_manager = $this->container->get('entity_type.manager');
+    $entity_type_manager = $this->container->get(EntityTypeManagerInterface::class);
     $storages = [];
 
     foreach ($entity_data as $entity_type_id => $bundle_data) {

@@ -26,7 +26,7 @@ final class CanvasPageForm extends ContentEntityForm {
    */
   public static function create(ContainerInterface $container): self {
     $instance = parent::create($container);
-    $instance->languageManager = $container->get('language_manager');
+    $instance->languageManager = $container->get(LanguageManagerInterface::class);
     return $instance;
   }
 

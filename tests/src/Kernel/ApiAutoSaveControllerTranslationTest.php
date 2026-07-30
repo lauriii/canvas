@@ -17,8 +17,13 @@ use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\Entity\BaseFieldOverride;
+use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\Routing\RouteBuilderInterface;
 use Drupal\Core\Url;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -163,7 +168,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
 
     /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
-    $page_storage = $this->container->get('entity_type.manager')->getStorage(Page::ENTITY_TYPE_ID);
+    $page_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID);
     $version = $this->getHeadingComponentVersion();
 
     // 1. Create the English (default) page with a single component, A.
@@ -197,7 +202,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     ]);
     \assert($es instanceof Page);
     self::setItemInput($es, self::UUID_A, ['text' => 'Hola A (es)', 'element' => 'h1'], 'Spanish A');
-    $this->container->get('content_translation.manager')
+    $this->container->get(BundleTranslationSettingsInterface::class)
       ->getTranslationMetadata($es)
       ->setSource('en');
     self::assertEntityIsValid($es);
@@ -321,7 +326,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     ]);
 
     $autoSave = $this->container->get(AutoSaveManager::class);
-    $page_storage = $this->container->get('entity_type.manager')->getStorage(Page::ENTITY_TYPE_ID);
+    $page_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID);
     $version = $this->getHeadingComponentVersion();
 
     // A third component, inserted before the existing two by the structural edit.
@@ -375,7 +380,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     \assert($es instanceof Page);
     self::setItemInput($es, self::UUID_A, ['text' => 'Hola A (es)', 'element' => 'h1'], 'Spanish A');
     self::setItemInput($es, self::UUID_B, ['text' => 'Hola B (es)', 'element' => 'h2'], 'Spanish B');
-    $this->container->get('content_translation.manager')
+    $this->container->get(BundleTranslationSettingsInterface::class)
       ->getTranslationMetadata($es)
       ->setSource('en');
     self::assertEntityIsValid($es);
@@ -510,7 +515,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
 
     /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
-    $page_storage = $this->container->get('entity_type.manager')->getStorage(Page::ENTITY_TYPE_ID);
+    $page_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID);
     $version = $this->getHeadingComponentVersion();
 
     // English (default) page with a single component, A.
@@ -543,7 +548,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     ]);
     \assert($es instanceof Page);
     self::setItemInput($es, self::UUID_A, ['text' => 'Hola A (es)', 'element' => 'h1'], 'Spanish A');
-    $this->container->get('content_translation.manager')
+    $this->container->get(BundleTranslationSettingsInterface::class)
       ->getTranslationMetadata($es)
       ->setSource('en');
     self::assertEntityIsValid($es);
@@ -620,7 +625,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     ]);
 
     $autoSave = $this->container->get(AutoSaveManager::class);
-    $page_storage = $this->container->get('entity_type.manager')->getStorage(Page::ENTITY_TYPE_ID);
+    $page_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID);
     $version = $this->getHeadingComponentVersion();
 
     // 1. Create the English (default) page with one component, A. `text` is
@@ -653,7 +658,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     ]);
     \assert($es instanceof Page);
     self::setItemInput($es, self::UUID_A, ['text' => 'Hola A (es)', 'element' => 'h1'], 'Spanish A');
-    $this->container->get('content_translation.manager')
+    $this->container->get(BundleTranslationSettingsInterface::class)
       ->getTranslationMetadata($es)
       ->setSource('en');
     self::assertEntityIsValid($es);
@@ -740,7 +745,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
 
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
-    $page_storage = $this->container->get('entity_type.manager')->getStorage(Page::ENTITY_TYPE_ID);
+    $page_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID);
     $version = $this->getHeadingComponentVersion();
 
     // 1. Create the English (default) page with one component, A.
@@ -770,7 +775,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     ]);
     \assert($es instanceof Page);
     self::setItemInput($es, self::UUID_A, ['text' => 'Hola A (es)', 'element' => 'h1'], 'Spanish A');
-    $this->container->get('content_translation.manager')
+    $this->container->get(BundleTranslationSettingsInterface::class)
       ->getTranslationMetadata($es)
       ->setSource('en');
     self::assertEntityIsValid($es);
@@ -858,7 +863,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     // @see \Drupal\Tests\canvas\Kernel\ComponentSource\TranslationPropagationTestBase
     $this->config('language.negotiation')->set('url.prefixes', ['en' => '', 'es' => 'es'])->save();
     $this->container->get('kernel')->rebuildContainer();
-    $this->container->get('router.builder')->rebuild();
+    $this->container->get(RouteBuilderInterface::class)->rebuild();
 
     $this->setUpCurrentUser(permissions: [
       Page::EDIT_PERMISSION,
@@ -867,7 +872,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
 
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
-    $page_storage = $this->container->get('entity_type.manager')->getStorage(Page::ENTITY_TYPE_ID);
+    $page_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID);
     $version = $this->getHeadingComponentVersion();
 
     // 1. English (default) page with one component, A, and its Spanish
@@ -896,7 +901,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     ]);
     \assert($es instanceof Page);
     self::setItemInput($es, self::UUID_A, ['text' => 'Hola A (es)', 'element' => 'h1'], 'Spanish A');
-    $this->container->get('content_translation.manager')
+    $this->container->get(BundleTranslationSettingsInterface::class)
       ->getTranslationMetadata($es)
       ->setSource('en');
     self::assertEntityIsValid($es);
@@ -957,7 +962,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
    * @see \content_translation_form_language_content_settings_submit()
    */
   private function setComponentsColumnSync(array $translation_sync): void {
-    $field_manager = $this->container->get('entity_field.manager');
+    $field_manager = $this->container->get(EntityFieldManagerInterface::class);
     $components = $field_manager->getBaseFieldDefinitions(Page::ENTITY_TYPE_ID)['components'];
     \assert($components instanceof BaseFieldDefinition);
     $override = BaseFieldOverride::loadByName(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components')
@@ -971,7 +976,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
    * Returns the active version of the heading SDC component.
    */
   private function getHeadingComponentVersion(): string {
-    $component = $this->container->get('entity_type.manager')
+    $component = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('component')
       ->load('sdc.canvas_test_sdc.heading');
     \assert($component instanceof Component);
@@ -1083,7 +1088,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     $page->save();
 
     // 3. Create a Spanish LanguageConfigOverride for the PageRegion.
-    $language_manager = $this->container->get('language_manager');
+    $language_manager = $this->container->get(LanguageManagerInterface::class);
     \assert($language_manager instanceof ConfigurableLanguageManagerInterface);
     $override = $language_manager->getLanguageConfigOverride('es', $region->getConfigDependencyName());
     $override->set('component_tree', [
@@ -1230,7 +1235,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     $template->save();
 
     // 4. Create a Spanish LanguageConfigOverride for the ContentTemplate.
-    $language_manager = $this->container->get('language_manager');
+    $language_manager = $this->container->get(LanguageManagerInterface::class);
     \assert($language_manager instanceof ConfigurableLanguageManagerInterface);
     $override = $language_manager->getLanguageConfigOverride('es', $template->getConfigDependencyName());
     $override->set('component_tree', [

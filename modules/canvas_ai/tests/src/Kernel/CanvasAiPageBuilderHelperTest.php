@@ -14,6 +14,9 @@ use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Drupal\canvas_personalization\Plugin\Canvas\ComponentSource\Personalization;
 use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Cache\VariationCacheFactory;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -56,7 +59,7 @@ final class CanvasAiPageBuilderHelperTest extends CanvasKernelTestBase {
     if (!$privileged_user instanceof User) {
       throw new \Exception('Failed to create test user');
     }
-    $this->container->get('current_user')->setAccount($privileged_user);
+    $this->container->get(AccountProxyInterface::class)->setAccount($privileged_user);
     $this->canvasAiPageBuilderHelper = $this->container->get('canvas_ai.page_builder_helper');
   }
 
@@ -391,10 +394,10 @@ XML;
    * Tests that getAllComponentsKeyedBySource uses cache correctly.
    */
   public function testGetAllComponentsKeyedBySourceCaching(): void {
-    $variation_cache = $this->container->get('variation_cache_factory')->get('default');
-    $memory_variation_cache = $this->container->get('variation_cache_factory')->get('canvas_ai_memory');
+    $variation_cache = $this->container->get(VariationCacheFactory::class)->get('default');
+    $memory_variation_cache = $this->container->get(VariationCacheFactory::class)->get('canvas_ai_memory');
     $cache_keys = [CanvasAiPageBuilderHelper::CACHE_KEY_ALL_COMPONENTS_BY_SOURCE];
-    $component_entity_type = $this->container->get('entity_type.manager')->getDefinition(Component::ENTITY_TYPE_ID);
+    $component_entity_type = $this->container->get(EntityTypeManagerInterface::class)->getDefinition(Component::ENTITY_TYPE_ID);
     $initial_cacheability = new CacheableMetadata();
     $initial_cacheability->setCacheContexts($component_entity_type->getListCacheContexts());
     $initial_cacheability->setCacheTags($component_entity_type->getListCacheTags());
@@ -512,7 +515,7 @@ XML;
     // Create an admin user.
     $privileged_user = $this->createUser([], '', TRUE);
     \assert($privileged_user instanceof User);
-    $this->container->get('current_user')->setAccount($privileged_user);
+    $this->container->get(AccountProxyInterface::class)->setAccount($privileged_user);
     $this->container->get(BlockManagerInterface::class)->getDefinitions();
     $this->container->get(ComponentSourceManager::class)
       ->generateComponents(BlockComponent::SOURCE_PLUGIN_ID, ['system_branding_block']);
@@ -549,7 +552,7 @@ XML;
     // As an admin, capture the block components from the access-checked listing.
     $admin = $this->createUser([], '', TRUE);
     \assert($admin instanceof User);
-    $this->container->get('current_user')->setAccount($admin);
+    $this->container->get(AccountProxyInterface::class)->setAccount($admin);
     $listed = $this->canvasAiPageBuilderHelper->getAllComponentsKeyedBySource();
     $this->assertArrayHasKey(BlockComponent::SOURCE_PLUGIN_ID, $listed);
     $listed_blocks = $listed[BlockComponent::SOURCE_PLUGIN_ID]['components'];
@@ -557,7 +560,7 @@ XML;
     $this->assertNotEmpty($listed_blocks);
 
     // As the anonymous user, the storage path must return the same blocks.
-    $this->container->get('current_user')->setAccount(new AnonymousUserSession());
+    $this->container->get(AccountProxyInterface::class)->setAccount(new AnonymousUserSession());
     $stored_blocks = $this->canvasAiPageBuilderHelper->getEnabledBlockComponentsFromStorage();
 
     $this->assertEquals($listed_blocks, $stored_blocks);

@@ -388,7 +388,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
   private static function isTranslatableInputAccordingToConfigSchema(array $config_schema_definition_for_input, mixed $actual_input): bool {
     static $typed_config;
     if ($typed_config === NULL) {
-      $typed_config = \Drupal::service('config.typed');
+      $typed_config = \Drupal::service(TypedConfigManagerInterface::class);
       \assert($typed_config instanceof TypedConfigManagerInterface);
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Traits;
 
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Extension\ModuleUninstallValidatorException;
 
 /**
@@ -13,7 +14,7 @@ trait UninstallValidatorTestTrait {
 
   protected function assertUninstallFailureReasons(array $reasons, string|null $not_contains = NULL, array $modules = ['link']): void {
     try {
-      $this->container->get('module_installer')->uninstall($modules);
+      $this->container->get(ModuleInstallerInterface::class)->uninstall($modules);
       if (\count($reasons) > 0) {
         self::fail('Expected an exception');
       }

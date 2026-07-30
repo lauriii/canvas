@@ -23,12 +23,14 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Plugin\Component as SdcPlugin;
 use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\file\Entity\File;
 use Drupal\link\LinkItemInterface;
@@ -88,8 +90,8 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
 
     // We need to ensure the public://balloons.png image exists in the test
     // environment for the "Card with stream wrapper image" tests.
-    $file_system = \Drupal::service('file_system');
-    $extension_path_resolver = \Drupal::service('extension.path.resolver');
+    $file_system = \Drupal::service(FileSystemInterface::class);
+    $extension_path_resolver = \Drupal::service(ExtensionPathResolver::class);
     $module_path = $extension_path_resolver->getPath('module', 'canvas_test_sdc');
     $source = $module_path . '/components/card/balloons.png';
     $destination = 'public://balloons.png';
@@ -97,7 +99,7 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
     $file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY);
     $file_system->copy($source, $destination, FileExists::Replace);
 
-    $this->container->get('theme_installer')->install(['sdc_theme_test']);
+    $this->container->get(ThemeInstallerInterface::class)->install(['sdc_theme_test']);
   }
 
   /**
@@ -7410,7 +7412,7 @@ HTML
 
   protected static function getPropsForComponentFallbackTesting(): array {
     /** @var \Drupal\Core\File\FileSystemInterface $file_system */
-    $file_system = \Drupal::service('file_system');
+    $file_system = \Drupal::service(FileSystemInterface::class);
     $file_uri = 'public://image-2.jpg';
     if (!\file_exists($file_uri)) {
       $file_system->copy(\Drupal::root() . '/core/tests/fixtures/files/image-2.jpg', PublicStream::basePath(), FileExists::Replace);
@@ -7468,7 +7470,7 @@ HTML
 
   protected function triggerBrokenComponent(ComponentInterface $component): BrokenPluginManagerInterface {
     /** @var \Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface */
-    return \Drupal::service('plugin.manager.sdc');
+    return \Drupal::service(ComponentPluginManager::class);
   }
 
   /**

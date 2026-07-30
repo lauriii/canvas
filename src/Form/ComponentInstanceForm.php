@@ -48,7 +48,7 @@ final class ComponentInstanceForm extends FormBase {
 
     return new static(
       $component_tree_loader,
-      $container->get('theme_handler'),
+      $container->get(ThemeHandlerInterface::class),
       $component_source_manager,
     );
   }

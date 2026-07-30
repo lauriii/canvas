@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Plugin\Field\FieldType;
 
 use Drupal\canvas\Plugin\Field\FieldTypeOverride\StringLongItemOverride;
+use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -65,7 +66,7 @@ final class StringLongItemOverrideTest extends CanvasKernelTestBase {
     // Confirm the Canvas override is in effect for `string_long` fields.
     $this->assertSame(
       StringLongItemOverride::class,
-      $this->container->get('plugin.manager.field.field_type')->getDefinition('string_long')['class'],
+      $this->container->get(FieldTypePluginManagerInterface::class)->getDefinition('string_long')['class'],
     );
 
     $value = \str_repeat("lorem ipsum dolor\n", 5000);

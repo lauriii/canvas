@@ -13,11 +13,15 @@ use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
+use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Field\Entity\BaseFieldOverride;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\Routing\RouteBuilderInterface;
 use Drupal\Core\Url;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -144,7 +148,7 @@ class TranslationTest extends FunctionalTestBase {
     $override->save();
 
     // Display the `field_canvas_test` field.
-    \Drupal::service('entity_display.repository')
+    \Drupal::service(EntityDisplayRepositoryInterface::class)
       ->getViewDisplay('node', 'article')
       ->setComponent('field_canvas_test', [
         'label' => 'hidden',
@@ -412,7 +416,7 @@ class TranslationTest extends FunctionalTestBase {
     self::assertSame(LanguageInterface::LANGCODE_SITE_DEFAULT, $content_language_settings->getDefaultLangcode());
     self::assertFalse($content_language_settings->isLanguageAlterable());
 
-    $content_translation_manager = $this->container->get('content_translation.manager');
+    $content_translation_manager = $this->container->get(BundleTranslationSettingsInterface::class);
     self::assertTrue($content_translation_manager->isEnabled(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID));
     self::assertEquals([
       'untranslatable_fields_hide' => 0,
@@ -463,7 +467,7 @@ class TranslationTest extends FunctionalTestBase {
     // Create a translation from the original English node.
     $translation = $node->addTranslation('fr');
     $this->assertInstanceOf(Node::class, $translation);
-    $this->container->get('content_translation.manager')->getTranslationMetadata($translation)->setSource($node->language()->getId());
+    $this->container->get(BundleTranslationSettingsInterface::class)->getTranslationMetadata($translation)->setSource($node->language()->getId());
     // @phpstan-ignore-next-line
     $translation->title = 'The French title';
     $translation->save();
@@ -508,7 +512,7 @@ class TranslationTest extends FunctionalTestBase {
    * Returns the active version string for the heading SDC component.
    */
   private function getHeadingComponentVersion(): string {
-    $component = $this->container->get('entity_type.manager')
+    $component = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('component')
       ->load('sdc.canvas_test_sdc.heading');
     \assert($component instanceof Component);
@@ -530,8 +534,8 @@ class TranslationTest extends FunctionalTestBase {
       ->setDefaultLangcode(LanguageInterface::LANGCODE_SITE_DEFAULT)
       ->setLanguageAlterable(TRUE)
       ->save();
-    $this->container->get('content_translation.manager')->setEnabled('canvas_page', 'canvas_page', TRUE);
-    $this->container->get('router.builder')->setRebuildNeeded();
+    $this->container->get(BundleTranslationSettingsInterface::class)->setEnabled('canvas_page', 'canvas_page', TRUE);
+    $this->container->get(RouteBuilderInterface::class)->setRebuildNeeded();
 
     $version = $this->getHeadingComponentVersion();
 
@@ -560,7 +564,7 @@ class TranslationTest extends FunctionalTestBase {
     // `translation_sync` setting created on module install — requires
     // it to synchronize a newly added translation.
     // @see \Drupal\content_translation\Hook\ContentTranslationHooks::entityPresave()
-    $this->container->get('content_translation.manager')
+    $this->container->get(BundleTranslationSettingsInterface::class)
       ->getTranslationMetadata($fr_page)
       ->setSource('en');
     $fr_page->set('title', 'Page de test Canvas');
@@ -585,11 +589,11 @@ class TranslationTest extends FunctionalTestBase {
   private function createPageRegionWithFrenchOverride(): PageRegion {
     $version = $this->getHeadingComponentVersion();
 
-    $default_theme = $this->container->get('theme_handler')->getDefault();
+    $default_theme = $this->container->get(ThemeHandlerInterface::class)->getDefault();
     $regions = PageRegion::createFromBlockLayout($default_theme);
     $new_region = reset($regions);
     \assert($new_region instanceof PageRegion);
-    $existing = $this->container->get('entity_type.manager')
+    $existing = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage(PageRegion::ENTITY_TYPE_ID)
       ->load($new_region->id());
     $region = $existing instanceof PageRegion ? $existing : $new_region;
@@ -725,7 +729,7 @@ class TranslationTest extends FunctionalTestBase {
     // Create an article node with English and French translations to use as the
     // ContentTemplate preview entity. The French translation has a distinct
     // title so we can assert language-aware field resolution.
-    $node_storage = $this->container->get('entity_type.manager')->getStorage('node');
+    $node_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node');
     $node = $node_storage->create([
       'type' => 'article',
       'title' => 'Preview node',

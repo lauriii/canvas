@@ -9,6 +9,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\DataType\ResolvedComponentInputs;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\jsonapi\Normalizer\FieldItemNormalizer;
 use Drupal\jsonapi\Normalizer\Value\CacheableNormalization;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -180,7 +181,7 @@ class ResolvedComponentInputsTest extends CanvasKernelTestBase {
   public function testInputsResolvedExposedViaJsonApi(): void {
     $this->installEntitySchema('user');
 
-    $normalizer = new FieldItemNormalizer($this->container->get('entity_type.manager'));
+    $normalizer = new FieldItemNormalizer($this->container->get(EntityTypeManagerInterface::class));
     $normalizer->setSerializer($this->container->get('jsonapi.serializer'));
 
     // @phpstan-ignore-next-line return.type

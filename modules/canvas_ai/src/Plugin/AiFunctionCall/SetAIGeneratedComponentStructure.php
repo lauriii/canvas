@@ -81,8 +81,8 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
       $container->get('ai.context_definition_normalizer'),
     );
     $instance->pageBuilderHelper = $container->get('canvas_ai.page_builder_helper');
-    $instance->loggerFactory = $container->get('logger.factory');
-    $instance->currentUser = $container->get('current_user');
+    $instance->loggerFactory = $container->get(LoggerChannelFactoryInterface::class);
+    $instance->currentUser = $container->get(AccountProxyInterface::class);
     $instance->responseValidator = $container->get('canvas_ai.response_validator');
     return $instance;
   }

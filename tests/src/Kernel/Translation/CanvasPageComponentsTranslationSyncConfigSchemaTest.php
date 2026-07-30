@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Translation;
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\Config\ConfigImporterException;
+use Drupal\Core\Config\StorageCacheInterface;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Field\Entity\BaseFieldOverride;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -155,7 +156,7 @@ final class CanvasPageComponentsTranslationSyncConfigSchemaTest extends CanvasKe
     // @see \Drupal\canvas\Hook\ContentTranslationHooks::modulesInstalled()
     ComponentTreeFieldSymmetricalTranslationSynchronizer::ensureSymmetricalCanvasPageComponents();
     $sync_storage = $this->container->get('config.storage.sync');
-    $this->copyConfig($this->container->get('config.storage'), $sync_storage);
+    $this->copyConfig($this->container->get(StorageCacheInterface::class), $sync_storage);
 
     $data = $sync_storage->read(self::CONFIG_NAME);
     self::assertIsArray($data);

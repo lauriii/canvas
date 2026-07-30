@@ -56,12 +56,12 @@ final class PreviewAssertion extends Oauth2GrantBase implements ContainerFactory
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('keyvalue.expirable'),
+      $container->get(KeyValueExpirableFactoryInterface::class),
       $container->get('lock'),
-      $container->get('entity_type.manager'),
-      $container->get('config.factory'),
-      $container->get('file_system'),
-      $container->get('language_manager'),
+      $container->get(EntityTypeManagerInterface::class),
+      $container->get(ConfigFactoryInterface::class),
+      $container->get(FileSystemInterface::class),
+      $container->get(LanguageManagerInterface::class),
     );
   }
 

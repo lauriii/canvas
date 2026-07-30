@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\Core\Menu\MenuLinkManagerInterface;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -27,7 +28,7 @@ final class NavigationIntegrationTest extends CanvasKernelTestBase {
   }
 
   public function testNavigation(): void {
-    $menu_link_manager = $this->container->get('plugin.manager.menu.link');
+    $menu_link_manager = $this->container->get(MenuLinkManagerInterface::class);
     $links = $menu_link_manager->getDefinitions();
 
     $this->assertArrayHasKey('navigation.content', $links);

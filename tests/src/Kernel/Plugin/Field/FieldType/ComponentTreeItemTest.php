@@ -13,6 +13,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -538,7 +539,7 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
   public function testInvalidField(array $field_values, array $expected_violations, array $permissions): void {
     $this->installEntitySchema('path_alias');
     $this->setUpCurrentUser(permissions: $permissions);
-    $this->container->get('module_installer')->install(['canvas_test_config_node_article']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_config_node_article']);
     $node = Node::create([
       'title' => 'Test node',
       'type' => 'article',

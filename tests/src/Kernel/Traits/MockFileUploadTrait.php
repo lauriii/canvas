@@ -27,7 +27,7 @@ trait MockFileUploadTrait {
   private function mockFileSystemForUploads(): void {
     // TRICKY: In kernel tests, move_uploaded_file() fails because the file wasn't
     // actually uploaded via HTTP. Mock the file system to use copy() instead.
-    $real_file_system = $this->container->get('file_system');
+    $real_file_system = $this->container->get(FileSystemInterface::class);
     $mock_file_system = $this->createMock(FileSystemInterface::class);
     $mock_file_system->method('moveUploadedFile')
       ->willReturnCallback(fn($filename, $uri) => (bool) $real_file_system->copy($filename, $uri));

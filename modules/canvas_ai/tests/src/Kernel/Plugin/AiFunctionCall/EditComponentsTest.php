@@ -10,7 +10,9 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\EditComponents;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -75,7 +77,7 @@ final class EditComponentsTest extends CanvasKernelTestBase {
     }
     $this->privilegedUser = $privileged_user;
     $this->unprivilegedUser = $unprivileged_user;
-    $this->container->get('config.factory')
+    $this->container->get(ConfigFactoryInterface::class)
       ->getEditable('system.theme')
       ->set('default', 'stark')
       ->save();
@@ -85,8 +87,8 @@ final class EditComponentsTest extends CanvasKernelTestBase {
    * Tests valid prop edits applied to several components in one call.
    */
   public function testEditExistingComponentProps(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
-    $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout());
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout());
 
     $edits = [
       [
@@ -134,7 +136,7 @@ final class EditComponentsTest extends CanvasKernelTestBase {
    * them (and, for missing props, prevents an uncaught Yaml::parse TypeError).
    */
   public function testEditMalformedRecordReportsError(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     $cases = [
       'missing component_uuid' => [['props' => 'text: "x"']],
@@ -154,8 +156,8 @@ final class EditComponentsTest extends CanvasKernelTestBase {
    * Tests that editing a UUID absent from the page is reported as an error.
    */
   public function testEditUnknownUuidReportsError(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
-    $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout());
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout());
 
     $edits = [
       [
@@ -175,8 +177,8 @@ final class EditComponentsTest extends CanvasKernelTestBase {
    * response validator, which rejects each with a precise message.
    */
   public function testEditComponentValidationTriggers(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
-    $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout());
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout());
 
     // 'style' is an enum prop on the heading component (primary|secondary).
     $cases = [
@@ -200,7 +202,7 @@ final class EditComponentsTest extends CanvasKernelTestBase {
    * Tests that editing without proper permissions throws.
    */
   public function testEditComponentsWithoutPermissions(): void {
-    $this->container->get('current_user')->setAccount($this->unprivilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->unprivilegedUser);
 
     $tool = $this->functionCallManager->createInstance('canvas_ai:edit_components');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);

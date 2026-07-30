@@ -15,6 +15,8 @@ use Drupal\Component\Serialization\Yaml;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\FileStorage;
+use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\Routing\RouteBuilderInterface;
 
 /**
  * Rebuild the router.
@@ -24,7 +26,7 @@ use Drupal\Core\Config\FileStorage;
  * @see https://www.drupal.org/project/canvas/issues/3533079
  */
 function canvas_ai_post_update_0001_rebuild_router(): void {
-  \Drupal::service('router.builder')->rebuild();
+  \Drupal::service(RouteBuilderInterface::class)->rebuild();
 }
 
 /**
@@ -47,7 +49,7 @@ function canvas_ai_post_update_0002_chat_history_max_messages(): void {
  * @see https://www.drupal.org/project/canvas/issues/3582390
  */
 function canvas_ai_post_update_0003_reimport_orchestrator_agent(): void {
-  $module_path = \Drupal::service('extension.list.module')->getPath('canvas_ai');
+  $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai');
   $source = new FileStorage($module_path . '/config/install');
   $data = $source->read('ai_agents.ai_agent.canvas_ai_orchestrator');
   $config = \Drupal::configFactory()->getEditable('ai_agents.ai_agent.canvas_ai_orchestrator');
@@ -81,7 +83,7 @@ function canvas_ai_post_update_0004_agent_hostname_filter(): void {
  * Normalize component description settings for stricter schema validation.
  */
 function canvas_ai_post_update_0005_normalize_component_description_settings(): void {
-  $config_factory = Drupal::service('config.factory');
+  $config_factory = Drupal::service(ConfigFactoryInterface::class);
   assert($config_factory instanceof ConfigFactoryInterface);
   $config = $config_factory->getEditable('canvas_ai.component_description.settings');
 
@@ -149,7 +151,7 @@ function canvas_ai_post_update_0006_restore_orchestrator_agent_uuid(): void {
   if (empty($config->get('_core.default_config_hash'))) {
     // Recompute the hash exactly as core does when installing config
     // @see \Drupal\Core\Config\ConfigInstaller::createConfiguration()
-    $module_path = \Drupal::service('extension.list.module')->getPath('canvas_ai');
+    $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai');
     $install = (new FileStorage($module_path . '/config/install'))->read($name);
     $config->set('_core.default_config_hash', Crypt::hashBase64(serialize($install)));
     $changed = TRUE;
@@ -213,7 +215,7 @@ function canvas_ai_post_update_0007_add_block_props_to_component_description_set
  * @see https://git.drupalcode.org/project/canvas/-/work_items/3584136
  */
 function canvas_ai_post_update_0008_reimport_component_agent(): void {
-  $module_path = \Drupal::service('extension.list.module')->getPath('canvas_ai');
+  $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai');
   $source = new FileStorage($module_path . '/config/install');
   $data = $source->read('ai_agents.ai_agent.canvas_component_agent');
   $config = \Drupal::configFactory()->getEditable('ai_agents.ai_agent.canvas_component_agent');

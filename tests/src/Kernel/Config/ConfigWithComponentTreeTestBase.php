@@ -8,6 +8,7 @@ use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\ImportStorageTransformer;
 use Drupal\Core\Config\MemoryStorage;
+use Drupal\Core\Config\StorageCacheInterface;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
@@ -1161,7 +1162,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
     }
 
     // Active storage: identical to runtime.
-    $active_storage = $this->container->get('config.storage');
+    $active_storage = $this->container->get(StorageCacheInterface::class);
     self::assertInstanceOf(StorageInterface::class, $active_storage);
     self::assertSame(StorageInterface::DEFAULT_COLLECTION, $active_storage->getCollectionName());
     self::assertSame([], $active_storage->getAllCollectionNames());
@@ -1328,7 +1329,7 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
    * @return array<string, array<string, mixed>>
    */
   private function readActiveComponentTree(string $config_name): array {
-    $active = $this->container->get('config.storage');
+    $active = $this->container->get(StorageCacheInterface::class);
     \assert($active instanceof StorageInterface);
     $data = $active->read($config_name);
     \assert(\is_array($data) && \is_array($data['component_tree']));

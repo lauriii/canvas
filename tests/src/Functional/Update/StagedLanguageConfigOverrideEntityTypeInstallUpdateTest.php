@@ -30,7 +30,7 @@ final class StagedLanguageConfigOverrideEntityTypeInstallUpdateTest extends Canv
    * Tests that the entity type is absent before and installed after the update.
    */
   public function testEntityTypeIsInstalled(): void {
-    $entity_definition_update_manager = \Drupal::service('entity.definition_update_manager');
+    $entity_definition_update_manager = \Drupal::service(EntityDefinitionUpdateManagerInterface::class);
     \assert($entity_definition_update_manager instanceof EntityDefinitionUpdateManagerInterface);
 
     $change_list = $entity_definition_update_manager->getChangeList();
@@ -43,7 +43,7 @@ final class StagedLanguageConfigOverrideEntityTypeInstallUpdateTest extends Canv
     $this->runUpdates();
 
     // Re-fetch the service: the pre-update instance holds stale in-memory state.
-    $entity_definition_update_manager = \Drupal::service('entity.definition_update_manager');
+    $entity_definition_update_manager = \Drupal::service(EntityDefinitionUpdateManagerInterface::class);
     \assert($entity_definition_update_manager instanceof EntityDefinitionUpdateManagerInterface);
     self::assertArrayNotHasKey(
       StagedLanguageConfigOverride::ENTITY_TYPE_ID,

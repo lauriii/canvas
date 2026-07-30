@@ -13,7 +13,9 @@ use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\comment\Entity\CommentType;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\field\Entity\FieldConfig;
@@ -987,8 +989,8 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
     // Make article translatable so content_translation adds its metadata base
     // fields alongside core's default_langcode / revision_log_message /
     // revision_translation_affected.
-    \Drupal::service('content_translation.manager')->setEnabled('node', 'article', TRUE);
-    $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
+    \Drupal::service(BundleTranslationSettingsInterface::class)->setEnabled('node', 'article', TRUE);
+    $this->container->get(EntityFieldManagerInterface::class)->clearCachedFieldDefinitions();
 
     $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access content']);
     $response = $this->request(Request::create(\sprintf(self::URL_FIELDS, 'node', 'article')));
@@ -1002,7 +1004,7 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
     // (default_langcode), "Revision log message" (node's `revision_log`),
     // "Revision translation affected" (revision_translation_affected),
     // "Translation source"/"Translation outdated" (content_translation_*).
-    $field_definitions = $this->container->get('entity_field.manager')->getFieldDefinitions('node', 'article');
+    $field_definitions = $this->container->get(EntityFieldManagerInterface::class)->getFieldDefinitions('node', 'article');
     foreach ([
       'default_langcode',
       'revision_log',

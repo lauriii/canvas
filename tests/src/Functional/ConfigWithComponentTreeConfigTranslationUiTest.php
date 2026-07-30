@@ -8,6 +8,7 @@ namespace Drupal\Tests\canvas\Functional;
 
 use Behat\Mink\Element\NodeElement;
 use Drupal\canvas\ConfigTranslation\CanvasStaticPropSourceFieldWidget;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
@@ -18,12 +19,12 @@ use PHPUnit\Framework\Attributes\Group;
 class ConfigWithComponentTreeConfigTranslationUiTest extends ConfigWithComponentTreeTranslationTestBase {
 
   public function test(): void {
-    $module_installer = $this->container->get('module_installer');
+    $module_installer = $this->container->get(ModuleInstallerInterface::class);
     \assert($module_installer instanceof ModuleInstallerInterface);
-    if (!$this->container->get('module_handler')->moduleExists('config_translation')) {
+    if (!$this->container->get(ModuleHandlerInterface::class)->moduleExists('config_translation')) {
       $module_installer->install(['config_translation']);
       $this->rebuildContainer();
-      $module_installer = $this->container->get('module_installer');
+      $module_installer = $this->container->get(ModuleInstallerInterface::class);
       \assert($module_installer instanceof ModuleInstallerInterface);
     }
 

@@ -54,8 +54,8 @@ final class GetCurrentLayout extends FunctionCallBase implements ExecutableFunct
       $plugin_definition,
       $container->get('ai.context_definition_normalizer'),
     );
-    $instance->canvasAiTempStore = $container->get('canvas_ai.tempstore');
-    $instance->currentUser = $container->get('current_user');
+    $instance->canvasAiTempStore = $container->get(CanvasAiTempStore::class);
+    $instance->currentUser = $container->get(AccountProxyInterface::class);
     return $instance;
   }
 

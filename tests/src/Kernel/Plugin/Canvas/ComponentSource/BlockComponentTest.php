@@ -25,6 +25,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\node\Entity\Node;
 use Drupal\system\Entity\Menu;
 use Drupal\Tests\canvas\Kernel\BrokenBlockManager;
@@ -369,7 +370,7 @@ HTML,
     $this->generateComponentConfig();
 
     $this->installEntitySchema('node');
-    $this->container->get('module_installer')->install(['canvas_test_config_node_article']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_config_node_article']);
     $node = Node::create([
       'title' => 'Test node',
       'type' => 'article',

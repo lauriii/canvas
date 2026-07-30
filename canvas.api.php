@@ -13,6 +13,7 @@ use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\CandidateStorablePropShape;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
+use Drupal\Core\Extension\ExtensionPathResolver;
 
 /**
  * @addtogroup hooks
@@ -131,7 +132,7 @@ function hook_canvas_storable_prop_shape_alter(CandidateStorablePropShape $stora
  * @see \Drupal\canvas\GlobalImports::getImportMap()
  */
 function hook_canvas_importmap_alter(array &$import_maps): void {
-  $module_path = \Drupal::service('extension.path.resolver')->getPath('module', 'my_module');
+  $module_path = \Drupal::service(ExtensionPathResolver::class)->getPath('module', 'my_module');
 
   // Add a new globally available package for code components.
   $import_maps[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS]['my-library'] = \base_path() . $module_path . '/js/my-library.js';
