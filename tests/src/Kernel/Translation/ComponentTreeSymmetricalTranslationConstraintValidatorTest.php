@@ -9,7 +9,9 @@ namespace Drupal\Tests\canvas\Kernel\Translation;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Hook\ContentTranslationHooks;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeSymmetricalTranslationConstraintValidator;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
@@ -43,7 +45,7 @@ final class ComponentTreeSymmetricalTranslationConstraintValidatorTest extends C
   #[TestWith([Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components'], 'base field (BaseFieldOverride)')]
   public function test(string $entity_type_id, string $bundle, string $field_name): void {
     $this->setUpSymmetricalContentTranslation($entity_type_id, $bundle, $field_name);
-    $entity_storage = $this->container->get('entity_type.manager')->getStorage($entity_type_id);
+    $entity_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage($entity_type_id);
 
     $entity = $this->createEntityWithDefaultTranslation($entity_type_id, $bundle, $field_name, $entity_storage);
     $entity->save();
@@ -98,7 +100,7 @@ final class ComponentTreeSymmetricalTranslationConstraintValidatorTest extends C
     $fresh = $entity_storage->loadUnchanged($entity_id);
     \assert($fresh instanceof ContentEntityInterface);
     $translation = $fresh->addTranslation('fr');
-    $this->container->get('content_translation.manager')
+    $this->container->get(BundleTranslationSettingsInterface::class)
       ->getTranslationMetadata($translation)
       ->setSource($fresh->language()->getId());
     $translation->set('title', 'French title')->set($field_name, self::populateActiveComponentVersionPlaceholders([

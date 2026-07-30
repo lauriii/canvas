@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas_headless\Kernel;
 
 use Drupal\canvas_headless\PreviewAssertionFactory;
 use Drupal\consumers\Entity\Consumer;
+use Drupal\Core\Entity\EntityFormBuilderInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -48,7 +49,7 @@ class ConsumerFormAlterTest extends CanvasKernelTestBase {
    * Builds the processed edit form for a consumer.
    */
   private function buildEditForm(Consumer $consumer): array {
-    return $this->container->get('entity.form_builder')->getForm($consumer, 'edit');
+    return $this->container->get(EntityFormBuilderInterface::class)->getForm($consumer, 'edit');
   }
 
   /**

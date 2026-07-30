@@ -20,6 +20,7 @@ use Drupal\jsonapi\JsonApiResource\ResourceObject;
 use Drupal\jsonapi\Normalizer\Value\CacheableNormalization;
 use Drupal\jsonapi\ResourceType\ResourceType;
 use Drupal\jsonapi\ResourceType\ResourceTypeRepository;
+use Drupal\jsonapi\ResourceType\ResourceTypeRepositoryInterface;
 use Drupal\media\Entity\Media;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
@@ -224,7 +225,7 @@ final class JsonapiSupportTest extends CanvasKernelTestBase {
    */
   public function testPage(): void {
     $components = Component::loadMultiple();
-    $resource_type_repository = $this->container->get('jsonapi.resource_type.repository');
+    $resource_type_repository = $this->container->get(ResourceTypeRepositoryInterface::class);
     \assert($resource_type_repository instanceof ResourceTypeRepository);
     $resource_type = $resource_type_repository->get(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID);
     \assert($resource_type instanceof ResourceType);
@@ -285,7 +286,7 @@ final class JsonapiSupportTest extends CanvasKernelTestBase {
    */
   public function testContentTemplate(): void {
     $components = Component::loadMultiple();
-    $resource_type_repository = $this->container->get('jsonapi.resource_type.repository');
+    $resource_type_repository = $this->container->get(ResourceTypeRepositoryInterface::class);
     \assert($resource_type_repository instanceof ResourceTypeRepository);
     $resource_type = $resource_type_repository->get(ContentTemplate::ENTITY_TYPE_ID, ContentTemplate::ENTITY_TYPE_ID);
     \assert($resource_type instanceof ResourceType);
@@ -337,7 +338,7 @@ final class JsonapiSupportTest extends CanvasKernelTestBase {
    */
   public function testPageRegion(): void {
     $components = Component::loadMultiple();
-    $resource_type_repository = $this->container->get('jsonapi.resource_type.repository');
+    $resource_type_repository = $this->container->get(ResourceTypeRepositoryInterface::class);
     \assert($resource_type_repository instanceof ResourceTypeRepository);
     $resource_type = $resource_type_repository->get(PageRegion::ENTITY_TYPE_ID, PageRegion::ENTITY_TYPE_ID);
     \assert($resource_type instanceof ResourceType);

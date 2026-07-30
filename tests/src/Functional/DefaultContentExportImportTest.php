@@ -19,6 +19,7 @@ use Drupal\Core\DefaultContent\Importer;
 use Drupal\Core\DefaultContent\InvalidEntityException;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityRepository;
+use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\file\Entity\File;
 use Drupal\FunctionalTests\Core\Recipe\RecipeTestTrait;
 use Drupal\media\Entity\Media;
@@ -69,7 +70,7 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
   }
 
   public function testCanvasPage(): void {
-    $entityRepository = $this->container->get('entity.repository');
+    $entityRepository = $this->container->get(EntityRepositoryInterface::class);
     self::assertInstanceOf(EntityRepository::class, $entityRepository);
     $original_user = $this->createUser(['access content']);
     self::assertInstanceOf(UserInterface::class, $original_user);
@@ -327,7 +328,7 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
   }
 
   private function deleteAndImportContent(Finder $finder, array $expected_entities): array {
-    $entityRepository = $this->container->get('entity.repository');
+    $entityRepository = $this->container->get(EntityRepositoryInterface::class);
     // Delete all the entities.
     $exported_entity_info = [];
     foreach ($expected_entities as $entity) {

@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Entity;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageViewBuilder;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
@@ -81,7 +82,7 @@ final class PageViewBuilderTest extends CanvasKernelTestBase {
       $sut->canvas_test_field->value
     );
 
-    $view_builder = $this->container->get('entity_type.manager')->getViewBuilder(Page::ENTITY_TYPE_ID);
+    $view_builder = $this->container->get(EntityTypeManagerInterface::class)->getViewBuilder(Page::ENTITY_TYPE_ID);
     self::assertInstanceOf(PageViewBuilder::class, $view_builder);
 
     // Verify `canvas_test_field` is part of the display components, but then is not
@@ -145,7 +146,7 @@ final class PageViewBuilderTest extends CanvasKernelTestBase {
     ]);
     self::assertSaveWithoutViolations($sut);
 
-    $view_builder = $this->container->get('entity_type.manager')->getViewBuilder(Page::ENTITY_TYPE_ID);
+    $view_builder = $this->container->get(EntityTypeManagerInterface::class)->getViewBuilder(Page::ENTITY_TYPE_ID);
     $build = $view_builder->view($sut);
     $this->render($build);
   }

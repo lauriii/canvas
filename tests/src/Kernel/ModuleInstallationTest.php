@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\KernelTests\KernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
@@ -33,11 +36,11 @@ final class ModuleInstallationTest extends KernelTestBase {
   }
 
   public function testModuleInstallation(): void {
-    self::assertFalse($this->container->get('module_handler')->moduleExists('canvas'));
-    self::assertFalse($this->container->get('theme_handler')->themeExists('canvas_stark'));
+    self::assertFalse($this->container->get(ModuleHandlerInterface::class)->moduleExists('canvas'));
+    self::assertFalse($this->container->get(ThemeHandlerInterface::class)->themeExists('canvas_stark'));
 
-    $this->container->get('module_installer')->install(['canvas']);
-    self::assertTrue($this->container->get('module_handler')->moduleExists('canvas'));
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas']);
+    self::assertTrue($this->container->get(ModuleHandlerInterface::class)->moduleExists('canvas'));
     $this->assertTCanvasStarkThemeExists();
 
     $test_entity = EntityTest::create([
@@ -52,20 +55,20 @@ final class ModuleInstallationTest extends KernelTestBase {
     $autoSave->saveEntity($test_entity);
     self::assertCount(1, $autoSave->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE));
 
-    $this->container->get('module_installer')->uninstall(['canvas']);
-    self::assertFalse($this->container->get('module_handler')->moduleExists('canvas'));
+    $this->container->get(ModuleInstallerInterface::class)->uninstall(['canvas']);
+    self::assertFalse($this->container->get(ModuleHandlerInterface::class)->moduleExists('canvas'));
     $this->assertTCanvasStarkThemeExists();
     self::assertCount(0, $autoSave->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE), 'Auto-save items are removed after uninstallation.');
 
     // Installing the module after uninstallation does not lead to errors.
-    $this->container->get('module_installer')->install(['canvas']);
-    self::assertTrue($this->container->get('module_handler')->moduleExists('canvas'));
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas']);
+    self::assertTrue($this->container->get(ModuleHandlerInterface::class)->moduleExists('canvas'));
     $this->assertTCanvasStarkThemeExists();
   }
 
   private function assertTCanvasStarkThemeExists(): void {
-    $this->container->get('theme_handler')->reset();
-    self::assertTrue($this->container->get('theme_handler')->themeExists('canvas_stark'));
+    $this->container->get(ThemeHandlerInterface::class)->reset();
+    self::assertTrue($this->container->get(ThemeHandlerInterface::class)->themeExists('canvas_stark'));
   }
 
 }

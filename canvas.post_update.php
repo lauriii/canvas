@@ -15,12 +15,14 @@ use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Component\Serialization\Json;
+use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Config\Entity\ConfigEntityUpdater;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
 use Drupal\Core\Site\Settings;
+use Drupal\Core\TempStore\SharedTempStoreFactory;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\image\Entity\ImageStyle;
 
@@ -209,7 +211,7 @@ function canvas_post_update_0009_unset_category_property_on_components(array &$s
  */
 function canvas_post_update_0010_migrate_auto_save(): void {
   $keyvalue_factory = \Drupal::service('keyvalue');
-  $tempstore_factory = \Drupal::service('tempstore.shared');
+  $tempstore_factory = \Drupal::service(SharedTempStoreFactory::class);
 
   $collections = [
     AutoSaveManager::AUTO_SAVE_STORE,
@@ -303,7 +305,7 @@ function canvas_post_update_0013_update_dynamic_prop_sources_to_entity_field_pro
  * Creates the global brand kit config entity for updated sites.
  */
 function canvas_post_update_0014_create_global_brand_kit(): void {
-  $entity_definition_update_manager = \Drupal::service('entity.definition_update_manager');
+  $entity_definition_update_manager = \Drupal::service(EntityDefinitionUpdateManagerInterface::class);
   \assert($entity_definition_update_manager instanceof EntityDefinitionUpdateManagerInterface);
   $change_list = $entity_definition_update_manager->getChangeList();
   if (($change_list[BrandKit::ENTITY_TYPE_ID]['entity_type'] ?? NULL) === EntityDefinitionUpdateManagerInterface::DEFINITION_CREATED) {
@@ -437,7 +439,7 @@ function canvas_post_update_0019_recompute_list_float_component_version_hashes(a
  * Installs the StagedLanguageConfigOverride config entity type.
  */
 function canvas_post_update_0020_install_staged_language_config_override_entity_type(array &$sandbox): void {
-  $entity_definition_update_manager = \Drupal::service('entity.definition_update_manager');
+  $entity_definition_update_manager = \Drupal::service(EntityDefinitionUpdateManagerInterface::class);
   \assert($entity_definition_update_manager instanceof EntityDefinitionUpdateManagerInterface);
   $change_list = $entity_definition_update_manager->getChangeList();
   if (($change_list[StagedLanguageConfigOverride::ENTITY_TYPE_ID]['entity_type'] ?? NULL) === EntityDefinitionUpdateManagerInterface::DEFINITION_CREATED) {
@@ -498,7 +500,7 @@ function canvas_post_update_0023_block_label_display_boolean_to_string(array &$s
   // entity holding a component_tree field. Every revision must be fixed — the
   // data-health audit validates default, past and forward revisions separately.
   if (!isset($sandbox['items'])) {
-    $entity_field_manager = \Drupal::service('entity_field.manager');
+    $entity_field_manager = \Drupal::service(EntityFieldManagerInterface::class);
     \assert($entity_field_manager instanceof EntityFieldManagerInterface);
     $sandbox['items'] = [];
     $sandbox['fields'] = [];
@@ -617,7 +619,7 @@ function canvas_post_update_0025_auto_save_block_label_display_to_string(array &
     }
   }
   if ($changed_keys !== []) {
-    \Drupal::service('cache_tags.invalidator')->invalidateTags([AutoSaveManager::CACHE_TAG]);
+    \Drupal::service(CacheTagsInvalidatorInterface::class)->invalidateTags([AutoSaveManager::CACHE_TAG]);
   }
 }
 

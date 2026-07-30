@@ -13,12 +13,17 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
+use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -69,7 +74,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->container->get('module_installer')->install(['system']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['system']);
     (new CanvasTestSetup())->setup(TRUE);
     $this->setUpCurrentUser([], ['edit any article content']);
   }
@@ -334,7 +339,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
    */
   public function testNonFullContentTemplateHidesGlobalRegions(): void {
     // Ensure the teaser view mode exists (node module provides it by default).
-    $view_mode = $this->container->get('entity_type.manager')
+    $view_mode = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('entity_view_mode')
       ->load('node.teaser');
     if ($view_mode === NULL) {
@@ -827,12 +832,12 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
    * @return \Drupal\canvas\Entity\PageRegion[]
    */
   protected function enableGlobalRegions(string $theme = 'stark', int $expected_region_count = 11): array {
-    $this->container->get('theme_installer')->install([$theme]);
-    $this->container->get('config.factory')
+    $this->container->get(ThemeInstallerInterface::class)->install([$theme]);
+    $this->container->get(ConfigFactoryInterface::class)
       ->getEditable('system.theme')
       ->set('default', $theme)
       ->save();
-    $this->container->get('theme.manager')->resetActiveTheme();
+    $this->container->get(ThemeManagerInterface::class)->resetActiveTheme();
 
     $regions = PageRegion::createFromBlockLayout($theme);
     // Check that all the theme regions get a corresponding PageRegion config
@@ -877,7 +882,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
    */
   #[DataProvider('fieldAccessProvider')]
   public function testFieldAccess(array $permissions, ?string $exception_message): void {
-    $this->container->get('module_installer')->install(['canvas_test_field_access']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_field_access']);
     $this->setUpCurrentUser([], $permissions);
 
     // Test field access using URL/request approach rather than directly calling controller
@@ -1001,7 +1006,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
    */
   #[DataProvider('providerConfigTranslationAccessDenied')]
   public function testConfigTranslationAccessDenied(array $permissions): void {
-    $this->container->get('module_installer')->install([
+    $this->container->get(ModuleInstallerInterface::class)->install([
       'config_translation',
     ]);
     $template = $this->getTestEntity(ContentTemplate::ENTITY_TYPE_ID);
@@ -1026,7 +1031,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
    *    so config-override languages disappear from available entirely.
    */
   public function testConfigTranslationAvailabilityLinksAndPermissions(): void {
-    $this->container->get('module_installer')->install([
+    $this->container->get(ModuleInstallerInterface::class)->install([
       'language',
       'config_translation',
       'content_translation',
@@ -1046,7 +1051,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // Add a French config language override to the ContentTemplate.
     $template = $this->getTestEntity(ContentTemplate::ENTITY_TYPE_ID);
     \assert($template instanceof ContentTemplate);
-    $languageManager = $this->container->get('language_manager');
+    $languageManager = $this->container->get(LanguageManagerInterface::class);
     \assert($languageManager instanceof ConfigurableLanguageManagerInterface);
     $override = $languageManager->getLanguageConfigOverride('fr', $template->getConfigDependencyName());
     $override->setData(['component_tree' => []])->save();
@@ -1096,7 +1101,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
     // When config_translation is uninstalled the detection block is skipped
     // entirely, so French must also disappear from available.
-    $this->container->get('module_installer')->uninstall(['config_translation']);
+    $this->container->get(ModuleInstallerInterface::class)->uninstall(['config_translation']);
     $this->setUpCurrentUser([], [ContentTemplate::ADMIN_PERMISSION]);
     $json = static::decodeResponse($this->request(Request::create($url->toString())));
     self::assertNotContains('fr', $json['translations']['available'],

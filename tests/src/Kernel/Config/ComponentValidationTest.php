@@ -18,7 +18,11 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
+use Drupal\Core\Config\StorageCacheInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
@@ -394,7 +398,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
     // Validate the saved (config-cast) config the way RecipeConfigInstaller
     // does: there must be no `active_version` mismatch.
-    $violations = $this->container->get('config.typed')->createFromNameAndData($name, $raw)->validate();
+    $violations = $this->container->get(TypedConfigManagerInterface::class)->createFromNameAndData($name, $raw)->validate();
     $version_violations = \array_filter(
       \iterator_to_array($violations),
       static fn ($violation): bool => \str_starts_with((string) $violation->getPropertyPath(), 'active_version'),
@@ -512,9 +516,9 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     // Write directly to config storage: saving through the config API would
     // trip the test-only ConfigSchemaChecker on the (deliberately) missing
     // required key.
-    $this->container->get('config.storage')->write($name, $raw);
-    $this->container->get('config.factory')->reset($name);
-    $this->container->get('entity_type.manager')->getStorage(Component::ENTITY_TYPE_ID)->resetCache([$id]);
+    $this->container->get(StorageCacheInterface::class)->write($name, $raw);
+    $this->container->get(ConfigFactoryInterface::class)->reset($name);
+    $this->container->get(EntityTypeManagerInterface::class)->getStorage(Component::ENTITY_TYPE_ID)->resetCache([$id]);
 
     // Saving must backfill again, via Component::preSave().
     $component = Component::load($id);

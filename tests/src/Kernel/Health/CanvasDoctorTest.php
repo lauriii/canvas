@@ -16,7 +16,9 @@ use Drupal\canvas\Health\HealthCheck;
 use Drupal\canvas\Health\HealthRecords;
 use Drupal\canvas\Health\Inventory;
 use Drupal\canvas\Hook\HealthHooks;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Cache\CacheTagsChecksumInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -217,7 +219,7 @@ final class CanvasDoctorTest extends CanvasKernelTestBase {
     $past_before = $store->getSummary([HealthCheck::ContentPastRevisions])['total_items'];
     self::assertGreaterThanOrEqual(1, $content_before);
     self::assertGreaterThanOrEqual(1, $past_before);
-    $page_storage = $this->container->get('entity_type.manager')->getStorage(Page::ENTITY_TYPE_ID);
+    $page_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID);
     \assert($page_storage instanceof RevisionableStorageInterface);
     $page_storage->deleteRevision($first_rid);
     self::assertSame($past_before - 1, $store->getSummary([HealthCheck::ContentPastRevisions])['total_items']);
@@ -447,9 +449,9 @@ final class CanvasDoctorTest extends CanvasKernelTestBase {
    * @return array{\Drupal\canvas\Health\Doctor, \Drupal\canvas\Health\HealthRecords}
    */
   private function buildEngineWithEnvironment(EnvironmentInterface $environment): array {
-    $healthRecords = new HealthRecords($this->container->get('database'), $environment, $this->container->get('datetime.time'));
+    $healthRecords = new HealthRecords($this->container->get('database'), $environment, $this->container->get(TimeInterface::class));
     $engine = new Doctor(
-      $this->container->get('entity_type.manager'),
+      $this->container->get(EntityTypeManagerInterface::class),
       $this->container->get(Inventory::class),
       $this->container->get(CanvasConfigUpdater::class),
       $healthRecords,

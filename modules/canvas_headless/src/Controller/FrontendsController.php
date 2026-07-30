@@ -31,7 +31,7 @@ final class FrontendsController implements ContainerInjectionInterface {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static($container->get('config.factory'));
+    return new static($container->get(ConfigFactoryInterface::class));
   }
 
   /**

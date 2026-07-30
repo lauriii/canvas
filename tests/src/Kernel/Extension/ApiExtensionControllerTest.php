@@ -8,6 +8,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Extension\CanvasExtensionTypeEnum;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
@@ -115,7 +116,7 @@ class ApiExtensionControllerTest extends CanvasKernelTestBase {
     self::assertContains('config:core.extension', $response->getCacheableMetadata()->getCacheTags());
     self::assertArrayHasKey('canvas_test_page', static::decodeResponse($response));
 
-    $this->container->get('module_installer')->uninstall(['canvas_test_extension_page']);
+    $this->container->get(ModuleInstallerInterface::class)->uninstall(['canvas_test_extension_page']);
 
     $response = $this->request(Request::create('/canvas/api/v0/extensions'));
     self::assertArrayNotHasKey('canvas_test_page', static::decodeResponse($response));

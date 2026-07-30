@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\Core\Config\ConfigImporter;
 use Drupal\Core\Config\ConfigImporterException;
+use Drupal\Core\Config\StorageCacheInterface;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -206,7 +207,7 @@ final class ComponentConfigImportValidatorTest extends CanvasKernelTestBase {
    */
   private function stageDeletions(array $config_names): ConfigImporter {
     $sync = $this->container->get('config.storage.sync');
-    $this->copyConfig($this->container->get('config.storage'), $sync);
+    $this->copyConfig($this->container->get(StorageCacheInterface::class), $sync);
     foreach ($config_names as $name) {
       $sync->delete($name);
     }

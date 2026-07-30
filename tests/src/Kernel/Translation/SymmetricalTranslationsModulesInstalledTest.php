@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Translation;
 
 use Drupal\canvas\Entity\Page;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Field\Entity\BaseFieldOverride;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
@@ -36,9 +38,9 @@ final class SymmetricalTranslationsModulesInstalledTest extends CanvasKernelTest
   public function testInstallingContentTranslationCreatesOverride(): void {
     self::assertNull(BaseFieldOverride::loadByName(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components'));
 
-    $this->container->get('module_installer')->install(['language', 'content_translation']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['language', 'content_translation']);
 
-    $override = $this->container->get('entity_type.manager')
+    $override = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('base_field_override')
       ->load(\sprintf('%s.%s.components', Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID));
     self::assertInstanceOf(BaseFieldOverride::class, $override);

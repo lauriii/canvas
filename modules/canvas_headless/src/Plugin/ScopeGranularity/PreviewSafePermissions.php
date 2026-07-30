@@ -78,8 +78,8 @@ final class PreviewSafePermissions extends ScopeGranularityBase implements Conta
       $configuration,
       $pluginId,
       $pluginDefinition,
-      $container->get('module_handler'),
-      $container->get('user.permissions'),
+      $container->get(ModuleHandlerInterface::class),
+      $container->get(PermissionHandlerInterface::class),
     );
   }
 

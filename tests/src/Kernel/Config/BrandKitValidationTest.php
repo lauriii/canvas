@@ -48,7 +48,7 @@ final class BrandKitValidationTest extends BetterConfigEntityValidationTestBase 
     $this->installEntitySchema('file');
     $this->installSchema('file', 'file_usage');
 
-    $file_system = \Drupal::service('file_system');
+    $file_system = \Drupal::service(FileSystemInterface::class);
     \assert($file_system instanceof FileSystemInterface);
     $directory = BrandKit::ARTIFACTS_DIRECTORY;
     self::assertTrue($file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS));

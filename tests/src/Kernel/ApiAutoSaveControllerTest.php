@@ -751,7 +751,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->setUpImages();
     $this->assertSiteHomepage('/user/login');
     $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_validation']);
-    $entity_type_manager = $this->container->get('entity_type.manager');
+    $entity_type_manager = $this->container->get(EntityTypeManagerInterface::class);
     $code_component_storage = $entity_type_manager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
     $library_storage = $entity_type_manager->getStorage(AssetLibrary::ENTITY_TYPE_ID);
     $page_storage = $entity_type_manager->getStorage(Page::ENTITY_TYPE_ID);
@@ -1252,7 +1252,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertSiteHomepage('/user/login');
 
     // Try publishing something with a field change that we don't have access to.
-    $this->container->get('module_installer')->install(['canvas_test_field_access']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_field_access']);
     try {
       $this->makePublishAllRequest();
       $this->fail('Expected access denied error after field check on publishing auto-saved changes.');
@@ -1261,7 +1261,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       // Access denied as expected, the title listed must be the new one.
       $this->assertSame('Unable to update field title for entity "The updated title.".', $exception->getMessage());
     }
-    $this->container->get('module_installer')->uninstall(['canvas_test_field_access']);
+    $this->container->get(ModuleInstallerInterface::class)->uninstall(['canvas_test_field_access']);
 
     self::assertArrayHasKey(AutoSaveManager::getAutoSaveKey($template), $auto_save_data);
     $response = $this->makePublishAllRequest();

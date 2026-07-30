@@ -11,7 +11,9 @@ use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\PlaceComponents;
 use Drupal\Component\Uuid\Uuid;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
@@ -89,7 +91,7 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
     }
     $this->privilegedUser = $privileged_user;
     $this->unprivilegedUser = $unprivileged_user;
-    $this->container->get('config.factory')
+    $this->container->get(ConfigFactoryInterface::class)
       ->getEditable('system.theme')
       ->set('default', 'stark')
       ->save();
@@ -100,9 +102,9 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
    */
   #[DataProvider('placementDataProvider')]
   public function testPlaceComponentsWithPermissionsAndValidData(string $layout_type, array $operations, array $expected_output): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
     // Set the current layout to a valid layout.
-    $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout($layout_type));
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout($layout_type));
 
     $tool = $this->functionCallManager->createInstance('canvas_ai:place_components');
     $this->assertInstanceOf(PlaceComponents::class, $tool);
@@ -137,7 +139,7 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
    * Tests placing components without proper permissions.
    */
   public function testPlaceComponentsWithoutPermissions(): void {
-    $this->container->get('current_user')->setAccount($this->unprivilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->unprivilegedUser);
 
     $tool = $this->functionCallManager->createInstance('canvas_ai:place_components');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
@@ -191,9 +193,9 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
    */
   #[DataProvider('invalidPlacementDataProvider')]
   public function testPlaceComponentsWithInvalidYaml(string $layout_type, array $operations, array $expected_error): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
     // Set the current layout to a valid layout.
-    $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout($layout_type));
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout($layout_type));
 
     $result = $this->getComponentToolOutput($operations);
     $expected_error = 'Failed to place components: ' . Yaml::dump($expected_error);
@@ -204,9 +206,9 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
    * Tests placing components with invalid component validation.
    */
   public function testPlaceComponentsWithInvalidComponents(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
     // Set the current layout to a valid layout.
-    $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
 
     $result = $this->getComponentToolOutput([
       self::buildOperation(<<<YAML
@@ -240,7 +242,7 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
    * Tests component validation logic.
    */
   public function testValidateComponent(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     $components_yaml = <<<YAML
       - sdc.canvas_test_sdc.my-hero:
@@ -285,7 +287,7 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
    * Tests that props that do not exist on a component fail validation.
    */
   public function testValidateComponentWithNonExistentProps(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     // A valid required prop plus a prop the component does not define.
     $result = $this->getComponentToolOutput([
@@ -363,8 +365,8 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
    * Tests placement against a target region that does not exist.
    */
   public function testPlaceComponentsWithUnknownTargetRegion(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
-    $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
 
     $result = $this->getComponentToolOutput([
       self::buildOperation(<<<YAML
@@ -381,8 +383,8 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
    * Tests placement against a reference_uuid that does not exist.
    */
   public function testPlaceComponentsWithUnknownReferenceUuid(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
-    $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_non_empty'));
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_non_empty'));
 
     $result = $this->getComponentToolOutput([
       self::buildOperation(<<<YAML

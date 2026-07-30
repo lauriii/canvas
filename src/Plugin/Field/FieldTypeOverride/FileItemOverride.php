@@ -10,6 +10,7 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
+use Drupal\file\FileRepositoryInterface;
 use Drupal\file\Plugin\Field\FieldType\FileItem;
 use Drupal\media\Entity\MediaType;
 
@@ -54,13 +55,13 @@ class FileItemOverride extends FileItem {
 
       // Prepare destination.
       $dirname = static::doGetUploadLocation($settings);
-      \Drupal::service('file_system')->prepareDirectory($dirname, FileSystemInterface::CREATE_DIRECTORY);
+      \Drupal::service(FileSystemInterface::class)->prepareDirectory($dirname, FileSystemInterface::CREATE_DIRECTORY);
 
       // Generate a File entity.
       $destination = $dirname . '/' . $random->name(10, TRUE) . '.mp4';
       $data = $random->paragraphs(3);
       /** @var \Drupal\file\FileRepositoryInterface $file_repository */
-      $file_repository = \Drupal::service('file.repository');
+      $file_repository = \Drupal::service(FileRepositoryInterface::class);
       $file = $file_repository->writeData($data, $destination, FileExists::Error);
 
       return [

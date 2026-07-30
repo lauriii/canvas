@@ -11,6 +11,8 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\EntityHandlers\StagedLanguageConfigOverrideStorage;
+use Drupal\Core\Extension\ThemeInstallerInterface;
+use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
@@ -34,14 +36,14 @@ final class PageRegionSymmetricalTranslationPropagationTest extends ConfigEntity
    */
   protected function setUp(): void {
     parent::setUp();
-    \Drupal::service('theme_installer')->install(['stark']);
+    \Drupal::service(ThemeInstallerInterface::class)->install(['stark']);
     $this->installEntitySchema('user');
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     // Make stark the active theme so the PageRegion is loaded as a global region
     // when a Page is previewed.
     $this->config('system.theme')->set('default', 'stark')->save();
-    \Drupal::service('theme.manager')->resetActiveTheme();
+    \Drupal::service(ThemeManagerInterface::class)->resetActiveTheme();
 
     $this->entity = PageRegion::create([
       'theme' => 'stark',

@@ -15,6 +15,8 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Routing\RouteBuilderInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
@@ -206,7 +208,7 @@ abstract class TranslationPropagationTestBase extends CanvasKernelTestBase {
     if ($this->entity instanceof ContentEntityInterface) {
       $entity_id = $this->entity->id();
       \assert($entity_id !== NULL);
-      $entity = $this->container->get('entity_type.manager')
+      $entity = $this->container->get(EntityTypeManagerInterface::class)
         ->getStorage($this->entity->getEntityTypeId())
         ->loadUnchanged($entity_id);
       \assert($entity instanceof ContentEntityInterface);
@@ -343,7 +345,7 @@ abstract class TranslationPropagationTestBase extends CanvasKernelTestBase {
    *   The reloaded entity.
    */
   protected function reloadEntity(): ContentEntityInterface|ComponentTreeConfigEntityBase {
-    $reloaded = $this->container->get('entity_type.manager')
+    $reloaded = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage($this->entity->getEntityTypeId())
       ->loadUnchanged((string) $this->entity->id());
     \assert($reloaded instanceof ContentEntityInterface || $reloaded instanceof ComponentTreeConfigEntityBase);
@@ -404,7 +406,7 @@ abstract class TranslationPropagationTestBase extends CanvasKernelTestBase {
     $this->container->get('kernel')->rebuildContainer();
     // Router must be built before UserCreationTrait::setUpCurrentUser() triggers
     // FilterPermissions::permissions() URL generation.
-    $this->container->get('router.builder')->rebuild();
+    $this->container->get(RouteBuilderInterface::class)->rebuild();
     $this->setUpCurrentUser([], $this->previewAndPublishPermissions());
 
     $auto_save_manager = $this->container->get(AutoSaveManager::class);

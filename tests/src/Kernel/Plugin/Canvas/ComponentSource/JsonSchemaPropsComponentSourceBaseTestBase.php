@@ -12,6 +12,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\Core\DependencyInjection\ClassResolverInterface;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
@@ -175,7 +176,7 @@ abstract class JsonSchemaPropsComponentSourceBaseTestBase extends ComponentSourc
     \assert($component_source_manager instanceof ComponentSourceManager);
     $component_source_definition = $component_source_manager->getDefinition($source_id);
     \assert(\array_key_exists('discovery', $component_source_definition));
-    $discovery = $this->container->get('class_resolver')->getInstanceFromDefinition($component_source_definition['discovery']);
+    $discovery = $this->container->get(ClassResolverInterface::class)->getInstanceFromDefinition($component_source_definition['discovery']);
     \assert($discovery instanceof ComponentCandidatesDiscoveryInterface);
     $component_id = $discovery::getComponentConfigEntityId($source_specific_id);
 

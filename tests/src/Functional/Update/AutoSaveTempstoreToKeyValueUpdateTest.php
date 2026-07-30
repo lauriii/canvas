@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Functional\Update;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
+use Drupal\Core\TempStore\SharedTempStoreFactory;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Validator\ConstraintViolation;
@@ -35,7 +36,7 @@ final class AutoSaveTempstoreToKeyValueUpdateTest extends CanvasUpdatePathTestBa
    */
   public function testAutoSaveMigration(): void {
     // Set up test data in tempstore before the update.
-    $tempstore_factory = \Drupal::service('tempstore.shared');
+    $tempstore_factory = \Drupal::service(SharedTempStoreFactory::class);
 
     // Create test auto-save data for a page entity.
     $page = Page::load(1);

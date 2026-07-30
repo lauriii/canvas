@@ -16,6 +16,7 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Url;
 use Drupal\user\Entity\Role;
@@ -548,7 +549,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     array_walk($expectedLinks, fn(&$value) => $value = Url::fromUri($value)->toString());
     // Enable canvas_test_access, which will disable view permission for page 1
     // and add extra cache contexts and cache tags.
-    $this->container->get('module_installer')->install(['canvas_test_access']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_access']);
     \Drupal::keyValue('canvas_test_access')->set('cache_contexts', $extraCacheContexts);
     \Drupal::keyValue('canvas_test_access')->set('cache_tags', $extraCacheTags);
 
@@ -741,7 +742,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     ];
 
     // Test module will return view access forbidden for canvas_page id 1 instance.
-    $this->container->get('module_installer')->install(['canvas_test_access']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_access']);
 
     // Try to duplicate entity without view access.
     $response = $this->makeApiRequest('POST', $url, $request_options);
@@ -752,7 +753,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     );
 
     // Turn off module to have proper view access.
-    $this->container->get('module_installer')->uninstall(['canvas_test_access']);
+    $this->container->get(ModuleInstallerInterface::class)->uninstall(['canvas_test_access']);
     // Duplicate Page 1 entity.
     $response = $this->makeApiRequest('POST', $url, $request_options);
     $this->assertSame(201, $response->getStatusCode());
@@ -915,7 +916,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
 
   public function testPatchConflictResolution(): void {
     // Conflict resolution via PATCH is gated behind the `canvas_dev_cd` module.
-    \Drupal::service('module_installer')->install(['canvas_dev_cd']);
+    \Drupal::service(ModuleInstallerInterface::class)->install(['canvas_dev_cd']);
 
     $request_options = [
       RequestOptions::HEADERS => [

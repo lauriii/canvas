@@ -96,10 +96,10 @@ final class EditComponents extends FunctionCallBase implements ExecutableFunctio
       $container->get('ai.context_definition_normalizer'),
     );
     $instance->pageBuilderHelper = $container->get('canvas_ai.page_builder_helper');
-    $instance->canvasAiTempStore = $container->get('canvas_ai.tempstore');
+    $instance->canvasAiTempStore = $container->get(CanvasAiTempStore::class);
     $instance->responseValidator = $container->get('canvas_ai.response_validator');
-    $instance->loggerFactory = $container->get('logger.factory');
-    $instance->currentUser = $container->get('current_user');
+    $instance->loggerFactory = $container->get(LoggerChannelFactoryInterface::class);
+    $instance->currentUser = $container->get(AccountProxyInterface::class);
     return $instance;
   }
 

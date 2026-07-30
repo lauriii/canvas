@@ -14,12 +14,16 @@ use Drupal\canvas_headless\ExternalComponentSync;
 use Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter;
 use Drupal\Core\Config\ConfigCrudEvent;
 use Drupal\Core\Config\ConfigEvents;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\custom_elements\CustomElement;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Psr\Log\AbstractLogger;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Tests synchronization of external component definitions.
@@ -90,10 +94,10 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     ])->save();
 
     $synchronizer = new ExternalComponentSync(
-      $this->container->get('config.factory'),
-      $this->container->get('entity_type.manager'),
+      $this->container->get(ConfigFactoryInterface::class),
+      $this->container->get(EntityTypeManagerInterface::class),
       $this->container->get('lock'),
-      $this->container->get('logger.factory'),
+      $this->container->get(LoggerChannelFactoryInterface::class),
       $this->container->get(ComponentSourceManager::class),
       $this->container->get(TypedConfigManagerInterface::class),
       $this->container->get(PropShapeRepositoryInterface::class),
@@ -109,11 +113,11 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
       }
 
     };
-    $this->container->get('logger.factory')->addLogger($logs);
+    $this->container->get(LoggerChannelFactoryInterface::class)->addLogger($logs);
     $code_component_saves = new class() {
       public int $count = 0;
     };
-    $this->container->get('event_dispatcher')->addListener(
+    $this->container->get(EventDispatcherInterface::class)->addListener(
       ConfigEvents::SAVE,
       static function (ConfigCrudEvent $event) use ($code_component_saves): void {
         if ($event->getConfig()->getName() === 'canvas.js_component.heroBanner') {

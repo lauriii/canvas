@@ -21,8 +21,10 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\Random;
 use Drupal\Component\Uuid\Uuid;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Entity\ConfigEntityType;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Url;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -839,7 +841,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // refineListQuery filters to default theme. Install olivero and POST an
     // olivero region; list should still return only stark regions.
-    \Drupal::service('theme_installer')->install(['olivero']);
+    \Drupal::service(ThemeInstallerInterface::class)->install(['olivero']);
     $olivero_region_id = 'olivero.sidebar';
     $olivero_region_to_send = [
       'theme' => 'olivero',
@@ -2118,7 +2120,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
   }
 
   public function testComponent(): void {
-    $this->container->get('theme_installer')->install(['stark', 'test_theme_child']);
+    $this->container->get(ThemeInstallerInterface::class)->install(['stark', 'test_theme_child']);
     // TRICKY: On an actual site, the theme installer would trigger
     // `hook_rebuild()`, but we cannot do that in `hook_themes_installed()`, as
     // Stark is installed early in tests, which results in Components being
@@ -2207,7 +2209,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame('test_theme_child', Component::load('sdc.test_theme_child.test-child')->get('provider'));
     // Change the default theme from Stark to Test Theme Child, and observe the
     // impact on the list of Components returned.
-    $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'test_theme_child')->save();
+    $this->container->get(ConfigFactoryInterface::class)->getEditable('system.theme')->set('default', 'test_theme_child')->save();
     $this->rebuildAll();
     $this->drupalGet('canvas/api/v0/config/component');
     $this->assertDynamicPageCacheAccelerated(maxAge: '-1 (Permanent)');

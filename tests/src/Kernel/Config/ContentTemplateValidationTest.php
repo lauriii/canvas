@@ -9,6 +9,7 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas_test_validation\Plugin\Canvas\ComponentSource\InvalidSlots;
 use Drupal\Core\Entity\Entity\EntityViewMode;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -695,7 +696,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   }
 
   public function testExposeInvalidSlotDefinedBySource(): void {
-    self::assertTrue($this->container->get('module_installer')->install(['canvas_test_validation']));
+    self::assertTrue($this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_validation']));
     Component::create([
       'id' => InvalidSlots::PLUGIN_ID . '.' . InvalidSlots::PLUGIN_ID,
       'label' => 'Component with an invalid source-defined slot',

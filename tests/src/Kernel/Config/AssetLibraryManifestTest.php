@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
@@ -27,7 +28,7 @@ class AssetLibraryManifestTest extends CanvasKernelTestBase {
     $this->installSchema('file', ['file_usage']);
 
     $dir = AssetLibrary::ARTIFACTS_DIRECTORY;
-    $this->container->get('file_system')->prepareDirectory($dir, FileSystemInterface::CREATE_DIRECTORY);
+    $this->container->get(FileSystemInterface::class)->prepareDirectory($dir, FileSystemInterface::CREATE_DIRECTORY);
   }
 
   /**
@@ -297,7 +298,7 @@ class AssetLibraryManifestTest extends CanvasKernelTestBase {
 
     // Backdate the changed time to exceed the garbage collection threshold.
     $age = $this->config('system.file')->get('temporary_maximum_age');
-    $mocked_changed_time = $this->container->get('datetime.time')->getRequestTime() - $age - 1;
+    $mocked_changed_time = $this->container->get(TimeInterface::class)->getRequestTime() - $age - 1;
     $file->setChangedTime($mocked_changed_time);
     $file->save();
 

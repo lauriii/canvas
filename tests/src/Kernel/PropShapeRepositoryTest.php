@@ -26,6 +26,7 @@ use Drupal\canvas_test_storable_prop_shape_alter\Plugin\Field\FieldType\Multiple
 use Drupal\Core\Cache\CacheCollectorInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormState;
@@ -82,7 +83,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('path_alias');
-    $this->container->get('theme_installer')->install([
+    $this->container->get(ThemeInstallerInterface::class)->install([
       // To test $ref handling in themes.
       // @see \Drupal\canvas\JsonSchemaDefinitionsStreamwrapper
       'test_theme_base',

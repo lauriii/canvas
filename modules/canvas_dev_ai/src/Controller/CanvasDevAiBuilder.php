@@ -29,7 +29,7 @@ final class CanvasDevAiBuilder extends ControllerBase {
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('csrf_token'),
+      $container->get(CsrfTokenGenerator::class),
     );
   }
 

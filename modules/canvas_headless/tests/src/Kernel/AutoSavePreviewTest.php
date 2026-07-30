@@ -13,9 +13,13 @@ use Drupal\canvas_headless\PreviewAssertionFactory;
 use Drupal\canvas_headless\PreviewTokenInspector;
 use Drupal\consumers\Entity\Consumer;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AnonymousUserSession;
+use Drupal\Core\Session\PermissionCheckerInterface;
 use Drupal\custom_elements\CustomElement;
 use Drupal\custom_elements\CustomElementGenerator;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -31,8 +35,10 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\UserInterface;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Event\ControllerEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Routing\Route;
@@ -103,7 +109,7 @@ final class AutoSavePreviewTest extends CanvasKernelTestBase {
    * {@inheritdoc}
    */
   protected function tearDown(): void {
-    $request_stack = $this->container->get('request_stack');
+    $request_stack = $this->container->get(RequestStack::class);
     while ($this->pushedRequests > 0) {
       $request_stack->pop();
       $this->pushedRequests--;
@@ -336,10 +342,10 @@ final class AutoSavePreviewTest extends CanvasKernelTestBase {
       'value' => $this->randomMachineName(),
     ]);
     return new TokenAuthUser(
-      $this->container->get('permission_checker'),
+      $this->container->get(PermissionCheckerInterface::class),
       $token,
-      $this->container->get('psr7.http_message_factory'),
-      $this->container->get('request_stack'),
+      $this->container->get(HttpMessageFactoryInterface::class),
+      $this->container->get(RequestStack::class),
     );
   }
 
@@ -347,7 +353,7 @@ final class AutoSavePreviewTest extends CanvasKernelTestBase {
    * Sets the account used by controller selection and entity access checks.
    */
   private function setCurrentAccount(AccountInterface $account): void {
-    $this->container->get('current_user')->setAccount($account);
+    $this->container->get(AccountProxyInterface::class)->setAccount($account);
   }
 
   /**
@@ -364,7 +370,7 @@ final class AutoSavePreviewTest extends CanvasKernelTestBase {
     ]));
     $request->attributes->set($entity_type_id, $entity);
 
-    $request_stack = $this->container->get('request_stack');
+    $request_stack = $this->container->get(RequestStack::class);
     $request_stack->push($request);
     $this->pushedRequests++;
     $this->addToAssertionCount(1);
@@ -383,7 +389,7 @@ final class AutoSavePreviewTest extends CanvasKernelTestBase {
    */
   private function getSubscriber(?AutoSavePreviewController $controller = NULL): AutoSavePreviewControllerSubscriber {
     return new AutoSavePreviewControllerSubscriber(
-      $this->container->get('current_user'),
+      $this->container->get(AccountProxyInterface::class),
       $controller ?? $this->container->get(AutoSavePreviewController::class),
     );
   }
@@ -399,11 +405,11 @@ final class AutoSavePreviewTest extends CanvasKernelTestBase {
         return new CustomElement();
       });
     return new AutoSavePreviewController(
-      $this->container->get('current_route_match'),
-      $this->container->get('entity_type.manager'),
+      $this->container->get(RouteMatchInterface::class),
+      $this->container->get(EntityTypeManagerInterface::class),
       $generator,
       $this->container->get(AutoSaveManager::class),
-      $this->container->get('current_user'),
+      $this->container->get(AccountProxyInterface::class),
     );
   }
 
@@ -411,7 +417,7 @@ final class AutoSavePreviewTest extends CanvasKernelTestBase {
    * Reloads the test page from storage.
    */
   private function reloadPage(): Page {
-    $page = $this->container->get('entity_type.manager')
+    $page = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage(Page::ENTITY_TYPE_ID)
       ->loadUnchanged(1);
     \assert($page instanceof Page);

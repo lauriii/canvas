@@ -68,9 +68,9 @@ final class GetNodeFields extends FunctionCallBase implements ExecutableFunction
       $plugin_definition,
       $container->get('ai.context_definition_normalizer'),
     );
-    $instance->entityTypeManager = $container->get('entity_type.manager');
-    $instance->entityFieldManager = $container->get('entity_field.manager');
-    $instance->currentUser = $container->get('current_user');
+    $instance->entityTypeManager = $container->get(EntityTypeManagerInterface::class);
+    $instance->entityFieldManager = $container->get(EntityFieldManagerInterface::class);
+    $instance->currentUser = $container->get(AccountProxyInterface::class);
     return $instance;
   }
 

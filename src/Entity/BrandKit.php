@@ -273,7 +273,7 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
    * @param list<string> $new_uris
    */
   public static function syncFontFileUsage(array $old_uris, array $new_uris, string $type, string $id): void {
-    $file_usage = \Drupal::service('file.usage');
+    $file_usage = \Drupal::service(FileUsageInterface::class);
     \assert($file_usage instanceof FileUsageInterface);
 
     foreach (\array_values(\array_diff($new_uris, $old_uris)) as $uri) {
@@ -297,7 +297,7 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
    * @param list<string> $uris
    */
   public static function clearFontFileUsage(array $uris, string $type, string $id): void {
-    $file_usage = \Drupal::service('file.usage');
+    $file_usage = \Drupal::service(FileUsageInterface::class);
     \assert($file_usage instanceof FileUsageInterface);
 
     foreach ($uris as $uri) {

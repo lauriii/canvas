@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Form;
 
 use Drupal\Core\Render\Element;
+use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\Core\Security\Attribute\TrustedCallback;
 
 /**
@@ -54,7 +55,7 @@ final class FormIdPreRender {
     $element['#attributes']['data-form-id'] = $form_id;
     // We can't add an element pre render callback without first ensuring the
     // defaults have been added.
-    if (isset($element['#type']) && empty($element['#defaults_loaded']) && ($info = \Drupal::service('plugin.manager.element_info')->getInfo($element['#type']))) {
+    if (isset($element['#type']) && empty($element['#defaults_loaded']) && ($info = \Drupal::service(ElementInfoManagerInterface::class)->getInfo($element['#type']))) {
       // Add in any default pre-render callbacks.
       $element['#pre_render'] = $info['#pre_render'] ?? [];
     }

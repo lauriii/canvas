@@ -11,6 +11,7 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas_oauth\Authentication\Provider\CanvasOauthAuthenticationProvider;
 use Drupal\Core\Routing\RouteObjectInterface;
+use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -127,7 +128,7 @@ class CanvasOauthAuthenticationProviderTest extends CanvasKernelTestBase {
    */
   #[DataProvider('dataProviderRoutes')]
   public function testApplies(string $route_name, array $parameters, bool $expected_apply): void {
-    $route = new Route($this->container->get('router.route_provider')->getRouteByName($route_name)->getPath());
+    $route = new Route($this->container->get(RouteProviderInterface::class)->getRouteByName($route_name)->getPath());
     $request = new Request();
     $request->attributes->set(RouteObjectInterface::ROUTE_NAME, $route_name);
     $request->attributes->set(RouteObjectInterface::ROUTE_OBJECT, $route);

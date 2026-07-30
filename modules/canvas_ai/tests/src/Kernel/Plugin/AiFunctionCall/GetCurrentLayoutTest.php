@@ -8,6 +8,7 @@ use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
@@ -73,7 +74,7 @@ final class GetCurrentLayoutTest extends CanvasKernelTestBase {
    * Tests getting current layout with proper permissions when layout exists.
    */
   public function testGetCurrentLayoutWithPermissionsAndData(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
     $tool = $this->functionCallManager->createInstance('canvas_ai:get_current_layout');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
 
@@ -97,7 +98,7 @@ final class GetCurrentLayoutTest extends CanvasKernelTestBase {
    * Tests getting current layout with proper permissions when no layout exists.
    */
   public function testGetCurrentLayoutWithPermissionsNoData(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
     $tool = $this->functionCallManager->createInstance('canvas_ai:get_current_layout');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
 
@@ -120,7 +121,7 @@ final class GetCurrentLayoutTest extends CanvasKernelTestBase {
    * Tests getting current layout without proper permissions.
    */
   public function testGetCurrentLayoutWithoutPermissions(): void {
-    $this->container->get('current_user')->setAccount($this->unprivilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->unprivilegedUser);
     $tool = $this->functionCallManager->createInstance('canvas_ai:get_current_layout');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
 
@@ -134,7 +135,7 @@ final class GetCurrentLayoutTest extends CanvasKernelTestBase {
    * Tests that the tool calls the tempstore service with correct key.
    */
   public function testTempstoreServiceCall(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     // The expectation is verified by the mock - if getData
     // wasn't called exactly once with the correct key, the test would fail.

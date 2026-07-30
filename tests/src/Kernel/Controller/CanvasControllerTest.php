@@ -11,6 +11,7 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Url;
@@ -111,7 +112,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
 
     $this->setUpCurrentUser([], $permissions);
 
-    $storage = $this->container->get('entity_type.manager')->getStorage($entity_type);
+    $storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage($entity_type);
     $sut = $storage->create($values);
     $sut->save();
 

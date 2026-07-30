@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas_personalization\Functional;
 
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas_personalization\Entity\Segment;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\Tests\canvas\Functional\HttpApiTestBase;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
@@ -203,7 +204,7 @@ class SegmentHttpApiTest extends HttpApiTestBase {
 
     // Ensure it's disabled no matter what we sent in status.
     /** @var \Drupal\Core\Entity\EntityStorageInterface $segment_storage */
-    $segment_storage = \Drupal::service('entity_type.manager')->getStorage(Segment::ENTITY_TYPE_ID);
+    $segment_storage = \Drupal::service(EntityTypeManagerInterface::class)->getStorage(Segment::ENTITY_TYPE_ID);
     $segment = $segment_storage->loadUnchanged('my_segment');
     \assert($segment instanceof Segment);
     self::assertFalse($segment->status());

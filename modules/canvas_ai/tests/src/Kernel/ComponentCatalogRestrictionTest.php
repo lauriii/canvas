@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas_ai\Kernel;
 
 use Drupal\canvas\Entity\Page;
+use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -54,7 +56,7 @@ final class ComponentCatalogRestrictionTest extends CanvasKernelTestBase {
 
     $user = $this->createUser([Page::CREATE_PERMISSION]);
     \assert($user !== FALSE);
-    $this->container->get('current_user')->setAccount($user);
+    $this->container->get(AccountProxyInterface::class)->setAccount($user);
   }
 
   /**
@@ -74,7 +76,7 @@ final class ComponentCatalogRestrictionTest extends CanvasKernelTestBase {
     );
 
     // Step 2 — with canvas_ai_agents_test installed.
-    $this->container->get('module_installer')->install(['canvas_ai_agents_test']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_ai_agents_test']);
 
     $catalog = $this->getAccessibleComponentIds();
 
@@ -88,7 +90,7 @@ final class ComponentCatalogRestrictionTest extends CanvasKernelTestBase {
     );
 
     // Step 3 — after uninstalling canvas_ai_agents_test.
-    $this->container->get('module_installer')->uninstall(['canvas_ai_agents_test']);
+    $this->container->get(ModuleInstallerInterface::class)->uninstall(['canvas_ai_agents_test']);
 
     $catalog = $this->getAccessibleComponentIds();
 

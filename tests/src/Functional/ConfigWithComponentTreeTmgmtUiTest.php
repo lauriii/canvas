@@ -29,7 +29,7 @@ class ConfigWithComponentTreeTmgmtUiTest extends ConfigWithComponentTreeTranslat
   use TmgmtTestTrait;
 
   public function test(): void {
-    $module_installer = $this->container->get('module_installer');
+    $module_installer = $this->container->get(ModuleInstallerInterface::class);
     \assert($module_installer instanceof ModuleInstallerInterface);
     $module_installer->install(['tmgmt', 'tmgmt_config', 'tmgmt_test']);
     // Rebuild necessary for TMGMT-specific config schema changes.

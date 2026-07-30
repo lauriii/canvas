@@ -6,7 +6,9 @@ namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\canvas_ai\CanvasAiPermissions;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
@@ -73,7 +75,7 @@ final class GetNodeFieldsTest extends CanvasKernelTestBase {
 
     // Set up the dependencies.
     $this->functionCallManager = $this->container->get('plugin.manager.ai.function_calls');
-    $this->entityTypeManager = $this->container->get('entity_type.manager');
+    $this->entityTypeManager = $this->container->get(EntityTypeManagerInterface::class);
 
     $privileged_user = $this->createUser([CanvasAiPermissions::USE_CANVAS_AI]);
     $unprivileged_user = $this->createUser();
@@ -141,7 +143,7 @@ final class GetNodeFieldsTest extends CanvasKernelTestBase {
    * Tests the GetNodeFields function call.
    */
   public function testGetNodeFields(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
     // Get the function call plugin.
     $function_call = $this->functionCallManager->createInstance('ai_agent:get_node_fields');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $function_call);
@@ -171,7 +173,7 @@ final class GetNodeFieldsTest extends CanvasKernelTestBase {
    * Try to get fields for a non-existing node type.
    */
   public function testGetNonExistingNodeTypeFields(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
     // Get the function call plugin.
     $function_call = $this->functionCallManager->createInstance('ai_agent:get_node_fields');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $function_call);
@@ -192,7 +194,7 @@ final class GetNodeFieldsTest extends CanvasKernelTestBase {
    * Tests the GetNodeFields function call without proper permissions.
    */
   public function testGetNodeFieldsWithoutPermissions(): void {
-    $this->container->get('current_user')->setAccount($this->unprivilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->unprivilegedUser);
     $tool = $this->functionCallManager->createInstance('ai_agent:get_node_fields');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
     // Expect an exception to be thrown.

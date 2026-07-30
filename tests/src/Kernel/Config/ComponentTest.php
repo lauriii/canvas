@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\VersionedConfigEntityInterface;
+use Drupal\Core\Config\ConfigInstallerInterface;
 use Drupal\Core\Entity\EntityListBuilderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -39,7 +40,7 @@ class ComponentTest extends CanvasKernelTestBase {
     $this->enableModules(['field', 'file', 'image', 'media']);
     $this->generateComponentConfig();
     $this->setInstallProfile('standard');
-    $this->container->get('config.installer')->installOptionalConfig();
+    $this->container->get(ConfigInstallerInterface::class)->installOptionalConfig();
 
     $modules = [
       'media_library',

@@ -16,6 +16,7 @@ use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
@@ -1175,7 +1176,7 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
     $this->setupContentTranslation();
     $this->installEntitySchema('node');
     NodeType::create(['type' => 'page', 'name' => 'page'])->save();
-    \Drupal::service('content_translation.manager')
+    \Drupal::service(BundleTranslationSettingsInterface::class)
       ->setEnabled('node', 'page', TRUE);
     $this->createEntityReferenceField('node', 'page', 'field_hero_image', 'Hero Image', 'media',
       selection_handler_settings: ['target_bundles' => ['image' => 'image']],
