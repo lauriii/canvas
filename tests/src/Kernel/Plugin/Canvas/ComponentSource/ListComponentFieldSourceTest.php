@@ -8,12 +8,16 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\ListComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
+use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Form\FormState;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\Node;
@@ -329,6 +333,77 @@ final class ListComponentFieldSourceTest extends CanvasKernelTestBase {
       'A field source needs a host entity to read the field from, so it is only available in a content template.',
       $messages,
     );
+  }
+
+  /**
+   * The source select offers every bundle and every multi-value field, flatly.
+   *
+   * Canvas renders Drupal selects through React, and that renderer flattens
+   * `#options` to one level and emits every entry as an `<option>`. Grouped
+   * options would therefore reach the browser as two unselectable group labels
+   * with every real choice dropped, so the source could never be saved: the
+   * form would post a group label, which matches no source kind, and the List
+   * would silently collapse to a query with no bundle.
+   *
+   * @see ui/src/components/form/components/Select.tsx
+   */
+  public function testSourceSelectIsFlat(): void {
+    self::createTemplate('field_captions', (string) new FieldTypePropExpression('string', 'value'));
+    $template = ContentTemplate::load('node.article.full');
+    \assert($template instanceof ContentTemplate);
+    $component = Component::load('list.list');
+    \assert($component instanceof Component);
+    $item = $template->getComponentTree()->getComponentTreeItemByUuid(self::LIST_UUID);
+    \assert($item !== NULL);
+
+    $form = $component->getComponentSource()->buildComponentInstanceForm(
+      [],
+      new FormState(),
+      $component,
+      self::LIST_UUID,
+      $item->getInputs() ?? [],
+      $template,
+      $component->get('settings'),
+    );
+    $options = $form['source']['selection']['#options'];
+
+    self::assertSame([], \array_filter($options, \is_array(...)), 'The source select must not use option groups.');
+    self::assertArrayHasKey('bundle:article', $options);
+    self::assertArrayHasKey('field:field_captions', $options);
+    self::assertArrayHasKey('field:field_topics', $options);
+    // Single-cardinality fields are not lists and are never offered.
+    self::assertArrayNotHasKey('field:title', $options);
+    // The stored source is one of the offered options, so the select can round
+    // trip it instead of falling back to its first choice.
+    self::assertArrayHasKey($form['source']['selection']['#default_value'], $options);
+  }
+
+  /**
+   * A required prop can be bound to an item of an optional multi-value field.
+   *
+   * Requiredness restricts a host entity binding to a field that always has a
+   * value. An item template is the opposite: it renders once per value that
+   * exists, so the item is guaranteed. Forwarding requiredness would leave
+   * every required prop of every component in a gallery template unbindable.
+   */
+  public function testRequiredPropsAreBindableToItems(): void {
+    $fields = $this->container->get('entity_field.manager')->getFieldDefinitions('node', 'article');
+    self::assertFalse($fields['field_captions']->isRequired(), 'The premise: the iterated field is optional.');
+
+    $component = Component::load('sdc.canvas_test_sdc.heading');
+    \assert($component instanceof Component);
+    $component_source = $component->getComponentSource();
+    \assert($component_source instanceof SingleDirectoryComponent);
+    $suggestions = $this->container->get(PropSourceSuggester::class)->suggest(
+      'canvas_test_sdc:heading',
+      $component_source->getMetadata(),
+      EntityDataDefinition::create('node', 'article'),
+      $fields['field_captions'],
+    );
+
+    $text = $suggestions['⿲canvas_test_sdc:heading␟text'];
+    self::assertTrue($text['required'], 'The premise: the prop under test is required.');
+    self::assertNotSame([], $text[PropSource::Item->value]);
   }
 
 }

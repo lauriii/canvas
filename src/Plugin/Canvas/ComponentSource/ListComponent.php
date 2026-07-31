@@ -1209,20 +1209,23 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       ];
     }
 
-    // One control, two groups: an editor picks what the list is *of*, and the
-    // rest of the panel follows from that choice.
+    // One control: an editor picks what the list is *of*, and the rest of the
+    // panel follows from that choice.
+    // The two origins are spelled out per option rather than expressed as
+    // `<optgroup>`s. Canvas renders Drupal selects through React, and that
+    // renderer flattens `#options` to one level and emits every entry as an
+    // `<option>`: a grouped select would show the two group labels as its only
+    // choices and silently drop every real one, so the source could never be
+    // saved. Grouping needs the twig/propsify/Select chain to carry nested
+    // options first.
+    // @see ui/src/components/form/components/Select.tsx
     // @see docs/adr/0021-item-template-data-context-is-a-field-item.md
-    $selection_options = [
-      (string) $this->t('Content query') => \array_combine(
-        \array_map(static fn (string $b): string => 'bundle:' . $b, \array_keys($bundles)),
-        \array_map(static fn (array $info): string => (string) $info['label'], $bundles),
-      ),
-    ];
-    if ($iterable_fields !== []) {
-      $selection_options[(string) $this->t("This entity's fields")] = \array_combine(
-        \array_map(static fn (string $f): string => 'field:' . $f, \array_keys($iterable_fields)),
-        \array_map(static fn (array $field): string => $field['label'], $iterable_fields),
-      );
+    $selection_options = [];
+    foreach ($bundles as $bundle_name => $info) {
+      $selection_options['bundle:' . $bundle_name] = (string) $this->t('Content query: @bundle', ['@bundle' => $info['label']]);
+    }
+    foreach ($iterable_fields as $field_name => $field) {
+      $selection_options['field:' . $field_name] = (string) $this->t("This entity's fields: @field", ['@field' => $field['label']]);
     }
     $form['source'] = [
       '#type' => 'details',

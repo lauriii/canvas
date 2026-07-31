@@ -43,7 +43,8 @@ final class ItemPropSourceMatcher {
    * Matches a prop shape against one item of the given field.
    *
    * @param bool $is_required
-   *   Whether the component prop is required.
+   *   Whether the component prop is required. Accepted for signature symmetry
+   *   with the other matchers and deliberately not forwarded; see ::match().
    * @param \Drupal\canvas\PropShape\PropShape $prop_shape
    *   The prop shape one item must fill. Array prop shapes are never matched:
    *   an item is a single value.
@@ -54,7 +55,7 @@ final class ItemPropSourceMatcher {
    * @param string $host_entity_bundle
    *   The bundle the field belongs to.
    *
-   * @return list<FieldTypeBasedPropExpressionInterface>
+   * @return list<FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression>
    *   Field-item-rooted expressions, sorted by their string representation.
    */
   public function match(bool $is_required, PropShape $prop_shape, FieldDefinitionInterface $iterated_field, string $host_entity_type_id, string $host_entity_bundle): array {
@@ -70,8 +71,16 @@ final class ItemPropSourceMatcher {
     // @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher::matchEntityPropsForScalar()
     $list_shape = new PropShape(['type' => 'array', 'items' => $schema]);
 
+    // A required prop is asked for as an optional one. Requiredness restricts a
+    // host entity binding to a field that always has a value, because the
+    // component renders whether or not the field is populated. An item template
+    // is the opposite: it renders once per value that exists, so the item is
+    // guaranteed by construction, and an empty field renders no items at all
+    // rather than an item with nothing in it. Forwarding requiredness here
+    // would offer no binding for any required prop of any component placed in a
+    // template over an optional field — which is nearly every gallery.
     $matches = [];
-    foreach ($this->entityFieldPropSourceMatcher->match($is_required, $list_shape, $host_entity_type_id, $host_entity_bundle) as $prop_source) {
+    foreach ($this->entityFieldPropSourceMatcher->match(FALSE, $list_shape, $host_entity_type_id, $host_entity_bundle) as $prop_source) {
       $expression = $prop_source->expression;
       if ($expression->getFieldName() !== $iterated_field->getName()) {
         continue;
