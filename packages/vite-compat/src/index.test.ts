@@ -620,7 +620,7 @@ describe('vite-compat', () => {
           'canvas_forms/useCanvasForm',
           // A typo. It cannot be told apart from a module-contributed
           // specifier, so it is reported rather than failing the build.
-          'fake-installed-pkgg',
+          'misspelled-pkg',
           // Provided by Canvas itself, so never bundled or reported.
           'react',
         ]),
@@ -629,7 +629,7 @@ describe('vite-compat', () => {
       expect(result.bundledPackages).toEqual(['fake-installed-pkg']);
       expect(result.siteProvidedPackages).toEqual([
         'canvas_forms/useCanvasForm',
-        'fake-installed-pkgg',
+        'misspelled-pkg',
       ]);
     });
 
