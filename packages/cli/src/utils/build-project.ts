@@ -52,6 +52,10 @@ export interface CanvasProjectBuildResult {
   vendorImportCount: number;
   localImportCount: number;
   tailwindResult: Result;
+  /**
+   * Bare specifiers left for the site's import map to resolve at runtime.
+   */
+  siteProvidedPackages: string[];
 }
 
 export interface CanvasProjectBuildOptions {
@@ -273,6 +277,7 @@ function emptyVendorResult(): CanvasVendorArtifactBuildResult {
     importMap: { imports: {} },
     bundledPackages: [],
     sharedChunks: [],
+    siteProvidedPackages: [],
   };
 }
 
@@ -324,6 +329,7 @@ export async function buildCanvasProject(
         itemType: 'Asset',
         success: true,
       },
+      siteProvidedPackages: [],
     };
   }
 
@@ -451,5 +457,6 @@ export async function buildCanvasProject(
     vendorImportCount: vendorResult.bundledPackages.length,
     localImportCount: Object.keys(localResult.localImportMap).length,
     tailwindResult,
+    siteProvidedPackages: vendorResult.siteProvidedPackages,
   };
 }

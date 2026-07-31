@@ -168,6 +168,7 @@ describe('buildCommand', () => {
         itemType: 'Asset',
         success: true,
       },
+      siteProvidedPackages: [],
     } satisfies CanvasProjectBuildResult);
 
     await makeProgram().parseAsync(['node', 'canvas', 'build']);

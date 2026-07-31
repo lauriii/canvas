@@ -371,4 +371,27 @@ describe('buildCanvasProject fixture projects', () => {
     await expectManifestFilesExist(projectRoot, buildResult.manifest.vendor);
     await expectManifestFilesExist(projectRoot, buildResult.manifest.local);
   });
+
+  it('leaves module-contributed import map specifiers for the site to resolve', async () => {
+    const { projectRoot, buildResult } =
+      await buildFixtureProject('site-import-map');
+
+    expect(buildResult.componentResults).toEqual([
+      expect.objectContaining({ itemName: 'greeting', success: true }),
+    ]);
+    expect(buildResult.siteProvidedPackages).toEqual([
+      'example_module/useGreeting',
+    ]);
+
+    // The specifier survives into the compiled component so the browser
+    // resolves it against the site's import map.
+    const greetingJs = await readDistFile(
+      projectRoot,
+      'components/greeting/index.js',
+    );
+    expect(greetingJs).toContain('from "example_module/useGreeting"');
+
+    // It is not bundled, and packages Canvas provides are still excluded too.
+    expect(buildResult.manifest.vendor).toEqual({});
+  });
 });

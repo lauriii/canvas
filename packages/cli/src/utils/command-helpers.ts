@@ -144,3 +144,21 @@ export function pluralize(
 ): string {
   return count === 1 ? singular : (plural ?? `${singular}s`);
 }
+
+/**
+ * Warns about bare imports that only the site's import map can resolve.
+ *
+ * These are not installed npm packages, so the CLI leaves them unbundled and
+ * the browser resolves them against the site's import map. That is how Drupal
+ * modules and themes contribute imports, but it is also what a mistyped
+ * package name looks like, so name them explicitly.
+ */
+export function warnAboutSiteProvidedPackages(packages: string[]): void {
+  if (packages.length === 0) {
+    return;
+  }
+  p.log.warn(
+    `Not bundled, expected in the site's import map: ${packages.join(', ')}. ` +
+      'Install the package if it should be bundled, or check for a typo if the site does not provide it.',
+  );
+}

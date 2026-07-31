@@ -67,6 +67,17 @@ vi.mock('node:fs', () => ({
 testRunner.run('component-imports rule', rule, {
   valid: [
     {
+      name: 'should pass when component imports a specifier contributed to the import map by a Drupal module',
+      code: `
+        import { useCanvasForm } from 'canvas_forms/useCanvasForm';
+        const Button = () => {
+          return <button>{useCanvasForm('demo').name}</button>;
+        };
+        export default Button;
+      `,
+      filename: '/components/button/index.jsx',
+    },
+    {
       name: 'should pass when component imports other components using @/components/ alias',
       code: `
         import Icon from '@/components/icon';
