@@ -1026,3 +1026,5 @@ export function drupalCanvasCompat(options: CanvasViteCompatOptions): Plugin[] {
 
   return plugins;
 }
+
+export * from './site-imports';

@@ -11,6 +11,9 @@ import {
   buildCanvasLocalArtifacts,
   buildCanvasVendorArtifacts,
   createCanvasDependencyMetadata,
+  isResolvedByImportMap,
+  readSiteImports,
+  SITE_IMPORTS_FILE,
   validateCanvasImportRoots,
 } from '@drupal-canvas/vite-compat';
 
@@ -56,6 +59,13 @@ export interface CanvasProjectBuildResult {
    * Bare specifiers left for the site's import map to resolve at runtime.
    */
   siteProvidedPackages: string[];
+  /**
+   * Whether those specifiers were checked against the pulled site import map.
+   *
+   * False means the project has never run `canvas pull`, so the build had to
+   * take them on trust.
+   */
+  siteImportsVerified: boolean;
 }
 
 export interface CanvasProjectBuildOptions {
@@ -330,6 +340,7 @@ export async function buildCanvasProject(
         success: true,
       },
       siteProvidedPackages: [],
+      siteImportsVerified: false,
     };
   }
 
@@ -428,6 +439,24 @@ export async function buildCanvasProject(
         })
       : emptyVendorResult();
 
+  // Bare specifiers the project cannot resolve are left for the site's import
+  // map. If the project pulled that map, hold them to it: anything the site
+  // does not resolve either is a typo or needs the module that provides it
+  // installed, and would fail in the browser.
+  const siteImports = await readSiteImports(options.projectRoot);
+  if (siteImports && vendorResult.siteProvidedPackages.length > 0) {
+    const unresolvable = vendorResult.siteProvidedPackages.filter(
+      (specifier) => !isResolvedByImportMap(specifier, siteImports),
+    );
+    if (unresolvable.length > 0) {
+      throw new Error(
+        `Imports that nothing can resolve (${unresolvable.length}): ${unresolvable.join(', ')}. ` +
+          `They are not installed locally, and ${SITE_IMPORTS_FILE} says the site does not provide them. ` +
+          `Install the package, check for a typo, or run \`canvas pull\` if the site gained them since.`,
+      );
+    }
+  }
+
   const manifestResult = await generateManifest({
     outputDir,
     vendorImportMap: vendorResult.importMap,
@@ -458,5 +487,6 @@ export async function buildCanvasProject(
     localImportCount: Object.keys(localResult.localImportMap).length,
     tailwindResult,
     siteProvidedPackages: vendorResult.siteProvidedPackages,
+    siteImportsVerified: siteImports !== null,
   };
 }

@@ -169,6 +169,7 @@ describe('buildCommand', () => {
         success: true,
       },
       siteProvidedPackages: [],
+      siteImportsVerified: false,
     } satisfies CanvasProjectBuildResult);
 
     await makeProgram().parseAsync(['node', 'canvas', 'build']);

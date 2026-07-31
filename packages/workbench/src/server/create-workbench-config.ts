@@ -4,11 +4,16 @@ import { loadEnv } from 'vite';
 import {
   drupalCanvasCompat,
   drupalCanvasCompatServer,
+  readSiteImports,
 } from '@drupal-canvas/vite-compat';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 
 import { createAuthProxy } from './auth-proxy';
+import {
+  createSiteImportsPlugin,
+  getSiteImportProxyPrefixes,
+} from './create-site-imports-plugin';
 import { createWorkbenchPlugin } from './create-workbench-plugin';
 import { resolveWorkbenchPaths } from './paths';
 
@@ -40,6 +45,9 @@ export async function createWorkbenchConfig(
   const reactDomPackageRoot = path.dirname(
     require.resolve('react-dom/package.json'),
   );
+  // Recorded by `canvas pull`. Lets the preview render components that import
+  // specifiers only the site resolves, such as those a module contributes.
+  const siteImports = await readSiteImports(paths.hostProjectRoot);
 
   return {
     root: paths.clientRoot,
@@ -57,6 +65,12 @@ export async function createWorkbenchConfig(
                 target: siteUrl,
                 changeOrigin: true,
               },
+              ...Object.fromEntries(
+                getSiteImportProxyPrefixes(siteImports ?? {}).map((prefix) => [
+                  prefix,
+                  { target: siteUrl, changeOrigin: true },
+                ]),
+              ),
               '/canvas/api/': authProxyEntry(siteUrl),
               '/session/token': authProxyEntry(siteUrl),
             },
@@ -79,6 +93,7 @@ export async function createWorkbenchConfig(
       ...drupalCanvasCompat({
         hostRoot: paths.hostProjectRoot,
       }),
+      ...(siteImports ? [createSiteImportsPlugin(siteImports)] : []),
     ] as any,
     resolve: {
       dedupe: [

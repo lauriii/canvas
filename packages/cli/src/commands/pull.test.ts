@@ -348,17 +348,64 @@ describe('Pull Command', () => {
       await fs.rm(tmpDir, { recursive: true, force: true });
     });
 
-    function mockApiService(css: string): ApiService {
+    function mockApiService(
+      css: string,
+      siteImports?: Record<string, string>,
+    ): ApiService {
       return {
         getGlobalAssetLibrary: vi
           .fn()
-          .mockResolvedValue({ css: { original: css } }),
+          .mockResolvedValue({ css: { original: css }, siteImports }),
       } as unknown as ApiService;
     }
 
+    it('records the site import map so builds can resolve imports offline', async () => {
+      const siteImports = {
+        react: '/modules/contrib/canvas/react.js',
+        'canvas_forms/useCanvasForm': '/modules/custom/canvas_forms/js/form.js',
+      };
+      const api = mockApiService('body {}', siteImports);
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toContain('Assets: canvas-site-imports.json pull');
+
+      await task.execute();
+      const written = JSON.parse(
+        await fs.readFile(
+          path.join(tmpDir, 'canvas-site-imports.json'),
+          'utf-8',
+        ),
+      );
+      expect(written).toEqual({ imports: siteImports });
+    });
+
+    it('writes the site import map even when there is no global CSS', async () => {
+      const siteImports = { react: '/modules/contrib/canvas/react.js' };
+      const api = mockApiService('', siteImports);
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      await task.prepare();
+      await task.execute();
+      await expect(
+        fs.readFile(path.join(tmpDir, 'canvas-site-imports.json'), 'utf-8'),
+      ).resolves.toContain('react');
+    });
+
+    it('writes nothing when the site does not report an import map', async () => {
+      const api = mockApiService('body {}');
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      await task.prepare();
+      await task.execute();
+      await expect(
+        fs.access(path.join(tmpDir, 'canvas-site-imports.json')),
+      ).rejects.toThrow();
+    });
+
     it('should include global CSS in summary', async () => {
       const api = mockApiService('body {}');
-      const task = createAssetsPullTask(api, globalCssPath, false);
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
 
       const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual(['Assets: global CSS pull']);
@@ -366,7 +413,7 @@ describe('Pull Command', () => {
 
     it('should return empty summary when no global CSS', async () => {
       const api = mockApiService('');
-      const task = createAssetsPullTask(api, globalCssPath, false);
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
 
       const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual([]);
@@ -374,7 +421,7 @@ describe('Pull Command', () => {
 
     it('should return no asset results when no global CSS is planned', async () => {
       const api = mockApiService('');
-      const task = createAssetsPullTask(api, globalCssPath, false);
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
 
       await task.prepare();
       const results = await task.execute();
@@ -387,7 +434,7 @@ describe('Pull Command', () => {
 
     it('should write global.css file', async () => {
       const api = mockApiService('body { margin: 0; }');
-      const task = createAssetsPullTask(api, globalCssPath, false);
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
 
       await task.prepare();
       const results = await task.execute();
@@ -403,7 +450,7 @@ describe('Pull Command', () => {
 
     it('should prepend @import tailwindcss when remote CSS omits it', async () => {
       const api = mockApiService('@layer theme {\n  :root { --x: 1; }\n}');
-      const task = createAssetsPullTask(api, globalCssPath, false);
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
 
       await task.prepare();
       await task.execute();
@@ -418,7 +465,7 @@ describe('Pull Command', () => {
       const remote =
         "@import 'tailwindcss';\n@layer base {\n  body { margin: 0; }\n}";
       const api = mockApiService(remote);
-      const task = createAssetsPullTask(api, globalCssPath, false);
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
 
       await task.prepare();
       await task.execute();
@@ -429,7 +476,7 @@ describe('Pull Command', () => {
     it('should not duplicate @import when remote uses double-quoted tailwindcss', async () => {
       const remote = '@import "tailwindcss";\n.foo { color: red; }';
       const api = mockApiService(remote);
-      const task = createAssetsPullTask(api, globalCssPath, false);
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
 
       await task.prepare();
       await task.execute();
@@ -441,7 +488,7 @@ describe('Pull Command', () => {
       await fs.writeFile(globalCssPath, 'old css', 'utf-8');
 
       const api = mockApiService('new css');
-      const task = createAssetsPullTask(api, globalCssPath, true);
+      const task = createAssetsPullTask(api, globalCssPath, true, tmpDir);
 
       await task.prepare();
       const results = await task.execute();

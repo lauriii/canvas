@@ -182,6 +182,13 @@ export interface AssetLibrary {
   imports?: AssetLibraryManifestEntry[] | null;
   assets?: AssetLibraryManifestEntry[] | null;
   shared?: AssetLibraryManifestEntry[] | null;
+  /**
+   * The site's effective import map, specifier to URL. Read-only: the server
+   * computes it and ignores it on write.
+   *
+   * @see \Drupal\canvas\Entity\AssetLibrary::getSiteImports()
+   */
+  siteImports?: Record<string, string>;
 }
 
 export interface AssetLibraryManifestEntry {

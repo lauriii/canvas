@@ -147,7 +147,10 @@ export function buildCommand(program: Command): void {
           return;
         }
 
-        warnAboutSiteProvidedPackages(buildResult.siteProvidedPackages);
+        warnAboutSiteProvidedPackages(
+          buildResult.siteProvidedPackages,
+          buildResult.siteImportsVerified,
+        );
 
         p.log.info(
           chalk.green(

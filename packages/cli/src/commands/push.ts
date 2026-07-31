@@ -1076,7 +1076,10 @@ export function pushCommand(program: Command): void {
             );
           }
 
-          warnAboutSiteProvidedPackages(canvasBuild.siteProvidedPackages);
+          warnAboutSiteProvidedPackages(
+            canvasBuild.siteProvidedPackages,
+            canvasBuild.siteImportsVerified,
+          );
 
           // Build and push components.
           try {

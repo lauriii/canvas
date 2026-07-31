@@ -394,4 +394,69 @@ describe('buildCanvasProject fixture projects', () => {
     // It is not bundled, and packages Canvas provides are still excluded too.
     expect(buildResult.manifest.vendor).toEqual({});
   });
+
+  it('fails the build when the pulled site import map does not resolve a specifier', async () => {
+    const projectRoot = await copyFixtureProject('site-import-map');
+    // The site provides some specifiers, but not the one the component imports.
+    await fs.writeFile(
+      path.join(projectRoot, 'canvas-site-imports.json'),
+      JSON.stringify({
+        imports: { react: '/modules/contrib/canvas/react.js' },
+      }),
+      'utf-8',
+    );
+    const config = resolveCanvasConfig({ hostRoot: projectRoot });
+    const discoveryResult = await discoverCanvasProject({
+      componentRoot: path.resolve(projectRoot, config.componentDir),
+      projectRoot,
+    });
+
+    await expect(
+      withWorkingDirectory(projectRoot, () =>
+        buildCanvasProject({
+          projectRoot,
+          componentDir: config.componentDir,
+          aliasBaseDir: config.aliasBaseDir,
+          outputDir: 'dist',
+          discoveryResult,
+          cleanOutputDir: true,
+          requireJsEntries: true,
+        }),
+      ),
+    ).rejects.toThrow(/example_module\/useGreeting/);
+  });
+
+  it('builds when the pulled site import map resolves the specifier', async () => {
+    const projectRoot = await copyFixtureProject('site-import-map');
+    await fs.writeFile(
+      path.join(projectRoot, 'canvas-site-imports.json'),
+      JSON.stringify({
+        imports: {
+          'example_module/useGreeting':
+            '/modules/custom/example_module/js/greeting.js',
+        },
+      }),
+      'utf-8',
+    );
+    const config = resolveCanvasConfig({ hostRoot: projectRoot });
+    const discoveryResult = await discoverCanvasProject({
+      componentRoot: path.resolve(projectRoot, config.componentDir),
+      projectRoot,
+    });
+
+    const buildResult = await withWorkingDirectory(projectRoot, () =>
+      buildCanvasProject({
+        projectRoot,
+        componentDir: config.componentDir,
+        aliasBaseDir: config.aliasBaseDir,
+        outputDir: 'dist',
+        discoveryResult,
+        cleanOutputDir: true,
+        requireJsEntries: true,
+      }),
+    );
+    expect(buildResult.siteProvidedPackages).toEqual([
+      'example_module/useGreeting',
+    ]);
+  });
 });

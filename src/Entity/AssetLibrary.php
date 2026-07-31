@@ -7,6 +7,8 @@ namespace Drupal\canvas\Entity;
 use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\EntityHandlers\AssetLibraryAccessControlHandler;
 use Drupal\canvas\EntityHandlers\CanvasAssetStorage;
+use Drupal\canvas\GlobalImports;
+use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
@@ -98,9 +100,32 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
         'imports' => $this->imports,
         'assets' => $this->assets,
         'shared' => $this->shared,
+        'siteImports' => self::getSiteImports(),
       ],
       preview: NULL
     );
+  }
+
+  /**
+   * Returns the site's effective import map, specifier to URL.
+   *
+   * Code components are compiled, not bundled: their bare import specifiers are
+   * resolved in the browser against this map. It is wider than this entity's
+   * own `imports`, because Canvas ships specifiers of its own and modules and
+   * themes contribute more through hook_canvas_importmap_alter(). A build tool
+   * outside Drupal cannot know which specifiers a site resolves without being
+   * told, so this is exposed to clients but never stored.
+   *
+   * @return array<string, string>
+   *
+   * @see hook_canvas_importmap_alter()
+   * @see \Drupal\canvas\GlobalImports::getImportMap()
+   */
+  private static function getSiteImports(): array {
+    // Scoped imports are deliberately left out: they map a specifier only for
+    // modules under a given URL prefix, which a component build cannot act on.
+    return \Drupal::service(GlobalImports::class)
+      ->getImportMap()[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS];
   }
 
   /**
@@ -129,6 +154,10 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
         'imports' => $this->setImports(\is_array($value) ? array_values($value) : NULL),
         'assets' => $this->setAssets(\is_array($value) ? array_values($value) : NULL),
         'shared' => $this->setShared(\is_array($value) ? array_values($value) : NULL),
+        // Computed for clients, never stored: a client that sends back the
+        // object it received must not be able to write it.
+        // @see self::getSiteImports()
+        'siteImports' => NULL,
         default => $this->set($key, $value),
       };
     }

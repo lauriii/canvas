@@ -4,7 +4,11 @@ import { Option } from 'commander';
 import yaml from 'js-yaml';
 import * as p from '@clack/prompts';
 import { discoverCanvasProject } from '@drupal-canvas/discovery';
-import { resolveHostGlobalCssPath } from '@drupal-canvas/vite-compat';
+import {
+  resolveHostGlobalCssPath,
+  SITE_IMPORTS_FILE,
+  writeSiteImports,
+} from '@drupal-canvas/vite-compat';
 
 import { ensureConfig, getConfig } from '../config';
 import {
@@ -659,9 +663,11 @@ export function createAssetsPullTask(
   apiService: ApiService,
   globalCssPath: string,
   skipOverwrite: boolean,
+  projectRoot: string,
 ): PullTask {
   let globalCss = '';
   let localExists = false;
+  let siteImports: Record<string, string> | undefined;
 
   return {
     startLabel: 'Pulling assets',
@@ -669,19 +675,43 @@ export function createAssetsPullTask(
 
     async prepare(): Promise<PullTaskPrepareResult> {
       const globalAssetLibrary = await apiService.getGlobalAssetLibrary();
+      siteImports = globalAssetLibrary?.siteImports;
       globalCss = globalAssetLibrary?.css?.original || '';
+      const summaryLines: string[] = [];
+      if (siteImports) {
+        summaryLines.push(`Assets: ${SITE_IMPORTS_FILE} pull`);
+      }
       if (!globalCss) {
-        return { summaryLines: [], localOnlyCount: 0 };
+        return { summaryLines, localOnlyCount: 0 };
       }
       localExists = await fs
         .access(globalCssPath)
         .then(() => true)
         .catch(() => false);
-      return { summaryLines: ['Assets: global CSS pull'], localOnlyCount: 0 };
+      summaryLines.push('Assets: global CSS pull');
+      return { summaryLines, localOnlyCount: 0 };
     },
 
     async execute(): Promise<PullTaskResult> {
       const results: Result[] = [];
+      // Record which bare specifiers this site resolves, so builds can tell a
+      // module-contributed import from a typo without reaching the site.
+      if (siteImports) {
+        try {
+          await writeSiteImports(projectRoot, siteImports);
+          results.push({ itemName: SITE_IMPORTS_FILE, success: true });
+        } catch (error) {
+          results.push({
+            itemName: SITE_IMPORTS_FILE,
+            success: false,
+            details: [
+              {
+                content: error instanceof Error ? error.message : String(error),
+              },
+            ],
+          });
+        }
+      }
       if (!globalCss) {
         return { results, title: 'Pulled assets', label: 'Asset' };
       }
@@ -891,6 +921,7 @@ export function pullCommand(program: Command): void {
             apiService,
             resolveHostGlobalCssPath(projectRoot),
             options.skipOverwrite ?? false,
+            projectRoot,
           ),
         ];
 
