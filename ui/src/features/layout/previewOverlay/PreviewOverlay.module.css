@@ -204,6 +204,12 @@
    Growing the zone rather than letting the text spill keeps the backdrop behind
    the text, which is what makes it legible over the page being edited. */
 .emptySlotContainer {
+  /* Sibling component overlays are absolutely positioned and paint in DOM
+     order, so a slot advertisement that grows past its own slot ends up
+     underneath the next one — and its Add button stops being clickable. The
+     container is pointer-transparent apart from that button, so lifting it
+     costs nothing else. */
+  z-index: 1;
   align-items: stretch;
   height: auto;
   min-height: 100%;
@@ -218,6 +224,26 @@
   width: auto;
   height: auto;
   inset: auto;
+}
+
+/* The one interactive hole in a pointer-transparent overlay: filling a
+   restricted slot without having to aim a drag at it.
+   @see \Drupal\canvas\SlotRestrictions */
+.emptySlotAdd {
+  flex-basis: 100%;
+  text-align: center;
+
+  button {
+    padding: 1px 6px;
+    cursor: pointer;
+    pointer-events: auto;
+    color: var(--purple-11);
+    border: 1px solid var(--purple-9);
+    border-radius: var(--radius-2);
+    background: rgb(255, 255, 255, 0.7);
+    font-family: inherit;
+    font-size: 11px;
+  }
 }
 
 .emptySlotAccepts,

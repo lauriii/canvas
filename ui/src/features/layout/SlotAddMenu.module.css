@@ -1,0 +1,13 @@
+.slotAddMenu {
+  min-width: 200px;
+  max-width: 280px;
+}
+
+/* Cardinality and the full-slot explanation. Not a menu item: there is nothing
+   to select, so it must not be focusable or look like it is. */
+.slotAddMenuNote {
+  padding: var(--space-1) var(--space-2);
+  color: var(--gray-11);
+  font-size: 11px;
+  line-height: 15px;
+}

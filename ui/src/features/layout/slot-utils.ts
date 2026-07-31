@@ -181,6 +181,74 @@ export const rejectPlacement = (
   };
 };
 
+/** The heading shared by components a slot names directly, by ID. */
+export const NAMED_IN_THIS_SLOT = 'Named in this slot';
+
+/**
+ * One heading's worth of the components a slot accepts.
+ */
+export interface SlotCandidateGroup {
+  label: string;
+  componentIds: string[];
+}
+
+/**
+ * The heading a tag gets in an author-facing menu.
+ *
+ * Tags are written for developers (`accordion-content`); this is where they
+ * have to read as language.
+ */
+const tagHeading = (tag: string): string => {
+  const words = tag.replaceAll(/[-_]+/g, ' ').trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+/**
+ * Groups the components a slot accepts, under headings an author can read.
+ *
+ * Each tag in `expected` becomes its own heading; components named directly by
+ * ID share one, so that a component author's explicit choice reads as a
+ * deliberate one. Groups appear in the order the slot declares them, and a
+ * component that matches more than one entry is listed under the first.
+ */
+export const groupSlotCandidates = (
+  slotDefinition: SlotDefinition | undefined,
+  components: ComponentsList | undefined,
+): SlotCandidateGroup[] => {
+  if (!slotDefinition || !components) {
+    return [];
+  }
+  const groups: SlotCandidateGroup[] = [];
+  const seen = new Set<string>();
+  const addTo = (label: string, componentId: string) => {
+    if (seen.has(componentId)) {
+      return;
+    }
+    seen.add(componentId);
+    const group = groups.find((candidate) => candidate.label === label);
+    if (group) {
+      group.componentIds.push(componentId);
+    } else {
+      groups.push({ label, componentIds: [componentId] });
+    }
+  };
+
+  expectedEntries(slotDefinition).forEach((entry) => {
+    const reference = normalizeReference(entry);
+    if (reference !== null) {
+      if (components[reference]) {
+        addTo(NAMED_IN_THIS_SLOT, reference);
+      }
+      return;
+    }
+    Object.values(components)
+      .filter((component) => component.tags?.includes(entry))
+      .forEach((component) => addTo(tagHeading(entry), component.id));
+  });
+
+  return groups.filter((group) => group.componentIds.length > 0);
+};
+
 /**
  * Names what a slot accepts, for an author rather than for a developer.
  */

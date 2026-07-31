@@ -1,13 +1,18 @@
 import { useCallback } from 'react';
 import { CollapsibleContent } from '@radix-ui/react-collapsible';
 import * as Collapsible from '@radix-ui/react-collapsible';
-import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
+import {
+  PlusIcon,
+  TriangleDownIcon,
+  TriangleRightIcon,
+} from '@radix-ui/react-icons';
 import { Box, Flex, Text } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import ComponentLayer from '@/features/layout/layers/ComponentLayer';
 import LayersDropZone from '@/features/layout/layers/LayersDropZone';
+import SlotAddMenu from '@/features/layout/SlotAddMenu';
 import {
   selectCollapsedLayers,
   setHoveredComponent,
@@ -15,7 +20,7 @@ import {
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
-import { useSlotRule } from '@/hooks/useSlotRestrictions';
+import { useSlotCandidates, useSlotRule } from '@/hooks/useSlotRestrictions';
 
 import type React from 'react';
 import type { CollapsibleTriggerProps } from '@radix-ui/react-collapsible';
@@ -48,6 +53,7 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
   // is itself the signal that this slot has rules.
   // @see \Drupal\canvas\SlotRestrictions
   const rule = useSlotRule(slot);
+  const candidates = useSlotCandidates(slot);
   const occupancy = slot.components.length;
   const counter =
     rule.maxItems !== null
@@ -103,10 +109,27 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
           disabled={disableDrop}
           indent={indent}
           trailingContent={
-            counter ? (
-              <Text size="1" color="gray">
-                {counter}
-              </Text>
+            counter || candidates.length > 0 ? (
+              <Flex align="center" gap="1">
+                {counter && (
+                  <Text size="1" color="gray">
+                    {counter}
+                  </Text>
+                )}
+                {/* The keyboard-reachable way to fill a restricted slot, and
+                    the only one that cannot offer something that does not fit.
+                    @see \Drupal\canvas\SlotRestrictions */}
+                {candidates.length > 0 && (
+                  <SlotAddMenu slot={slot}>
+                    <button
+                      aria-label={`Add to ${slotName}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <PlusIcon />
+                    </button>
+                  </SlotAddMenu>
+                )}
+              </Flex>
             ) : undefined
           }
           leadingContent={

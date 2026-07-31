@@ -64,8 +64,11 @@ const LayersDropZone: React.FC<LayersDropZoneProps> = (props) => {
     active,
   } = useDroppable({
     id: `${id}_${position}_layers`,
-    disabled: draggedItem === `${id}` || rejection !== null,
+    // Registered even when it refuses, so the drag pill can say why.
+    // @see \Drupal\canvas\SlotRestrictions
+    disabled: draggedItem === `${id}`,
     data: {
+      rejection,
       component: layer,
       parentSlot: parentSlot,
       parentRegion: parentRegion,
@@ -85,7 +88,7 @@ const LayersDropZone: React.FC<LayersDropZoneProps> = (props) => {
   return (
     <div
       className={clsx(styles.layersDropZone, dropzoneStyle, {
-        [styles.isOver]: isOver,
+        [styles.isOver]: isOver && rejection === null,
       })}
       // @ts-ignore
       style={{ '--indent-depth': `${indent}` }}

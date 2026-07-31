@@ -6,7 +6,10 @@ import { renderHook } from '@testing-library/react';
 import { makeStore } from '@/app/store';
 import { NodeType, setLayoutModel } from '@/features/layout/layoutModelSlice';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
-import { rejectPlacementAtPath } from '@/hooks/useSlotRestrictions';
+import {
+  rejectPlacementAtPath,
+  useSlotCandidates,
+} from '@/hooks/useSlotRestrictions';
 
 import type { RegionNode } from '@/features/layout/layoutModelSlice';
 import type { ComponentsList } from '@/types/Component';
@@ -31,6 +34,13 @@ const components = {
         items: { title: 'Items', expected: ['media'], maxItems: 1 },
       },
     },
+  },
+  // A container whose slot declares no restrictions at all: nothing to narrow
+  // to, so it gets no menu.
+  'sdc.my_theme.open-container': {
+    id: 'sdc.my_theme.open-container',
+    name: 'Open container',
+    metadata: { slots: { items: { title: 'Items' } } },
   },
   // The same slot without a cardinality limit, so that `expected` is the only
   // thing that can refuse a placement.
@@ -229,5 +239,52 @@ describe('pasteAfterSelectedComponent', () => {
       store.getState().layoutModel.present.layout[0].components,
     ).toHaveLength(2);
     expect(mockToastError).not.toHaveBeenCalled();
+  });
+});
+
+describe('useSlotCandidates', () => {
+  let store: ReturnType<typeof makeStore>;
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <Provider store={store}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </Provider>
+  );
+
+  const slotOf = (regionLayout: RegionNode[]) =>
+    regionLayout[0].components[0].slots[0];
+
+  beforeEach(() => {
+    store = makeStore();
+  });
+
+  it('offers only what the slot accepts, under the tag as a heading', () => {
+    const current = layout();
+    store.dispatch(
+      setLayoutModel({ layout: current, model: {}, updatePreview: false }),
+    );
+    const { result } = renderHook(() => useSlotCandidates(slotOf(current)), {
+      wrapper,
+    });
+
+    // Hero carries no tag and the containers are not named, so neither is on
+    // offer however the author reaches for the menu.
+    expect(result.current).toEqual([
+      { label: 'Media', componentIds: ['sdc.my_theme.card'] },
+    ]);
+  });
+
+  it('offers nothing for a slot that restricts nothing', () => {
+    const unrestricted = layout();
+    unrestricted[0].components[0].type = 'sdc.my_theme.open-container@1';
+    store.dispatch(
+      setLayoutModel({ layout: unrestricted, model: {}, updatePreview: false }),
+    );
+    const { result } = renderHook(
+      () => useSlotCandidates(slotOf(unrestricted)),
+      { wrapper },
+    );
+
+    expect(result.current).toEqual([]);
   });
 });

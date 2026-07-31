@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   describeAllowed,
+  groupSlotCandidates,
+  NAMED_IN_THIS_SLOT,
   normalizeReference,
   rejectPlacement,
   resolveSlotRule,
@@ -165,5 +167,63 @@ describe('describeAllowed', () => {
       components,
     );
     expect(describeAllowed(rule, components, 2)).toBe('Card, Stat and 2 more');
+  });
+});
+
+describe('groupSlotCandidates', () => {
+  it('gives each tag its own heading, read as language', () => {
+    expect(
+      groupSlotCandidates(slot({ expected: ['media'] }), components),
+    ).toEqual([
+      {
+        label: 'Media',
+        componentIds: ['sdc.my_theme.card', 'sdc.my_theme.stat', 'js.promo'],
+      },
+    ]);
+  });
+
+  it('collects directly named components under one heading', () => {
+    expect(
+      groupSlotCandidates(
+        slot({ expected: ['my_theme:hero', 'js.promo'] }),
+        components,
+      ),
+    ).toEqual([
+      {
+        label: NAMED_IN_THIS_SLOT,
+        componentIds: ['sdc.my_theme.hero', 'js.promo'],
+      },
+    ]);
+  });
+
+  it('keeps the order the slot declares, and lists a component once', () => {
+    expect(
+      groupSlotCandidates(
+        // `js.promo` carries the `media` tag as well as being named.
+        slot({ expected: ['js.promo', 'media'] }),
+        components,
+      ),
+    ).toEqual([
+      { label: NAMED_IN_THIS_SLOT, componentIds: ['js.promo'] },
+      {
+        label: 'Media',
+        componentIds: ['sdc.my_theme.card', 'sdc.my_theme.stat'],
+      },
+    ]);
+  });
+
+  it('drops entries that resolve to nothing', () => {
+    expect(
+      groupSlotCandidates(
+        slot({ expected: ['my_theme:gone', 'no-such-tag'] }),
+        components,
+      ),
+    ).toEqual([]);
+  });
+
+  it('offers nothing for a slot that restricts nothing', () => {
+    // An unrestricted slot has no candidate set to narrow to, so there is no
+    // menu to build: the component library already offers everything.
+    expect(groupSlotCandidates(slot({}), components)).toEqual([]);
   });
 });

@@ -12,9 +12,11 @@ import {
 import {
   componentIdFromNodeType,
   getSlotRule,
+  groupSlotCandidates,
   rejectPlacement,
 } from '@/features/layout/slot-utils';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
+import { hasSlotDefinitions } from '@/types/Component';
 
 import type { Active } from '@dnd-kit/core';
 import type {
@@ -22,8 +24,16 @@ import type {
   RegionNode,
   SlotNode,
 } from '@/features/layout/layoutModelSlice';
-import type { Rejection, SlotRule } from '@/features/layout/slot-utils';
-import type { CanvasComponent, ComponentsList } from '@/types/Component';
+import type {
+  Rejection,
+  SlotCandidateGroup,
+  SlotRule,
+} from '@/features/layout/slot-utils';
+import type {
+  CanvasComponent,
+  ComponentsList,
+  SlotDefinition,
+} from '@/types/Component';
 import type { Pattern } from '@/types/Pattern';
 
 /**
@@ -184,6 +194,40 @@ export const useSlotTitle = (slot: SlotNode | undefined): string => {
         : '',
     [slot, byUuid, components],
   );
+};
+
+/**
+ * The components a slot accepts, grouped under author-facing headings.
+ *
+ * Empty for a slot that restricts nothing: the menu this feeds exists to offer
+ * only what fits, and where everything fits the component library already does
+ * that job.
+ *
+ * @see \Drupal\canvas\SlotRestrictions
+ */
+export const useSlotCandidates = (
+  slot: SlotNode | undefined,
+): SlotCandidateGroup[] => {
+  const byUuid = useAppSelector(selectComponentsByUuid);
+  const { data: components } = useGetComponentsQuery();
+  return useMemo(() => {
+    if (!slot) {
+      return [];
+    }
+    const parentComponent = parentComponentOf(slot, byUuid, components);
+    const definition = hasSlotDefinitions(parentComponent)
+      ? (parentComponent.metadata.slots[slot.name] as
+          | SlotDefinition
+          | undefined)
+      : undefined;
+    return groupSlotCandidates(definition, components).map((group) => ({
+      ...group,
+      // A broken component cannot be rendered, so it is never worth offering.
+      componentIds: group.componentIds.filter(
+        (id) => components?.[id] && !components[id].broken,
+      ),
+    }));
+  }, [slot, byUuid, components]);
 };
 
 /**
