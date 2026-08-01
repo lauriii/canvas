@@ -7,6 +7,7 @@ import {
   normalizeReference,
   rejectPlacement,
   resolveSlotRule,
+  slotOccupancy,
 } from './slot-utils';
 
 import type { ComponentsList, SlotDefinition } from '@/types/Component';
@@ -225,5 +226,44 @@ describe('groupSlotCandidates', () => {
     // An unrestricted slot has no candidate set to narrow to, so there is no
     // menu to build: the component library already offers everything.
     expect(groupSlotCandidates(slot({}), components)).toEqual([]);
+  });
+});
+
+describe('slotOccupancy', () => {
+  const rule = (restrictions: Partial<SlotDefinition>) =>
+    resolveSlotRule(slot(restrictions), components);
+
+  it('says nothing for a slot with no bounds', () => {
+    // The presence of a counter is itself the signal that a slot is governed,
+    // so a slot that governs only *what* it accepts must not grow one.
+    expect(slotOccupancy(rule({ expected: ['media'] }), 2)).toBeNull();
+  });
+
+  it('stays quiet while there is nothing to act on', () => {
+    expect(slotOccupancy(rule({ maxItems: 3 }), 1)).toEqual({
+      label: '1 of 3',
+      tone: 'muted',
+    });
+  });
+
+  it('speaks up at the limit', () => {
+    expect(slotOccupancy(rule({ maxItems: 3 }), 3)).toEqual({
+      label: '3 of 3',
+      tone: 'full',
+    });
+  });
+
+  it('warns while the slot still owes the author components', () => {
+    expect(slotOccupancy(rule({ minItems: 2, maxItems: 4 }), 1)).toEqual({
+      label: '1 of 4, needs 2',
+      tone: 'under',
+    });
+  });
+
+  it('warns below a minimum even with no maximum to count towards', () => {
+    expect(slotOccupancy(rule({ minItems: 1 }), 0)).toEqual({
+      label: '0, needs 1',
+      tone: 'under',
+    });
   });
 });

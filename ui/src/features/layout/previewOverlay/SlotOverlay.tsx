@@ -7,6 +7,7 @@ import { SlotNameTag } from '@/features/layout/preview/NameTag';
 import { usePreviewGeometry } from '@/features/layout/preview/PreviewGeometryContext';
 import ComponentOverlay from '@/features/layout/previewOverlay/ComponentOverlay';
 import EmptySlotDropZone from '@/features/layout/previewOverlay/EmptySlotDropZone';
+import SlotChip from '@/features/layout/previewOverlay/SlotChip';
 import {
   selectEditorViewPortScale,
   selectIsComponentHovered,
@@ -97,6 +98,11 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
           />
         </div>
       )}
+      {/* A governed slot says how full it is and offers a way to fill it,
+          whether or not it already holds something.
+          @see \Drupal\canvas\SlotRestrictions */}
+      {!disableDrop && <SlotChip slot={slot} slotName={slotName} />}
+
       {!slot.components.length && !disableDrop && (
         <EmptySlotDropZone
           slot={slot}

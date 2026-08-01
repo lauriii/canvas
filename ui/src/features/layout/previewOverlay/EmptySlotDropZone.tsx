@@ -1,20 +1,15 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { kebabCase } from 'lodash';
-import { useDndContext, useDroppable } from '@dnd-kit/core';
+import { useDroppable } from '@dnd-kit/core';
 import { BoxModelIcon } from '@radix-ui/react-icons';
 
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { describeAllowed } from '@/features/layout/slot-utils';
-import SlotAddMenu from '@/features/layout/SlotAddMenu';
 import useGetComponentName from '@/hooks/useGetComponentName';
-import {
-  useDropRejection,
-  useSlotCandidates,
-  useSlotRule,
-} from '@/hooks/useSlotRestrictions';
+import { useDropRejection, useSlotRule } from '@/hooks/useSlotRestrictions';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 
 import type React from 'react';
@@ -50,10 +45,6 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
   // @see \Drupal\canvas\SlotRestrictions
   const rejection = useDropRejection(slot);
   const rule = useSlotRule(slot);
-  const candidates = useSlotCandidates(slot);
-  // The button is a hole in an otherwise pointer-transparent overlay, so it
-  // must disappear while a drag is in flight rather than swallow the drop.
-  const { active: dragInFlight } = useDndContext();
   const { data: components } = useGetComponentsQuery();
 
   const {
@@ -112,23 +103,6 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
             {rule.allowed !== null && (
               <div className={styles.emptySlotAccepts}>
                 Accepts {describeAllowed(rule, components)}
-              </div>
-            )}
-            {rule.maxItems !== null && (
-              <div className={styles.emptySlotCount}>
-                0 of {rule.maxItems}
-                {rule.minItems ? `, at least ${rule.minItems}` : ''}
-              </div>
-            )}
-            {/* Filling a restricted slot without dragging into it.
-                @see \Drupal\canvas\SlotRestrictions */}
-            {candidates.length > 0 && !dragInFlight && (
-              <div className={styles.emptySlotAdd}>
-                <SlotAddMenu slot={slot}>
-                  <button type="button" aria-label={`Add to ${slotName}`}>
-                    + Add
-                  </button>
-                </SlotAddMenu>
               </div>
             )}
           </>

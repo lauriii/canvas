@@ -12,6 +12,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import ComponentLayer from '@/features/layout/layers/ComponentLayer';
 import LayersDropZone from '@/features/layout/layers/LayersDropZone';
+import { slotOccupancy } from '@/features/layout/slot-utils';
 import SlotAddMenu from '@/features/layout/SlotAddMenu';
 import {
   selectCollapsedLayers,
@@ -28,6 +29,8 @@ import type {
   ComponentNode,
   SlotNode,
 } from '@/features/layout/layoutModelSlice';
+
+import styles from './SlotLayer.module.css';
 
 interface SlotLayerProps {
   slot: SlotNode;
@@ -54,13 +57,7 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
   // @see \Drupal\canvas\SlotRestrictions
   const rule = useSlotRule(slot);
   const candidates = useSlotCandidates(slot);
-  const occupancy = slot.components.length;
-  const counter =
-    rule.maxItems !== null
-      ? `${occupancy} of ${rule.maxItems}`
-      : rule.minItems && occupancy < rule.minItems
-        ? `${occupancy}, needs ${rule.minItems}`
-        : null;
+  const occupancy = slotOccupancy(rule, slot.components.length);
 
   const handleItemMouseEnter = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -109,11 +106,15 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
           disabled={disableDrop}
           indent={indent}
           trailingContent={
-            counter || candidates.length > 0 ? (
+            occupancy || candidates.length > 0 ? (
               <Flex align="center" gap="1">
-                {counter && (
-                  <Text size="1" color="gray">
-                    {counter}
+                {occupancy && (
+                  <Text
+                    size="1"
+                    color={occupancy.tone === 'under' ? 'orange' : 'gray'}
+                    weight={occupancy.tone === 'muted' ? 'regular' : 'medium'}
+                  >
+                    {occupancy.label}
                   </Text>
                 )}
                 {/* The keyboard-reachable way to fill a restricted slot, and
@@ -122,7 +123,9 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
                 {candidates.length > 0 && (
                   <SlotAddMenu slot={slot}>
                     <button
+                      className={styles.slotAddButton}
                       aria-label={`Add to ${slotName}`}
+                      title={`Add to ${slotName}`}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <PlusIcon />

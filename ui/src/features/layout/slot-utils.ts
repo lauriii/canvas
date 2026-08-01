@@ -181,6 +181,42 @@ export const rejectPlacement = (
   };
 };
 
+/**
+ * How full a governed slot is: what to say, and how loudly.
+ *
+ * `under` is an obligation the author still has to meet, `full` is a limit they
+ * have reached, and `muted` is neither — so the counter is quiet while there is
+ * nothing to act on and speaks up when there is. The one place this is phrased,
+ * so the canvas and the Layers panel cannot drift apart.
+ *
+ * Null for a slot that declares no bounds: the presence of a counter is itself
+ * the signal that the slot is governed.
+ */
+export interface SlotOccupancy {
+  label: string;
+  tone: 'muted' | 'under' | 'full';
+}
+
+export const slotOccupancy = (
+  rule: SlotRule,
+  occupancy: number,
+): SlotOccupancy | null => {
+  const of =
+    rule.maxItems === null
+      ? `${occupancy}`
+      : `${occupancy} of ${rule.maxItems}`;
+  if (rule.minItems !== null && occupancy < rule.minItems) {
+    return { label: `${of}, needs ${rule.minItems}`, tone: 'under' };
+  }
+  if (rule.maxItems === null) {
+    return null;
+  }
+  return {
+    label: of,
+    tone: occupancy >= rule.maxItems ? 'full' : 'muted',
+  };
+};
+
 /** The heading shared by components a slot names directly, by ID. */
 export const NAMED_IN_THIS_SLOT = 'Named in this slot';
 
