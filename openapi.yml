@@ -4106,16 +4106,28 @@ components:
             compiled:
               type: string
               description: Compiled JS code, compiled from the original
-        siteImports:
+        importMap:
           type: object
           description: >-
-            The site's effective import map, specifier to URL. Read-only:
-            computed from what Canvas ships plus what modules and themes
-            contribute through hook_canvas_importmap_alter(), and ignored if
-            sent back. Build tools outside Drupal use it to know which bare
-            specifiers this site resolves in the browser.
-          additionalProperties:
-            type: string
+            The site's effective import map, in import map spec shape.
+            Read-only: computed from what Canvas ships plus what modules and
+            themes contribute through hook_canvas_importmap_alter(), and
+            ignored if sent back. Tools outside Drupal use it to know which
+            bare specifiers this site resolves in the browser.
+          required:
+            - imports
+            - scopes
+          properties:
+            imports:
+              type: object
+              additionalProperties:
+                type: string
+            scopes:
+              type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: string
     NewAssetLibrary:
       type: object
       allOf:

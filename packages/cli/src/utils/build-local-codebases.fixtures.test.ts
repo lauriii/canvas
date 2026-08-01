@@ -399,7 +399,7 @@ describe('buildCanvasProject fixture projects', () => {
     const projectRoot = await copyFixtureProject('site-import-map');
     // The site provides some specifiers, but not the one the component imports.
     await fs.writeFile(
-      path.join(projectRoot, 'canvas-site-imports.json'),
+      path.join(projectRoot, 'canvas-importmap.json'),
       JSON.stringify({
         imports: { react: '/modules/contrib/canvas/react.js' },
       }),
@@ -429,7 +429,7 @@ describe('buildCanvasProject fixture projects', () => {
   it('builds when the pulled site import map resolves the specifier', async () => {
     const projectRoot = await copyFixtureProject('site-import-map');
     await fs.writeFile(
-      path.join(projectRoot, 'canvas-site-imports.json'),
+      path.join(projectRoot, 'canvas-importmap.json'),
       JSON.stringify({
         imports: {
           'example_module/useGreeting':

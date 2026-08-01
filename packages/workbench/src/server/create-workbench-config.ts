@@ -4,7 +4,7 @@ import { loadEnv } from 'vite';
 import {
   drupalCanvasCompat,
   drupalCanvasCompatServer,
-  readSiteImports,
+  readSiteImportMap,
 } from '@drupal-canvas/vite-compat';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
@@ -47,7 +47,7 @@ export async function createWorkbenchConfig(
   );
   // Recorded by `canvas pull`. Lets the preview render components that import
   // specifiers only the site resolves, such as those a module contributes.
-  const siteImports = await readSiteImports(paths.hostProjectRoot);
+  const siteImportMap = await readSiteImportMap(paths.hostProjectRoot);
 
   return {
     root: paths.clientRoot,
@@ -66,7 +66,9 @@ export async function createWorkbenchConfig(
                 changeOrigin: true,
               },
               ...Object.fromEntries(
-                getSiteImportProxyPrefixes(siteImports ?? {}).map((prefix) => [
+                getSiteImportProxyPrefixes(
+                  siteImportMap ?? { imports: {} },
+                ).map((prefix) => [
                   prefix,
                   { target: siteUrl, changeOrigin: true },
                 ]),
@@ -93,7 +95,7 @@ export async function createWorkbenchConfig(
       ...drupalCanvasCompat({
         hostRoot: paths.hostProjectRoot,
       }),
-      ...(siteImports ? [createSiteImportsPlugin(siteImports)] : []),
+      ...(siteImportMap ? [createSiteImportsPlugin(siteImportMap)] : []),
     ] as any,
     resolve: {
       dedupe: [

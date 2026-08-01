@@ -350,45 +350,48 @@ describe('Pull Command', () => {
 
     function mockApiService(
       css: string,
-      siteImports?: Record<string, string>,
+      importMap?: { imports: Record<string, string> },
     ): ApiService {
       return {
         getGlobalAssetLibrary: vi
           .fn()
-          .mockResolvedValue({ css: { original: css }, siteImports }),
+          .mockResolvedValue({ css: { original: css }, importMap }),
       } as unknown as ApiService;
     }
 
     it('records the site import map so builds can resolve imports offline', async () => {
-      const siteImports = {
-        react: '/modules/contrib/canvas/react.js',
-        'canvas_forms/useCanvasForm': '/modules/custom/canvas_forms/js/form.js',
+      const importMap = {
+        imports: {
+          react: '/modules/contrib/canvas/react.js',
+          'canvas_forms/useCanvasForm':
+            '/modules/custom/canvas_forms/js/form.js',
+        },
+        scopes: {},
       };
-      const api = mockApiService('body {}', siteImports);
+      const api = mockApiService('body {}', importMap);
       const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
 
       const { summaryLines } = await task.prepare();
-      expect(summaryLines).toContain('Assets: canvas-site-imports.json pull');
+      expect(summaryLines).toContain('Assets: canvas-importmap.json pull');
 
       await task.execute();
       const written = JSON.parse(
-        await fs.readFile(
-          path.join(tmpDir, 'canvas-site-imports.json'),
-          'utf-8',
-        ),
+        await fs.readFile(path.join(tmpDir, 'canvas-importmap.json'), 'utf-8'),
       );
-      expect(written).toEqual({ imports: siteImports });
+      // A plain import map document, so a browser can consume it as-is.
+      expect(written).toEqual(importMap);
     });
 
     it('writes the site import map even when there is no global CSS', async () => {
-      const siteImports = { react: '/modules/contrib/canvas/react.js' };
-      const api = mockApiService('', siteImports);
+      const api = mockApiService('', {
+        imports: { react: '/modules/contrib/canvas/react.js' },
+      });
       const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
 
       await task.prepare();
       await task.execute();
       await expect(
-        fs.readFile(path.join(tmpDir, 'canvas-site-imports.json'), 'utf-8'),
+        fs.readFile(path.join(tmpDir, 'canvas-importmap.json'), 'utf-8'),
       ).resolves.toContain('react');
     });
 
@@ -399,7 +402,7 @@ describe('Pull Command', () => {
       await task.prepare();
       await task.execute();
       await expect(
-        fs.access(path.join(tmpDir, 'canvas-site-imports.json')),
+        fs.access(path.join(tmpDir, 'canvas-importmap.json')),
       ).rejects.toThrow();
     });
 

@@ -12,8 +12,8 @@ import {
   buildCanvasVendorArtifacts,
   createCanvasDependencyMetadata,
   isResolvedByImportMap,
-  readSiteImports,
-  SITE_IMPORTS_FILE,
+  readSiteImportMap,
+  SITE_IMPORT_MAP_FILE,
   validateCanvasImportRoots,
 } from '@drupal-canvas/vite-compat';
 
@@ -443,15 +443,15 @@ export async function buildCanvasProject(
   // map. If the project pulled that map, hold them to it: anything the site
   // does not resolve either is a typo or needs the module that provides it
   // installed, and would fail in the browser.
-  const siteImports = await readSiteImports(options.projectRoot);
-  if (siteImports && vendorResult.siteProvidedPackages.length > 0) {
+  const siteImportMap = await readSiteImportMap(options.projectRoot);
+  if (siteImportMap && vendorResult.siteProvidedPackages.length > 0) {
     const unresolvable = vendorResult.siteProvidedPackages.filter(
-      (specifier) => !isResolvedByImportMap(specifier, siteImports),
+      (specifier) => !isResolvedByImportMap(specifier, siteImportMap),
     );
     if (unresolvable.length > 0) {
       throw new Error(
         `Imports that nothing can resolve (${unresolvable.length}): ${unresolvable.join(', ')}. ` +
-          `They are not installed locally, and ${SITE_IMPORTS_FILE} says the site does not provide them. ` +
+          `They are not installed locally, and ${SITE_IMPORT_MAP_FILE} says the site does not resolve them. ` +
           `Install the package, check for a typo, or run \`canvas pull\` if the site gained them since.`,
       );
     }
@@ -487,6 +487,6 @@ export async function buildCanvasProject(
     localImportCount: Object.keys(localResult.localImportMap).length,
     tailwindResult,
     siteProvidedPackages: vendorResult.siteProvidedPackages,
-    siteImportsVerified: siteImports !== null,
+    siteImportsVerified: siteImportMap !== null,
   };
 }

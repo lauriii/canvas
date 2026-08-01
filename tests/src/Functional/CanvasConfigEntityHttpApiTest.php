@@ -1662,9 +1662,8 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
    */
   private function withoutSiteImports(?array $body): array {
     $this->assertIsArray($body);
-    $this->assertNotEmpty($body['siteImports']);
-    $this->assertArrayHasKey('drupal-canvas', $body['siteImports']);
-    unset($body['siteImports']);
+    $this->assertArrayHasKey('drupal-canvas', $body['importMap']['imports']);
+    unset($body['importMap']);
     return $body;
   }
 

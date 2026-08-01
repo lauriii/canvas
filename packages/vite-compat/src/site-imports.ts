@@ -2,69 +2,72 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 /**
- * Project state recording which bare specifiers the site resolves in the
- * browser, so builds do not have to reach the site to know.
+ * The site's import map, recorded in the project by `canvas pull`.
  *
- * Written by `canvas pull` from the global asset library's `siteImports`, which
- * is the site's effective import map: what Canvas ships, what the CLI pushed,
- * and what modules and themes contribute through hook_canvas_importmap_alter().
- * Commit it so CI can validate imports offline.
+ * A plain import map document, so the browser can consume it as-is through a
+ * `<script type="importmap">` tag and no tool has to learn a Canvas-specific
+ * format. It records what the site resolves for code components: what Canvas
+ * ships, what the CLI pushed, and what modules and themes contribute through
+ * hook_canvas_importmap_alter(). Commit it so CI can validate imports offline.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap
  */
-export const SITE_IMPORTS_FILE = 'canvas-site-imports.json';
+export const SITE_IMPORT_MAP_FILE = 'canvas-importmap.json';
 
-export interface SiteImportsFile {
+export interface ImportMap {
   imports: Record<string, string>;
+  scopes?: Record<string, Record<string, string>>;
 }
 
-export async function writeSiteImports(
+export async function writeSiteImportMap(
   projectRoot: string,
-  imports: Record<string, string>,
+  importMap: ImportMap,
 ): Promise<void> {
-  const contents: SiteImportsFile = { imports };
   await fs.writeFile(
-    path.join(projectRoot, SITE_IMPORTS_FILE),
-    `${JSON.stringify(contents, null, 2)}\n`,
+    path.join(projectRoot, SITE_IMPORT_MAP_FILE),
+    `${JSON.stringify(importMap, null, 2)}\n`,
     'utf-8',
   );
 }
 
 /**
- * Reads the pulled site imports, or null when the project has not pulled them.
+ * Reads the recorded import map, or null when the project has not pulled one.
  *
  * A null result means "unknown", not "empty": callers must not treat it as the
- * site providing nothing.
+ * site resolving nothing.
  */
-export async function readSiteImports(
+export async function readSiteImportMap(
   projectRoot: string,
-): Promise<Record<string, string> | null> {
+): Promise<ImportMap | null> {
   try {
     const raw = await fs.readFile(
-      path.join(projectRoot, SITE_IMPORTS_FILE),
+      path.join(projectRoot, SITE_IMPORT_MAP_FILE),
       'utf-8',
     );
-    const parsed = JSON.parse(raw) as Partial<SiteImportsFile>;
+    const parsed = JSON.parse(raw) as Partial<ImportMap>;
     if (!parsed.imports || typeof parsed.imports !== 'object') {
       return null;
     }
-    return parsed.imports;
+    return { imports: parsed.imports, scopes: parsed.scopes };
   } catch {
     return null;
   }
 }
 
 /**
- * Resolves a specifier against an import map, or null if it does not resolve.
+ * Resolves a bare specifier against an import map's top-level imports.
  *
- * Follows the import map spec: a key either matches exactly, or ends in a slash
- * and prefixes the specifier, in which case the rest of the specifier is
- * appended to the mapped prefix. Longer prefixes win over shorter ones.
- *
- * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap
+ * Follows the import map spec for bare specifiers: a key either matches
+ * exactly, or ends in a slash and prefixes the specifier, in which case the
+ * rest of the specifier is appended to the mapped prefix and the longest
+ * matching prefix wins. Scopes are not consulted, because there is no importer
+ * URL to match them against.
  */
 export function resolveFromImportMap(
   specifier: string,
-  imports: Record<string, string>,
+  importMap: ImportMap,
 ): string | null {
+  const { imports } = importMap;
   if (Object.hasOwn(imports, specifier)) {
     return imports[specifier];
   }
@@ -83,7 +86,7 @@ export function resolveFromImportMap(
  */
 export function isResolvedByImportMap(
   specifier: string,
-  imports: Record<string, string>,
+  importMap: ImportMap,
 ): boolean {
-  return resolveFromImportMap(specifier, imports) !== null;
+  return resolveFromImportMap(specifier, importMap) !== null;
 }

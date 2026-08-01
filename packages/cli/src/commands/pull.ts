@@ -6,8 +6,8 @@ import * as p from '@clack/prompts';
 import { discoverCanvasProject } from '@drupal-canvas/discovery';
 import {
   resolveHostGlobalCssPath,
-  SITE_IMPORTS_FILE,
-  writeSiteImports,
+  SITE_IMPORT_MAP_FILE,
+  writeSiteImportMap,
 } from '@drupal-canvas/vite-compat';
 
 import { ensureConfig, getConfig } from '../config';
@@ -42,6 +42,7 @@ import type {
   DiscoveredPage,
   DiscoveredRegion,
 } from '@drupal-canvas/discovery';
+import type { ImportMap } from '@drupal-canvas/vite-compat';
 import type { Command } from 'commander';
 import type { ApiService } from '../services/api';
 import type { Component } from '../types/Component';
@@ -667,7 +668,7 @@ export function createAssetsPullTask(
 ): PullTask {
   let globalCss = '';
   let localExists = false;
-  let siteImports: Record<string, string> | undefined;
+  let siteImportMap: ImportMap | undefined;
 
   return {
     startLabel: 'Pulling assets',
@@ -675,11 +676,11 @@ export function createAssetsPullTask(
 
     async prepare(): Promise<PullTaskPrepareResult> {
       const globalAssetLibrary = await apiService.getGlobalAssetLibrary();
-      siteImports = globalAssetLibrary?.siteImports;
+      siteImportMap = globalAssetLibrary?.importMap;
       globalCss = globalAssetLibrary?.css?.original || '';
       const summaryLines: string[] = [];
-      if (siteImports) {
-        summaryLines.push(`Assets: ${SITE_IMPORTS_FILE} pull`);
+      if (siteImportMap) {
+        summaryLines.push(`Assets: ${SITE_IMPORT_MAP_FILE} pull`);
       }
       if (!globalCss) {
         return { summaryLines, localOnlyCount: 0 };
@@ -696,13 +697,13 @@ export function createAssetsPullTask(
       const results: Result[] = [];
       // Record which bare specifiers this site resolves, so builds can tell a
       // module-contributed import from a typo without reaching the site.
-      if (siteImports) {
+      if (siteImportMap) {
         try {
-          await writeSiteImports(projectRoot, siteImports);
-          results.push({ itemName: SITE_IMPORTS_FILE, success: true });
+          await writeSiteImportMap(projectRoot, siteImportMap);
+          results.push({ itemName: SITE_IMPORT_MAP_FILE, success: true });
         } catch (error) {
           results.push({
-            itemName: SITE_IMPORTS_FILE,
+            itemName: SITE_IMPORT_MAP_FILE,
             success: false,
             details: [
               {
