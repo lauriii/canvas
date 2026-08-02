@@ -14,7 +14,6 @@ import {
 } from '@/features/comments/commentsSlice';
 import {
   filterThreads,
-  getReplyCount,
   getThreadLabel,
 } from '@/features/comments/commentThreadUtils';
 import useCommentSurface from '@/features/comments/useCommentSurface';
@@ -62,6 +61,21 @@ export const findComponentAtPoint = (
   });
   return smallestUuid;
 };
+
+/**
+ * The letter a pin carries: who is asking, not how many times.
+ *
+ * A count told the reader almost nothing, because almost every thread has no
+ * replies and so read "1" — a number whose only value was that it was not the
+ * number the reader wanted. Figma, Google Docs and Miro all put the author on
+ * the pin instead, which answers the question someone scanning a page actually
+ * has. The reply count stays in the panel and in the pin's accessible name.
+ *
+ * @param displayName - The thread author's name.
+ * @returns The initial to draw, or a placeholder for an unnamed author.
+ */
+export const getAuthorInitial = (displayName: string): string =>
+  displayName.trim().charAt(0).toUpperCase() || '?';
 
 /**
  * Places a pin at the point in its component that the comment was left at.
@@ -213,7 +227,7 @@ const CommentPinLayer = () => {
               dispatch(setCommentsPanelOpen(true));
             }}
           >
-            {getReplyCount(thread) + 1}
+            {getAuthorInitial(thread.author.displayName)}
           </button>
         );
       })}

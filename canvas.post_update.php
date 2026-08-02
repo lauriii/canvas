@@ -884,7 +884,7 @@ function canvas_post_update_0032_install_empty_slot_marker(): void {
  * Installs the comment thread and comment entity types.
  */
 function canvas_post_update_0033_install_comment_entity_types(): void {
-  $entity_definition_update_manager = \Drupal::service('entity.definition_update_manager');
+  $entity_definition_update_manager = \Drupal::service(EntityDefinitionUpdateManagerInterface::class);
   \assert($entity_definition_update_manager instanceof EntityDefinitionUpdateManagerInterface);
   $change_list = $entity_definition_update_manager->getChangeList();
   foreach ([CommentThread::ENTITY_TYPE_ID, Comment::ENTITY_TYPE_ID] as $entity_type_id) {
@@ -898,9 +898,9 @@ function canvas_post_update_0033_install_comment_entity_types(): void {
  * Records where in a component a comment was left.
  */
 function canvas_post_update_0034_comment_thread_offsets(): void {
-  $entity_definition_update_manager = \Drupal::service('entity.definition_update_manager');
+  $entity_definition_update_manager = \Drupal::service(EntityDefinitionUpdateManagerInterface::class);
   \assert($entity_definition_update_manager instanceof EntityDefinitionUpdateManagerInterface);
-  $entity_field_manager = \Drupal::service('entity_field.manager');
+  $entity_field_manager = \Drupal::service(EntityFieldManagerInterface::class);
   \assert($entity_field_manager instanceof EntityFieldManagerInterface);
   $fields = $entity_field_manager->getBaseFieldDefinitions(CommentThread::ENTITY_TYPE_ID);
   foreach (['offset_x', 'offset_y'] as $field_name) {
