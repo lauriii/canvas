@@ -4,11 +4,16 @@
   height: 20px;
   padding: 1px 4px;
   white-space: nowrap;
-  gap: 5px;
+  /* Hit-testable, so that moving onto the tag to reach a control it hosts
+     keeps the tagged thing hovered — otherwise the tag unmounts from under the
+     pointer on the way there.
+     @see \Drupal\canvas\ui\src\features\layout\previewOverlay\SlotAddControls.tsx */
+  pointer-events: auto;
   color: #fff;
   border-radius: 2px;
   background-color: var(--color-outline-component);
   font-size: 12px;
+  gap: 5px;
 
   &.slot {
     background-color: var(--color-outline-slot);

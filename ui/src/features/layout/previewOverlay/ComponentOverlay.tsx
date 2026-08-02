@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { useDraggable } from '@dnd-kit/core';
 
@@ -8,6 +8,7 @@ import { ComponentNameTag } from '@/features/layout/preview/NameTag';
 import { usePreviewDom } from '@/features/layout/preview/PreviewDomContext';
 import { usePreviewGeometry } from '@/features/layout/preview/PreviewGeometryContext';
 import ComponentDropZone from '@/features/layout/previewOverlay/ComponentDropZone';
+import SlotAddControls from '@/features/layout/previewOverlay/SlotAddControls';
 import SlotOverlay from '@/features/layout/previewOverlay/SlotOverlay';
 import {
   selectComponentIsSelected,
@@ -72,6 +73,9 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   });
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
   const dispatch = useAppDispatch();
+  // Keep the tag up while the slot's add menu is open, or choosing from that
+  // menu would dismiss the thing being chosen from.
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const { setSelectedComponent, handleComponentSelection } =
     useComponentSelection();
   const { isDragging } = useAppSelector(selectDragging);
@@ -182,12 +186,26 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           data-canvas-overlay="true"
         />
       </ComponentContextMenu>
-      {(isHovered || isSelected) && (
+      {(isHovered || isSelected || isAddMenuOpen) && (
         <div className={clsx(styles.canvasNameTag)}>
           <ComponentNameTag
             name={name}
             id={component.uuid}
             nodeType={component.nodeType}
+            forceVisible={isAddMenuOpen}
+            // Pointing at a component and asking for one more beside it is the
+            // whole gesture, so the slot's occupancy and its add menu ride on
+            // the component's tag too. Without this a slot whose children fill
+            // it edge to edge has nowhere left to hover.
+            // @see \Drupal\canvas\SlotRestrictions
+            trailing={
+              parentSlot && !disableDrop ? (
+                <SlotAddControls
+                  slot={parentSlot}
+                  onMenuOpenChange={setIsAddMenuOpen}
+                />
+              ) : undefined
+            }
           />
         </div>
       )}

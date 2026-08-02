@@ -226,86 +226,27 @@
   inset: auto;
 }
 
-/* What a governed slot holds and how to add to it, in the same visual language
-   as the slot's name tag — solid slot color, white, 20px — so it reads as
-   Canvas chrome rather than as a second, foreign badge system. Shown only
-   while the author is working on the component that owns the slot.
-
-   Straddles the slot's own top border, like a fieldset legend, and is pinned
-   left: a slot is as wide as its container and the preview is regularly wider
-   than the pane it sits in, so a right-pinned chip lands past the edge where
-   its button cannot be clicked at all.
+/* How full a governed slot is, and the way to add to it, riding inside the
+   slot's own name tag. Not a badge of its own: Canvas shows one piece of canvas
+   chrome at a time, and a second floating badge collided with the tag whenever
+   both were up.
    @see \Drupal\canvas\SlotRestrictions */
-.slotChip {
-  position: absolute;
-  z-index: 2;
-  top: -10px;
-  left: 8px;
-  display: flex;
-  align-items: center;
-  height: 20px;
+.slotTagCount {
+  margin-left: 2px;
   padding-left: 6px;
-  /* A control, not decoration: it takes the pointer so that approaching it
-     cannot change what the editor thinks is hovered. Hidden during a drag, so
-     it never swallows a drop. */
-  pointer-events: auto;
-  color: #fff;
-  border-radius: 2px;
-  background-color: var(--color-outline-slot);
-  font-family: var(--default-font-family);
-  font-size: 12px;
-  line-height: 1;
-  gap: 2px;
-
-  button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    pointer-events: auto;
-    color: inherit;
-    border: none;
-    border-radius: 0 2px 2px 0;
-    background: none;
-
-    &:hover,
-    &:focus-visible {
-      background: rgb(0, 0, 0, 0.25);
-    }
-
-    &:focus-visible {
-      outline: 2px solid #fff;
-      outline-offset: -2px;
-    }
-
-    svg {
-      width: 12px;
-      height: 12px;
-    }
-  }
-}
-
-/* A chip with no counter is only the button, so it needs no left padding. */
-.slotChip:not(:has(.slotChipCount)) {
-  padding-left: 0;
-}
-
-/* The count is quiet while there is nothing to act on and speaks up when there
-   is: at the limit, and while the slot still owes the author components.
-   @see design 3.7 */
-.slotChipCount {
   opacity: 0.85;
+  border-left: 1px solid rgb(255, 255, 255, 0.35);
 }
 
-.slotChipCount.full,
-.slotChipCount.under {
+/* Quiet while there is nothing to act on; it speaks up at the limit, and while
+   the slot still owes the author components (design 3.7). */
+.slotTagCount.full,
+.slotTagCount.under {
   opacity: 1;
   font-weight: 600;
 }
 
-.slotChipCount.under::after {
+.slotTagCount.under::after {
   display: inline-block;
   width: 5px;
   height: 5px;
@@ -314,6 +255,37 @@
   vertical-align: 1px;
   border-radius: 50%;
   background: var(--amber-9);
+}
+
+.slotTagAdd {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: -2px;
+  margin-left: 2px;
+  cursor: pointer;
+  pointer-events: auto;
+  color: inherit;
+  border: none;
+  border-radius: 2px;
+  background: none;
+
+  &:hover,
+  &:focus-visible {
+    background: rgb(0, 0, 0, 0.28);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
+  }
+
+  svg {
+    width: 12px;
+    height: 12px;
+  }
 }
 
 .emptySlotAccepts,
@@ -517,6 +489,13 @@
 .canvasNameTag {
   position: absolute;
   top: var(--name-tag-vertical-offset);
+  /* The tag floats above the thing it names, leaving a gap between the two.
+     Nothing in the tag used to be interactive, so the gap did not matter; now
+     that it can host a control, crossing that gap on the way to the control
+     counts as leaving the element, which unmounts the tag from under the
+     pointer. Padding closes it without moving the tag.
+     @see \Drupal\canvas\ui\src\features\layout\previewOverlay\SlotAddControls.tsx */
+  padding-bottom: calc(0px - var(--name-tag-vertical-offset) - 20px);
 }
 
 .sortableItem {
