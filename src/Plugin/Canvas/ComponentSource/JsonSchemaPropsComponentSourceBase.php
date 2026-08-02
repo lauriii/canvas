@@ -22,6 +22,7 @@ use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\canvas\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
+use Drupal\canvas\PropSource\ItemPropSource;
 use Drupal\canvas\PropSource\LinkablePropSourceInterface;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\PropSourceBase;
@@ -1432,6 +1433,16 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
             throw new \InvalidArgumentException('A host entity is required to set entity field prop sources.');
           }
           $source->expression->validateSupport($host_entity);
+          $props[$prop] = $this->collapse($source, $prop);
+          continue;
+        }
+        if ($source instanceof ItemPropSource) {
+          // Like an entity field prop source, this stores a mapping rather than
+          // a value, so there is nothing to evaluate here — and nothing to
+          // evaluate it against: the item is a render-time context, and a host
+          // entity whose field holds no values legitimately has none. Its
+          // expression is validated with the rest of the tree.
+          // @see \Drupal\canvas\PropSource\AmbientItemContext
           $props[$prop] = $this->collapse($source, $prop);
           continue;
         }

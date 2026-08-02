@@ -12,6 +12,7 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\PropSource\AmbientItemContext;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
@@ -404,6 +405,44 @@ final class ListComponentFieldSourceTest extends CanvasKernelTestBase {
     $text = $suggestions['⿲canvas_test_sdc:heading␟text'];
     self::assertTrue($text['required'], 'The premise: the prop under test is required.');
     self::assertNotSame([], $text[PropSource::Item->value]);
+  }
+
+  /**
+   * An item-bound prop survives client model conversion without an item.
+   *
+   * An item prop source stores a mapping, not a value, so converting a client
+   * model back to stored input has nothing to evaluate — and nothing to
+   * evaluate against, because a host entity whose field holds no values has no
+   * item at all. Dropping the prop here strands the component instance without
+   * a required input, which its form then refuses to build.
+   */
+  public function testItemBoundPropSurvivesConversionWithoutAnItem(): void {
+    self::createTemplate('field_captions', (string) new FieldTypePropExpression('string', 'value'));
+    $node = self::createArticle(['One caption']);
+    $template = ContentTemplate::load('node.article.full');
+    \assert($template instanceof ContentTemplate);
+    $tree = $template->getComponentTree($node);
+    $item = $tree->getComponentTreeItemByUuid(self::ITEM_HEADING_UUID);
+    \assert($item !== NULL);
+    $component = Component::load('sdc.canvas_test_sdc.heading');
+    \assert($component instanceof Component);
+    $component_source = $component->getComponentSource();
+    \assert($component_source instanceof SingleDirectoryComponent);
+
+    ['entity' => $context_entity, 'item' => $context_item] = $tree->resolveDeferredSlotContext($item, $node);
+    self::assertNotNull($context_item, 'The premise: the template iterates a populated field.');
+    $client_model = AmbientItemContext::within(
+      $context_item,
+      static fn (): array => $component_source->inputToClientModel(
+        $component_source->getExplicitInput(self::ITEM_HEADING_UUID, $item, $context_entity),
+      ),
+    );
+
+    // Deliberately converted with no ambient item bound.
+    $converted = $component_source->clientModelToInput(self::ITEM_HEADING_UUID, $component, $client_model, $context_entity);
+    self::assertArrayHasKey('text', $converted, 'The item-bound required prop must survive conversion.');
+    \assert(\is_array($converted['text']));
+    self::assertSame(PropSource::Item->value, $converted['text']['sourceType']);
   }
 
 }
