@@ -230,6 +230,98 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that where in a component a comment was left round-trips.
+   */
+  public function testOffsetRoundTrips(): void {
+    $response = $this->post(self::URL, [
+      'surfaceType' => Page::ENTITY_TYPE_ID,
+      'surfaceId' => (string) $this->page->id(),
+      'componentUuid' => self::COMPONENT_UUID,
+      'offsetX' => 0.25,
+      'offsetY' => 0.75,
+      'body' => 'Left three quarters of the way down.',
+    ]);
+    self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+    $thread = self::decodeResponse($response)['thread'];
+    self::assertSame(0.25, $thread['offsetX']);
+    self::assertSame(0.75, $thread['offsetY']);
+
+    // A thread with no point recorded reports none, rather than a corner
+    // dressed up as one.
+    $response = $this->post(self::URL, [
+      'surfaceType' => Page::ENTITY_TYPE_ID,
+      'surfaceId' => (string) $this->page->id(),
+      'componentUuid' => self::COMPONENT_UUID,
+      'body' => 'Started from the sidebar.',
+    ]);
+    $thread = self::decodeResponse($response)['thread'];
+    self::assertNull($thread['offsetX']);
+    self::assertNull($thread['offsetY']);
+  }
+
+  /**
+   * Tests that an offset outside the component's box is a 422.
+   */
+  public function testUnusableOffsetIsUnprocessable(): void {
+    $cases = [
+      // Outside the box in either direction is not a point on the component.
+      ['offsetX' => 1.5, 'offsetY' => 0.5],
+      ['offsetX' => 0.5, 'offsetY' => -0.2],
+      // Half a point is not a point.
+      ['offsetX' => 0.5],
+      ['offsetY' => 0.5],
+    ];
+    foreach ($cases as $case) {
+      $response = $this->post(self::URL, $case + [
+        'surfaceType' => Page::ENTITY_TYPE_ID,
+        'surfaceId' => (string) $this->page->id(),
+        'componentUuid' => self::COMPONENT_UUID,
+        'body' => 'Anchored nowhere in particular.',
+      ]);
+      self::assertNotSame(Response::HTTP_INTERNAL_SERVER_ERROR, $response->getStatusCode());
+      self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+      self::assertStringStartsWith(
+        'offset',
+        self::decodeResponse($response)['errors'][0]['source']['pointer'],
+      );
+    }
+
+    // A fraction of nothing: there is no box to be a fraction of.
+    $response = $this->post(self::URL, [
+      'surfaceType' => Page::ENTITY_TYPE_ID,
+      'surfaceId' => (string) $this->page->id(),
+      'componentUuid' => NULL,
+      'offsetX' => 0.5,
+      'offsetY' => 0.5,
+      'body' => 'On the page as a whole, but at a point?',
+    ]);
+    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+
+    // An offset that is not a number at all is caught by the OpenAPI request
+    // validator, which only runs outside production. Bypassing it proves the
+    // controller guards the type itself, which is what production relies on.
+    $response = $this->request(Request::create(
+      self::URL,
+      'POST',
+      server: [
+        'CONTENT_TYPE' => 'application/json',
+        'HTTP_X_NO_OPENAPI_VALIDATION' => '1',
+      ],
+      content: (string) \json_encode([
+        'surfaceType' => Page::ENTITY_TYPE_ID,
+        'surfaceId' => (string) $this->page->id(),
+        'componentUuid' => self::COMPONENT_UUID,
+        'offsetX' => 'middle',
+        'offsetY' => 0.5,
+        'body' => 'Anchored nowhere in particular.',
+      ], JSON_THROW_ON_ERROR),
+    ));
+    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+
+    self::assertSame([], $this->listThreadIds('1'));
+  }
+
+  /**
    * Tests that an unsupported surface type is a 422, never a 500.
    */
   public function testUnsupportedSurfaceTypeIsUnprocessable(): void {

@@ -55,6 +55,8 @@ uniformly:
 surface_type    'canvas_page'          the entity type ID of the surface
 surface_id      '1'                    the entity ID, as a string
 component_uuid  '<uuid>' | NULL        the anchored component instance
+offset_x        0.0 - 1.0 | NULL       where in that component, across
+offset_y        0.0 - 1.0 | NULL       where in that component, down
 ```
 
 `(surface_type, surface_id)` is exactly the shape
@@ -103,6 +105,15 @@ once, so an x/y pin would land somewhere different in every viewport and move
 on every edit. Every anchor resolves to a component instance, and its screen
 position is derived per viewport from the geometry the overlay already
 measures.
+
+Within that component, the point the comment was left at *is* recorded, as
+`offset_x` and `offset_y`: fractions from 0 to 1 across the component's
+measured box, never canvas coordinates. Multiplied back out against whatever
+that box measures in the current viewport, they put the pin on the same part of
+the same component at every width, so a comment left on the bottom-right of a
+hero stays on the bottom-right when the hero reflows to a phone. A thread with
+no recorded point — one started from the sidebar, or created before offsets
+existed — pins to the component's top-left corner.
 
 ### Pins reuse the existing overlay stack
 

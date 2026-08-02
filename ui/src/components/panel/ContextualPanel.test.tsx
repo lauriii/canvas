@@ -36,6 +36,8 @@ const stubCommentsFetch = (threadCount: number) => {
             surfaceType: 'canvas_page',
             surfaceId: '1',
             componentUuid: null,
+            offsetX: null,
+            offsetY: null,
             resolved: false,
             created: 1_777_000_000,
             changed: 1_777_000_000,

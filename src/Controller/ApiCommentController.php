@@ -123,11 +123,23 @@ final class ApiCommentController extends ApiControllerBase {
       return self::createInputViolationResponse('componentUuid', 'This value must be a UUID.');
     }
 
+    $offset = self::readOffset($data);
+    if ($offset instanceof JsonResponse) {
+      return $offset;
+    }
+    if ($offset !== NULL && $component_uuid === NULL) {
+      // A fraction is a fraction *of a component's box*, so without one it
+      // measures nothing.
+      return self::createInputViolationResponse('offsetX', 'An offset requires a `componentUuid` to be an offset within.');
+    }
+
     // @todo Verify that `componentUuid` matches a component instance in the surface's component tree.
     $thread = CommentThread::create([
       'surface_type' => $surface->getEntityTypeId(),
       'surface_id' => (string) $surface->id(),
       'component_uuid' => $component_uuid,
+      'offset_x' => $offset['x'] ?? NULL,
+      'offset_y' => $offset['y'] ?? NULL,
       'uid' => $this->currentUser->id(),
     ]);
     $comment = Comment::create([
@@ -342,6 +354,8 @@ final class ApiCommentController extends ApiControllerBase {
       'surfaceType' => $thread->getSurfaceType(),
       'surfaceId' => $thread->getSurfaceId(),
       'componentUuid' => $thread->getComponentUuid(),
+      'offsetX' => $thread->getOffset()['x'] ?? NULL,
+      'offsetY' => $thread->getOffset()['y'] ?? NULL,
       'resolved' => $thread->isResolved(),
       'created' => $thread->getCreatedTime(),
       'changed' => $thread->getChangedTime(),
@@ -400,6 +414,33 @@ final class ApiCommentController extends ApiControllerBase {
       'displayName' => $owner instanceof UserInterface ? (string) $owner->getDisplayName() : '',
       'avatar' => NULL,
     ];
+  }
+
+  /**
+   * Reads the point within the component that a comment was left at.
+   *
+   * Both fractions are required together: half a point is not a point. Each
+   * must be within the component's box, because a fraction outside 0 to 1
+   * would put the pin somewhere the thread is not anchored.
+   *
+   * @return array|null|\Symfony\Component\HttpFoundation\JsonResponse
+   *   The `x` and `y` fractions, NULL when none was sent, or a 422 response.
+   */
+  private static function readOffset(array $data): array|NULL|JsonResponse {
+    $x = $data['offsetX'] ?? NULL;
+    $y = $data['offsetY'] ?? NULL;
+    if ($x === NULL && $y === NULL) {
+      return NULL;
+    }
+    foreach (['offsetX' => $x, 'offsetY' => $y] as $pointer => $value) {
+      if (!\is_int($value) && !\is_float($value)) {
+        return self::createInputViolationResponse($pointer, 'This value is required when the other offset is given, and must be a number.');
+      }
+      if ($value < 0 || $value > 1) {
+        return self::createInputViolationResponse($pointer, 'This value must be between 0 and 1.');
+      }
+    }
+    return ['x' => (float) $x, 'y' => (float) $y];
   }
 
   /**

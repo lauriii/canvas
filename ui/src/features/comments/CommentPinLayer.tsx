@@ -24,6 +24,7 @@ import { useGetCommentsQuery } from '@/services/comments';
 import { hasPermission } from '@/utils/permissions';
 
 import type { CommentDraft } from '@/features/comments/CommentDraftComposer';
+import type { CommentThread } from '@/services/comments';
 
 import styles from './CommentPinLayer.module.css';
 
@@ -60,6 +61,32 @@ export const findComponentAtPoint = (
     }
   });
   return smallestUuid;
+};
+
+/**
+ * Places a pin at the point in its component that the comment was left at.
+ *
+ * The stored offset is a fraction of the component's box, so it is multiplied
+ * back out against whatever that box measures in this viewport: the pin lands
+ * on the same part of the same component at every width, which an absolute
+ * coordinate could not do. A thread with no recorded point, either from before
+ * offsets existed or started from the sidebar, falls back to the component's
+ * top-left corner.
+ *
+ * @param rect - The component's measured box, in unscaled preview pixels.
+ * @param thread - The thread being pinned.
+ * @param scale - The editor's viewport scale.
+ * @returns The `top` and `left` to render the pin at.
+ */
+export const pinPosition = (
+  rect: { top: number; left: number; width: number; height: number },
+  thread: Pick<CommentThread, 'offsetX' | 'offsetY'>,
+  scale: number,
+): { top: string; left: string } => {
+  const { offsetX, offsetY } = thread;
+  const x = rect.left + (offsetX === null ? 0 : offsetX * rect.width);
+  const y = rect.top + (offsetY === null ? 0 : offsetY * rect.height);
+  return { top: `${y * scale}px`, left: `${x * scale}px` };
 };
 
 /**
@@ -105,8 +132,13 @@ const CommentPinLayer = () => {
         setDraft(null);
         return;
       }
+      // Record where in the component this landed, so the pin can come back to
+      // the same spot rather than to the component's corner.
+      const { rect } = geometryMap.component[componentUuid];
       setDraft({
         componentUuid,
+        offsetX: rect.width === 0 ? 0 : (x - rect.left) / rect.width,
+        offsetY: rect.height === 0 ? 0 : (y - rect.top) / rect.height,
         top: y * editorViewPortScale,
         left: x * editorViewPortScale,
       });
@@ -171,10 +203,7 @@ const CommentPinLayer = () => {
               [styles.active]: thread.id === activeThreadId,
               [styles.resolved]: thread.resolved,
             })}
-            style={{
-              top: `${geometry.rect.top * editorViewPortScale}px`,
-              left: `${geometry.rect.left * editorViewPortScale}px`,
-            }}
+            style={pinPosition(geometry.rect, thread, editorViewPortScale)}
             aria-label={getThreadLabel(thread)}
             data-testid="canvas-comment-pin"
             data-comment-thread-id={thread.id}

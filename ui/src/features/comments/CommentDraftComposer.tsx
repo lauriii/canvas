@@ -11,6 +11,9 @@ import styles from './CommentPinLayer.module.css';
 export interface CommentDraft {
   /** The component the click landed on. */
   componentUuid: string;
+  /** Where in that component it landed, from 0 to 1 across its box. */
+  offsetX: number;
+  offsetY: number;
   /** Where to draw the composer, in scaled overlay pixels. */
   top: number;
   left: number;
@@ -65,6 +68,8 @@ const CommentDraftComposer = ({
         surfaceType,
         surfaceId,
         componentUuid: draft.componentUuid,
+        offsetX: draft.offsetX,
+        offsetY: draft.offsetY,
         body: toStoredBody(trimmed, mentions),
       }).unwrap();
       onPosted();

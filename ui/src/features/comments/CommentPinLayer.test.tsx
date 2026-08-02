@@ -6,6 +6,7 @@ import AppWrapper from '@tests/vitest/components/AppWrapper';
 import { makeStore } from '@/app/store';
 import CommentPinLayer, {
   findComponentAtPoint,
+  pinPosition,
 } from '@/features/comments/CommentPinLayer';
 import { setCommentMode } from '@/features/comments/commentsSlice';
 import { setConfiguration } from '@/features/configuration/configurationSlice';
@@ -51,6 +52,8 @@ const threads: CommentThread[] = [
     surfaceType: 'canvas_page',
     surfaceId: '1',
     componentUuid: 'uuid-anchored',
+    offsetX: null,
+    offsetY: null,
     resolved: false,
     created: 1_777_000_000,
     changed: 1_777_000_000,
@@ -89,6 +92,8 @@ const threads: CommentThread[] = [
     surfaceId: '1',
     // Anchored to a component that the preview has not measured.
     componentUuid: 'uuid-not-measured',
+    offsetX: null,
+    offsetY: null,
     resolved: false,
     created: 1_777_000_300,
     changed: 1_777_000_300,
@@ -111,6 +116,8 @@ const threads: CommentThread[] = [
     surfaceId: '1',
     // Surface-level thread.
     componentUuid: null,
+    offsetX: null,
+    offsetY: null,
     resolved: false,
     created: 1_777_000_400,
     changed: 1_777_000_400,
@@ -328,16 +335,53 @@ describe('CommentPinLayer', () => {
     await user.click(screen.getByTestId('canvas-comment-draft-submit'));
 
     await waitFor(() => {
+      // The click lands 60px into a 260px-wide, 100px-tall component, so it
+      // is stored as a fraction of that box rather than as a canvas point.
       expect(postedBodies).toContainEqual({
         surfaceType: 'canvas_page',
         surfaceId: '1',
         componentUuid: 'uuid-anchored',
+        offsetX: 60 / 260,
+        offsetY: 0.5,
         body: 'Placed by clicking',
       });
     });
     // Posting leaves comment mode and shows the thread in the panel.
     expect(store.getState().comments.commentModeActive).toBe(false);
     expect(store.getState().comments.panelOpen).toBe(true);
+  });
+
+  it('positions a pin at the point the comment was left at', () => {
+    const rect = { top: 100, left: 40, width: 260, height: 100 };
+
+    // Halfway across, three quarters down.
+    expect(pinPosition(rect, { offsetX: 0.5, offsetY: 0.75 }, 1)).toEqual({
+      left: '170px',
+      top: '175px',
+    });
+
+    // The offset is a fraction, so the same thread lands on the same part of
+    // the component after it reflows to a different size.
+    expect(
+      pinPosition(
+        { top: 100, left: 40, width: 520, height: 200 },
+        { offsetX: 0.5, offsetY: 0.75 },
+        1,
+      ),
+    ).toEqual({ left: '300px', top: '250px' });
+
+    // Scale multiplies the result, as it does for every overlay.
+    expect(pinPosition(rect, { offsetX: 0.5, offsetY: 0.75 }, 0.5)).toEqual({
+      left: '85px',
+      top: '87.5px',
+    });
+
+    // A thread from before offsets existed, or started from the sidebar,
+    // still pins to the component's corner.
+    expect(pinPosition(rect, { offsetX: null, offsetY: null }, 1)).toEqual({
+      left: '40px',
+      top: '100px',
+    });
   });
 
   it('draws pins with the panel closed', async () => {
