@@ -46,3 +46,20 @@ delete canvas_page:
 publish auto-saves:
   title: 'Publish Drupal Canvas Content'
   description: 'Update entities with auto-saved changes in Drupal Canvas (requires "update" access for those entities).'
+
+# @see \Drupal\canvas\Entity\CommentThread::VIEW_PERMISSION
+view canvas comments:
+  title: 'View Canvas comments'
+  description: 'View comment threads on Drupal Canvas surfaces (requires "view" access for those surfaces, never "update" access).'
+
+# @see \Drupal\canvas\Entity\CommentThread::CREATE_PERMISSION
+create canvas comments:
+  title: 'Create Canvas comments'
+  description: 'Start comment threads, reply to them, and resolve or reopen them.'
+
+# @see \Drupal\canvas\Entity\CommentThread::MODERATE_PERMISSION
+moderate canvas comments:
+  title: 'Moderate Canvas comments'
+  description: 'Delete comment threads and other users'' comments. Editing other users'' comments is never allowed.'
+  # Restricted as this grants control over other users' contributions.
+  restrict access: true

@@ -124,6 +124,12 @@ jobs:
             args: "--types PHPUnit-Kernel tests/src/Kernel/Config"
           - suite: Functional
             args: "--types PHPUnit-Functional tests/src/Functional/Config"
+          # Commenting MVP. Scoped like the two above: `phpunit.sh` only routes a
+          # *directory* through run-tests.sh, so each suite needs its own entry.
+          - suite: Kernel-Comment
+            args: "--types PHPUnit-Kernel tests/src/Kernel/Comment"
+          - suite: Functional-Comment
+            args: "--types PHPUnit-Functional tests/src/Functional/Comment"
     steps:
       - uses: actions/download-artifact@v4
         with: { name: built-site }
@@ -210,4 +216,4 @@ jobs:
           export DRUPAL_ROOT_CORE="$DRUPAL_ROOT/web/core"
           cd "$MODULE_DIR/ui"
           npx cypress install
-          npx cypress run --browser electron --spec tests/e2e/canary.cy.js
+          npx cypress run --browser electron --spec tests/e2e/canary.cy.js,tests/e2e/comments.cy.js

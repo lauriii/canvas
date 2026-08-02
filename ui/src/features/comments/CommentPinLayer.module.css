@@ -1,0 +1,65 @@
+.pinLayer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+/* In comment mode the layer takes the clicks the canvas would otherwise use
+   to select components, so one click places a comment instead of changing the
+   selection underneath it. */
+.placing {
+  cursor: crosshair;
+  pointer-events: all;
+}
+
+.draftComposer {
+  position: absolute;
+  z-index: 1;
+  width: 15rem;
+  padding: var(--space-2);
+  transform: translate(0, calc(-100% - var(--space-5)));
+  pointer-events: all;
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-3);
+  background: var(--color-panel-solid);
+  box-shadow: var(--shadow-5);
+}
+
+.pin {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* One letter, so a fixed square rather than a pill that grew with a count. */
+  width: var(--space-5);
+  height: var(--space-5);
+  cursor: pointer;
+  /* The square bottom-left corner below is the bubble's tail, so that corner
+     is what has to land on the anchor. Centring the bubble on the anchor
+     instead left the tail pointing at nothing, half a pin up and to the
+     left of the component it belongs to. */
+  transform: translate(0, -100%);
+  pointer-events: all;
+  color: var(--accent-contrast);
+  border: 1px solid var(--accent-a11);
+  border-radius: var(--radius-6) var(--radius-6) var(--radius-6) 0;
+  background: var(--accent-9);
+  box-shadow: var(--shadow-4);
+  font-size: var(--font-size-1);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.pin.active {
+  outline: 2px solid var(--accent-a11);
+  outline-offset: 1px;
+}
+
+.pin.resolved {
+  color: var(--gray-12);
+  border-color: var(--gray-a7);
+  background: var(--gray-4);
+}

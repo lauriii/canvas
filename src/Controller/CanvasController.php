@@ -9,6 +9,7 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\Config\ThemeSettingsDiscovery;
 use Drupal\canvas\Entity\BrandKit;
+use Drupal\canvas\Entity\CommentThread;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
@@ -266,6 +267,8 @@ HTML;
               'publishChanges' => $this->currentUser->hasPermission(AutoSaveManager::PUBLISH_PERMISSION),
               'folders' => $this->currentUser->hasPermission(Folder::ADMIN_PERMISSION),
               'configureLanguages' => $this->currentUser->hasPermission('administer languages'),
+              'viewComments' => $this->currentUser->hasPermission(CommentThread::VIEW_PERMISSION),
+              'createComments' => $this->currentUser->hasPermission(CommentThread::CREATE_PERMISSION),
             ],
             'contentEntityCreateOperations' => $content_entity_create_operations,
             'homepagePath' => $system_site_config->get('page.front'),

@@ -1,0 +1,136 @@
+.composer {
+  padding: var(--space-2);
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-2);
+  background: var(--color-panel-solid);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  gap: var(--space-2);
+}
+
+.thread {
+  padding: var(--space-2);
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-2);
+  background: var(--color-panel-solid);
+}
+
+.thread[data-resolved='true'] .body {
+  color: var(--gray-11);
+}
+
+.threadActive {
+  border-color: var(--accent-a11);
+  box-shadow: var(--shadow-4);
+}
+
+.threadSummary {
+  display: block;
+  width: 100%;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  border: none;
+  background: none;
+  font: inherit;
+}
+
+.threadText {
+  min-width: 0;
+}
+
+.body {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  color: var(--gray-12);
+  font-size: var(--font-size-1);
+}
+
+/* The API accepts bodies up to 65536 characters, so an unclamped collapsed
+   preview can be tens of thousands of pixels tall and bury every thread under
+   it. Expanding the thread removes the clamp. */
+.bodyClamped {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+.tabCount {
+  min-width: 1.25em;
+  margin-left: var(--space-1);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-4);
+  background: var(--gray-a4);
+  font-variant-numeric: tabular-nums;
+}
+
+.mentionWrapper {
+  position: relative;
+}
+
+.mentionList {
+  position: absolute;
+  z-index: 2;
+  top: 100%;
+  right: 0;
+  left: 0;
+  overflow-y: auto;
+  max-height: 12rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-2);
+  background: var(--color-panel-solid);
+  box-shadow: var(--shadow-4);
+}
+
+.mentionListAbove {
+  top: auto;
+  bottom: 100%;
+}
+
+.mentionOption {
+  display: block;
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  text-align: left;
+  border: 0;
+  background: none;
+}
+
+.mentionOption:hover,
+.mentionOption[data-highlighted='true'] {
+  background: var(--accent-a3);
+}
+
+.mention {
+  color: var(--accent-11);
+  font-weight: 500;
+}
+
+/* A mention of a user who no longer exists still has to read as a mention:
+   dropping it would hide the fact that somebody was named. */
+.mentionUnknown {
+  color: var(--gray-a10);
+  font-style: italic;
+}
+
+.threadDetail {
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--gray-a5);
+}
+
+.reply {
+  margin-bottom: var(--space-2);
+}

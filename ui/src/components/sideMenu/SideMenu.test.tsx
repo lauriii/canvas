@@ -83,4 +83,15 @@ describe('SideMenu', () => {
       screen.queryByRole('button', { name: 'Code' }),
     ).not.toBeInTheDocument();
   });
+  it('does not offer comments, whose panel is on the other side', () => {
+    // Every other item in this rail opens the panel beside it. Comments lives
+    // in the contextual panel on the right, so a button here would send the
+    // user across the screen; it is reached from that panel and from the
+    // comment tool in the canvas toolbar instead.
+    renderSideMenu();
+
+    expect(
+      screen.queryByRole('button', { name: 'Comments' }),
+    ).not.toBeInTheDocument();
+  });
 });

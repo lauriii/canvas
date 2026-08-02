@@ -71,6 +71,8 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
   protected array $expectedMatches = [
     // Only provide test expectations for content entity types for which a
     // Content Template could make sense.
+    'entity:canvas_comment' => FALSE,
+    'entity:canvas_comment_thread' => FALSE,
     'entity:canvas_page' => FALSE,
     'entity:path_alias' => FALSE,
     'entity:file' => FALSE,
