@@ -8,12 +8,14 @@ use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\MissingComponentInputsException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\PropSource\AmbientItemContext;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\ConstraintViolationList;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 final class ValidComponentTreeItemConstraintValidator extends ConstraintValidator {
 
@@ -44,6 +46,7 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
     // Validate in-depth. This is simpler if the ComponentTreeItem-provided
     // infrastructure is available, so conjure one from $value if not already.
     $fieldable_host_entity = NULL;
+    $item_context = NULL;
     if (!$value instanceof ComponentTreeItem) {
       \assert(\array_key_exists('uuid', $value));
       \assert(\array_key_exists('component_id', $value));
@@ -61,7 +64,7 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
       // entity.
       $parent_list = $value->getParent();
       if ($parent_list instanceof ComponentTreeItemList) {
-        ['is_deferred' => $is_deferred, 'entity' => $context_entity] = $parent_list->resolveDeferredSlotContext($value, $fieldable_host_entity);
+        ['is_deferred' => $is_deferred, 'entity' => $context_entity, 'item' => $item_context] = $parent_list->resolveDeferredSlotContext($value, $fieldable_host_entity);
         if ($is_deferred) {
           $fieldable_host_entity = $context_entity;
         }
@@ -102,11 +105,14 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
     \assert(\is_array($stored_explicit_input));
     $component_violations = $this->translateConstraintPropertyPathsAndRoot(
       ['' => $this->context->getPropertyPath() . '.'],
-      $component_source->validateComponentInput(
+      // Item prop sources inside a field-sourced item template resolve against
+      // the representative item, not against the host entity.
+      AmbientItemContext::within($item_context, static fn (): ConstraintViolationListInterface => $component_source->validateComponentInput(
         inputValues: $stored_explicit_input,
         component_instance_uuid: $value->getUuid(),
         entity: $fieldable_host_entity,
-      ),
+        item: $value,
+      )),
       // We need to ensure the validation root context is transferred over.
       $this->context->getRoot()
     );

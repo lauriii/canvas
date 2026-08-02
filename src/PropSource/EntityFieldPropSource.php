@@ -40,10 +40,15 @@ final class EntityFieldPropSource extends PropSourceBase implements LinkableProp
    * @param \Drupal\canvas\Plugin\Adapter\AdapterInterface|null $adapter
    *   Optionally, a single adapter plugin instance can be specified, with a
    *   single input.
+   * @param int|null $maxValues
+   *   Optionally, the maximum number of field values to evaluate. Derived from
+   *   the target prop's `maxItems`, never stored: it belongs to the component's
+   *   schema, not to the mapping.
    */
   public function __construct(
     public readonly EntityFieldBasedPropExpressionInterface $expression,
     private readonly ?AdapterInterface $adapter = NULL,
+    private readonly ?int $maxValues = NULL,
   ) {
     // If the (optional) adapter plugin instance is provided, perform extra
     // validation: only *some* adapter plugins are acceptable.
@@ -63,6 +68,20 @@ final class EntityFieldPropSource extends PropSourceBase implements LinkableProp
     return new static(
       expression: $this->expression,
       adapter: $adapter_instance,
+      maxValues: $this->maxValues,
+    );
+  }
+
+  /**
+   * Caps how many field values this prop source evaluates.
+   *
+   * @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher::matchEntityPropsForScalar()
+   */
+  public function withMaxValues(?int $max_values): static {
+    return new static(
+      expression: $this->expression,
+      adapter: $this->adapter,
+      maxValues: $max_values,
     );
   }
 
@@ -112,7 +131,7 @@ final class EntityFieldPropSource extends PropSourceBase implements LinkableProp
     if ($host_entity === NULL) {
       throw new MissingHostEntityException();
     }
-    $raw_result = Evaluator::evaluate($host_entity, $this->expression, $is_required, NegotiatedLanguage::matchEntity($host_entity));
+    $raw_result = Evaluator::evaluate($host_entity, $this->expression, $is_required, NegotiatedLanguage::matchEntity($host_entity), $this->maxValues);
 
     // Only adapt non-empty results.
     if ($this->adapter && $raw_result->value !== NULL) {

@@ -265,6 +265,27 @@ one `component`'s `component input`, but optional for another. So an additional 
 versus required occurrences of a `prop shape`:
 3. if a `component input` is required, the matching `entity field`s must also be marked as required
 
+###### Cardinality matching
+
+A `prop shape` with `"type": "array"` is a list, and only a multiple-cardinality `entity field` can populate it. Beyond
+that, cardinality does not have to agree:
+
+- a bounded prop (`maxItems: N`) may be populated by a field of any higher — or unlimited — cardinality. Its first `N`
+  values are used, in delta order, and the prop form states that next to the mapping. Which deltas to show is
+  deliberately not a choice: deltas are per-entity data, while a `content template` is per-bundle configuration, so
+  "the second and fourth values" cannot mean anything across entities.
+- an unbounded array prop may be populated by a field of any finite cardinality; there is nothing to truncate.
+- a single-cardinality field never populates an array prop (it is not a list), and a multiple-cardinality field never
+  populates a single-value prop.
+
+The window is applied before any `field item`'s properties are read, so values outside it are never built — including
+the entities an entity reference field's out-of-window deltas point at.
+See `\Drupal\canvas\PropExpressions\StructuredData\Evaluator::evaluate()`.
+
+`minItems: 1` is honored: it restricts matching to required `entity field`s. `minItems` above 1 is **not supported**, and
+such a `prop shape` matches nothing: Drupal's Field API has no concept of a minimum cardinality above "required means at
+least one value", so there is nothing to enforce it against.
+
 The found `entity field`s can then be used in a `entity field prop source`, that can be _evaluated_ to retrieve the
 stored value that fits in the `prop shape`.
 ℹ️ An `entity field prop source` may specify a single "adapter" plugin (which must take a single input), which allows

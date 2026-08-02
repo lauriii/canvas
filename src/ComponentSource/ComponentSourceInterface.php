@@ -325,11 +325,16 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *   Component instance UUID.
    * @param \Drupal\Core\Entity\FieldableEntityInterface|null $entity
    *   Host entity.
+   * @param \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem|null $item
+   *   The component tree item being validated, when it is available. Sources
+   *   whose validity depends on where in a tree they sit — such as the List
+   *   element, whose field source needs a bundle-specific host entity — read
+   *   the tree's root from it.
    *
    * @return \Symfony\Component\Validator\ConstraintViolationListInterface
    *   Any violations.
    */
-  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): ConstraintViolationListInterface;
+  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity, ?ComponentTreeItem $item = NULL): ConstraintViolationListInterface;
 
   /**
    * Checks if component meets requirements.

@@ -141,7 +141,7 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
     return $client_model;
   }
 
-  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): ConstraintViolationListInterface {
+  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity, ?ComponentTreeItem $item = NULL): ConstraintViolationListInterface {
     return new ConstraintViolationList();
   }
 

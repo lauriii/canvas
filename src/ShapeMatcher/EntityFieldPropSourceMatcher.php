@@ -565,21 +565,19 @@ final class EntityFieldPropSourceMatcher {
         FALSE => $field_definition->getFieldStorageDefinition()->getCardinality(),
       };
       if ($cardinality_in_json_schema !== $field_cardinality) {
-        // For finite cardinalities, we can still allow a lower cardinality (>1)
-        // field instance to be matched with a higher cardinality JSON schema.
-        // For example: a `maxItems: 20` component prop could be populated by a
-        // field instance with cardinality 5. But a single-cardinality field
-        // would not make sense, because it's no longer an array.
-        // All other cases would result in problematic UX.
-        // @todo consider allowing/supporting (but needs UX to be designed first to disambiguate the cardinality mismatch) in https://www.drupal.org/i/3522718:
-        // 1. JSON schema cardinality `unlimited`, field cardinality 1–N =>
-        //    would mean only partially populating an array;
-        // 2. JSON schema cardinality `1-N`, field cardinality `unlimited` =>
-        //    would mean some structured data values would not be visible; the
-        //    content author would need to either be informed only the first N
-        //    would be visible, or they'd need to be able to pick specific
-        //    values.
-        if (!($field_cardinality > 1 && $cardinality_in_json_schema > $field_cardinality)) {
+        // Any multi-value field may populate any array prop, in both
+        // directions: a `maxItems: N` prop fed by a longer (or unlimited)
+        // field renders that field's first N values in delta order, and an
+        // unbounded array prop fed by a finite-cardinality field renders all
+        // of them. The truncation is stated in the prop form rather than being
+        // discovered, and picking *which* deltas is deliberately not offered:
+        // deltas are per-entity data, while a content template is per-bundle
+        // configuration.
+        // A single-cardinality field never matches an array prop (it is not a
+        // list), and a multi-value field never matches a single-value prop.
+        // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::evaluate()
+        // @see https://www.drupal.org/i/3522718
+        if ($cardinality_in_json_schema === 1 || $field_cardinality === 1) {
           continue;
         }
       }

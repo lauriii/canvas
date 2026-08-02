@@ -38,6 +38,14 @@ const LinkedFieldBox = ({
   const inputUIData = useInputUIData();
   const { components, selectedComponentType } = inputUIData;
   const patchProp = usePatchProp();
+  const propSchema = (
+    components?.[selectedComponentType] as PropSourceComponent | undefined
+  )?.propSources?.[propName]?.jsonSchema;
+  // A bounded array prop renders the mapped field's first `maxItems` values.
+  // Say so next to the mapping: it is a decision by the component author, not
+  // a mistake by the site builder, so it reads as a description, not a warning.
+  const maxItems =
+    propSchema?.type === 'array' ? propSchema.maxItems : undefined;
   const unlinkField = () => {
     const component: CanvasComponent | undefined =
       components?.[selectedComponentType];
@@ -88,6 +96,19 @@ const LinkedFieldBox = ({
           </button>
         </Flex>
       </InputDescription>
+      {maxItems !== undefined && (
+        <Box data-testid={`linked-field-truncation-${propName}`}>
+          <InputDescription
+            description={
+              maxItems === 1
+                ? 'Shows the first value of this field.'
+                : `Shows the first ${maxItems} values of this field.`
+            }
+          >
+            {null}
+          </InputDescription>
+        </Box>
+      )}
     </Box>
   );
 };

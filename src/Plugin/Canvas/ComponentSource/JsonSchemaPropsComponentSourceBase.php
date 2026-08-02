@@ -22,6 +22,7 @@ use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\canvas\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
+use Drupal\canvas\PropSource\ItemPropSource;
 use Drupal\canvas\PropSource\LinkablePropSourceInterface;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\PropSourceBase;
@@ -465,12 +466,19 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       }
     }
 
+    $shapes = $this->getExplicitInputDefinitions()['shapes'];
     $resolved_values = [];
     foreach ($values as $prop => $input) {
       $values[$prop] = $this->uncollapse($input, $prop)->toArray();
       try {
-        $resolved_values[$prop] = PropSource::parse($values[$prop])
-          ->evaluate($fieldable_host_entity, is_required: FALSE);
+        $prop_source = PropSource::parse($values[$prop]);
+        // An array prop declaring `maxItems` renders at most that many of the
+        // mapped field's values, in delta order.
+        // @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher::matchEntityPropsForScalar()
+        if ($prop_source instanceof EntityFieldPropSource && ($shapes[$prop]['type'] ?? NULL) === 'array' && isset($shapes[$prop]['maxItems'])) {
+          $prop_source = $prop_source->withMaxValues($shapes[$prop]['maxItems']);
+        }
+        $resolved_values[$prop] = $prop_source->evaluate($fieldable_host_entity, is_required: FALSE);
       }
       catch (CacheableAccessDeniedHttpException $e) {
         $this->logger->warning('Access denied when evaluating prop source for prop %prop of component instance %uuid with input `%input`. Original error: %error', [
@@ -638,9 +646,32 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
   }
 
   /**
+   * Prefixes suggestion labels with the data context they come from.
+   *
+   * @param array<string, array<string, mixed>> $suggestions
+   *
+   * @return array<string, array<string, mixed>>
+   */
+  private static function groupSuggestionsByContext(array $suggestions, string $item_group, string $host_group): array {
+    foreach ($suggestions as $cpe => $per_source_type) {
+      foreach ([PropSource::Item->value => $item_group, PropSource::EntityField->value => $host_group] as $source_type => $group) {
+        if (!\is_array($per_source_type[$source_type] ?? NULL)) {
+          continue;
+        }
+        $grouped = [];
+        foreach ($per_source_type[$source_type] as $label => $prop_source) {
+          $grouped[$group . ' → ' . $label] = $prop_source;
+        }
+        $suggestions[$cpe][$source_type] = $grouped;
+      }
+    }
+    return $suggestions;
+  }
+
+  /**
    * {@inheritdoc}
    */
-  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): ConstraintViolationListInterface {
+  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity, ?ComponentTreeItem $item = NULL): ConstraintViolationListInterface {
     $violations = new ConstraintViolationList();
     $prop_field_definitions = $this->configuration['prop_field_definitions'];
 
@@ -876,11 +907,29 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $suggestion_entity_data_definition = EntityDataDefinition::create($entity->getEntityTypeId(), $entity->bundle());
     }
     if ($suggestion_entity_data_definition !== NULL) {
-      $suggestions = PropSourceSuggester::structureSuggestionsForHierarchicalResponse($this->propSourceSuggester->suggest(
+      // Set when this component instance sits inside a field-sourced item
+      // template; its item's properties are then offered too.
+      // @see \Drupal\canvas\Form\ComponentInstanceForm::buildForm()
+      $iterated_field = $form_state->get('canvas_iterated_field');
+      $raw_suggestions = $this->propSourceSuggester->suggest(
         $this->getSourceSpecificComponentId(),
         $this->getMetadata(),
         $suggestion_entity_data_definition,
-      ));
+        $iterated_field,
+      );
+      if ($iterated_field !== NULL) {
+        // Two data contexts coexist inside a field-sourced item template, so
+        // the choices say which one each comes from. A suggestion's label is a
+        // ` → `-separated path that the client turns into a hierarchy, so a
+        // prefix is all a group needs.
+        // @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester::enrichSuggestion()
+        $raw_suggestions = self::groupSuggestionsByContext(
+          $raw_suggestions,
+          (string) $this->t('From this item'),
+          (string) $this->t('From this page'),
+        );
+      }
+      $suggestions = PropSourceSuggester::structureSuggestionsForHierarchicalResponse($raw_suggestions);
     }
 
     foreach ($prop_field_definitions as $sdc_prop_name => $static_prop_source_field_definition) {
@@ -1384,6 +1433,16 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
             throw new \InvalidArgumentException('A host entity is required to set entity field prop sources.');
           }
           $source->expression->validateSupport($host_entity);
+          $props[$prop] = $this->collapse($source, $prop);
+          continue;
+        }
+        if ($source instanceof ItemPropSource) {
+          // Like an entity field prop source, this stores a mapping rather than
+          // a value, so there is nothing to evaluate here — and nothing to
+          // evaluate it against: the item is a render-time context, and a host
+          // entity whose field holds no values legitimately has none. Its
+          // expression is validated with the rest of the tree.
+          // @see \Drupal\canvas\PropSource\AmbientItemContext
           $props[$prop] = $this->collapse($source, $prop);
           continue;
         }

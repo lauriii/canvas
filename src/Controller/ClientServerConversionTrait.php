@@ -15,12 +15,14 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
+use Drupal\canvas\PropSource\AmbientItemContext;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Symfony\Component\Validator\ConstraintViolationList;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
  * @internal
@@ -168,13 +170,16 @@ trait ClientServerConversionTrait {
       // get their data context from the slot-defining source, not the host
       // entity. Parents always precede their children in $items, so any
       // slot-defining ancestor's inputs are already converted.
-      ['is_deferred' => $is_deferred, 'entity' => $context_entity] = ComponentTreeItemList::resolveDeferredSlotContextFromValues($items, $uuid, $entity);
+      ['is_deferred' => $is_deferred, 'entity' => $context_entity, 'item' => $item_context] = ComponentTreeItemList::resolveDeferredSlotContextFromValues($items, $uuid, $entity);
       $item_entity = $is_deferred ? $context_entity : $entity;
       // First we transform the incoming client model into input values using
       // the source plugin.
       if (!$useFallback) {
         try {
-          $items[$delta]['inputs'] = $source->clientModelToInput($uuid, $component, $inputs, $item_entity, $violation_list);
+          $items[$delta]['inputs'] = AmbientItemContext::within(
+            $item_context,
+            static fn (): array => $source->clientModelToInput($uuid, $component, $inputs, $item_entity, $violation_list),
+          );
         }
         catch (ComponentNotFoundException) {
           $useFallback = TRUE;
@@ -191,7 +196,7 @@ trait ClientServerConversionTrait {
         // Then we ensure the input values are valid using the source plugin.
         $component_violations = self::translateConstraintPropertyPathsAndRoot(
           ['inputs.' => 'model.'],
-          $source->validateComponentInput($items[$delta]['inputs'], $uuid, $item_entity)
+          AmbientItemContext::within($item_context, static fn (): ConstraintViolationListInterface => $source->validateComponentInput($items[$delta]['inputs'], $uuid, $item_entity))
         );
         if ($component_violations->count() > 0) {
           // @todo Remove the foreach and use ::addAll once https://www.drupal.org/project/drupal/issues/3490588 has been resolved.

@@ -9,11 +9,13 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBa
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
 use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
+use Drupal\canvas\PropSource\ItemPropSource;
 use Drupal\canvas\PropSource\LinkablePropSourceInterface;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
@@ -23,6 +25,7 @@ use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 
 /**
@@ -55,6 +58,7 @@ final readonly class PropSourceSuggester {
     private AdaptedPropSourceMatcher $adaptedPropSourceMatcher,
     private HostEntityUrlPropSourceMatcher $hostEntityUrlPropSourceMatcher,
     private HostEntityPropSourceMatcher $hostEntityPropSourceMatcher,
+    private ItemPropSourceMatcher $itemPropSourceMatcher,
     private EntityDisplayRepositoryInterface $entityDisplayRepository,
     private Labeler $labeler,
     private EntityTypeManagerInterface $entityTypeManager,
@@ -139,9 +143,14 @@ final readonly class PropSourceSuggester {
    *   Host entity type + bundle, necessary to suggest certain types of prop
    *   sources.
    *
-   * @return array<string, array{required: bool, entity-field: array<string, EntityFieldPropSource>, adapter: array<AdapterInterface>, host-entity-url: array<string, HostEntityUrlPropSource>, host-entity: array<string, \Drupal\canvas\PropSource\HostEntityPropSource>}>
+   * @param \Drupal\Core\Field\FieldDefinitionInterface|null $iterated_field
+   *   The multi-value field an enclosing item template iterates, when the
+   *   component instance sits inside one. Its item's properties are then
+   *   offered alongside the host entity's fields.
+   *
+   * @return array<string, array{required: bool, entity-field: array<string, EntityFieldPropSource>, item: array<string, \Drupal\canvas\PropSource\ItemPropSource>, adapter: array<AdapterInterface>, host-entity-url: array<string, HostEntityUrlPropSource>, host-entity: array<string, \Drupal\canvas\PropSource\HostEntityPropSource>}>
    */
-  public function suggest(string $component_plugin_id, ComponentMetadata $component_metadata, EntityDataDefinitionInterface $host_entity_type): array {
+  public function suggest(string $component_plugin_id, ComponentMetadata $component_metadata, EntityDataDefinitionInterface $host_entity_type, ?FieldDefinitionInterface $iterated_field = NULL): array {
     $host_entity_type_id = $host_entity_type->getEntityTypeId();
     \assert(\is_string($host_entity_type_id));
     $bundles = $host_entity_type->getBundles();
@@ -149,7 +158,7 @@ final readonly class PropSourceSuggester {
     $host_entity_type_bundle = reset($bundles);
 
     // 1. Get raw matches.
-    $raw_matches = $this->getRawMatches($component_plugin_id, $component_metadata, $host_entity_type_id, $host_entity_type_bundle);
+    $raw_matches = $this->getRawMatches($component_plugin_id, $component_metadata, $host_entity_type_id, $host_entity_type_bundle, $iterated_field);
 
     // 2. Process (filter and order) matches based on context and what Drupal
     //    considers best practices.
@@ -188,6 +197,11 @@ final readonly class PropSourceSuggester {
 
       // Nothing to do for HostEntityPropSource matches.
       $processed_matches[$cpe][PropSource::HostEntity->value] = $m[PropSource::HostEntity->value];
+
+      // Nothing to do for ItemPropSource matches: they are already sorted, and
+      // the "irrelevant field" heuristics are about a host entity's base
+      // fields, which an item expression never reaches.
+      $processed_matches[$cpe][PropSource::Item->value] = $m[PropSource::Item->value];
     }
 
     // 3. Generate appropriate labels for each. And specify whether required.
@@ -231,6 +245,12 @@ final readonly class PropSourceSuggester {
         $m[PropSource::HostEntityUrl->value],
       );
 
+      // Items of the field an enclosing item template iterates.
+      $suggestions[$cpe][PropSource::Item->value] = [];
+      foreach ($m[PropSource::Item->value] as $item_prop_source) {
+        $suggestions[$cpe][PropSource::Item->value][(string) $item_prop_source->label()] = $item_prop_source;
+      }
+
       // Host entity: at most one match by definition.
       // @see \Drupal\canvas\ShapeMatcher\HostEntityPropSourceMatcher::match()
       $suggestions[$cpe][PropSource::HostEntity->value] = [];
@@ -245,9 +265,9 @@ final readonly class PropSourceSuggester {
   }
 
   /**
-   * @return array<string, array{entity-field: array<EntityFieldPropSource>, adapter: array<\Drupal\canvas\Plugin\Adapter\AdapterInterface>, host-entity-url: array<HostEntityUrlPropSource>, host-entity: array<\Drupal\canvas\PropSource\HostEntityPropSource>}>
+   * @return array<string, array{entity-field: array<EntityFieldPropSource>, item: array<\Drupal\canvas\PropSource\ItemPropSource>, adapter: array<\Drupal\canvas\Plugin\Adapter\AdapterInterface>, host-entity-url: array<HostEntityUrlPropSource>, host-entity: array<\Drupal\canvas\PropSource\HostEntityPropSource>}>
    */
-  private function getRawMatches(string $component_plugin_id, ComponentMetadata $component_metadata, string $host_entity_type, string $host_entity_bundle): array {
+  private function getRawMatches(string $component_plugin_id, ComponentMetadata $component_metadata, string $host_entity_type, string $host_entity_bundle, ?FieldDefinitionInterface $iterated_field = NULL): array {
     $raw_matches = [];
 
     foreach (JsonSchemaPropsComponentSourceBase::getComponentInputsForMetadata($component_plugin_id, $component_metadata) as $cpe_string => $prop_shape) {
@@ -272,6 +292,12 @@ final readonly class PropSourceSuggester {
       $raw_matches[(string) $cpe][PropSource::Adapter->value] = $this->adaptedPropSourceMatcher->match($is_required, $prop_shape);
       $raw_matches[(string) $cpe][PropSource::HostEntityUrl->value] = $this->hostEntityUrlPropSourceMatcher->match($is_required, $prop_shape);
       $raw_matches[(string) $cpe][PropSource::HostEntity->value] = $this->hostEntityPropSourceMatcher->match($is_required, $prop_shape, $host_entity_type, $host_entity_bundle);
+      $raw_matches[(string) $cpe][PropSource::Item->value] = $iterated_field === NULL
+        ? []
+        : \array_map(
+          static fn (FieldTypeBasedPropExpressionInterface $expression): ItemPropSource => new ItemPropSource($expression),
+          $this->itemPropSourceMatcher->match($is_required, $prop_shape, $iterated_field, $host_entity_type, $host_entity_bundle),
+        );
     }
 
     return $raw_matches;
@@ -282,6 +308,7 @@ final readonly class PropSourceSuggester {
     $combined_suggestions = [];
     foreach ($suggestions as $key => $value) {
       $combined_suggestions[$key] = [
+        ...$value[PropSource::Item->value] ?? [],
         ...$value[PropSource::EntityField->value],
         ...$value[PropSource::HostEntityUrl->value],
         ...$value[PropSource::HostEntity->value],

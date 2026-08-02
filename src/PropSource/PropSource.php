@@ -40,6 +40,7 @@ enum PropSource: string {
   // @see ::parse()
   case Dynamic = 'dynamic';
   case EntityField = 'entity-field';
+  case Item = 'item';
   case Static = 'static';
   case HostEntityUrl = 'host-entity-url';
   case HostEntity = 'host-entity';
@@ -65,6 +66,7 @@ enum PropSource: string {
       HostEntityPropSource::class => self::HostEntity->value,
       StaticPropSource::class => self::Static->value,
       EntityFieldPropSource::class => self::EntityField->value,
+      ItemPropSource::class => self::Item->value,
       default => throw new \LogicException('Unknown prop source class.'),
     };
   }
@@ -112,6 +114,10 @@ enum PropSource: string {
       self::Adapter => AdaptedPropSource::parse($prop_source),
       self::Static => StaticPropSource::parse($prop_source),
       self::EntityField, self::Dynamic => EntityFieldPropSource::parse($prop_source),
+      // The ItemPropSource resolves against the field item an enclosing item
+      // template is currently iterating, rather than against a host entity.
+      // @see \Drupal\canvas\PropSource\AmbientItemContext
+      self::Item => ItemPropSource::parse($prop_source),
       default => throw new \LogicException('Unknown source type.'),
     };
   }

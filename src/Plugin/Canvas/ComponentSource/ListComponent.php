@@ -8,6 +8,8 @@ use Drupal\canvas\Attribute\ComponentSource;
 use Drupal\canvas\ComponentSource\ComponentSourceBase;
 use Drupal\canvas\ComponentSource\ComponentSourceWithDeferredSlotsInterface;
 use Drupal\canvas\Entity\Component as ComponentEntity;
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\ListBuilder\ListElementFieldInfo;
 use Drupal\canvas\ListBuilder\ListElementFieldTypeFamily;
 use Drupal\canvas\ListBuilder\ListElementSettingsValidator;
@@ -16,6 +18,7 @@ use Drupal\canvas\MissingComponentInputsException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\canvas\PropSource\AmbientItemContext;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -27,6 +30,8 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\Markup;
@@ -71,6 +76,14 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
    * tree. This key is computed during hydration and never stored.
    */
   public const string HOST_CONTEXT_KEY = 'canvas_list_host';
+
+  /**
+   * The hydrated-inputs key carrying the tree's host entity object.
+   *
+   * A field source iterates a field of that entity. Computed during hydration
+   * and never stored.
+   */
+  public const string HOST_ENTITY_KEY = 'canvas_list_host_entity';
 
   /**
    * Settings the last ::clientModelToInput() call dropped, as labels.
@@ -209,7 +222,13 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
     catch (MissingComponentInputsException) {
       $settings = $this->getDefaultExplicitInput();
     }
-    return $settings + [self::HOST_CONTEXT_KEY => self::resolveHostIdentity($item)];
+    return $settings + [
+      self::HOST_CONTEXT_KEY => self::resolveHostIdentity($item),
+      // A field source reads its values from the live host entity object, not
+      // from a reloaded copy: the negotiated translation and any unsaved
+      // preview state must survive into the item template.
+      self::HOST_ENTITY_KEY => self::resolveHostEntity($item, $host_entity),
+    ];
   }
 
   /**
@@ -230,14 +249,65 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
   }
 
   /**
+   * Resolves the fieldable entity a field source reads its values from.
+   */
+  private static function resolveHostEntity(ComponentTreeItem $item, ?FieldableEntityInterface $host_entity): ?FieldableEntityInterface {
+    if ($host_entity instanceof FieldableEntityInterface) {
+      return $host_entity;
+    }
+    $root = $item->getRoot();
+    $entity = $root instanceof EntityAdapter ? $root->getValue() : NULL;
+    return $entity instanceof FieldableEntityInterface ? $entity : NULL;
+  }
+
+  /**
+   * Resolves the bundle context a field source is authored against.
+   *
+   * A field source needs a host entity that has the field. That is true in a
+   * content template, whose tree is stored in config against a specific
+   * bundle, and false on a page, in a global region, and in a pattern, whose
+   * trees have no such bundle.
+   *
+   * @return array{entity_type: string, bundle: string}|null
+   *
+   * @see \Drupal\canvas\ListBuilder\ListElementSettingsValidator::validate()
+   */
+  public static function resolveHostBundleContext(?ComponentTreeItem $item): ?array {
+    $root = $item?->getRoot();
+    return self::hostBundleContextOf($root instanceof EntityAdapter ? $root->getValue() : $root?->getValue());
+  }
+
+  /**
+   * Same as ::resolveHostBundleContext(), for an entity rather than a tree item.
+   *
+   * @return array{entity_type: string, bundle: string}|null
+   */
+  public static function hostBundleContextOf(mixed $entity): ?array {
+    if ($entity instanceof ContentTemplate) {
+      return [
+        'entity_type' => $entity->getTargetEntityTypeId(),
+        'bundle' => $entity->getTargetBundle(),
+      ];
+    }
+    // While rendering, a content template's tree is rooted in the very entity
+    // it renders.
+    if ($entity instanceof FieldableEntityInterface && !$entity instanceof ComponentTreeEntityInterface) {
+      return ['entity_type' => $entity->getEntityTypeId(), 'bundle' => $entity->bundle()];
+    }
+    return NULL;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function hydrateComponent(array $explicit_input, array $slot_definitions, array $active_required_explicit_inputs): array {
     $host = $explicit_input[self::HOST_CONTEXT_KEY] ?? NULL;
-    unset($explicit_input[self::HOST_CONTEXT_KEY]);
+    $host_entity = $explicit_input[self::HOST_ENTITY_KEY] ?? NULL;
+    unset($explicit_input[self::HOST_CONTEXT_KEY], $explicit_input[self::HOST_ENTITY_KEY]);
     $hydrated = [
       self::EXPLICIT_INPUT_NAME => $explicit_input,
       self::HOST_CONTEXT_KEY => $host,
+      self::HOST_ENTITY_KEY => $host_entity,
     ];
     if ($slot_definitions !== []) {
       $hydrated['slots'] = \array_map(static fn (array $slot): string => $slot['examples'][0] ?? '', $slot_definitions);
@@ -268,10 +338,19 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
   /**
    * {@inheritdoc}
    */
-  public function getDeferredSlotContextEntity(array $explicit_input): ?FieldableEntityInterface {
-    unset($explicit_input[self::HOST_CONTEXT_KEY]);
-    if (\count($this->settingsValidator->validate($explicit_input)) > 0) {
+  public function getDeferredSlotContext(array $explicit_input, ?FieldableEntityInterface $host_entity = NULL): FieldableEntityInterface|FieldItemInterface|null {
+    $host_entity = $explicit_input[self::HOST_ENTITY_KEY] ?? $host_entity;
+    \assert($host_entity === NULL || $host_entity instanceof FieldableEntityInterface);
+    unset($explicit_input[self::HOST_CONTEXT_KEY], $explicit_input[self::HOST_ENTITY_KEY]);
+    if (\count($this->settingsValidator->validate($explicit_input, self::hostContextOf($host_entity))) > 0) {
       return NULL;
+    }
+    if (ListElementSettingsValidator::sourceKind($explicit_input) === ListElementSettingsValidator::SOURCE_FIELD) {
+      // The first value stands in for every value while validating and
+      // modeling the template. With no values there is no representative
+      // context at all, exactly as for a query that matches nothing.
+      $items = self::windowFieldItems($explicit_input, $host_entity);
+      return $items[0] ?? NULL;
     }
     // A representative entity of the source bundle, ignoring the filters, so
     // the template stays validatable and editable while the filters match
@@ -334,8 +413,11 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
    * {@inheritdoc}
    */
   public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview = FALSE): array {
+
     $settings = $inputs[self::EXPLICIT_INPUT_NAME] ?? [];
-    $violations = $this->settingsValidator->validate($settings);
+    $host_entity = $inputs[self::HOST_ENTITY_KEY] ?? NULL;
+    \assert($host_entity === NULL || $host_entity instanceof FieldableEntityInterface);
+    $violations = $this->settingsValidator->validate($settings, self::hostContextOf($host_entity));
     if (\count($violations) > 0) {
       // A misconfigured list renders nothing on the live site and a warning
       // state in the editor preview.
@@ -355,8 +437,21 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       ];
     }
 
-    $result = $this->queryExecutor->execute($settings);
-    $cacheability = CacheableMetadata::createFromObject($result->cacheability);
+    $is_field_source = ListElementSettingsValidator::sourceKind($settings) === ListElementSettingsValidator::SOURCE_FIELD;
+    if ($is_field_source) {
+      // The item window is computed before any item renders: a template
+      // subtree is a whole component tree per item, so building a value only
+      // to discard it is the one thing that must not happen.
+      // @see https://www.drupal.org/i/2846485
+      $items = self::windowFieldItems($settings, $host_entity);
+      // A field's values are host entity data; its cache tag covers them.
+      $cacheability = CacheableMetadata::createFromObject($host_entity);
+    }
+    else {
+      $result = $this->queryExecutor->execute($settings);
+      $items = $result->entities;
+      $cacheability = CacheableMetadata::createFromObject($result->cacheability);
+    }
 
     $build = [
       '#type' => 'container',
@@ -380,14 +475,16 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
     }
 
     $template_subtree = $inputs[ComponentTreeItemList::DEFERRED_SLOT_SUBTREES_KEY][self::ITEM_TEMPLATE_SLOT] ?? [];
-    foreach ($this->renderItems($settings, $result->entities, $template_subtree, $isPreview) as $item) {
+    foreach ($this->renderItems($settings, $items, $template_subtree, $isPreview, $host_entity) as $item) {
       $build['items'][] = $item;
     }
 
     // In the editor preview, keep the item template editable even when the
     // filters match nothing: bind one repetition to a sample entity of the
-    // bundle so the template's components render and stay selectable.
-    if ($isPreview && $settings['display']['mode'] === 'item_template' && $template_subtree !== [] && $result->entities === []) {
+    // bundle so the template's components render and stay selectable. A field
+    // source has no sample to invent: its values are the host entity's own, so
+    // an empty field simply shows the empty placeholder.
+    if (!$is_field_source && $isPreview && $settings['display']['mode'] === 'item_template' && $template_subtree !== [] && $items === []) {
       $sample_settings = $settings;
       $sample_settings['filters']['conditions'] = [];
       $sample_settings['limit'] = 1;
@@ -403,19 +500,52 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       self::prepareTemplateSlotPreview($build, $template_subtree, $componentUuid);
     }
 
-    if ($result->entities === [] && $isPreview) {
+    if ($items === [] && $isPreview) {
       $build['empty'] = [
         '#type' => 'html_tag',
         '#tag' => 'p',
         '#attributes' => ['class' => ['canvas-list-element__state', 'canvas-list-element__state--empty']],
-        '#value' => $this->t('No content matches these settings.'),
+        '#value' => $is_field_source
+          ? $this->t('This field has no values.')
+          : $this->t('No content matches these settings.'),
       ];
     }
 
-    $this->addPagination($build, $settings, $inputs, $componentUuid, $result->consumed, $result->hasMore, $isPreview, $cacheability);
+    if (!$is_field_source) {
+      $this->addPagination($build, $settings, $inputs, $componentUuid, $result->consumed, $result->hasMore, $isPreview, $cacheability);
+    }
 
     $cacheability->applyTo($build);
     return $build;
+  }
+
+  /**
+   * Returns the entity type and bundle of a host entity, if there is one.
+   *
+   * @return array{entity_type: string, bundle: string}|null
+   */
+  private static function hostContextOf(?FieldableEntityInterface $host_entity): ?array {
+    return self::hostBundleContextOf($host_entity);
+  }
+
+  /**
+   * Returns the field items a field source iterates, already windowed.
+   *
+   * @return list<FieldItemInterface>
+   *   The field's items in delta order, at most `limit` of them.
+   */
+  private static function windowFieldItems(array $settings, ?FieldableEntityInterface $host_entity): array {
+    if ($host_entity === NULL || !$host_entity->hasField($settings['source']['field_name'])) {
+      return [];
+    }
+    $field_item_list = $host_entity->get($settings['source']['field_name']);
+    \assert($field_item_list instanceof FieldItemListInterface);
+    if (!$field_item_list->access('view')) {
+      return [];
+    }
+    $items = \iterator_to_array($field_item_list);
+    $limit = $settings['limit'] ?? NULL;
+    return \array_values($limit === NULL ? $items : \array_slice($items, 0, $limit));
   }
 
   /**
@@ -426,8 +556,9 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
    *
    * @param array $settings
    *   Valid canonical List element settings.
-   * @param array<int|string, EntityInterface> $entities
-   *   The result entities of one query window.
+   * @param array<int|string, EntityInterface|FieldItemInterface> $entities
+   *   The items of one window: result entities for a query source, field items
+   *   for a field source.
    * @param array $template_subtree
    *   For the item template display: the raw component tree item values of
    *   the template subtree.
@@ -435,20 +566,23 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
    *   TRUE when rendering the editor preview. Only the first repetition of an
    *   item template renders with preview annotations, so each template
    *   component appears once in the editor.
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $host_entity
+   *   For a field source: the entity the field belongs to. Entity field prop
+   *   sources inside the template keep resolving against it.
    *
    * @return list<array>
    *   One item wrapper render array per entity.
    *
    * @see \Drupal\canvas\Controller\ApiListElementController
    */
-  public function renderItems(array $settings, array $entities, array $template_subtree = [], bool $isPreview = FALSE): array {
+  public function renderItems(array $settings, array $entities, array $template_subtree = [], bool $isPreview = FALSE, ?FieldableEntityInterface $host_entity = NULL): array {
     $items = [];
     $index = 0;
     foreach ($entities as $entity) {
       $items[] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['canvas-list__item']],
-        'content' => $this->renderItem($entity, $settings, $template_subtree, $isPreview && $index === 0),
+        'content' => $this->renderItem($entity, $settings, $template_subtree, $isPreview && $index === 0, $host_entity),
       ];
       $index++;
     }
@@ -456,9 +590,27 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
   }
 
   /**
-   * Renders one result entity per the display settings.
+   * Renders one item per the display settings.
    */
-  private function renderItem(EntityInterface $entity, array $settings, array $template_subtree, bool $is_annotated_preview): array {
+  private function renderItem(EntityInterface|FieldItemInterface $entity, array $settings, array $template_subtree, bool $is_annotated_preview, ?FieldableEntityInterface $host_entity = NULL): array {
+    // A field item is only ever displayed through an item template: the other
+    // display modes render an entity, and a field item is not one.
+    if ($entity instanceof FieldItemInterface) {
+      if ($template_subtree === [] || $host_entity === NULL) {
+        return [];
+      }
+      // The host entity is NOT replaced: entity field prop sources inside the
+      // template keep resolving against it, while item prop sources resolve
+      // against the ambient item.
+      // @see docs/adr/0021-item-template-data-context-is-a-field-item.md
+      $tree = $this->createDanglingComponentTreeItemList($host_entity);
+      $tree->setValue($template_subtree);
+      return AmbientItemContext::within(
+        $entity,
+        static fn (): array => $tree->toRenderable($host_entity, $is_annotated_preview),
+      );
+
+    }
     if ($settings['display']['mode'] === 'item_template') {
       if ($template_subtree === [] || !$entity instanceof FieldableEntityInterface) {
         return [];
@@ -629,9 +781,12 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
     }
     $sorts = \array_values($settings['sorts'] ?? []);
 
+    $is_field_source = ListElementSettingsValidator::sourceKind($settings) === ListElementSettingsValidator::SOURCE_FIELD;
     return [
       'resolved' => [
-        'source' => ['bundle' => $settings['source']['bundle'] ?? ''],
+        'source' => $is_field_source
+          ? ['kind' => ListElementSettingsValidator::SOURCE_FIELD, 'field_name' => $settings['source']['field_name'] ?? '']
+          : ['kind' => ListElementSettingsValidator::SOURCE_QUERY, 'bundle' => $settings['source']['bundle'] ?? ''],
         'display' => [
           'mode_select' => $display['mode'] === 'view_mode' ? 'view_mode:' . ($display['view_mode'] ?? '') : $display['mode'],
         ],
@@ -669,7 +824,9 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
    */
   private static function settingsStructureSignature(array $settings): array {
     return [
+      'kind' => ListElementSettingsValidator::sourceKind($settings),
       'bundle' => $settings['source']['bundle'] ?? '',
+      'field_name' => $settings['source']['field_name'] ?? '',
       'display_mode' => $settings['display']['mode'] ?? 'title_linked',
       'unlimited' => !isset($settings['limit']),
       'pagination_mode' => $settings['pagination']['mode'] ?? 'none',
@@ -693,7 +850,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
     if ($values === []) {
       return $this->getDefaultExplicitInput();
     }
-    $settings = $this->formValuesToSettings($values);
+    $settings = $this->formValuesToSettings($values, $host_entity);
     // Conversion happens in the layout update request, but the settings form
     // is rebuilt by a subsequent request; stash any dropped-settings warnings
     // for that rebuild to display.
@@ -737,8 +894,22 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
    * about; empty "add another" rows are discarded; scalars are cast to their
    * canonical types.
    */
-  private function formValuesToSettings(array $values): array {
+  private function formValuesToSettings(array $values, ?FieldableEntityInterface $host_entity = NULL): array {
+    if (($values['source']['kind'] ?? ListElementSettingsValidator::SOURCE_QUERY) === ListElementSettingsValidator::SOURCE_FIELD) {
+      $field_name = (string) ($values['source']['field_name'] ?? '');
+      if ($field_name === '') {
+        // The kind was just switched, so the field select did not exist in the
+        // form that produced these values yet: start on the first one it will
+        // offer, rather than storing a source that names no field.
+        $field_name = (string) \array_key_first($this->iterableFieldsFor($host_entity));
+      }
+      return $this->fieldSourceSettings($field_name, $values);
+    }
     $bundle = (string) ($values['source']['bundle'] ?? '');
+    if ($bundle === '') {
+      // Likewise when switching back from a field source.
+      $bundle = $this->getDefaultBundle();
+    }
     $fields = [];
     $sortable = [];
     if ($bundle !== '' && \array_key_exists($bundle, $this->bundleInfo->getBundleInfo('node'))) {
@@ -806,6 +977,38 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       ];
     }
 
+    $layout = self::formValuesToLayout($values);
+
+    return [
+      'source' => ['entity_type' => 'node', 'bundle' => $bundle],
+      'display' => $display,
+      'limit' => $limit,
+      'pagination' => $pagination,
+      'filters' => [
+        'conjunction' => ($values['filters']['conjunction'] ?? 'and') === 'or' ? 'or' : 'and',
+        'conditions' => $conditions,
+      ],
+      'sorts' => $sorts,
+      'layout' => $layout,
+    ];
+  }
+
+  /**
+   * Returns the multi-value fields a tree with this host entity may iterate.
+   *
+   * @return array<string, array{label: string, family: \Drupal\canvas\ListBuilder\ListElementFieldTypeFamily, has_target: bool, definition: FieldDefinitionInterface}>
+   */
+  private function iterableFieldsFor(mixed $host_entity): array {
+    $host_context = self::hostBundleContextOf($host_entity);
+    return $host_context === NULL
+      ? []
+      : $this->fieldInfo->getMultiValueFields($host_context['entity_type'], $host_context['bundle']);
+  }
+
+  /**
+   * Maps form values to the canonical layout settings, shared by both kinds.
+   */
+  private static function formValuesToLayout(array $values): array {
     $layout_mode = (string) ($values['layout']['mode'] ?? 'stack');
     if (!\in_array($layout_mode, ListElementSettingsValidator::LAYOUT_MODES, TRUE)) {
       $layout_mode = 'stack';
@@ -832,18 +1035,41 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
     if ($layout_mode === 'grid') {
       $layout['max_per_row'] = \min(\max((int) ($values['layout']['max_per_row'] ?? 3), 1), ListElementSettingsValidator::MAX_PER_ROW);
     }
+    return $layout;
+  }
+
+  /**
+   * Maps form values to canonical settings for a field source.
+   *
+   * Switching to a field source keeps the item template subtree and the layout,
+   * and drops the settings that only shape a query. The dropped ones are named
+   * in the same inline notice a bundle change already uses.
+   */
+  private function fieldSourceSettings(string $field_name, array $values): array {
+    foreach ([
+      'filters' => (string) $this->t('Filters'),
+      'sorts' => (string) $this->t('Sorting'),
+    ] as $key => $label) {
+      if (($key === 'filters' ? ($values['filters']['conditions'] ?? []) : ($values[$key] ?? [])) !== []) {
+        $this->lastDroppedSettings[] = $label;
+      }
+    }
+    if (($values['pagination']['mode'] ?? 'none') !== 'none') {
+      $this->lastDroppedSettings[] = (string) $this->t('Pagination');
+    }
+
+    $raw_unlimited = $values['limit']['unlimited'] ?? FALSE;
+    $unlimited = !empty($raw_unlimited) && $raw_unlimited !== 'false';
 
     return [
-      'source' => ['entity_type' => 'node', 'bundle' => $bundle],
-      'display' => $display,
-      'limit' => $limit,
-      'pagination' => $pagination,
-      'filters' => [
-        'conjunction' => ($values['filters']['conjunction'] ?? 'and') === 'or' ? 'or' : 'and',
-        'conditions' => $conditions,
-      ],
-      'sorts' => $sorts,
-      'layout' => $layout,
+      'source' => ['kind' => ListElementSettingsValidator::SOURCE_FIELD, 'field_name' => $field_name],
+      // A field's values are only displayable through an item template.
+      'display' => ['mode' => 'item_template'],
+      'limit' => $unlimited ? NULL : \max((int) ($values['limit']['count'] ?? 3), 1),
+      'pagination' => ['mode' => 'none', 'page_size' => 10],
+      'filters' => ['conjunction' => 'and', 'conditions' => []],
+      'sorts' => [],
+      'layout' => self::formValuesToLayout($values),
     ];
   }
 
@@ -938,10 +1164,17 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
   /**
    * {@inheritdoc}
    */
-  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): ConstraintViolationListInterface {
+  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity, ?ComponentTreeItem $item = NULL): ConstraintViolationListInterface {
     return $this->translateConstraintPropertyPathsAndRoot(
       ['' => \sprintf('inputs.%s.', $component_instance_uuid)],
-      $this->settingsValidator->validate($inputValues),
+      $this->settingsValidator->validate(
+        $inputValues,
+        self::resolveHostBundleContext($item) ?? self::hostBundleContextOf($entity),
+        // A component tree stored in config is validated one node at a time,
+        // detached from the config entity that owns it, so there is nothing to
+        // read a bundle context from. Absence is then not evidence of absence.
+        host_context_is_known: $entity !== NULL || $item?->getRoot() instanceof EntityAdapter,
+      ),
     );
   }
 
@@ -958,11 +1191,16 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
     array $settings = [],
   ): array {
     $values = $inputValues !== [] ? $inputValues : $this->getDefaultExplicitInput();
+    $is_field_source = ListElementSettingsValidator::sourceKind($values) === ListElementSettingsValidator::SOURCE_FIELD;
     $bundle = (string) ($values['source']['bundle'] ?? '');
     $bundles = $this->bundleInfo->getBundleInfo('node');
-    $bundle_is_valid = \array_key_exists($bundle, $bundles);
+    $bundle_is_valid = !$is_field_source && \array_key_exists($bundle, $bundles);
     $fields = $bundle_is_valid ? $this->fieldInfo->getFilterableFields('node', $bundle) : [];
     $sortable = $bundle_is_valid ? $this->fieldInfo->getSortableFields('node', $bundle) : [];
+    // A field source is only offered where the tree has a bundle-specific host
+    // entity to read the field from.
+    // @see \Drupal\canvas\ListBuilder\ListElementSettingsValidator::validate()
+    $iterable_fields = $this->iterableFieldsFor($entity);
 
     $form['#tree'] = TRUE;
 
@@ -979,17 +1217,47 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       ];
     }
 
+    // One control: an editor picks what the list is *of*, and the rest of the
+    // panel follows from that choice. What the list is *of* comes second, and
+    // only the control that applies to the chosen kind is shown: the whole
+    // panel already rebuilds when the source's structural signature changes.
+    // @see ::settingsStructureSignature()
+    // @see docs/adr/0021-item-template-data-context-is-a-field-item.md
     $form['source'] = [
       '#type' => 'details',
       '#title' => $this->t('Content source'),
       '#open' => TRUE,
-      'bundle' => [
+      'kind' => [
+        '#type' => 'select',
+        '#title' => $this->t('Show'),
+        '#options' => [
+          ListElementSettingsValidator::SOURCE_QUERY => (string) $this->t('Content'),
+        ] + ($iterable_fields === [] ? [] : [
+          // A field source needs a host entity that has the field, so it is
+          // only an option where the tree has a bundle-specific one.
+          ListElementSettingsValidator::SOURCE_FIELD => (string) $this->t('Field'),
+        ]),
+        '#default_value' => $is_field_source
+          ? ListElementSettingsValidator::SOURCE_FIELD
+          : ListElementSettingsValidator::SOURCE_QUERY,
+      ],
+    ];
+    if ($is_field_source) {
+      $form['source']['field_name'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Field'),
+        '#options' => \array_map(static fn (array $field): string => $field['label'], $iterable_fields),
+        '#default_value' => $values['source']['field_name'] ?? '',
+      ];
+    }
+    else {
+      $form['source']['bundle'] = [
         '#type' => 'select',
         '#title' => $this->t('Content type'),
         '#options' => \array_map(static fn (array $info): string => (string) $info['label'], $bundles),
         '#default_value' => $bundle,
-      ],
-    ];
+      ];
+    }
 
     $view_mode_options = $this->getViewModeOptions($bundle);
     $display_options = ['title_linked' => (string) $this->t('Title (linked)')];
@@ -997,6 +1265,10 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       $display_options['view_mode:' . $id] = (string) $label;
     }
     $display_options['item_template'] = (string) $this->t('Components (item template)');
+    if ($is_field_source) {
+      // A view mode or a link renders an entity; a field item is not one.
+      $display_options = ['item_template' => $display_options['item_template']];
+    }
     $form['display'] = [
       '#type' => 'details',
       '#title' => $this->t('Item display'),
@@ -1031,6 +1303,15 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
         '#min' => 1,
         '#default_value' => $values['limit'] ?? 3,
       ];
+    }
+
+    // Filters, sorts and pagination shape a query. A field's values are host
+    // entity data in the order the content editor arranged them, so those
+    // groups are hidden rather than disabled: a disabled filter builder invites
+    // "why can I not use this", a hidden one does not.
+    if ($is_field_source) {
+      $form['limit']['unlimited']['#description'] = $this->t('Shows every value of this field.');
+      return $form + $this->buildLayoutForm($values);
     }
 
     $form['pagination'] = [
@@ -1102,6 +1383,15 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       $form['sorts'][] = $this->buildSortRow(NULL, $sortable);
     }
 
+    $form += $this->buildLayoutForm($values);
+    return $form;
+  }
+
+  /**
+   * Builds the layout group, which both source kinds share.
+   */
+  private function buildLayoutForm(array $values): array {
+    $form = [];
     $layout = $values['layout'] ?? ['mode' => 'stack', 'gap' => 'medium'];
     $form['layout'] = [
       '#type' => 'details',

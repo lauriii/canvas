@@ -371,6 +371,11 @@ canvas.component_tree:
           - host-entity-url
           # Not yet supported by the Canvas UI.
           - adapter
+          # ItemPropSources resolve against the field item an item template is
+          # iterating, so they are only valid inside a deferred slot — whose
+          # items this check skips.
+          # @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::getPropSourceTypes()
+          - item
         presence: ~
       tree:
         absence: ~
@@ -780,6 +785,7 @@ field.value.component_tree:
           - entity-field
           - host-entity-url
           - adapter
+          - item
         presence: ~
       tree:
         absence:
@@ -818,6 +824,7 @@ canvas.pattern.*:
               - entity-field
               - host-entity-url
               - adapter
+              - item
             presence: ~
           tree:
             absence:
@@ -1063,6 +1070,7 @@ canvas.content_template.*.*.*:
           inputs:
             absence:
               - adapter
+              - item
             # The only Canvas component tree that allows `entity-field` and `host-entity-url`!
             # @see \Drupal\canvas\PropSource\EntityFieldPropSource
             # @see \Drupal\canvas\PropSource\HostEntityUrlPropSource

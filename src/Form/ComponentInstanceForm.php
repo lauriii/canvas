@@ -12,6 +12,7 @@ use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
+use Drupal\canvas\PropSource\AmbientItemContext;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -137,13 +138,14 @@ final class ComponentInstanceForm extends FormBase {
     // The submitted subtree does not carry ancestry, so resolve it against
     // the (auto-saved, if available) full tree of the edited entity.
     $form_context_entity = $entity;
+    $context_item = NULL;
     if ($host_entity instanceof FieldableEntityInterface) {
       $auto_save = $this->autoSaveManager->getAutoSaveEntity($entity);
       $tree_host = $auto_save->isEmpty() ? $entity : $auto_save->entity;
       try {
         \assert($tree_host instanceof FieldableEntityInterface || $tree_host instanceof ContentTemplate);
         $full_tree = $this->componentTreeLoader->load($tree_host);
-        ['is_deferred' => $is_deferred, 'entity' => $context_entity] = $full_tree->resolveDeferredSlotContext(
+        ['is_deferred' => $is_deferred, 'entity' => $context_entity, 'item' => $context_item] = $full_tree->resolveDeferredSlotContext(
           $full_tree->getComponentTreeItemByUuid($component_instance_uuid) ?? throw new \LogicException('Not in tree.'),
           $host_entity,
         );
@@ -153,6 +155,15 @@ final class ComponentInstanceForm extends FormBase {
           // Lets sources offer this context's fields for prop mapping.
           // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
           $form_state->set('canvas_deferred_slot_context', TRUE);
+          // A field-sourced item template additionally offers the properties of
+          // the iterated field's items, beside the host entity's own fields.
+          // @see \Drupal\canvas\ShapeMatcher\ItemPropSourceMatcher
+          if ($context_item !== NULL) {
+            $form_state->set('canvas_iterated_field', $context_item->getFieldDefinition());
+          }
+        }
+        else {
+          $context_item = NULL;
         }
       }
       catch (\LogicException) {
@@ -164,8 +175,14 @@ final class ComponentInstanceForm extends FormBase {
     $parents = ['canvas_component_props', $component_instance_uuid];
     $sub_form = ['#parents' => $parents, '#tree' => TRUE];
     if (!$component->getComponentSource()->isBroken()) {
-      $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model, $host_entity);
-      $instance_form = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $form_context_entity, $component->get('settings'));
+      // Item prop sources inside a field-sourced item template resolve against
+      // the representative item while the form is built.
+      // @see \Drupal\canvas\PropSource\AmbientItemContext
+      $iterated_item = $context_item;
+      [$inputs, $instance_form] = AmbientItemContext::within($iterated_item, static function () use ($component, $component_instance_uuid, $client_model, $host_entity, $sub_form, $form_state, $form_context_entity): array {
+        $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model, $host_entity);
+        return [$inputs, $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $form_context_entity, $component->get('settings'))];
+      });
     }
     else {
       // The component is broken, so we must assist the Canvas content author

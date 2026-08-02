@@ -56,6 +56,8 @@ services:
     public: false
   Drupal\canvas\ShapeMatcher\HostEntityPropSourceMatcher:
     public: false
+  Drupal\canvas\ShapeMatcher\ItemPropSourceMatcher:
+    public: false
 
   # Utilities.
   Drupal\canvas\CanvasNotificationHandler: {}

@@ -98,8 +98,17 @@ final class Evaluator {
       ->addCacheableDependency($language);
   }
 
-  public static function evaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr, bool $is_required, NegotiatedLanguage $language): EvaluationResult {
-    $result = self::doEvaluate($entity_or_field, $expr, $is_required, $language);
+  /**
+   * @param int|null $max_deltas
+   *   The maximum number of field deltas to evaluate, or NULL for all of them.
+   *   Set when the expression populates an array component prop that declares a
+   *   `maxItems`: the window is applied before any field property is read, so
+   *   values outside it are never built only to be discarded — including the
+   *   entities a reference field's out-of-window deltas point at.
+   *   @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getExplicitInput()
+   */
+  public static function evaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr, bool $is_required, NegotiatedLanguage $language, ?int $max_deltas = NULL): EvaluationResult {
+    $result = self::doEvaluate($entity_or_field, $expr, $is_required, $language, $max_deltas);
     // Compensate for DateTimeItemInterface::DATETIME_STORAGE_FORMAT not
     // including the trailing `Z`. In theory, this should always use an adapter.
     // But is the storage and complexity overhead of doing that worth that
@@ -131,7 +140,7 @@ final class Evaluator {
     );
   }
 
-  private static function doEvaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr, bool $is_required, NegotiatedLanguage $language): EvaluationResult {
+  private static function doEvaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr, bool $is_required, NegotiatedLanguage $language, ?int $max_deltas = NULL): EvaluationResult {
     $permanent_cacheability = new CacheableMetadata();
     // Evaluating an expression when the evaluation context is NULL is
     // impossible.
@@ -269,11 +278,19 @@ final class Evaluator {
       $field_access = self::validateAccess($field_item_list, $expr);
 
       $result = match ($expr::class) {
-        FieldPropExpression::class => (function () use ($expr, $field_item_list, $is_required, $cardinality) {
+        FieldPropExpression::class => (function () use ($expr, $field_item_list, $is_required, $cardinality, $max_deltas) {
           $result = [];
           $raw_result = [];
           $result_cacheability = new CacheableMetadata();
           foreach ($field_item_list as $delta => $field_item) {
+            // Stop before reading anything outside the window: this is the one
+            // place a delta's properties (and, for a reference field, the
+            // entity it points at) are read, so capping here is what makes the
+            // window "computed before item values are read".
+            // @see ::evaluate()
+            if ($max_deltas !== NULL && \count($result) >= $max_deltas) {
+              break;
+            }
             if ($expr->delta === NULL || $expr->delta === $delta) {
               $prop = $field_item->get($expr->getFieldPropertyName());
               if ($prop instanceof CacheableDependencyInterface) {
@@ -353,14 +370,15 @@ final class Evaluator {
             )
           );
         })(),
-        ReferenceFieldPropExpression::class => (function () use ($entity, $field_item_list, $expr, $is_required, $cardinality, $language) {
+        ReferenceFieldPropExpression::class => (function () use ($entity, $field_item_list, $expr, $is_required, $cardinality, $language, $max_deltas) {
           \assert($field_item_list->getName() === $expr->referencer->getFieldName());
           // Step 1: evaluate the referencer expression to get the referenced
           // entities. This always is a FieldPropExpression, which also handles
-          // respecting the delta in the expression.
+          // respecting the delta in the expression — and the delta window, so
+          // out-of-window deltas never resolve their referenced entity.
           // Note: this EvaluationResult object carries cacheability (for e.g.
           // entity access).
-          $referencer_result = self::evaluate($entity, $expr->referencer, $is_required, $language);
+          $referencer_result = self::evaluate($entity, $expr->referencer, $is_required, $language, $max_deltas);
 
           // Step 2A: single-cardinality or single delta: result is a single
           // value, not an array.
@@ -408,7 +426,7 @@ final class Evaluator {
           return new EvaluationResult($evaluated_references, $referencer_result);
         })(),
         FieldObjectPropsExpression::class => \array_map(
-          fn((ScalarPropExpressionInterface&EntityFieldBasedPropExpressionInterface)|(ReferencePropExpressionInterface&EntityFieldBasedPropExpressionInterface) $sub_expr): EvaluationResult => self::evaluate($entity_or_field, $sub_expr, $is_required, $language),
+          fn((ScalarPropExpressionInterface&EntityFieldBasedPropExpressionInterface)|(ReferencePropExpressionInterface&EntityFieldBasedPropExpressionInterface) $sub_expr): EvaluationResult => self::evaluate($entity_or_field, $sub_expr, $is_required, $language, $max_deltas),
           $expr->getObjectExpressions(),
         ),
         default => throw new \LogicException('Unhandled expression type.'),

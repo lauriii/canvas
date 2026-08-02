@@ -11,6 +11,7 @@ use Drupal\canvas\MissingComponentInputsException;
 use Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter;
 use Drupal\canvas\Plugin\DataType\ResolvedComponentInputs;
 use Drupal\canvas\PropExpressions\StructuredData\ContentAwareDependentInterface;
+use Drupal\canvas\PropSource\AmbientItemContext;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
@@ -30,6 +31,7 @@ use Drupal\Core\TypedData\DataReferenceTargetDefinition;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
  * A component instance in a component tree.
@@ -72,6 +74,10 @@ use Symfony\Component\Validator\ConstraintViolationList;
           PropSource::Adapter->value,
           // @todo Remove before Canvas 2.0, see https://www.drupal.org/node/3566701
           PropSource::Dynamic->value,
+          // ItemPropSources are only valid inside a deferred slot, whose items
+          // this check skips.
+          // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::getPropSourceTypes()
+          PropSource::Item->value,
         ],
         'presence' => NULL,
       ],
@@ -584,8 +590,9 @@ class ComponentTreeItem extends FieldItemBase {
     // Items inside a deferred slot (e.g. a List element's item template) get
     // their data context from the slot-defining source, not the host entity.
     $parent_list = $this->getParent();
+    $item_context = NULL;
     if ($parent_list instanceof ComponentTreeItemList) {
-      ['is_deferred' => $is_deferred, 'entity' => $context_entity] = $parent_list->resolveDeferredSlotContext($this, $entity instanceof FieldableEntityInterface ? $entity : NULL);
+      ['is_deferred' => $is_deferred, 'entity' => $context_entity, 'item' => $item_context] = $parent_list->resolveDeferredSlotContext($this, $entity instanceof FieldableEntityInterface ? $entity : NULL);
       if ($is_deferred) {
         $entity = $context_entity;
       }
@@ -609,7 +616,10 @@ class ComponentTreeItem extends FieldItemBase {
     // this will catch that.
     // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
     $input_values = $this->getInputs();
-    $component_violations = $source->validateComponentInput($input_values ?? [], $component_instance_uuid, $entity);
+    $component_violations = AmbientItemContext::within(
+      $item_context,
+      fn (): ConstraintViolationListInterface => $source->validateComponentInput($input_values ?? [], $component_instance_uuid, $entity, $this),
+    );
     if ($component_violations->count() > 0) {
       // @todo Remove the foreach and use ::addAll once
       // https://www.drupal.org/project/drupal/issues/3490588 has been resolved.
