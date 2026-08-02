@@ -47,6 +47,16 @@ export interface CommentThread {
   surfaceId: string;
   /** `null` identifies a surface-level thread that is not tied to a component. */
   componentUuid: string | null;
+  /**
+   * Where in the component the comment was left, from 0 to 1 across its box.
+   *
+   * A fraction rather than a canvas coordinate: the preview reflows and is
+   * rendered at several widths at once, so an absolute point would land
+   * somewhere different in each. `null` when the thread was started from the
+   * sidebar, which has no point to record.
+   */
+  offsetX: number | null;
+  offsetY: number | null;
   resolved: boolean;
   /** Integer UNIX seconds. */
   created: number;
@@ -75,6 +85,9 @@ export interface CreateThreadArgs {
   surfaceType: string;
   surfaceId: string;
   componentUuid: string | null;
+  /** Where in the component it was left; both or neither, and only with a component. */
+  offsetX?: number;
+  offsetY?: number;
   body: string;
 }
 

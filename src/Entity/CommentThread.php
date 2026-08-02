@@ -77,6 +77,18 @@ final class CommentThread extends ContentEntityBase implements EntityOwnerInterf
       ->setLabel(t('Component instance UUID'))
       ->setDescription(t('The UUID of the commented component instance. Empty for a surface-level thread.'))
       ->setSetting('max_length', 128);
+    // Where inside the component the comment was left, as a fraction of its
+    // measured box rather than a canvas coordinate. A preview reflows and is
+    // rendered at several viewport widths at once, so an absolute point would
+    // land somewhere different in each of them; a fraction lands on the same
+    // part of the same component in all of them. Empty when the thread was
+    // started from the sidebar, which has no point to record.
+    $fields['offset_x'] = BaseFieldDefinition::create('float')
+      ->setLabel(t('Horizontal offset'))
+      ->setDescription(t('Where in the component the comment was left, from 0 at its left edge to 1 at its right.'));
+    $fields['offset_y'] = BaseFieldDefinition::create('float')
+      ->setLabel(t('Vertical offset'))
+      ->setDescription(t('Where in the component the comment was left, from 0 at its top edge to 1 at its bottom.'));
     $fields['resolved'] = BaseFieldDefinition::create('boolean')
       ->setLabel(t('Resolved'))
       ->setDescription(t('Whether this thread has been resolved.'))
@@ -120,6 +132,21 @@ final class CommentThread extends ContentEntityBase implements EntityOwnerInterf
       return NULL;
     }
     return $component_uuid;
+  }
+
+  /**
+   * Where in the component the comment was left, if that was recorded.
+   *
+   * @return float[]|null
+   *   The `x` and `y` fractions, or NULL for a thread with no recorded point.
+   */
+  public function getOffset(): ?array {
+    $x = $this->get('offset_x')->value;
+    $y = $this->get('offset_y')->value;
+    if ($x === NULL || $y === NULL) {
+      return NULL;
+    }
+    return ['x' => (float) $x, 'y' => (float) $y];
   }
 
   /**

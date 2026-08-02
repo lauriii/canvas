@@ -476,6 +476,26 @@ paths:
                     The commented component instance, as a UUID. Null anchors
                     the thread to the surface itself. A value that is not a
                     UUID is rejected with a 422.
+                offsetX:
+                  type: ['null', number]
+                  # Deliberately no `minimum`/`maximum`. The request validator
+                  # only runs outside production and rethrows, so a range
+                  # declared here would be a 500 in development and unchecked
+                  # in production. The controller enforces it, and answers 422
+                  # in every environment.
+                  # @see \Drupal\canvas\Controller\ApiCommentController::post()
+                  description: >-
+                    Where in the component the comment was left, from 0 at its
+                    left edge to 1 at its right, both inclusive. A fraction
+                    rather than a canvas coordinate, because a preview reflows
+                    and is rendered at several widths at once. Requires
+                    `componentUuid`, must be sent together with `offsetY`, and
+                    is rejected with a 422 when outside 0 to 1.
+                offsetY:
+                  type: ['null', number]
+                  description: >-
+                    Where in the component the comment was left, from 0 at its
+                    top edge to 1 at its bottom, both inclusive.
                 body:
                   type: string
                   description: The text of the opening comment.
@@ -5344,6 +5364,8 @@ components:
         - surfaceType
         - surfaceId
         - componentUuid
+        - offsetX
+        - offsetY
         - resolved
         - created
         - changed
@@ -5369,6 +5391,18 @@ components:
           description: >-
             The anchored component instance. Null means the thread is anchored
             to the surface as a whole and renders no pin.
+        offsetX:
+          type: ['null', number]
+          description: >-
+            Where in the anchored component the comment was left, from 0 at its
+            left edge to 1 at its right. Null for a thread started from the
+            sidebar, which has no point to record; its pin sits at the
+            component's top-left corner.
+        offsetY:
+          type: ['null', number]
+          description: >-
+            Where in the anchored component the comment was left, from 0 at its
+            top edge to 1 at its bottom.
         resolved:
           type: boolean
           description: Whether the thread is resolved.

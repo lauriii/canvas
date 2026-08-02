@@ -670,3 +670,26 @@ function canvas_post_update_0026_install_comment_entity_types(): void {
     }
   }
 }
+
+/**
+ * Records where in a component a comment was left.
+ */
+function canvas_post_update_0027_comment_thread_offsets(): void {
+  $entity_definition_update_manager = \Drupal::service('entity.definition_update_manager');
+  \assert($entity_definition_update_manager instanceof EntityDefinitionUpdateManagerInterface);
+  $entity_field_manager = \Drupal::service('entity_field.manager');
+  \assert($entity_field_manager instanceof EntityFieldManagerInterface);
+  $fields = $entity_field_manager->getBaseFieldDefinitions(CommentThread::ENTITY_TYPE_ID);
+  foreach (['offset_x', 'offset_y'] as $field_name) {
+    // Threads that predate this stay unset, and their pins keep sitting at the
+    // anchored component's top-left corner.
+    if ($entity_definition_update_manager->getFieldStorageDefinition($field_name, CommentThread::ENTITY_TYPE_ID) === NULL) {
+      $entity_definition_update_manager->installFieldStorageDefinition(
+        $field_name,
+        CommentThread::ENTITY_TYPE_ID,
+        'canvas',
+        $fields[$field_name],
+      );
+    }
+  }
+}
