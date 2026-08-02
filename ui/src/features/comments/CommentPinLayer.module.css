@@ -33,9 +33,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: var(--space-5);
+  /* One letter, so a fixed square rather than a pill that grew with a count. */
+  width: var(--space-5);
   height: var(--space-5);
-  padding: 0 var(--space-1);
   cursor: pointer;
   /* The square bottom-left corner below is the bubble's tail, so that corner
      is what has to land on the anchor. Centring the bubble on the anchor
@@ -49,6 +49,7 @@
   background: var(--accent-9);
   box-shadow: var(--shadow-4);
   font-size: var(--font-size-1);
+  font-weight: 500;
   line-height: 1;
 }
 

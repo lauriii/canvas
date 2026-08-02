@@ -6,6 +6,7 @@ import AppWrapper from '@tests/vitest/components/AppWrapper';
 import { makeStore } from '@/app/store';
 import CommentPinLayer, {
   findComponentAtPoint,
+  getAuthorInitial,
   pinPosition,
 } from '@/features/comments/CommentPinLayer';
 import { setCommentMode } from '@/features/comments/commentsSlice';
@@ -202,6 +203,10 @@ describe('CommentPinLayer', () => {
     // Neither the unmeasured thread nor the surface-level thread gets a pin.
     expect(pins).toHaveLength(1);
     expect(pins[0]).toHaveAttribute('data-comment-thread-id', '1');
+    // The pin says who is asking, not how many times: a count read "1" on
+    // almost every thread, which told the reader nothing.
+    expect(pins[0]).toHaveTextContent('A');
+    // The count is still there for anyone who cannot see the pin.
     expect(pins[0]).toHaveAccessibleName('Comment thread by Alice, 2 replies');
   });
 
@@ -349,6 +354,16 @@ describe('CommentPinLayer', () => {
     // Posting leaves comment mode and shows the thread in the panel.
     expect(store.getState().comments.commentModeActive).toBe(false);
     expect(store.getState().comments.panelOpen).toBe(true);
+  });
+
+  it('takes the pin letter from the author, however they are named', () => {
+    expect(getAuthorInitial('Alice')).toBe('A');
+    expect(getAuthorInitial('bob')).toBe('B');
+    // Leading whitespace must not become the initial.
+    expect(getAuthorInitial('  carol')).toBe('C');
+    // An author with no usable name still gets a legible pin.
+    expect(getAuthorInitial('')).toBe('?');
+    expect(getAuthorInitial('   ')).toBe('?');
   });
 
   it('positions a pin at the point the comment was left at', () => {

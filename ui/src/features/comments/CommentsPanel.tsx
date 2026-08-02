@@ -287,7 +287,9 @@ export const CommentsPanel = () => {
   };
 
   return (
-    <Flex direction="column" gap="3" data-testid="canvas-comments-panel">
+    // `pt` matches the breathing room the Page data tab's form leaves under
+    // the tab strip, so switching between the two does not jump.
+    <Flex direction="column" gap="3" pt="5" data-testid="canvas-comments-panel">
       <SegmentedControl.Root
         size="1"
         value={filter}

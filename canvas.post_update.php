@@ -305,7 +305,7 @@ function canvas_post_update_0013_update_dynamic_prop_sources_to_entity_field_pro
  * Creates the global brand kit config entity for updated sites.
  */
 function canvas_post_update_0014_create_global_brand_kit(): void {
-  $entity_definition_update_manager = \Drupal::service('entity.definition_update_manager');
+  $entity_definition_update_manager = \Drupal::service(EntityDefinitionUpdateManagerInterface::class);
   \assert($entity_definition_update_manager instanceof EntityDefinitionUpdateManagerInterface);
   $change_list = $entity_definition_update_manager->getChangeList();
   if (($change_list[BrandKit::ENTITY_TYPE_ID]['entity_type'] ?? NULL) === EntityDefinitionUpdateManagerInterface::DEFINITION_CREATED) {
@@ -439,7 +439,7 @@ function canvas_post_update_0019_recompute_list_float_component_version_hashes(a
  * Installs the StagedLanguageConfigOverride config entity type.
  */
 function canvas_post_update_0020_install_staged_language_config_override_entity_type(array &$sandbox): void {
-  $entity_definition_update_manager = \Drupal::service('entity.definition_update_manager');
+  $entity_definition_update_manager = \Drupal::service(EntityDefinitionUpdateManagerInterface::class);
   \assert($entity_definition_update_manager instanceof EntityDefinitionUpdateManagerInterface);
   $change_list = $entity_definition_update_manager->getChangeList();
   if (($change_list[StagedLanguageConfigOverride::ENTITY_TYPE_ID]['entity_type'] ?? NULL) === EntityDefinitionUpdateManagerInterface::DEFINITION_CREATED) {
@@ -500,7 +500,7 @@ function canvas_post_update_0023_block_label_display_boolean_to_string(array &$s
   // entity holding a component_tree field. Every revision must be fixed — the
   // data-health audit validates default, past and forward revisions separately.
   if (!isset($sandbox['items'])) {
-    $entity_field_manager = \Drupal::service('entity_field.manager');
+    $entity_field_manager = \Drupal::service(EntityFieldManagerInterface::class);
     \assert($entity_field_manager instanceof EntityFieldManagerInterface);
     $sandbox['items'] = [];
     $sandbox['fields'] = [];
@@ -661,7 +661,7 @@ function _canvas_coerce_block_label_display_in_raw(array &$data): bool {
  * Installs the comment thread and comment entity types.
  */
 function canvas_post_update_0026_install_comment_entity_types(): void {
-  $entity_definition_update_manager = \Drupal::service('entity.definition_update_manager');
+  $entity_definition_update_manager = \Drupal::service(EntityDefinitionUpdateManagerInterface::class);
   \assert($entity_definition_update_manager instanceof EntityDefinitionUpdateManagerInterface);
   $change_list = $entity_definition_update_manager->getChangeList();
   foreach ([CommentThread::ENTITY_TYPE_ID, Comment::ENTITY_TYPE_ID] as $entity_type_id) {
@@ -675,9 +675,9 @@ function canvas_post_update_0026_install_comment_entity_types(): void {
  * Records where in a component a comment was left.
  */
 function canvas_post_update_0027_comment_thread_offsets(): void {
-  $entity_definition_update_manager = \Drupal::service('entity.definition_update_manager');
+  $entity_definition_update_manager = \Drupal::service(EntityDefinitionUpdateManagerInterface::class);
   \assert($entity_definition_update_manager instanceof EntityDefinitionUpdateManagerInterface);
-  $entity_field_manager = \Drupal::service('entity_field.manager');
+  $entity_field_manager = \Drupal::service(EntityFieldManagerInterface::class);
   \assert($entity_field_manager instanceof EntityFieldManagerInterface);
   $fields = $entity_field_manager->getBaseFieldDefinitions(CommentThread::ENTITY_TYPE_ID);
   foreach (['offset_x', 'offset_y'] as $field_name) {
