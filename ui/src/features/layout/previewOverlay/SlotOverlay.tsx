@@ -16,6 +16,8 @@ import {
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import { useLinger } from '@/hooks/useLinger';
+import { useSlotHasControls } from '@/hooks/useSlotRestrictions';
 
 import type React from 'react';
 import type {
@@ -62,6 +64,9 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
   // Keep the tag up while the slot's own add menu is open, or choosing from
   // that menu would dismiss the thing being chosen from.
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+  // A tag that hosts a control has to outlast the pointer's journey to it.
+  const hasControls = useSlotHasControls(slot);
+  const stillReachable = useLinger(isHovered && hasControls);
 
   // A slot reports its own hover, the same way a component does, so that
   // pointing at the space inside a container is pointing at *that slot* rather
@@ -79,6 +84,16 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
   const handleSlotMouseOut = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       event.stopPropagation();
+      // The name tag floats outside the box of the thing it names, so moving onto
+      // it is a `mouseout` even though the pointer is still on this element's own
+      // chrome. Treating that as leaving unmounts the tag from under the pointer,
+      // which makes any control it hosts impossible to reach.
+      if (
+        event.relatedTarget instanceof Node &&
+        event.currentTarget.contains(event.relatedTarget)
+      ) {
+        return;
+      }
       dispatch(unsetHoveredComponent());
     },
     [dispatch],
@@ -117,13 +132,16 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
       onMouseOver={handleSlotMouseOver}
       onMouseOut={handleSlotMouseOut}
     >
-      {(targetSlot === slotId || isHovered || isAddMenuOpen) && (
+      {(targetSlot === slotId ||
+        isHovered ||
+        stillReachable ||
+        isAddMenuOpen) && (
         <div className={clsx(styles.canvasNameTag, styles.canvasNameTagSlot)}>
           <SlotNameTag
             name={`${slotName} (${parentComponentName})`}
             id={slotId}
             nodeType={slot.nodeType}
-            forceVisible={isAddMenuOpen}
+            forceVisible={isAddMenuOpen || stillReachable}
             // A governed slot says how full it is and offers a way to fill it,
             // whether or not it already holds something.
             // @see \Drupal\canvas\SlotRestrictions

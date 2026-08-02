@@ -21,6 +21,8 @@ import {
 } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import { useLinger } from '@/hooks/useLinger';
+import { useSlotHasControls } from '@/hooks/useSlotRestrictions';
 
 import type React from 'react';
 import type { CanvasStackDirection } from '@drupal-canvas/preview-geometry';
@@ -76,6 +78,9 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   // Keep the tag up while the slot's add menu is open, or choosing from that
   // menu would dismiss the thing being chosen from.
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+  // A tag that hosts a control has to outlast the pointer's journey to it.
+  const hasControls = useSlotHasControls(parentSlot);
+  const stillReachable = useLinger(isHovered && hasControls);
   const { setSelectedComponent, handleComponentSelection } =
     useComponentSelection();
   const { isDragging } = useAppSelector(selectDragging);
@@ -113,6 +118,16 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
 
   function handleItemMouseOut(event: React.MouseEvent<HTMLDivElement>) {
     event.stopPropagation();
+    // The name tag floats outside the box of the thing it names, so moving onto
+    // it is a `mouseout` even though the pointer is still on this element's own
+    // chrome. Treating that as leaving unmounts the tag from under the pointer,
+    // which makes any control it hosts impossible to reach.
+    if (
+      event.relatedTarget instanceof Node &&
+      event.currentTarget.contains(event.relatedTarget)
+    ) {
+      return;
+    }
     dispatch(unsetHoveredComponent());
   }
 
@@ -186,13 +201,13 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           data-canvas-overlay="true"
         />
       </ComponentContextMenu>
-      {(isHovered || isSelected || isAddMenuOpen) && (
+      {(isHovered || isSelected || stillReachable || isAddMenuOpen) && (
         <div className={clsx(styles.canvasNameTag)}>
           <ComponentNameTag
             name={name}
             id={component.uuid}
             nodeType={component.nodeType}
-            forceVisible={isAddMenuOpen}
+            forceVisible={isAddMenuOpen || stillReachable}
             // Pointing at a component and asking for one more beside it is the
             // whole gesture, so the slot's occupancy and its add menu ride on
             // the component's tag too. Without this a slot whose children fill

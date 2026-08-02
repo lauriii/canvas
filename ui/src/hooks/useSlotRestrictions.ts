@@ -14,6 +14,7 @@ import {
   getSlotRule,
   groupSlotCandidates,
   rejectPlacement,
+  slotOccupancy,
 } from '@/features/layout/slot-utils';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { hasSlotDefinitions } from '@/types/Component';
@@ -228,6 +229,22 @@ export const useSlotCandidates = (
       ),
     }));
   }, [slot, byUuid, components]);
+};
+
+/**
+ * Whether a slot has anything to show in a name tag: an occupancy, an add menu,
+ * or both.
+ */
+export const useSlotHasControls = (slot: SlotNode | undefined): boolean => {
+  const rule = useSlotRule(slot);
+  const candidates = useSlotCandidates(slot);
+  if (!slot) {
+    return false;
+  }
+  return (
+    slotOccupancy(rule, slot.components.length) !== null ||
+    candidates.length > 0
+  );
 };
 
 /**
