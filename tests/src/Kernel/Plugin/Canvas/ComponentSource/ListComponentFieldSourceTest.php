@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\ListBuilder\ListElementSettingsValidator;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\ListComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
@@ -337,18 +338,17 @@ final class ListComponentFieldSourceTest extends CanvasKernelTestBase {
   }
 
   /**
-   * The source select offers every bundle and every multi-value field, flatly.
+   * The source is two controls: a kind, then only the one it applies to.
    *
-   * Canvas renders Drupal selects through React, and that renderer flattens
-   * `#options` to one level and emits every entry as an `<option>`. Grouped
-   * options would therefore reach the browser as two unselectable group labels
-   * with every real choice dropped, so the source could never be saved: the
-   * form would post a group label, which matches no source kind, and the List
-   * would silently collapse to a query with no bundle.
+   * Grouped `#options` are not an option: Canvas renders Drupal selects through
+   * React, and that renderer flattens `#options` to one level and emits every
+   * entry as an `<option>`, so a grouped select would reach the browser as two
+   * unselectable group labels with every real choice dropped — and the form
+   * would post a group label, which matches no source kind.
    *
    * @see ui/src/components/form/components/Select.tsx
    */
-  public function testSourceSelectIsFlat(): void {
+  public function testSourceIsAKindPlusItsOwnControl(): void {
     self::createTemplate('field_captions', (string) new FieldTypePropExpression('string', 'value'));
     $template = ContentTemplate::load('node.article.full');
     \assert($template instanceof ContentTemplate);
@@ -366,17 +366,108 @@ final class ListComponentFieldSourceTest extends CanvasKernelTestBase {
       $template,
       $component->get('settings'),
     );
-    $options = $form['source']['selection']['#options'];
 
-    self::assertSame([], \array_filter($options, \is_array(...)), 'The source select must not use option groups.');
-    self::assertArrayHasKey('bundle:article', $options);
-    self::assertArrayHasKey('field:field_captions', $options);
-    self::assertArrayHasKey('field:field_topics', $options);
+    // The kind, and only the control the chosen kind uses.
+    self::assertSame(['query', 'field'], \array_keys($form['source']['kind']['#options']));
+    self::assertSame('field', $form['source']['kind']['#default_value']);
+    self::assertArrayHasKey('field_name', $form['source']);
+    self::assertArrayNotHasKey('bundle', $form['source']);
+
+    $field_options = $form['source']['field_name']['#options'];
+    self::assertSame([], \array_filter($field_options, \is_array(...)), 'Option groups are not rendered by Canvas.');
+    self::assertArrayHasKey('field_captions', $field_options);
+    self::assertArrayHasKey('field_topics', $field_options);
     // Single-cardinality fields are not lists and are never offered.
-    self::assertArrayNotHasKey('field:title', $options);
-    // The stored source is one of the offered options, so the select can round
+    self::assertArrayNotHasKey('title', $field_options);
+    // The stored field is one of the offered options, so the select can round
     // trip it instead of falling back to its first choice.
-    self::assertArrayHasKey($form['source']['selection']['#default_value'], $options);
+    self::assertArrayHasKey($form['source']['field_name']['#default_value'], $field_options);
+  }
+
+  /**
+   * Switching the kind keeps the list valid without naming a source yet.
+   *
+   * The control for the new kind does not exist in the form that produced the
+   * submitted values, so the conversion has to choose a starting point rather
+   * than store a source that names nothing.
+   */
+  public function testSwitchingSourceKind(): void {
+    self::createTemplate('field_captions', (string) new FieldTypePropExpression('string', 'value'));
+    $node = self::createArticle(['One caption']);
+    $template = ContentTemplate::load('node.article.full');
+    \assert($template instanceof ContentTemplate);
+    $component = Component::load('list.list');
+    \assert($component instanceof Component);
+    $source = $component->getComponentSource();
+    \assert($source instanceof ListComponent);
+    $item = $template->getComponentTree()->getComponentTreeItemByUuid(self::LIST_UUID);
+    \assert($item !== NULL);
+    $validator = $this->container->get(ListElementSettingsValidator::class);
+    $host_context = ['entity_type' => 'node', 'bundle' => 'article'];
+
+    // Field to content, with no bundle submitted yet.
+    $query_settings = self::switchKind($source, $component, $item->getInputs() ?? [], 'query', $node);
+    self::assertSame('query', ListElementSettingsValidator::sourceKind($query_settings));
+    \assert(\is_array($query_settings['source']));
+    self::assertNotSame('', $query_settings['source']['bundle']);
+    self::assertCount(0, $validator->validate($query_settings, $host_context));
+
+    // And back, with no field submitted yet.
+    $field_settings = self::switchKind($source, $component, $query_settings, 'field', $node);
+    self::assertSame('field', ListElementSettingsValidator::sourceKind($field_settings));
+    \assert(\is_array($field_settings['source']));
+    self::assertNotSame('', $field_settings['source']['field_name']);
+    self::assertCount(0, $validator->validate($field_settings, $host_context));
+  }
+
+  /**
+   * Round-trips settings through the client model with only the kind changed.
+   *
+   * @param array<string, mixed> $settings
+   *
+   * @return array<string, mixed>
+   */
+  private static function switchKind(ListComponent $source, Component $component, array $settings, string $kind, NodeInterface $node): array {
+    $client_model = $source->inputToClientModel($settings);
+    \assert(\is_array($client_model['resolved']));
+    // Only the kind select exists in the form that produced these values; the
+    // control naming the new source has not been built yet.
+    $client_model['resolved']['source'] = ['kind' => $kind];
+    // The List reuses the client model's `source` key for its settings'
+    // structural signature rather than for prop sources, which the interface's
+    // type does not describe.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\ListComponent::inputToClientModel()
+    // @phpstan-ignore argument.type
+    return $source->clientModelToInput(self::LIST_UUID, $component, $client_model, $node);
+  }
+
+  /**
+   * A stale item binding degrades to nothing instead of breaking the tree.
+   *
+   * Switching a List from a field source to a content query leaves the item
+   * template's item prop sources behind with no item to resolve against. They
+   * must evaluate to nothing, exactly as an empty field would, rather than
+   * reporting a missing context — which would take down the whole layout the
+   * template belongs to, not just the one binding.
+   */
+  public function testStaleItemBindingDegrades(): void {
+    $template = self::createTemplate('field_captions', (string) new FieldTypePropExpression('string', 'value'));
+    $node = self::createArticle(['One caption']);
+
+    // Switch the List to a content query, stranding the item bindings.
+    $values = $template->get('component_tree');
+    foreach ($values as $delta => $value) {
+      if (($value['uuid'] ?? '') === self::LIST_UUID) {
+        $values[$delta]['inputs']['source'] = ['entity_type' => 'node', 'bundle' => 'article'];
+      }
+    }
+    $template->set('component_tree', $values)->save();
+
+    $html = $this->renderNode($node);
+    // The host-entity binding in the same subtree still resolves.
+    self::assertStringContainsString('The host article', $html);
+    // The stranded item binding contributes nothing, and nothing crashed.
+    self::assertStringNotContainsString('One caption', $html);
   }
 
   /**

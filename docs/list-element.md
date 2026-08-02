@@ -14,14 +14,15 @@ query DSL; Views adoption evaluated and rejected for instance-level settings).
 All settings are stored per instance in the component tree's `inputs` blob,
 validated by `\Drupal\canvas\ListBuilder\ListElementSettingsValidator`:
 
-- **Content source**: one control with two groups — a content type (bundle),
-  or a multi-value field of the entity the tree is rendered for (see
-  [Field sources](#field-sources)). The stored settings record which kind is
-  in use, so future source kinds are additive. For a content query the stored
-  settings record the entity type as well as the bundle, so sources other than
-  nodes can be added later without a storage change. The selected source
-  drives which fields the filters and sorts offer and which view modes are
-  available.
+- **Content source**: a kind — content, or a multi-value field of the entity
+  the tree is rendered for (see [Field sources](#field-sources)) — followed by
+  the one control that kind uses: a content type, or a field. The field kind is
+  offered only where the tree has a bundle-specific host entity. The stored
+  settings record which kind is in use, so future source kinds are additive.
+  For a content query the stored settings record the entity type as well as the
+  bundle, so sources other than nodes can be added later without a storage
+  change. The selected source drives which fields the filters and sorts offer
+  and which view modes are available.
 - **Item display**: a view mode of the source bundle, the built-in
   "Title (linked)" display (the label linked to the entity, so the element
   works with zero site building), or the component-built item template (see
@@ -93,6 +94,11 @@ a list, and mapping the field straight to a component prop already covers it.
 A field source needs a host entity that has the field, so it is offered only
 where the tree has a bundle-specific entity context — a content template —
 and validation rejects it elsewhere, naming the reason.
+
+Switching the kind keeps the item template subtree. Bindings inside it that no
+longer resolve — item prop sources left behind when a field source becomes a
+query — evaluate to nothing rather than failing, so the template keeps rendering
+and stays editable.
 
 Filters, sorts, and pagination shape a query and are hidden (not disabled) for
 a field source: a field's values are host entity data, and there is nothing to

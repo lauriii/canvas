@@ -781,9 +781,12 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
     }
     $sorts = \array_values($settings['sorts'] ?? []);
 
+    $is_field_source = ListElementSettingsValidator::sourceKind($settings) === ListElementSettingsValidator::SOURCE_FIELD;
     return [
       'resolved' => [
-        'source' => ['selection' => self::sourceSelection($settings)],
+        'source' => $is_field_source
+          ? ['kind' => ListElementSettingsValidator::SOURCE_FIELD, 'field_name' => $settings['source']['field_name'] ?? '']
+          : ['kind' => ListElementSettingsValidator::SOURCE_QUERY, 'bundle' => $settings['source']['bundle'] ?? ''],
         'display' => [
           'mode_select' => $display['mode'] === 'view_mode' ? 'view_mode:' . ($display['view_mode'] ?? '') : $display['mode'],
         ],
@@ -821,7 +824,9 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
    */
   private static function settingsStructureSignature(array $settings): array {
     return [
-      'selection' => self::sourceSelection($settings),
+      'kind' => ListElementSettingsValidator::sourceKind($settings),
+      'bundle' => $settings['source']['bundle'] ?? '',
+      'field_name' => $settings['source']['field_name'] ?? '',
       'display_mode' => $settings['display']['mode'] ?? 'title_linked',
       'unlimited' => !isset($settings['limit']),
       'pagination_mode' => $settings['pagination']['mode'] ?? 'none',
@@ -835,18 +840,6 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
   }
 
   /**
-   * Returns the source select's value for a settings blob.
-   *
-   * `bundle:<bundle>` for a content query, `field:<field_name>` for a field of
-   * the host entity.
-   */
-  private static function sourceSelection(array $settings): string {
-    return ListElementSettingsValidator::sourceKind($settings) === ListElementSettingsValidator::SOURCE_FIELD
-      ? 'field:' . ($settings['source']['field_name'] ?? '')
-      : 'bundle:' . ($settings['source']['bundle'] ?? '');
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function clientModelToInput(string $component_instance_uuid, ComponentEntity $component, array $client_model, ?FieldableEntityInterface $host_entity, ?ConstraintViolationListInterface $violations = NULL): array {
@@ -857,7 +850,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
     if ($values === []) {
       return $this->getDefaultExplicitInput();
     }
-    $settings = $this->formValuesToSettings($values);
+    $settings = $this->formValuesToSettings($values, $host_entity);
     // Conversion happens in the layout update request, but the settings form
     // is rebuilt by a subsequent request; stash any dropped-settings warnings
     // for that rebuild to display.
@@ -901,16 +894,22 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
    * about; empty "add another" rows are discarded; scalars are cast to their
    * canonical types.
    */
-  private function formValuesToSettings(array $values): array {
-    $selection = (string) ($values['source']['selection'] ?? '');
-    if (\str_starts_with($selection, 'field:')) {
-      return $this->fieldSourceSettings(\substr($selection, \strlen('field:')), $values);
+  private function formValuesToSettings(array $values, ?FieldableEntityInterface $host_entity = NULL): array {
+    if (($values['source']['kind'] ?? ListElementSettingsValidator::SOURCE_QUERY) === ListElementSettingsValidator::SOURCE_FIELD) {
+      $field_name = (string) ($values['source']['field_name'] ?? '');
+      if ($field_name === '') {
+        // The kind was just switched, so the field select did not exist in the
+        // form that produced these values yet: start on the first one it will
+        // offer, rather than storing a source that names no field.
+        $field_name = (string) \array_key_first($this->iterableFieldsFor($host_entity));
+      }
+      return $this->fieldSourceSettings($field_name, $values);
     }
-    // The bundle select predates the combined source control; accept both so a
-    // client model written by either shape converts.
-    $bundle = \str_starts_with($selection, 'bundle:')
-      ? \substr($selection, \strlen('bundle:'))
-      : (string) ($values['source']['bundle'] ?? '');
+    $bundle = (string) ($values['source']['bundle'] ?? '');
+    if ($bundle === '') {
+      // Likewise when switching back from a field source.
+      $bundle = $this->getDefaultBundle();
+    }
     $fields = [];
     $sortable = [];
     if ($bundle !== '' && \array_key_exists($bundle, $this->bundleInfo->getBundleInfo('node'))) {
@@ -992,6 +991,18 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
       'sorts' => $sorts,
       'layout' => $layout,
     ];
+  }
+
+  /**
+   * Returns the multi-value fields a tree with this host entity may iterate.
+   *
+   * @return array<string, array{label: string, family: \Drupal\canvas\ListBuilder\ListElementFieldTypeFamily, has_target: bool, definition: FieldDefinitionInterface}>
+   */
+  private function iterableFieldsFor(mixed $host_entity): array {
+    $host_context = self::hostBundleContextOf($host_entity);
+    return $host_context === NULL
+      ? []
+      : $this->fieldInfo->getMultiValueFields($host_context['entity_type'], $host_context['bundle']);
   }
 
   /**
@@ -1189,10 +1200,7 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
     // A field source is only offered where the tree has a bundle-specific host
     // entity to read the field from.
     // @see \Drupal\canvas\ListBuilder\ListElementSettingsValidator::validate()
-    $host_context = self::hostBundleContextOf($entity);
-    $iterable_fields = $host_context === NULL
-      ? []
-      : $this->fieldInfo->getMultiValueFields($host_context['entity_type'], $host_context['bundle']);
+    $iterable_fields = $this->iterableFieldsFor($entity);
 
     $form['#tree'] = TRUE;
 
@@ -1210,36 +1218,46 @@ final class ListComponent extends ComponentSourceBase implements ComponentSource
     }
 
     // One control: an editor picks what the list is *of*, and the rest of the
-    // panel follows from that choice.
-    // The two origins are spelled out per option rather than expressed as
-    // `<optgroup>`s. Canvas renders Drupal selects through React, and that
-    // renderer flattens `#options` to one level and emits every entry as an
-    // `<option>`: a grouped select would show the two group labels as its only
-    // choices and silently drop every real one, so the source could never be
-    // saved. Grouping needs the twig/propsify/Select chain to carry nested
-    // options first.
-    // @see ui/src/components/form/components/Select.tsx
+    // panel follows from that choice. What the list is *of* comes second, and
+    // only the control that applies to the chosen kind is shown: the whole
+    // panel already rebuilds when the source's structural signature changes.
+    // @see ::settingsStructureSignature()
     // @see docs/adr/0021-item-template-data-context-is-a-field-item.md
-    $selection_options = [];
-    foreach ($bundles as $bundle_name => $info) {
-      $selection_options['bundle:' . $bundle_name] = (string) $this->t('Content query: @bundle', ['@bundle' => $info['label']]);
-    }
-    foreach ($iterable_fields as $field_name => $field) {
-      $selection_options['field:' . $field_name] = (string) $this->t("This entity's fields: @field", ['@field' => $field['label']]);
-    }
     $form['source'] = [
       '#type' => 'details',
       '#title' => $this->t('Content source'),
       '#open' => TRUE,
-      'selection' => [
+      'kind' => [
         '#type' => 'select',
         '#title' => $this->t('Show'),
-        '#options' => $selection_options,
+        '#options' => [
+          ListElementSettingsValidator::SOURCE_QUERY => (string) $this->t('Content'),
+        ] + ($iterable_fields === [] ? [] : [
+          // A field source needs a host entity that has the field, so it is
+          // only an option where the tree has a bundle-specific one.
+          ListElementSettingsValidator::SOURCE_FIELD => (string) $this->t('Field'),
+        ]),
         '#default_value' => $is_field_source
-          ? 'field:' . ($values['source']['field_name'] ?? '')
-          : 'bundle:' . $bundle,
+          ? ListElementSettingsValidator::SOURCE_FIELD
+          : ListElementSettingsValidator::SOURCE_QUERY,
       ],
     ];
+    if ($is_field_source) {
+      $form['source']['field_name'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Field'),
+        '#options' => \array_map(static fn (array $field): string => $field['label'], $iterable_fields),
+        '#default_value' => $values['source']['field_name'] ?? '',
+      ];
+    }
+    else {
+      $form['source']['bundle'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Content type'),
+        '#options' => \array_map(static fn (array $info): string => (string) $info['label'], $bundles),
+        '#default_value' => $bundle,
+      ];
+    }
 
     $view_mode_options = $this->getViewModeOptions($bundle);
     $display_options = ['title_linked' => (string) $this->t('Title (linked)')];

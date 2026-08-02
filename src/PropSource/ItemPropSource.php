@@ -15,6 +15,7 @@ use Drupal\canvas\PropExpressions\StructuredData\Labeler;
 use Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
@@ -86,13 +87,22 @@ final class ItemPropSource extends PropSourceBase implements LinkablePropSourceI
    */
   public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): EvaluationResult {
     $item = AmbientItemContext::get();
-    // Outside an item template — or while validating a template stored in
-    // config, where no host entity exists — there is nothing to resolve. This
-    // is the same situation an EntityFieldPropSource is in without a host
-    // entity, and Canvas already accommodates that exception.
-    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::validateComponentInput()
     if ($item === NULL) {
-      throw new MissingHostEntityException();
+      // No context of any kind: a component tree stored in config is validated
+      // detached from the entity that owns it. This is the same situation an
+      // EntityFieldPropSource is in without a host entity, and Canvas already
+      // accommodates that exception.
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::validateComponentInput()
+      if ($host_entity === NULL) {
+        throw new MissingHostEntityException();
+      }
+      // There is a host entity but no item, so this binding cannot resolve
+      // where it now sits — the enclosing List iterates entities rather than a
+      // field, most likely because a site builder just switched its source
+      // kind. That is a stale binding, not a broken request: it evaluates to
+      // nothing, exactly as an empty field would, so the rest of the template
+      // keeps rendering and stays editable.
+      return new EvaluationResult(NULL, new CacheableMetadata());
     }
     return Evaluator::evaluate(
       $item,
