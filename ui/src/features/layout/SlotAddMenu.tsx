@@ -60,9 +60,15 @@ export interface SlotAddMenuProps {
   slot: SlotNode;
   /** The element that opens the menu. */
   children: React.ReactNode;
+  /** Lets a trigger that only appears on demand stay put while the menu is open. */
+  onOpenChange?: (open: boolean) => void;
 }
 
-const SlotAddMenu: React.FC<SlotAddMenuProps> = ({ slot, children }) => {
+const SlotAddMenu: React.FC<SlotAddMenuProps> = ({
+  slot,
+  children,
+  onOpenChange,
+}) => {
   const dispatch = useAppDispatch();
   const layout = useAppSelector(selectLayout);
   const { setSelectedComponent } = useComponentSelection();
@@ -119,7 +125,7 @@ const SlotAddMenu: React.FC<SlotAddMenuProps> = ({ slot, children }) => {
   );
 
   return (
-    <DropdownMenu.Root>
+    <DropdownMenu.Root onOpenChange={onOpenChange}>
       <DropdownMenu.Trigger>{children}</DropdownMenu.Trigger>
       <UnifiedMenu.Content
         menuType="dropdown"

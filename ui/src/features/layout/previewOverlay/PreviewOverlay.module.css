@@ -226,57 +226,63 @@
   inset: auto;
 }
 
-/* What a governed slot holds and how to add to it, pinned to the slot's own
-   top-left corner so it reads the same whether the slot is empty or full.
-   Left rather than right because a slot is as wide as its container, and the
-   preview is regularly wider than the pane it sits in — a right-pinned chip
-   ends up past the edge and its button cannot be clicked at all. It straddles
-   the slot's own top border, like a fieldset legend, so that it reads as
-   belonging to the slot without covering the first thing in it.
-   Everything around it is pointer-transparent; only the button is not.
+/* What a governed slot holds and how to add to it, in the same visual language
+   as the slot's name tag — solid slot color, white, 20px — so it reads as
+   Canvas chrome rather than as a second, foreign badge system. Shown only
+   while the author is working on the component that owns the slot.
+
+   Straddles the slot's own top border, like a fieldset legend, and is pinned
+   left: a slot is as wide as its container and the preview is regularly wider
+   than the pane it sits in, so a right-pinned chip lands past the edge where
+   its button cannot be clicked at all.
    @see \Drupal\canvas\SlotRestrictions */
 .slotChip {
   position: absolute;
   z-index: 2;
-  top: -9px;
+  top: -10px;
   left: 8px;
   display: flex;
   align-items: center;
-  height: 18px;
+  height: 20px;
   padding-left: 6px;
-  pointer-events: none;
-  color: var(--purple-11);
-  border: 1px solid var(--purple-8);
-  border-radius: var(--radius-2);
-  background: #fff;
-  box-shadow: 0 1px 2px rgb(0, 0, 0, 0.08);
+  /* A control, not decoration: it takes the pointer so that approaching it
+     cannot change what the editor thinks is hovered. Hidden during a drag, so
+     it never swallows a drop. */
+  pointer-events: auto;
+  color: #fff;
+  border-radius: 2px;
+  background-color: var(--color-outline-slot);
   font-family: var(--default-font-family);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
-  gap: 4px;
+  gap: 2px;
 
   button {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     cursor: pointer;
     pointer-events: auto;
     color: inherit;
     border: none;
-    border-radius: 0 var(--radius-1) var(--radius-1) 0;
+    border-radius: 0 2px 2px 0;
     background: none;
 
     &:hover,
     &:focus-visible {
-      color: #fff;
-      background: var(--purple-9);
+      background: rgb(0, 0, 0, 0.25);
+    }
+
+    &:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: -2px;
     }
 
     svg {
-      width: 11px;
-      height: 11px;
+      width: 12px;
+      height: 12px;
     }
   }
 }
@@ -286,20 +292,28 @@
   padding-left: 0;
 }
 
-/* Quiet while there is nothing to act on, louder at the limit, and in the
-   warning tone while the slot still owes the author components (design 3.7). */
+/* The count is quiet while there is nothing to act on and speaks up when there
+   is: at the limit, and while the slot still owes the author components.
+   @see design 3.7 */
 .slotChipCount {
-  color: var(--gray-11);
+  opacity: 0.85;
 }
 
-.slotChipCount.full {
-  color: var(--purple-11);
-  font-weight: 600;
-}
-
+.slotChipCount.full,
 .slotChipCount.under {
-  color: var(--orange-11);
+  opacity: 1;
   font-weight: 600;
+}
+
+.slotChipCount.under::after {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-left: 4px;
+  content: '';
+  vertical-align: 1px;
+  border-radius: 50%;
+  background: var(--amber-9);
 }
 
 .emptySlotAccepts,

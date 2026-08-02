@@ -101,7 +101,13 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
       {/* A governed slot says how full it is and offers a way to fill it,
           whether or not it already holds something.
           @see \Drupal\canvas\SlotRestrictions */}
-      {!disableDrop && <SlotChip slot={slot} slotName={slotName} />}
+      {!disableDrop && (
+        <SlotChip
+          slot={slot}
+          slotName={slotName}
+          parentComponent={parentComponent}
+        />
+      )}
 
       {!slot.components.length && !disableDrop && (
         <EmptySlotDropZone
