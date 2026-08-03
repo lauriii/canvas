@@ -7,9 +7,11 @@
 }
 
 /* React Select Control (Main input container) */
+/* The min-height matches the native select's, so a single-value and a
+   multi-value prop sit on the same rhythm in the props panel. */
 .container [class*="canvas-select__control"] {
   flex-wrap: wrap;
-  min-height: 40px;
+  min-height: 32px;
   padding: 1px 1px;
   cursor: pointer;
   border: 1px solid var(--slate-7);
@@ -27,8 +29,11 @@
 }
 
 /* Value Container */
+/* The inline padding lands the placeholder and the first chip on the same
+   left edge as the native select's text, so an empty multi-select and an
+   empty single-select read as the same thing rather than two near-misses. */
 .container [class*="canvas-select__value-container"] {
-  padding: 1px 2px;
+  padding: 1px 8px;
 }
 
 /* Multi Value (Selected chips/tags) */
@@ -124,8 +129,9 @@
 }
 
 /* Dropdown Indicator */
+/* Sized so the indicator does not push the control past its min-height. */
 .container [class*="canvas-select__dropdown-indicator"] {
-  padding: var(--space-2);
+  padding: var(--space-1);
   color: #6E7B8B;
 }
 

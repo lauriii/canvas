@@ -30,14 +30,19 @@
     line-height: 20px;
 
     /* Sets the "no value" option apart from the real choices: muted, and
-       fenced off by a divider. The hover rule below is intentionally last so
-       it still wins. */
+       fenced off by a rule with a gap under it. Only the margin is added, so
+       the option keeps the same box (and the same highlight) as its siblings.
+       The hover rules below are intentionally last so they still win. */
     &[data-canvas-empty-option] {
-      margin-bottom: 4px;
-      padding-bottom: 4px;
+      margin-bottom: 9px;
       color: var(--slate-a9);
       border-bottom: 1px solid var(--slate-a5);
-      border-radius: 4px 4px 0 0;
+    }
+
+    /* The rule would otherwise sit inside the highlight while hovered. */
+    &[data-canvas-empty-option]:hover,
+    &[data-canvas-empty-option]:focus-visible {
+      border-bottom-color: transparent;
     }
 
     &:hover, &:focus-visible {
