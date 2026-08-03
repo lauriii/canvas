@@ -54,7 +54,7 @@ describe('resolveOptionsOverrides', () => {
     ]);
   });
 
-  it('never offers an unset value on a required prop', () => {
+  it('leaves a required prop alone, so Drupal decides its empty option', () => {
     const overrides = resolveOptionsOverrides(
       { options, attributes: { required: true } },
       inputAndUiData({}),

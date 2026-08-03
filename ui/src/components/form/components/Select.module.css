@@ -25,6 +25,10 @@
     color: var(--slate-a9);
   }
   option {
+    /* The muted color above applies to the control's own text. Engines whose
+       native dropdown inherits the select's color would otherwise mute the
+       real choices too while the field is empty. */
+    color: var(--slate-12);
     border-radius: 4px;
     font-size: 14px;
     line-height: 20px;

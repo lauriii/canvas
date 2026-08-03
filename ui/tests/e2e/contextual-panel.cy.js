@@ -294,11 +294,13 @@ describe('Contextual panel', () => {
     // Find added Heading component above and click on it
     cy.clickComponentInPreview('Heading');
 
-    // Find the Element enum/select component and check for None option - it should not be there
+    // Find the Element enum/select component and check for the empty option -
+    // it should not be there. Assert on the sentinel's value rather than its
+    // label, which varies with the field's state.
     cy.findByTestId(/^canvas-component-form-.*/)
       .find('select[required]')
-      .find('option')
-      .should('not.contain', 'No value');
+      .find('option[value="_none"]')
+      .should('not.exist');
 
     // Hitting enter within a field should not submit the form or alter that
     // prop within the layout.
