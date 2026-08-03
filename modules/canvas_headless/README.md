@@ -54,6 +54,91 @@ function my_module_canvas_headless_safe_permissions(): array {
 An undeclared permission means a preview shows too little, never too much. See `canvas_headless.api.php` for the
 hook documentation, including the site-policy `_alter` hook.
 
+## Canvas content endpoint
+
+`GET /canvas/content-api?requestUri={requestUri}` accepts a site-relative Drupal request URI. Query strings
+are supported; fragments are rejected.
+
+### Content response
+
+```text
+{
+  "content": {...},
+  "head": {
+    "title": "Example page",
+    "meta": [
+      {
+        "name": "description",
+        "content": "Example description"
+      },
+      {
+        "property": "og:title",
+        "content": "Example page"
+      }
+    ],
+    "script": [
+      {
+        "type": "application/ld+json",
+        "textContent": {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          "name": "Example page"
+        }
+      }
+    ]
+  },
+  "route": {
+    "name": "entity.canvas_page.canonical",
+    "requestUri": "/page/1",
+    "params": {
+      "canvas_page": "1"
+    },
+    "entity": {
+      "entityType": "canvas_page",
+      "bundle": "canvas_page",
+      "id": "1",
+      "uuid": "773942c6-3660-4c50-9a8d-e25966a69bff",
+      "langcode": "en"
+    }
+  }
+}
+```
+
+`content` is one structured root or `null`. Multiple roots use a transparent `renderless-container` with the ordered
+roots in its `default` slot. For routes without canonical content entity that Canvas can render `content` is `null`.
+
+`head` is compatible with the [Unhead](https://unhead.unjs.io/) package. It always contains `title` and may also
+contain `meta`, `link`, and `script`. Canonical links are omitted because the frontend owns its public URLs.
+
+### Redirect response
+
+```json
+{
+  "redirect": {
+    "external": false,
+    "url": "/new-path",
+    "statusCode": 301
+  }
+}
+```
+
+Redirect results use HTTP 200; `statusCode` is the status the frontend should use for the browser redirect.
+
+### Error response
+
+Errors use RFC 9457 Problem Details and the `application/problem+json` media type:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "The requestUri query parameter must be a site-relative URI without a fragment."
+}
+```
+
+`detail` is included when an additional explanation is available.
+
 ## Known limitations
 
 - The rendered-content endpoint serves the default revision: an unpublished entity previews fully, but a published entity's forward
