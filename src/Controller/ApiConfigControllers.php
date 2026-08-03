@@ -37,21 +37,13 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 /**
  * Controllers exposing HTTP API for interacting with Canvas's Config entities.
  *
- * The auto-save workspace is active during Canvas API requests, and Workspace
- * Config captures writes to Canvas configuration into it. These endpoints
- * publish directly to Live — they are not auto-saves — so every write steps
- * outside the workspace via ::executeOutsideWorkspace().
- *
- * Writing to Live and reading back inside the workspace splits the two across
- * config cache partitions, which is not yet coherent: with `workspace_config`
- * enabled, a PATCH returns the updated values but the following GET on the
- * same route still reports the pre-PATCH ones. Reproduce by enabling
- * `workspace_config` and running CanvasConfigEntityHttpApiTest (testPattern,
- * testJavaScriptComponent, testFolder, testContentTemplate). Not visible on
- * this branch, which does not enable the module yet. Before the module can be
- * enabled, Live config writes on canvas.api.* routes must become visible to
- * reads taken with the auto-save workspace active — likely by invalidating or
- * bypassing the workspace-partitioned config cache.
+ * The workspace is the unit of publish: while a workspace is active, config
+ * writes on these routes stage into it via the Workspace Config module and
+ * go live when the workspace is published. Reads on the same routes resolve
+ * inside the same workspace, so writes and reads share one config cache
+ * partition (the Phase 1 Live-write path split them, which is why it was
+ * removed). Without an active workspace (CLI, tests), writes go to Live
+ * directly, matching core behavior.
  *
  * @internal This HTTP API is intended only for the Canvas UI. These controllers
  *   and associated routes may change at any time.
@@ -324,8 +316,10 @@ final class ApiConfigControllers extends ApiControllerBase {
     }
 
     // Save the Canvas config entity, respond with a 201 if success. Else 409.
+    // The save stages into the active workspace (Workspace Config) and goes
+    // live with the workspace publish.
     try {
-      $this->executeOutsideWorkspace(static fn () => $canvas_config_entity->save());
+      $canvas_config_entity->save();
     }
     catch (EntityStorageException $e) {
       throw new ConflictHttpException($e->getMessage());
@@ -348,7 +342,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     // @todo First validate that there is no other entity depending on this. If there is, respond with a 400, 409, 412 or 422 (TBD).
     // @todo Permissions take into account config dependencies, but we might have content dependencies depending on it too. See https://www.drupal.org/project/canvas/issues/3516839
     // @see https://www.drupal.org/project/drupal/issues/3423459
-    $this->executeOutsideWorkspace(static fn () => $canvas_config_entity->delete());
+    $canvas_config_entity->delete();
     return new JsonResponse(status: 204, data: NULL);
   }
 
@@ -365,8 +359,9 @@ final class ApiConfigControllers extends ApiControllerBase {
       ]);
     }
 
-    // Save the Canvas config entity, respond with a 200.
-    $this->executeOutsideWorkspace(static fn () => $canvas_config_entity->save());
+    // Save the Canvas config entity, respond with a 200. The save stages
+    // into the active workspace (Workspace Config).
+    $canvas_config_entity->save();
     $canvas_config_entity_type = $canvas_config_entity->getEntityType();
     \assert($canvas_config_entity_type instanceof ConfigEntityTypeInterface);
     $representation = $this->normalize($canvas_config_entity);

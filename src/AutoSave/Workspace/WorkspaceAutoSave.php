@@ -8,9 +8,11 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\AutoSaveEntity;
 use Drupal\canvas\CanvasServiceProvider;
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
+use Drupal\canvas\Workspace\WorkspaceEntityLockedException;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
+use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityChangedInterface;
@@ -29,14 +31,18 @@ use Drupal\user\EntityOwnerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
- * Persists Canvas auto-save state using the shared workspace and snapshots.
+ * Persists Canvas auto-save state using the active workspace and snapshots.
  *
  * Staging for a given entity lives in exactly one place, resolved in this
  * order: the pending write buffer (deferred saves not yet flushed), a payload
  * snapshot row (config entities, and content drafts the storage layer
- * rejected as revisions), or a pending revision tracked in the auto-save
+ * rejected as revisions), or a pending revision tracked in the staging
  * workspace. A successful revision persist removes the snapshot row for the
  * same target.
+ *
+ * The staging workspace is the active workspace when one is negotiated, or
+ * the Main workspace (`canvas_default`) as the fallback for sessions that
+ * never selected one. Every store partitions per workspace.
  *
  * Workspace services use untyped optional injection so the container can
  * compile when the Workspaces module is not installed yet.
@@ -45,6 +51,7 @@ final class WorkspaceAutoSave {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly ConfigManagerInterface $configManager,
     // Nullable, resolved to NULL until the Workspaces module is installed
     // (before database updates run); staging then uses the key-value store.
     /**
@@ -93,11 +100,6 @@ final class WorkspaceAutoSave {
     if ($this->workspaceManager === NULL || !$this->workspaceManager->hasActiveWorkspace()) {
       return;
     }
-    /** @var \Drupal\workspaces\WorkspaceInterface $active */
-    $active = $this->workspaceManager->getActiveWorkspace();
-    if ($active->id() !== AutoSaveWorkspace::ID) {
-      return;
-    }
     if ($entity->isSyncing()) {
       return;
     }
@@ -106,6 +108,19 @@ final class WorkspaceAutoSave {
     }
     $entity->setRevisionCreationTime($this->time->getRequestTime());
     $entity->setRevisionUserId((int) $this->currentUser->id());
+  }
+
+  /**
+   * The workspace staging reads and writes resolve against.
+   *
+   * The active workspace when one is negotiated; the Main workspace
+   * otherwise (CLI, kernel tests, sessions that never selected one).
+   */
+  public function getStagingWorkspaceId(): string {
+    if ($this->workspaceManager !== NULL && $this->workspaceManager->hasActiveWorkspace()) {
+      return (string) $this->workspaceManager->getActiveWorkspace()->id();
+    }
+    return AutoSaveWorkspace::ID;
   }
 
   /**
@@ -120,6 +135,34 @@ final class WorkspaceAutoSave {
    */
   public static function snapshotLangcode(EntityInterface $entity): string {
     return $entity instanceof TranslatableInterface ? $entity->language()->getId() : LanguageInterface::LANGCODE_NOT_SPECIFIED;
+  }
+
+  /**
+   * Whether the entity's staged state lives in the buffer or a snapshot row.
+   *
+   * TRUE means the draft is not (yet) a workspace-tracked revision or a
+   * workspace-staged config object, so a workspace publish must stage it
+   * into the workspace first.
+   *
+   * @see \Drupal\canvas\Workspace\CanvasWorkspacePublisher
+   */
+  public function hasSnapshotStaging(EntityInterface $entity): bool {
+    if ($entity->id() === NULL) {
+      return FALSE;
+    }
+    $buffer_row = $this->pendingBuffer->get(AutoSaveManager::getAutoSaveKey($entity));
+    if ($buffer_row !== NULL && isset($buffer_row['data'])) {
+      return TRUE;
+    }
+    if ($this->snapshotRepository->resolveLatestStaged($entity->getEntityTypeId(), (string) $entity->id(), self::snapshotLangcode($entity)) !== NULL) {
+      return TRUE;
+    }
+    // Key-value staging (config entities without snapshot support) also needs
+    // publish-time staging into the workspace.
+    if ($entity instanceof ConfigEntityInterface && !$entity instanceof CanvasHttpApiEligibleConfigEntityInterface) {
+      return $this->keyValueFactory->get(AutoSaveManager::AUTO_SAVE_STORE)->has(AutoSaveManager::getAutoSaveKey($entity));
+    }
+    return FALSE;
   }
 
   public function hasWorkspaceStaging(EntityInterface $entity): bool {
@@ -143,14 +186,48 @@ final class WorkspaceAutoSave {
   }
 
   /**
-   * Whether the entity has an auto-save workspace association row.
+   * The workspace, other than the staging one, that owns the entity, if any.
+   *
+   * @return string|null
+   *   The owning workspace ID, or NULL when the entity is unowned or owned
+   *   by the staging workspace.
    */
-  private function isEntityTrackedInAutoSaveWorkspace(EntityInterface $entity): bool {
+  public function getOwningWorkspaceId(EntityInterface $entity): ?string {
+    if (!$entity instanceof ContentEntityInterface || $entity->id() === NULL) {
+      return NULL;
+    }
+    if ($this->workspaceAssociation === NULL || !$this->snapshotRepository->isWorkspaceStorageReady()) {
+      return NULL;
+    }
+    $tracking_ids = $this->workspaceAssociation->getEntityTrackingWorkspaceIds($entity, TRUE);
+    $others = \array_diff($tracking_ids, [$this->getStagingWorkspaceId()]);
+    $first = \reset($others);
+    return $first === FALSE ? NULL : (string) $first;
+  }
+
+  /**
+   * Rejects a staged write for an entity owned by another workspace.
+   *
+   * @throws \Drupal\canvas\Workspace\WorkspaceEntityLockedException
+   */
+  private function assertNotLockedInAnotherWorkspace(EntityInterface $entity): void {
+    $owning_id = $this->getOwningWorkspaceId($entity);
+    if ($owning_id === NULL) {
+      return;
+    }
+    $owning = $this->entityTypeManager->getStorage('workspace')->load($owning_id);
+    throw new WorkspaceEntityLockedException($owning_id, $owning !== NULL ? (string) $owning->label() : $owning_id);
+  }
+
+  /**
+   * Whether the entity has a staging workspace association row.
+   */
+  private function isEntityTrackedInStagingWorkspace(EntityInterface $entity): bool {
     if ($this->workspaceAssociation === NULL || $entity->id() === NULL || !$this->snapshotRepository->isWorkspaceStorageReady()) {
       return FALSE;
     }
     $tracked = $this->workspaceAssociation->getTrackedEntities(
-      AutoSaveWorkspace::ID,
+      $this->getStagingWorkspaceId(),
       $entity->getEntityTypeId(),
       [(string) $entity->id()],
     );
@@ -165,7 +242,7 @@ final class WorkspaceAutoSave {
     if ($this->pendingBuffer->has($key)) {
       $this->cache->delete($key);
     }
-    elseif ($this->workspaceAssociation !== NULL && $this->isEntityTrackedInAutoSaveWorkspace($entity)) {
+    elseif ($this->workspaceAssociation !== NULL && $this->isEntityTrackedInStagingWorkspace($entity)) {
       $this->cache->delete($key);
     }
     $auto_save = $this->loadAutoSaveEntity($entity);
@@ -176,14 +253,14 @@ final class WorkspaceAutoSave {
     if ($this->workspaceManager === NULL || $this->workspaceAssociation === NULL) {
       return $entity;
     }
-    if (!$this->isEntityTrackedInAutoSaveWorkspace($entity)) {
+    if (!$this->isEntityTrackedInStagingWorkspace($entity)) {
       return $entity;
     }
     $id = $entity->id();
     \assert($id !== NULL);
     /** @var \Drupal\workspaces\WorkspaceManagerInterface $wm */
     $wm = $this->workspaceManager;
-    $reloaded = $wm->executeInWorkspace(AutoSaveWorkspace::ID, function () use ($entity, $id) {
+    $reloaded = $wm->executeInWorkspace($this->getStagingWorkspaceId(), function () use ($entity, $id) {
       $storage = $this->entityTypeManager->getStorage($entity->getEntityTypeId());
       $loaded = $storage->load($id);
       return $loaded instanceof ContentEntityInterface ? $loaded : $entity;
@@ -195,7 +272,7 @@ final class WorkspaceAutoSave {
     if ($this->workspaceManager === NULL || $this->workspaceAssociation === NULL) {
       return AutoSaveEntity::empty();
     }
-    if (!$this->isEntityTrackedInAutoSaveWorkspace($entity)) {
+    if (!$this->isEntityTrackedInStagingWorkspace($entity)) {
       return AutoSaveEntity::empty();
     }
     $id = $entity->id();
@@ -203,7 +280,7 @@ final class WorkspaceAutoSave {
     /** @var \Drupal\workspaces\WorkspaceManagerInterface $wm */
     $wm = $this->workspaceManager;
     $key = AutoSaveManager::getAutoSaveKey($entity);
-    return $wm->executeInWorkspace(AutoSaveWorkspace::ID, function () use ($entity, $id, $key, $wm): AutoSaveEntity {
+    return $wm->executeInWorkspace($this->getStagingWorkspaceId(), function () use ($entity, $id, $key, $wm): AutoSaveEntity {
       $storage = $this->entityTypeManager->getStorage($entity->getEntityTypeId());
       $active = $storage->load($id);
       if (!$active instanceof ContentEntityInterface) {
@@ -286,10 +363,24 @@ final class WorkspaceAutoSave {
       return;
     }
 
+    // An entity's pending work lives in exactly one workspace at a time
+    // (core's tracking); a staged write for an entity owned by another
+    // workspace is rejected with the owning workspace named, never silently
+    // retargeted.
+    $this->assertNotLockedInAnotherWorkspace($entity);
+
+    // A negotiated workspace whose entity has been deleted mid-session must
+    // fail the write: falling through to another store (or Live) would
+    // silently misplace the draft.
+    if ($this->workspaceManager->hasActiveWorkspace()
+      && $this->entityTypeManager->getStorage('workspace')->load($this->getStagingWorkspaceId()) === NULL) {
+      throw new \RuntimeException(\sprintf('The active workspace "%s" no longer exists; the auto-save was rejected.', $this->getStagingWorkspaceId()));
+    }
+
     // Scope the workspace context to the persist operation: permanently
     // activating the workspace would leak into subsequent entity saves in the
     // same process (CLI, tests, long-running workers).
-    $this->snapshotRepository->executeInAutoSaveWorkspace(function () use ($entity, $clientId, $immediateContentPersist, $entry): void {
+    $this->snapshotRepository->executeInStagingWorkspace(function () use ($entity, $clientId, $immediateContentPersist, $entry): void {
       if ($entity instanceof CanvasHttpApiEligibleConfigEntityInterface) {
         $this->persistConfigSnapshot($entity, $clientId);
         return;
@@ -322,6 +413,12 @@ final class WorkspaceAutoSave {
     }
     if ($entity instanceof ConfigEntityInterface && !$entity instanceof CanvasHttpApiEligibleConfigEntityInterface) {
       return TRUE;
+    }
+    if ($this->workspaceManager->hasActiveWorkspace()) {
+      // A negotiated workspace exists by definition; if it was deleted
+      // mid-request the write must fail rather than divert to key-value.
+      // @see ::persistStagedEntity()
+      return FALSE;
     }
     return $this->entityTypeManager->getStorage('workspace')->load(AutoSaveWorkspace::ID) === NULL;
   }
@@ -632,7 +729,14 @@ final class WorkspaceAutoSave {
    */
   private function appendKeyValueEntries(array &$out): void {
     $kv = $this->keyValueFactory->get(AutoSaveManager::AUTO_SAVE_STORE);
+    $prefix = $this->getStagingWorkspaceId() . ':';
     foreach ($kv->getAll() as $kv_key => $entry) {
+      // The collection is shared by every workspace; keys carry the
+      // workspace prefix. Rows predating prefixed keys belong to the Main
+      // workspace and are re-keyed by the update path.
+      if (!\str_starts_with((string) $kv_key, $prefix)) {
+        continue;
+      }
       if (isset($out[$kv_key])) {
         continue;
       }
@@ -657,7 +761,13 @@ final class WorkspaceAutoSave {
     if ($this->workspaceManager === NULL) {
       return;
     }
+    $prefix = $this->getStagingWorkspaceId() . ':';
     foreach ($this->pendingBuffer->getAll() as $kv_key => $row) {
+      // Buffer rows record their workspace in the key prefix; list only the
+      // active workspace's rows.
+      if (!\str_starts_with((string) $kv_key, $prefix)) {
+        continue;
+      }
       if (isset($out[$kv_key])) {
         continue;
       }
@@ -732,7 +842,8 @@ final class WorkspaceAutoSave {
     if ($this->workspaceManager === NULL || $this->workspaceAssociation === NULL || !$this->snapshotRepository->isWorkspaceStorageReady()) {
       return;
     }
-    $workspace = $this->entityTypeManager->getStorage('workspace')->load(AutoSaveWorkspace::ID);
+    $staging_workspace_id = $this->getStagingWorkspaceId();
+    $workspace = $this->entityTypeManager->getStorage('workspace')->load($staging_workspace_id);
     if ($workspace === NULL) {
       return;
     }
@@ -742,8 +853,8 @@ final class WorkspaceAutoSave {
     // revisions (e.g. a page's path alias, staged as a dependent path_alias
     // entity) only resolve to their staged values inside the workspace, and
     // the emitted data_hash must match what per-entity staging reads produce.
-    $wm->executeInWorkspace(AutoSaveWorkspace::ID, function () use (&$out, $wm): void {
-      $tracked = $this->workspaceAssociation->getTrackedEntities(AutoSaveWorkspace::ID);
+    $wm->executeInWorkspace($staging_workspace_id, function () use (&$out, $wm, $staging_workspace_id): void {
+      $tracked = $this->workspaceAssociation->getTrackedEntities($staging_workspace_id);
       foreach ($tracked as $entity_type_id => $revision_map) {
         // Entities implicitly staged alongside a host item (e.g. the URL
         // alias written when a page with a changed path is staged) are not
@@ -751,6 +862,12 @@ final class WorkspaceAutoSave {
         // publish and discard.
         // @see ::discardWorkspaceStagedContentEntity()
         if (\in_array($entity_type_id, self::DEPENDENT_ENTITY_TYPE_IDS, TRUE)) {
+          continue;
+        }
+        // Config changes staged by the workspace_config module are tracked as
+        // workspace_config rows; present each as the config object it stages.
+        if ($entity_type_id === 'workspace_config') {
+          $this->appendStagedWorkspaceConfig($out, \array_unique($revision_map));
           continue;
         }
         foreach ($revision_map as $entity_id) {
@@ -810,6 +927,67 @@ final class WorkspaceAutoSave {
   private const DEPENDENT_ENTITY_TYPE_IDS = ['path_alias'];
 
   /**
+   * Adds pending-list entries for config staged via the workspace_config
+   * module.
+   *
+   * Each workspace_config row stages one config object. Rows staging a config
+   * entity are presented as that entity (loaded inside the workspace, so the
+   * staged values drive type, ID, and label); rows staging simple config (or
+   * config deleted in the workspace) are presented as the raw row. Runs
+   * inside the staging workspace.
+   *
+   * @param array<string, array<string, mixed>> $out
+   * @param array<int|string, int|string> $entity_ids
+   */
+  private function appendStagedWorkspaceConfig(array &$out, array $entity_ids): void {
+    $storage = $this->entityTypeManager->getStorage('workspace_config');
+    foreach ($storage->loadMultiple($entity_ids) as $row) {
+      \assert($row instanceof ContentEntityInterface);
+      $name = (string) $row->label();
+      $mapped = $name === '' ? NULL : $this->configManager->loadConfigEntityByName($name);
+      if ($mapped instanceof ConfigEntityInterface) {
+        $key = AutoSaveManager::getAutoSaveKey($mapped);
+        if (isset($out[$key])) {
+          // A snapshot draft of the same config entity supersedes the staged
+          // workspace copy in the pending list: the snapshot is the editor's
+          // current working copy.
+          continue;
+        }
+        $data = $mapped->toArray();
+        $entry = [
+          'entity_type' => $mapped->getEntityTypeId(),
+          'entity_id' => $mapped->id(),
+          'data' => $data,
+          'label' => self::labelForAutoSaveList($mapped),
+          'data_hash' => AutoSaveManager::generateHashFromData(AutoSaveManager::normalizeEntity($mapped)),
+        ];
+      }
+      else {
+        // Simple config, or config deleted in the workspace: no entity to
+        // present, so the row itself carries the entry.
+        $key = AutoSaveManager::getAutoSaveKey($row);
+        if (isset($out[$key])) {
+          continue;
+        }
+        $entry = [
+          'entity_type' => 'workspace_config',
+          'entity_id' => $row->id(),
+          'data' => AutoSaveManager::toStorableArray($row),
+          'label' => $name === '' ? (string) $row->id() : $name,
+          'data_hash' => AutoSaveManager::generateHashFromData(['name' => $name, 'changed' => $row->get('changed')->value]),
+        ];
+      }
+      $out[$key] = $entry + [
+        'langcode' => NULL,
+        'is_default_translation' => TRUE,
+        'client_id' => NULL,
+        'owner' => self::stagedRevisionOwner($row),
+        'updated' => $this->stagedRevisionTime($row),
+      ];
+    }
+  }
+
+  /**
    * The editor recorded on the staged revision, falling back to the owner.
    *
    * @see ::stampAutoSaveWorkspaceRevisionMetadata()
@@ -861,7 +1039,7 @@ final class WorkspaceAutoSave {
       return;
     }
     $this->pendingBuffer->delete(AutoSaveManager::getAutoSaveKey($entity));
-    if (!$this->isEntityTrackedInAutoSaveWorkspace($entity)) {
+    if (!$this->isEntityTrackedInStagingWorkspace($entity)) {
       return;
     }
     $this->discardTrackedRevisions($entity->getEntityTypeId(), (string) $entity->id());
@@ -877,12 +1055,13 @@ final class WorkspaceAutoSave {
     $wm = $this->workspaceManager;
     /** @var \Drupal\workspaces\WorkspaceTrackerInterface $tracker */
     $tracker = $this->workspaceAssociation;
-    $wm->executeInWorkspace(AutoSaveWorkspace::ID, function () use ($type_id, $eid, $tracker): void {
+    $staging_workspace_id = $this->getStagingWorkspaceId();
+    $wm->executeInWorkspace($staging_workspace_id, function () use ($type_id, $eid, $tracker, $staging_workspace_id): void {
       $storage = $this->entityTypeManager->getStorage($type_id);
       if (!$storage instanceof RevisionableStorageInterface) {
         return;
       }
-      $tracked = $tracker->getTrackedEntities(AutoSaveWorkspace::ID, $type_id, [$eid]);
+      $tracked = $tracker->getTrackedEntities($staging_workspace_id, $type_id, [$eid]);
       if (empty($tracked[$type_id])) {
         return;
       }
@@ -910,17 +1089,18 @@ final class WorkspaceAutoSave {
       // Entities without a canonical route cannot have aliases.
       return;
     }
+    $staging_workspace_id = $this->getStagingWorkspaceId();
     foreach (self::DEPENDENT_ENTITY_TYPE_IDS as $dependent_type_id) {
       if (!$this->entityTypeManager->hasDefinition($dependent_type_id)) {
         continue;
       }
-      $tracked = $this->workspaceAssociation->getTrackedEntities(AutoSaveWorkspace::ID, $dependent_type_id);
+      $tracked = $this->workspaceAssociation->getTrackedEntities($staging_workspace_id, $dependent_type_id);
       if (empty($tracked[$dependent_type_id])) {
         continue;
       }
       /** @var \Drupal\workspaces\WorkspaceManagerInterface $wm */
       $wm = $this->workspaceManager;
-      $dependent_ids = $wm->executeInWorkspace(AutoSaveWorkspace::ID, function () use ($dependent_type_id, $tracked, $host_path): array {
+      $dependent_ids = $wm->executeInWorkspace($staging_workspace_id, function () use ($dependent_type_id, $tracked, $host_path): array {
         $ids = [];
         $storage = $this->entityTypeManager->getStorage($dependent_type_id);
         foreach (\array_unique($tracked[$dependent_type_id]) as $dependent_id) {
@@ -934,61 +1114,6 @@ final class WorkspaceAutoSave {
       foreach ($dependent_ids as $dependent_id) {
         $this->discardTrackedRevisions($dependent_type_id, $dependent_id);
       }
-    }
-  }
-
-  /**
-   * Publishes staged dependent entities (e.g. path aliases) of a host item.
-   *
-   * A path alias created while staging is a new path_alias entity whose Live
-   * (default) revision core Workspaces keeps unpublished so it stays
-   * invisible outside the workspace. Canvas publishes hosts selectively (it
-   * never calls Workspace::publish()), so when a host goes live its dependent
-   * entities must be published explicitly; core's workspace-level publish
-   * would otherwise have done this.
-   *
-   * Call after the host entity has been saved to Live: that save (e.g.
-   * PathItem::postSave()) already wrote the staged field values to the
-   * dependent's Live revision, so only its published status is missing.
-   *
-   * @see ::discardDependentStagedEntities()
-   * @see \Drupal\workspaces\Hook\EntityOperations::entityPresave()
-   */
-  public function publishDependentStagedEntities(ContentEntityInterface $entity): void {
-    if ($this->workspaceManager === NULL) {
-      return;
-    }
-    try {
-      $host_path = '/' . $entity->toUrl()->getInternalPath();
-    }
-    catch (\Exception) {
-      // Entities without a canonical route cannot have aliases.
-      return;
-    }
-    /** @var \Drupal\workspaces\WorkspaceManagerInterface $wm */
-    $wm = $this->workspaceManager;
-    foreach (self::DEPENDENT_ENTITY_TYPE_IDS as $dependent_type_id) {
-      if (!$this->entityTypeManager->hasDefinition($dependent_type_id)) {
-        continue;
-      }
-      $storage = $this->entityTypeManager->getStorage($dependent_type_id);
-      // The whole read-check-write must happen outside the workspace: the
-      // auto-save workspace is active during Canvas API requests, and inside
-      // it loads resolve to the pending revision, which core created as
-      // published; only the Live default revision carries the unpublished
-      // marker this method must lift.
-      $wm->executeOutsideWorkspace(static function () use ($storage, $host_path): void {
-        $ids = $storage->getQuery()
-          ->accessCheck(FALSE)
-          ->condition('path', $host_path)
-          ->execute();
-        foreach ($storage->loadMultiple($ids) as $dependent) {
-          if ($dependent instanceof EntityPublishedInterface && !$dependent->isPublished()) {
-            $dependent->setPublished();
-            $dependent->save();
-          }
-        }
-      });
     }
   }
 
@@ -1018,12 +1143,42 @@ final class WorkspaceAutoSave {
     $this->deferredFlusher->flushNow($entity);
   }
 
+  /**
+   * Clears every Canvas staging store for one workspace after its publish.
+   *
+   * Core clears the workspace association itself; this removes Canvas's
+   * snapshot rows, buffer rows and tombstones, key-value staging rows, form
+   * violations, pruner bookkeeping, and caches. Runs for every publish
+   * surface via the post-publish event.
+   *
+   * @see \Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspacePublishSubscriber::onPostPublish()
+   */
+  public function clearWorkspaceStores(string $workspace_id): void {
+    $this->snapshotRepository->deleteAll($workspace_id);
+    $prefix = $workspace_id . ':';
+    foreach (\array_keys($this->pendingBuffer->getAll()) as $key) {
+      if (\str_starts_with((string) $key, $prefix)) {
+        $this->pendingBuffer->delete((string) $key);
+      }
+    }
+    foreach ([AutoSaveManager::AUTO_SAVE_STORE, AutoSaveManager::FORM_VIOLATIONS_STORE, AutoSaveRevisionPruner::STORE] as $collection) {
+      $store = $this->keyValueFactory->get($collection);
+      foreach (\array_keys($store->getAll()) as $key) {
+        if (\str_starts_with((string) $key, $prefix)) {
+          $store->delete((string) $key);
+        }
+      }
+    }
+    $this->cacheTagsInvalidator->invalidateTags([AutoSaveManager::CACHE_TAG]);
+    $this->cache->invalidateAll();
+  }
+
   public function deleteAll(): void {
     $this->snapshotRepository->deleteAll();
     // Workspace-tracked staged revisions are staging too: discard them, or
     // "discard all" leaves pending changes that reappear on the next listing.
     if ($this->workspaceAssociation !== NULL && $this->workspaceManager !== NULL && $this->snapshotRepository->isWorkspaceStorageReady()) {
-      $tracked = $this->workspaceAssociation->getTrackedEntities(AutoSaveWorkspace::ID);
+      $tracked = $this->workspaceAssociation->getTrackedEntities($this->getStagingWorkspaceId());
       foreach ($tracked as $entity_type_id => $revision_map) {
         foreach (\array_unique($revision_map) as $entity_id) {
           $this->discardTrackedRevisions($entity_type_id, (string) $entity_id);

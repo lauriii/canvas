@@ -46,3 +46,13 @@ delete canvas_page:
 publish auto-saves:
   title: 'Publish Drupal Canvas Content'
   description: 'Update entities with auto-saved changes in Drupal Canvas (requires "update" access for those entities).'
+
+# @see \Drupal\canvas\Workspace\WorkspaceReview::SUBMIT_PERMISSION
+canvas submit workspace for review:
+  title: 'Submit workspaces for review'
+  description: 'Send a workspace from draft into review.'
+
+# @see \Drupal\canvas\Workspace\WorkspaceReview::APPROVE_PERMISSION
+canvas approve workspace:
+  title: 'Approve workspaces'
+  description: 'Approve a workspace in review, or send it back to draft.'

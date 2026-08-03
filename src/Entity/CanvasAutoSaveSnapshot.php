@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
 use Drupal\canvas\Entity\Storage\CanvasAutoSaveSnapshotStorageSchema;
 use Drupal\Core\Entity\Attribute\ContentEntityType;
 use Drupal\Core\Entity\ContentEntityBase;
@@ -23,9 +24,9 @@ use Drupal\workspaces\Entity\Handler\IgnoredWorkspaceHandler;
  *
  * Stores auto-save drafts for config entities and for content entities whose
  * draft the storage layer rejected as a workspace revision, as normalized
- * values encoded as JSON. One row per target entity type, ID and language,
- * updated in place; a successful revision persist for the same target removes
- * the row again.
+ * values encoded as JSON. One row per workspace, target entity type, ID and
+ * language, updated in place; a successful revision persist for the same
+ * target removes the row again.
  *
  * The entity type is ignored by Workspaces on purpose: snapshot rows must
  * save normally (no pending revisions, no workspace tracking) even while the
@@ -72,6 +73,15 @@ final class CanvasAutoSaveSnapshot extends ContentEntityBase implements EntityOw
     $fields = parent::baseFieldDefinitions($entity_type);
     $fields += static::ownerBaseFieldDefinitions($entity_type);
 
+    // A plain string (not an entity reference): the row must stay readable
+    // for cleanup even after its workspace entity has been deleted.
+    $fields['workspace'] = BaseFieldDefinition::create('string')
+      ->setLabel(new TranslatableMarkup('Workspace'))
+      ->setDescription(new TranslatableMarkup('The workspace the draft is staged in.'))
+      ->setSetting('max_length', 128)
+      ->setRequired(TRUE)
+      ->setDefaultValue(AutoSaveWorkspace::ID);
+
     $fields['target_entity_type_id'] = BaseFieldDefinition::create('string')
       ->setLabel(new TranslatableMarkup('Target entity type'))
       ->setSetting('max_length', EntityTypeInterface::ID_MAX_LENGTH)
@@ -109,6 +119,10 @@ final class CanvasAutoSaveSnapshot extends ContentEntityBase implements EntityOw
       ->setLabel(new TranslatableMarkup('Changed'));
 
     return $fields;
+  }
+
+  public function getWorkspaceId(): string {
+    return $this->get('workspace')->value ?? AutoSaveWorkspace::ID;
   }
 
   public function getTargetEntityTypeId(): string {

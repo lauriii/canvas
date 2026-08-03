@@ -111,13 +111,10 @@ final class ApiContentControllers extends ApiControllerBase {
     // them.
     // @see \Drupal\canvas\EventSubscriber\ApiExceptionSubscriber
 
-    // This endpoint updates the Live entity: with the auto-save workspace
-    // active for Canvas API requests, an unscoped save would be redirected
-    // into a workspace-pending revision (replacing the staged draft), and the
-    // alias and changed-time lookups below would resolve staged state instead
-    // of Live.
-    // @see ::executeOutsideWorkspace()
-    $validation_errors_response = $this->executeOutsideWorkspace(function () use ($body, $canvas_page): ?JsonResponse {
+    // The save targets the active workspace: while a workspace is active it
+    // stages a pending revision that goes live with the workspace publish,
+    // and without one it updates Live directly.
+    $validation_errors_response = (function () use ($body, $canvas_page): ?JsonResponse {
       // Ensure the path field carries the existing PID so Drupal updates the
       // alias in place rather than creating a duplicate.
       if (isset($body['path'])) {
@@ -146,7 +143,7 @@ final class ApiContentControllers extends ApiControllerBase {
       }
       $canvas_page->save();
       return NULL;
-    });
+    })();
     if ($validation_errors_response !== NULL) {
       return $validation_errors_response;
     }
@@ -209,13 +206,10 @@ final class ApiContentControllers extends ApiControllerBase {
           return $validation_errors_response;
         }
       }
-      // The created entity is a new Live entity, not a workspace-staged
-      // draft: saving it inside the active auto-save workspace would track
-      // its initial (default) revision in the workspace, and discarding that
-      // staging later would fail because a default revision cannot be
-      // deleted.
-      // @see \Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave::discardWorkspaceStagedContentEntity()
-      $this->executeOutsideWorkspace(static fn () => $new->save());
+      // The save targets the active workspace: an entity created while a
+      // workspace is active is tracked there (core keeps its Live default
+      // revision unpublished) and goes live with the workspace publish.
+      $new->save();
     }
     \assert($new instanceof ContentEntityInterface && $new instanceof EntityPublishedInterface);
     $data = $this->normalizeWithMetadataAndComponents($new, new CacheableMetadata());
@@ -239,8 +233,10 @@ final class ApiContentControllers extends ApiControllerBase {
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
   public function delete(ContentEntityInterface $canvas_page): JsonResponse {
-    // Deleting a workspace-supported entity is forbidden while a workspace is
-    // active; this endpoint deletes the Live entity.
+    // Core has no staged deletion for content: deleting a workspace-supported
+    // entity is forbidden while a workspace is active, so this endpoint
+    // deletes the Live entity directly. It is an explicit, confirmed action,
+    // not part of the workspace's reviewed publish.
     $this->executeOutsideWorkspace(static fn () => $canvas_page->delete());
     return new JsonResponse(status: Response::HTTP_NO_CONTENT);
   }
@@ -259,11 +255,10 @@ final class ApiContentControllers extends ApiControllerBase {
     if ($entity_type !== Page::ENTITY_TYPE_ID) {
       throw new BadRequestHttpException('Only the `canvas_page` content entity type is supported right now, will be generalized in a child issue of https://www.drupal.org/project/canvas/issues/3498525.');
     }
-    // The listing reflects Live values; staged changes surface separately per
-    // item (e.g. autoSaveLabel, autoSavePath). Without stepping outside the
-    // auto-save workspace, workspace-aware entity queries and loads would
-    // present draft values as the stored ones.
-    return $this->executeOutsideWorkspace(fn (): CacheableJsonResponse => $this->doList($entity_type, $request));
+    // The listing reflects the active workspace: workspace-aware entity
+    // queries and loads present that workspace's staged state, which is what
+    // the editor operates on.
+    return $this->doList($entity_type, $request);
   }
 
   /**
@@ -657,8 +652,9 @@ final class ApiContentControllers extends ApiControllerBase {
     $duplicate->set($entity_key, $duplicate->label() . AutoSaveManager::ENTITY_DUPLICATE_SUFFIX);
     \assert($duplicate instanceof EntityPublishedInterface);
     $duplicate->setUnpublished();
-    // The duplicate is a new Live entity, not a workspace-staged draft.
-    $this->executeOutsideWorkspace(static fn () => $duplicate->save());
+    // The save targets the active workspace: a duplicate created while a
+    // workspace is active is tracked there and goes live with the publish.
+    $duplicate->save();
 
     // Delete temp data for the duplicate, it should not have it at this point.
     // Everything is saved.

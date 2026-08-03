@@ -145,7 +145,7 @@ final class DeferredAutoSaveFlusher implements EventSubscriberInterface {
         }
         $to_save->set($field_name, $items->getValue());
       }
-      $this->persistInAutoSaveWorkspace($to_save, $row['client_id'] ?? NULL);
+      $this->persistInWorkspace($to_save, $row['client_id'] ?? NULL, self::workspaceIdFromKey($key));
       $this->staticCache->delete($key);
       $this->cacheTagsInvalidator->invalidateTags([AutoSaveManager::CACHE_TAG]);
       $still = $this->buffer->get($key);
@@ -173,24 +173,35 @@ final class DeferredAutoSaveFlusher implements EventSubscriberInterface {
   }
 
   /**
-   * Persists inside the auto-save workspace, scoped to this operation.
+   * The workspace a buffer row was staged for, recorded in its key prefix.
    *
-   * Terminate-time flushes must not leave the workspace active for whatever
-   * runs later in the same process.
+   * @see \Drupal\canvas\AutoSave\AutoSaveManager::getAutoSaveKey()
    */
-  private function persistInAutoSaveWorkspace(ContentEntityInterface $entity, ?string $clientId): void {
+  private static function workspaceIdFromKey(string $key): string {
+    return \explode(':', $key, 2)[0];
+  }
+
+  /**
+   * Persists inside the recorded workspace, scoped to this operation.
+   *
+   * The buffer row records the workspace the edit was made in via its key
+   * prefix; the flush lands there even when the user has switched workspaces
+   * (or none is active) by terminate time. Terminate-time flushes must not
+   * leave the workspace active for whatever runs later in the same process.
+   */
+  private function persistInWorkspace(ContentEntityInterface $entity, ?string $clientId, string $workspaceId): void {
     $persist = fn () => $this->contentEntityPersist->persist($entity, $clientId);
     if ($this->workspaceManager === NULL
-      || $this->entityTypeManager->getStorage('workspace')->load(AutoSaveWorkspace::ID) === NULL) {
+      || $this->entityTypeManager->getStorage('workspace')->load($workspaceId) === NULL) {
       $persist();
       return;
     }
     if ($this->workspaceManager->hasActiveWorkspace()
-      && $this->workspaceManager->getActiveWorkspace()?->id() === AutoSaveWorkspace::ID) {
+      && $this->workspaceManager->getActiveWorkspace()?->id() === $workspaceId) {
       $persist();
       return;
     }
-    $this->workspaceManager->executeInWorkspace(AutoSaveWorkspace::ID, $persist);
+    $this->workspaceManager->executeInWorkspace($workspaceId, $persist);
   }
 
 }

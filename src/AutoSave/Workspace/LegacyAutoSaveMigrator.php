@@ -30,7 +30,14 @@ final class LegacyAutoSaveMigrator {
     $key = AutoSaveManager::getAutoSaveKey($entity);
     $legacy = $store->get($key);
     if ($legacy === NULL) {
-      return;
+      // Rows written before auto-save keys became workspace-prefixed carry
+      // the bare target key; treat them as staged in the Main workspace.
+      $unprefixed = \explode(':', $key, 2)[1];
+      $legacy = $store->get($unprefixed);
+      if ($legacy === NULL) {
+        return;
+      }
+      $key = $unprefixed;
     }
     // The key-value entry IS this entity's staging (workspace infrastructure
     // missing, or an entity type that stages in key-value by design): there is

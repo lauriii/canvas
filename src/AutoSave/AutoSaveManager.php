@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\AutoSave;
 
+use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
 use Drupal\canvas\AutoSave\Workspace\LegacyAutoSaveMigrator;
 use Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave;
 use Drupal\canvas\AutoSaveEntity;
@@ -21,6 +22,7 @@ use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\Health\HealthCheck;
 use Drupal\canvas\Health\HealthRecords;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Workspace\WorkspaceReview;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Utility\SortArray;
 use Drupal\content_moderation\Plugin\Field\ModerationStateFieldItemList;
@@ -143,6 +145,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     private readonly HealthRecords $healthRecords,
     private readonly WorkspaceAutoSave $workspaceAutoSave,
     private readonly LegacyAutoSaveMigrator $legacyAutoSaveMigrator,
+    private readonly WorkspaceReview $workspaceReview,
   ) {
     $this->autoSaveStore = $keyValueFactory->get(self::AUTO_SAVE_STORE);
     $this->formViolationsStore = $keyValueFactory->get(self::FORM_VIOLATIONS_STORE);
@@ -267,6 +270,28 @@ class AutoSaveManager implements EventSubscriberInterface {
     $this->workspaceAutoSave->persistStagedEntity($entity, $clientId, $immediateWorkspacePersist, $auto_save_data);
     $this->cache->delete($key);
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
+    $this->demoteStagingWorkspaceReviewState();
+  }
+
+  /**
+   * Demotes the staging workspace to draft after a Canvas staged write.
+   *
+   * Covers the snapshot, buffer, and key-value staging paths, which do not
+   * pass through the workspace-tracked entity save that
+   * WorkspaceAutoSaveRevisionHooks reacts to.
+   *
+   * @see \Drupal\canvas\Hook\WorkspaceAutoSaveRevisionHooks
+   */
+  private function demoteStagingWorkspaceReviewState(): void {
+    if (!$this->entityTypeManager->hasDefinition('workspace')) {
+      return;
+    }
+    $workspace = $this->entityTypeManager->getStorage('workspace')->load(self::activeWorkspaceId());
+    if ($workspace instanceof FieldableEntityInterface
+      && $workspace->hasField('canvas_workspace_status')) {
+      \assert($workspace instanceof \Drupal\workspaces\WorkspaceInterface);
+      $this->workspaceReview->demoteOnStagedWrite($workspace);
+    }
   }
 
   /**
@@ -438,11 +463,35 @@ class AutoSaveManager implements EventSubscriberInterface {
 
   public static function getAutoSaveKey(EntityInterface $entity): string {
     // @todo Make use of https://www.drupal.org/project/drupal/issues/3026957
-    // @todo This will likely to also take into account the workspace ID.
+    // The key is workspace-scoped: the same target entity may hold staged
+    // state in several workspaces (config entities are not covered by core's
+    // one-workspace-per-entity tracking), and every key-value store, cache
+    // entry, and client-visible pointer must partition per workspace so
+    // switching workspaces cannot produce false conflict or dirty signals.
+    $key = self::activeWorkspaceId() . ':' . $entity->getEntityTypeId() . ':' . $entity->id();
     if ($entity instanceof TranslatableInterface) {
-      return $entity->getEntityTypeId() . ':' . $entity->id() . ':' . $entity->language()->getId();
+      $key .= ':' . $entity->language()->getId();
     }
-    return $entity->getEntityTypeId() . ':' . $entity->id();
+    return $key;
+  }
+
+  /**
+   * The workspace that staging reads and writes resolve against.
+   *
+   * The active workspace when one is negotiated; the Main workspace
+   * otherwise (CLI, kernel tests, editing sessions that never selected a
+   * named workspace). Static because ::getAutoSaveKey() is called from
+   * static contexts throughout the codebase; operations that act on a
+   * specific non-active workspace (e.g. post-publish cleanup during cron)
+   * must wrap themselves in WorkspaceManagerInterface::executeInWorkspace().
+   */
+  public static function activeWorkspaceId(): string {
+    // @phpstan-ignore-next-line
+    $manager = \Drupal::hasService('workspaces.manager') ? \Drupal::service('workspaces.manager') : NULL;
+    if ($manager !== NULL && $manager->hasActiveWorkspace()) {
+      return (string) $manager->getActiveWorkspace()->id();
+    }
+    return AutoSaveWorkspace::ID;
   }
 
   /**
@@ -972,14 +1021,17 @@ class AutoSaveManager implements EventSubscriberInterface {
    */
   public function groupConfigEntityAutoSaves(ComponentTreeConfigEntityBase $entity): array {
     $suffix = '.' . $entity->getConfigDependencyName();
+    $prefix = self::activeWorkspaceId() . ':';
     /** @var array<string, AutoSaveEntry> $entries */
     $entries = $this->autoSaveStore->getAll();
     $matches = \array_filter(
       $entries,
-      static fn (array $entry): bool =>
-        $entry['entity_type'] === StagedLanguageConfigOverride::ENTITY_TYPE_ID
+      static fn (array $entry, string $key): bool =>
+        \str_starts_with($key, $prefix)
+        && $entry['entity_type'] === StagedLanguageConfigOverride::ENTITY_TYPE_ID
         && \is_string($entry['entity_id'])
         && \str_ends_with($entry['entity_id'], $suffix),
+      ARRAY_FILTER_USE_BOTH,
     );
     return \array_values(\array_map(function (array $entry): StagedLanguageConfigOverride {
       $override = $this->createEntityFromAutoSaveEntry($entry);

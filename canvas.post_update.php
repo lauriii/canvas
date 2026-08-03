@@ -709,3 +709,62 @@ function canvas_post_update_0023_migrate_auto_save_to_workspace(array &$sandbox)
   }
   $sandbox['#finished'] = \count($sandbox['keys']) === 0 ? 1 : 1 - (\count($sandbox['keys']) / $sandbox['total']);
 }
+
+/**
+ * Makes canvas_default the visible "Main workspace" with core access.
+ *
+ * Relabels the workspace, moves it to the default workspace provider so it
+ * appears in core listings and switchers, and maps the Phase 1
+ * provider-granted access onto core workspace permissions: roles that can
+ * edit in Canvas gain "view any workspace", and roles that can publish
+ * Canvas changes gain "edit any workspace" (core's publish operation) and
+ * "create workspace". Review the granted permissions after updating.
+ */
+function canvas_post_update_0024_main_workspace(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('workspace');
+  $workspace = $storage->load(\Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace::ID);
+  if ($workspace !== NULL) {
+    $workspace->set('label', \Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace::LABEL);
+    $workspace->set('provider', 'default');
+    // The Main workspace is the scratch space: it publishes without review.
+    if ($workspace->hasField('canvas_require_review')) {
+      $workspace->set('canvas_require_review', FALSE);
+    }
+    $workspace->save();
+  }
+
+  $canvas_editor_permissions = [
+    'publish auto-saves',
+    'edit canvas_page',
+    'create canvas_page',
+    'administer components',
+    'administer code components',
+    'administer brand kit',
+    'administer content templates',
+  ];
+  /** @var \Drupal\user\RoleInterface $role */
+  foreach (\Drupal::entityTypeManager()->getStorage('user_role')->loadMultiple() as $role) {
+    if ($role->isAdmin()) {
+      continue;
+    }
+    $changed = FALSE;
+    foreach ($canvas_editor_permissions as $permission) {
+      if ($role->hasPermission($permission) && !$role->hasPermission('view any workspace')) {
+        $role->grantPermission('view any workspace');
+        $changed = TRUE;
+        break;
+      }
+    }
+    if ($role->hasPermission('publish auto-saves')) {
+      foreach (['edit any workspace', 'create workspace'] as $permission) {
+        if (!$role->hasPermission($permission)) {
+          $role->grantPermission($permission);
+          $changed = TRUE;
+        }
+      }
+    }
+    if ($changed) {
+      $role->save();
+    }
+  }
+}

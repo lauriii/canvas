@@ -94,6 +94,9 @@ services:
   Drupal\canvas\AutoSave\Workspace\PendingContentAutoSaveBuffer: { }
   Drupal\canvas\AutoSave\Workspace\DeferredAutoSaveFlusher: { }
   Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave: { }
+  Drupal\canvas\Workspace\WorkspaceReview: { }
+  Drupal\canvas\Workspace\CanvasWorkspacePublisher: { }
+  Drupal\canvas\Workspace\WorkspaceScheduledPublish: { }
   Drupal\canvas\AutoSave\Workspace\LegacyAutoSaveMigrator: {}
   Drupal\canvas\AutoSave\Workspace\AutoSaveSnapshotRepository: { }
   Drupal\canvas\Hook\WorkspaceAutoSaveRevisionHooks: {}
@@ -174,9 +177,6 @@ services:
       - { name: path_processor_inbound, priority: 200 }
   Drupal\canvas\Controller\CanvasBlockListController: ~
   Drupal\canvas\EventSubscriber\RecipeSubscriber: ~
-  Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspaceActivationSubscriber:
-    tags:
-      - { name: event_subscriber }
   Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspacePublishSubscriber:
     tags:
       - { name: event_subscriber }
@@ -243,11 +243,8 @@ services:
   Drupal\canvas\Controller\ComponentStatusController: {}
   Drupal\canvas\Controller\ComponentAuditController: {}
   Drupal\canvas\Controller\CanvasController: {}
-  Drupal\canvas\Controller\ApiAutoSaveController:
-    arguments:
-      # content_translation is an optional dependency; the '?' keeps the
-      # controller buildable when it is not installed (argument is then NULL).
-      $translationSynchronizer: '@?content_translation.synchronizer'
+  Drupal\canvas\Controller\ApiAutoSaveController: {}
+  Drupal\canvas\Controller\ApiWorkspaceController: {}
   Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers: {}
   Drupal\canvas\Controller\ApiUiContentTemplateControllers: {}
   Drupal\canvas\Controller\ApiUsageControllers: {}
