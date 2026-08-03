@@ -362,7 +362,11 @@ export const componentAndLayoutApi = createApi({
     }),
     updateCodeComponent: builder.mutation<
       CodeComponentSerialized,
-      { id: string; changes: Partial<CodeComponentSerialized> }
+      {
+        id: string;
+        changes: Partial<CodeComponentSerialized>;
+        isExposing?: boolean;
+      }
     >({
       query: ({ id, changes }) => ({
         url: `canvas/api/v0/config/js_component/${id}`,
@@ -376,6 +380,18 @@ export const componentAndLayoutApi = createApi({
         { type: 'Components', id: 'LIST' },
         { type: 'Layout' },
       ],
+      async onQueryStarted(isExposing, { dispatch, queryFulfilled }) {
+        // If the component is newly exposed, refetch our folder config.
+        if (isExposing) {
+          await queryFulfilled;
+          dispatch(
+            componentAndLayoutApi.endpoints.getFolders.initiate(undefined, {
+              forceRefetch: true,
+              subscribe: false,
+            }),
+          );
+        }
+      },
     }),
     deleteCodeComponent: builder.mutation<void, string>({
       query: (id) => ({
